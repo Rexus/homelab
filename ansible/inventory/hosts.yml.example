@@ -1,0 +1,14 @@
+# Copy to: ansible/inventory/hosts.yml
+# Replace every value before use.
+# Setup guide: README.md
+
+all:
+  children:
+    hypervisors:
+      hosts:
+        pve01-change-me:
+          ansible_host: 10.10.10.11
+    guests:
+      hosts:
+        gateway01-change-me:
+          ansible_host: 10.20.20.10

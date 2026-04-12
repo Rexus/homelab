@@ -1,0 +1,8 @@
+# Copy to: packer/variables.auto.pkrvars.hcl
+# Replace every value before use.
+# Setup guide: README.md
+
+platform = "proxmox"
+image_name = "debian-12-cis-base-change-me"
+node_name = "pve01-change-me"
+storage_pool = "local-lvm-change-me"

@@ -1,0 +1,5 @@
+---
+- name: Ensure timezone is configured when enabled
+  ansible.builtin.timezone:
+    name: "{{ baseline_timezone }}"
+  when: baseline_manage_timezone
