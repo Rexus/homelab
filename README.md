@@ -15,19 +15,57 @@ not push operational changes back to this upstream.
 
 ## Getting started
 
-1. Copy these files:
-   - `packer/variables.auto.pkrvars.hcl.example`
-     -> `packer/variables.auto.pkrvars.hcl`
-   - `terraform/environments/lab/terraform.tfvars.example`
-     -> `terraform/environments/lab/terraform.tfvars`
-   - `ansible/inventory/hosts.yml.example`
-     -> `ansible/inventory/hosts.yml`
-   - `ansible/group_vars/all.yml.example`
-     -> `ansible/group_vars/all.yml`
-2. Replace the placeholder values with your own.
-3. Set required secrets as environment variables.
-4. Follow the current platform guide in [platforms/proxmox](platforms/proxmox/README.md).
-5. Run Packer, then Terraform, then Ansible.
+Use the bootstrap fast path below for the shortest first run. For a fuller
+walkthrough of the same flow, read [docs/getting-started/bootstrap-path.md](docs/getting-started/bootstrap-path.md)
+first. If the local tooling still needs to be prepared, read
+[docs/getting-started/local-setup.md](docs/getting-started/local-setup.md).
+
+Bootstrap fast path:
+
+1. Review platform prerequisites:
+   - [Proxmox reference platform](platforms/proxmox/README.md)
+   - [Proxmox API setup](platforms/proxmox/setup-api.md)
+
+2. Prepare local working files:
+
+```bash
+cp packer/variables.auto.pkrvars.hcl.example packer/variables.auto.pkrvars.hcl
+cp terraform/environments/bootstrap/terraform.tfvars.example terraform/environments/bootstrap/terraform.tfvars
+cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
+cp ansible/group_vars/all.yml.example ansible/group_vars/all.yml
+```
+
+3. Update the copied files with local values.
+
+4. Set platform API access for the current shell:
+
+```bash
+export TF_VAR_proxmox_api_url="https://proxmox.example.com:8006/api2/json"
+export TF_VAR_proxmox_api_token_id="terraform@pve!change-me"
+export TF_VAR_proxmox_api_token_secret="change-me"
+```
+
+5. Run the bootstrap deployment:
+
+```bash
+cd terraform/environments/bootstrap
+terraform init
+terraform plan
+terraform apply
+cd ../../..
+```
+
+6. Apply bootstrap configuration after provisioning:
+
+```bash
+cd ansible
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap.yml
+cd ..
+```
+
+7. Continue with:
+   - [Secret strategy](docs/security/secret-strategy.md)
+   - [Private cloud maturity path](docs/getting-started/private-cloud-maturity-path.md)
 
 Recommended maturity path:
 
@@ -49,8 +87,8 @@ Read more in:
 - `docs/` overview, architecture, security, and decision records
 - `platforms/` provider-specific guidance and implementation notes
 - `packer/` image build workflow and example variable files
-- `terraform/` infrastructure provisioning layout and environment examples
-- `ansible/` configuration management layout, inventory examples, and defaults
+- `terraform/` infrastructure provisioning layout and bootstrap environments
+- `ansible/` configuration management layout, inventory examples, and playbooks
 - `.ai/` hidden assistant context and session notes
 
 ## AI-assisted development

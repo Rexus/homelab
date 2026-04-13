@@ -4,34 +4,34 @@
 
 - [Purpose](#purpose)
 - [Maturity overview](#maturity-overview)
-- [Level 1 - First repo test](#level-1---first-repo-test)
+- [Level 1 - Initial deployment](#level-1---initial-deployment)
 - [Level 2 - Backup and recovery](#level-2---backup-and-recovery)
 - [Level 3 - Secret platform](#level-3---secret-platform)
 - [Level 4 - Higher availability and production use](#level-4---higher-availability-and-production-use)
 
 ## Purpose
 
-Use this path to grow the environment from a first working test toward a more
-resilient and production-ready private cloud. Proxmox is the current reference
-foundation, but the maturity path is about the broader platform.
+Use this path to grow the environment from an initial working deployment toward
+ a more resilient and production-ready private cloud. Proxmox is the current
+reference foundation, but the maturity path is about the broader platform.
 
 ## Maturity overview
 
 | Level | Goal | Success criteria |
 | --- | --- | --- |
-| 1 | First repo test | First template, VM, and baseline flow works |
+| 1 | Initial deployment | First template, VM, and baseline flow works |
 | 2 | Backup and recovery | PBS is deployed, connected, and tested |
 | 3 | Secret platform | Vault replaces bootstrap-only secret handling |
 | 4 | Higher availability and production use | Backup, recovery, and platform patterns support more serious use |
 
-## Level 1 - First repo test
+## Level 1 - Initial deployment
 
 Goal:
 
 - copy the example files
 - set the required environment variables
 - build or prepare a template
-- provision a first test VM
+- provision the first managed VM
 - apply the first Ansible baseline run
 
 Read more:
@@ -71,7 +71,7 @@ Goal:
 
 - improve resilience, recovery, and operational confidence
 - move beyond single-host assumptions where needed
-- use the platform for more serious shared services and workloads
+- use the platform for more serious application and infrastructure services
 
 Read more:
 

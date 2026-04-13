@@ -1,0 +1,42 @@
+# Copy to: terraform/environments/bootstrap/terraform.tfvars
+# Replace every value before use.
+# Setup guide: README.md
+
+platform = "proxmox"
+cluster_name = "bootstrap-change-me"
+proxmox_node_name = "pve01-change-me"
+proxmox_storage_classes = {
+  local = {
+    vm_disk        = "local-lvm-change-me"
+    initialization = "local-lvm-change-me"
+  }
+  shared = {
+    vm_disk        = "shared-change-me"
+    initialization = "shared-change-me"
+  }
+  fast = {
+    vm_disk        = "nvme-change-me"
+    initialization = "local-lvm-change-me"
+  }
+}
+proxmox_network_bridge = "vmbr0"
+template_vm_id_almalinux_10 = 9010
+instance_name = "alma-01-change-me"
+instance_size = "tiny"
+instance_storage_class = "local"
+instance_disk_size_gb = 20
+instance_ipv4_address = "dhcp"
+instance_ipv4_gateway = null
+instance_ssh_public_keys = [
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@bootstrap"
+]
+container_name = "container-01-change-me"
+container_template_file_id = "local:vztmpl/almalinux-10-default_2024.x86_64.tar.xz"
+container_size = "tiny"
+container_storage_class = "local"
+container_disk_size_gb = 8
+container_ipv4_address = "dhcp"
+container_ipv4_gateway = null
+management_cidr = "10.10.10.0/24"
+workload_cidr = "10.20.20.0/24"
+edge_cidr = "10.30.30.0/24"

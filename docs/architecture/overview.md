@@ -3,231 +3,113 @@
 ## Table of contents
 
 - [Intent](#intent)
-- [Private cloud design model](#private-cloud-design-model)
-- [Mapping to public cloud concepts](#mapping-to-public-cloud-concepts)
-- [Layered network model](#layered-network-model)
-- [Multi-lab segmentation](#multi-lab-segmentation)
+- [Model](#model)
 - [Automation flow](#automation-flow)
-- [Platform progression](#platform-progression)
-- [Network prerequisites](#network-prerequisites)
-- [Current automation boundary](#current-automation-boundary)
-- [Trust boundaries](#trust-boundaries)
+- [Boundaries](#boundaries)
 
 ## Intent
 
-This baseline is organized around clear trust boundaries, layered networking,
-and a strict separation between image build, infrastructure provisioning, and
-configuration management. The goal is fast repeatability with a high security
-posture and low operational drift.
+This repository is a private-cloud baseline built around clear trust
+boundaries, layered networking, and a strict split between image creation,
+resource provisioning, and configuration management.
 
-## Private cloud design model
+The design is meant to stay stable as the environment grows. The number of
+segments, hosts, and services can change without changing the core model.
 
-This repository should feel familiar to users coming from AWS or Google Cloud.
-The goal is not to copy public cloud services one-to-one, but to use similar
-patterns for separation, shared services, restricted services, and workload
-placement so the homelab can evolve into a simple private cloud.
+## Goals:
 
-Core design ideas:
+- clear separation of edge, application, and infrastructure concerns
+- no implicit trust between zones
+- controlled remote user and administrator access
+- reusable structure for IaC and multi-cloud thinking
+- clear placement of identity, secrets, and hardware-backed systems
 
-- separate management from workloads
-- keep edge or DMZ services isolated from internal control paths
-- provide shared services as common platform building blocks
-- isolate sensitive services behind tighter trust boundaries
-- segment labs or environments in a VPC-like way without overcomplicating it
+## Layered Overview
 
-## Mapping to public cloud concepts
+```text
+PRIVATE CLOUD
 
-| This repository | Familiar public cloud pattern |
-| --- | --- |
-| Management network | admin plane or management subnet |
-| Edge or DMZ | ingress tier or public subnet |
-| Shared services zone | shared services VPC, project, or hub |
-| Lab network | workload VPC or application subnet |
-| Restricted services | security services project or restricted subnet |
-| Proxmox cluster | compute foundation |
-| Golden images | machine images or templates |
+┌─────────────────────────────────────────────────────────────┐
+│ EDGE LAYER                                                  │
+│   External Zone        Internet, WAN, Partner Networks      │
+│   DMZ Zone             Ingress, VPN, ZTNA, Egress           │
+├─────────────────────────────────────────────────────────────┤
+│ APPLICATION LAYER                                           │
+│   Shared Services      DNS, AD, Identity, Vault, Logging    │
+│   User Services        Internal Apps, APIs, Portals         │
+├─────────────────────────────────────────────────────────────┤
+│ INFRASTRUCTURE LAYER                                        │
+│   Management Zone      Bastion, IaC, Ops, Hypervisor Mgmt   │
+│   Restricted HW Zone   HSM, Storage, Backup, HW Roots       │
+└─────────────────────────────────────────────────────────────┘
 
-These are pattern analogies, not feature-equivalent implementations.
+## Model
 
-## Layered network model
+The architecture uses a small set of durable zones:
 
-```mermaid
-flowchart TB
-    Internet[Internet]
-    Edge[DMZ or edge\nIngress and reverse proxy]
-    Mgmt[Management\nAdmins, runners, APIs]
-    Workload[Workload\nApps, clusters, utility VMs]
-    Storage[Storage\nBackups, images, replication]
-    Secure[Restricted\nVault, PKI, sensitive services]
+- management for operators, runners, and platform APIs
+- edge for published entry points such as VPN and ingress
+- workload segments for applications, clusters, and projects
+- shared services for common platform capabilities such as DNS and identity
+- storage and backup for images, snapshots, and recovery data
+- restricted services for secrets, PKI, and other high-trust systems
 
-    Internet --> Edge
-    Mgmt --> Edge
-    Mgmt --> Workload
-    Mgmt --> Storage
-    Mgmt --> Secure
-    Workload --> Storage
-    Workload -. explicitly allowed only .-> Secure
-    Edge -. no direct admin path .-> Secure
-    Edge -. isolated from .-> Mgmt
+```text
+Lower trust
+  Internet, WAN, remote users
+           |
+           v
++-----------------------+
+| Edge / published      |
++-----------+-----------+
+            |
+            v
++-----------+-----------+
+| Workload segments     |
++---+-----------+---+---+
+    |           |   |
+    |           |   +--> Restricted services
+    |           +------> Storage and backup
+    +------------------> Shared services
+
+Management plane
+  operators, runners, APIs
+  separate control path into managed zones
 ```
 
-| Zone | Purpose | Access pattern |
-| --- | --- | --- |
-| Management | control plane and administration | tightly restricted |
-| DMZ or edge | ingress and public entry points | minimized exposure |
-| Workload | application and platform workloads | segmented by role |
-| Storage | backups and replicated data | explicit allow-list only |
-| Restricted | secrets, PKI, sensitive control services | highest trust boundary |
-
-## Multi-lab segmentation
-
-A simple model is to treat each lab or environment as its own workload segment
-while reusing shared management, edge, storage, and restricted services.
-
-```mermaid
-flowchart TB
-    Internet[Internet]
-    Edge[Edge or DMZ]
-    Mgmt[Management]
-    Shared[Shared services\nDNS, logging, artifact caches]
-    Storage[Storage]
-    Secure[Restricted services\nVault, PKI]
-    LabA[Lab A\napps, test systems]
-    LabB[Lab B\ncluster or platform tests]
-    LabC[Lab C\nexperiments or staging]
-
-    Internet --> Edge
-    Mgmt --> Edge
-    Mgmt --> Shared
-    Mgmt --> Storage
-    Mgmt --> Secure
-    Mgmt --> LabA
-    Mgmt --> LabB
-    Mgmt --> LabC
-    LabA --> Shared
-    LabB --> Shared
-    LabC --> Shared
-    LabA --> Storage
-    LabB --> Storage
-    LabC --> Storage
-    LabA -. tightly scoped .-> Secure
-    LabB -. tightly scoped .-> Secure
-    LabC -. tightly scoped .-> Secure
-    Edge -. published paths only .-> LabA
-    Edge -. published paths only .-> LabB
-```
-
-This gives a simple private-cloud model that feels similar to VPC or project
-segmentation without needing complex overlays from the start.
+This is a pattern model, not a public-cloud feature match. Proxmox is the
+current foundation layer, but the architecture is broader than a single
+platform.
 
 ## Automation flow
 
-```mermaid
-flowchart LR
-    Operator[Operator or self-hosted runner] --> Secrets[Local secret source or Vault]
-    Operator --> Packer[Packer]
-    Operator --> Terraform[Terraform]
-    Operator --> Ansible[Ansible]
+Each tool has one primary job:
 
-    Packer --> Images[Golden images]
-    Images --> Platform[Current platform foundation]
-    Terraform --> Platform
-    Platform --> Nodes[Hosts, VMs, services]
-    Ansible --> Nodes
+- Packer builds reusable images when custom templates are needed
+- Terraform provisions VMs, containers, and platform resources
+- Ansible applies baseline system configuration after provisioning
+
+```text
+Secret source -> Packer -> Terraform -> Ansible
 ```
 
-## Platform progression
+## Boundaries
 
-```mermaid
-flowchart LR
-    A[Platform foundation\nCurrent reference: Proxmox] --> B[Golden images]
-    B --> C[Baseline virtual machines]
-    C --> D[Core services\nDNS, secrets, ingress]
-    D --> E[Platform services\nVault, Talos, Kubernetes]
-    E --> F[Edge and access\nTraefik, gateways, exposure]
-```
+Current repository scope:
 
-This repository should stay broader than the current platform implementation.
-Proxmox is the current reference foundation, not the permanent identity.
+- platform-facing automation
+- reusable templates and images
+- VM and container provisioning
+- baseline guest and host configuration
 
-## Network prerequisites
+Outside current scope:
 
-The current automation assumes the network underlay already exists.
+- router, firewall, and switch underlay configuration
+- end-to-end network fabric automation
 
-Required capabilities outside this repository:
+Operating assumptions:
 
-- VLAN-aware switching
-- routing between networks where intentionally allowed
-- firewall policy between management, edge, workload, storage, and restricted
-  segments
-- gateway or router support for upstream and inter-VLAN traffic
-- DNS, DHCP, and IP planning aligned with the chosen segmentation model
-
-Important current limitation:
-
-- Proxmox can attach bridges and VLAN-tagged interfaces for guests
-- this repository does not currently manage the external router, switch, or
-  firewall configuration that makes those VLANs usable end-to-end
-
-That means network segmentation must be designed and working before the full
-platform automation is applied.
-
-## Current automation boundary
-
-```mermaid
-flowchart LR
-    subgraph External[Outside current automation scope]
-        Router[Router or firewall]
-        Switching[VLAN-aware switching]
-        WAN[WAN or upstream connectivity]
-    end
-
-    subgraph Managed[Current repository scope]
-        Proxmox[Platform foundation\nCurrent reference: Proxmox]
-        Packer[Packer]
-        Terraform[Terraform]
-        Ansible[Ansible]
-        Guests[VMs and platform services]
-    end
-
-    WAN --> Router
-    Router --> Switching
-    Switching --> Proxmox
-    Packer --> Proxmox
-    Terraform --> Proxmox
-    Proxmox --> Guests
-    Ansible --> Guests
-```
-
-Future network automation may include router or firewall integration, for
-example through vendor APIs such as Ubiquiti, but that is not part of the
-current baseline.
-
-## Trust boundaries
-
-```mermaid
-flowchart TD
-    subgraph Public[Lower trust]
-        Internet2[Internet]
-        DMZ[DMZ services]
-    end
-
-    subgraph Controlled[Controlled]
-        Runner[Operator workstation or runner]
-        API[Platform API]
-        Hosts[Hypervisors, VMs, clusters]
-    end
-
-    subgraph Sensitive[High trust]
-        Vault[Vault or secret system]
-        PKI[PKI and certificate material]
-    end
-
-    Internet2 --> DMZ
-    Runner --> API
-    Runner --> Vault
-    API --> Hosts
-    Hosts -. short-lived credentials .-> Vault
-    DMZ -. no implicit trust .-> Hosts
-    DMZ -. isolated from .-> Vault
-```
+- management paths stay separate from workloads
+- edge services do not get implicit access to management or restricted systems
+- workload access to secrets and other high-trust services is explicit
+- network segmentation must already exist before full platform automation

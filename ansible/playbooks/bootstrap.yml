@@ -1,0 +1,6 @@
+---
+- name: Apply bootstrap configuration
+  hosts: all
+  become: true
+  roles:
+    - baseline

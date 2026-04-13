@@ -28,7 +28,7 @@ for cloud-init-style initialization and is a good fit for Proxmox templates.
 5. Attach a cloud-init drive.
 6. Set the VM boot disk and boot order.
 7. Convert the VM to a template.
-8. Use the template VM ID in `terraform/environments/lab/terraform.tfvars`.
+8. Use the template VM ID in `terraform/environments/bootstrap/terraform.tfvars`.
 
 ## What to keep in the template
 

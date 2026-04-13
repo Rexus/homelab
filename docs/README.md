@@ -10,7 +10,7 @@
 ## Start here
 
 - [Private cloud maturity path](getting-started/private-cloud-maturity-path.md) -
-  path from first test to backup, secrets, and more serious use
+  path from initial deployment to backup, secrets, and more serious use
 - [Safe repository usage](usage-model.md) - how to use this public upstream
   without publishing live configuration
 
