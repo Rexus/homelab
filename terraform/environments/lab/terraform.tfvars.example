@@ -20,7 +20,7 @@ proxmox_storage_classes = {
   }
 }
 proxmox_network_bridge = "vmbr0"
-template_vm_id_el10 = 9010
+template_vm_id_el10 = 110
 instance_name = "el10-01-change-me"
 instance_size = "tiny"
 instance_storage_class = "local"
@@ -40,7 +40,6 @@ container_ipv4_gateway = null
 management_cidr = "10.10.10.0/24"
 workload_cidr = "10.20.20.0/24"
 edge_cidr = "10.30.30.0/24"
-
 
 
 

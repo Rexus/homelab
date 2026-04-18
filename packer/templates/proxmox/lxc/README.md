@@ -10,4 +10,4 @@ Packer in this repository currently targets VM image workflows. For LXC, prefer:
 Read more in:
 
 - `../../../terraform/README.md`
-- `../../../platforms/proxmox/README.md`
+- `../../../../docs/platforms/proxmox/README.md`

@@ -55,7 +55,7 @@ resource "proxmox_virtual_environment_vm" "this" {
   cpu {
     cores   = local.resolved_cores
     sockets = var.sockets
-    type    = "x86-64-v2-AES"
+    type    = "x86-64-v3"
   }
 
   memory {

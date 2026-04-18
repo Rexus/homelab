@@ -47,6 +47,6 @@ Do not continue until all of these are true:
 
 ## Read more
 
-- [Private cloud maturity path](../../docs/getting-started/private-cloud-maturity-path.md)
+- [Private cloud maturity path](../../getting-started/private-cloud-maturity-path.md)
 - [Network prerequisites](network-prerequisites.md)
 - [Hardening baseline](hardening.md)

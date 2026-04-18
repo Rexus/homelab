@@ -23,8 +23,8 @@ first. If the local tooling still needs to be prepared, read
 Bootstrap fast path:
 
 1. Review platform prerequisites:
-   - [Proxmox reference platform](platforms/proxmox/README.md)
-   - [Proxmox API setup](platforms/proxmox/setup-api.md)
+   - [Proxmox reference platform](docs/platforms/proxmox/README.md)
+   - [Proxmox API setup](docs/platforms/proxmox/setup-api.md)
 
 2. Prepare local working files:
 
@@ -84,15 +84,14 @@ Read more in:
 
 - [docs/getting-started/vault-bootstrap.md](docs/getting-started/vault-bootstrap.md)
 - [docs/getting-started/private-cloud-maturity-path.md](docs/getting-started/private-cloud-maturity-path.md)
-- [platforms/proxmox/backup-foundation.md](platforms/proxmox/backup-foundation.md)
+- [Proxmox backup foundation](docs/platforms/proxmox/backup-foundation.md)
 - [docs/reference/environment-variables.md](docs/reference/environment-variables.md)
 - [docs/security/secret-strategy.md](docs/security/secret-strategy.md)
 - [docs/architecture/overview.md](docs/architecture/overview.md)
 
 ## Repository structure
 
-- `docs/` overview, architecture, security, and decision records
-- `platforms/` provider-specific guidance and implementation notes
+- `docs/` overview, getting started, platform guides, security, and decisions
 - `packer/` image build workflow and example variable files
 - `terraform/` infrastructure provisioning layout and bootstrap environments
 - `ansible/` configuration management layout, inventory examples, and playbooks

@@ -47,6 +47,6 @@ Recommended next maturity step:
 
 ## Related references
 
-- [Safe repository usage](../../docs/usage-model.md)
-- [Secret strategy](../../docs/security/secret-strategy.md)
-- [Security principles](../../docs/security/security-principles.md)
+- [Safe repository usage](../../usage-model.md)
+- [Secret strategy](../../security/secret-strategy.md)
+- [Security principles](../../security/security-principles.md)

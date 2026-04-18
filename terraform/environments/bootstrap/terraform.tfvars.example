@@ -20,7 +20,7 @@ proxmox_storage_classes = {
   }
 }
 proxmox_network_bridge = "vmbr0"
-template_vm_id_el10 = 9010
+template_vm_id_el10 = 110
 instance_name = "vault01-change-me"
 instance_size = "large"
 instance_storage_class = "local"

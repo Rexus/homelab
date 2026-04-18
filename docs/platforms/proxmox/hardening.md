@@ -20,7 +20,7 @@ sensitive workloads without relying on broad default access.
 Apply the repository security baseline to the Proxmox foundation before broad
 automation use.
 
-Read more in [Security principles](../../docs/security/security-principles.md).
+Read more in [Security principles](../../security/security-principles.md).
 
 ## Management access
 
@@ -40,7 +40,7 @@ requirements.
 Read more in:
 
 - [API setup](setup-api.md)
-- [Secret strategy](../../docs/security/secret-strategy.md)
+- [Secret strategy](../../security/secret-strategy.md)
 
 ## Host and cluster hygiene
 

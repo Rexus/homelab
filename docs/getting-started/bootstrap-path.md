@@ -81,4 +81,4 @@ After the bootstrap deployment succeeds:
 - [Private cloud maturity path](private-cloud-maturity-path.md)
 - [Secret strategy](../security/secret-strategy.md)
 - [Environment variable conventions](../reference/environment-variables.md)
-- [Proxmox reference platform](../../platforms/proxmox/README.md)
+- [Proxmox reference platform](../platforms/proxmox/README.md)

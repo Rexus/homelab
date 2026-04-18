@@ -20,7 +20,7 @@ chosen design.
 
 Use the private-cloud network model described in the architecture overview.
 
-Read more in [Architecture overview](../../docs/architecture/overview.md).
+Read more in [Architecture overview](../../architecture/overview.md).
 
 ## Required external capabilities
 

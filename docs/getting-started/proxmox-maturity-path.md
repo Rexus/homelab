@@ -35,7 +35,7 @@ Goal:
 
 Read more:
 
-- [Platform guide](../../platforms/proxmox/README.md)
+- [Platform guide](../platforms/proxmox/README.md)
 - [Environment variable conventions](../reference/environment-variables.md)
 
 ## Level 2 - Backup foundation
@@ -49,9 +49,9 @@ Goal:
 
 Read more:
 
-- [Backup foundation](../../platforms/proxmox/backup-foundation.md)
-- [Network prerequisites](../../platforms/proxmox/network-prerequisites.md)
-- [API setup](../../platforms/proxmox/setup-api.md)
+- [Backup foundation](../platforms/proxmox/backup-foundation.md)
+- [Network prerequisites](../platforms/proxmox/network-prerequisites.md)
+- [API setup](../platforms/proxmox/setup-api.md)
 
 ## Level 3 - Secret platform
 

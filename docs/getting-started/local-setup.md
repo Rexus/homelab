@@ -25,7 +25,7 @@ Have these ready before running automation:
 - an LXC template file if container provisioning will be used
 
 For Proxmox token setup, read
-[platforms/proxmox/setup-api.md](../../platforms/proxmox/setup-api.md).
+[Proxmox API setup](../platforms/proxmox/setup-api.md).
 
 ## Local tools
 
@@ -60,4 +60,4 @@ After local setup is ready:
 - [Secret strategy](../security/secret-strategy.md)
 - [Bootstrap path](bootstrap-path.md)
 - [Private cloud maturity path](private-cloud-maturity-path.md)
-- [Proxmox reference platform](../../platforms/proxmox/README.md)
+- [Proxmox reference platform](../platforms/proxmox/README.md)

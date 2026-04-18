@@ -39,5 +39,5 @@
 
 ## Platform references
 
-- [Platform index](../platforms/README.md)
-- [Proxmox reference platform](../platforms/proxmox/README.md)
+- [Platform index](platforms/README.md)
+- [Proxmox reference platform](platforms/proxmox/README.md)

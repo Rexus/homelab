@@ -4,12 +4,12 @@
 
 - [Purpose](#purpose)
 - [Choose an image](#choose-an-image)
-- [Check x86_64_v2 support](#check-x86_64_v2-support)
+- [Check x86_64_v3 support](#check-x86_64_v3-support)
 - [Choose a CPU type](#choose-a-cpu-type)
 - [Download and verify the image](#download-and-verify-the-image)
 - [Upload the image to the Proxmox node](#upload-the-image-to-the-proxmox-node)
 - [Create the VM shell in Proxmox](#create-the-vm-shell-in-proxmox)
-- [Import the disk and finalize the template](#import-the-disk-and-finalize-the-template)
+- [Finalize the template](#finalize-the-template)
 - [What to keep in the template](#what-to-keep-in-the-template)
 - [What to configure later](#what-to-configure-later)
 - [Read more](#read-more)
@@ -40,6 +40,16 @@ Current repository note:
 - RHEL Generic Cloud images can follow the same mechanical process, but this
   repository does not document the Red Hat subscription-specific path here
 
+Suggested VM ID ranges:
+
+| Range | Purpose |
+| --- | --- |
+| `100-199` | Templates |
+| `200-299` | Infrastructure |
+| `300-399` | Docker and services |
+| `400-499` | Databases |
+| `500-999` | User and app VMs |
+
 Recommended image choice:
 
 Use the most portable Generic Cloud `qcow2` image that fits the chosen
@@ -47,20 +57,20 @@ distribution.
 
 | Distribution | Recommended image | Selection rule |
 | --- | --- | --- |
-| AlmaLinux | Generic Cloud `qcow2` for `x86_64_v2` | Use `x86_64_v2` only when every Proxmox node that may host or receive the VM supports it. Otherwise use the Generic Cloud `qcow2` image for `x86_64`. Read [Check x86_64_v2 support](#check-x86_64_v2-support). |
-| Rocky Linux | `GenericCloud-Base.latest.x86_64.qcow2` | Use `Base` for this repository. Do not use `GenericCloud-LVM.latest.x86_64.qcow2` for the default path. `Base` keeps the image closer to a minimal cloud baseline and leaves the guest layout more flexible. |
+| AlmaLinux | Generic Cloud `qcow2` for `x86_64` | Use the default `x86_64` image for this repository. AlmaLinux also publishes `x86_64_v2`, but that is a compatibility path for older hardware, not the repo default. Read [Check x86_64_v3 support](#check-x86_64_v3-support). |
+| Rocky Linux | `GenericCloud-Base.latest.x86_64.qcow2` | Use `Base` for this repository. Rocky Linux 10 requires an `x86-64-v3` CPU baseline, so do not pair it with Proxmox CPU type `x86-64-v2-AES`. Read [Check x86_64_v3 support](#check-x86_64_v3-support). |
 
 Official sources:
 
 - AlmaLinux: [AlmaLinux Generic Cloud images](https://wiki.almalinux.org/cloud/Generic-cloud.html#download-images)
 - Rocky Linux: [Rocky Linux cloud images](https://download.rockylinux.org/pub/rocky/10/images/x86_64/)
 
-## Check x86_64_v2 support
+## Check x86_64_v3 support
 
-Check this before choosing an `x86_64_v2` image for AlmaLinux or any other
-Enterprise Linux cloud image.
+Check this before choosing a Rocky Linux 10 image or the default AlmaLinux 10
+`x86_64` image.
 
-To check whether a Proxmox node supports `x86_64_v2`, open a shell on that node
+To check whether a Proxmox node supports `x86_64_v3`, open a shell on that node
 and run:
 
 ```bash
@@ -68,13 +78,13 @@ and run:
 ```
 
 On systems with a recent enough glibc, the help output includes the
-`glibc-hwcaps` levels that the node can use. Look for `x86-64-v2` in that
+`glibc-hwcaps` levels that the node can use. Look for `x86-64-v3` in that
 list.
 
 If you want a lower-level check, verify the CPU flags exposed on the node with
-`lscpu` or `/proc/cpuinfo` and confirm they include the features glibc uses for
-`x86-64-v2`: `cx16`, `lahf_lm`, `popcnt`, `sse3`, `ssse3`, `sse4_1`, and
-`sse4_2`.
+`lscpu` or `/proc/cpuinfo` and confirm they include the features needed for
+`x86-64-v3`, including `aes`, `avx`, `avx2`, `bmi1`, `bmi2`, `f16c`, `fma`,
+`movbe`, and `xsave`, in addition to the `x86-64-v2` flags.
 
 ```bash
 lscpu
@@ -88,32 +98,22 @@ Also remember that the guest only sees the features exposed by the chosen VM
 CPU type, so a capable node is necessary but not always sufficient if the VM is
 configured with a conservative virtual CPU model.
 
+If your nodes do not support `x86-64-v3`, do not use Rocky Linux 10 for this
+template. Use AlmaLinux 10 `x86_64_v2` as a compatibility path or stay on EL9.
+
 ## Choose a CPU type
 
-For this repository, set the VM `CPU Type` to `x86-64-v2-AES`.
+For this repository, set the VM `CPU Type` to `x86-64-v3`.
 
-This matches the Terraform VM module, keeps a modern portable baseline, and is
-safer for future migration than `host` in mixed or expanding clusters.
+Use the lowest CPU type that every node in the target cluster supports. That
+keeps the template portable and allows live migration between nodes.
 
-Use `host` only as an explicit deviation when all of these are true:
+Do not use `host` as the default template CPU type. `host` exposes the current
+node CPU to the guest and can keep the VM tied to that node, or to a cluster
+with matching CPU types only.
 
-- the VM will stay on one node or on a cluster with identical CPU models
-- live migration compatibility across different CPU generations is not a goal
-- you intentionally want maximum host-specific feature exposure over portability
-
-To check whether `x86-64-v2-AES` is a safe choice on a node:
-
-1. run the `x86_64_v2` check in [Check x86_64_v2 support](#check-x86_64_v2-support)
-2. verify that the node also exposes the `aes` CPU flag
-
-```bash
-lscpu
-grep -m1 '^flags' /proc/cpuinfo
-```
-
-Look for `aes` in the reported flags. For cluster use, repeat this on every
-node that may host or receive the VM through migration and keep the CPU type at
-the lowest common supported level.
+For EL10 in this repository, the cluster baseline must support `x86-64-v3`.
+Read [Check x86_64_v3 support](#check-x86_64_v3-support).
 
 ## Download and verify the image
 
@@ -182,9 +182,10 @@ Create an empty VM shell first. Import the cloud image after that.
 Use these wizard selections:
 
 1. `General`
-   - set `VM ID` to `9010`
+   - set `VM ID` to `110`
    - set `Name` to `alma10-cloud-base` for AlmaLinux or
      `rocky10-cloud-base` for Rocky Linux
+   - enable the `Advanced` checkbox so the `Tags` field is shown
    - set `Tags` to `x86_64,el10,cloud-init,alma10` for AlmaLinux or
      `x86_64,el10,cloud-init,rocky10` for Rocky Linux
 2. `OS`
@@ -196,6 +197,7 @@ Use these wizard selections:
    - when the `EFI Storage` field appears, select the VM storage
    - clear `Pre-Enroll keys`
    - set `SCSI Controller` to `VirtIO SCSI single`
+   - enable `QEMU Agent`
    - leave `Display` at the default value
    - do not add a TPM device in the template itself
 4. `Disks`
@@ -207,7 +209,7 @@ Use these wizard selections:
    - keep any extra storage or format fields at their default values
    - click `Next`
 5. `CPU`
-   - set `Type` to `x86-64-v2-AES` to match the repository default
+   - set `Type` to `x86-64-v3` to match the repository default
    - read [Choose a CPU type](#choose-a-cpu-type) for the node-side checks
    - set `Cores` to `2`
 6. `Memory`
@@ -219,7 +221,7 @@ Use these wizard selections:
 At this stage, do not set environment-specific IP addresses, passwords, or
 cloud-init user data in the template itself.
 
-## Import the disk and finalize the template
+## Finalize the template
 
 After the VM is created, finish the template in the Proxmox GUI from the VM
 `Hardware` page.
@@ -240,7 +242,16 @@ Use this flow:
 9. Open the `Options` tab, select `Boot Order`, click `Edit`, and verify that
    `scsi0` is enabled and listed above `net0`.
 10. Start the VM.
-11. Connect to the VM over SSH and run:
+11. If you use `DHCP`, find the VM IP address in the `Summary` tab.
+12. Connect to the VM over SSH and wait for first-boot tasks to finish:
+    this can take a few minutes after the first start.
+
+```bash
+sudo cloud-init status --wait
+sudo systemctl is-system-running --wait || true
+```
+
+13. Run:
 
 ```bash
 sudo dnf install -y acpid qemu-guest-agent
@@ -249,10 +260,10 @@ sudo cloud-init clean
 sudo shutdown -h now
 ```
 
-12. After the VM stops, select `SSH public keys`, click `Edit`, remove the
+14. After the VM stops, select `SSH public keys`, click `Edit`, remove the
     temporary key, then apply the change.
-13. Convert it to a template.
-14. Record the resulting template VM ID in
+15. Convert it to a template.
+16. Record the resulting template VM ID in
     `terraform/environments/bootstrap/terraform.tfvars`.
 
 ## What to keep in the template
@@ -275,11 +286,12 @@ Configure these at deploy time with Terraform and Ansible:
 - users beyond the initial automation path
 - package and service baselines
 - hardening beyond the base image
+- Secure Boot when you intentionally want that path
 - TPM state when a specific workload or policy requires it
 
 ## Read more
 
 - [Proxmox reference platform](README.md)
-- [Packer Proxmox templates](../../packer/templates/proxmox/README.md)
-- [Private cloud maturity path](../../docs/getting-started/private-cloud-maturity-path.md)
-- [Environment variable conventions](../../docs/reference/environment-variables.md)
+- [Packer Proxmox templates](../../../packer/templates/proxmox/README.md)
+- [Private cloud maturity path](../../getting-started/private-cloud-maturity-path.md)
+- [Environment variable conventions](../../reference/environment-variables.md)

@@ -27,7 +27,7 @@ Before creating automation access:
 - complete the [network prerequisites](network-prerequisites.md)
 - review the [hardening baseline](hardening.md)
 - define which operations automation must perform
-- review the [secret strategy](../../docs/security/secret-strategy.md)
+- review the [secret strategy](../../security/secret-strategy.md)
 
 ## Setup pattern
 
@@ -36,7 +36,7 @@ Use this pattern:
 1. create a dedicated automation identity
 2. assign the smallest practical role or permission scope
 3. create a token for that identity
-4. store the token according to the [secret strategy](../../docs/security/secret-strategy.md)
+4. store the token according to the [secret strategy](../../security/secret-strategy.md)
 5. test read access first, then test only the required write paths
 
 Keep the token separate from personal administrator access.
@@ -53,8 +53,8 @@ Prefer:
 
 For broader identity and secret guidance, read:
 
-- [Security principles](../../docs/security/security-principles.md)
-- [Secret strategy](../../docs/security/secret-strategy.md)
+- [Security principles](../../security/security-principles.md)
+- [Secret strategy](../../security/secret-strategy.md)
 
 ## Validation
 
