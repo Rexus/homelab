@@ -27,7 +27,7 @@ Use the Proxmox platform layer for:
 
 ## Platform guides
 
-- [AlmaLinux 10 template](almalinux-10-template.md)
+ - [Enterprise Linux template](enterprise-linux-template.md)
 - [Backup foundation](backup-foundation.md)
 - [API setup](setup-api.md)
 - [Network prerequisites](network-prerequisites.md)
@@ -36,7 +36,7 @@ Use the Proxmox platform layer for:
 ## First deployment order
 
 1. Create the automation API token.
-2. Prepare the first AlmaLinux 10 template.
+2. Prepare the first Enterprise Linux template.
 3. Run the first Terraform-based VM deployment.
 4. Apply the first Ansible baseline.
 

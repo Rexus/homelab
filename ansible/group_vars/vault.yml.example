@@ -1,0 +1,29 @@
+# Copy to: ansible/group_vars/vault.yml
+# Replace every value before use.
+# Reference guide: ../docs/getting-started/vault-bootstrap.md
+
+vault_api_addr: "https://vault01.example.internal:8200"
+vault_cluster_addr: "https://vault01.example.internal:8201"
+vault_node_id: "vault01"
+
+# These paths are read from the Ansible control machine and should stay local
+# and untracked.
+vault_tls_cert_src: "{{ playbook_dir }}/../../secrets/vault/vault01-fullchain.pem"
+vault_tls_key_src: "{{ playbook_dir }}/../../secrets/vault/vault01.key"
+vault_tls_ca_src: "{{ playbook_dir }}/../../secrets/vault/internal-ca.pem"
+
+vault_listener_address: "0.0.0.0:8200"
+vault_ui_enabled: true
+vault_tls_min_version: "tls12"
+
+# Leave empty for the first single-node bootstrap, then add peers later.
+vault_raft_retry_join: []
+
+# Example:
+# vault_raft_retry_join:
+#   - leader_api_addr: "https://vault02.example.internal:8200"
+#     leader_tls_servername: "vault02.example.internal"
+
+# Leave empty when using the default Shamir seal.
+vault_seal_hcl: ""
+vault_extra_hcl: ""

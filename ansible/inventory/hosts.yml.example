@@ -8,6 +8,10 @@ all:
       hosts:
         pve01-change-me:
           ansible_host: 10.10.10.11
+    vault:
+      hosts:
+        vault01-change-me:
+          ansible_host: 10.10.10.21
     guests:
       hosts:
         gateway01-change-me:

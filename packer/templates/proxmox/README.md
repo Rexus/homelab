@@ -6,7 +6,7 @@ Proxmox. Keep templates and safe examples here.
 Current template set:
 
 - `debian-12.pkr.hcl`
-- `almalinux-10.pkr.hcl`
+- `el10.pkr.hcl`
 - `talos-linux.pkr.hcl`
 
 LXC note:

@@ -38,34 +38,28 @@ The surrounding network should provide:
 flowchart LR
     Router[Router or firewall]
     Switch[Managed switch]
-    Mgmt[Management VLAN]
     Edge[Edge or DMZ VLAN]
+    App[Application or service VLANs]
     Shared[Shared services VLAN]
-    LabA[Lab A VLAN]
-    LabB[Lab B VLAN]
-    Secure[Restricted VLAN]
-    Storage[Storage VLAN]
+    Mgmt[Management VLAN]
+    Restricted[Restricted infrastructure VLAN]
     Proxmox[Proxmox bridges and guests]
 
     Router --> Switch
-    Switch --> Mgmt
     Switch --> Edge
+    Switch --> App
     Switch --> Shared
-    Switch --> LabA
-    Switch --> LabB
-    Switch --> Secure
-    Switch --> Storage
-    Mgmt --> Proxmox
+    Switch --> Mgmt
+    Switch --> Restricted
     Edge --> Proxmox
+    App --> Proxmox
     Shared --> Proxmox
-    LabA --> Proxmox
-    LabB --> Proxmox
-    Secure --> Proxmox
-    Storage --> Proxmox
+    Mgmt --> Proxmox
+    Restricted --> Proxmox
 ```
 
-Keep the model simple at first. The important part is predictable separation,
-not maximum network complexity.
+Keep the model simple at first. The important part is predictable separation
+between edge, application, management, and restricted infrastructure paths.
 
 ## Responsibility boundary
 

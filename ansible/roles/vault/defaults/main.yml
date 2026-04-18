@@ -1,0 +1,37 @@
+---
+vault_package_name: vault
+vault_package_state: present
+vault_service_name: vault
+vault_manage_rpm_repo: true
+vault_hashicorp_rpm_repo_url: https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+vault_manage_service: true
+
+vault_api_port: 8200
+vault_cluster_port: 8201
+vault_listener_address: "0.0.0.0:{{ vault_api_port }}"
+vault_api_addr: "https://{{ ansible_host | default(inventory_hostname) }}:{{ vault_api_port }}"
+vault_cluster_addr: "https://{{ ansible_host | default(inventory_hostname) }}:{{ vault_cluster_port }}"
+vault_node_id: "{{ inventory_hostname }}"
+
+vault_ui_enabled: true
+vault_disable_mlock: true
+vault_tls_min_version: tls12
+
+vault_config_dir: /etc/vault.d
+vault_data_dir: /opt/vault/data
+vault_tls_dir: /opt/vault/tls
+vault_log_dir: /var/log/vault
+
+vault_tls_cert_src: null
+vault_tls_key_src: null
+vault_tls_ca_src: null
+vault_tls_cert_dest: "{{ vault_tls_dir }}/vault-cert.pem"
+vault_tls_key_dest: "{{ vault_tls_dir }}/vault-key.pem"
+vault_tls_ca_dest: "{{ vault_tls_dir }}/vault-ca.pem"
+
+vault_enable_file_permissions_check: true
+vault_systemd_limit_core: 0
+
+vault_raft_retry_join: []
+vault_seal_hcl: ""
+vault_extra_hcl: ""

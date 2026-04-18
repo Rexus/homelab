@@ -1,0 +1,121 @@
+---
+- name: Validate Vault bootstrap inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+      - vault_tls_cert_src is not none
+      - vault_tls_key_src is not none
+      - vault_tls_ca_src is not none
+    fail_msg: >-
+      The vault role currently targets the AlmaLinux or RHEL bootstrap path and
+      requires vault_tls_cert_src, vault_tls_key_src, and vault_tls_ca_src.
+
+- name: Install repository tooling
+  ansible.builtin.package:
+    name: dnf-plugins-core
+    state: present
+
+- name: Configure HashiCorp RPM repository
+  ansible.builtin.get_url:
+    url: "{{ vault_hashicorp_rpm_repo_url }}"
+    dest: /etc/yum.repos.d/hashicorp.repo
+    mode: "0644"
+  when: vault_manage_rpm_repo
+
+- name: Install Vault package
+  ansible.builtin.package:
+    name: "{{ vault_package_name }}"
+    state: "{{ vault_package_state }}"
+
+- name: Ensure Vault directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ vault_config_dir }}"
+      owner: root
+      group: vault
+      mode: "0750"
+    - path: "{{ vault_data_dir }}"
+      owner: vault
+      group: vault
+      mode: "0750"
+    - path: "{{ vault_tls_dir }}"
+      owner: root
+      group: root
+      mode: "0755"
+    - path: "{{ vault_log_dir }}"
+      owner: vault
+      group: vault
+      mode: "0750"
+    - path: /etc/systemd/system/vault.service.d
+      owner: root
+      group: root
+      mode: "0755"
+
+- name: Copy Vault CA certificate
+  ansible.builtin.copy:
+    src: "{{ vault_tls_ca_src }}"
+    dest: "{{ vault_tls_ca_dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart vault
+
+- name: Copy Vault TLS certificate
+  ansible.builtin.copy:
+    src: "{{ vault_tls_cert_src }}"
+    dest: "{{ vault_tls_cert_dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart vault
+
+- name: Copy Vault TLS private key
+  ansible.builtin.copy:
+    src: "{{ vault_tls_key_src }}"
+    dest: "{{ vault_tls_key_dest }}"
+    owner: root
+    group: vault
+    mode: "0640"
+  notify: Restart vault
+
+- name: Render Vault configuration
+  ansible.builtin.template:
+    src: vault.hcl.j2
+    dest: "{{ vault_config_dir }}/vault.hcl"
+    owner: root
+    group: vault
+    mode: "0640"
+  notify: Restart vault
+
+- name: Render Vault systemd override
+  ansible.builtin.template:
+    src: vault.service.override.conf.j2
+    dest: /etc/systemd/system/vault.service.d/override.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart vault
+
+- name: Apply pending Vault handler changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure Vault service is enabled and started
+  ansible.builtin.service:
+    name: "{{ vault_service_name }}"
+    enabled: true
+    state: started
+  when: vault_manage_service
+
+- name: Wait for Vault API listener
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ vault_api_port }}"
+    timeout: 30
+  when: vault_manage_service

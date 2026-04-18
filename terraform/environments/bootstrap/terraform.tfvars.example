@@ -20,18 +20,18 @@ proxmox_storage_classes = {
   }
 }
 proxmox_network_bridge = "vmbr0"
-template_vm_id_almalinux_10 = 9010
-instance_name = "alma-01-change-me"
-instance_size = "tiny"
+template_vm_id_el10 = 9010
+instance_name = "vault01-change-me"
+instance_size = "large"
 instance_storage_class = "local"
-instance_disk_size_gb = 20
+instance_disk_size_gb = 40
 instance_ipv4_address = "dhcp"
 instance_ipv4_gateway = null
 instance_ssh_public_keys = [
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@bootstrap"
 ]
 container_name = "container-01-change-me"
-container_template_file_id = "local:vztmpl/almalinux-10-default_2024.x86_64.tar.xz"
+container_template_file_id = "local:vztmpl/el10-default_2024.x86_64.tar.xz"
 container_size = "tiny"
 container_storage_class = "local"
 container_disk_size_gb = 8

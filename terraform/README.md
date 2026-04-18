@@ -12,6 +12,6 @@ For repository usage and secret handling, read:
 Key paths:
 
 - `modules/` - reusable building blocks
-- `environments/lab/` - reusable environment scaffold
-- `environments/lab/terraform.tfvars.example`
-  -> `environments/lab/terraform.tfvars`
+- `environments/bootstrap/` - bootstrap environment scaffold
+- `environments/bootstrap/terraform.tfvars.example`
+  -> `environments/bootstrap/terraform.tfvars`

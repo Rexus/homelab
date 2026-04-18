@@ -4,9 +4,9 @@
 
 - [Purpose](#purpose)
 - [Maturity overview](#maturity-overview)
-- [Level 1 - Initial deployment](#level-1---initial-deployment)
+- [Level 1 - Secure bootstrap foundation](#level-1---secure-bootstrap-foundation)
 - [Level 2 - Backup and recovery](#level-2---backup-and-recovery)
-- [Level 3 - Secret platform](#level-3---secret-platform)
+- [Level 3 - Secret integration](#level-3---secret-integration)
 - [Level 4 - Higher availability and production use](#level-4---higher-availability-and-production-use)
 
 ## Purpose
@@ -19,25 +19,27 @@ reference foundation, but the maturity path is about the broader platform.
 
 | Level | Goal | Success criteria |
 | --- | --- | --- |
-| 1 | Initial deployment | First template, VM, and baseline flow works |
+| 1 | Secure bootstrap foundation | First template and VM work, and Vault is installed on the first managed node |
 | 2 | Backup and recovery | PBS is deployed, connected, and tested |
-| 3 | Secret platform | Vault replaces bootstrap-only secret handling |
+| 3 | Secret integration | Shared and long-lived secrets move into Vault and out of bootstrap-only handling |
 | 4 | Higher availability and production use | Backup, recovery, and platform patterns support more serious use |
 
-## Level 1 - Initial deployment
+## Level 1 - Secure bootstrap foundation
 
 Goal:
 
 - copy the example files
 - set the required environment variables
 - build or prepare a template
-- provision the first managed VM
-- apply the first Ansible baseline run
+- provision the first managed VM as a dedicated Vault host
+- apply the bootstrap playbook so Vault is installed and ready to initialize
+- initialize Vault before broader shared-service and workload deployment
 
 Read more:
 
 - [Platform guide](../../platforms/proxmox/README.md)
 - [Environment variable conventions](../reference/environment-variables.md)
+- [Vault bootstrap](vault-bootstrap.md)
 
 ## Level 2 - Backup and recovery
 
@@ -54,15 +56,17 @@ Read more:
 - [Network prerequisites](../../platforms/proxmox/network-prerequisites.md)
 - [API setup](../../platforms/proxmox/setup-api.md)
 
-## Level 3 - Secret platform
+## Level 3 - Secret integration
 
 Goal:
 
-- deploy Vault after the platform foundation is stable
 - move shared and long-lived secrets out of bootstrap-only handling
+- establish operator and automation access methods that read from Vault
+- reduce direct use of persistent secret environment variables
 
 Read more:
 
+- [Vault bootstrap](vault-bootstrap.md)
 - [Secret strategy](../security/secret-strategy.md)
 
 ## Level 4 - Higher availability and production use

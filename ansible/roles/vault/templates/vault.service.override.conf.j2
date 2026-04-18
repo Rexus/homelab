@@ -1,0 +1,5 @@
+[Service]
+LimitCORE={{ vault_systemd_limit_core }}
+{% if vault_enable_file_permissions_check %}
+Environment=VAULT_ENABLE_FILE_PERMISSIONS_CHECK=true
+{% endif %}

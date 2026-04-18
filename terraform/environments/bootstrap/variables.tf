@@ -51,15 +51,15 @@ variable "proxmox_network_bridge" {
   default     = "vmbr0"
 }
 
-variable "template_vm_id_almalinux_10" {
-  description = "Template VM ID for the AlmaLinux 10 baseline image."
+variable "template_vm_id_el10" {
+  description = "Template VM ID for the Enterprise Linux 10 baseline image."
   type        = number
 }
 
 variable "instance_name" {
   description = "Name of the instance."
   type        = string
-  default     = "alma-01"
+  default     = "el10-01"
 }
 
 variable "instance_size" {

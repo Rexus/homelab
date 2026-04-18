@@ -9,6 +9,10 @@
 
 ## Start here
 
+- [Bootstrap path](getting-started/bootstrap-path.md) - shortest path from local
+  setup to the first managed platform services
+- [Vault bootstrap](getting-started/vault-bootstrap.md) - recommended early
+  secret-platform handoff for the first managed VM
 - [Private cloud maturity path](getting-started/private-cloud-maturity-path.md) -
   path from initial deployment to backup, secrets, and more serious use
 - [Safe repository usage](usage-model.md) - how to use this public upstream

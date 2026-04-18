@@ -24,7 +24,7 @@ locals {
   common_tags = [
     var.cluster_name,
     "terraform",
-    "almalinux-10",
+    "el10",
   ]
 }
 
@@ -33,7 +33,7 @@ module "instance" {
 
   name                     = var.instance_name
   node_name                = var.proxmox_node_name
-  template_vm_id           = var.template_vm_id_almalinux_10
+  template_vm_id           = var.template_vm_id_el10
   storage_class            = var.instance_storage_class
   storage_class_datastores = var.proxmox_storage_classes
   bridge                   = var.proxmox_network_bridge

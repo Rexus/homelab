@@ -3,7 +3,8 @@
 ## Table of contents
 
 - [Intent](#intent)
-- [Model](#model)
+- [Goals](#goals)
+- [Layered model](#layered-model)
 - [Automation flow](#automation-flow)
 - [Boundaries](#boundaries)
 
@@ -16,7 +17,7 @@ resource provisioning, and configuration management.
 The design is meant to stay stable as the environment grows. The number of
 segments, hosts, and services can change without changing the core model.
 
-## Goals:
+## Goals
 
 - clear separation of edge, application, and infrastructure concerns
 - no implicit trust between zones
@@ -24,57 +25,24 @@ segments, hosts, and services can change without changing the core model.
 - reusable structure for IaC and multi-cloud thinking
 - clear placement of identity, secrets, and hardware-backed systems
 
-## Layered Overview
+## Layered model
 
 ```text
 PRIVATE CLOUD
 
 ┌─────────────────────────────────────────────────────────────┐
 │ EDGE LAYER                                                  │
-│   External Zone        Internet, WAN, Partner Networks      │
-│   DMZ Zone             Ingress, VPN, ZTNA, Egress           │
+│   External zone       Internet, WAN, partner networks       │
+│   DMZ zone            Ingress, VPN, ZTNA, controlled egress │
 ├─────────────────────────────────────────────────────────────┤
 │ APPLICATION LAYER                                           │
-│   Shared Services      DNS, AD, Identity, Vault, Logging    │
-│   User Services        Internal Apps, APIs, Portals         │
+│   Shared services     DNS, identity, Vault, logging         │
+│   User services       Internal apps, APIs, portals          │
 ├─────────────────────────────────────────────────────────────┤
 │ INFRASTRUCTURE LAYER                                        │
-│   Management Zone      Bastion, IaC, Ops, Hypervisor Mgmt   │
-│   Restricted HW Zone   HSM, Storage, Backup, HW Roots       │
+│   Management zone     Bastion, IaC, ops, hypervisor mgmt    │
+│   Restricted zone     Backup, storage, HSM, hardware roots  │
 └─────────────────────────────────────────────────────────────┘
-
-## Model
-
-The architecture uses a small set of durable zones:
-
-- management for operators, runners, and platform APIs
-- edge for published entry points such as VPN and ingress
-- workload segments for applications, clusters, and projects
-- shared services for common platform capabilities such as DNS and identity
-- storage and backup for images, snapshots, and recovery data
-- restricted services for secrets, PKI, and other high-trust systems
-
-```text
-Lower trust
-  Internet, WAN, remote users
-           |
-           v
-+-----------------------+
-| Edge / published      |
-+-----------+-----------+
-            |
-            v
-+-----------+-----------+
-| Workload segments     |
-+---+-----------+---+---+
-    |           |   |
-    |           |   +--> Restricted services
-    |           +------> Storage and backup
-    +------------------> Shared services
-
-Management plane
-  operators, runners, APIs
-  separate control path into managed zones
 ```
 
 This is a pattern model, not a public-cloud feature match. Proxmox is the
@@ -86,12 +54,16 @@ platform.
 Each tool has one primary job:
 
 - Packer builds reusable images when custom templates are needed
-- Terraform provisions VMs, containers, and platform resources
-- Ansible applies baseline system configuration after provisioning
+- Terraform provisions the first managed Vault node and other platform resources
+- Ansible applies baseline configuration and installs Vault on designated
+  bootstrap hosts
 
 ```text
-Secret source -> Packer -> Terraform -> Ansible
+Bootstrap secret source -> Packer -> Terraform -> Ansible -> Vault handoff
 ```
+
+Vault is treated as an early shared service so the platform can reduce
+bootstrap-only secret handling before broader service deployment.
 
 ## Boundaries
 

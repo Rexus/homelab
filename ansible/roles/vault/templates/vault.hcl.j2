@@ -1,0 +1,35 @@
+ui = {{ vault_ui_enabled | ternary("true", "false") }}
+api_addr = "{{ vault_api_addr }}"
+cluster_addr = "{{ vault_cluster_addr }}"
+disable_mlock = {{ vault_disable_mlock | ternary("true", "false") }}
+
+storage "raft" {
+  path    = "{{ vault_data_dir }}"
+  node_id = "{{ vault_node_id }}"
+{% for peer in vault_raft_retry_join %}
+  retry_join {
+    leader_api_addr = "{{ peer.leader_api_addr }}"
+{% if peer.leader_tls_servername is defined and peer.leader_tls_servername %}
+    leader_tls_servername = "{{ peer.leader_tls_servername }}"
+{% endif %}
+    leader_ca_cert_file = "{{ vault_tls_ca_dest }}"
+    leader_client_cert_file = "{{ vault_tls_cert_dest }}"
+    leader_client_key_file = "{{ vault_tls_key_dest }}"
+  }
+{% endfor %}
+}
+
+listener "tcp" {
+  address            = "{{ vault_listener_address }}"
+  tls_cert_file      = "{{ vault_tls_cert_dest }}"
+  tls_key_file       = "{{ vault_tls_key_dest }}"
+  tls_client_ca_file = "{{ vault_tls_ca_dest }}"
+  tls_min_version    = "{{ vault_tls_min_version }}"
+}
+
+{% if vault_seal_hcl | trim %}
+{{ vault_seal_hcl | trim }}
+{% endif %}
+{% if vault_extra_hcl | trim %}
+{{ vault_extra_hcl | trim }}
+{% endif %}

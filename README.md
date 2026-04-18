@@ -33,6 +33,7 @@ cp packer/variables.auto.pkrvars.hcl.example packer/variables.auto.pkrvars.hcl
 cp terraform/environments/bootstrap/terraform.tfvars.example terraform/environments/bootstrap/terraform.tfvars
 cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
 cp ansible/group_vars/all.yml.example ansible/group_vars/all.yml
+cp ansible/group_vars/vault.yml.example ansible/group_vars/vault.yml
 ```
 
 3. Update the copied files with local values.
@@ -63,19 +64,25 @@ ansible-playbook -i inventory/hosts.yml playbooks/bootstrap.yml
 cd ..
 ```
 
+Hosts placed in the `vault` inventory group receive the Vault bootstrap role as
+part of this run.
+
 7. Continue with:
+   - [Vault bootstrap](docs/getting-started/vault-bootstrap.md)
    - [Secret strategy](docs/security/secret-strategy.md)
    - [Private cloud maturity path](docs/getting-started/private-cloud-maturity-path.md)
 
 Recommended maturity path:
 
-- start with the local example files and bootstrap secrets
+- start with local example files and the smallest possible bootstrap secret set
+- turn the first managed VM into a dedicated Vault node before broader deployment
 - add backup and recovery before the environment becomes important
-- move long-lived secrets to Vault when the platform is stable enough to host it
+- move long-lived and shared secrets to Vault immediately after bootstrap
 - improve resilience and availability as the environment becomes more serious
 
 Read more in:
 
+- [docs/getting-started/vault-bootstrap.md](docs/getting-started/vault-bootstrap.md)
 - [docs/getting-started/private-cloud-maturity-path.md](docs/getting-started/private-cloud-maturity-path.md)
 - [platforms/proxmox/backup-foundation.md](platforms/proxmox/backup-foundation.md)
 - [docs/reference/environment-variables.md](docs/reference/environment-variables.md)

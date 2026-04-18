@@ -4,15 +4,16 @@
 
 - [Purpose](#purpose)
 - [Design goal](#design-goal)
-- [Bootstrap phase](#bootstrap-phase)
-- [Vault target state](#vault-target-state)
+- [Bootstrap minimum](#bootstrap-minimum)
+- [Vault bootstrap milestone](#vault-bootstrap-milestone)
+- [Vault operating target](#vault-operating-target)
 - [What goes where](#what-goes-where)
 
 ## Purpose
 
 This repository is designed to be easy to bootstrap while moving toward a
-stronger secret model quickly. Vault is the preferred target state, but it is
-not required for the first successful deployment.
+stronger secret model quickly. Vault is the preferred target state and should be
+introduced as early as the first managed VM can host it safely.
 
 ## Design goal
 
@@ -22,8 +23,9 @@ The secret strategy should be:
 - safe enough to avoid publishing secrets by mistake
 - compatible with local execution and self-hosted runners
 - easy to transition into Vault without large repository changes
+- explicit about which small set of bootstrap secrets must still exist outside Vault
 
-## Bootstrap phase
+## Bootstrap minimum
 
 Before Vault is available:
 
@@ -31,11 +33,25 @@ Before Vault is available:
   operational copy
 - keep sensitive runtime values in local environment variables or protected
   runner variables
+- limit off-Vault secrets to the minimum needed to create the first Vault host,
+  such as platform API access, Vault TLS material, and initialization handling
 - commit only examples, defaults, and reusable automation
 
-## Vault target state
+## Vault bootstrap milestone
 
-As soon as the platform is stable enough to host Vault or another secret system:
+As soon as the first managed VM is ready:
+
+- install Vault as a dedicated early shared service
+- initialize and unseal Vault before broader service deployment
+- enable an audit device and store the first shared secrets there
+- treat Ansible Vault and plain environment variables as fallback bootstrap
+  mechanisms, not the long-term system of record
+
+Read more in [Vault bootstrap](../getting-started/vault-bootstrap.md).
+
+## Vault operating target
+
+After the bootstrap Vault node is online:
 
 - move long-lived and shared secrets into the secret system
 - reduce direct use of plain environment variables for persistent secrets
@@ -46,8 +62,10 @@ As soon as the platform is stable enough to host Vault or another secret system:
 
 | Type of value | Preferred location |
 | --- | --- |
-| API tokens | environment variables, then Vault |
-| bootstrap passwords | environment variables, then Vault |
+| platform API tokens | environment variables during bootstrap, then Vault |
+| Vault TLS private keys | local untracked secret files or private PKI workflow |
+| Vault unseal or recovery material | encrypted offline storage, never in Git |
+| bootstrap passwords | environment variables during bootstrap, then Vault |
 | network CIDRs | ignored local files or private operational copy |
 | node and bridge names | ignored local files or private operational copy |
 | inventory structure | ignored local files or private operational copy |

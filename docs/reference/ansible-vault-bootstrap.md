@@ -10,7 +10,8 @@
 ## Purpose
 
 This document defines a simple Ansible Vault bootstrap pattern that works before
-Vault is available and can later be replaced by a stronger secret system.
+the bootstrap Vault node is available and can later be replaced by a stronger
+secret system.
 
 ## Local file pattern
 
@@ -36,7 +37,8 @@ Keep the local pattern minimal:
 - create `secrets/ansible-vault-password.txt`
 - set `ANSIBLE_VAULT_PASSWORD_FILE`
 - encrypt any bootstrap vars file before reuse
-- move shared or long-lived secrets to Vault early
+- move shared or long-lived secrets to Vault as soon as the bootstrap Vault node
+  is available
 
 Read more in [Secret strategy](../security/secret-strategy.md).
 
