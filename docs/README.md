@@ -42,6 +42,8 @@ If local tooling is not ready yet, insert
 
 - [Architecture overview](architecture/overview.md) - layered zones, automation
   flow, and trust boundaries
+- [Network zones and IaC mapping](architecture/network-zones-and-iac-mapping.md) -
+  shared network reference for subnets, VLANs, bridges, and Terraform zone keys
 
 ## Platform guides
 
@@ -71,8 +73,8 @@ If local tooling is not ready yet, insert
 - [HSM getting started](security/hsm-planning-and-comparison.md) - short guide
   with a practical use, scale, and cost matrix
 - [Pico HSM active-active blueprint](security/picohsm-active-active-blueprint.md) -
-  concrete two-host USB HSM deployment reference with active-active service and
-  offline backup
+  concrete USB HSM deployment reference with active-active service, shared
+  network mapping, and offline backup
 
 ## Reference and decisions
 

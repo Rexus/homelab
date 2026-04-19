@@ -11,11 +11,15 @@
 - [Network planning](#network-planning)
 - [Host roles](#host-roles)
 - [Tools](#tools)
+- [Reader setup path](#reader-setup-path)
+- [Repository automation path](#repository-automation-path)
+- [Software-only lab track](#software-only-lab-track)
 - [Provisioning and replication flow](#provisioning-and-replication-flow)
 - [Operational model](#operational-model)
 - [Comparison to enterprise HSM designs](#comparison-to-enterprise-hsm-designs)
 - [When to use fewer or more devices](#when-to-use-fewer-or-more-devices)
 - [Read more](#read-more)
+- [References](#references)
 
 ## Purpose
 
@@ -40,7 +44,7 @@ this pattern solves, where it helps, and where its limits still matter.
 
 ## Target topology
 
-Use this topology:
+Use this as the reference topology:
 
 ```mermaid
 flowchart TD
@@ -83,6 +87,10 @@ Repository recommendation:
 - avoid pretending the four HSMs are one native cluster
 - keep the backup Pico HSM offline except during restore tests or controlled
   backup refresh
+
+This is the default reference shape, not a hard platform limit. The repository
+IaC can scale this pattern down or up by changing the `vm_instances` map in the
+HSM lab environment, while keeping the same role names and network references.
 
 ## What active-active means here
 
@@ -150,13 +158,61 @@ Open-source platform guidance:
 
 Keep the network simple and deliberate.
 
-Use at least these paths:
+Start with
+[Network zones and IaC mapping](../architecture/network-zones-and-iac-mapping.md).
+Use the same zone keys here so the diagram, the Terraform variables, and the
+host placement all point back to one shared network model.
+
+Use these repository network references in this pattern:
+
+| Zone key | In this pattern | Typical IaC use |
+| --- | --- | --- |
+| `management` | operator SSH, automation, metrics, helper access | helper VMs and admin reachability |
+| `service` | proxy-to-gateway and internal caller traffic | most gateway VMs |
+| `hsm` | optional restricted helper or recovery path | helper VMs when you split them from management |
+| `dmz` | optional ingress-facing proxy path | proxy VMs |
+
+Use this separation model:
+
+```mermaid
+flowchart LR
+  subgraph Mgmt["management"]
+    Ops[Operators and automation]
+  end
+
+  subgraph DMZ["dmz"]
+    Proxy[1-3 proxy VMs]
+  end
+
+  subgraph Service["service"]
+    Gateway[1-8 gateway VMs]
+  end
+
+  subgraph HSM["hsm"]
+    Helper[0+ helper or recovery VMs]
+  end
+
+  Pico[Pico HSM devices<br/>host-local USB only]
+
+  Ops --> Proxy
+  Ops --> Gateway
+  Ops --> Helper
+  Proxy --> Gateway
+  Helper -. restricted recovery or rollout path .-> Gateway
+  Gateway -. local USB access only .-> Pico
+```
+
+Figure: proxies and gateways can use routed networks, but Pico HSM access stays
+host-local and never becomes a network service.
+
+Use at least these paths in the live environment:
 
 | Network | Purpose | Should carry |
 | --- | --- | --- |
-| management | admin SSH, configuration, metrics | operator access, automation |
-| service | client traffic to gateways | TLS or mTLS application traffic |
-| backup or recovery | optional restricted maintenance path | restore drills, backup refresh |
+| `management` | admin SSH, configuration, metrics | operator access, automation |
+| `service` | client traffic to gateways | TLS or mTLS application traffic |
+| `hsm` or restricted recovery path | optional maintenance and custody workflows | restore drills, backup refresh, helper access |
+| `dmz` | optional ingress-facing proxy traffic | reverse proxy or edge entry only |
 
 Design rules:
 
@@ -174,9 +230,10 @@ Use these roles:
 
 | Role | Count | Purpose |
 | --- | --- | --- |
-| load balancer | `1-2` | health checks and traffic distribution |
-| gateway hosts | `2` | run signer or PKI application instances |
-| local Pico HSM devices | `2` per host | one HSM per gateway instance |
+| proxy VMs | `1-3` | health checks and traffic distribution |
+| gateway or signer VMs | `1-8` | run signer or PKI application instances |
+| helper VMs | `0+` | bootstrap, restore, recovery, or operator ceremony support |
+| local Pico HSM devices | usually `1` per gateway process | keep one device local to one signer or gateway instance |
 | offline backup device | `1` | recovery and backup validation only |
 
 Guidance:
@@ -210,6 +267,64 @@ openssl x509 -in cert.pem -text -noout
 
 For Pico HSM, prefer standard middleware and tools instead of inventing custom
 host tooling unless you have a very specific application need.
+
+## Reader setup path
+
+Use this order when you want to build the lab from this repository:
+
+1. Read [HSM getting started](hsm-planning-and-comparison.md) and decide
+   whether you are learning the pattern first or protecting real keys now.
+2. Provision the host layout from
+   [`terraform/environments/hsm-lab/`](../../terraform/environments/hsm-lab/README.md).
+   Fill in `network_zones` and `vm_instances` so your proxy, gateway, and
+   helper VMs map cleanly back to the shared architecture reference.
+3. Apply the baseline host configuration from
+   [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml).
+4. Use the hardware-backed track when you have Pico HSM devices ready to attach
+   to the intended gateway and helper hosts.
+5. Use the software-only track when you want to rehearse the same service
+   pattern with a software PKCS#11 implementation such as `SoftHSM` first [1].
+6. Validate local PKCS#11 access on every gateway or helper host before adding
+   any load balancer or signer traffic.
+7. Run the provisioning and replication flow in this guide.
+8. Test host loss, device loss, and restore from the offline backup before you
+   treat the pattern as trusted.
+
+This keeps the topology, host naming, and operator flow stable even when you
+start without hardware and switch to Pico HSM later.
+
+## Repository automation path
+
+Use the repository automation in layers:
+
+| Layer | What the repository can automate | What stays manual |
+| --- | --- | --- |
+| [`terraform/environments/hsm-lab/`](../../terraform/environments/hsm-lab/README.md) | proxy, gateway, and helper VMs with shared `network_zones` references and stable role tagging | physical USB attachment, passthrough choices, and token insertion |
+| [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) | baseline OS preparation and shared host hardening | PKCS#11 middleware installation, signer process setup, and token initialization |
+| [`ansible/roles/vault/`](../../ansible/roles/vault/) | later Vault host configuration when you use the `Vault A` plus `Vault B` pattern | direct Pico HSM gateway management and key ceremony steps |
+
+Treat IaC here as host and service preparation, not as a replacement for HSM
+custody, wrap-key handling, or device-specific rollout checks.
+
+## Software-only lab track
+
+If you do not have hardware yet, keep the same host layout and rehearse the
+same service pattern with a software PKCS#11 token such as `SoftHSM` [1].
+
+Good uses for this track:
+
+- learn the PKCS#11 tooling and inventory checks
+- validate load balancer health checks and gateway routing
+- rehearse service rollout, failover, and drift detection
+- keep CI or throwaway lab runs close to the real host topology
+
+Do not treat this as equivalent to hardware-backed custody. It does not replace
+physical device handling, removable backup media, or the operator discipline
+that comes with real HSMs.
+
+When hardware arrives, keep the host layout and service wiring the same and
+replace the local software token on each host with the intended Pico HSM
+attachment and key ceremony.
 
 ## Provisioning and replication flow
 
@@ -296,3 +411,7 @@ more attractive.
 - [HSM getting started](hsm-planning-and-comparison.md)
 - [Vault HSM hardening options](vault-hsm-hardening-options.md)
 - [Vault bootstrap](../getting-started/vault-bootstrap.md)
+
+## References
+
+1. [SoftHSM](https://www.softhsm.org/) (accessed 2026-04-19)

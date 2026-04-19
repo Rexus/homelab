@@ -43,6 +43,13 @@ variable "bridge" {
   type        = string
 }
 
+variable "vlan_id" {
+  description = "Optional VLAN ID on the selected bridge."
+  type        = number
+  default     = null
+  nullable    = true
+}
+
 variable "storage_class_datastores" {
   description = "Mapping of storage classes to Proxmox datastore IDs."
   type = map(object({

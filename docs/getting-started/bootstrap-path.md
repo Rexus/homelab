@@ -31,9 +31,10 @@ The bootstrap path assumes:
 Typical minimum deployment values include:
 
 - environment name
-- Proxmox node name
+- one or more guest definitions in `vm_instances`
+- optional helper definitions in `lxc_instances`
 - storage class mappings
-- network bridge
+- network zones with at least the required bridge or subnet values
 - VM template ID
 - LXC template file ID when container provisioning is used
 - instance and container size, storage class, disk size, and IP settings
@@ -81,4 +82,5 @@ After the bootstrap deployment succeeds:
 - [Private cloud maturity path](private-cloud-maturity-path.md)
 - [Secret strategy](../security/secret-strategy.md)
 - [Environment variable conventions](../reference/environment-variables.md)
+- [Network zones and IaC mapping](../architecture/network-zones-and-iac-mapping.md)
 - [Proxmox reference platform](../platforms/proxmox/README.md)

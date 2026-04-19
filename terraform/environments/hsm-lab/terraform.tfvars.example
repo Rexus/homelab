@@ -1,9 +1,10 @@
-# Copy to: terraform/environments/lab/terraform.tfvars
+# Copy to: terraform/environments/hsm-lab/terraform.tfvars
 # Replace every value before use.
 # Setup guide: README.md
 
 platform = "proxmox"
-cluster_name = "lab-change-me"
+cluster_name = "hsm-lab-change-me"
+lab_variant = "hardware"
 
 proxmox_storage_classes = {
   local = {
@@ -39,7 +40,7 @@ network_zones = {
     bridge      = "vmbr0"
     vlan_id     = 12
     cidr_ipv4   = "10.10.12.0/24"
-    notes       = "Reference zone for later clustered control-plane traffic."
+    notes       = "Reference zone for clustered control-plane traffic."
   }
   ceph_public = {
     description = "Optional Ceph client-facing network."
@@ -66,7 +67,6 @@ network_zones = {
     bridge      = "vmbr0"
     vlan_id     = 21
     cidr_ipv4   = "10.20.21.0/24"
-    notes       = "Useful later for HSM-related labs and recovery workflows."
   }
   dmz = {
     description = "Edge or ingress-facing services."
@@ -78,32 +78,71 @@ network_zones = {
 
 template_vm_id_el10 = 110
 ssh_public_keys = [
-  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@lab"
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@hsm-lab"
 ]
 
+# Add `1-3` proxy VMs and `1-8` gateway VMs by extending this map.
 vm_instances = {
-  lab01 = {
-    name             = "el10-01-change-me"
+  proxy01 = {
+    name             = "hsm-proxy01-change-me"
+    node_name        = "pve01-change-me"
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 20
+    network_zone_key = "dmz"
+    ipv4_address     = "dhcp"
+    role             = "proxy"
+  }
+  gateway_a1 = {
+    name             = "hsm-gw-a1-change-me"
+    node_name        = "pve01-change-me"
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 30
+    network_zone_key = "service"
+    ipv4_address     = "dhcp"
+    role             = "gateway"
+  }
+  gateway_a2 = {
+    name             = "hsm-gw-a2-change-me"
+    node_name        = "pve01-change-me"
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 30
+    network_zone_key = "service"
+    ipv4_address     = "dhcp"
+    role             = "gateway"
+  }
+  gateway_b1 = {
+    name             = "hsm-gw-b1-change-me"
+    node_name        = "pve02-change-me"
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 30
+    network_zone_key = "service"
+    ipv4_address     = "dhcp"
+    role             = "gateway"
+  }
+  gateway_b2 = {
+    name             = "hsm-gw-b2-change-me"
+    node_name        = "pve02-change-me"
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 30
+    network_zone_key = "service"
+    ipv4_address     = "dhcp"
+    role             = "gateway"
+  }
+  helper01 = {
+    name             = "hsm-helper01-change-me"
     node_name        = "pve01-change-me"
     size             = "tiny"
     storage_class    = "local"
     disk_size_gb     = 20
-    network_zone_key = "service"
+    network_zone_key = "management"
     ipv4_address     = "dhcp"
-    role             = "general"
+    role             = "helper"
   }
 }
 
-lxc_instances = {
-  support01 = {
-    name             = "container-01-change-me"
-    node_name        = "pve01-change-me"
-    template_file_id = "local:vztmpl/el10-default_2024.x86_64.tar.xz"
-    size             = "tiny"
-    storage_class    = "local"
-    disk_size_gb     = 8
-    network_zone_key = "service"
-    ipv4_address     = "dhcp"
-    role             = "support"
-  }
-}
+lxc_instances = {}

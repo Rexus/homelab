@@ -4,7 +4,7 @@
 
 platform = "proxmox"
 cluster_name = "bootstrap-change-me"
-proxmox_node_name = "pve01-change-me"
+
 proxmox_storage_classes = {
   local = {
     vm_disk        = "local-lvm-change-me"
@@ -19,24 +19,93 @@ proxmox_storage_classes = {
     initialization = "local-lvm-change-me"
   }
 }
-proxmox_network_bridge = "vmbr0"
+
+# Fill in only the zones you use on Day 1. The rest can stay as planning
+# comments until your platform grows into them.
+network_zones = {
+  management = {
+    description = "Operator, IaC, and hypervisor-adjacent access."
+    bridge      = "vmbr0"
+    vlan_id     = 10
+    cidr_ipv4   = "10.10.10.0/24"
+  }
+  host = {
+    description = "Optional host-only or hypervisor service network."
+    bridge      = "vmbr0"
+    vlan_id     = 11
+    cidr_ipv4   = "10.10.11.0/24"
+    notes       = "Reference zone for Proxmox host services when you separate them from management."
+  }
+  corosync = {
+    description = "Optional Proxmox cluster control network."
+    bridge      = "vmbr0"
+    vlan_id     = 12
+    cidr_ipv4   = "10.10.12.0/24"
+    notes       = "Reference zone for later clustered control-plane traffic."
+  }
+  ceph_public = {
+    description = "Optional Ceph client-facing network."
+    bridge      = "vmbr0"
+    vlan_id     = 13
+    cidr_ipv4   = "10.10.13.0/24"
+    notes       = "Reference zone only until you run Ceph."
+  }
+  ceph_cluster = {
+    description = "Optional Ceph replication and recovery network."
+    bridge      = "vmbr0"
+    vlan_id     = 14
+    cidr_ipv4   = "10.10.14.0/24"
+    notes       = "Reference zone only until you run Ceph."
+  }
+  service = {
+    description = "Shared services and internal application traffic."
+    bridge      = "vmbr0"
+    vlan_id     = 20
+    cidr_ipv4   = "10.20.20.0/24"
+  }
+  hsm = {
+    description = "Restricted PKCS#11 helper, recovery, or signing-adjacent path."
+    bridge      = "vmbr0"
+    vlan_id     = 21
+    cidr_ipv4   = "10.20.21.0/24"
+    notes       = "Usually unused at bootstrap, but kept here for the shared architecture map."
+  }
+  dmz = {
+    description = "Edge or ingress-facing services."
+    bridge      = "vmbr0"
+    vlan_id     = 30
+    cidr_ipv4   = "10.30.30.0/24"
+  }
+}
+
 template_vm_id_el10 = 110
-instance_name = "vault01-change-me"
-instance_size = "large"
-instance_storage_class = "local"
-instance_disk_size_gb = 40
-instance_ipv4_address = "dhcp"
-instance_ipv4_gateway = null
-instance_ssh_public_keys = [
+ssh_public_keys = [
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@bootstrap"
 ]
-container_name = "container-01-change-me"
-container_template_file_id = "local:vztmpl/el10-default_2024.x86_64.tar.xz"
-container_size = "tiny"
-container_storage_class = "local"
-container_disk_size_gb = 8
-container_ipv4_address = "dhcp"
-container_ipv4_gateway = null
-management_cidr = "10.10.10.0/24"
-workload_cidr = "10.20.20.0/24"
-edge_cidr = "10.30.30.0/24"
+
+vm_instances = {
+  vault01 = {
+    name             = "vault01-change-me"
+    node_name        = "pve01-change-me"
+    size             = "large"
+    storage_class    = "local"
+    disk_size_gb     = 40
+    network_zone_key = "service"
+    ipv4_address     = "dhcp"
+    role             = "vault-bootstrap"
+  }
+}
+
+lxc_instances = {
+  support01 = {
+    name             = "container-01-change-me"
+    node_name        = "pve01-change-me"
+    template_file_id = "local:vztmpl/el10-default_2024.x86_64.tar.xz"
+    size             = "tiny"
+    storage_class    = "local"
+    disk_size_gb     = 8
+    network_zone_key = "service"
+    ipv4_address     = "dhcp"
+    role             = "support"
+  }
+}

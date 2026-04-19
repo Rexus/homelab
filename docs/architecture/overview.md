@@ -6,6 +6,7 @@
 - [Goals](#goals)
 - [Layered model](#layered-model)
 - [Automation flow](#automation-flow)
+- [Network references](#network-references)
 - [Boundaries](#boundaries)
 
 ## Purpose
@@ -45,6 +46,20 @@ flowchart TB
   end
 
   Edge --> App --> Infra
+
+  style Edge fill:#ecfdf5,stroke:#15803d,stroke-width:2px,color:#1f2937
+  style App fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1f2937
+  style Infra fill:#fff7ed,stroke:#c2410c,stroke-width:2px,color:#1f2937
+
+  classDef edgeNode fill:#dcfce7,stroke:#15803d,color:#1f2937
+  classDef appNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
+  classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
+  classDef restrictedNode fill:#fff1e6,stroke:#9a3412,color:#1f2937
+
+  class E1,E2 edgeNode
+  class A1,A2 appNode
+  class I1 mgmtNode
+  class I2 restrictedNode
 ```
 
 Figure: trust increases as you move from edge-facing systems toward management
@@ -76,6 +91,14 @@ first Vault handoff.
 
 Vault is treated as an early shared service so the platform can reduce
 bootstrap-only secret handling before broader service deployment.
+
+## Network references
+
+Use the shared zone catalog in
+[Network zones and IaC mapping](network-zones-and-iac-mapping.md) when you pick
+subnets, VLANs, Proxmox bridges, and guest placement keys. That document is the
+repository source of truth for zone names such as `management`, `service`,
+`dmz`, and `hsm`.
 
 ## Boundaries
 

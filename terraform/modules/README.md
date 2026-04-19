@@ -7,3 +7,5 @@ Current modules:
 
 - `vm/` - clone a Proxmox VM template with cloud-init-ready inputs
 - `lxc/` - create a Proxmox LXC container from a template file
+- `environment_guests/` - place VMs and containers into shared network zones
+  using one environment-level schema

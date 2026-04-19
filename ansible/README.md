@@ -6,6 +6,7 @@ provisioning.
 For repository usage and secret handling, read:
 
 - [Vault bootstrap](../docs/getting-started/vault-bootstrap.md)
+- [Pico HSM active-active blueprint](../docs/security/picohsm-active-active-blueprint.md)
 - [Safe repository usage](../docs/usage-model.md)
 - [Secret strategy](../docs/security/secret-strategy.md)
 - [Environment variable conventions](../docs/reference/environment-variables.md)
@@ -17,6 +18,8 @@ Key paths:
 - `playbooks/site.yml` - broader baseline entry point
 - `roles/baseline/` - security-first baseline role scaffold
 - `roles/vault/` - early Vault bootstrap role for hosts in the `vault` group
+- `playbooks/site.yml` also fits the baseline layer for `hsm-lab` gateway,
+  helper, and load-balancer hosts after Terraform provisioning
 - `inventory/hosts.yml.example` -> `inventory/hosts.yml`
 - `group_vars/all.yml.example` -> `group_vars/all.yml`
 - `group_vars/vault.yml.example` -> `group_vars/vault.yml`

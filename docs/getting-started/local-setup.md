@@ -20,12 +20,15 @@ Have these ready before running automation:
 
 - access to the current platform, such as Proxmox
 - an automation API token
-- prepared network values such as bridge, subnet, gateway, or DHCP usage
+- prepared network values for the shared `network_zones` map, such as bridge,
+  VLAN, subnet, gateway, or DHCP usage
 - a prepared VM template or image source for managed instances
 - an LXC template file if container provisioning will be used
 
 For Proxmox token setup, read
 [Proxmox API setup](../platforms/proxmox/setup-api.md).
+For the shared zone names and IaC mapping, read
+[Network zones and IaC mapping](../architecture/network-zones-and-iac-mapping.md).
 
 ## Local tools
 

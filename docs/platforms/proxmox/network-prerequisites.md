@@ -4,6 +4,7 @@
 
 - [Purpose](#purpose)
 - [Design intent](#design-intent)
+- [Repository zone catalog](#repository-zone-catalog)
 - [Required external capabilities](#required-external-capabilities)
 - [Suggested network segments](#suggested-network-segments)
 - [Responsibility boundary](#responsibility-boundary)
@@ -22,6 +23,18 @@ Use the private-cloud network model described in the architecture overview.
 
 Read more in [Architecture overview](../../architecture/overview.md).
 
+## Repository zone catalog
+
+Use [Network zones and IaC mapping](../../architecture/network-zones-and-iac-mapping.md)
+as the repository source of truth for:
+
+- zone names such as `management`, `service`, `dmz`, and `hsm`
+- the `network_zones` keys used in Terraform
+- the bridge, VLAN, and subnet values you fill in locally
+
+This document stays Proxmox-specific. The zone catalog holds the shared logical
+model so it does not have to be repeated in every platform guide.
+
 ## Required external capabilities
 
 The surrounding network should provide:
@@ -38,28 +51,41 @@ The surrounding network should provide:
 flowchart LR
     Router[Router or firewall]
     Switch[Managed switch]
-    Edge[Edge or DMZ VLAN]
-    App[Application or service VLANs]
-    Shared[Shared services VLAN]
-    Mgmt[Management VLAN]
-    Restricted[Restricted infrastructure VLAN]
+    DMZ[dmz]
+    Service[service]
+    Mgmt[management]
+    HSM[hsm]
+    Host[host]
+    Corosync[corosync]
+    CephPublic[ceph_public]
+    CephCluster[ceph_cluster]
     Proxmox[Proxmox bridges and guests]
 
     Router --> Switch
-    Switch --> Edge
-    Switch --> App
-    Switch --> Shared
+    Switch --> DMZ
+    Switch --> Service
     Switch --> Mgmt
-    Switch --> Restricted
-    Edge --> Proxmox
-    App --> Proxmox
-    Shared --> Proxmox
+    Switch --> HSM
+    Switch --> Host
+    Switch --> Corosync
+    Switch --> CephPublic
+    Switch --> CephCluster
+    DMZ --> Proxmox
+    Service --> Proxmox
     Mgmt --> Proxmox
-    Restricted --> Proxmox
+    HSM --> Proxmox
+    Host --> Proxmox
+    Corosync --> Proxmox
+    CephPublic --> Proxmox
+    CephCluster --> Proxmox
 ```
 
 Keep the model simple at first. The important part is predictable separation
-between edge, application, management, and restricted infrastructure paths.
+between edge, service, management, host, storage, and restricted HSM-adjacent
+paths.
+
+Use the shared zone names from the architecture reference even if your first
+Proxmox deployment starts with only `management` and `service`.
 
 ## Responsibility boundary
 

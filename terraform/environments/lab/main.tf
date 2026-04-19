@@ -21,42 +21,97 @@ provider "proxmox" {
 }
 
 locals {
+  template_vm_id = var.template_vm_id_el10 != null
+    ? var.template_vm_id_el10
+    : var.template_vm_id_almalinux_10
+
   common_tags = [
     var.cluster_name,
     "terraform",
+    "lab",
     "el10",
   ]
+
+  use_shared_guest_inputs = var.network_zones != null
+    || length(var.vm_instances) > 0
+    || length(var.lxc_instances) > 0
+
+  legacy_network_zones = {
+    management = {
+      description = "Management, operator access, and early infrastructure control."
+      bridge      = var.proxmox_network_bridge
+      cidr_ipv4   = var.management_cidr
+    }
+    service = {
+      description = "Shared service or workload-facing guest network."
+      bridge      = var.proxmox_network_bridge
+      cidr_ipv4   = var.workload_cidr
+    }
+    dmz = {
+      description = "Edge or DMZ-facing guest network."
+      bridge      = var.proxmox_network_bridge
+      cidr_ipv4   = var.edge_cidr
+    }
+  }
+
+  effective_network_zones = var.network_zones != null
+    ? var.network_zones
+    : local.legacy_network_zones
+
+  effective_ssh_public_keys = length(var.ssh_public_keys) > 0
+    ? var.ssh_public_keys
+    : var.instance_ssh_public_keys
+
+  legacy_vm_instances = local.use_shared_guest_inputs ? {} : {
+    primary = {
+      name             = var.instance_name
+      node_name        = var.proxmox_node_name
+      size             = var.instance_size
+      storage_class    = var.instance_storage_class
+      disk_size_gb     = var.instance_disk_size_gb
+      network_zone_key = var.default_vm_network_zone_key
+      ipv4_address     = var.instance_ipv4_address
+      ipv4_gateway     = var.instance_ipv4_gateway
+      role             = "general"
+      tags             = []
+    }
+  }
+
+  legacy_lxc_instances = local.use_shared_guest_inputs || var.container_template_file_id == null ? {} : {
+    support = {
+      name             = var.container_name
+      node_name        = var.proxmox_node_name
+      template_file_id = var.container_template_file_id
+      size             = var.container_size
+      storage_class    = var.container_storage_class
+      disk_size_gb     = var.container_disk_size_gb
+      network_zone_key = var.default_lxc_network_zone_key
+      ipv4_address     = var.container_ipv4_address
+      ipv4_gateway     = var.container_ipv4_gateway
+      role             = "support"
+      tags             = []
+    }
+  }
+
+  effective_vm_instances = local.use_shared_guest_inputs
+    ? var.vm_instances
+    : local.legacy_vm_instances
+
+  effective_lxc_instances = local.use_shared_guest_inputs
+    ? var.lxc_instances
+    : local.legacy_lxc_instances
 }
 
-module "instance" {
-  source = "../../modules/vm"
+module "environment" {
+  source = "../../modules/environment_guests"
 
-  name                     = var.instance_name
-  node_name                = var.proxmox_node_name
-  template_vm_id           = var.template_vm_id_el10
-  storage_class            = var.instance_storage_class
-  storage_class_datastores = var.proxmox_storage_classes
-  bridge                   = var.proxmox_network_bridge
-  size                     = var.instance_size
-  disk_size_gb             = var.instance_disk_size_gb
-  ipv4_address             = var.instance_ipv4_address
-  ipv4_gateway             = var.instance_ipv4_gateway
-  ssh_public_keys          = var.instance_ssh_public_keys
-  tags                     = local.common_tags
-}
-
-module "container" {
-  source = "../../modules/lxc"
-
-  name                     = var.container_name
-  node_name                = var.proxmox_node_name
-  template_file_id         = var.container_template_file_id
-  storage_class            = var.container_storage_class
-  storage_class_datastores = var.proxmox_storage_classes
-  bridge                   = var.proxmox_network_bridge
-  size                     = var.container_size
-  disk_size_gb             = var.container_disk_size_gb
-  ipv4_address             = var.container_ipv4_address
-  ipv4_gateway             = var.container_ipv4_gateway
-  tags                     = local.common_tags
+  template_vm_id_el10          = local.template_vm_id
+  proxmox_storage_classes      = var.proxmox_storage_classes
+  network_zones                = local.effective_network_zones
+  default_vm_network_zone_key  = var.default_vm_network_zone_key
+  default_lxc_network_zone_key = var.default_lxc_network_zone_key
+  ssh_public_keys              = local.effective_ssh_public_keys
+  common_tags                  = local.common_tags
+  vm_instances                 = local.effective_vm_instances
+  lxc_instances                = local.effective_lxc_instances
 }
