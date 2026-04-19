@@ -12,11 +12,12 @@ Current template set:
 LXC note:
 
 - use Terraform or Proxmox-native templates for LXC provisioning
-- see `lxc/README.md`
+- see [LXC note](lxc/README.md)
 
 Preferred split:
 
 - structured non-secret values in `packer/variables.auto.pkrvars.hcl`
 - sensitive runtime values through environment variables or a secret system
 
-Read more in `../../docs/reference/environment-variables.md`.
+Read more in
+[Environment variable conventions](../../../docs/reference/environment-variables.md).

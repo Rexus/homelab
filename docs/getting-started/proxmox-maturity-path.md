@@ -11,8 +11,10 @@
 
 ## Purpose
 
-Use this path to grow the platform from an initial working deployment toward a
-more resilient and production-ready private cloud.
+Use this as a Proxmox-specific view of the broader
+[private cloud maturity path](private-cloud-maturity-path.md). The private
+cloud path is the authoritative repository-wide source of truth; this page
+keeps the same milestones in Proxmox terms.
 
 ## Maturity overview
 

@@ -1,14 +1,15 @@
 # Ansible
 
-Use Ansible to apply bootstrap and baseline host and guest configuration after provisioning.
+Use Ansible to apply bootstrap and baseline host and guest configuration after
+provisioning.
 
 For repository usage and secret handling, read:
 
-- `../docs/getting-started/vault-bootstrap.md`
-- `../docs/usage-model.md`
-- `../docs/security/secret-strategy.md`
-- `../docs/reference/environment-variables.md`
-- `../docs/reference/ansible-vault-bootstrap.md`
+- [Vault bootstrap](../docs/getting-started/vault-bootstrap.md)
+- [Safe repository usage](../docs/usage-model.md)
+- [Secret strategy](../docs/security/secret-strategy.md)
+- [Environment variable conventions](../docs/reference/environment-variables.md)
+- [Ansible Vault bootstrap](../docs/reference/ansible-vault-bootstrap.md)
 
 Key paths:
 

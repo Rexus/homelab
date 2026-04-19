@@ -2,11 +2,18 @@
 
 ## Table of contents
 
+- [Purpose](#purpose)
 - [Baseline posture](#baseline-posture)
 - [Identity and access](#identity-and-access)
 - [Secrets handling](#secrets-handling)
 - [Platform hardening](#platform-hardening)
 - [Automation guardrails](#automation-guardrails)
+
+## Purpose
+
+Use this guide as the durable security baseline for the repository. It keeps
+the principles short, while the detailed implementation guidance lives in the
+platform, secret, and Vault-specific documents.
 
 ## Baseline posture
 

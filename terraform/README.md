@@ -5,9 +5,9 @@ machines.
 
 For repository usage and secret handling, read:
 
-- `../docs/usage-model.md`
-- `../docs/security/secret-strategy.md`
-- `../docs/reference/environment-variables.md`
+- [Safe repository usage](../docs/usage-model.md)
+- [Secret strategy](../docs/security/secret-strategy.md)
+- [Environment variable conventions](../docs/reference/environment-variables.md)
 
 Key paths:
 

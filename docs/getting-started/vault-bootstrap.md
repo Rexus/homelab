@@ -7,6 +7,7 @@
 - [Bootstrap inputs](#bootstrap-inputs)
 - [Day 1 flow](#day-1-flow)
 - [Handoff to the next deployment](#handoff-to-the-next-deployment)
+- [On-prem HSM notes](#on-prem-hsm-notes)
 - [Path to higher availability](#path-to-higher-availability)
 - [Read more](#read-more)
 
@@ -103,6 +104,21 @@ After Vault is initialized:
 - treat local Ansible Vault files as a fallback path, not the primary system of
   record
 
+## On-prem HSM notes
+
+An on-premises HSM is not required for the first Vault bootstrap in this
+repository.
+
+For the shortest path, keep Day 1 simple:
+
+- use Shamir seal on the first dedicated Vault VM
+- move shared secrets into Vault immediately after initialization
+- treat on-premises HSM integration as a later hardening step
+
+Use [Vault HSM hardening options](../security/vault-hsm-hardening-options.md)
+as the authoritative repository note for Community Edition versus Enterprise
+paths, device choices, and the later `Vault A` plus `Vault B` hardening model.
+
 ## Path to higher availability
 
 When the environment is ready for more resilience:
@@ -119,4 +135,5 @@ When the environment is ready for more resilience:
 - [Bootstrap path](bootstrap-path.md)
 - [Private cloud maturity path](private-cloud-maturity-path.md)
 - [Secret strategy](../security/secret-strategy.md)
+- [Vault HSM hardening options](../security/vault-hsm-hardening-options.md)
 - [Ansible Vault bootstrap fallback](../reference/ansible-vault-bootstrap.md)

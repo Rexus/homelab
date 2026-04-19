@@ -1,8 +1,8 @@
 # Homelab IaC Baseline
 
-This repository is a security-first Infrastructure as Code baseline for building
-and operating a private cloud homelab or small datacenter using Packer,
-Terraform, and Ansible so new environments can be brought up quickly,
+This repository is a security-first Infrastructure as Code baseline for
+building and operating a private cloud homelab or small datacenter using
+Packer, Terraform, and Ansible so you can bring up new environments quickly,
 consistently, and without committing secrets into Git.
 
 Proxmox is the current reference foundation for the hypervisor and initial
@@ -16,9 +16,11 @@ not push operational changes back to this upstream.
 ## Getting started
 
 Use the bootstrap fast path below for the shortest first run. For a fuller
-walkthrough of the same flow, read [docs/getting-started/bootstrap-path.md](docs/getting-started/bootstrap-path.md)
-first. If the local tooling still needs to be prepared, read
+walkthrough of the same flow, start with
+[docs/getting-started/bootstrap-path.md](docs/getting-started/bootstrap-path.md).
+If your local tooling still needs to be prepared, read
 [docs/getting-started/local-setup.md](docs/getting-started/local-setup.md).
+If you want the broader documentation map, use [docs/README.md](docs/README.md).
 
 Bootstrap fast path:
 
@@ -36,7 +38,7 @@ cp ansible/group_vars/all.yml.example ansible/group_vars/all.yml
 cp ansible/group_vars/vault.yml.example ansible/group_vars/vault.yml
 ```
 
-3. Update the copied files with local values.
+3. Update the copied files with your local values.
 
 4. Set platform API access for the current shell:
 
@@ -71,6 +73,7 @@ part of this run.
    - [Vault bootstrap](docs/getting-started/vault-bootstrap.md)
    - [Secret strategy](docs/security/secret-strategy.md)
    - [Private cloud maturity path](docs/getting-started/private-cloud-maturity-path.md)
+   - [Documentation index](docs/README.md)
 
 Recommended maturity path:
 
@@ -88,6 +91,7 @@ Read more in:
 - [docs/reference/environment-variables.md](docs/reference/environment-variables.md)
 - [docs/security/secret-strategy.md](docs/security/secret-strategy.md)
 - [docs/architecture/overview.md](docs/architecture/overview.md)
+- [docs/README.md](docs/README.md)
 
 ## Repository structure
 

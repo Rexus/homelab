@@ -11,9 +11,10 @@
 
 ## Purpose
 
-Use this path to grow the environment from an initial working deployment toward
- a more resilient and production-ready private cloud. Proxmox is the current
-reference foundation, but the maturity path is about the broader platform.
+Use this as the authoritative maturity path for the repository. It grows the
+environment from an initial working deployment toward a more resilient and
+production-ready private cloud. Proxmox is the current reference foundation,
+but the maturity path is about the broader platform.
 
 ## Maturity overview
 

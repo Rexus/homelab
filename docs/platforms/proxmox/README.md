@@ -27,7 +27,7 @@ Use the Proxmox platform layer for:
 
 ## Platform guides
 
- - [Enterprise Linux template](enterprise-linux-template.md)
+- [Enterprise Linux template](enterprise-linux-template.md)
 - [Backup foundation](backup-foundation.md)
 - [API setup](setup-api.md)
 - [Network prerequisites](network-prerequisites.md)
@@ -47,6 +47,8 @@ Recommended next maturity step:
 
 ## Related references
 
+- [Private cloud maturity path](../../getting-started/private-cloud-maturity-path.md)
+- [Proxmox maturity path](../../getting-started/proxmox-maturity-path.md)
 - [Safe repository usage](../../usage-model.md)
 - [Secret strategy](../../security/secret-strategy.md)
 - [Security principles](../../security/security-principles.md)

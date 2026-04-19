@@ -26,7 +26,7 @@ Both paths are already ignored by `.gitignore`.
 
 Use this environment variable to point Ansible to the local vault password file:
 
-```shell docs/reference/ansible-vault-bootstrap.md
+```powershell
 $env:ANSIBLE_VAULT_PASSWORD_FILE = "secrets/ansible-vault-password.txt"
 ```
 

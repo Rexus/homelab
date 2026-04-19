@@ -2,13 +2,13 @@
 
 ## Table of contents
 
-- [Intent](#intent)
+- [Purpose](#purpose)
 - [Goals](#goals)
 - [Layered model](#layered-model)
 - [Automation flow](#automation-flow)
 - [Boundaries](#boundaries)
 
-## Intent
+## Purpose
 
 This repository is a private-cloud baseline built around clear trust
 boundaries, layered networking, and a strict split between image creation,
@@ -27,23 +27,28 @@ segments, hosts, and services can change without changing the core model.
 
 ## Layered model
 
-```text
-PRIVATE CLOUD
+```mermaid
+flowchart TB
+  subgraph Edge["Edge layer"]
+    E1["External zone<br/>Internet, WAN, partner networks"]
+    E2["DMZ zone<br/>Ingress, VPN, ZTNA, controlled egress"]
+  end
 
-┌─────────────────────────────────────────────────────────────┐
-│ EDGE LAYER                                                  │
-│   External zone       Internet, WAN, partner networks       │
-│   DMZ zone            Ingress, VPN, ZTNA, controlled egress │
-├─────────────────────────────────────────────────────────────┤
-│ APPLICATION LAYER                                           │
-│   Shared services     DNS, identity, Vault, logging         │
-│   User services       Internal apps, APIs, portals          │
-├─────────────────────────────────────────────────────────────┤
-│ INFRASTRUCTURE LAYER                                        │
-│   Management zone     Bastion, IaC, ops, hypervisor mgmt    │
-│   Restricted zone     Backup, storage, HSM, hardware roots  │
-└─────────────────────────────────────────────────────────────┘
+  subgraph App["Application layer"]
+    A1["Shared services<br/>DNS, identity, Vault, logging"]
+    A2["User services<br/>Internal apps, APIs, portals"]
+  end
+
+  subgraph Infra["Infrastructure layer"]
+    I1["Management zone<br/>Bastion, IaC, ops, hypervisor management"]
+    I2["Restricted zone<br/>Backup, storage, HSM, hardware roots"]
+  end
+
+  Edge --> App --> Infra
 ```
+
+Figure: trust increases as you move from edge-facing systems toward management
+and restricted infrastructure services.
 
 This is a pattern model, not a public-cloud feature match. Proxmox is the
 current foundation layer, but the architecture is broader than a single
@@ -58,9 +63,16 @@ Each tool has one primary job:
 - Ansible applies baseline configuration and installs Vault on designated
   bootstrap hosts
 
-```text
-Bootstrap secret source -> Packer -> Terraform -> Ansible -> Vault handoff
+```mermaid
+flowchart LR
+  A["Bootstrap secret source"] --> B["Packer"]
+  B --> C["Terraform"]
+  C --> D["Ansible"]
+  D --> E["Vault handoff"]
 ```
+
+Figure: image build, provisioning, and configuration stay separate until the
+first Vault handoff.
 
 Vault is treated as an early shared service so the platform can reduce
 bootstrap-only secret handling before broader service deployment.
