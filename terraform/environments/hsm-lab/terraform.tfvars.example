@@ -62,11 +62,17 @@ network_zones = {
     vlan_id     = 20
     cidr_ipv4   = "10.20.20.0/24"
   }
-  hsm = {
-    description = "Restricted PKCS#11 helper, recovery, or signing-adjacent path."
+  hsm_gateway = {
+    description = "Dedicated service-plane subnet for live HSM-backed gateways."
     bridge      = "vmbr0"
     vlan_id     = 21
     cidr_ipv4   = "10.20.21.0/24"
+  }
+  hsm = {
+    description = "Restricted PKCS#11 custody, provisioning, or recovery path."
+    bridge      = "vmbr0"
+    vlan_id     = 22
+    cidr_ipv4   = "10.20.22.0/24"
   }
   dmz = {
     description = "Edge or ingress-facing services."
@@ -81,68 +87,51 @@ ssh_public_keys = [
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@hsm-lab"
 ]
 
-# Add `1-3` proxy VMs and `1-8` gateway VMs by extending this map.
+# Keep the shared DMZ proxy in terraform/environments/foundation by default.
+# The repository reference shape is one central proxy there plus two gateway
+# hosts here, each with its own local USB HSM.
+# Add more gateway hosts by extending this map.
 vm_instances = {
-  proxy01 = {
-    name             = "hsm-proxy01-change-me"
-    node_name        = "pve01-change-me"
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 20
-    network_zone_key = "dmz"
-    ipv4_address     = "dhcp"
-    role             = "proxy"
-  }
-  gateway_a1 = {
-    name             = "hsm-gw-a1-change-me"
+  gateway01 = {
+    name             = "hsm-gw01-change-me"
     node_name        = "pve01-change-me"
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
-    network_zone_key = "service"
+    network_zone_key = "hsm_gateway"
     ipv4_address     = "dhcp"
     role             = "gateway"
   }
-  gateway_a2 = {
-    name             = "hsm-gw-a2-change-me"
-    node_name        = "pve01-change-me"
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 30
-    network_zone_key = "service"
-    ipv4_address     = "dhcp"
-    role             = "gateway"
-  }
-  gateway_b1 = {
-    name             = "hsm-gw-b1-change-me"
+  gateway02 = {
+    name             = "hsm-gw02-change-me"
     node_name        = "pve02-change-me"
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
-    network_zone_key = "service"
+    network_zone_key = "hsm_gateway"
     ipv4_address     = "dhcp"
     role             = "gateway"
   }
-  gateway_b2 = {
-    name             = "hsm-gw-b2-change-me"
-    node_name        = "pve02-change-me"
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 30
-    network_zone_key = "service"
-    ipv4_address     = "dhcp"
-    role             = "gateway"
-  }
-  helper01 = {
-    name             = "hsm-helper01-change-me"
-    node_name        = "pve01-change-me"
-    size             = "tiny"
-    storage_class    = "local"
-    disk_size_gb     = 20
-    network_zone_key = "management"
-    ipv4_address     = "dhcp"
-    role             = "helper"
-  }
+  # recovery01 = {
+  #   name             = "hsm-recovery01-change-me"
+  #   node_name        = "pve01-change-me"
+  #   size             = "tiny"
+  #   storage_class    = "local"
+  #   disk_size_gb     = 20
+  #   network_zone_key = "hsm"
+  #   ipv4_address     = "dhcp"
+  #   role             = "helper"
+  # }
+  # provisioner01 = {
+  #   name             = "hsm-provisioner01-change-me"
+  #   node_name        = "pve02-change-me"
+  #   size             = "tiny"
+  #   storage_class    = "local"
+  #   disk_size_gb     = 20
+  #   network_zone_key = "hsm"
+  #   ipv4_address     = "dhcp"
+  #   role             = "helper"
+  # }
 }
 
 lxc_instances = {}

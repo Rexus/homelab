@@ -25,6 +25,14 @@ flowchart LR
   D --> E[Operator init and unseal]
   E --> F[Shared secrets move into Vault]
   F --> G[Continue broader deployment]
+
+  classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
+  classDef buildNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
+  classDef vaultNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
+
+  class A,E mgmtNode
+  class B,C,G buildNode
+  class D,F vaultNode
 ```
 
 Figure: the first managed VM becomes the handoff point from bootstrap-only

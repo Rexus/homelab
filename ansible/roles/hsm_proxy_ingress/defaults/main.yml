@@ -1,0 +1,14 @@
+---
+hsm_proxy_ingress_output_dir: /etc/haproxy/conf.d
+hsm_proxy_ingress_output_path: "{{ hsm_proxy_ingress_output_dir }}/hsm-gateways-backend.cfg"
+hsm_proxy_ingress_gateway_group: hsm_gateways
+hsm_proxy_ingress_backend_name: hsm_gateways
+hsm_proxy_ingress_mode: tcp
+hsm_proxy_ingress_balance: roundrobin
+hsm_proxy_ingress_backend_port: 8443
+hsm_proxy_ingress_default_server_options:
+  - "check"
+  - "inter 3s"
+  - "rise 2"
+  - "fall 2"
+hsm_proxy_ingress_extra_backend_lines: []

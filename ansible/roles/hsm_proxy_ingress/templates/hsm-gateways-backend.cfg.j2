@@ -1,0 +1,12 @@
+# Managed by Ansible.
+# Include this backend from your main HAProxy configuration on the shared proxy.
+
+backend {{ hsm_proxy_ingress_backend_name }}
+  mode {{ hsm_proxy_ingress_mode }}
+  balance {{ hsm_proxy_ingress_balance }}
+{% for line in hsm_proxy_ingress_extra_backend_lines %}
+  {{ line }}
+{% endfor %}
+{% for host in groups[hsm_proxy_ingress_gateway_group] | default([]) %}
+  server {{ host }} {{ hostvars[host].ansible_host | default(host) }}:{{ hostvars[host].hsm_proxy_ingress_backend_port | default(hsm_proxy_ingress_backend_port) }} {{ hsm_proxy_ingress_default_server_options | join(' ') }}
+{% endfor %}

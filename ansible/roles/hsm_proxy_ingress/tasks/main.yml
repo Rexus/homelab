@@ -1,0 +1,12 @@
+---
+- name: Ensure HAProxy backend snippet directory exists
+  ansible.builtin.file:
+    path: "{{ hsm_proxy_ingress_output_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Render HSM gateway backend snippet
+  ansible.builtin.template:
+    src: hsm-gateways-backend.cfg.j2
+    dest: "{{ hsm_proxy_ingress_output_path }}"
+    mode: "0644"

@@ -14,8 +14,10 @@ Key paths:
 
 - `modules/` - reusable building blocks
 - `environments/bootstrap/` - bootstrap environment scaffold
-- `environments/hsm-lab/` - host-layout scaffold for Pico HSM or software
-  PKCS#11 lab patterns
+- `environments/foundation/` - shared edge ingress and foundation-service
+  scaffold
+- `environments/hsm-lab/` - gateway and custody-host scaffold for USB HSM or
+  software PKCS#11 lab patterns
 - `environments/bootstrap/terraform.tfvars.example`
   -> `environments/bootstrap/terraform.tfvars`
 

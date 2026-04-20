@@ -72,9 +72,9 @@ If local tooling is not ready yet, insert
   Vault-focused note for later HSM hardening and PKCS#11 paths
 - [HSM getting started](security/hsm-planning-and-comparison.md) - short guide
   with a practical use, scale, and cost matrix
-- [Pico HSM active-active blueprint](security/picohsm-active-active-blueprint.md) -
+- [USB HSM active-active blueprint](security/usb-hsm-active-active-blueprint.md) -
   concrete USB HSM deployment reference with active-active service, shared
-  network mapping, and offline backup
+  network mapping, and Pico HSM as the current reference implementation
 
 ## Reference and decisions
 

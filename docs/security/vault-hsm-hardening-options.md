@@ -94,6 +94,14 @@ flowchart TD
   HSM --> Helper
   Helper --> VaultA
   VaultA --> VaultB
+
+  classDef hsmNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
+  classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
+  classDef vaultNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
+
+  class HSM hsmNode
+  class Helper mgmtNode
+  class VaultA,VaultB vaultNode
 ```
 
 Figure: the HSM protects recovery or bootstrap material for `Vault A`, and
@@ -138,7 +146,7 @@ For those claims, Vault Enterprise is the supported path [1].
 
 ## Planned guide scope
 
-A future combined guide for YubiHSM 2 and Pico HSM should cover:
+The broader USB HSM guide set should cover:
 
 1. device initialization, PIN handling, backup, and operator custody
 2. PKCS#11 middleware setup on the admin host and the target Linux VM
@@ -169,7 +177,7 @@ Use this rule of thumb:
 ## Read more
 
 - [HSM getting started](hsm-planning-and-comparison.md)
-- [Pico HSM active-active blueprint](picohsm-active-active-blueprint.md)
+- [USB HSM active-active blueprint](usb-hsm-active-active-blueprint.md)
 - [Vault bootstrap](../getting-started/vault-bootstrap.md)
 - [Secret strategy](secret-strategy.md)
 

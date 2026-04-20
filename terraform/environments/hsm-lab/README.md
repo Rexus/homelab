@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Purpose](#purpose)
+- [Prerequisite](#prerequisite)
 - [What it provisions](#what-it-provisions)
 - [Lab tracks](#lab-tracks)
 - [What stays manual](#what-stays-manual)
@@ -14,29 +15,42 @@ Use this environment to provision the host layout for the repository's PKCS#11
 lab pattern.
 
 It gives you a stable IaC entry point for the same topology whether you start
-with real Pico HSM hardware or with a software-only PKCS#11 rehearsal path.
+with a USB HSM such as Pico HSM or YubiHSM 2, or with a software-only PKCS#11
+rehearsal path.
 
 This environment uses the same `network_zones`, `vm_instances`, and
 `lxc_instances` schema as the other Terraform environments so the network model
 and guest placement stay consistent across the repository.
 
+## Prerequisite
+
+Use [`terraform/environments/foundation/`](../foundation/README.md) first when
+you follow the repository default USB HSM path.
+
+The shared reverse proxy belongs in that foundation layer on `dmz`. This
+environment then adds the active gateway hosts in `hsm_gateway` and any
+restricted recovery or provisioning helpers in `hsm`.
+
 ## What it provisions
 
 This environment provisions:
 
-- `1-3` proxy or load-balancer VMs
-- `1-8` gateway or signer-adjacent VMs
+- `2` gateway or signer-adjacent VMs in the default example
 - `0+` helper VMs for bootstrap, restore, or recovery work
 
 This is the host layout around the HSM pattern. It does not try to model the
 USB device itself inside Terraform.
 
+You can still scale the same pattern up or down by changing `vm_instances`. The
+default example starts at two gateway hosts because that is the repository's
+reference active-active shape.
+
 ## Lab tracks
 
 Use one of these tracks after the VMs exist:
 
-- hardware-backed track: attach Pico HSM devices to the intended gateway and
-  helper hosts and follow the Pico HSM blueprint
+- hardware-backed track: attach your chosen USB HSM devices to the intended
+  gateway and helper hosts and follow the USB HSM blueprint
 - software-only track: keep the same VMs and run a software PKCS#11 token on
   those hosts while you validate the service pattern before hardware arrives
 
@@ -44,12 +58,11 @@ Set `lab_variant` to reflect which track the environment represents.
 
 Use `vm_instances` dynamically:
 
-- tag proxy VMs with role `proxy`
 - tag signer or gateway VMs with role `gateway`
 - tag bootstrap or recovery helpers with role `helper`
 
-The default example models the repository's drawn reference pattern, but the
-map can grow or shrink without changing the environment code.
+The default example keeps the shared proxy outside this environment, but the
+map can still grow or shrink without changing the environment code.
 
 ## What stays manual
 
@@ -66,7 +79,8 @@ inside Terraform.
 
 ## Continue reading
 
+- [Foundation environment](../foundation/README.md)
 - [Network zones and IaC mapping](../../../docs/architecture/network-zones-and-iac-mapping.md)
-- [Pico HSM active-active blueprint](../../../docs/security/picohsm-active-active-blueprint.md)
+- [USB HSM active-active blueprint](../../../docs/security/usb-hsm-active-active-blueprint.md)
 - [Vault HSM hardening options](../../../docs/security/vault-hsm-hardening-options.md)
 - [Terraform overview](../../README.md)

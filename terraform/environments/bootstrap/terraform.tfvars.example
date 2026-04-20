@@ -63,11 +63,18 @@ network_zones = {
     vlan_id     = 20
     cidr_ipv4   = "10.20.20.0/24"
   }
-  hsm = {
-    description = "Restricted PKCS#11 helper, recovery, or signing-adjacent path."
+  hsm_gateway = {
+    description = "Dedicated service-plane subnet for HSM-backed gateways."
     bridge      = "vmbr0"
     vlan_id     = 21
     cidr_ipv4   = "10.20.21.0/24"
+    notes       = "Usually unused at bootstrap, but kept here for the shared architecture map."
+  }
+  hsm = {
+    description = "Restricted PKCS#11 custody, provisioning, or recovery path."
+    bridge      = "vmbr0"
+    vlan_id     = 22
+    cidr_ipv4   = "10.20.22.0/24"
     notes       = "Usually unused at bootstrap, but kept here for the shared architecture map."
   }
   dmz = {

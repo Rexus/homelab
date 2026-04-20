@@ -24,8 +24,9 @@ For this repository:
 - enterprise network HSMs are the right answer when formal compliance, vendor
   HA, or much higher signing scale matters
 
-This guide is for getting started. Use the Pico HSM blueprint for the concrete
-USB HSM deployment pattern.
+This guide is for getting started. Use the USB HSM active-active blueprint for
+the concrete USB HSM deployment pattern. Pico HSM is the current open-source
+reference implementation there.
 
 ## Use and scale matrix
 
@@ -121,8 +122,9 @@ What it does not give you:
 - automatic replication between devices
 - enterprise HSM compliance claims
 
-Use the Pico HSM blueprint for the concrete `2` hosts, `4` active devices, and
-`1` offline backup pattern.
+Use the USB HSM active-active blueprint for the concrete default `2` hosts,
+`2` active devices, and `1` offline backup pattern, with scale-up guidance
+beyond that.
 
 ## Certification and reality
 
@@ -142,7 +144,7 @@ platforms.
 
 ## Read more
 
-- [Pico HSM active-active blueprint](picohsm-active-active-blueprint.md)
+- [USB HSM active-active blueprint](usb-hsm-active-active-blueprint.md)
 - [Vault HSM hardening options](vault-hsm-hardening-options.md)
 - [Vault bootstrap](../getting-started/vault-bootstrap.md)
 - [Secret strategy](secret-strategy.md)

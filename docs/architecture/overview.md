@@ -37,7 +37,7 @@ flowchart TB
 
   subgraph App["Application layer"]
     A1["Shared services<br/>DNS, identity, Vault, logging"]
-    A2["User services<br/>Internal apps, APIs, portals"]
+    A2["User services and microsegments<br/>Internal apps, APIs, HSM gateways"]
   end
 
   subgraph Infra["Infrastructure layer"]
@@ -84,6 +84,14 @@ flowchart LR
   B --> C["Terraform"]
   C --> D["Ansible"]
   D --> E["Vault handoff"]
+
+  classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
+  classDef buildNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
+  classDef vaultNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
+
+  class A mgmtNode
+  class B,C,D buildNode
+  class E vaultNode
 ```
 
 Figure: image build, provisioning, and configuration stay separate until the
@@ -98,7 +106,7 @@ Use the shared zone catalog in
 [Network zones and IaC mapping](network-zones-and-iac-mapping.md) when you pick
 subnets, VLANs, Proxmox bridges, and guest placement keys. That document is the
 repository source of truth for zone names such as `management`, `service`,
-`dmz`, and `hsm`.
+`hsm_gateway`, `dmz`, and `hsm`.
 
 ## Boundaries
 

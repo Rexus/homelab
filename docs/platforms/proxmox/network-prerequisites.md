@@ -28,7 +28,7 @@ Read more in [Architecture overview](../../architecture/overview.md).
 Use [Network zones and IaC mapping](../../architecture/network-zones-and-iac-mapping.md)
 as the repository source of truth for:
 
-- zone names such as `management`, `service`, `dmz`, and `hsm`
+- zone names such as `management`, `service`, `hsm_gateway`, `dmz`, and `hsm`
 - the `network_zones` keys used in Terraform
 - the bridge, VLAN, and subnet values you fill in locally
 
@@ -55,6 +55,7 @@ flowchart LR
     Service[service]
     Mgmt[management]
     HSM[hsm]
+    HSMGateway[hsm_gateway]
     Host[host]
     Corosync[corosync]
     CephPublic[ceph_public]
@@ -66,6 +67,7 @@ flowchart LR
     Switch --> Service
     Switch --> Mgmt
     Switch --> HSM
+    Switch --> HSMGateway
     Switch --> Host
     Switch --> Corosync
     Switch --> CephPublic
@@ -74,10 +76,27 @@ flowchart LR
     Service --> Proxmox
     Mgmt --> Proxmox
     HSM --> Proxmox
+    HSMGateway --> Proxmox
     Host --> Proxmox
     Corosync --> Proxmox
     CephPublic --> Proxmox
     CephCluster --> Proxmox
+
+    classDef edgeNode fill:#dcfce7,stroke:#15803d,color:#1f2937
+    classDef appNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
+    classDef gatewayNode fill:#93c5fd,stroke:#1d4ed8,color:#1f2937
+    classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
+    classDef proxmoxNode fill:#fdba74,stroke:#9a3412,color:#1f2937
+    classDef hsmNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
+    classDef cephNode fill:#fee2e2,stroke:#dc2626,color:#1f2937
+
+    class Router,DMZ edgeNode
+    class Service appNode
+    class HSMGateway gatewayNode
+    class Switch,Mgmt mgmtNode
+    class HSM hsmNode
+    class Host,Corosync,Proxmox proxmoxNode
+    class CephPublic,CephCluster cephNode
 ```
 
 Keep the model simple at first. The important part is predictable separation

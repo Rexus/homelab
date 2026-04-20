@@ -12,7 +12,25 @@ all:
       hosts:
         vault01-change-me:
           ansible_host: 10.10.10.21
-    guests:
+    proxies:
+      hosts:
+        proxy01-change-me:
+          ansible_host: 10.30.30.10
+    hsm_gateways:
       hosts:
         gateway01-change-me:
-          ansible_host: 10.20.20.10
+          ansible_host: 10.20.21.10
+          hsm_proxy_ingress_backend_port: 8443
+        gateway02-change-me:
+          ansible_host: 10.20.21.11
+          hsm_proxy_ingress_backend_port: 8443
+    hsm_helpers:
+      hosts:
+        recovery01-change-me:
+          ansible_host: 10.20.22.10
+    guests:
+      children:
+        vault:
+        proxies:
+        hsm_gateways:
+        hsm_helpers:

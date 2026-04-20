@@ -19,7 +19,7 @@ It gives you one stable set of zone names for:
 - architecture and platform planning
 - Terraform variable keys
 - Proxmox bridge and VLAN mapping
-- later service-specific guides such as the Pico HSM lab
+- later service-specific guides such as the USB HSM lab
 
 Not every zone is required on Day 1. The point is to keep one consistent map so
 the repository can grow without renaming networks every time a new sub-project
@@ -39,6 +39,7 @@ flowchart TB
 
   subgraph App["Application and shared-service layer"]
     Service[service]
+    HSMGateway[hsm_gateway]
   end
 
   subgraph Infra["Infrastructure and restricted layer"]
@@ -59,8 +60,10 @@ flowchart TB
   end
 
   DMZ --> Service
+  DMZ --> HSMGateway
   Mgmt --> Service
-  Service --> HSM
+  Service --> HSMGateway
+  Mgmt --> HSM
 
   style Edge fill:#ecfdf5,stroke:#15803d,stroke-width:2px,color:#1f2937
   style App fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1f2937
@@ -69,6 +72,7 @@ flowchart TB
 
   classDef edgeNode fill:#dcfce7,stroke:#15803d,color:#1f2937
   classDef appNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
+  classDef gatewayNode fill:#bfdbfe,stroke:#2563eb,color:#1f2937
   classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
   classDef proxmoxNode fill:#fdba74,stroke:#9a3412,color:#1f2937
   classDef hsmNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
@@ -76,6 +80,7 @@ flowchart TB
 
   class Internet,DMZ edgeNode
   class Service appNode
+  class HSMGateway gatewayNode
   class Mgmt mgmtNode
   class Host,Corosync proxmoxNode
   class HSM hsmNode
@@ -84,7 +89,7 @@ flowchart TB
 
 Figure: the zone catalog follows the same top-down trust model as the
 architecture overview, from public-facing paths at the top to hardware-close
-host, cluster, storage, and HSM-related networks at the bottom.
+host, cluster, storage, and custody networks at the bottom.
 
 The keys above are the same keys you should use in Terraform `network_zones`.
 
@@ -100,15 +105,19 @@ Use these zone meanings:
 | `ceph_public` | Ceph client-facing storage traffic | hypervisors, storage clients, selected guests | usually no |
 | `ceph_cluster` | Ceph replication, recovery, and back-end storage traffic | Ceph nodes only | no |
 | `service` | shared services and internal application traffic | Vault, DNS, APIs, apps, internal callers | yes |
-| `hsm` | restricted signing, PKCS#11 helper, recovery, or custody-adjacent paths | HSM helpers, signing gateways, recovery hosts | sometimes |
-| `dmz` | ingress, reverse proxies, externally exposed services | proxies, gateways, selected edge services | yes |
+| `hsm_gateway` | dedicated service-plane microsegment for live HSM-backed gateways or signers | signer gateways, signing APIs, PKI frontends | yes |
+| `hsm` | restricted custody, provisioning, recovery, or helper path | recovery hosts, provisioning hosts, ceremony helpers | sometimes |
+| `dmz` | ingress, reverse proxies, externally exposed services | proxies, selected edge services | yes |
 
 Practical notes:
 
 - domain, DNS, and identity services usually live on `service` unless you split
   out a dedicated shared-services segment later
+- `hsm_gateway` is the live service microsegment for active HSM-backed
+  gateways; keep it separate from custody-only helpers when you have a distinct
+  subnet, VLAN, or ACL boundary for that traffic
 - `hsm` does not mean the USB device itself is networked; it is the restricted
-  path around helper, recovery, or signing-adjacent systems
+  path around recovery, provisioning, and custody-adjacent systems
 - `host`, `corosync`, `ceph_public`, and `ceph_cluster` are often planning
   references before they are guest-facing Terraform inputs
 
@@ -128,6 +137,16 @@ network_zones = {
     vlan_id   = 20
     cidr_ipv4 = "10.20.20.0/24"
   }
+  hsm_gateway = {
+    bridge    = "vmbr0"
+    vlan_id   = 21
+    cidr_ipv4 = "10.20.21.0/24"
+  }
+  hsm = {
+    bridge    = "vmbr0"
+    vlan_id   = 22
+    cidr_ipv4 = "10.20.22.0/24"
+  }
   dmz = {
     bridge    = "vmbr0"
     vlan_id   = 30
@@ -136,10 +155,10 @@ network_zones = {
 }
 
 vm_instances = {
-  vault01 = {
-    name             = "vault01"
+  signer_gw01 = {
+    name             = "signer-gw01"
     node_name        = "pve01"
-    network_zone_key = "service"
+    network_zone_key = "hsm_gateway"
     ipv4_address     = "dhcp"
   }
 }
@@ -169,11 +188,11 @@ Use the catalog progressively:
 
 | Stage | Zones you usually need now | Zones you can leave as reference only |
 | --- | --- | --- |
-| first bootstrap | `management`, `service` | `host`, `corosync`, `ceph_public`, `ceph_cluster`, `hsm`, `dmz` |
-| early private cloud | `management`, `service`, `dmz` | `host`, `corosync`, `ceph_public`, `ceph_cluster`, `hsm` |
-| clustered platform | `management`, `host`, `corosync`, `service`, optional `dmz` | `ceph_public`, `ceph_cluster`, `hsm` |
-| storage-heavy platform | `management`, `host`, `corosync`, `ceph_public`, `ceph_cluster`, `service` | `dmz`, `hsm` |
-| HSM or signing lab | `management`, `service`, `hsm`, optional `dmz` | `host`, `corosync`, `ceph_public`, `ceph_cluster` unless also clustering storage |
+| first bootstrap | `management`, `service` | `host`, `corosync`, `ceph_public`, `ceph_cluster`, `hsm_gateway`, `hsm`, `dmz` |
+| early private cloud | `management`, `service`, `dmz` | `host`, `corosync`, `ceph_public`, `ceph_cluster`, `hsm_gateway`, `hsm` |
+| clustered platform | `management`, `host`, `corosync`, `service`, optional `dmz` | `ceph_public`, `ceph_cluster`, `hsm_gateway`, `hsm` |
+| storage-heavy platform | `management`, `host`, `corosync`, `ceph_public`, `ceph_cluster`, `service` | `dmz`, `hsm_gateway`, `hsm` |
+| HSM or signing lab | `management`, `service`, `hsm_gateway`, optional `hsm`, optional `dmz` | `host`, `corosync`, `ceph_public`, `ceph_cluster` unless also clustering storage |
 
 This is why the examples keep extra zones in comments or placeholders. You do
 not need to run every network before the repository is useful.
@@ -199,4 +218,4 @@ Repository boundary:
 
 - [Architecture overview](overview.md)
 - [Proxmox network prerequisites](../platforms/proxmox/network-prerequisites.md)
-- [Pico HSM active-active blueprint](../security/picohsm-active-active-blueprint.md)
+- [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md)
