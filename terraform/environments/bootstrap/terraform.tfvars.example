@@ -91,15 +91,15 @@ ssh_public_keys = [
 ]
 
 vm_instances = {
-  vault01 = {
-    name             = "vault01-change-me"
+  bootstrap01 = {
+    name             = "bootstrap01-change-me"
     node_name        = "pve01-change-me"
-    size             = "large"
+    size             = "small"
     storage_class    = "local"
-    disk_size_gb     = 40
+    disk_size_gb     = 30
     network_zone_key = "service"
     ipv4_address     = "dhcp"
-    role             = "vault-bootstrap"
+    role             = "bootstrap"
   }
 }
 

@@ -1,10 +1,9 @@
-# Copy to: terraform/environments/hsm-lab/terraform.tfvars
+# Copy to: terraform/environments/vault/terraform.tfvars
 # Replace every value before use.
 # Setup guide: README.md
 
 platform = "proxmox"
-cluster_name = "hsm-lab-change-me"
-lab_variant = "hardware"
+cluster_name = "vault-change-me"
 
 proxmox_storage_classes = {
   local = {
@@ -21,6 +20,8 @@ proxmox_storage_classes = {
   }
 }
 
+# Fill in only the zones you use on Day 1. The rest can stay as planning
+# comments until your platform grows into them.
 network_zones = {
   management = {
     description = "Operator, IaC, and hypervisor-adjacent access."
@@ -40,7 +41,7 @@ network_zones = {
     bridge      = "vmbr0"
     vlan_id     = 12
     cidr_ipv4   = "10.10.12.0/24"
-    notes       = "Reference zone for clustered control-plane traffic."
+    notes       = "Reference zone for later clustered control-plane traffic."
   }
   ceph_public = {
     description = "Optional Ceph client-facing network."
@@ -63,16 +64,18 @@ network_zones = {
     cidr_ipv4   = "10.20.20.0/24"
   }
   hsm_gateway = {
-    description = "Dedicated service-plane subnet for live HSM-backed gateways."
+    description = "Dedicated service-plane subnet for HSM-backed gateways."
     bridge      = "vmbr0"
     vlan_id     = 21
     cidr_ipv4   = "10.20.21.0/24"
+    notes       = "Usually unused in the first Vault deployment, but kept here for the shared architecture map."
   }
   hsm = {
     description = "Restricted PKCS#11 custody, provisioning, or recovery path."
     bridge      = "vmbr0"
     vlan_id     = 22
     cidr_ipv4   = "10.20.22.0/24"
+    notes       = "Usually unused in the first Vault deployment, but kept here for the shared architecture map."
   }
   dmz = {
     description = "Edge or ingress-facing services."
@@ -84,54 +87,32 @@ network_zones = {
 
 template_vm_id_el10 = 110
 ssh_public_keys = [
-  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@hsm-lab"
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@vault"
 ]
 
-# Keep the shared DMZ edge proxy in terraform/environments/foundation by default.
-# The repository reference shape is one edge proxy there plus two gateway
-# hosts here, each with its own local USB HSM.
-# Add more gateway hosts by extending this map.
 vm_instances = {
-  gateway01 = {
-    name             = "hsm-gw01-change-me"
+  vault01 = {
+    name             = "vault01-change-me"
     node_name        = "pve01-change-me"
-    size             = "small"
+    size             = "large"
     storage_class    = "local"
-    disk_size_gb     = 30
-    network_zone_key = "hsm_gateway"
+    disk_size_gb     = 40
+    network_zone_key = "service"
     ipv4_address     = "dhcp"
-    role             = "gateway"
+    role             = "vault"
   }
-  gateway02 = {
-    name             = "hsm-gw02-change-me"
-    node_name        = "pve02-change-me"
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 30
-    network_zone_key = "hsm_gateway"
-    ipv4_address     = "dhcp"
-    role             = "gateway"
-  }
-  # recovery01 = {
-  #   name             = "hsm-recovery01-change-me"
-  #   node_name        = "pve01-change-me"
-  #   size             = "tiny"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 20
-  #   network_zone_key = "hsm"
-  #   ipv4_address     = "dhcp"
-  #   role             = "helper"
-  # }
-  # provisioner01 = {
-  #   name             = "hsm-provisioner01-change-me"
-  #   node_name        = "pve02-change-me"
-  #   size             = "tiny"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 20
-  #   network_zone_key = "hsm"
-  #   ipv4_address     = "dhcp"
-  #   role             = "helper"
-  # }
 }
 
-lxc_instances = {}
+lxc_instances = {
+  support01 = {
+    name             = "container-01-change-me"
+    node_name        = "pve01-change-me"
+    template_file_id = "local:vztmpl/el10-default_2024.x86_64.tar.xz"
+    size             = "tiny"
+    storage_class    = "local"
+    disk_size_gb     = 8
+    network_zone_key = "service"
+    ipv4_address     = "dhcp"
+    role             = "support"
+  }
+}

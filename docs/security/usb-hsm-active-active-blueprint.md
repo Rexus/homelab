@@ -30,7 +30,7 @@ it to other USB-backed PKCS#11 devices such as `YubiHSM 2` [1][2][3][4][5].
 
 Before you start:
 
-- the foundation proxy or proxy set is already deployed in `dmz`
+- the foundation edge proxy or proxy set is already deployed in `dmz`
 - the proxy hosts already exist in `ansible/inventory/hosts.yml`
 - this guide only reruns proxy-related Ansible to add or refresh HSM gateway
   backends
@@ -42,7 +42,8 @@ If not, start with
 
 The default shape in this repo is:
 
-- `1` deployed proxy VM, or a small proxy set, from the foundation environment
+- `1` deployed edge proxy VM, or a small proxy set, from the foundation
+  environment
 - `2` gateway hosts in the `hsm_gateway` zone
 - `1` local USB HSM or software token per gateway host
 - `0-1` helper or recovery VM in `hsm`
@@ -53,7 +54,7 @@ flowchart TD
   Client[Clients or internal callers]
 
   subgraph DMZ["DMZ"]
-    LB[Central reverse proxy]
+    LB[Edge proxy]
   end
 
   subgraph HostA["Host B"]
@@ -87,8 +88,9 @@ flowchart TD
   class H1,H2,Backup hsmNode
 ```
 
-Figure: the default path is the deployed foundation proxy in front of two
-gateway hosts, one local USB HSM per host, and one offline backup device.
+Figure: the default path is the deployed foundation edge-proxy layer in front
+of two gateway hosts, one local USB HSM per host, and one offline backup
+device.
 
 Keep these boundaries:
 
@@ -106,7 +108,7 @@ Before you deploy, fill in these inputs.
 Use the shared zone keys from
 [Network zones and IaC mapping](../architecture/network-zones-and-iac-mapping.md).
 
-This guide mainly adds these zones:
+You mainly add these zones here:
 
 | Zone key | Use in this guide |
 | --- | --- |
@@ -117,7 +119,7 @@ These existing zones are only references here:
 
 | Zone key | Why it still matters here |
 | --- | --- |
-| `dmz` | already deployed proxy or proxy set reaches the HSM gateways |
+| `dmz` | already deployed edge proxy or proxy set reaches the HSM gateways |
 | `management` | admin access, automation, and metrics reach the HSM hosts |
 | `service` | shared internal callers may reach the HSM gateways if you expose them internally |
 
@@ -139,7 +141,7 @@ ports:
 
 | Source zone | Destination zone | Default port or protocol | Purpose |
 | --- | --- | --- | --- |
-| `dmz` | `hsm_gateway` | `8443/TCP` | deployed proxy to gateway service |
+| `dmz` | `hsm_gateway` | `8443/TCP` | deployed edge proxy to gateway service |
 | `management` | `hsm_gateway` | `22/TCP` | SSH, Ansible, and troubleshooting |
 | `management` | `hsm` | `22/TCP` | helper or recovery host administration |
 | `service` | `hsm_gateway` | `8443/TCP` optional | internal callers using the same gateway service endpoint |
@@ -168,8 +170,8 @@ Edit the `vm_instances` maps to match the shape you want.
 | gateway VMs | `2` | `1-8` | `terraform/environments/hsm-lab/terraform.tfvars` |
 | helper VMs | `0` enabled by default | `0-2+` as needed | `terraform/environments/hsm-lab/terraform.tfvars` |
 
-The deployed proxy stays in the foundation layer. This guide starts with the
-gateway and helper hosts.
+The deployed proxy stays in the foundation layer. Start here with the gateway
+and helper hosts.
 
 ### HSM mode
 
@@ -185,17 +187,17 @@ Keep the host layout the same across all three modes.
 
 ## IaC used for this
 
-Use these repo paths for this guide:
+Use these repo paths here:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
 | [`terraform/environments/hsm-lab/`](../../terraform/environments/hsm-lab/README.md) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm-lab/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the `proxies`, `hsm_gateways`, and `hsm_helpers` groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
-| [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns proxy configuration so the already deployed proxy or proxies point at the HSM gateways | inventory and proxy variables |
+| [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns proxy configuration so the already deployed edge proxy or proxies point at the HSM gateways | inventory and proxy variables |
 
-This guide does not use foundation Terraform as part of the HSM rollout. It
-only assumes that the deployed proxy prerequisite already exists.
+You do not use foundation Terraform as part of this HSM rollout. It only
+assumes that the deployed proxy prerequisite already exists.
 
 ## How to deploy it
 
@@ -218,8 +220,8 @@ Deploy the pattern in this order:
 6. Run [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) for the
    baseline host configuration.
 7. Run [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml)
-   against the `proxies` inventory group so the deployed proxy or proxies pick
-   up the HSM gateway backends.
+   against the `proxies` inventory group so the deployed edge proxy or
+   proxies pick up the HSM gateway backends.
 8. Attach the intended USB HSM device to each gateway host, or initialize one
    software token per host if you are using `SoftHSM` [1].
 9. Validate host-local PKCS#11 access on every gateway host before sending any

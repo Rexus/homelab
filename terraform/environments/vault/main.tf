@@ -28,7 +28,7 @@ locals {
   common_tags = [
     var.cluster_name,
     "terraform",
-    "bootstrap",
+    "vault",
     "el10",
   ]
 
@@ -72,7 +72,7 @@ locals {
       network_zone_key = var.default_vm_network_zone_key
       ipv4_address     = var.instance_ipv4_address
       ipv4_gateway     = var.instance_ipv4_gateway
-      role             = "bootstrap"
+      role             = "vault"
       tags             = []
     }
   }

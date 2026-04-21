@@ -69,36 +69,47 @@ This is a pattern model, not a public-cloud feature match. Proxmox is the
 current foundation layer, but the architecture is broader than a single
 platform.
 
+Proxy placement in this architecture:
+
+- an edge proxy in `dmz` handles early ingress and controlled egress for
+  infrastructure and host-based services
+- a separate internal cluster proxy can be added later when Kubernetes becomes
+  part of the platform
+
 ## Automation flow
 
 Each tool has one primary job:
 
 - Packer builds reusable images when custom templates are needed
-- Terraform provisions the first managed Vault node and other platform resources
-- Ansible applies baseline configuration and installs Vault on designated
-  bootstrap hosts
+- Terraform provisions bootstrap foundation or domain hosts first and later
+  shared-service hosts
+- Ansible applies baseline configuration first and then service-specific
+  playbooks, such as Vault, on dedicated hosts
 
 ```mermaid
 flowchart LR
-  A["Bootstrap secret source"] --> B["Packer"]
+  A["Bootstrap inputs"] --> B["Packer"]
   B --> C["Terraform"]
-  C --> D["Ansible"]
-  D --> E["Vault handoff"]
+  C --> D["Ansible baseline"]
+  D --> E["Foundation or domain ready"]
+  E --> F["Terraform and Ansible service deployment"]
+  F --> G["Vault handoff"]
 
   classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
   classDef buildNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
   classDef vaultNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
 
-  class A mgmtNode
-  class B,C,D buildNode
-  class E vaultNode
+  class A,E mgmtNode
+  class B,C,D,F buildNode
+  class G vaultNode
 ```
 
-Figure: image build, provisioning, and configuration stay separate until the
-first Vault handoff.
+Figure: image build, foundation bootstrap, and later shared-service deployment
+stay separate until the first Vault handoff.
 
-Vault is treated as an early shared service so the platform can reduce
-bootstrap-only secret handling before broader service deployment.
+Vault is treated as an early shared service that follows the bootstrap
+foundation or domain layer, so the platform can reduce bootstrap-only secret
+handling before broader service deployment.
 
 ## Network references
 
@@ -128,3 +139,5 @@ Operating assumptions:
 - edge services do not get implicit access to management or restricted systems
 - workload access to secrets and other high-trust services is explicit
 - network segmentation must already exist before full platform automation
+- the `dmz` edge proxy stays separate from any later Kubernetes-specific
+  cluster proxy

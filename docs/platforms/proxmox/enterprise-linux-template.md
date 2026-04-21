@@ -4,7 +4,6 @@
 
 - [Purpose](#purpose)
 - [Choose an image](#choose-an-image)
-- [Check x86_64_v3 support](#check-x86_64_v3-support)
 - [Choose a CPU type](#choose-a-cpu-type)
 - [Download and verify the image](#download-and-verify-the-image)
 - [Upload the image to the Proxmox node](#upload-the-image-to-the-proxmox-node)
@@ -57,63 +56,41 @@ distribution.
 
 | Distribution | Recommended image | Selection rule |
 | --- | --- | --- |
-| AlmaLinux | Generic Cloud `qcow2` for `x86_64` | Use the default `x86_64` image for this repository. AlmaLinux also publishes `x86_64_v2`, but that is a compatibility path for older hardware, not the repo default. Read [Check x86_64_v3 support](#check-x86_64_v3-support). |
-| Rocky Linux | `GenericCloud-Base.latest.x86_64.qcow2` | Use `Base` for this repository. Rocky Linux 10 requires an `x86-64-v3` CPU baseline, so do not pair it with Proxmox CPU type `x86-64-v2-AES`. Read [Check x86_64_v3 support](#check-x86_64_v3-support). |
+| AlmaLinux | Generic Cloud `qcow2` for `x86_64` | Use the default `x86_64` image for this repository. AlmaLinux also publishes `x86_64_v2`, but that is a compatibility path for older hardware, not the repo default. Read [Choose a CPU type](#choose-a-cpu-type). |
+| Rocky Linux | `GenericCloud-Base.latest.x86_64.qcow2` | Use `Base` for this repository. Rocky Linux 10 requires an `x86-64-v3` CPU baseline, so do not pair it with Proxmox CPU type `x86-64-v2-AES`. Read [Choose a CPU type](#choose-a-cpu-type). |
 
 Official sources:
 
 - AlmaLinux: [AlmaLinux Generic Cloud images](https://wiki.almalinux.org/cloud/Generic-cloud.html#download-images)
 - Rocky Linux: [Rocky Linux cloud images](https://download.rockylinux.org/pub/rocky/10/images/x86_64/)
 
-## Check x86_64_v3 support
-
-Check this before choosing a Rocky Linux 10 image or the default AlmaLinux 10
-`x86_64` image.
-
-To check whether a Proxmox node supports `x86_64_v3`, open a shell on that node
-and run:
-
-```bash
-/usr/lib64/ld-linux-x86-64.so.2 --help
-```
-
-On systems with a recent enough glibc, the help output includes the
-`glibc-hwcaps` levels that the node can use. Look for `x86-64-v3` in that
-list.
-
-If you want a lower-level check, verify the CPU flags exposed on the node with
-`lscpu` or `/proc/cpuinfo` and confirm they include the features needed for
-`x86-64-v3`, including `aes`, `avx`, `avx2`, `bmi1`, `bmi2`, `f16c`, `fma`,
-`movbe`, and `xsave`, in addition to the `x86-64-v2` flags.
-
-```bash
-lscpu
-grep -m1 '^flags' /proc/cpuinfo
-```
-
-Run this on every Proxmox node that may host or receive the VM through
-migration. If you need to double-check the underlying hardware, verify the CPU
-model shown by `lscpu` against the vendor specification page for that processor.
-Also remember that the guest only sees the features exposed by the chosen VM
-CPU type, so a capable node is necessary but not always sufficient if the VM is
-configured with a conservative virtual CPU model.
-
-If your nodes do not support `x86-64-v3`, do not use Rocky Linux 10 for this
-template. Use AlmaLinux 10 `x86_64_v2` as a compatibility path or stay on EL9.
-
 ## Choose a CPU type
 
-For this repository, set the VM `CPU Type` to `x86-64-v3`.
+Choose the highest CPU type that every Proxmox node in the target cluster
+supports. The lowest common denominator across the cluster is the type you
+should set on the VM.
 
-Use the lowest CPU type that every node in the target cluster supports. That
-keeps the template portable and allows live migration between nodes.
+For EL10 in this repository:
+
+- `x86-64-v3` is the floor for both linux distros
+- AlmaLinux 10 `x86_64_v2` is a fallback path for older hardware
+
+Check this on every Proxmox node that may host or receive the VM through
+migration:
+
+```bash
+/lib64/ld-linux-x86-64.so.2 --help | grep x86-64
+```
+
+Look for the highest `x86-64-v*` line that shows `(supported, searched)`.
+
+Use at least `x86-64-v3` when your cluster supports it so the template stays
+portable for live migration. Only go below it if you intentionally download the
+AlmaLinux 10 `x86_64_v2` image as the compatibility path for your cluster.
 
 Do not use `host` as the default template CPU type. `host` exposes the current
 node CPU to the guest and can keep the VM tied to that node, or to a cluster
 with matching CPU types only.
-
-For EL10 in this repository, the cluster baseline must support `x86-64-v3`.
-Read [Check x86_64_v3 support](#check-x86_64_v3-support).
 
 ## Download and verify the image
 
@@ -186,8 +163,17 @@ Use these wizard selections:
    - set `Name` to `alma10-cloud-base` for AlmaLinux or
      `rocky10-cloud-base` for Rocky Linux
    - enable the `Advanced` checkbox so the `Tags` field is shown
-   - set `Tags` to `x86_64,el10,cloud-init,alma10` for AlmaLinux or
-     `x86_64,el10,cloud-init,rocky10` for Rocky Linux
+   - add tags one by one in the GUI
+   - use these common tags:
+     `x86_64`
+     `el10`
+     `cloud-init`
+
+   - add the distro tag that matches the image:
+     AlmaLinux:
+     `alma10`
+     Rocky Linux:
+     `rocky10`
 2. `OS`
    - set `Use CD/DVD disc image file (iso)` to `Do not use any media`
    - set `Guest OS` to `Linux`
@@ -204,19 +190,23 @@ Use these wizard selections:
    - remove the default disk entry
    - click `Import`
    - choose the uploaded cloud image as the source disk
+   - verify the imported disk is attached as `scsi0` on bus or device `SCSI`
+     because that is the default repository path
    - set the target storage to the storage that should hold the VM disk
-   - set the bus or device to `SCSI` and attach it as `scsi0`
    - keep any extra storage or format fields at their default values
    - click `Next`
 5. `CPU`
-   - set `Type` to `x86-64-v3` to match the repository default
-   - read [Choose a CPU type](#choose-a-cpu-type) for the node-side checks
+   - set `Type` to the CPU type you selected earlier in
+     [Choose a CPU type](#choose-a-cpu-type), usually `x86-64-v3`
    - set `Cores` to `2`
 6. `Memory`
    - set `Memory` to `2048 MiB`
 7. `Network`
    - set `Model` to `VirtIO`
-   - set `Bridge` to the fabric bridge, usually `vmbr0`
+   - set `Bridge` to the bridge used by your network configuration, for example
+     `vmbr0`
+   - set a VLAN tag here when your environment uses VLAN-aware bridges and the
+     template should start on a tagged network
 
 At this stage, do not set environment-specific IP addresses, passwords, or
 cloud-init user data in the template itself.

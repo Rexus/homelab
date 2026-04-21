@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/vault.yml
 # Replace every value before use.
-# Reference guide: ../docs/getting-started/vault-bootstrap.md
+# Reference guide: ../docs/foundation/vault-foundation-deployment.md
 
 vault_api_addr: "https://vault01.example.internal:8200"
 vault_cluster_addr: "https://vault01.example.internal:8201"

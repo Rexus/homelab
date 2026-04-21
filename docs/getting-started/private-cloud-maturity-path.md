@@ -4,9 +4,9 @@
 
 - [Purpose](#purpose)
 - [Maturity overview](#maturity-overview)
-- [Level 1 - Secure bootstrap foundation](#level-1---secure-bootstrap-foundation)
-- [Level 2 - Backup and recovery](#level-2---backup-and-recovery)
-- [Level 3 - Secret integration](#level-3---secret-integration)
+- [Level 1 - Foundation and domain deployment](#level-1---foundation-and-domain-deployment)
+- [Level 2 - Vault foundation deployment](#level-2---vault-foundation-deployment)
+- [Level 3 - Backup and recovery](#level-3---backup-and-recovery)
 - [Level 4 - Higher availability and production use](#level-4---higher-availability-and-production-use)
 
 ## Purpose
@@ -20,29 +20,46 @@ but the maturity path is about the broader platform.
 
 | Level | Goal | Success criteria |
 | --- | --- | --- |
-| 1 | Secure bootstrap foundation | First template and VM work, and Vault is installed on the first managed node |
-| 2 | Backup and recovery | PBS is deployed, connected, and tested |
-| 3 | Secret integration | Shared and long-lived secrets move into Vault and out of bootstrap-only handling |
+| 1 | Foundation and domain deployment | First template, foundation or domain hosts, and the domain services Vault depends on, such as DNS and PKI, are in place |
+| 2 | Vault foundation deployment | Vault is deployed as the early secret-platform foundation and ready for initialization |
+| 3 | Backup and recovery | PBS is deployed, connected, and tested |
 | 4 | Higher availability and production use | Backup, recovery, and platform patterns support more serious use |
 
-## Level 1 - Secure bootstrap foundation
+## Level 1 - Foundation and domain deployment
 
 Goal:
 
 - copy the example files
 - set the required environment variables
 - build or prepare a template
-- provision the first managed VM as a dedicated Vault host
-- apply the bootstrap playbook so Vault is installed and ready to initialize
-- initialize Vault before broader shared-service and workload deployment
+- provision the first managed foundation or domain controller hosts
+- establish the domain services Vault depends on, especially DNS and the first
+  certificate or PKI path
+- apply the baseline playbook so the hosts are managed
+- keep the first deployment focused on the foundation Vault and later shared
+  services depend on
 
 Read more:
 
 - [Platform guide](../platforms/proxmox/README.md)
 - [Environment variable conventions](../reference/environment-variables.md)
-- [Vault bootstrap](vault-bootstrap.md)
+- [Foundation and domain path](../foundation/foundation-and-domain-path.md)
 
-## Level 2 - Backup and recovery
+## Level 2 - Vault foundation deployment
+
+Goal:
+
+- deploy Vault as a dedicated early shared service after the foundation or
+  domain layer is ready
+- initialize and unseal Vault
+- move shared and long-lived secrets into Vault
+
+Read more:
+
+- [Vault foundation deployment](../foundation/vault-foundation-deployment.md)
+- [Secret strategy](../security/secret-strategy.md)
+
+## Level 3 - Backup and recovery
 
 Goal:
 
@@ -56,19 +73,6 @@ Read more:
 - [Backup foundation](../platforms/proxmox/backup-foundation.md)
 - [Network prerequisites](../platforms/proxmox/network-prerequisites.md)
 - [API setup](../platforms/proxmox/setup-api.md)
-
-## Level 3 - Secret integration
-
-Goal:
-
-- move shared and long-lived secrets out of bootstrap-only handling
-- establish operator and automation access methods that read from Vault
-- reduce direct use of persistent secret environment variables
-
-Read more:
-
-- [Vault bootstrap](vault-bootstrap.md)
-- [Secret strategy](../security/secret-strategy.md)
 
 ## Level 4 - Higher availability and production use
 

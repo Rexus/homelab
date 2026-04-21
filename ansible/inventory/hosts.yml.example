@@ -8,6 +8,10 @@ all:
       hosts:
         pve01-change-me:
           ansible_host: 10.10.10.11
+    bootstrap:
+      hosts:
+        bootstrap01-change-me:
+          ansible_host: 10.20.20.10
     vault:
       hosts:
         vault01-change-me:
@@ -30,6 +34,7 @@ all:
           ansible_host: 10.20.22.10
     guests:
       children:
+        bootstrap:
         vault:
         proxies:
         hsm_gateways:

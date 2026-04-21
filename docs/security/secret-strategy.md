@@ -5,7 +5,7 @@
 - [Purpose](#purpose)
 - [Design goal](#design-goal)
 - [Bootstrap minimum](#bootstrap-minimum)
-- [Vault bootstrap milestone](#vault-bootstrap-milestone)
+- [Vault foundation deployment milestone](#vault-foundation-deployment-milestone)
 - [Vault operating target](#vault-operating-target)
 - [What goes where](#what-goes-where)
 
@@ -13,7 +13,8 @@
 
 This repository is designed to be easy to bootstrap while moving toward a
 stronger secret model quickly. Vault is the preferred target state and should be
-introduced as early as the first managed VM can host it safely.
+introduced as early as the bootstrap foundation or domain layer can support it
+safely.
 
 ## Design goal
 
@@ -33,13 +34,13 @@ Before Vault is available:
   operational copy
 - keep sensitive runtime values in local environment variables or protected
   runner variables
-- limit off-Vault secrets to the minimum needed to create the first Vault host,
-  such as platform API access, Vault TLS material, and initialization handling
+- limit off-Vault secrets to the minimum needed to create the bootstrap
+  foundation or domain layer and the shared prerequisites that enable Vault
 - commit only examples, defaults, and reusable automation
 
-## Vault bootstrap milestone
+## Vault foundation deployment milestone
 
-As soon as the first managed VM is ready:
+Once the bootstrap foundation or domain layer and its prerequisites are ready:
 
 - install Vault as a dedicated early shared service
 - initialize and unseal Vault before broader service deployment
@@ -47,11 +48,11 @@ As soon as the first managed VM is ready:
 - treat Ansible Vault and plain environment variables as fallback bootstrap
   mechanisms, not the long-term system of record
 
-Read more in [Vault bootstrap](../getting-started/vault-bootstrap.md).
+Read more in [Vault foundation deployment](../foundation/vault-foundation-deployment.md).
 
 ## Vault operating target
 
-After the bootstrap Vault node is online:
+After the first Vault deployment is online:
 
 - move long-lived and shared secrets into the secret system
 - reduce direct use of plain environment variables for persistent secrets

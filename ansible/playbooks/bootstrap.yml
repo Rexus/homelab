@@ -4,9 +4,3 @@
   become: true
   roles:
     - baseline
-
-- name: Install Vault on bootstrap hosts
-  hosts: vault
-  become: true
-  roles:
-    - vault

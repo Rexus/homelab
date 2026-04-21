@@ -14,8 +14,8 @@ Key paths:
 
 - `modules/` - reusable building blocks
 - `environments/bootstrap/` - bootstrap environment scaffold
-- `environments/foundation/` - shared edge ingress and foundation-service
-  scaffold
+- `environments/foundation/` - shared edge-proxy DMZ ingress and
+  foundation-service scaffold
 - `environments/hsm-lab/` - gateway and custody-host scaffold for USB HSM or
   software PKCS#11 lab patterns
 - `environments/bootstrap/terraform.tfvars.example`
@@ -26,3 +26,8 @@ Shared Terraform pattern:
 - define logical networks in `network_zones`
 - place guests with `vm_instances` and `lxc_instances`
 - keep bridge, VLAN, and subnet values local to your own `terraform.tfvars`
+
+Current proxy model:
+
+- use `environments/foundation/` for the early `dmz` edge-proxy layer
+- keep any later internal cluster proxy outside the foundation layer

@@ -78,7 +78,7 @@ protect.
 
 Pick one primary job first:
 
-1. protect Vault bootstrap or recovery material
+1. protect the first Vault deployment or recovery material
 2. protect CA or intermediate CA keys
 3. protect signing keys for code signing or service identity
 4. satisfy a formal compliance requirement
@@ -94,16 +94,16 @@ Solve these risks before you buy more hardware:
 
 Use this repository path:
 
-1. bootstrap Vault with Shamir first
+1. deploy Vault with Shamir first
 2. move shared secrets into Vault
 3. add HSM-backed hardening later
-4. use USB HSMs first for bootstrap, recovery, PKI, or signing workflows
+4. use USB HSMs first for recovery, PKI, or signing workflows
 
 For open-source-first hardening, the repository direction is:
 
 - `Vault A` stays small and handles Transit auto-unseal
 - `Vault B` is the main Vault for workloads
-- `Pico HSM` or `YubiHSM 2` protects the bootstrap or recovery path for
+- `Pico HSM` or `YubiHSM 2` protects the initial-deployment or recovery path for
   `Vault A`
 
 ## What USB HSM active-active solves
@@ -146,7 +146,7 @@ platforms.
 
 - [USB HSM active-active blueprint](usb-hsm-active-active-blueprint.md)
 - [Vault HSM hardening options](vault-hsm-hardening-options.md)
-- [Vault bootstrap](../getting-started/vault-bootstrap.md)
+- [Vault foundation deployment](../foundation/vault-foundation-deployment.md)
 - [Secret strategy](secret-strategy.md)
 
 ## References

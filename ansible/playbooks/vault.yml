@@ -1,0 +1,12 @@
+---
+- name: Apply Vault host baseline
+  hosts: vault
+  become: true
+  roles:
+    - baseline
+
+- name: Install Vault on designated hosts
+  hosts: vault
+  become: true
+  roles:
+    - vault

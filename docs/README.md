@@ -3,7 +3,8 @@
 ## Table of contents
 
 - [Recommended path](#recommended-path)
-- [Overview and onboarding](#overview-and-onboarding)
+- [Start here](#start-here)
+- [Foundation and early services](#foundation-and-early-services)
 - [Architecture and design](#architecture-and-design)
 - [Platform guides](#platform-guides)
 - [Security and hardening](#security-and-hardening)
@@ -14,29 +15,32 @@
 Use this order when you are new to the repository or returning after time away:
 
 1. [Safe repository usage](usage-model.md)
-2. [Bootstrap path](getting-started/bootstrap-path.md)
-3. [Vault bootstrap](getting-started/vault-bootstrap.md)
+2. [Local setup](getting-started/local-setup.md)
+3. [Foundation](foundation/README.md)
 4. [Private cloud maturity path](getting-started/private-cloud-maturity-path.md)
 5. [Architecture overview](architecture/overview.md)
 6. [Platform index](platforms/README.md)
 7. [Secret strategy](security/secret-strategy.md)
 8. [Decision log](decisions/README.md)
 
-If local tooling is not ready yet, insert
-[Local setup](getting-started/local-setup.md) before the bootstrap path.
-
-## Overview and onboarding
+## Start here
 
 - [Safe repository usage](usage-model.md) - how to use this public upstream
   without publishing live configuration
 - [Local setup](getting-started/local-setup.md) - prepare local tooling before
   the first run when needed
-- [Bootstrap path](getting-started/bootstrap-path.md) - shortest path from local
-  setup to the first managed platform services
-- [Vault bootstrap](getting-started/vault-bootstrap.md) - recommended early
-  secret-platform handoff for the first managed VM
 - [Private cloud maturity path](getting-started/private-cloud-maturity-path.md) -
-  path from initial deployment to backup, secrets, and more serious use
+  path from foundation and domain deployment to Vault, backup, and more serious use
+
+## Foundation and early services
+
+- [Foundation index](foundation/README.md) - entry point for the first domain,
+  DNS, PKI, and early secret-platform layers
+- [Foundation and domain path](foundation/foundation-and-domain-path.md) -
+  shortest path from local setup to the first managed foundation or domain layer
+- [Vault foundation deployment](foundation/vault-foundation-deployment.md) -
+  early secret-platform deployment after the foundation and certificate
+  prerequisites exist
 
 ## Architecture and design
 
@@ -52,7 +56,7 @@ If local tooling is not ready yet, insert
 - [Proxmox reference platform](platforms/proxmox/README.md) - current reference
   implementation and where to start if you are working on Proxmox
 - [Proxmox API setup](platforms/proxmox/setup-api.md) - API access preparation
-  for Terraform-driven bootstrap
+  for Terraform-driven foundation and platform bring-up
 - [Proxmox backup foundation](platforms/proxmox/backup-foundation.md) -
   recommended recovery baseline before the environment becomes important
 - [Proxmox network prerequisites](platforms/proxmox/network-prerequisites.md) -
@@ -81,7 +85,7 @@ If local tooling is not ready yet, insert
 - [Environment variable conventions](reference/environment-variables.md) -
   authoritative env-var patterns for bootstrap and CI execution
 - [Environment file example](reference/environment-file-example.md) - local
-  bootstrap example that complements the env-var conventions
+  foundation example that complements the env-var conventions
 - [Ansible Vault bootstrap](reference/ansible-vault-bootstrap.md) - local vault
   password and encrypted bootstrap vars pattern
 - [Decision log](decisions/README.md) - concise record of architectural choices

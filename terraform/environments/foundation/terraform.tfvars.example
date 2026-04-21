@@ -89,6 +89,8 @@ ssh_public_keys = [
 ]
 
 vm_instances = {
+  # Early DMZ edge-proxy strategy.
+  # Current foundation candidate: HAProxy.
   proxy01 = {
     name             = "edge-proxy01-change-me"
     node_name        = "pve01-change-me"

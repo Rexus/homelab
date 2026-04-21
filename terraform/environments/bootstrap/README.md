@@ -1,15 +1,17 @@
-# Bootstrap environment
+# Foundation and domain environment
 
-This directory is the bootstrap entry point for initial private-cloud
-deployments. Keep safe examples in Git and place live values in ignored files
-such as `terraform/environments/bootstrap/terraform.tfvars`.
+Use this environment for the first managed deployment after you only have a
+clean Proxmox setup and the required networks.
 
-The intended first milestone is a dedicated VM that can host Vault before
-broader shared-service and workload deployment.
+This environment is the bootstrap foundation or domain layer, not the Vault
+deployment.
 
 Use the shared Terraform shape here:
 
 - define your local bridges, VLANs, and subnets in `network_zones`
 - keep Day 1 small by filling only the zones you actually use
-- place the first VM in `vm_instances`
-- add a helper container in `lxc_instances` only if you need it
+- place the first managed foundation or domain VMs in `vm_instances`
+- add a helper container in `lxc_instances` only if you actually need one
+
+Use the matching getting-started guide:
+[Foundation and domain path](../../../docs/foundation/foundation-and-domain-path.md).

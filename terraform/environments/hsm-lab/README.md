@@ -27,9 +27,9 @@ and guest placement stay consistent across the repository.
 Use [`terraform/environments/foundation/`](../foundation/README.md) first when
 you follow the repository default USB HSM path.
 
-The shared reverse proxy belongs in that foundation layer on `dmz`. This
-environment then adds the active gateway hosts in `hsm_gateway` and any
-restricted recovery or provisioning helpers in `hsm`.
+The shared edge proxy or load balancer belongs in that foundation layer on
+`dmz`. This environment then adds the active gateway hosts in `hsm_gateway`
+and any restricted recovery or provisioning helpers in `hsm`.
 
 ## What it provisions
 
@@ -61,7 +61,7 @@ Use `vm_instances` dynamically:
 - tag signer or gateway VMs with role `gateway`
 - tag bootstrap or recovery helpers with role `helper`
 
-The default example keeps the shared proxy outside this environment, but the
+The default example keeps the edge proxy outside this environment, but the
 map can still grow or shrink without changing the environment code.
 
 ## What stays manual

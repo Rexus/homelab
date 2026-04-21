@@ -15,14 +15,14 @@ not push operational changes back to this upstream.
 
 ## Getting started
 
-Use the bootstrap fast path below for the shortest first run. For a fuller
+Use the foundation fast path below for the shortest first run. For a fuller
 walkthrough of the same flow, start with
-[docs/getting-started/bootstrap-path.md](docs/getting-started/bootstrap-path.md).
+[docs/foundation/foundation-and-domain-path.md](docs/foundation/foundation-and-domain-path.md).
 If your local tooling still needs to be prepared, read
 [docs/getting-started/local-setup.md](docs/getting-started/local-setup.md).
 If you want the broader documentation map, use [docs/README.md](docs/README.md).
 
-Bootstrap fast path:
+Foundation fast path:
 
 1. Review platform prerequisites:
    - [Proxmox reference platform](docs/platforms/proxmox/README.md)
@@ -35,7 +35,6 @@ cp packer/variables.auto.pkrvars.hcl.example packer/variables.auto.pkrvars.hcl
 cp terraform/environments/bootstrap/terraform.tfvars.example terraform/environments/bootstrap/terraform.tfvars
 cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
 cp ansible/group_vars/all.yml.example ansible/group_vars/all.yml
-cp ansible/group_vars/vault.yml.example ansible/group_vars/vault.yml
 ```
 
 3. Update the copied files with your local values.
@@ -48,7 +47,7 @@ export TF_VAR_proxmox_api_token_id="terraform@pve!change-me"
 export TF_VAR_proxmox_api_token_secret="change-me"
 ```
 
-5. Run the bootstrap deployment:
+5. Run the foundation deployment:
 
 ```bash
 cd terraform/environments/bootstrap
@@ -58,7 +57,7 @@ terraform apply
 cd ../../..
 ```
 
-6. Apply bootstrap configuration after provisioning:
+6. Apply baseline configuration after provisioning:
 
 ```bash
 cd ansible
@@ -66,26 +65,29 @@ ansible-playbook -i inventory/hosts.yml playbooks/bootstrap.yml
 cd ..
 ```
 
-Hosts placed in the `vault` inventory group receive the Vault bootstrap role as
-part of this run.
+This run prepares the foundation or domain layer only. Deploy Vault
+in the next stage after naming and certificate prerequisites are ready.
 
 7. Continue with:
-   - [Vault bootstrap](docs/getting-started/vault-bootstrap.md)
+   - [Vault foundation deployment](docs/foundation/vault-foundation-deployment.md)
    - [Secret strategy](docs/security/secret-strategy.md)
    - [Private cloud maturity path](docs/getting-started/private-cloud-maturity-path.md)
    - [Documentation index](docs/README.md)
 
 Recommended maturity path:
 
-- start with local example files and the smallest possible bootstrap secret set
-- turn the first managed VM into a dedicated Vault node before broader deployment
+- start with local example files and the smallest possible bootstrap-only secret set
+- deploy the first managed foundation or domain host
+- establish naming, certificate handling, and other shared basics needed by
+  early services
+- deploy Vault as the early secret-platform foundation
+- move long-lived and shared secrets to Vault before broader deployment
 - add backup and recovery before the environment becomes important
-- move long-lived and shared secrets to Vault immediately after bootstrap
 - improve resilience and availability as the environment becomes more serious
 
 Read more in:
 
-- [docs/getting-started/vault-bootstrap.md](docs/getting-started/vault-bootstrap.md)
+- [docs/foundation/vault-foundation-deployment.md](docs/foundation/vault-foundation-deployment.md)
 - [docs/getting-started/private-cloud-maturity-path.md](docs/getting-started/private-cloud-maturity-path.md)
 - [Proxmox backup foundation](docs/platforms/proxmox/backup-foundation.md)
 - [docs/reference/environment-variables.md](docs/reference/environment-variables.md)
@@ -95,7 +97,8 @@ Read more in:
 
 ## Repository structure
 
-- `docs/` overview, getting started, platform guides, security, and decisions
+- `docs/` overview, foundation, getting started, platform guides, security,
+  architecture, reference, and decisions
 - `packer/` image build workflow and example variable files
 - `terraform/` infrastructure provisioning layout and bootstrap environments
 - `ansible/` configuration management layout, inventory examples, and playbooks

@@ -11,8 +11,8 @@
 
 ## Purpose
 
-This guide covers the minimum local setup needed before using the bootstrap fast
-path in the root README.
+This guide covers the minimum local setup needed before using the foundation
+fast path in the root README.
 
 ## Platform prerequisites
 
@@ -53,14 +53,15 @@ After local setup is ready:
 
 1. prepare the VM template or image source
 2. set the required environment variables
-3. run Terraform to provision bootstrap infrastructure
-4. run Ansible to apply bootstrap configuration
-5. continue with the bootstrap path and secret strategy
+3. run Terraform to provision foundation infrastructure
+4. run Ansible to apply foundation configuration
+5. continue with the foundation and domain path, then the Vault foundation path
+   and secret strategy
 
 ## Read more
 
 - [Environment variable conventions](../reference/environment-variables.md)
 - [Secret strategy](../security/secret-strategy.md)
-- [Bootstrap path](bootstrap-path.md)
+- [Foundation and domain path](../foundation/foundation-and-domain-path.md)
 - [Private cloud maturity path](private-cloud-maturity-path.md)
 - [Proxmox reference platform](../platforms/proxmox/README.md)

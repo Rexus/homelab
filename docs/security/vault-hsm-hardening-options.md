@@ -9,7 +9,6 @@
 - [Recommended OSS architecture](#recommended-oss-architecture)
 - [What this gives you](#what-this-gives-you)
 - [What this does not give you](#what-this-does-not-give-you)
-- [Planned guide scope](#planned-guide-scope)
 - [Decision rule](#decision-rule)
 - [Read more](#read-more)
 - [References](#references)
@@ -17,9 +16,9 @@
 ## Purpose
 
 Use this as the authoritative repository note for how on-premises HSMs fit into
-the Vault path. Keep Day 1 bootstrap simple here, and move the detailed HSM
-tradeoffs into this document rather than repeating them across the rest of the
-docs.
+the Vault path. Keep the first Vault deployment simple here, and move the
+detailed HSM tradeoffs into this document rather than repeating them across the
+rest of the docs.
 
 ## Day 1 position
 
@@ -28,7 +27,8 @@ dependency.
 
 Use this order:
 
-1. bootstrap one dedicated Vault VM
+1. deploy one dedicated Vault VM after the bootstrap foundation or domain layer
+   is ready
 2. use Shamir seal for the first node
 3. move shared secrets into Vault
 4. evaluate HSM-backed hardening and PKI workflows later
@@ -70,8 +70,8 @@ For Vault Community Edition, there are two realistic paths:
    requirement for your environment [8]
 
 The first path is the repository default for later HSM hardening. It keeps
-Vault bootstrap simple while still letting the operational trust chain depend on
-hardware-backed secrets.
+the first Vault deployment simple while still letting the operational trust
+chain depend on hardware-backed secrets.
 
 ## Recommended OSS architecture
 
@@ -79,15 +79,15 @@ For an open-source-first hardening path, use two Vault clusters:
 
 - `Vault A`: small hardened Vault used only for Transit auto-unseal
 - `Vault B`: main application Vault used by workloads and operators
-- `YubiHSM 2` or `Pico HSM`: protects the smallest possible bootstrap or
-  recovery secret set for `Vault A`
+- `YubiHSM 2` or `Pico HSM`: protects the smallest possible initial-deployment
+  or recovery secret set for `Vault A`
 
 Use this trust flow:
 
 ```mermaid
 flowchart TD
   HSM[YubiHSM 2 or Pico HSM]
-  Helper[Bootstrap helper or recovery host]
+  Helper[Deployment helper or recovery host]
   VaultA[Vault A<br/>Transit only]
   VaultB[Vault B<br/>Main Vault]
 
@@ -104,8 +104,8 @@ flowchart TD
   class VaultA,VaultB vaultNode
 ```
 
-Figure: the HSM protects recovery or bootstrap material for `Vault A`, and
-`Vault A` provides Transit auto-unseal for the main Vault.
+Figure: the HSM protects recovery or initial-deployment material for `Vault A`,
+and `Vault A` provides Transit auto-unseal for the main Vault.
 
 Repository guidance for this pattern:
 
@@ -114,12 +114,12 @@ Repository guidance for this pattern:
   audit device, and a minimal auth path for `Vault B`
 - create one dedicated transit key such as `autounseal`
 - keep HSM access off normal cluster nodes where possible
-- prefer one dedicated bootstrap or recovery host with PKCS#11 access instead
+- prefer one dedicated deployment or recovery host with PKCS#11 access instead
   of attaching the HSM to every Vault node
 
 This means the HSM does not directly protect the main Vault barrier key in
-Community Edition. Instead it protects the bootstrap or recovery path for the
-small Vault that unseals the main Vault.
+Community Edition. Instead it protects the initial-deployment or recovery path
+for the small Vault that unseals the main Vault.
 
 ## What this gives you
 
@@ -144,31 +144,14 @@ Do not describe this pattern as:
 
 For those claims, Vault Enterprise is the supported path [1].
 
-## Planned guide scope
-
-The broader USB HSM guide set should cover:
-
-1. device initialization, PIN handling, backup, and operator custody
-2. PKCS#11 middleware setup on the admin host and the target Linux VM
-3. validation with `pkcs11-tool` and `openssl`
-4. Vault A and Vault B layout for Transit auto-unseal in Community Edition
-5. a tiny bootstrap or recovery helper flow for HSM-protected recovery
-6. Vault Enterprise HSM seal as an advanced optional track
-7. OpenBao lab evaluation as a separate platform decision track
-8. future PKI workflows around HSM-held CA or signing keys
-9. recovery expectations, replacement procedures, and what is still kept offline
-
-Keep Vault bootstrap and HSM hardening as separate tracks in that guide so the
-basic Vault path stays easy to follow.
-
 ## Decision rule
 
 Use this rule of thumb:
 
-- want the fastest secure bootstrap: use Shamir first
+- want the fastest first Vault deployment: use Shamir first
 - want the best open-source compromise: use `Vault A` plus `Vault B` with
-  Transit auto-unseal and keep the HSM on the `Vault A` bootstrap or recovery
-  path [2][3]
+  Transit auto-unseal and keep the HSM on the `Vault A` initial-deployment or
+  recovery path [2][3]
 - want native open-source PKCS#11 seal: evaluate OpenBao in a lab first [8]
 - want the most direct supported PKCS#11 seal path: use Vault Enterprise [1]
 - want stronger on-premises key custody for later PKI work: evaluate YubiHSM 2
@@ -178,7 +161,7 @@ Use this rule of thumb:
 
 - [HSM getting started](hsm-planning-and-comparison.md)
 - [USB HSM active-active blueprint](usb-hsm-active-active-blueprint.md)
-- [Vault bootstrap](../getting-started/vault-bootstrap.md)
+- [Vault foundation deployment](../foundation/vault-foundation-deployment.md)
 - [Secret strategy](secret-strategy.md)
 
 ## References
