@@ -40,6 +40,7 @@ Goal:
 Read more:
 
 - [Platform guide](README.md)
+- [Proxmox planning guidelines](conventions.md)
 - [Environment variable conventions](../../reference/environment-variables.md)
 - [Foundation and domain path](../../foundation/foundation-and-domain-path.md)
 
@@ -69,7 +70,7 @@ Goal:
 Read more:
 
 - [Backup foundation](backup-foundation.md)
-- [Network prerequisites](network-prerequisites.md)
+- [Host networking](network-prerequisites.md)
 - [API setup](setup-api.md)
 
 ## Level 4 - Higher availability and production use

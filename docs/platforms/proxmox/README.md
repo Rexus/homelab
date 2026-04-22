@@ -19,6 +19,7 @@ configuration workflows.
 
 Use the Proxmox platform layer for:
 
+- shared Proxmox planning guidelines such as VM ID ranges and template naming
 - API token setup and least-privilege access
 - node, bridge, and storage naming conventions
 - template publication from Packer
@@ -27,18 +28,20 @@ Use the Proxmox platform layer for:
 
 ## Platform guides
 
+- [Planning guidelines](conventions.md)
 - [Enterprise Linux template](enterprise-linux-template.md)
 - [Backup foundation](backup-foundation.md)
 - [API setup](setup-api.md)
-- [Network prerequisites](network-prerequisites.md)
+- [Host networking](network-prerequisites.md)
 - [Hardening baseline](hardening.md)
 
 ## First deployment order
 
-1. Create the automation API token.
-2. Prepare the first Enterprise Linux template.
-3. Run the first foundation or domain Terraform deployment.
-4. Apply the first Ansible baseline.
+1. Review the shared Proxmox planning guidelines.
+2. Create the automation API token.
+3. Prepare the first Enterprise Linux template.
+4. Run the first foundation or domain Terraform deployment.
+5. Apply the first Ansible baseline.
 
 Recommended next maturity step:
 

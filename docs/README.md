@@ -59,7 +59,7 @@ Use this order when you are new to the repository or returning after time away:
   for Terraform-driven foundation and platform bring-up
 - [Proxmox backup foundation](platforms/proxmox/backup-foundation.md) -
   recommended recovery baseline before the environment becomes important
-- [Proxmox network prerequisites](platforms/proxmox/network-prerequisites.md) -
+- [Proxmox host networking](platforms/proxmox/network-prerequisites.md) -
   network assumptions and preparation
 - [Enterprise Linux template](platforms/proxmox/enterprise-linux-template.md) -
   guest template reference

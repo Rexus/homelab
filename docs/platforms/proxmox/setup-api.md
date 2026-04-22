@@ -24,7 +24,7 @@ required for current workflows.
 
 Before creating automation access:
 
-- complete the [network prerequisites](network-prerequisites.md)
+- complete the [host networking](network-prerequisites.md)
 - review the [hardening baseline](hardening.md)
 - define which operations automation must perform
 - review the [secret strategy](../../security/secret-strategy.md)

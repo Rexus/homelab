@@ -39,16 +39,6 @@ Current repository note:
 - RHEL Generic Cloud images can follow the same mechanical process, but this
   repository does not document the Red Hat subscription-specific path here
 
-Suggested VM ID ranges:
-
-| Range | Purpose |
-| --- | --- |
-| `100-199` | Templates |
-| `200-299` | Infrastructure |
-| `300-399` | Docker and services |
-| `400-499` | Databases |
-| `500-999` | User and app VMs |
-
 Recommended image choice:
 
 Use the most portable Generic Cloud `qcow2` image that fits the chosen
@@ -159,9 +149,13 @@ Create an empty VM shell first. Import the cloud image after that.
 Use these wizard selections:
 
 1. `General`
-   - set `VM ID` to `110`
-   - set `Name` to `alma10-cloud-base` for AlmaLinux or
-     `rocky10-cloud-base` for Rocky Linux
+   - use [Proxmox planning guidelines](conventions.md#vm-and-template-id-ranges)
+     when you reserve VM IDs by role
+   - set `VM ID` to a template-range value such as `110`
+   - keep the shared template name aligned to
+     [Template names](conventions.md#template-names)
+   - set `Name` to `alma-10-tmpl` for AlmaLinux or `rocky-10-tmpl` for Rocky
+     Linux
    - enable the `Advanced` checkbox so the `Tags` field is shown
    - add tags one by one in the GUI
    - use these common tags:
@@ -178,13 +172,13 @@ Use these wizard selections:
    - set `Use CD/DVD disc image file (iso)` to `Do not use any media`
    - set `Guest OS` to `Linux`
 3. `System`
+   - leave `Graphic card` at the default value
    - set `Machine` to `q35` as the repository default
    - set `BIOS` to `OVMF (UEFI)` as the repository default
    - when the `EFI Storage` field appears, select the VM storage
    - clear `Pre-Enroll keys`
    - set `SCSI Controller` to `VirtIO SCSI single`
    - enable `QEMU Agent`
-   - leave `Display` at the default value
    - do not add a TPM device in the template itself
 4. `Disks`
    - remove the default disk entry
@@ -238,7 +232,6 @@ Use this flow:
 
 ```bash
 sudo cloud-init status --wait
-sudo systemctl is-system-running --wait || true
 ```
 
 13. Run:
@@ -252,7 +245,7 @@ sudo shutdown -h now
 
 14. After the VM stops, select `SSH public keys`, click `Edit`, remove the
     temporary key, then apply the change.
-15. Convert it to a template.
+15. Right click on the VM and chose `Convert to template`.
 16. Record the resulting template VM ID in
     `terraform/environments/bootstrap/terraform.tfvars`.
 
@@ -281,6 +274,7 @@ Configure these at deploy time with Terraform and Ansible:
 
 ## Read more
 
+- [Proxmox planning guidelines](conventions.md)
 - [Proxmox reference platform](README.md)
 - [Packer Proxmox templates](../../../packer/templates/proxmox/README.md)
 - [Private cloud maturity path](../../getting-started/private-cloud-maturity-path.md)

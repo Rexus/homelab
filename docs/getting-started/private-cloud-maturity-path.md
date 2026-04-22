@@ -71,7 +71,7 @@ Goal:
 Read more:
 
 - [Backup foundation](../platforms/proxmox/backup-foundation.md)
-- [Network prerequisites](../platforms/proxmox/network-prerequisites.md)
+- [Host networking](../platforms/proxmox/network-prerequisites.md)
 - [API setup](../platforms/proxmox/setup-api.md)
 
 ## Level 4 - Higher availability and production use

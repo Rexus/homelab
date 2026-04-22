@@ -41,7 +41,7 @@ flowchart TB
   end
 
   subgraph Infra["Infrastructure layer"]
-    I1["Management zone<br/>Bastion, IaC, ops, hypervisor management"]
+    I1["Host-management zone<br/>Bastion, IaC, ops, hypervisor management"]
     I2["Restricted zone<br/>Backup, storage, HSM, hardware roots"]
   end
 
@@ -62,8 +62,8 @@ flowchart TB
   class I2 restrictedNode
 ```
 
-Figure: trust increases as you move from edge-facing systems toward management
-and restricted infrastructure services.
+Figure: trust increases as you move from edge-facing systems toward
+host-management and restricted infrastructure services.
 
 This is a pattern model, not a public-cloud feature match. Proxmox is the
 current foundation layer, but the architecture is broader than a single
@@ -135,8 +135,9 @@ Outside current scope:
 
 Operating assumptions:
 
-- management paths stay separate from workloads
-- edge services do not get implicit access to management or restricted systems
+- host-management paths stay separate from workloads
+- edge services do not get implicit access to host-management or restricted
+  systems
 - workload access to secrets and other high-trust services is explicit
 - network segmentation must already exist before full platform automation
 - the `dmz` edge proxy stays separate from any later Kubernetes-specific
