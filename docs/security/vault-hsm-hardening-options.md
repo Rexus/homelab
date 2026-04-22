@@ -27,7 +27,7 @@ dependency.
 
 Use this order:
 
-1. deploy one dedicated Vault VM after the bootstrap foundation or domain layer
+1. deploy one dedicated Vault VM after the bootstrap domain foundation layer
    is ready
 2. use Shamir seal for the first node
 3. move shared secrets into Vault
@@ -51,8 +51,8 @@ Current on-premises device paths worth highlighting for Vault hardening:
 Repository positioning:
 
 - `Pico HSM` is a strong open-source-friendly learning and implementation path
-  for homelabs that want to practice real PKCS#11, operator custody, bootstrap,
-  and PKI workflows
+  for homelab-scale or smaller internal platforms that want to practice real
+  PKCS#11, operator custody, bootstrap, and PKI workflows
 - `YubiHSM 2` is a practical next step when you want a more mature commercial
   device path, cleaner vendor tooling, and the option of a FIPS-capable device
   for business-facing or regulated environments

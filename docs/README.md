@@ -30,16 +30,18 @@ Use this order when you are new to the repository or returning after time away:
 - [Local setup](getting-started/local-setup.md) - prepare local tooling before
   the first run when needed
 - [Private cloud maturity path](getting-started/private-cloud-maturity-path.md) -
-  path from foundation and domain deployment to Vault, backup, and more serious use
+  path from domain foundation deployment to Vault, backup, and more serious use
 
 ## Foundation and early services
 
-- [Foundation index](foundation/README.md) - entry point for the first domain,
-  DNS, PKI, and early secret-platform layers
-- [Foundation and domain path](foundation/foundation-and-domain-path.md) -
-  shortest path from local setup to the first managed foundation or domain layer
+- [Foundation index](foundation/README.md) - entry point for the domain
+  foundation, DNS, PKI, optional Windows support, and early secret-platform layers
+- [Domain foundation path](foundation/foundation-and-domain-path.md) - shortest
+  path from local setup to the first managed domain foundation layer
+- [Windows and AD support](foundation/windows-ad-support.md) - optional
+  secondary path for Windows clients and AD-compatible support
 - [Vault foundation deployment](foundation/vault-foundation-deployment.md) -
-  early secret-platform deployment after the foundation and certificate
+  early secret-platform deployment after the domain foundation and certificate
   prerequisites exist
 
 ## Architecture and design

@@ -4,7 +4,7 @@
 
 - [Purpose](#purpose)
 - [Maturity overview](#maturity-overview)
-- [Level 1 - Foundation and domain deployment](#level-1---foundation-and-domain-deployment)
+- [Level 1 - Domain foundation deployment](#level-1---domain-foundation-deployment)
 - [Level 2 - Vault foundation deployment](#level-2---vault-foundation-deployment)
 - [Level 3 - Backup foundation](#level-3---backup-foundation)
 - [Level 4 - Higher availability and production use](#level-4---higher-availability-and-production-use)
@@ -20,29 +20,30 @@ keeps the same milestones in Proxmox terms.
 
 | Level | Goal | Success criteria |
 | --- | --- | --- |
-| 1 | Foundation and domain deployment | First template, foundation hosts, and the domain services Vault depends on, such as DNS and PKI, are in place |
+| 1 | Domain foundation deployment | First template, foundation hosts, and the identity, DNS, and PKI services Vault depends on are in place |
 | 2 | Vault foundation deployment | Vault is deployed as the early secret-platform foundation and ready for initialization |
 | 3 | Backup foundation | PBS is deployed, connected, and tested |
 | 4 | Higher availability and production use | Backup, recovery, and platform patterns support more serious use |
 
-## Level 1 - Foundation and domain deployment
+## Level 1 - Domain foundation deployment
 
 Goal:
 
 - copy the example files
 - set the required environment variables
 - build or prepare a template
-- provision the first managed foundation or domain controller hosts
-- establish the domain services Vault depends on, especially DNS and the first
-  certificate or PKI path
+- provision the first managed foundation hosts
+- establish the identity, DNS, and certificate or PKI services Vault depends on
 - apply the first Ansible baseline run
+- keep Windows or AD support as a later optional path
 
 Read more:
 
 - [Platform guide](README.md)
 - [Proxmox planning guidelines](conventions.md)
 - [Environment variable conventions](../../reference/environment-variables.md)
-- [Foundation and domain path](../../foundation/foundation-and-domain-path.md)
+- [Domain foundation path](../../foundation/foundation-and-domain-path.md)
+- [Windows and AD support](../../foundation/windows-ad-support.md)
 
 ## Level 2 - Vault foundation deployment
 

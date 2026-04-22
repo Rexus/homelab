@@ -40,13 +40,16 @@ Use the Proxmox platform layer for:
 1. Review the shared Proxmox planning guidelines.
 2. Create the automation API token.
 3. Prepare the first Enterprise Linux template.
-4. Run the first foundation or domain Terraform deployment.
+4. Run the first domain foundation Terraform deployment.
 5. Apply the first Ansible baseline.
 
 Recommended next maturity step:
 
 - continue with the
-  [foundation and domain path](../../foundation/foundation-and-domain-path.md)
+  [Domain foundation path](../../foundation/foundation-and-domain-path.md)
+- add
+  [Windows and AD support](../../foundation/windows-ad-support.md) only when
+  the environment needs Windows support
 - continue with the
   [Vault foundation deployment](../../foundation/vault-foundation-deployment.md)
 - add the [backup foundation](backup-foundation.md) before the environment

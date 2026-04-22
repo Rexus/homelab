@@ -13,12 +13,12 @@
 
 ## Purpose
 
-Use this guide after the foundation or domain layer is in place and you are
+Use this guide after the domain foundation layer is in place and you are
 ready to deploy Vault as the early secret-platform foundation.
 
 ```mermaid
 flowchart LR
-  A[Foundation or domain ready] --> B[Terraform creates dedicated Vault VM]
+  A[Domain foundation ready] --> B[Terraform creates dedicated Vault VM]
   B --> C[Ansible Vault playbook]
   C --> D[Vault service installed and sealed]
   D --> E[Operator init and unseal]
@@ -34,13 +34,13 @@ flowchart LR
   class D,F vaultNode
 ```
 
-Figure: Vault is deployed after the foundation or domain layer exists and
+Figure: Vault is deployed after the domain foundation layer exists and
 becomes the handoff point from bootstrap-only secrets to the long-term secret
 platform.
 
 ## Before you start
 
-- the foundation or domain deployment is already complete
+- the domain foundation deployment is already complete
 - naming and the first TLS path for Vault already exist
 - one dedicated Vault VM, or more when needed, is defined in the Vault
   environment
@@ -144,8 +144,8 @@ After Vault is initialized:
 
 ## Later hardening
 
-Use this guide only for the first Vault foundation deployment after the
-foundation or domain layer.
+Use this guide only for the first Vault foundation deployment after the domain
+foundation layer.
 
 For later hardening, higher availability, and future HSM-related paths, continue
 with the security docs instead of extending this deployment guide:
@@ -156,7 +156,8 @@ with the security docs instead of extending this deployment guide:
 
 ## Read more
 
-- [Foundation and domain path](foundation-and-domain-path.md)
+- [Domain foundation path](foundation-and-domain-path.md)
+- [Windows and AD support](windows-ad-support.md)
 - [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
 - [Secret strategy](../security/secret-strategy.md)
 - [Ansible Vault bootstrap fallback](../reference/ansible-vault-bootstrap.md)

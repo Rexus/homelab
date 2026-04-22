@@ -1,4 +1,4 @@
-# Foundation and domain path
+# Domain foundation path
 
 ## Table of contents
 
@@ -12,9 +12,12 @@
 ## Purpose
 
 This path uses minimal platform access and environment inputs to create the
-first managed infrastructure or domain foundation, including the first domain
+first managed domain foundation, including the first identity or domain
 services, especially DNS, and the certificate prerequisites later services such
 as Vault depend on.
+
+This is the default foundation path. Keep Windows or AD support as a later
+optional layer instead of folding it into the default foundation deployment.
 
 ## Minimum foundation inputs
 
@@ -42,7 +45,7 @@ Typical minimum deployment values include:
 The foundation deployment is meant to establish the first managed building
 blocks, such as:
 
-- managed foundation or domain controller hosts
+- managed foundation hosts
 - the first DNS and certificate or PKI path for later shared services
 - a managed container
 - foundation post-provision configuration through Ansible
@@ -71,13 +74,15 @@ After the foundation deployment succeeds:
    temporary secret path
 4. deploy naming, DNS, certificate handling, and other domain or shared-service
    basics required by later services
-5. continue with Vault foundation deployment once those prerequisites are ready
-6. continue with backup, recovery, and broader shared or restricted platform
+5. add Windows or AD support later only if your environment needs it
+6. continue with Vault foundation deployment once those prerequisites are ready
+7. continue with backup, recovery, and broader shared or restricted platform
    services
 
 ## Read more
 
 - [Local setup](../getting-started/local-setup.md)
+- [Windows and AD support](windows-ad-support.md)
 - [Vault foundation deployment](vault-foundation-deployment.md)
 - [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
 - [Secret strategy](../security/secret-strategy.md)

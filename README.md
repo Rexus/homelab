@@ -1,9 +1,9 @@
-# Homelab IaC Baseline
+# Private Cloud IaC Baseline
 
 This repository is a security-first Infrastructure as Code baseline for
-building and operating a private cloud homelab or small datacenter using
-Packer, Terraform, and Ansible so you can bring up new environments quickly,
-consistently, and without committing secrets into Git.
+building and operating an enterprise-style private cloud on a homelab or small
+datacenter scale using Packer, Terraform, and Ansible so you can bring up new
+environments quickly, consistently, and without committing secrets into Git.
 
 Proxmox is the current reference foundation for the hypervisor and initial
 infrastructure layer, but the repository is organized around the broader
@@ -65,7 +65,7 @@ ansible-playbook -i inventory/hosts.yml playbooks/bootstrap.yml
 cd ..
 ```
 
-This run prepares the foundation or domain layer only. Deploy Vault
+This run prepares the domain foundation layer only. Deploy Vault
 in the next stage after naming and certificate prerequisites are ready.
 
 7. Continue with:
@@ -77,9 +77,10 @@ in the next stage after naming and certificate prerequisites are ready.
 Recommended maturity path:
 
 - start with local example files and the smallest possible bootstrap-only secret set
-- deploy the first managed foundation or domain host
+- deploy the first managed domain foundation host
 - establish naming, certificate handling, and other shared basics needed by
   early services
+- add Windows or AD support later only if the environment needs it
 - deploy Vault as the early secret-platform foundation
 - move long-lived and shared secrets to Vault before broader deployment
 - add backup and recovery before the environment becomes important

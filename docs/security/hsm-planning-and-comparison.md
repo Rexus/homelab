@@ -139,8 +139,8 @@ A large part of the premium is the package around the device:
 - stronger audit posture
 
 That does not make USB HSMs pointless. It means they solve a different problem:
-practical hardware-backed custody for homelabs, labs, and smaller internal
-platforms.
+practical hardware-backed custody for homelab-scale environments, labs, and
+smaller internal platforms.
 
 ## Read more
 

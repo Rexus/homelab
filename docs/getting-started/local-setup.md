@@ -55,13 +55,14 @@ After local setup is ready:
 2. set the required environment variables
 3. run Terraform to provision foundation infrastructure
 4. run Ansible to apply foundation configuration
-5. continue with the foundation and domain path, then the Vault foundation path
-   and secret strategy
+5. continue with the domain foundation path, then the Vault foundation path and
+   secret strategy
 
 ## Read more
 
 - [Environment variable conventions](../reference/environment-variables.md)
 - [Secret strategy](../security/secret-strategy.md)
-- [Foundation and domain path](../foundation/foundation-and-domain-path.md)
+- [Domain foundation path](../foundation/foundation-and-domain-path.md)
+- [Windows and AD support](../foundation/windows-ad-support.md)
 - [Private cloud maturity path](private-cloud-maturity-path.md)
 - [Proxmox reference platform](../platforms/proxmox/README.md)

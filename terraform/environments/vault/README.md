@@ -1,7 +1,7 @@
 # Vault foundation environment
 
 Use this environment when you want to provision one or more dedicated Vault
-VMs after the bootstrap foundation or domain layer and its naming or
+VMs after the bootstrap domain foundation layer and its naming or
 certificate prerequisites are already in place.
 
 Use the shared Terraform shape here:

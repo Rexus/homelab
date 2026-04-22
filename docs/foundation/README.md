@@ -14,25 +14,29 @@ setup is ready.
 
 This is where you establish:
 
-- the foundation and domain layer
+- the domain foundation layer
 - the first DNS and certificate or PKI path
+- optional Windows or AD support later when you need it
 - the first Vault deployment as the secret-platform foundation
 
 ## Recommended order
 
 Use this order:
 
-1. [Foundation and domain path](foundation-and-domain-path.md)
-2. [Vault foundation deployment](vault-foundation-deployment.md)
-3. [Secret strategy](../security/secret-strategy.md)
-4. [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
+1. [Domain foundation path](foundation-and-domain-path.md)
+2. [Windows and AD support](windows-ad-support.md)
+3. [Vault foundation deployment](vault-foundation-deployment.md)
+4. [Secret strategy](../security/secret-strategy.md)
+5. [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
 
 ## Foundation guides
 
-- [Foundation and domain path](foundation-and-domain-path.md) - first managed
-  hosts, domain services, DNS, and certificate prerequisites
+- [Domain foundation path](foundation-and-domain-path.md) - first managed
+  foundation hosts, identity services, DNS, and certificate prerequisites
+- [Windows and AD support](windows-ad-support.md) - optional Windows support
+  path after the domain foundation exists
 - [Vault foundation deployment](vault-foundation-deployment.md) - first Vault
-  deployment after the foundation or domain layer exists
+  deployment after the domain foundation layer exists
 
 ## Related docs
 

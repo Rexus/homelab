@@ -11,12 +11,13 @@
 
 ## Purpose
 
-This repository is a private-cloud baseline built around clear trust
+This repository is a private-cloud baseline built around enterprise-style trust
 boundaries, layered networking, and a strict split between image creation,
 resource provisioning, and configuration management.
 
 The design is meant to stay stable as the environment grows. The number of
-segments, hosts, and services can change without changing the core model.
+segments, hosts, and services can change without changing the core model, even
+when the platform starts at homelab or small-datacenter scale.
 
 ## Goals
 
@@ -81,7 +82,7 @@ Proxy placement in this architecture:
 Each tool has one primary job:
 
 - Packer builds reusable images when custom templates are needed
-- Terraform provisions bootstrap foundation or domain hosts first and later
+- Terraform provisions bootstrap domain foundation hosts first and later
   shared-service hosts
 - Ansible applies baseline configuration first and then service-specific
   playbooks, such as Vault, on dedicated hosts
@@ -91,7 +92,7 @@ flowchart LR
   A["Bootstrap inputs"] --> B["Packer"]
   B --> C["Terraform"]
   C --> D["Ansible baseline"]
-  D --> E["Foundation or domain ready"]
+  D --> E["Domain foundation ready"]
   E --> F["Terraform and Ansible service deployment"]
   F --> G["Vault handoff"]
 
@@ -108,7 +109,7 @@ Figure: image build, foundation bootstrap, and later shared-service deployment
 stay separate until the first Vault handoff.
 
 Vault is treated as an early shared service that follows the bootstrap
-foundation or domain layer, so the platform can reduce bootstrap-only secret
+domain foundation layer, so the platform can reduce bootstrap-only secret
 handling before broader service deployment.
 
 ## Network references
