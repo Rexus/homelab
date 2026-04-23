@@ -28,8 +28,9 @@ Use [`terraform/environments/foundation/`](../foundation/README.md) first when
 you follow the repository default USB HSM path.
 
 The shared edge proxy or load balancer belongs in that foundation layer on
-`dmz`. This environment then adds the active gateway hosts in `hsm_gateway`
-and any restricted recovery or provisioning helpers in `hsm`.
+`dmz`. This environment then adds the active gateway hosts in
+`cryptography` and any restricted recovery or provisioning helpers in
+`ceremony`.
 
 ## What it provisions
 

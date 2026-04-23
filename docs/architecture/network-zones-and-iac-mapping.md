@@ -32,20 +32,24 @@ Use this pattern model:
 
 ```mermaid
 flowchart TB
+  Client[client]
+
   subgraph Edge["Edge-facing layer"]
     Internet[Internet or WAN]
     DMZ[dmz]
     Internet --> DMZ
   end
 
-  subgraph App["Application and shared-service layer"]
-    Service[service]
-    HSMGateway[hsm_gateway]
+  subgraph App["Access, identity, and application layer"]
+    Access[access]
+    Identity[identity]
+    Application[application]
+    Cryptography[cryptography]
   end
 
   subgraph Infra["Infrastructure and restricted layer"]
     Mgmt[management]
-    HSM[hsm]
+    Ceremony[ceremony]
 
     subgraph Fabric["Host and storage-close networks"]
       Corosync[corosync]
@@ -58,11 +62,17 @@ flowchart TB
     CephPublic --> CephCluster
   end
 
-  DMZ --> Service
-  DMZ --> HSMGateway
-  Mgmt --> Service
-  Service --> HSMGateway
-  Mgmt --> HSM
+  Client -.-> DMZ
+  Client -.-> Access
+  DMZ --> Access
+  DMZ --> Application
+  Access --> Identity
+  Access --> Application
+  Identity --> Application
+  Application --> Cryptography
+  Mgmt --> Identity
+  Mgmt --> Ceremony
+  Ceremony --> Cryptography
 
   style Edge fill:#ecfdf5,stroke:#15803d,stroke-width:2px,color:#1f2937
   style App fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1f2937
@@ -77,12 +87,12 @@ flowchart TB
   classDef hsmNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
   classDef cephNode fill:#fee2e2,stroke:#dc2626,color:#1f2937
 
-  class Internet,DMZ edgeNode
-  class Service appNode
-  class HSMGateway gatewayNode
+  class Client,Internet,DMZ edgeNode
+  class Access,Identity,Application appNode
+  class Cryptography gatewayNode
   class Mgmt mgmtNode
   class Corosync proxmoxNode
-  class HSM hsmNode
+  class Ceremony hsmNode
   class CephPublic,CephCluster cephNode
 ```
 
@@ -98,26 +108,36 @@ Use these zone meanings:
 
 | Zone key | What it is for | Typical users | Guest-facing today |
 | --- | --- | --- | --- |
+| `client` | reference-only client or endpoint network used when you reason about firewall policy | laptops, workstations, user endpoints, branch clients | reference only |
 | `management` | host-management access such as Proxmox UI, API, SSH, IaC runners, bastions, and management endpoints | admins, automation, bootstrap helpers | yes |
+| `access` | access, SSO, and controlled user-entry services | Keycloak, SSO portals, VPN, ZTNA, access gateways | yes |
+| `identity` | identity, domain, DNS, and directory support services | FreeIPA replicas, Samba AD support, DNS, directory support services | yes |
 | `corosync` | cluster membership, quorum, and node coordination | Proxmox cluster nodes | no |
 | `ceph_public` | Ceph client-facing storage traffic | hypervisors, storage clients, selected guests | usually no |
 | `ceph_cluster` | Ceph replication, recovery, and back-end storage traffic | Ceph nodes only | no |
-| `service` | shared services and internal application traffic | Vault, DNS, APIs, apps, internal callers | yes |
-| `hsm_gateway` | dedicated service-plane microsegment for live HSM-backed gateways or signers | signer gateways, signing APIs, PKI frontends | yes |
-| `hsm` | restricted custody, provisioning, recovery, or helper path | recovery hosts, provisioning hosts, ceremony helpers | sometimes |
+| `application` | shared internal application traffic and service consumers | Vault, APIs, apps, internal callers | yes |
+| `cryptography` | live cryptography and issuing-CA service plane | HSM gateways, issuing CA services, signing APIs, PKI frontends | yes |
+| `ceremony` | restricted custody, provisioning, recovery, and root-CA path | offline root CA, recovery hosts, provisioning hosts, ceremony helpers | sometimes |
 | `dmz` | ingress, reverse proxies, externally exposed services | proxies, selected edge services | yes |
 
 Practical notes:
 
 - in the current Proxmox pattern, `management` is the host-management network
   used to reach the hypervisor web UI, API, and SSH
-- domain, DNS, and identity services usually live on `service` unless you split
-  out a dedicated shared-services segment later
-- `hsm_gateway` is the live service microsegment for active HSM-backed
-  gateways; keep it separate from custody-only helpers when you have a distinct
-  subnet, VLAN, or ACL boundary for that traffic
-- `hsm` does not mean the USB device itself is networked; it is the restricted
-  path around recovery, provisioning, and custody-adjacent systems
+- `access` is where you place `Keycloak`, SSO portals, VPN entry points, or
+  other controlled user-entry services when they deserve their own subnet or
+  VLAN
+- domain, DNS, and shared identity services usually live on `identity`, such as
+  `FreeIPA` replicas
+- `application` is the shared internal application network
+- `cryptography` is the live service microsegment for HSM-backed gateways,
+  signing services, and the online issuing CA when you keep those systems
+  together
+- `ceremony` does not mean the USB device itself is networked; it is the
+  restricted path around an offline root CA, recovery, provisioning, and
+  custody-adjacent systems
+- `client` is usually a reference-only zone for firewall rules and access paths
+  rather than a repo-managed guest network
 - `corosync`, `ceph_public`, and `ceph_cluster` become active when the platform
   grows into clustering or storage separation
 
@@ -132,24 +152,27 @@ Use a range model such as this:
 
 | VLAN ID range | Suggested use | Example zones |
 | --- | --- | --- |
-| `2-99` | critical infrastructure, clustering, and storage | `management`, `corosync`, `ceph_public`, `ceph_cluster` |
-| `100-199` | shared internal services | `service`, DNS, PKI, directory services |
-| `200-299` | restricted service microsegments | `hsm_gateway`, `hsm`, signing paths |
+| `2-99` | critical control, access, identity, clustering, and storage | `management`, `access`, `identity`, `corosync`, `ceph_public`, `ceph_cluster` |
+| `100-199` | shared internal application networks | `application` |
+| `200-299` | cryptography and ceremony networks | `cryptography`, `ceremony` |
 | `300-399` | edge-facing paths | `dmz`, ingress, reverse proxies |
-| `400+` | local extensions and future segments | site-specific app or lab networks |
+| `400+` | local extensions and future segments | site-specific app, lab, or client-reference networks |
 
 One example based on that pattern is:
 
 | Zone key | Example VLAN ID |
 | --- | --- |
 | `management` | `10` |
-| `corosync` | `11` |
-| `ceph_public` | `20` |
-| `ceph_cluster` | `21` |
-| `service` | `120` |
-| `hsm_gateway` | `220` |
-| `hsm` | `221` |
+| `access` | `11` |
+| `identity` | `12` |
+| `corosync` | `20` |
+| `ceph_public` | `21` |
+| `ceph_cluster` | `22` |
+| `application` | `120` |
+| `cryptography` | `220` |
+| `ceremony` | `221` |
 | `dmz` | `320` |
+| `client` | reference only |
 
 ## IaC mapping
 
@@ -162,32 +185,42 @@ network_zones = {
     vlan_id   = 10
     cidr_ipv4 = "10.10.10.0/24"
   }
-  corosync = {
+  access = {
     bridge    = "vmbr0"
     vlan_id   = 11
     cidr_ipv4 = "10.10.11.0/24"
   }
-  ceph_public = {
+  identity = {
+    bridge    = "vmbr0"
+    vlan_id   = 12
+    cidr_ipv4 = "10.10.12.0/24"
+  }
+  corosync = {
     bridge    = "vmbr1"
     vlan_id   = 20
     cidr_ipv4 = "10.10.20.0/24"
   }
-  ceph_cluster = {
+  ceph_public = {
     bridge    = "vmbr1"
     vlan_id   = 21
     cidr_ipv4 = "10.10.21.0/24"
   }
-  service = {
+  ceph_cluster = {
+    bridge    = "vmbr1"
+    vlan_id   = 22
+    cidr_ipv4 = "10.10.22.0/24"
+  }
+  application = {
     bridge    = "vmbr0"
     vlan_id   = 120
     cidr_ipv4 = "10.20.20.0/24"
   }
-  hsm_gateway = {
+  cryptography = {
     bridge    = "vmbr0"
     vlan_id   = 220
     cidr_ipv4 = "10.20.21.0/24"
   }
-  hsm = {
+  ceremony = {
     bridge    = "vmbr0"
     vlan_id   = 221
     cidr_ipv4 = "10.20.22.0/24"
@@ -203,7 +236,7 @@ vm_instances = {
   signer_gw01 = {
     name             = "signer-gw01"
     node_name        = "pve01"
-    network_zone_key = "hsm_gateway"
+    network_zone_key = "cryptography"
     ipv4_address     = "dhcp"
   }
 }
@@ -233,11 +266,11 @@ Use the catalog progressively:
 
 | Stage | Zones you usually need now | Zones you can leave as reference only |
 | --- | --- | --- |
-| first bootstrap | `management`, `service` | `corosync`, `ceph_public`, `ceph_cluster`, `hsm_gateway`, `hsm`, `dmz` |
-| early private cloud | `management`, `service`, `dmz` | `corosync`, `ceph_public`, `ceph_cluster`, `hsm_gateway`, `hsm` |
-| clustered platform | `management`, `corosync`, `service`, optional `dmz` | `ceph_public`, `ceph_cluster`, `hsm_gateway`, `hsm` |
-| storage-heavy platform | `management`, `corosync`, `ceph_public`, `ceph_cluster`, `service` | `dmz`, `hsm_gateway`, `hsm` |
-| HSM or signing lab | `management`, `service`, `hsm_gateway`, optional `hsm`, optional `dmz` | `corosync`, `ceph_public`, `ceph_cluster` unless also clustering storage |
+| first bootstrap | `management`, `identity`, `cryptography`, optional `ceremony` | `access`, `application`, `corosync`, `ceph_public`, `ceph_cluster`, `dmz`, `client` |
+| early private cloud | `management`, `identity`, `cryptography`, `application`, optional `access`, optional `dmz`, optional `ceremony` | `corosync`, `ceph_public`, `ceph_cluster`, `client` |
+| clustered platform | `management`, `identity`, `application`, `corosync`, optional `access`, optional `dmz` | `ceph_public`, `ceph_cluster`, `cryptography`, `ceremony`, `client` |
+| storage-heavy platform | `management`, `identity`, `application`, `corosync`, `ceph_public`, `ceph_cluster` | `access`, `dmz`, `cryptography`, `ceremony`, `client` |
+| HSM or signing lab | `management`, `identity`, `application`, `cryptography`, optional `ceremony`, optional `dmz` | `access`, `corosync`, `ceph_public`, `ceph_cluster`, `client` unless also needed for policy reference |
 
 This is why the examples keep extra zones in comments or placeholders. You do
 not need to run every network before the repository is useful.

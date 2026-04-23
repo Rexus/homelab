@@ -42,8 +42,8 @@ locals {
       bridge      = var.proxmox_network_bridge
       cidr_ipv4   = var.management_cidr
     }
-    service = {
-      description = "Shared service or workload-facing guest network."
+    application = {
+      description = "Shared internal application or workload-facing guest network."
       bridge      = var.proxmox_network_bridge
       cidr_ipv4   = var.workload_cidr
     }

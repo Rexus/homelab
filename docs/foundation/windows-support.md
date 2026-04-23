@@ -1,4 +1,4 @@
-# Windows and AD support
+# Windows support
 
 ## Table of contents
 
@@ -22,7 +22,7 @@ Use this order:
 
 1. deploy the domain foundation first
 2. stabilize identity, DNS, certificate handling, and baseline operations
-3. add Windows or AD support only when Windows clients or GPO requirements
+3. add Windows support only when Windows clients or GPO requirements
    justify it
 
 ## Current design direction
@@ -31,6 +31,8 @@ The repository direction is:
 
 - keep the default authority design as the primary identity model
 - use `FreeIPA` as the current reference direction for that primary authority
+- keep the default PKI split as `FreeIPA` and DNS in `identity`, the issuing CA
+  in `cryptography`, and the offline root CA in `ceremony`
 - treat `Samba AD` as the current Windows support extension
 - keep Windows-specific domain join, GPO, and logon handling in this secondary
   path instead of the default domain foundation path

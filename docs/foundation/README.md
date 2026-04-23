@@ -15,7 +15,8 @@ setup is ready.
 This is where you establish:
 
 - the domain foundation layer
-- the first DNS and certificate or PKI path
+- the first identity and DNS services
+- the first PKI path with an issuing CA and an optional offline root CA
 - optional Windows or AD support later when you need it
 - the first Vault deployment as the secret-platform foundation
 
@@ -24,7 +25,7 @@ This is where you establish:
 Use this order:
 
 1. [Domain foundation path](foundation-and-domain-path.md)
-2. [Windows and AD support](windows-ad-support.md)
+2. [Windows and AD support](windows-support.md)
 3. [Vault foundation deployment](vault-foundation-deployment.md)
 4. [Secret strategy](../security/secret-strategy.md)
 5. [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
@@ -32,8 +33,8 @@ Use this order:
 ## Foundation guides
 
 - [Domain foundation path](foundation-and-domain-path.md) - first managed
-  foundation hosts, identity services, DNS, and certificate prerequisites
-- [Windows and AD support](windows-ad-support.md) - optional Windows support
+  foundation hosts for `FreeIPA`, DNS, and the first PKI path
+- [Windows and AD support](windows-support.md) - optional Windows support
   path after the domain foundation exists
 - [Vault foundation deployment](vault-foundation-deployment.md) - first Vault
   deployment after the domain foundation layer exists

@@ -37,8 +37,8 @@ Use this order when you are new to the repository or returning after time away:
 - [Foundation index](foundation/README.md) - entry point for the domain
   foundation, DNS, PKI, optional Windows support, and early secret-platform layers
 - [Domain foundation path](foundation/foundation-and-domain-path.md) - shortest
-  path from local setup to the first managed domain foundation layer
-- [Windows and AD support](foundation/windows-ad-support.md) - optional
+  path from local setup to the first managed identity and PKI foundation layer
+- [Windows and AD support](foundation/windows-support.md) - optional
   secondary path for Windows clients and AD-compatible support
 - [Vault foundation deployment](foundation/vault-foundation-deployment.md) -
   early secret-platform deployment after the domain foundation and certificate

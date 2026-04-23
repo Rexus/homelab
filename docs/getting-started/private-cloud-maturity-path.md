@@ -21,7 +21,7 @@ reference foundation, but the maturity path is about the broader platform.
 
 | Level | Goal | Success criteria |
 | --- | --- | --- |
-| 1 | Domain foundation deployment | First template, foundation hosts, and the identity, DNS, and PKI services Vault depends on are in place |
+| 1 | Domain foundation deployment | The identity and PKI foundation is in place, including the first `FreeIPA`, DNS, and issuing-CA path Vault depends on |
 | 2 | Vault foundation deployment | Vault is deployed as the early secret-platform foundation and ready for initialization |
 | 3 | Backup and recovery | PBS is deployed, connected, and tested |
 | 4 | Higher availability and production use | Backup, recovery, and platform patterns support more serious use |
@@ -34,7 +34,8 @@ Goal:
 - set the required environment variables
 - build or prepare a template
 - provision the first managed foundation hosts
-- establish the identity, DNS, and certificate or PKI services Vault depends on
+- establish the identity, DNS, and PKI services Vault depends on
+- use the current reference shape of `2` identity hosts and `1` issuing CA
 - apply the baseline playbook so the hosts are managed
 - keep the first deployment focused on the foundation Vault and later shared
   services depend on
@@ -45,7 +46,7 @@ Read more:
 - [Platform guide](../platforms/proxmox/README.md)
 - [Environment variable conventions](../reference/environment-variables.md)
 - [Domain foundation path](../foundation/foundation-and-domain-path.md)
-- [Windows and AD support](../foundation/windows-ad-support.md)
+- [Windows and AD support](../foundation/windows-support.md)
 
 ## Level 2 - Vault foundation deployment
 

@@ -29,58 +29,63 @@ network_zones = {
     vlan_id     = 10
     cidr_ipv4   = "10.10.10.0/24"
   }
-  host = {
-    description = "Optional host-only or hypervisor service network."
+  access = {
+    description = "SSO, Keycloak, and controlled user access services."
     bridge      = "vmbr0"
     vlan_id     = 11
     cidr_ipv4   = "10.10.11.0/24"
-    notes       = "Reference zone for Proxmox host services when you separate them from management."
   }
-  corosync = {
-    description = "Optional Proxmox cluster control network."
+  identity = {
+    description = "Domain, DNS, and certificate authority services."
     bridge      = "vmbr0"
     vlan_id     = 12
     cidr_ipv4   = "10.10.12.0/24"
+  }
+  corosync = {
+    description = "Optional Proxmox cluster control network."
+    bridge      = "vmbr1"
+    vlan_id     = 20
+    cidr_ipv4   = "10.10.20.0/24"
     notes       = "Reference zone for later clustered control-plane traffic."
   }
   ceph_public = {
     description = "Optional Ceph client-facing network."
-    bridge      = "vmbr0"
-    vlan_id     = 13
-    cidr_ipv4   = "10.10.13.0/24"
+    bridge      = "vmbr1"
+    vlan_id     = 21
+    cidr_ipv4   = "10.10.21.0/24"
     notes       = "Reference zone only until you run Ceph."
   }
   ceph_cluster = {
     description = "Optional Ceph replication and recovery network."
-    bridge      = "vmbr0"
-    vlan_id     = 14
-    cidr_ipv4   = "10.10.14.0/24"
+    bridge      = "vmbr1"
+    vlan_id     = 22
+    cidr_ipv4   = "10.10.22.0/24"
     notes       = "Reference zone only until you run Ceph."
   }
-  service = {
-    description = "Shared services and internal application traffic."
+  application = {
+    description = "Internal application traffic and shared application consumers."
     bridge      = "vmbr0"
-    vlan_id     = 20
+    vlan_id     = 120
     cidr_ipv4   = "10.20.20.0/24"
   }
-  hsm_gateway = {
-    description = "Dedicated service-plane subnet for HSM-backed gateways."
+  cryptography = {
+    description = "Live cryptography, issuing CA, and HSM-backed gateway traffic."
     bridge      = "vmbr0"
-    vlan_id     = 21
+    vlan_id     = 220
     cidr_ipv4   = "10.20.21.0/24"
     notes       = "Usually unused in the first Vault deployment, but kept here for the shared architecture map."
   }
-  hsm = {
-    description = "Restricted PKCS#11 custody, provisioning, or recovery path."
+  ceremony = {
+    description = "Restricted ceremony, provisioning, recovery, or root-CA path."
     bridge      = "vmbr0"
-    vlan_id     = 22
+    vlan_id     = 221
     cidr_ipv4   = "10.20.22.0/24"
     notes       = "Usually unused in the first Vault deployment, but kept here for the shared architecture map."
   }
   dmz = {
     description = "Edge or ingress-facing services."
     bridge      = "vmbr0"
-    vlan_id     = 30
+    vlan_id     = 320
     cidr_ipv4   = "10.30.30.0/24"
   }
 }
@@ -97,7 +102,7 @@ vm_instances = {
     size             = "large"
     storage_class    = "local"
     disk_size_gb     = 40
-    network_zone_key = "service"
+    network_zone_key = "application"
     ipv4_address     = "dhcp"
     role             = "vault"
   }
@@ -111,7 +116,7 @@ lxc_instances = {
     size             = "tiny"
     storage_class    = "local"
     disk_size_gb     = 8
-    network_zone_key = "service"
+    network_zone_key = "application"
     ipv4_address     = "dhcp"
     role             = "support"
   }

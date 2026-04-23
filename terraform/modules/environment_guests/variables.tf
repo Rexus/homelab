@@ -26,13 +26,13 @@ variable "network_zones" {
 variable "default_vm_network_zone_key" {
   description = "Default network zone key used by VM instances when they do not override it."
   type        = string
-  default     = "service"
+  default     = "application"
 }
 
 variable "default_lxc_network_zone_key" {
   description = "Default network zone key used by LXC instances when they do not override it."
   type        = string
-  default     = "service"
+  default     = "application"
 }
 
 variable "ssh_public_keys" {

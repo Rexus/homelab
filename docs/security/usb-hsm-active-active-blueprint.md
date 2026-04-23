@@ -44,9 +44,9 @@ The default shape in this repo is:
 
 - `1` deployed edge proxy VM, or a small proxy set, from the foundation
   environment
-- `2` gateway hosts in the `hsm_gateway` zone
+- `2` gateway hosts in the `cryptography` zone
 - `1` local USB HSM or software token per gateway host
-- `0-1` helper or recovery VM in `hsm`
+- `0-1` helper or recovery VM in `ceremony`
 - `1` offline backup device or equivalent recovery artifact
 
 ```mermaid
@@ -112,16 +112,17 @@ You mainly add these zones here:
 
 | Zone key | Use in this guide |
 | --- | --- |
-| `hsm_gateway` | active gateway hosts |
-| `hsm` | optional helper or recovery VM when you want a separate custody path |
+| `cryptography` | active gateway hosts and optional issuing CA placement |
+| `ceremony` | optional helper, recovery VM, or root-CA path when you want a separate ceremony network |
 
 These existing zones are only references here:
 
 | Zone key | Why it still matters here |
 | --- | --- |
-| `dmz` | already deployed edge proxy or proxy set reaches the HSM gateways |
+| `dmz` | already deployed edge proxy or proxy set reaches the cryptography hosts |
 | `management` | admin access, automation, and metrics reach the HSM hosts |
-| `service` | shared internal callers may reach the HSM gateways if you expose them internally |
+| `application` | shared internal callers may reach the cryptography hosts if you expose them internally |
+| `identity` | identity or PKI dependencies may still need controlled reachability to issuing services on the cryptography network |
 
 Copy these examples to your local `terraform.tfvars` files and edit
 `network_zones` there:
@@ -129,9 +130,10 @@ Copy these examples to your local `terraform.tfvars` files and edit
 - [`terraform/environments/hsm-lab/terraform.tfvars.example`](../../terraform/environments/hsm-lab/terraform.tfvars.example)
   for the gateway and helper layer
 
-Set the values your environment needs for `hsm_gateway` and optional `hsm`,
+Set the values your environment needs for `cryptography` and optional
+`ceremony`,
 such as bridge, VLAN, subnet, gateway, and addressing conventions.
-Reuse the existing `dmz`, `management`, and `service` mappings from your
+Reuse the existing `dmz`, `management`, `identity`, and `application` mappings from your
 prerequisite deployments.
 
 ### Firewall openings
@@ -141,11 +143,11 @@ ports:
 
 | Source zone | Destination zone | Default port or protocol | Purpose |
 | --- | --- | --- | --- |
-| `dmz` | `hsm_gateway` | `8443/TCP` | deployed edge proxy to gateway service |
-| `management` | `hsm_gateway` | `22/TCP` | SSH, Ansible, and troubleshooting |
-| `management` | `hsm` | `22/TCP` | helper or recovery host administration |
-| `service` | `hsm_gateway` | `8443/TCP` optional | internal callers using the same gateway service endpoint |
-| `hsm` | `hsm_gateway` | none by default | open only when a helper host needs a direct admin path |
+| `dmz` | `cryptography` | `8443/TCP` | deployed edge proxy to gateway service |
+| `management` | `cryptography` | `22/TCP` | SSH, Ansible, and troubleshooting |
+| `management` | `ceremony` | `22/TCP` | helper or recovery host administration |
+| `application` | `cryptography` | `8443/TCP` optional | internal callers using the same gateway service endpoint |
+| `ceremony` | `cryptography` | none by default | open only when a helper host needs a direct admin path |
 
 Keep these boundaries:
 
@@ -159,7 +161,7 @@ Keep these boundaries:
   configure and need them
 - do not expose raw USB devices or generic PKCS#11 endpoints over the network
 - keep USB or token access host-local on each gateway
-- if you do not deploy a helper host, keep `hsm` to `hsm_gateway` closed
+- if you do not deploy a helper host, keep `ceremony` to `cryptography` closed
 
 ### VM layout
 

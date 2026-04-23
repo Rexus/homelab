@@ -114,16 +114,16 @@ Name parts:
 
 | Part | Purpose | Current examples |
 | --- | --- | --- |
-| `env` | short, stable environment marker | `lab`, `prod`, `dev` |
+| `env` | short, stable environment marker | `test`, `prod`, `dev` |
 | `role` | generic, stable workload role | `dc`, `secrets`, `proxy`, `k8node`, `db`, `pbs` |
 | `n` | always-present numeric suffix | `1`, `2`, `3` |
 
 Current examples:
 
-- `lab-dc-1`
-- `lab-secrets-1`
+- `test-dc-1`
+- `test-secrets-1`
 - `prod-proxy-1`
-- `lab-k8node-1`
+- `dev-k8node-1`
 - `prod-db-1`
 
 Recommended practice:
@@ -153,7 +153,7 @@ Suggested tag categories:
 | Category | Purpose | Current examples |
 | --- | --- | --- |
 | `sla` | operational priority and recovery expectation | `critical`, `high`, `standard`, `low` |
-| `exposure` | trust boundary or security posture | `public`, `internal`, `restricted`, `isolated`, `host-management` |
+| `exposure` | trust boundary or security posture | `public`, `internal`, `restricted`, `isolated` |
 | `lifecycle` | expected runtime behavior | `always-on`, `scheduled`, `ephemeral`, `legacy`, `maintenance` |
 | `ownership` | team or operator responsibility | `platform`, `security`, `data`, `apps`, `team-foo` |
 | `service` | exact implementation or product | `postgres`, `mariadb`, `vault`, `openbao`, `haproxy`, `traefik`, `nginx`, `redis` |

@@ -15,7 +15,7 @@ For repository usage and secret handling, read:
 Key paths:
 
 - `playbooks/bootstrap.yml` - baseline entry point for the bootstrap
-  domain foundation layer
+  domain foundation layer, including identity, PKI, and optional edge hosts
 - `playbooks/vault.yml` - baseline plus Vault installation for hosts in the
   `vault` group
 - `playbooks/site.yml` - broader baseline entry point

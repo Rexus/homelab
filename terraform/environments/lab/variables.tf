@@ -124,7 +124,7 @@ variable "management_cidr" {
 }
 
 variable "workload_cidr" {
-  description = "Legacy primary workload or service network CIDR."
+  description = "Legacy primary application network CIDR."
   type        = string
   default     = null
   nullable    = true
@@ -198,13 +198,13 @@ variable "network_zones" {
 variable "default_vm_network_zone_key" {
   description = "Default network zone key used by VM guests."
   type        = string
-  default     = "service"
+  default     = "application"
 }
 
 variable "default_lxc_network_zone_key" {
   description = "Default network zone key used by LXC guests."
   type        = string
-  default     = "service"
+  default     = "application"
 }
 
 variable "vm_instances" {

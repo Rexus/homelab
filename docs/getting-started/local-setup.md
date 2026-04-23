@@ -63,6 +63,6 @@ After local setup is ready:
 - [Environment variable conventions](../reference/environment-variables.md)
 - [Secret strategy](../security/secret-strategy.md)
 - [Domain foundation path](../foundation/foundation-and-domain-path.md)
-- [Windows and AD support](../foundation/windows-ad-support.md)
+- [Windows and AD support](../foundation/windows-support.md)
 - [Private cloud maturity path](private-cloud-maturity-path.md)
 - [Proxmox reference platform](../platforms/proxmox/README.md)

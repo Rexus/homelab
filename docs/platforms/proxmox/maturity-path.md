@@ -43,7 +43,7 @@ Read more:
 - [Proxmox planning guidelines](conventions.md)
 - [Environment variable conventions](../../reference/environment-variables.md)
 - [Domain foundation path](../../foundation/foundation-and-domain-path.md)
-- [Windows and AD support](../../foundation/windows-ad-support.md)
+- [Windows and AD support](../../foundation/windows-support.md)
 
 ## Level 2 - Vault foundation deployment
 

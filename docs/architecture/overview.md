@@ -33,17 +33,17 @@ when the platform starts at homelab or small-datacenter scale.
 flowchart TB
   subgraph Edge["Edge layer"]
     E1["External zone<br/>Internet, WAN, partner networks"]
-    E2["DMZ zone<br/>Ingress, VPN, ZTNA, controlled egress"]
+    E2["DMZ zone<br/>Ingress, edge proxy, controlled egress"]
   end
 
   subgraph App["Application layer"]
-    A1["Shared services<br/>DNS, identity, Vault, logging"]
-    A2["User services and microsegments<br/>Internal apps, APIs, HSM gateways"]
+    A1["Access and identity services<br/>Keycloak, FreeIPA, DNS"]
+    A2["Application and cryptography services<br/>Internal apps, APIs, issuing CA, HSM gateways"]
   end
 
   subgraph Infra["Infrastructure layer"]
     I1["Host-management zone<br/>Bastion, IaC, ops, hypervisor management"]
-    I2["Restricted zone<br/>Backup, storage, HSM, hardware roots"]
+    I2["Restricted zone<br/>Backup, ceremony, offline roots, hardware roots"]
   end
 
   Edge --> App --> Infra
@@ -82,8 +82,8 @@ Proxy placement in this architecture:
 Each tool has one primary job:
 
 - Packer builds reusable images when custom templates are needed
-- Terraform provisions bootstrap domain foundation hosts first and later
-  shared-service hosts
+- Terraform provisions domain foundation hosts first and later shared-service
+  hosts
 - Ansible applies baseline configuration first and then service-specific
   playbooks, such as Vault, on dedicated hosts
 
@@ -92,7 +92,7 @@ flowchart LR
   A["Bootstrap inputs"] --> B["Packer"]
   B --> C["Terraform"]
   C --> D["Ansible baseline"]
-  D --> E["Domain foundation ready"]
+  D --> E["Identity and PKI ready"]
   E --> F["Terraform and Ansible service deployment"]
   F --> G["Vault handoff"]
 
@@ -105,8 +105,8 @@ flowchart LR
   class G vaultNode
 ```
 
-Figure: image build, foundation bootstrap, and later shared-service deployment
-stay separate until the first Vault handoff.
+Figure: image build, domain foundation bring-up, and later shared-service
+deployment stay separate until the first Vault handoff.
 
 Vault is treated as an early shared service that follows the bootstrap
 domain foundation layer, so the platform can reduce bootstrap-only secret
@@ -117,8 +117,8 @@ handling before broader service deployment.
 Use the shared zone catalog in
 [Network zones and IaC mapping](network-zones-and-iac-mapping.md) when you pick
 subnets, VLANs, Proxmox bridges, and guest placement keys. That document is the
-repository source of truth for zone names such as `management`, `service`,
-`hsm_gateway`, `dmz`, and `hsm`.
+repository source of truth for zone names such as `management`, `access`,
+`identity`, `application`, `cryptography`, `dmz`, and `ceremony`.
 
 ## Boundaries
 

@@ -8,6 +8,30 @@ all:
       hosts:
         pve01-change-me:
           ansible_host: 10.10.10.11
+    identity:
+      hosts:
+        foundation-identity-1-change-me:
+          ansible_host: 10.10.12.10
+        foundation-identity-2-change-me:
+          ansible_host: 10.10.12.11
+    pki_issuers:
+      hosts:
+        foundation-pki-1-change-me:
+          ansible_host: 10.20.21.10
+    pki_ceremony:
+      hosts:
+        foundation-ceremony-1-change-me:
+          ansible_host: 10.20.22.10
+    proxies:
+      hosts:
+        foundation-proxy-1-change-me:
+          ansible_host: 10.30.30.10
+    foundation:
+      children:
+        identity:
+        pki_issuers:
+        pki_ceremony:
+        proxies:
     bootstrap:
       hosts:
         bootstrap01-change-me:
@@ -16,10 +40,6 @@ all:
       hosts:
         vault01-change-me:
           ansible_host: 10.10.10.21
-    proxies:
-      hosts:
-        proxy01-change-me:
-          ansible_host: 10.30.30.10
     hsm_gateways:
       hosts:
         gateway01-change-me:
@@ -34,8 +54,8 @@ all:
           ansible_host: 10.20.22.10
     guests:
       children:
+        foundation:
         bootstrap:
         vault:
-        proxies:
         hsm_gateways:
         hsm_helpers:

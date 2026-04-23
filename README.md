@@ -32,7 +32,7 @@ Foundation fast path:
 
 ```bash
 cp packer/variables.auto.pkrvars.hcl.example packer/variables.auto.pkrvars.hcl
-cp terraform/environments/bootstrap/terraform.tfvars.example terraform/environments/bootstrap/terraform.tfvars
+cp terraform/environments/foundation/terraform.tfvars.example terraform/environments/foundation/terraform.tfvars
 cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
 cp ansible/group_vars/all.yml.example ansible/group_vars/all.yml
 ```
@@ -50,7 +50,7 @@ export TF_VAR_proxmox_api_token_secret="change-me"
 5. Run the foundation deployment:
 
 ```bash
-cd terraform/environments/bootstrap
+cd terraform/environments/foundation
 terraform init
 terraform plan
 terraform apply
@@ -65,8 +65,8 @@ ansible-playbook -i inventory/hosts.yml playbooks/bootstrap.yml
 cd ..
 ```
 
-This run prepares the domain foundation layer only. Deploy Vault
-in the next stage after naming and certificate prerequisites are ready.
+This run prepares the domain foundation layer first. The current reference
+shape is `2` identity hosts plus `1` issuing CA host before Vault.
 
 7. Continue with:
    - [Vault foundation deployment](docs/foundation/vault-foundation-deployment.md)
@@ -77,9 +77,9 @@ in the next stage after naming and certificate prerequisites are ready.
 Recommended maturity path:
 
 - start with local example files and the smallest possible bootstrap-only secret set
-- deploy the first managed domain foundation host
-- establish naming, certificate handling, and other shared basics needed by
-  early services
+- deploy the identity and PKI foundation first
+- establish naming, DNS, and the first issuing-CA path needed by early
+  services
 - add Windows or AD support later only if the environment needs it
 - deploy Vault as the early secret-platform foundation
 - move long-lived and shared secrets to Vault before broader deployment

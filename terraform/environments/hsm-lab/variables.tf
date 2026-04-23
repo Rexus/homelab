@@ -77,13 +77,13 @@ variable "network_zones" {
 variable "default_vm_network_zone_key" {
   description = "Default network zone key used by VM guests."
   type        = string
-  default     = "service"
+  default     = "application"
 }
 
 variable "default_lxc_network_zone_key" {
   description = "Default network zone key used by LXC guests."
   type        = string
-  default     = "service"
+  default     = "application"
 }
 
 variable "vm_instances" {

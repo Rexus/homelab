@@ -41,6 +41,7 @@ platform.
 ## Before you start
 
 - the domain foundation deployment is already complete
+- identity, DNS, and the first PKI path already exist
 - naming and the first TLS path for Vault already exist
 - one dedicated Vault VM, or more when needed, is defined in the Vault
   environment
@@ -157,7 +158,7 @@ with the security docs instead of extending this deployment guide:
 ## Read more
 
 - [Domain foundation path](foundation-and-domain-path.md)
-- [Windows and AD support](windows-ad-support.md)
+- [Windows and AD support](windows-support.md)
 - [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
 - [Secret strategy](../security/secret-strategy.md)
 - [Ansible Vault bootstrap fallback](../reference/ansible-vault-bootstrap.md)

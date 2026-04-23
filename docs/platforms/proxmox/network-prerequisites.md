@@ -33,7 +33,8 @@ reach the Proxmox web UI, API, and SSH.
 Use [Network zones and IaC mapping](../../architecture/network-zones-and-iac-mapping.md)
 as the source of truth for:
 
-- zone names such as `management`, `service`, `hsm_gateway`, `dmz`, and `hsm`
+- zone names such as `management`, `access`, `identity`, `application`,
+  `cryptography`, `dmz`, and `ceremony`
 - the `network_zones` keys used in Terraform
 - the bridge, VLAN, and subnet values you fill in locally
 
@@ -81,7 +82,7 @@ flowchart LR
       Vmbr1[vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500]
       Corosync2[host-management IPs<br/>Proxmox UI, API, SSH]
       CephPublic[corosync 1]
-      CephCluster[service, dmz, hsm_gateway, hsm guests]
+      CephCluster[access, identity, application,<br/>dmz, cryptography, ceremony guests]
 
       Bond1 --> Vmbr1
       Vmbr1 --> Corosync2
@@ -116,7 +117,7 @@ Use stable host-side components such as these:
 
 | Component | Typical use | MTU | Notes |
 | --- | --- | --- | --- |
-| `bond0` | fabric bond | `1500` | use for the main host-management, guest, and service trunk |
+| `bond0` | fabric bond | `1500` | use for the main host-management, guest, access, identity, and application trunk |
 | `vmbr0` | fabric bridge | `1500` | keep it VLAN-aware and do not allow native VLANs so untagged traffic does not land on the wrong network |
 | `bond1` | storage bond | `9000` | use for storage-heavy traffic when Ceph benefits from jumbo frames |
 | `vmbr1` | storage bridge | `9000` | keep it VLAN-aware and limit it to the storage VLANs plus the second Corosync VLAN |
@@ -131,9 +132,9 @@ Bonding and bridge notes:
 - on other switch platforms, the same setup is often presented more explicitly
   as dynamic `LACP` on the member ports or a port-channel
 - keep `vmbr1` VLAN-aware and allow only the needed storage VLANs and the
-  second Corosync VLAN on it, for example `12 20 21`
+  second Corosync VLAN on it, for example `20-22`
 - keep `vmbr0` VLAN-aware and carry the remaining allowed VLAN IDs there, for
-  example `2-11 13-19 22-4094`
+  example `10-12 120 220-221 320`
 
 ## Host-side VLANs
 
@@ -148,8 +149,9 @@ hosts themselves use.
 | `ceph_public` | `vmbr1` | `9000` | separate from guest traffic when possible |
 | `ceph_cluster` | `vmbr1` | `9000` | keep distinct from `ceph_public` for Ceph replication and recovery |
 
-Guest VLANs such as `service`, `dmz`, `hsm_gateway`, and `hsm` are carried on
-the fabric bridge `vmbr0` and selected on each VM NIC by
+Guest VLANs such as `access`, `identity`, `application`, `dmz`,
+`cryptography`, and `ceremony` are carried on the fabric bridge `vmbr0` and
+selected on each VM NIC by
 assigning the intended VLAN tag to that VM.
 
 ## VLAN strategy
@@ -165,7 +167,7 @@ Recommended practice:
 - decide the reserved VLAN ID ranges early because later changes are harder
   across bridges, guests, switches, and firewalls
 - group related VLAN IDs so bridge expressions stay easier to read, for
-  example `2-11 13-19 22-4094` on `vmbr0` instead of one long ad hoc list
+  example `10-12 120 220-221 320` on `vmbr0` instead of one long ad hoc list
 
 ## MTU planning
 

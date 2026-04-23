@@ -14,12 +14,12 @@ Key paths:
 
 - `modules/` - reusable building blocks
 - `environments/bootstrap/` - bootstrap environment scaffold
-- `environments/foundation/` - shared edge-proxy DMZ ingress and
-  foundation-service scaffold
+- `environments/foundation/` - domain foundation scaffold for identity, PKI,
+  and optional edge-proxy hosts
 - `environments/hsm-lab/` - gateway and custody-host scaffold for USB HSM or
   software PKCS#11 lab patterns
-- `environments/bootstrap/terraform.tfvars.example`
-  -> `environments/bootstrap/terraform.tfvars`
+- `environments/foundation/terraform.tfvars.example`
+  -> `environments/foundation/terraform.tfvars`
 
 Shared Terraform pattern:
 
