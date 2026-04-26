@@ -1,0 +1,34 @@
+# Copy to: ansible/group_vars/foundation.yml
+# Replace every value before use.
+# Keep secrets encrypted with Ansible Vault for real deployments.
+
+foundation_freeipa_enabled: true
+foundation_freeipa_domain: ipa.example.com
+foundation_freeipa_realm: IPA.EXAMPLE.COM
+
+# Use strong local values and encrypt this file with Ansible Vault.
+foundation_freeipa_dm_password: change-me
+foundation_freeipa_admin_password: change-me
+
+foundation_freeipa_setup_dns: true
+foundation_freeipa_auto_forwarders: true
+foundation_freeipa_dns_forwarders: []
+foundation_freeipa_allow_zone_overlap: false
+foundation_freeipa_setup_firewalld: true
+
+# These map into the freeipa.ansible_freeipa collection roles.
+ipaserver_domain: "{{ foundation_freeipa_domain }}"
+ipaserver_realm: "{{ foundation_freeipa_realm }}"
+ipaserver_setup_dns: "{{ foundation_freeipa_setup_dns }}"
+ipaserver_auto_forwarders: "{{ foundation_freeipa_auto_forwarders }}"
+ipaserver_forwarders: "{{ foundation_freeipa_dns_forwarders }}"
+ipaserver_allow_zone_overlap: "{{ foundation_freeipa_allow_zone_overlap }}"
+ipaserver_setup_firewalld: "{{ foundation_freeipa_setup_firewalld }}"
+ipaadmin_password: "{{ foundation_freeipa_admin_password }}"
+ipadm_password: "{{ foundation_freeipa_dm_password }}"
+
+ipareplica_domain: "{{ foundation_freeipa_domain }}"
+ipareplica_realm: "{{ foundation_freeipa_realm }}"
+ipareplica_setup_dns: "{{ foundation_freeipa_setup_dns }}"
+ipareplica_setup_firewalld: "{{ foundation_freeipa_setup_firewalld }}"
+ipareplica_servers: "{{ groups.get('identity_primary', []) }}"

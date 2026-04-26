@@ -31,7 +31,7 @@ reference foundation, but the maturity path is about the broader platform.
 Goal:
 
 - copy the example files
-- set the required environment variables
+- prepare the local deployment environment file
 - build or prepare a template
 - provision the first managed foundation hosts
 - establish the identity, DNS, and PKI services Vault depends on

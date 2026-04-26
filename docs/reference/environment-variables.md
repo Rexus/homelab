@@ -18,6 +18,10 @@ secrets and runtime-sensitive values. Use it together with the
 Use environment variables for secrets and runtime-sensitive values. Keep
 structured non-secret configuration in the example-based local files.
 
+For normal local runs, keep those values in `.env.local`; the deployment
+wrapper loads that file when it exists. Runners can provide the same variables
+directly, and `--env-file` can point the wrapper at another file path.
+
 ## Naming examples
 
 These are conventions, not hard requirements:

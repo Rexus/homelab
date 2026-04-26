@@ -62,6 +62,17 @@ This environment provisions:
 
 The default example keeps this focused on the domain foundation first.
 
+Use separate ignored var files when you want disposable and production
+deployments from the same environment folder:
+
+| Environment | Local var file | Terraform workspace |
+| --- | --- | --- |
+| default | `terraform.tfvars` | `default` |
+| test or staging | `terraform.test.tfvars` | `test` |
+| production | `terraform.prod.tfvars` | `prod` |
+
+The repository wrapper selects the matching workspace when you pass `--env`.
+
 ## Default shape
 
 Use the default example as the repository fast path:
@@ -70,7 +81,8 @@ Use the default example as the repository fast path:
 - `1` issuing CA host in `cryptography`
 - `0-1` root CA or ceremony host in `ceremony`
 - `0-1` edge-proxy or load-balancer VM in `dmz`
-- shared `network_zones` entries kept in one local `terraform.tfvars`
+- shared `network_zones` entries kept in the local var file for that
+  environment
 - room to add more foundation services later through `vm_instances`
 
 The USB HSM guide assumes the edge proxy exists before you provision the
@@ -81,7 +93,6 @@ foundation can be deployed before that proxy is enabled.
 
 This environment does not automate:
 
-- `FreeIPA` installation and replication
 - issuing-CA installation and enrollment
 - root-CA ceremony handling or offline power-state workflow
 - external DNS, certificates, or public routing

@@ -1,9 +1,10 @@
 # Copy to: terraform/environments/foundation/terraform.tfvars
+# Or copy to terraform.test.tfvars / terraform.prod.tfvars when using --env.
 # Replace every value before use.
 # Setup guide: README.md
 
 platform = "proxmox"
-cluster_name = "foundation-change-me"
+cluster_name = "test-change-me"
 
 proxmox_storage_classes = {
   local = {
@@ -96,7 +97,7 @@ ssh_public_keys = [
 vm_instances = {
   # Place the two identity hosts on different nodes when the platform allows it.
   identity01 = {
-    name             = "foundation-identity-1-change-me"
+    name             = "test-identity-1-change-me"
     node_name        = "pve01-change-me"
     size             = "small"
     storage_class    = "local"
@@ -107,7 +108,7 @@ vm_instances = {
     tags             = ["freeipa", "dns"]
   }
   identity02 = {
-    name             = "foundation-identity-2-change-me"
+    name             = "test-identity-2-change-me"
     node_name        = "pve02-change-me"
     size             = "small"
     storage_class    = "local"
@@ -118,7 +119,7 @@ vm_instances = {
     tags             = ["freeipa", "dns"]
   }
   issuingca01 = {
-    name             = "foundation-pki-1-change-me"
+    name             = "test-pki-1-change-me"
     node_name        = "pve01-change-me"
     size             = "small"
     storage_class    = "local"
@@ -129,7 +130,7 @@ vm_instances = {
     tags             = ["issuing-ca"]
   }
   # rootca01 = {
-  #   name             = "foundation-ceremony-1-change-me"
+  #   name             = "test-ceremony-1-change-me"
   #   node_name        = "pve01-change-me"
   #   size             = "small"
   #   storage_class    = "local"
@@ -140,7 +141,7 @@ vm_instances = {
   #   tags             = ["root-ca", "offline"]
   # }
   # proxy01 = {
-  #   name             = "foundation-proxy-1-change-me"
+  #   name             = "test-proxy-1-change-me"
   #   node_name        = "pve01-change-me"
   #   size             = "small"
   #   storage_class    = "local"

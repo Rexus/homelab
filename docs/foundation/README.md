@@ -25,8 +25,8 @@ This is where you establish:
 Use this order:
 
 1. [Domain foundation path](foundation-and-domain-path.md)
-2. [Windows and AD support](windows-support.md)
-3. [Vault foundation deployment](vault-foundation-deployment.md)
+2. [Vault foundation deployment](vault-foundation-deployment.md)
+3. [Windows and AD support](windows-support.md), when the environment needs it
 4. [Secret strategy](../security/secret-strategy.md)
 5. [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
 

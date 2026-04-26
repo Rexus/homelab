@@ -7,7 +7,7 @@
 - [Default deployment](#default-deployment)
 - [What you configure](#what-you-configure)
 - [IaC used for this](#iac-used-for-this)
-- [How to deploy it](#how-to-deploy-it)
+- [How to shape the deployment](#how-to-shape-the-deployment)
 - [How to maintain it](#how-to-maintain-it)
 - [References](#references)
 
@@ -31,6 +31,7 @@ it to other USB-backed PKCS#11 devices such as `YubiHSM 2` [1][2][3][4][5].
 Before you start:
 
 - the foundation edge proxy or proxy set is already deployed in `dmz`
+- the deployment machine already has `ansible-core` and `terraform`
 - the proxy hosts already exist in `ansible/inventory/hosts.yml`
 - this guide only reruns proxy-related Ansible to add or refresh HSM gateway
   backends
@@ -197,42 +198,45 @@ Use these repo paths here:
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the `proxies`, `hsm_gateways`, and `hsm_helpers` groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
 | [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns proxy configuration so the already deployed edge proxy or proxies point at the HSM gateways | inventory and proxy variables |
+| [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm-lab` setup when you are ready to run it |
 
 You do not use foundation Terraform as part of this HSM rollout. It only
 assumes that the deployed proxy prerequisite already exists.
 
-## How to deploy it
+## How to shape the deployment
 
-Deploy the pattern in this order:
+Shape the HSM lab around one stable service pattern and then change the size by
+data only.
 
-1. Confirm the foundation `dmz` proxy mapping already exists, then fill in the
-   `hsm-lab` `network_zones` values so the gateways and optional helper map to
-   the right bridges, VLANs, and subnets.
-2. Confirm the prerequisite foundation proxy or proxy set already exists. If
-   not, complete
-   [`terraform/environments/foundation/`](../../terraform/environments/foundation/README.md)
-   first.
-3. Review the `vm_instances` maps in `hsm-lab` and keep the default `2`
-   gateways unless you already know you need a different count.
-4. Create or update your local `ansible/inventory/hosts.yml` from
-   [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example)
-   so the deployed proxies and HSM gateways are in the right groups.
-5. Apply the HSM environment from
-   [`terraform/environments/hsm-lab/`](../../terraform/environments/hsm-lab/README.md).
-6. Run [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) for the
-   baseline host configuration.
-7. Run [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml)
-   against the `proxies` inventory group so the deployed edge proxy or
-   proxies pick up the HSM gateway backends.
-8. Attach the intended USB HSM device to each gateway host, or initialize one
-   software token per host if you are using `SoftHSM` [1].
-9. Validate host-local PKCS#11 access on every gateway host before sending any
-   traffic through the proxy.
-10. Initialize one device as the source of truth, create the intended keys, and
-   replicate only the approved wrapped objects to the other active device and
-   the offline backup [2][3][4][5].
-11. Test gateway health, device loss, host loss, and restore from the offline
-    backup before you treat the setup as production-ready.
+- keep the edge proxy in foundation and treat it as a prerequisite here
+- keep the default `2` gateway hosts unless you have measured reasons to change
+  the count
+- grow or shrink gateway and helper counts only through `vm_instances`
+- keep active gateways in `cryptography`
+- enable `ceremony` only when you really want a helper, recovery, or root-CA
+  adjacency path
+- keep the inventory aligned with host intent:
+  `proxies`, `hsm_gateways`, and optional `hsm_helpers`
+- keep one local token or software token per gateway host
+- keep the live traffic path and the ceremony path separate even when they use
+  the same HSM product family
+
+When you are ready to run the setup, use the repository deployment wrapper with
+the `hsm-lab` setup. Keep the exact execution flow in the wrapper rather than
+repeating it in this guide. That wrapper also checks the required local config
+files for the setup before it runs.
+
+After the wrapper run:
+
+- attach the intended USB HSM device to each gateway host, or initialize one
+  software token per host if you are using `SoftHSM` [1]
+- validate host-local PKCS#11 access on every gateway host before sending any
+  traffic through the proxy
+- initialize one device as the source of truth, create the intended keys, and
+  replicate only the approved wrapped objects to the other active device and
+  the offline backup [2][3][4][5]
+- test gateway health, device loss, host loss, and restore from the offline
+  backup before you treat the setup as production-ready
 
 Useful local checks:
 

@@ -1,4 +1,5 @@
 # Copy to: ansible/inventory/hosts.yml
+# Or copy to ansible/inventory/test.yml / prod.yml when using --inventory.
 # Replace every value before use.
 # Setup guide: README.md
 
@@ -8,24 +9,34 @@ all:
       hosts:
         pve01-change-me:
           ansible_host: 10.10.10.11
-    identity:
+    identity_primary:
       hosts:
-        foundation-identity-1-change-me:
+        test-identity-1.ipa.example.com:
           ansible_host: 10.10.12.10
-        foundation-identity-2-change-me:
+    identity_replicas:
+      hosts:
+        test-identity-2.ipa.example.com:
           ansible_host: 10.10.12.11
+    identity:
+      children:
+        identity_primary:
+        identity_replicas:
     pki_issuers:
       hosts:
-        foundation-pki-1-change-me:
+        test-pki-1-change-me:
           ansible_host: 10.20.21.10
     pki_ceremony:
-      hosts:
-        foundation-ceremony-1-change-me:
-          ansible_host: 10.20.22.10
+      hosts: {}
+      # When enabled, replace hosts: {} with:
+      # hosts:
+      #   test-ceremony-1-change-me:
+      #     ansible_host: 10.20.22.10
     proxies:
-      hosts:
-        foundation-proxy-1-change-me:
-          ansible_host: 10.30.30.10
+      hosts: {}
+      # When enabled, replace hosts: {} with:
+      # hosts:
+      #   test-proxy-1-change-me:
+      #     ansible_host: 10.30.30.10
     foundation:
       children:
         identity:

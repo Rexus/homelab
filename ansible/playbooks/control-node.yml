@@ -1,0 +1,26 @@
+---
+- name: Prepare deployment control node
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_requirements_file: "{{ playbook_dir }}/../requirements.yml"
+
+  tasks:
+    - name: Verify Terraform is installed on the deployment machine
+      ansible.builtin.command:
+        argv:
+          - terraform
+          - version
+      changed_when: false
+
+    - name: Install required Ansible collections on the deployment machine
+      ansible.builtin.command:
+        argv:
+          - ansible-galaxy
+          - collection
+          - install
+          - -r
+          - "{{ ansible_requirements_file }}"
+      register: control_node_collections
+      changed_when: "'Nothing to do' not in control_node_collections.stdout"

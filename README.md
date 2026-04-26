@@ -28,47 +28,47 @@ Foundation fast path:
    - [Proxmox reference platform](docs/platforms/proxmox/README.md)
    - [Proxmox API setup](docs/platforms/proxmox/setup-api.md)
 
-2. Prepare local working files:
+2. Initialize local working files:
 
 ```bash
-cp packer/variables.auto.pkrvars.hcl.example packer/variables.auto.pkrvars.hcl
-cp terraform/environments/foundation/terraform.tfvars.example terraform/environments/foundation/terraform.tfvars
-cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
-cp ansible/group_vars/all.yml.example ansible/group_vars/all.yml
+bash scripts/init-local-files.sh
 ```
 
-3. Update the copied files with your local values.
+3. Update the generated local files with your environment values.
+   This is a repo-local setup step, not something you rerun for every
+   deployment.
+   The wrapper automatically loads `.env.local` when it exists. In runners,
+   you can provide the same values as environment variables instead.
 
-4. Set platform API access for the current shell:
+4. Run the repository deployment wrapper:
 
 ```bash
-export TF_VAR_proxmox_api_url="https://proxmox.example.com:8006/api2/json"
-export TF_VAR_proxmox_api_token_id="terraform@pve!change-me"
-export TF_VAR_proxmox_api_token_secret="change-me"
+bash scripts/deploy.sh foundation
 ```
 
-5. Run the foundation deployment:
+This wrapper runs the local control-node precheck first, then the mapped
+Terraform and Ansible steps for that setup. For `foundation`, it prepares the
+domain foundation layer first. The current reference shape is `2` identity
+hosts plus `1` issuing CA host before Vault.
+It also checks that the required local config files exist before the run, such
+as the local `terraform.tfvars`, inventory, and group vars files copied from
+the shipped examples.
+
+For a disposable test run before production, initialize the test file set once,
+then run and destroy the test environment with the same environment name:
 
 ```bash
-cd terraform/environments/foundation
-terraform init
-terraform plan
-terraform apply
-cd ../../..
+bash scripts/init-local-files.sh --env test
+bash scripts/deploy.sh foundation --env test \
+  --inventory ansible/inventory/test.yml \
+  --ansible-vars ansible/group_vars/foundation.test.yml
+bash scripts/deploy.sh foundation --env test --destroy
 ```
 
-6. Apply baseline configuration after provisioning:
+Use `--env-file path/to/file` when you want to override `.env.local` with
+another environment file.
 
-```bash
-cd ansible
-ansible-playbook -i inventory/hosts.yml playbooks/bootstrap.yml
-cd ..
-```
-
-This run prepares the domain foundation layer first. The current reference
-shape is `2` identity hosts plus `1` issuing CA host before Vault.
-
-7. Continue with:
+5. Continue with:
    - [Vault foundation deployment](docs/foundation/vault-foundation-deployment.md)
    - [Secret strategy](docs/security/secret-strategy.md)
    - [Private cloud maturity path](docs/getting-started/private-cloud-maturity-path.md)
@@ -103,6 +103,8 @@ Read more in:
 - `packer/` image build workflow and example variable files
 - `terraform/` infrastructure provisioning layout and bootstrap environments
 - `ansible/` configuration management layout, inventory examples, and playbooks
+- `scripts/` repo-local initialization and deployment wrappers that keep the
+  control-node precheck in front of each setup run
 - `.ai/` hidden assistant context and session notes
 
 ## AI-assisted development
@@ -114,3 +116,5 @@ change that affects secrets, trust boundaries, or production behavior.
 ## License
 
 MIT License
+
+

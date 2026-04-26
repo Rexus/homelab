@@ -6,7 +6,7 @@
 - [Before you start](#before-you-start)
 - [What you configure](#what-you-configure)
 - [IaC used for this](#iac-used-for-this)
-- [How to deploy it](#how-to-deploy-it)
+- [How to shape the deployment](#how-to-shape-the-deployment)
 - [After deployment](#after-deployment)
 - [Later hardening](#later-hardening)
 - [Read more](#read-more)
@@ -42,6 +42,7 @@ platform.
 
 - the domain foundation deployment is already complete
 - identity, DNS, and the first PKI path already exist
+- the deployment machine already has `ansible-core` and `terraform`
 - naming and the first TLS path for Vault already exist
 - one dedicated Vault VM, or more when needed, is defined in the Vault
   environment
@@ -89,39 +90,43 @@ Use these repo paths for the Vault foundation deployment:
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the `vault` inventory group | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/vault.yml.example`](../../ansible/group_vars/vault.yml.example) | starting point for Vault listener, TLS, and node settings | your local `ansible/group_vars/vault.yml` |
 | [`ansible/playbooks/vault.yml`](../../ansible/playbooks/vault.yml) | baseline host preparation and Vault installation on hosts in the `vault` group | inventory and Vault group variables |
+| [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `vault` setup when you are ready to run it |
 
 This deployment flow installs Vault and prepares the first node. Operator
 initialization, unseal handling, and secret handoff stay manual.
 
-## How to deploy it
+## How to shape the deployment
 
-Deploy Vault in this order:
+Use the Vault environment as a dedicated service layer, not as a mixed-use VM.
 
-1. Copy the example files to your local working files and fill in the Vault
-   values.
-2. Confirm the Vault node count you want is defined in
-   [`terraform/environments/vault/terraform.tfvars`](../../terraform/environments/vault/terraform.tfvars).
-   The default path in this guide is one dedicated Vault VM.
-3. Confirm that host is present in the `vault` group in
-   [`ansible/inventory/hosts.yml`](../../ansible/inventory/hosts.yml).
-4. Fill in [`ansible/group_vars/vault.yml`](../../ansible/group_vars/vault.yml)
-   with the Vault API address, cluster address, node ID, and TLS file paths.
-5. Apply the Vault Terraform environment.
-6. Run the Vault playbook from the `ansible/` directory:
+- keep the default path at `1` dedicated Vault VM
+- add more Vault nodes in `vm_instances` only when you intentionally want a
+  multi-node Raft design from the start
+- keep every Vault VM in the Ansible `vault` inventory group
+- keep TLS enabled from the first startup and prepare the certificate inputs
+  before the run
+- leave `vault_raft_retry_join` empty for the first single-node deployment
+- leave `vault_seal_hcl` empty for the first deployment and add seal changes
+  later through the hardening path
+- keep Vault on dedicated hosts instead of combining it with identity, PKI, or
+  application roles
 
-```bash
-ansible-playbook -i inventory/hosts.yml playbooks/vault.yml
-```
+When you are ready to run the setup, use the repository deployment wrapper with
+the `vault` setup. Keep the exact execution flow in the wrapper rather than
+repeating it in this guide. That wrapper also checks the required local config
+files for the setup before it runs.
 
-7. Verify the Vault service is running but still sealed.
-8. Initialize Vault with an operator-reviewed command, for example:
+After the wrapper run:
+
+- verify the Vault service is running but still sealed
+- initialize Vault with an operator-reviewed command, for example:
 
 ```bash
 vault operator init -key-shares=3 -key-threshold=2
 ```
 
-9. Unseal the first node and enable an audit device before storing shared
-   secrets:
+- unseal the first node and enable an audit device before storing shared
+  secrets:
 
 ```bash
 vault operator unseal

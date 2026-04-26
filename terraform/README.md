@@ -23,6 +23,20 @@ Key paths:
 
 Shared Terraform pattern:
 
+- use [`../scripts/init-local-files.sh`](../scripts/init-local-files.sh) once
+  for the working copy to create ignored local files from shipped examples
+- use `../scripts/init-local-files.sh --env test` when you want a separate
+  ignored file set for a new environment name
+- start each environment run through [`../scripts/deploy.sh`](../scripts/deploy.sh)
+- let the wrapper auto-load `.env.local` when it exists, or use `--env-file`
+  to override it with another path
+- let that wrapper verify the required local working files for the chosen setup
+- use `--env test` or `--env prod` when you want separate Terraform workspaces
+  and matching `terraform.test.tfvars` or `terraform.prod.tfvars` files
+- use `--inventory` and `--ansible-vars` with the wrapper when Ansible inputs
+  differ between environments
+- use `--destroy` with the same setup and environment when you need to clean up
+  a disposable test deployment
 - define logical networks in `network_zones`
 - place guests with `vm_instances` and `lxc_instances`
 - keep bridge, VLAN, and subnet values local to your own `terraform.tfvars`

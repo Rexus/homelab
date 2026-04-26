@@ -1,0 +1,91 @@
+---
+- name: Apply foundation baseline
+  hosts: foundation
+  become: true
+  roles:
+    - baseline
+
+- name: Validate foundation identity inputs
+  hosts: identity
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Validate staged FreeIPA inventory shape
+      ansible.builtin.assert:
+        that:
+          - groups.get('identity_primary', []) | length == 1
+          - groups.get('identity_replicas', []) | length >= 1
+          - foundation_freeipa_domain is defined
+          - foundation_freeipa_realm is defined
+          - foundation_freeipa_dm_password is defined
+          - foundation_freeipa_admin_password is defined
+          - foundation_freeipa_dm_password != "change-me"
+          - foundation_freeipa_admin_password != "change-me"
+        fail_msg: >-
+          Foundation FreeIPA requires one identity_primary host, at least one
+          identity_replicas host, and real encrypted FreeIPA passwords.
+      run_once: true
+      when: foundation_freeipa_enabled | default(false) | bool
+
+- name: Configure the first FreeIPA identity host
+  hosts: identity_primary
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  roles:
+    - role: freeipa.ansible_freeipa.ipaserver
+      when: foundation_freeipa_enabled | default(false) | bool
+
+- name: Sanity-check the first FreeIPA identity host
+  hosts: identity_primary
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Verify FreeIPA services on the first identity host
+      ansible.builtin.command:
+        argv:
+          - ipactl
+          - status
+      changed_when: false
+      when: foundation_freeipa_enabled | default(false) | bool
+
+    - name: Verify FreeIPA API health on the first identity host
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - ping
+      changed_when: false
+      when: foundation_freeipa_enabled | default(false) | bool
+
+- name: Configure FreeIPA replica identity hosts
+  hosts: identity_replicas
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  roles:
+    - role: freeipa.ansible_freeipa.ipareplica
+      when: foundation_freeipa_enabled | default(false) | bool
+
+- name: Sanity-check all FreeIPA identity hosts
+  hosts: identity
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  serial: 1
+  tasks:
+    - name: Verify FreeIPA services on each identity host
+      ansible.builtin.command:
+        argv:
+          - ipactl
+          - status
+      changed_when: false
+      when: foundation_freeipa_enabled | default(false) | bool
+
+    - name: Verify FreeIPA API health on each identity host
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - ping
+      changed_when: false
+      when: foundation_freeipa_enabled | default(false) | bool
