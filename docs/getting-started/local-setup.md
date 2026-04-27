@@ -21,8 +21,8 @@ Have these ready before running automation:
 
 - access to the current platform, such as Proxmox
 - an automation API token
-- prepared network values for the shared `network_zones` map, such as bridge,
-  VLAN, subnet, gateway, or DHCP usage
+- prepared network values for the shared deployable `network_zones` map, such
+  as bridge, VLAN, subnet, gateway, or DHCP usage
 - a prepared VM template or image source for managed instances
 - an LXC template file if container provisioning will be used
 
@@ -99,7 +99,8 @@ For other distributions, follow the current official install guides for
 Keep the automation VM simple:
 
 - store a private working copy of the repository there
-- keep the local `terraform.tfvars`, inventory, and group vars there
+- keep the local `terraform/common.tfvars`, environment `terraform.tfvars`,
+  inventory, and group vars there
 - give it access to the Proxmox API, Git remotes, and the package or collection
   sources it needs
 
@@ -114,6 +115,8 @@ bash scripts/init-local-files.sh
 
 These ignored files are expected to evolve as the environment matures. Keep
 editing the same local files instead of recreating them for every run.
+The deployment wrapper loads `terraform/common.tfvars` before the selected
+environment `terraform.tfvars` file when the common file exists.
 
 When the repo examples change later, you can refresh the local files from the
 current examples and keep timestamped backups:

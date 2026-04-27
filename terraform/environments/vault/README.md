@@ -6,7 +6,8 @@ certificate prerequisites are already in place.
 
 Use the shared Terraform shape here:
 
-- define your local bridges, VLANs, and subnets in `network_zones`
+- define shared storage, deployable guest networks, template IDs, and
+  cloud-init SSH keys in `terraform/common.tfvars`
 - place one or more dedicated Vault VMs in `vm_instances`
 - keep the default path small with one Vault node first
 - add helper containers in `lxc_instances` only if you actually need them

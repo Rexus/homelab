@@ -18,7 +18,9 @@ Options:
   --env NAME        Use Terraform workspace NAME and terraform.NAME.tfvars.
   --env-file PATH   Override the deployment environment file path.
                    By default, .env.local is used when it exists.
-  --var-file PATH   Override the Terraform variable file.
+  --var-file PATH   Override the environment-specific Terraform variable file.
+  --common-var-file PATH
+                   Override the shared Terraform variable file.
   --ansible-vars PATH
                    Add an Ansible vars file for the mapped playbooks.
   --plan-only       Run Terraform init and plan, then stop.
@@ -58,6 +60,7 @@ destroy=false
 deployment_env="default"
 env_file_path=""
 var_file_path=""
+common_var_file_path=""
 inventory_path=""
 ansible_vars_paths=()
 
@@ -77,6 +80,14 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       var_file_path="$2"
+      shift 2
+      ;;
+    --common-var-file)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value for --common-var-file" >&2
+        exit 1
+      fi
+      common_var_file_path="$2"
       shift 2
       ;;
     --env-file)
@@ -170,6 +181,12 @@ elif [[ -n "$env_file_path" && "$env_file_path" != /* ]]; then
   env_file_path="$repo_root/$env_file_path"
 fi
 
+if [[ -z "$common_var_file_path" && -f "$repo_root/terraform/common.tfvars" ]]; then
+  common_var_file_path="$repo_root/terraform/common.tfvars"
+elif [[ -n "$common_var_file_path" && "$common_var_file_path" != /* ]]; then
+  common_var_file_path="$repo_root/$common_var_file_path"
+fi
+
 case "$setup_name" in
   bootstrap)
     terraform_dir="$repo_root/terraform/environments/bootstrap"
@@ -230,6 +247,9 @@ elif [[ "$var_file_path" != /* ]]; then
 fi
 
 required_files=("$var_file_path" "${required_files[@]}")
+if [[ -n "$common_var_file_path" ]]; then
+  required_files=("$common_var_file_path" "${required_files[@]}")
+fi
 
 resolved_ansible_vars_paths=()
 for ansible_vars_path in "${ansible_vars_paths[@]}"; do
@@ -372,7 +392,11 @@ run_terraform() {
       terraform workspace select "$deployment_env" || terraform workspace new "$deployment_env"
     fi
 
-    terraform_args=("-var-file=$var_file_path")
+    terraform_args=()
+    if [[ -n "$common_var_file_path" ]]; then
+      terraform_args+=("-var-file=$common_var_file_path")
+    fi
+    terraform_args+=("-var-file=$var_file_path")
 
     if [[ "$destroy" == true ]]; then
       terraform plan -destroy "${terraform_args[@]}"

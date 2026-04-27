@@ -6,7 +6,7 @@ such as `terraform/environments/lab/terraform.tfvars`.
 
 Use the shared Terraform shape here too:
 
-- define the environment network map in `network_zones`
+- keep shared platform values in `terraform/common.tfvars`
 - place VMs in `vm_instances`
 - place containers in `lxc_instances`
-- keep unused future zones as comments or planning placeholders until needed
+- keep environment-specific values in this folder's `terraform.tfvars`

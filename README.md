@@ -51,8 +51,8 @@ Terraform and Ansible steps for that setup. For `foundation`, it prepares the
 domain foundation layer first. The current reference shape is `2` identity
 hosts plus `1` issuing CA host before Vault.
 It also checks that the required local config files exist before the run, such
-as the local `terraform.tfvars`, inventory, and group vars files copied from
-the shipped examples.
+as the shared `terraform/common.tfvars`, environment `terraform.tfvars`,
+inventory, and group vars files copied from the shipped examples.
 
 For a disposable test run before production, initialize the test file set once,
 then run and destroy the test environment with the same environment name:
@@ -116,5 +116,4 @@ change that affects secrets, trust boundaries, or production behavior.
 ## License
 
 MIT License
-
 

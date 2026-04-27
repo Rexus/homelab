@@ -11,7 +11,7 @@ Options:
   --env NAME   Also create environment-specific local files, such as
                terraform.NAME.tfvars and ansible/inventory/NAME.yml.
   --overwrite  Replace existing local files from the current examples.
-               Existing files are backed up first.
+               Existing files are backed up first and ignored by Git.
   -h, --help   Show this help text.
 
 Examples:
@@ -97,6 +97,9 @@ create_from_example "$repo_root/env.local.example" "$repo_root/.env.local"
 create_from_example \
   "$repo_root/packer/variables.auto.pkrvars.hcl.example" \
   "$repo_root/packer/variables.auto.pkrvars.hcl"
+create_from_example \
+  "$repo_root/terraform/common.tfvars.example" \
+  "$repo_root/terraform/common.tfvars"
 create_from_example \
   "$repo_root/ansible/inventory/hosts.yml.example" \
   "$repo_root/ansible/inventory/hosts.yml"

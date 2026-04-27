@@ -57,7 +57,8 @@ Edit these local files before you run the Vault foundation deployment:
 
 | Path | What you configure |
 | --- | --- |
-| [`terraform/environments/vault/terraform.tfvars.example`](../../terraform/environments/vault/terraform.tfvars.example) | Vault `network_zones`, storage mappings, and the Vault VM definitions in `vm_instances` |
+| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
+| [`terraform/environments/vault/terraform.tfvars.example`](../../terraform/environments/vault/terraform.tfvars.example) | Vault VM definitions in `vm_instances` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | the first Vault host in the `vault` inventory group |
 | [`ansible/group_vars/vault.yml.example`](../../ansible/group_vars/vault.yml.example) | `vault_api_addr`, `vault_cluster_addr`, `vault_node_id`, TLS source paths, and listener settings |
 
@@ -86,6 +87,7 @@ Use these repo paths for the Vault foundation deployment:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
+| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments | your local `terraform/common.tfvars` |
 | [`terraform/environments/vault/`](../../terraform/environments/vault/) | provisions one or more dedicated Vault VMs | `terraform/environments/vault/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the `vault` inventory group | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/vault.yml.example`](../../ansible/group_vars/vault.yml.example) | starting point for Vault listener, TLS, and node settings | your local `ansible/group_vars/vault.yml` |

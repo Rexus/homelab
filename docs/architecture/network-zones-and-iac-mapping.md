@@ -18,7 +18,7 @@ Use this document as the shared network reference for the repository.
 It gives you one stable set of zone names for:
 
 - architecture and platform planning
-- Terraform variable keys
+- deployable Terraform guest network keys
 - Proxmox bridge and VLAN mapping
 - later service-specific guides such as the USB HSM lab
 
@@ -100,7 +100,9 @@ Figure: the zone catalog follows the same top-down trust model as the
 architecture overview, from public-facing paths at the top to management,
 cluster, storage, and custody networks at the bottom.
 
-The keys above are the same keys you should use in Terraform `network_zones`.
+Use only deployable guest networks in Terraform `network_zones`. Host-only
+platform networks stay in platform operations docs and Proxmox host
+configuration.
 
 ## Zone catalog
 
@@ -139,7 +141,8 @@ Practical notes:
 - `client` is usually a reference-only zone for firewall rules and access paths
   rather than a repo-managed guest network
 - `corosync`, `ceph_public`, and `ceph_cluster` become active when the platform
-  grows into clustering or storage separation
+  grows into clustering or storage separation; keep them out of Terraform
+  guest placement unless you intentionally deploy guests onto those networks
 
 ## VLAN ID strategy
 
@@ -152,7 +155,7 @@ Use a range model such as this:
 
 | VLAN ID range | Suggested use | Example zones |
 | --- | --- | --- |
-| `2-99` | critical control, access, identity, clustering, and storage | `management`, `access`, `identity`, `corosync`, `ceph_public`, `ceph_cluster` |
+| `2-99` | critical control, access, identity, clustering, and storage | `management`, `access`, `identity`, host-only cluster and storage VLANs |
 | `100-199` | shared internal application networks | `application` |
 | `200-299` | cryptography and ceremony networks | `cryptography`, `ceremony` |
 | `300-399` | edge-facing paths | `dmz`, ingress, reverse proxies |
@@ -176,7 +179,7 @@ One example based on that pattern is:
 
 ## IaC mapping
 
-Use the same keys in Terraform:
+Use the same guest-facing keys in Terraform:
 
 ```hcl
 network_zones = {
@@ -194,21 +197,6 @@ network_zones = {
     bridge    = "vmbr0"
     vlan_id   = 12
     cidr_ipv4 = "10.10.12.0/24"
-  }
-  corosync = {
-    bridge    = "vmbr1"
-    vlan_id   = 20
-    cidr_ipv4 = "10.10.20.0/24"
-  }
-  ceph_public = {
-    bridge    = "vmbr1"
-    vlan_id   = 21
-    cidr_ipv4 = "10.10.21.0/24"
-  }
-  ceph_cluster = {
-    bridge    = "vmbr1"
-    vlan_id   = 22
-    cidr_ipv4 = "10.10.22.0/24"
   }
   application = {
     bridge    = "vmbr0"
@@ -258,7 +246,8 @@ This is the intended split:
 
 - put durable naming and logical intent in `network_zones`
 - put guest placement in `vm_instances` or `lxc_instances`
-- keep switch, firewall, and router implementation details outside this repo
+- keep host-only platform networks, switch, firewall, and router
+  implementation details outside Terraform
 
 ## Stage guidance
 
@@ -266,14 +255,15 @@ Use the catalog progressively:
 
 | Stage | Zones you usually need now | Zones you can leave as reference only |
 | --- | --- | --- |
-| first bootstrap | `management`, `identity`, `cryptography`, optional `ceremony` | `access`, `application`, `corosync`, `ceph_public`, `ceph_cluster`, `dmz`, `client` |
-| early private cloud | `management`, `identity`, `cryptography`, `application`, optional `access`, optional `dmz`, optional `ceremony` | `corosync`, `ceph_public`, `ceph_cluster`, `client` |
-| clustered platform | `management`, `identity`, `application`, `corosync`, optional `access`, optional `dmz` | `ceph_public`, `ceph_cluster`, `cryptography`, `ceremony`, `client` |
-| storage-heavy platform | `management`, `identity`, `application`, `corosync`, `ceph_public`, `ceph_cluster` | `access`, `dmz`, `cryptography`, `ceremony`, `client` |
-| HSM or signing lab | `management`, `identity`, `application`, `cryptography`, optional `ceremony`, optional `dmz` | `access`, `corosync`, `ceph_public`, `ceph_cluster`, `client` unless also needed for policy reference |
+| first bootstrap | `management`, `identity`, `cryptography`, optional `ceremony` | `access`, `application`, `dmz`, `client`, host-only platform networks |
+| early private cloud | `management`, `identity`, `cryptography`, `application`, optional `access`, optional `dmz`, optional `ceremony` | `client`, host-only platform networks |
+| clustered platform | `management`, `identity`, `application`, optional `access`, optional `dmz` | `cryptography`, `ceremony`, `client`, host-only platform networks |
+| storage-heavy platform | `management`, `identity`, `application` | `access`, `dmz`, `cryptography`, `ceremony`, `client`, host-only platform networks |
+| HSM or signing lab | `management`, `identity`, `application`, `cryptography`, optional `ceremony`, optional `dmz` | `access`, `client`, host-only platform networks |
 
-This is why the examples keep extra zones in comments or placeholders. You do
-not need to run every network before the repository is useful.
+This is why the Terraform examples only include networks where automation may
+place guests. You do not need to run every network before the repository is
+useful.
 
 ## Proxmox notes
 

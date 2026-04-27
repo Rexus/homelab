@@ -32,6 +32,7 @@ ansible/host_vars/
 
 # Secrets and local overlays
 secrets/
+*.bak.*
 *.local
 .env
 .env.*

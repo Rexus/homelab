@@ -8,7 +8,8 @@ deployment or the optional Windows support layer.
 
 Use the shared Terraform shape here:
 
-- define your local bridges, VLANs, and subnets in `network_zones`
+- define shared storage, deployable guest networks, template IDs, and
+  cloud-init SSH keys in `terraform/common.tfvars`
 - keep Day 1 small by filling only the zones you actually use
 - place the first managed domain foundation VMs in `vm_instances`
 - add a helper container in `lxc_instances` only if you actually need one

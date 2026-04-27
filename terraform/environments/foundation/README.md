@@ -81,8 +81,7 @@ Use the default example as the repository fast path:
 - `1` issuing CA host in `cryptography`
 - `0-1` root CA or ceremony host in `ceremony`
 - `0-1` edge-proxy or load-balancer VM in `dmz`
-- shared `network_zones` entries kept in the local var file for that
-  environment
+- shared deployable guest network entries kept in `terraform/common.tfvars`
 - room to add more foundation services later through `vm_instances`
 
 The USB HSM guide assumes the edge proxy exists before you provision the

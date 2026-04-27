@@ -20,7 +20,9 @@ rehearsal path.
 
 This environment uses the same `network_zones`, `vm_instances`, and
 `lxc_instances` schema as the other Terraform environments so the network model
-and guest placement stay consistent across the repository.
+and guest placement stay consistent across the repository. Shared platform
+values live in `terraform/common.tfvars`; this environment owns the HSM lab
+host layout.
 
 ## Prerequisite
 

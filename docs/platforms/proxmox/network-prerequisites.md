@@ -35,7 +35,7 @@ as the source of truth for:
 
 - zone names such as `management`, `access`, `identity`, `application`,
   `cryptography`, `dmz`, and `ceremony`
-- the `network_zones` keys used in Terraform
+- the deployable guest `network_zones` keys used in Terraform
 - the bridge, VLAN, and subnet values you fill in locally
 
 This page stays Proxmox-specific and explains how those logical zones are
@@ -162,8 +162,9 @@ easier to keep readable. Read more in
 
 Recommended practice:
 
-- record the chosen VLAN IDs in Terraform `network_zones` so the IaC matches
-  the host implementation
+- record deployable guest VLAN IDs in Terraform `network_zones` so automation
+  matches the host implementation
+- keep host-only platform VLANs in the Proxmox host/network documentation
 - decide the reserved VLAN ID ranges early because later changes are harder
   across bridges, guests, switches, and firewalls
 - group related VLAN IDs so bridge expressions stay easier to read, for
@@ -226,7 +227,8 @@ Before running automation, confirm:
 - every node has the expected bond and bridge layout
 - host-management access is working on every node
 - VLAN tags exist end-to-end on the underlay where needed
-- bridge names and VLAN IDs line up with the local `network_zones` values
+- guest bridge names and VLAN IDs line up with the local `network_zones`
+  values
 - no bridge or trunk is accidentally carrying an untagged or native VLAN
 - no host IPs are left on bond slaves or physical NICs by mistake
 - both Corosync networks are present and placed on the intended paths if

@@ -125,9 +125,11 @@ These existing zones are only references here:
 | `application` | shared internal callers may reach the cryptography hosts if you expose them internally |
 | `identity` | identity or PKI dependencies may still need controlled reachability to issuing services on the cryptography network |
 
-Copy these examples to your local `terraform.tfvars` files and edit
-`network_zones` there:
+Copy these examples to your local Terraform variable files and edit the shared
+network mappings in `terraform/common.tfvars`:
 
+- [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example)
+  for shared storage, deployable guest networks, template IDs, and SSH keys
 - [`terraform/environments/hsm-lab/terraform.tfvars.example`](../../terraform/environments/hsm-lab/terraform.tfvars.example)
   for the gateway and helper layer
 
@@ -194,6 +196,7 @@ Use these repo paths here:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
+| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments | your local `terraform/common.tfvars` |
 | [`terraform/environments/hsm-lab/`](../../terraform/environments/hsm-lab/README.md) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm-lab/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the `proxies`, `hsm_gateways`, and `hsm_helpers` groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |

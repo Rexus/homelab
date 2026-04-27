@@ -64,7 +64,8 @@ Edit these local files before you deploy:
 
 | Path | What you configure |
 | --- | --- |
-| [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | `network_zones`, storage mappings, and the foundation VMs in `vm_instances` |
+| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
+| [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | the foundation VMs in `vm_instances` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | `identity_primary`, `identity_replicas`, `pki_issuers`, optional `pki_ceremony`, and optional `proxies` groups |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
 
@@ -74,6 +75,7 @@ Use these repo paths here:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
+| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments | your local `terraform/common.tfvars` |
 | [`terraform/environments/foundation/`](../../terraform/environments/foundation/README.md) | provisions the foundation VM layout for identity, PKI, and optional edge hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the foundation inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | starting point for FreeIPA and foundation service inputs | your local encrypted `ansible/group_vars/foundation.yml` |

@@ -1,0 +1,75 @@
+# Copy to: terraform/common.tfvars
+# Replace every value before use.
+# Shared Terraform values used by multiple environment deployments.
+
+platform = "proxmox"
+
+proxmox_storage_classes = {
+  local = {
+    vm_disk        = "local-lvm-change-me"
+    initialization = "local-lvm-change-me"
+  }
+  shared = {
+    vm_disk        = "shared-change-me"
+    initialization = "shared-change-me"
+  }
+  fast = {
+    vm_disk        = "nvme-change-me"
+    initialization = "local-lvm-change-me"
+  }
+}
+
+# Keep only networks where Terraform may place guests.
+# Host-only platform networks belong in platform design and operations docs.
+network_zones = {
+  management = {
+    description = "Operator, automation, and hypervisor-adjacent access."
+    bridge      = "vmbr0"
+    vlan_id     = 10
+    cidr_ipv4   = "10.10.10.0/24"
+  }
+  access = {
+    description = "SSO, Keycloak, and controlled user access services."
+    bridge      = "vmbr0"
+    vlan_id     = 11
+    cidr_ipv4   = "10.10.11.0/24"
+  }
+  identity = {
+    description = "FreeIPA, DNS, and identity services."
+    bridge      = "vmbr0"
+    vlan_id     = 12
+    cidr_ipv4   = "10.10.12.0/24"
+  }
+  application = {
+    description = "Internal application traffic and shared application consumers."
+    bridge      = "vmbr0"
+    vlan_id     = 120
+    cidr_ipv4   = "10.20.20.0/24"
+  }
+  cryptography = {
+    description = "Live cryptography, issuing CA, and HSM-backed gateway traffic."
+    bridge      = "vmbr0"
+    vlan_id     = 220
+    cidr_ipv4   = "10.20.21.0/24"
+  }
+  ceremony = {
+    description = "Restricted ceremony, provisioning, recovery, or root-CA path."
+    bridge      = "vmbr0"
+    vlan_id     = 221
+    cidr_ipv4   = "10.20.22.0/24"
+  }
+  dmz = {
+    description = "Edge or ingress-facing services."
+    bridge      = "vmbr0"
+    vlan_id     = 320
+    cidr_ipv4   = "10.30.30.0/24"
+  }
+}
+
+template_vm_id_el10 = 110
+
+# These keys are injected by cloud-init into VMs cloned from the template.
+# Do not bake deployment SSH keys into the reusable template itself.
+ssh_public_keys = [
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@platform"
+]
