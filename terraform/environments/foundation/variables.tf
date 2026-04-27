@@ -5,7 +5,7 @@ variable "platform" {
 }
 
 variable "proxmox_api_url" {
-  description = "Proxmox API endpoint. Prefer TF_VAR_proxmox_api_url at runtime."
+  description = "Proxmox endpoint for bpg/proxmox, such as https://pve.example.com:8006/."
   type        = string
   default     = null
   nullable    = true

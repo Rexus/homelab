@@ -323,6 +323,13 @@ check_provider_env() {
     echo "Set them in the shell, provide them through the runner, or pass --env-file." >&2
     exit 1
   fi
+
+  if [[ "${TF_VAR_proxmox_api_url:-}" == *"/api2/"* ]]; then
+    echo "Invalid Proxmox endpoint for Terraform: $TF_VAR_proxmox_api_url" >&2
+    echo "Use the Proxmox web/API root, for example https://pve.example.com:8006/." >&2
+    echo "Do not append /api2/json; that path is for the Packer Proxmox plugin." >&2
+    exit 1
+  fi
 }
 
 check_required_files() {

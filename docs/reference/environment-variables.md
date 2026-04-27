@@ -22,15 +22,21 @@ For normal local runs, keep those values in `.env.local`; the deployment
 wrapper loads that file when it exists. Runners can provide the same variables
 directly, and `--env-file` can point the wrapper at another file path.
 
+For Terraform in this repository, set `PROXMOX_API_URL` to the Proxmox
+web/API root, such as `https://pve.example.com:8006/`. Do not append
+`/api2/json`; that full path is used by the HashiCorp Packer Proxmox plugin
+through its own `PROXMOX_URL` variable.
+
 ## Naming examples
 
 These are conventions, not hard requirements:
 
 | Purpose | Example |
 | --- | --- |
-| platform API endpoint | `PROXMOX_API_URL` |
+| Terraform Proxmox endpoint | `PROXMOX_API_URL` |
 | platform token ID | `PROXMOX_API_TOKEN_ID` |
 | platform token secret | `PROXMOX_API_TOKEN_SECRET` |
+| Packer Proxmox endpoint | `PROXMOX_URL` |
 | Terraform secret input | `TF_VAR_proxmox_api_token_secret` |
 | Ansible vault password source | `ANSIBLE_VAULT_PASSWORD_FILE` |
 | Vault address | `VAULT_ADDR` |
