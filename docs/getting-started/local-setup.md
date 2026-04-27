@@ -129,6 +129,13 @@ Review the refreshed files before deployment and move your local values back
 from the `.bak.*` files where needed. The script does not try to merge YAML,
 HCL, and dotenv content automatically.
 
+After you have reviewed the backups, remove the timestamped files created by
+the overwrite run:
+
+```bash
+bash scripts/init-local-files.sh --clean-backups
+```
+
 Keep live secrets out of Git.
 
 ## Run order

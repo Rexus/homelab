@@ -67,6 +67,8 @@ bash scripts/deploy.sh foundation --env test --destroy
 
 Use `--env-file path/to/file` when you want to override `.env.local` with
 another environment file.
+After reviewing files refreshed with `--overwrite`, remove old backups with
+`bash scripts/init-local-files.sh --clean-backups`.
 
 5. Continue with:
    - [Vault foundation deployment](docs/foundation/vault-foundation-deployment.md)
@@ -116,4 +118,3 @@ change that affects secrets, trust boundaries, or production behavior.
 ## License
 
 MIT License
-

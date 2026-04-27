@@ -12,17 +12,21 @@ Options:
                terraform.NAME.tfvars and ansible/inventory/NAME.yml.
   --overwrite  Replace existing local files from the current examples.
                Existing files are backed up first and ignored by Git.
+  --clean-backups
+               Remove timestamped backup files created by --overwrite and exit.
   -h, --help   Show this help text.
 
 Examples:
   bash scripts/init-local-files.sh
   bash scripts/init-local-files.sh --env test
   bash scripts/init-local-files.sh --overwrite
+  bash scripts/init-local-files.sh --clean-backups
 EOF
 }
 
 deployment_env=""
 overwrite=false
+clean_backups=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -36,6 +40,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --overwrite)
       overwrite=true
+      shift
+      ;;
+    --clean-backups|--cleanup-backups)
+      clean_backups=true
       shift
       ;;
     -h|--help)
@@ -59,6 +67,31 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 created=0
 updated=0
 backup_suffix="$(date +%Y%m%d%H%M%S)"
+backup_name_pattern="*.bak.[0-9][0-9][0-9][0-9][0-9][0-9]"
+backup_name_pattern+="[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]"
+
+clean_timestamped_backups() {
+  local removed=0
+  local backup_path
+
+  while IFS= read -r -d '' backup_path; do
+    rm -f "$backup_path"
+    echo "removed $backup_path"
+    removed=$((removed + 1))
+  done < <(
+    find "$repo_root" \
+      -path "$repo_root/.git" -prune -o \
+      -type f -name "$backup_name_pattern" -print0
+  )
+
+  echo "Removed $removed backup file(s)."
+}
+
+if [[ "$clean_backups" == true ]]; then
+  echo "==> Cleaning timestamped init-file backups"
+  clean_timestamped_backups
+  exit 0
+fi
 
 create_from_example() {
   local source_path="$1"
