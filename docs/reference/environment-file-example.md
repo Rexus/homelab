@@ -18,7 +18,7 @@ Minimal example:
 
 ```dotenv
 PROXMOX_API_URL=https://proxmox.example.internal:8006/
-PROXMOX_API_TOKEN_ID=terraform@pve!provision
+PROXMOX_API_TOKEN_ID=automation@pve!provision
 PROXMOX_API_TOKEN_SECRET=ChangeMe-Proxmox-Token-12345
 ANSIBLE_VAULT_PASSWORD_FILE=secrets/ansible-vault-password.txt
 ```

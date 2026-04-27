@@ -115,6 +115,17 @@ bash scripts/init-local-files.sh
 These ignored files are expected to evolve as the environment matures. Keep
 editing the same local files instead of recreating them for every run.
 
+When the repo examples change later, you can refresh the local files from the
+current examples and keep timestamped backups:
+
+```bash
+bash scripts/init-local-files.sh --overwrite
+```
+
+Review the refreshed files before deployment and move your local values back
+from the `.bak.*` files where needed. The script does not try to merge YAML,
+HCL, and dotenv content automatically.
+
 Keep live secrets out of Git.
 
 ## Run order

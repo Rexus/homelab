@@ -10,15 +10,19 @@ Usage:
 Options:
   --env NAME   Also create environment-specific local files, such as
                terraform.NAME.tfvars and ansible/inventory/NAME.yml.
+  --overwrite  Replace existing local files from the current examples.
+               Existing files are backed up first.
   -h, --help   Show this help text.
 
 Examples:
   bash scripts/init-local-files.sh
   bash scripts/init-local-files.sh --env test
+  bash scripts/init-local-files.sh --overwrite
 EOF
 }
 
 deployment_env=""
+overwrite=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -29,6 +33,10 @@ while [[ $# -gt 0 ]]; do
       fi
       deployment_env="$2"
       shift 2
+      ;;
+    --overwrite)
+      overwrite=true
+      shift
       ;;
     -h|--help)
       usage
@@ -49,19 +57,32 @@ fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 created=0
+updated=0
+backup_suffix="$(date +%Y%m%d%H%M%S)"
 
 create_from_example() {
   local source_path="$1"
   local target_path="$2"
-
-  if [[ -f "$target_path" ]]; then
-    echo "exists  $target_path"
-    return
-  fi
+  local backup_path
 
   if [[ ! -f "$source_path" ]]; then
     echo "Missing example file: $source_path" >&2
     exit 1
+  fi
+
+  if [[ -f "$target_path" ]]; then
+    if [[ "$overwrite" == false ]]; then
+      echo "exists  $target_path"
+      return
+    fi
+
+    backup_path="$target_path.bak.$backup_suffix"
+    cp "$target_path" "$backup_path"
+    cp "$source_path" "$target_path"
+    echo "updated $target_path"
+    echo "backup  $backup_path"
+    updated=$((updated + 1))
+    return
   fi
 
   mkdir -p "$(dirname "$target_path")"
@@ -120,4 +141,9 @@ if [[ -n "$deployment_env" ]]; then
 fi
 
 echo "Review and edit the local files before deployment."
-echo "Created $created file(s). Existing files were left untouched."
+echo "Created $created file(s). Updated $updated file(s)."
+if [[ "$overwrite" == false ]]; then
+  echo "Existing files were left untouched."
+else
+  echo "Updated files were backed up with suffix .bak.$backup_suffix."
+fi
