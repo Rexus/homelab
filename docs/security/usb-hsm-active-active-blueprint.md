@@ -30,11 +30,12 @@ it to other USB-backed PKCS#11 devices such as `YubiHSM 2` [1][2][3][4][5].
 
 Before you start:
 
-- the foundation edge proxy or proxy set is already deployed in `external_ingress`
+- the foundation edge load-balancer pair or set is already deployed in
+  `external_edge`
 - the deployment machine already has `ansible-core` and `terraform`
-- the proxy hosts already exist in `ansible/inventory/hosts.yml`
-- this guide only reruns proxy-related Ansible to add or refresh HSM gateway
-  backends
+- the edge load-balancer hosts already exist in `ansible/inventory/hosts.yml`
+- this guide only reruns edge load-balancer Ansible to add or refresh HSM
+  gateway backends
 
 If not, start with
 [Identity foundation path](../foundation/identity-foundation-path.md).
@@ -43,8 +44,8 @@ If not, start with
 
 The default shape in this repo is:
 
-- `1` deployed edge proxy VM, or a small proxy set, from the foundation
-  environment
+- `2` deployed edge load-balancer VMs, or a larger load-balancer set, from the
+  foundation environment
 - `2` gateway hosts in the `cryptography` zone
 - `1` local USB HSM or software token per gateway host
 - `0-1` helper or recovery VM in `ceremony`
@@ -54,8 +55,8 @@ The default shape in this repo is:
 flowchart TD
   Client[Clients or internal callers]
 
-  subgraph ExternalIngress["external_ingress"]
-    LB[Edge proxy]
+  subgraph ExternalEdge["external_edge"]
+    LB[Edge load-balancer pair]
   end
 
   subgraph HostA["Host B"]
@@ -76,7 +77,7 @@ flowchart TD
   LB -->|HTTPS or mTLS| GW1
   LB -->|HTTPS or mTLS| GW2
 
-  style ExternalIngress fill:#ecfdf5,stroke:#15803d,stroke-width:2px,color:#1f2937
+  style ExternalEdge fill:#ecfdf5,stroke:#15803d,stroke-width:2px,color:#1f2937
   style HostA fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1f2937
   style HostB fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1f2937
 
@@ -89,14 +90,15 @@ flowchart TD
   class H1,H2,Backup hsmNode
 ```
 
-Figure: the default path is the deployed foundation edge-proxy layer in front
-of two gateway hosts, one local USB HSM per host, and one offline backup
+Figure: the default path is the deployed foundation edge load-balancer layer in
+front of two gateway hosts, one local USB HSM per host, and one offline backup
 device.
 
 Keep these boundaries:
 
 - one gateway service talks only to one local token
-- the deployed proxy stays in the foundation layer and is a prerequisite here
+- the deployed edge load balancer stays in the foundation layer and is a
+  prerequisite here
 - active devices are independent replicas, not a native HSM cluster
 - USB or PKCS#11 access stays host-local
 
@@ -120,7 +122,7 @@ These existing zones are only references here:
 
 | Zone key | Why it still matters here |
 | --- | --- |
-| `external_ingress` | already deployed edge proxy or proxy set reaches the cryptography hosts |
+| `external_edge` | already deployed edge load balancer or load-balancer set reaches the cryptography hosts |
 | `management` | admin access, automation, and metrics reach the HSM hosts |
 | `application` | shared internal callers may reach the cryptography hosts if you expose them internally |
 | `identity` | identity or PKI dependencies may still need controlled reachability to issuing services on the cryptography network |
@@ -136,7 +138,7 @@ network mappings in `terraform/common.tfvars`:
 
 Set the values your environment needs for `cryptography` and optional
 `ceremony`, such as bridge, VLAN, subnet, gateway, and addressing conventions.
-Reuse the existing `external_ingress`, `management`, `identity`, and
+Reuse the existing `external_edge`, `management`, `identity`, and
 `application` mappings from your prerequisite deployments.
 
 ### Firewall openings
@@ -146,7 +148,7 @@ ports:
 
 | Source zone | Destination zone | Default port or protocol | Purpose |
 | --- | --- | --- | --- |
-| `external_ingress` | `cryptography` | `8443/TCP` | deployed edge proxy to gateway service |
+| `external_edge` | `cryptography` | `8443/TCP` | deployed edge load balancer to gateway service |
 | `management` | `cryptography` | `22/TCP` | SSH, Ansible, and troubleshooting |
 | `management` | `ceremony` | `22/TCP` | helper or recovery host administration |
 | `application` | `cryptography` | `8443/TCP` optional | internal callers using the same gateway service endpoint |
@@ -175,8 +177,8 @@ Edit the `vm_instances` maps to match the shape you want.
 | gateway VMs | `2` | `1-8` | `terraform/environments/hsm-lab/terraform.tfvars` |
 | helper VMs | `0` enabled by default | `0-2+` as needed | `terraform/environments/hsm-lab/terraform.tfvars` |
 
-The deployed proxy stays in the foundation layer. Start here with the gateway
-and helper hosts.
+The deployed edge load balancer stays in the foundation layer. Start here with
+the gateway and helper hosts.
 
 ### HSM mode
 
@@ -200,18 +202,18 @@ Use these repo paths here:
 | [`terraform/environments/hsm-lab/terraform.tfvars.example`](../../terraform/environments/hsm-lab/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm-lab/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | stable HSM host keys and inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | environment-specific prefix, domain, and guest IP map shared by Terraform and Ansible | your local `ansible/group_vars/all.<env>.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration, domain, and guest IP map shared by Terraform and Ansible | your local `ansible/group_vars/all.<env>.yml` |
 | [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
-| [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns proxy configuration so the already deployed edge proxy or proxies point at the HSM gateways | inventory and proxy variables |
+| [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns edge load-balancer configuration so the deployed edge layer points at the HSM gateways | inventory and edge load-balancer variables |
 | [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm-lab` setup when you are ready to run it |
 
 You do not use foundation Terraform as part of this HSM rollout. It only
-assumes that the deployed proxy prerequisite already exists.
+assumes that the deployed edge load-balancer prerequisite already exists.
 
 Use the shared ownership rule from
 [Infrastructure automation layout](../reference/infrastructure-automation-layout.md):
 Ansible inventory owns stable logical host keys and service groups. Ansible
-group vars own the environment prefix, domain, and guest IP map, while the HSM
+group vars own hostname decoration, domain, and guest IP map, while the HSM
 Terraform environment owns hardware placement and Proxmox tags.
 
 ## How to shape the deployment
@@ -219,7 +221,7 @@ Terraform environment owns hardware placement and Proxmox tags.
 Shape the HSM lab around one stable service pattern and then change the size by
 data only.
 
-- keep the edge proxy in foundation and treat it as a prerequisite here
+- keep the edge load balancer in foundation and treat it as a prerequisite here
 - keep the default `2` gateway hosts unless you have measured reasons to change
   the count
 - grow or shrink gateway and helper counts only through `vm_instances`
@@ -227,7 +229,7 @@ data only.
 - enable `ceremony` only when you really want a helper, recovery, or root-CA
   adjacency path
 - keep the inventory aligned with host intent:
-  `proxies`, `hsm_gateways`, and optional `hsm_helpers`
+  `edge_load_balancers`, `hsm_gateways`, and optional `crypto_admin`
 - keep one local token or software token per gateway host
 - keep the live traffic path and the ceremony path separate even when they use
   the same HSM product family
@@ -242,7 +244,7 @@ After the wrapper run:
 - attach the intended USB HSM device to each gateway host, or initialize one
   software token per host if you are using `SoftHSM` [1]
 - validate host-local PKCS#11 access on every gateway host before sending any
-  traffic through the proxy
+  traffic through the edge load balancer
 - initialize one device as the source of truth, create the intended keys, and
   replicate only the approved wrapped objects to the other active device and
   the offline backup [2][3][4][5]
@@ -297,7 +299,7 @@ Do not treat the offline backup device as a routine active peer.
 
 Keep at least these checks in your normal maintenance cycle:
 
-- verify gateway health from the proxy path
+- verify gateway health from the edge load-balancer path
 - verify local PKCS#11 access on each gateway host
 - compare expected object inventory across active devices
 - test restore from the offline backup on a controlled schedule

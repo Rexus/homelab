@@ -24,11 +24,37 @@ locals {
     local.ansible_group_vars.platform_hostname_prefix,
     "",
   )))
+  platform_hostname_suffix = trimspace(tostring(try(
+    local.ansible_group_vars.platform_hostname_suffix,
+    "",
+  )))
+  inventory_host_keys = setunion(
+    keys(var.vm_instances),
+    keys(var.lxc_instances),
+  )
+  inventory_host_name_matches = {
+    for key in local.inventory_host_keys :
+    key => regexall("^(.*)-([0-9]+)$", key)
+  }
+  platform_hostnames = {
+    for key, matches in local.inventory_host_name_matches :
+    key => (
+      local.platform_hostname_suffix == "" || length(matches) == 0
+      ? "${local.platform_hostname_prefix}${key}"
+      : format(
+        "%s%s%s-%s",
+        local.platform_hostname_prefix,
+        matches[0][0],
+        local.platform_hostname_suffix,
+        matches[0][1],
+      )
+    )
+  }
   platform_host_ips = try(local.ansible_group_vars.platform_host_ips, {})
 
   resolved_vm_instances = {
     for key, vm in var.vm_instances : key => {
-      name           = "${local.platform_hostname_prefix}${key}"
+      name           = local.platform_hostnames[key]
       inventory_host = local.ansible_inventory_hosts[key]
       node_name = coalesce(
         try(vm.proxmox_node_name, null),
@@ -55,7 +81,7 @@ locals {
 
   resolved_lxc_instances = {
     for key, lxc in var.lxc_instances : key => {
-      name           = "${local.platform_hostname_prefix}${key}"
+      name           = local.platform_hostnames[key]
       inventory_host = local.ansible_inventory_hosts[key]
       node_name = coalesce(
         try(lxc.proxmox_node_name, null),

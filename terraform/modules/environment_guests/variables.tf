@@ -59,7 +59,7 @@ variable "ansible_inventory_path" {
 }
 
 variable "ansible_group_vars_paths" {
-  description = "Ansible group vars files merged for environment prefix and guest IPs."
+  description = "Ansible group vars files merged for hostname decoration and guest IPs."
   type        = list(string)
   default     = ["../../../ansible/group_vars/all.yml"]
 }

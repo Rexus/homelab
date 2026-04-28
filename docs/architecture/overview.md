@@ -33,7 +33,7 @@ when the platform starts at homelab or small-datacenter scale.
 flowchart TB
   subgraph Edge["Edge layer"]
     E1["External zone<br/>Internet, WAN, partner networks"]
-    E2["external_ingress zone<br/>Ingress, edge proxy, controlled egress"]
+    E2["external_edge zone<br/>Ingress, edge load balancing, controlled egress"]
   end
 
   subgraph App["Application layer"]
@@ -72,8 +72,8 @@ platform.
 
 Proxy placement in this architecture:
 
-- an edge proxy in `external_ingress` handles early ingress and controlled egress for
-  infrastructure and host-based services
+- an edge load balancer in `external_edge` handles early ingress and
+  controlled egress for infrastructure and host-based services
 - a separate internal cluster proxy can be added later when Kubernetes becomes
   part of the platform
 
@@ -118,7 +118,7 @@ Use the shared zone catalog in
 [Network zones and IaC mapping](network-zones-and-iac-mapping.md) when you pick
 subnets, VLANs, Proxmox bridges, and guest placement keys. That document is the
 repository source of truth for zone names such as `management`, `access`,
-`identity`, `application`, `cryptography`, `external_ingress`, and `ceremony`.
+`identity`, `application`, `cryptography`, `external_edge`, and `ceremony`.
 
 ## Boundaries
 
@@ -141,5 +141,5 @@ Operating assumptions:
   systems
 - workload access to secrets and other high-trust services is explicit
 - network segmentation must already exist before full platform automation
-- the `external_ingress` edge proxy stays separate from any later Kubernetes-specific
-  cluster proxy
+- the `external_edge` edge load balancer stays separate from any later
+  Kubernetes-specific cluster proxy

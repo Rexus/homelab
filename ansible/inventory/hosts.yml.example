@@ -2,8 +2,8 @@
 # Replace every value before use.
 # Reference: docs/reference/infrastructure-automation-layout.md
 #
-# Keep these host keys stable and unprefixed. Environment names such as test-
-# or lab1- are added from ansible/group_vars/all.<env>.yml.
+# Keep these host keys stable and undecorated. Environment names are added as
+# a prefix or suffix from ansible/group_vars/all.<env>.yml.
 # Guest IP addresses live in platform_host_ips in group_vars, not here.
 
 all:
@@ -12,43 +12,48 @@ all:
       hosts: {}
       # Optional reference group for future Proxmox host operations.
       # The current foundation deployment does not run Ansible on Proxmox hosts.
-      # When you need it later, replace hosts: {} with:
-      # hosts:
-      #   pve-1:
-      #     ansible_host: 10.10.10.11
+      # When you need it later, remove "{}" above and add:
+      # pve-1:
+      #   ansible_host: 10.10.10.11
     identity_primary:
       hosts:
         # Exactly one host belongs here. The foundation playbook installs this
         # FreeIPA host first and verifies it before replicas are added.
-        identity-1: {}
+        idm-1: {}
     identity_replicas:
       hosts:
         # Add more identity replicas here when you expand beyond the default pair.
-        identity-2: {}
+        idm-2: {}
     identity:
       children:
         identity_primary:
         identity_replicas:
-    pki_issuers:
+    issuing_ca:
       hosts:
         # Online issuing CA host in the cryptography network.
-        pki-1: {}
-    pki_ceremony:
+        ca-1: {}
+    root_ca:
       hosts: {}
-      # When enabled, replace hosts: {} with:
-      # hosts:
-      #   ceremony-1: {}
-    proxies:
+      # Optional offline root CA hosts in the ceremony network.
+      # When enabled, remove "{}" above and add:
+      # ca-root-1: {}
+    identity_providers:
       hosts: {}
-      # When enabled, replace hosts: {} with:
-      # hosts:
-      #   proxy-1: {}
+      # Optional access-layer identity provider hosts, such as Keycloak.
+      # When enabled, remove "{}" above and add:
+      # idp-1: {}
+    edge_load_balancers:
+      hosts: {}
+      # Optional north-south ingress, egress, and load-balancer hosts.
+      # When enabled, remove "{}" above and add:
+      # edge-lb-1: {}
+      # edge-lb-2: {}
     foundation:
       children:
         identity:
-        pki_issuers:
-        pki_ceremony:
-        proxies:
+        issuing_ca:
+        root_ca:
+        edge_load_balancers:
     vault:
       hosts:
         # Vault is deployed after the identity foundation is ready.
@@ -60,19 +65,21 @@ all:
     hsm_gateways:
       hosts:
         # hsm_proxy_ingress_backend_port is the service port exposed to the
-        # edge proxy, not a raw PKCS#11 or USB endpoint.
-        hsm-gw-1:
+        # edge load balancer, not a raw PKCS#11 or USB endpoint.
+        hsm-1:
           hsm_proxy_ingress_backend_port: 8443
-        hsm-gw-2:
+        hsm-2:
           hsm_proxy_ingress_backend_port: 8443
-    hsm_helpers:
+    crypto_admin:
       hosts:
-        hsm-recovery-1: {}
-        # hsm-provisioner-1: {}
+        # Restricted ceremony or recovery host for cryptography and HSM work.
+        crypto-admin-1: {}
     guests:
       children:
         foundation:
+        edge_load_balancers:
+        identity_providers:
         vault:
         lab:
         hsm_gateways:
-        hsm_helpers:
+        crypto_admin:

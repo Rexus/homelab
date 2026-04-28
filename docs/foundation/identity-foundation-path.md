@@ -48,8 +48,8 @@ Use this as the starting point:
 | --- | --- | --- | --- |
 | identity hosts | `2` | `identity` | `FreeIPA`, DNS, and the first identity authority |
 | issuing CA host | `1` | `cryptography` | online issuing CA for the platform |
-| root CA host | `0` by default | `ceremony` | optional offline root CA or ceremony host |
-| edge proxy host | `0` by default | `external_ingress` | optional later edge or ingress layer |
+| root CA host | `0` by default | `ceremony` | optional offline root CA host |
+| edge load-balancer hosts | `0` by default, `2+` when enabled | `external_edge` | optional later north-south ingress, egress, and load-balancing layer |
 
 Keep the root CA host separate from the identity hosts when you use it. Treat
 it as a ceremony system that should normally stay offline outside planned CA
@@ -67,7 +67,7 @@ Edit these local files before you deploy:
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | default Proxmox node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
 | [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
-| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | environment prefix, domain, guest IP map, SSH user, port, and baseline defaults |
+| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, guest IP map, SSH user, port, and baseline defaults |
 | [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
 
@@ -81,7 +81,7 @@ Use these repo paths here:
 | [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity, PKI, and optional edge hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific prefix, domain, and IP maps | your local `ansible/group_vars/all.<env>.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration, domain, and IP maps | your local `ansible/group_vars/all.<env>.yml` |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | starting point for FreeIPA and foundation service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
 | [`ansible/playbooks/foundation.yml`](../../ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
 | [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `foundation` setup when you are ready to run it |
@@ -89,7 +89,7 @@ Use these repo paths here:
 Current boundary:
 
 - Ansible inventory owns stable logical host keys and service groups
-- Ansible group vars own the environment prefix, domain, and guest IP map
+- Ansible group vars own hostname decoration, domain, and guest IP map
 - Terraform prepares the identity foundation hardware layout and Proxmox tags
 - Terraform reads the Ansible group vars to derive the Proxmox VM names and IPs
 - the foundation playbook prepares those hosts for managed operation
@@ -125,11 +125,11 @@ different authority layout.
 - keep the issuing CA on its own dedicated host in `cryptography`
 - enable a root CA host in `ceremony` only when you want a separate offline
   ceremony system from the start
-- keep the edge proxy commented until your environment actually needs external
-  ingress
+- keep the edge load balancers commented until your environment actually needs
+  external ingress or controlled egress
 - keep the inventory groups aligned with the host intent:
-  `identity_primary`, `identity_replicas`, `pki_issuers`, optional
-  `pki_ceremony`, and optional `proxies`
+  `identity_primary`, `identity_replicas`, `issuing_ca`, optional
+  `root_ca`, and optional `edge_load_balancers`
 
 For environment separation, keep one stable inventory and separate ignored
 local data files and state:
@@ -150,10 +150,11 @@ Terraform uses the base `terraform/common.tfvars` and foundation
 environment intentionally needs different platform values, VM sizes, or
 placement.
 
-Put the environment prefix, domain, and IP map in
+Put the hostname prefix or suffix, domain, and IP map in
 `ansible/group_vars/all.<env>.yml`. Use DNS-safe environment names with
 letters, numbers, and dashes. The initializer fills the prefix from `--env`;
-you still edit the domain and IPs before deployment.
+you still edit the domain and IPs before deployment. If you prefer suffix-style
+names, clear the prefix and set `platform_hostname_suffix` instead.
 
 No `--env` means production and uses the base local files:
 `terraform/common.tfvars`, `terraform/environments/foundation/terraform.tfvars`,

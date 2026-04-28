@@ -104,25 +104,34 @@ Suggested tag categories:
 
 ### VM names
 
-Use short, predictable VM names for deployed guests. The current pattern is:
+Use short, predictable VM names for deployed guests. The stable inventory key is:
+
+```text
+<role>-<n>
+```
+
+Add an environment marker as a prefix, as a suffix before the number, or leave
+it blank for the production/default deployment:
 
 ```text
 <env>-<role>-<n>
+<role>-<env>-<n>
+<role>-<n>
 ```
 
 Name parts:
 
 | Part | Purpose | Current examples |
 | --- | --- | --- |
-| `env` | short, stable environment marker | `test`, `prod`, `dev` |
-| `role` | generic, stable workload role | `dc`, `secrets`, `proxy`, `k8node`, `db`, `pbs` |
+| `env` | optional short, stable environment marker | `test`, `prod`, `dev` |
+| `role` | generic, stable workload role | `idm`, `idp`, `ca`, `ca-root`, `edge-lb`, `hsm`, `k8node`, `db`, `pbs` |
 | `n` | always-present numeric suffix | `1`, `2`, `3` |
 
 Current examples:
 
-- `test-dc-1`
-- `test-secrets-1`
-- `prod-proxy-1`
+- `test-idm-1`
+- `idm-test-1`
+- `ca-root-test-1`
 - `dev-k8node-1`
 - `prod-db-1`
 
@@ -132,6 +141,8 @@ Recommended practice:
 - use `role` for the generic workload function, such as `db` instead of a
   product name like PostgreSQL, so the VM name and DNS can stay stable if the
   implementation changes later
+- use product tags when the exact implementation matters, such as `freeipa` on
+  `idm-1` or `keycloak` on `idp-1`
 - always keep the numeric suffix, even for the first VM, because you may later
   need more than one instance of the same role
 

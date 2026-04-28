@@ -1,5 +1,5 @@
 # Managed by Ansible.
-# Include this backend from your main HAProxy configuration on the shared proxy.
+# Include this backend from your main HAProxy configuration on the edge load balancer.
 
 backend {{ hsm_proxy_ingress_backend_name }}
   mode {{ hsm_proxy_ingress_mode }}

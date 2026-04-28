@@ -12,8 +12,8 @@ cluster_name = "foundation-change-me"
 
 vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
-  # The environment prefix from Ansible group vars becomes the Proxmox VM name.
-  "identity-1" = {
+  # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
+  "idm-1" = {
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 111
     size              = "small"
@@ -22,33 +22,40 @@ vm_instances = {
     network_zone_key  = "identity"
     tags              = ["freeipa", "dns"]
   }
-  "identity-2" = {
+  "idm-2" = {
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
     network_zone_key  = "identity"
     tags              = ["freeipa", "dns"]
   }
-  "pki-1" = {
+  "ca-1" = {
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 30
     network_zone_key  = "cryptography"
     tags              = ["issuing-ca"]
   }
-  # "ceremony-1" = {
+  # "ca-root-1" = {
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 30
   #   network_zone_key  = "ceremony"
   #   tags              = ["root-ca", "offline"]
   # }
-  # "proxy-1" = {
+  # "edge-lb-1" = {
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 20
-  #   network_zone_key  = "external_ingress"
-  #   tags              = ["shared-ingress"]
+  #   network_zone_key  = "external_edge"
+  #   tags              = ["edge-lb"]
+  # }
+  # "edge-lb-2" = {
+  #   size              = "small"
+  #   storage_class     = "local"
+  #   disk_size_gb      = 20
+  #   network_zone_key  = "external_edge"
+  #   tags              = ["edge-lb"]
   # }
 }
 

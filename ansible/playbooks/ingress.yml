@@ -1,6 +1,6 @@
 ---
 - name: Render HSM gateway ingress backend
-  hosts: proxies
+  hosts: edge_load_balancers
   become: true
   roles:
     - hsm_proxy_ingress

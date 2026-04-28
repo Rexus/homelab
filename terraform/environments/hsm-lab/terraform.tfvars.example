@@ -10,13 +10,13 @@ lab_variant = "hardware"
 # environment overlay, for example when testing another supported distro.
 # default_linux_vm_template_id = 111
 
-# Keep the shared external ingress edge proxy in terraform/environments/foundation by default.
+# Keep the shared external edge load balancer in foundation by default.
 # Keys match the stable logical host names in the Ansible inventory.
-# The environment prefix from Ansible group vars becomes the Proxmox VM name.
-# The repository reference shape is one edge proxy in foundation plus two
-# gateway hosts here, each with its own local USB HSM.
+# The environment prefix or suffix from Ansible becomes the Proxmox VM name.
+# The repository reference shape is one edge load-balancer pair in foundation
+# plus two gateway hosts here, each with its own local USB HSM.
 vm_instances = {
-  "hsm-gw-1" = {
+  "hsm-1" = {
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 111
     size             = "small"
@@ -25,26 +25,19 @@ vm_instances = {
     network_zone_key = "cryptography"
     tags             = ["hsm-gateway"]
   }
-  "hsm-gw-2" = {
+  "hsm-2" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "cryptography"
     tags             = ["hsm-gateway"]
   }
-  # "hsm-recovery-1" = {
+  # "crypto-admin-1" = {
   #   size             = "tiny"
   #   storage_class    = "local"
   #   disk_size_gb     = 20
   #   network_zone_key = "ceremony"
-  #   tags             = ["recovery"]
-  # }
-  # "hsm-provisioner-1" = {
-  #   size             = "tiny"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 20
-  #   network_zone_key = "ceremony"
-  #   tags             = ["provisioning"]
+  #   tags             = ["crypto-admin"]
   # }
 }
 

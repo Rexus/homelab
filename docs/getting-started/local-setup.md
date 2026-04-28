@@ -74,12 +74,13 @@ before production, use `--env test`. You can also use custom environment names
 such as `lab1`, `dev`, or `staging` when those match how you operate.
 
 The wrapper keeps the same main inventory and loads
-`ansible/group_vars/all.<env>.yml` for the environment prefix, domain, and IP
-map when you pass `--env`. That file is generated from
+`ansible/group_vars/all.<env>.yml` for hostname decoration, domain, and IP map
+when you pass `--env`. That file is generated from
 `ansible/group_vars/all.env.yml.example`.
 Use DNS-safe environment names with letters, numbers, and dashes.
 The initializer fills the prefix from `--env`; you still edit the domain and
-IPs before deployment.
+IPs before deployment. If you prefer suffix-style names, clear the prefix and
+set `platform_hostname_suffix` instead.
 
 Terraform uses the base `terraform/common.tfvars` and setup `terraform.tfvars`
 for every environment by default. Create `common.<env>.tfvars` or

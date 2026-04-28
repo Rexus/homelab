@@ -36,8 +36,8 @@ flowchart TB
 
   subgraph Edge["Edge-facing layer"]
     Internet[Internet or WAN]
-    ExternalIngress[external_ingress]
-    Internet --> ExternalIngress
+    ExternalEdge[external_edge]
+    Internet --> ExternalEdge
   end
 
   subgraph App["Access, identity, and application layer"]
@@ -62,10 +62,10 @@ flowchart TB
     CephPublic --> CephCluster
   end
 
-  Client -.-> ExternalIngress
+  Client -.-> ExternalEdge
   Client -.-> Access
-  ExternalIngress --> Access
-  ExternalIngress --> Application
+  ExternalEdge --> Access
+  ExternalEdge --> Application
   Access --> Identity
   Access --> Application
   Identity --> Application
@@ -87,7 +87,7 @@ flowchart TB
   classDef hsmNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
   classDef cephNode fill:#fee2e2,stroke:#dc2626,color:#1f2937
 
-  class Client,Internet,ExternalIngress edgeNode
+  class Client,Internet,ExternalEdge edgeNode
   class Access,Identity,Application appNode
   class Cryptography gatewayNode
   class Mgmt mgmtNode
@@ -120,7 +120,7 @@ Use these zone meanings:
 | `application` | shared internal application traffic and service consumers | Vault, APIs, apps, internal callers | yes |
 | `cryptography` | live cryptography and issuing-CA service plane | HSM gateways, issuing CA services, signing APIs, PKI frontends | yes |
 | `ceremony` | restricted custody, provisioning, recovery, and root-CA path | offline root CA, recovery hosts, provisioning hosts, ceremony helpers | sometimes |
-| `external_ingress` | external ingress, edge proxies, and controlled edge-facing services | proxies, selected edge services | yes |
+| `external_edge` | external edge, edge load balancers, ingress, and controlled egress | edge load balancers, selected edge services | yes |
 
 Practical notes:
 
@@ -158,7 +158,7 @@ Use a range model such as this:
 | `2-99` | critical control, access, identity, clustering, and storage | `management`, `access`, `identity`, host-only cluster and storage VLANs |
 | `100-199` | shared internal application networks | `application` |
 | `200-299` | cryptography and ceremony networks | `cryptography`, `ceremony` |
-| `300-399` | edge-facing paths | `external_ingress`, ingress, reverse proxies |
+| `300-399` | edge-facing paths | `external_edge`, ingress, egress, reverse proxies |
 | `400+` | local extensions and future segments | site-specific app, lab, or client-reference networks |
 
 One example based on that pattern is:
@@ -174,7 +174,7 @@ One example based on that pattern is:
 | `application` | `120` |
 | `cryptography` | `220` |
 | `ceremony` | `221` |
-| `external_ingress` | `320` |
+| `external_edge` | `320` |
 | `client` | reference only |
 
 ## IaC mapping
@@ -213,7 +213,7 @@ network_zones = {
     vlan_id   = 221
     cidr_ipv4 = "10.20.22.0/24"
   }
-  external_ingress = {
+  external_edge = {
     bridge    = "vmbr0"
     vlan_id   = 320
     cidr_ipv4 = "10.30.30.0/24"
@@ -262,11 +262,11 @@ Use the catalog progressively:
 
 | Stage | Zones you usually need now | Zones you can leave as reference only |
 | --- | --- | --- |
-| identity foundation | `management`, `identity`, `cryptography`, optional `ceremony` | `access`, `application`, `external_ingress`, `client`, host-only platform networks |
-| early private cloud | `management`, `identity`, `cryptography`, `application`, optional `access`, optional `external_ingress`, optional `ceremony` | `client`, host-only platform networks |
-| clustered platform | `management`, `identity`, `application`, optional `access`, optional `external_ingress` | `cryptography`, `ceremony`, `client`, host-only platform networks |
-| storage-heavy platform | `management`, `identity`, `application` | `access`, `external_ingress`, `cryptography`, `ceremony`, `client`, host-only platform networks |
-| HSM or signing lab | `management`, `identity`, `application`, `cryptography`, optional `ceremony`, optional `external_ingress` | `access`, `client`, host-only platform networks |
+| identity foundation | `management`, `identity`, `cryptography`, optional `ceremony` | `access`, `application`, `external_edge`, `client`, host-only platform networks |
+| early private cloud | `management`, `identity`, `cryptography`, `application`, optional `access`, optional `external_edge`, optional `ceremony` | `client`, host-only platform networks |
+| clustered platform | `management`, `identity`, `application`, optional `access`, optional `external_edge` | `cryptography`, `ceremony`, `client`, host-only platform networks |
+| storage-heavy platform | `management`, `identity`, `application` | `access`, `external_edge`, `cryptography`, `ceremony`, `client`, host-only platform networks |
+| HSM or signing lab | `management`, `identity`, `application`, `cryptography`, optional `ceremony`, optional `external_edge` | `access`, `client`, host-only platform networks |
 
 This is why the Terraform examples only include networks where automation may
 place guests. You do not need to run every network before the repository is

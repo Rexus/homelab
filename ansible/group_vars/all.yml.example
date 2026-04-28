@@ -1,5 +1,7 @@
 # Copy to: ansible/group_vars/all.yml
 # Replace every value before use.
+# This is the production/default settings file. It is used when you run without
+# --env, and it also owns shared derived values used by environment overlays.
 # Reference: docs/reference/infrastructure-automation-layout.md
 
 # SSH user created by cloud-init on the cloned guests.
@@ -8,12 +10,26 @@ ansible_port: 22
 
 # Keep inventory host keys stable. Set these per environment when the same
 # logical inventory is deployed more than once.
-platform_environment: default
-# Include the separator in the prefix when you use one, for example lab1-.
+platform_environment: prod
+# Use either a prefix or suffix when you deploy the same logical inventory more
+# than once. Include separators in the value, for example lab1- or -lab1.
 platform_hostname_prefix: ""
+# Suffix is inserted before the numeric suffix, so ca-root-1 becomes
+# ca-root-lab1-1.
+platform_hostname_suffix: ""
 platform_domain: example.com
 
-platform_hostname: "{{ platform_hostname_prefix }}{{ inventory_hostname }}"
+# Keep hostname generation here so all.<env>.yml only has to override prefix,
+# suffix, domain, and IP values.
+platform_hostname: >-
+  {{
+    platform_hostname_prefix ~ (
+      inventory_hostname
+      | regex_replace('^(.*)-([0-9]+)$', '\\1' ~ platform_hostname_suffix ~ '-\\2')
+      if platform_hostname_suffix
+      else inventory_hostname
+    )
+  }}
 platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 
 # Terraform also reads this map when it provisions guests, so IP addresses are
@@ -22,18 +38,19 @@ platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 # Keep entries for the guests you deploy in this environment.
 # Use dhcp only for guests that are intentionally dynamic.
 platform_host_ips:
-  identity-1: 10.10.12.10
-  identity-2: 10.10.12.11
-  pki-1: 10.20.21.10
-  ceremony-1: 10.20.22.10
-  proxy-1: 10.30.30.10
+  idm-1: 10.10.12.10
+  idm-2: 10.10.12.11
+  ca-1: 10.20.21.10
+  ca-root-1: 10.20.22.10
+  idp-1: 10.10.11.10
+  edge-lb-1: 10.30.30.10
+  edge-lb-2: 10.30.30.11
   vault-1: 10.20.20.21
   lab-1: 10.20.20.10
   support-1: 10.20.20.11
-  hsm-gw-1: 10.20.21.20
-  hsm-gw-2: 10.20.21.21
-  hsm-recovery-1: 10.20.22.20
-  hsm-provisioner-1: 10.20.22.21
+  hsm-1: 10.20.21.20
+  hsm-2: 10.20.21.21
+  crypto-admin-1: 10.20.22.20
 
 ansible_host: "{{ platform_host_ips.get(inventory_hostname, inventory_hostname) }}"
 

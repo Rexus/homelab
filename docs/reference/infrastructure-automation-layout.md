@@ -18,20 +18,22 @@ Keep shared host identity in Ansible and hardware placement in Terraform.
 | Owner | Defines |
 | --- | --- |
 | Ansible inventory | stable logical host keys and service groups |
-| Ansible `all` group vars | environment prefix, domain, guest IP map, and baseline inputs |
+| Ansible `all` group vars | hostname prefix or suffix, domain, guest IP map, and baseline inputs |
 | Ansible setup group vars | service settings and host configuration inputs |
 | Terraform environment tfvars | Proxmox tags, size, storage class, disk size, network zone, and optional Proxmox node override |
 | Terraform common tfvars | default Proxmox node, shared storage mappings, network zones, template IDs, and cloud-init SSH keys |
 
 Terraform guest maps are keyed by the matching Ansible inventory host key, for
-example `identity-1`. Keep that key stable across environments.
+example `idm-1`. Keep that key stable across environments.
 
-Use `platform_hostname_prefix`, `platform_domain`, and `platform_host_ips` in
-Ansible group vars to shape each environment. The same logical key can become
-`lab1-identity-1.example.com` in one environment and
-`prod-identity-1.example.com` in another.
+Use `platform_hostname_prefix`, `platform_hostname_suffix`,
+`platform_domain`, and `platform_host_ips` in Ansible group vars to shape each
+environment. The same logical key can become `test-idm-1.example.com`,
+`idm-test-1.example.com`, or `idm-1.example.com`.
 Use DNS-safe environment names with letters, numbers, and dashes.
-Include the separator in `platform_hostname_prefix`, for example `lab1-`.
+Include separators in the prefix or suffix value, for example `test-` or
+`-test`. Suffixes are inserted before the numeric suffix, so `ca-root-1`
+becomes `ca-root-test-1`.
 
 Terraform reads the same Ansible group vars for the guest IP map and generated
 Proxmox name, so IPs and names are not maintained in both tools.
@@ -83,7 +85,7 @@ state file between environments. Omit `--env` for production.
 | Path | Contains | Owner guide |
 | --- | --- | --- |
 | `terraform/common.tfvars.example` | default Proxmox node, storage, network, template, and SSH-key inputs | [Local setup](../getting-started/local-setup.md) |
-| `terraform/environments/foundation/` | identity, DNS, PKI, and optional edge-proxy guest layout | [Identity foundation path](../foundation/identity-foundation-path.md) |
+| `terraform/environments/foundation/` | identity, DNS, PKI, and optional edge load-balancer guest layout | [Identity foundation path](../foundation/identity-foundation-path.md) |
 | `terraform/environments/vault/` | dedicated Vault guest layout | [Vault foundation deployment](../foundation/vault-foundation-deployment.md) |
 | `terraform/environments/hsm-lab/` | USB HSM gateway and optional helper guest layout | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
 | `terraform/environments/lab/` | general lab guest layout | [Local setup](../getting-started/local-setup.md) |
@@ -98,12 +100,12 @@ state file between environments. Omit `--env` for production.
 | `ansible/requirements.yml` | required collections for the deployment machine |
 | `ansible/inventory/hosts.yml.example` | stable logical host keys and service groups |
 | `ansible/group_vars/all.yml.example` | shared Ansible defaults and default environment data |
-| `ansible/group_vars/all.env.yml.example` | environment-specific prefix, domain, and IP map overlay |
+| `ansible/group_vars/all.env.yml.example` | environment-specific hostname decoration, domain, and IP map overlay |
 | `ansible/playbooks/control-node.yml` | local precheck before each wrapper run |
 | `ansible/playbooks/foundation.yml` | staged FreeIPA identity foundation rollout |
 | `ansible/playbooks/vault.yml` | Vault host baseline and service installation |
 | `ansible/playbooks/site.yml` | broader baseline entry point |
-| `ansible/playbooks/ingress.yml` | proxy backend registration for HSM gateways |
+| `ansible/playbooks/ingress.yml` | edge load-balancer backend registration for HSM gateways |
 | `ansible/roles/baseline/` | security-first baseline scaffold |
 | `ansible/roles/vault/` | Vault service role |
 | `ansible/roles/hsm_proxy_ingress/` | HSM gateway backend snippet scaffold |
