@@ -1,42 +1,43 @@
 # Copy to: terraform/environments/foundation/terraform.tfvars
-# Or copy to terraform.test.tfvars / terraform.prod.tfvars when using --env.
+# Or copy to terraform.<env>.tfvars when using --env.
 # Replace every value before use.
 # Setup guide: docs/foundation/identity-foundation-path.md
 # Shared values live in ../../common.tfvars.
 
-cluster_name = "test-change-me"
+cluster_name = "foundation-change-me"
 
 vm_instances = {
-  # Keys are the short hostnames and Proxmox VM names.
-  "test-identity-1" = {
+  # Keys match the stable logical host names in the Ansible inventory.
+  # The environment prefix from Ansible group vars becomes the Proxmox VM name.
+  "identity-1" = {
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
     network_zone_key  = "identity"
     tags              = ["freeipa", "dns"]
   }
-  "test-identity-2" = {
+  "identity-2" = {
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
     network_zone_key  = "identity"
     tags              = ["freeipa", "dns"]
   }
-  "test-pki-1" = {
+  "pki-1" = {
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 30
     network_zone_key  = "cryptography"
     tags              = ["issuing-ca"]
   }
-  # "test-ceremony-1" = {
+  # "ceremony-1" = {
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 30
   #   network_zone_key  = "ceremony"
   #   tags              = ["root-ca", "offline"]
   # }
-  # "test-proxy-1" = {
+  # "proxy-1" = {
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 20

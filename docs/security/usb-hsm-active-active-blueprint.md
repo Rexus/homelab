@@ -198,7 +198,9 @@ Use these repo paths here:
 | --- | --- | --- |
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default Proxmox node | your local `terraform/common.tfvars` |
 | [`terraform/environments/hsm-lab/terraform.tfvars.example`](../../terraform/environments/hsm-lab/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm-lab/terraform.tfvars` based on `.example` |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | HSM host keys, IPs, and inventory groups | your local `ansible/inventory/hosts.yml` |
+| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | stable HSM host keys and inventory groups | your local `ansible/inventory/hosts.yml` |
+| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | environment-specific prefix, domain, and guest IP map shared by Terraform and Ansible | your local `ansible/group_vars/all.<env>.yml` |
 | [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
 | [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns proxy configuration so the already deployed edge proxy or proxies point at the HSM gateways | inventory and proxy variables |
 | [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm-lab` setup when you are ready to run it |
@@ -208,9 +210,9 @@ assumes that the deployed proxy prerequisite already exists.
 
 Use the shared ownership rule from
 [Infrastructure automation layout](../reference/infrastructure-automation-layout.md):
-Ansible inventory owns host keys, IPs, and service groups. Ansible group vars
-append `platform_domain` for FQDNs, while the HSM Terraform environment owns
-hardware placement and Proxmox tags.
+Ansible inventory owns stable logical host keys and service groups. Ansible
+group vars own the environment prefix, domain, and guest IP map, while the HSM
+Terraform environment owns hardware placement and Proxmox tags.
 
 ## How to shape the deployment
 

@@ -65,9 +65,10 @@ Edit these local files before you deploy:
 | Path | What you configure |
 | --- | --- |
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | default Proxmox node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
-| [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | the foundation VMs in `vm_instances` |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | host keys, `ansible_host`, and foundation groups |
-| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | `platform_domain`, SSH user, port, and baseline defaults |
+| [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
+| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
+| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | environment prefix, domain, guest IP map, SSH user, port, and baseline defaults |
+| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
 
 ## IaC used for this
@@ -78,16 +79,19 @@ Use these repo paths here:
 | --- | --- | --- |
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default Proxmox node | your local `terraform/common.tfvars` |
 | [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity, PKI, and optional edge hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the foundation inventory groups | your local `ansible/inventory/hosts.yml` |
+| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | your local `ansible/inventory/hosts.yml` |
+| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific prefix, domain, and IP maps | your local `ansible/group_vars/all.<env>.yml` |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | starting point for FreeIPA and foundation service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
 | [`ansible/playbooks/foundation.yml`](../../ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
 | [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `foundation` setup when you are ready to run it |
 
 Current boundary:
 
-- Ansible inventory owns host keys, IPs, and service groups
-- Ansible group vars append `platform_domain` when services need an FQDN
+- Ansible inventory owns stable logical host keys and service groups
+- Ansible group vars own the environment prefix, domain, and guest IP map
 - Terraform prepares the identity foundation hardware layout and Proxmox tags
+- Terraform reads the Ansible group vars to derive the Proxmox VM names and IPs
 - the foundation playbook prepares those hosts for managed operation
 - the foundation playbook installs the first `FreeIPA` host, verifies it, and
   then installs the replica hosts
@@ -127,13 +131,14 @@ different authority layout.
   `identity_primary`, `identity_replicas`, `pki_issuers`, optional
   `pki_ceremony`, and optional `proxies`
 
-For test and production separation, keep separate ignored local data files and
-state:
+For environment separation, keep one stable inventory and separate ignored
+local data files and state:
 
 | Environment | Local var file | Wrapper command |
 | --- | --- | --- |
-| test or staging | `terraform/environments/foundation/terraform.test.tfvars` | `bash scripts/deploy.sh foundation --env test` |
-| production | `terraform/environments/foundation/terraform.prod.tfvars` | `bash scripts/deploy.sh foundation --env prod` |
+| first validation run | `terraform/environments/foundation/terraform.test.tfvars` | `bash scripts/deploy.sh foundation --env test` |
+| lab, dev, or staging | `terraform/environments/foundation/terraform.lab1.tfvars` | `bash scripts/deploy.sh foundation --env lab1` |
+| production | `terraform/environments/foundation/terraform.tfvars` | `bash scripts/deploy.sh foundation` |
 
 The wrapper stores local Terraform state separately per setup and environment,
 for example `.terraform/state/foundation/test/terraform.tfstate`.
@@ -142,18 +147,25 @@ When `terraform/common.test.tfvars` exists, `--env test` uses it for shared
 environment values such as VLANs, subnets, template IDs, storage mappings, and
 the default Proxmox node.
 
-Use the same pattern for inventory when you want separate host inventories,
-for example `--inventory ansible/inventory/test.yml`. If FreeIPA values differ
-between environments, pass an ignored vars file with `--ansible-vars`, such as
+Put the environment prefix, domain, and IP map in
+`ansible/group_vars/all.<env>.yml`. Use DNS-safe environment names with
+letters, numbers, and dashes. The initializer fills the prefix from `--env`;
+you still edit the domain and IPs before deployment.
+
+No `--env` means production and uses the base local files:
+`terraform/common.tfvars`, `terraform/environments/foundation/terraform.tfvars`,
+`ansible/group_vars/all.yml`, and `ansible/group_vars/foundation.yml`.
+
+If FreeIPA values differ between disposable environments, pass an ignored vars
+file with `--ansible-vars`, such as
 `ansible/group_vars/foundation.test.yml`.
 
-Example with separate test inputs:
+Example with the recommended first `test` inputs:
 
 ```bash
 bash scripts/init-local-files.sh --env test
 
 bash scripts/deploy.sh foundation --env test \
-  --inventory ansible/inventory/test.yml \
   --ansible-vars ansible/group_vars/foundation.test.yml
 ```
 

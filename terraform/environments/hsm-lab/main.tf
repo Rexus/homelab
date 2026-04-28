@@ -44,6 +44,7 @@ module "environment" {
   ssh_public_keys              = var.ssh_public_keys
   common_tags                  = local.common_tags
   ansible_inventory_path       = var.ansible_inventory_path
+  ansible_group_vars_paths     = var.ansible_group_vars_paths
   vm_instances                 = var.vm_instances
   lxc_instances                = var.lxc_instances
 }

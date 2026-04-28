@@ -33,9 +33,15 @@ variable "cluster_name" {
 }
 
 variable "ansible_inventory_path" {
-  description = "Ansible inventory used as the source of truth for guest IPs."
+  description = "Ansible inventory with logical guest keys and groups."
   type        = string
   default     = "../../../ansible/inventory/hosts.yml"
+}
+
+variable "ansible_group_vars_paths" {
+  description = "Ansible group vars files merged for environment prefix and guest IPs."
+  type        = list(string)
+  default     = ["../../../ansible/group_vars/all.yml"]
 }
 
 variable "proxmox_storage_classes" {
@@ -87,7 +93,7 @@ variable "default_lxc_network_zone_key" {
 }
 
 variable "vm_instances" {
-  description = "VM hardware definitions keyed by hostname and Proxmox VM name."
+  description = "VM hardware definitions keyed by logical Ansible inventory hostname."
   type = map(object({
     proxmox_node_name = optional(string)
     template_vm_id   = optional(number)
@@ -101,7 +107,7 @@ variable "vm_instances" {
 }
 
 variable "lxc_instances" {
-  description = "LXC hardware definitions keyed by hostname and Proxmox VM name."
+  description = "LXC hardware definitions keyed by logical Ansible inventory hostname."
   type = map(object({
     proxmox_node_name = optional(string)
     template_file_id = string

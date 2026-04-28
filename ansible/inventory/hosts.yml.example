@@ -1,5 +1,4 @@
 # Copy to: ansible/inventory/hosts.yml
-# Or copy to ansible/inventory/test.yml / prod.yml when using --inventory.
 # Replace every value before use.
 # Reference: docs/reference/infrastructure-automation-layout.md
 
@@ -11,32 +10,27 @@ all:
           ansible_host: 10.10.10.11
     identity_primary:
       hosts:
-        test-identity-1:
-          ansible_host: 10.10.12.10
+        identity-1: {}
     identity_replicas:
       hosts:
-        test-identity-2:
-          ansible_host: 10.10.12.11
+        identity-2: {}
     identity:
       children:
         identity_primary:
         identity_replicas:
     pki_issuers:
       hosts:
-        test-pki-1:
-          ansible_host: 10.20.21.10
+        pki-1: {}
     pki_ceremony:
       hosts: {}
       # When enabled, replace hosts: {} with:
       # hosts:
-      #   test-ceremony-1:
-      #     ansible_host: 10.20.22.10
+      #   ceremony-1: {}
     proxies:
       hosts: {}
       # When enabled, replace hosts: {} with:
       # hosts:
-      #   test-proxy-1:
-      #     ansible_host: 10.30.30.10
+      #   proxy-1: {}
     foundation:
       children:
         identity:
@@ -45,28 +39,21 @@ all:
         proxies:
     vault:
       hosts:
-        test-vault-1:
-          ansible_host: 10.10.10.21
+        vault-1: {}
     lab:
       hosts:
-        test-lab-1:
-          ansible_host: 10.20.20.10
-        test-support-1:
-          ansible_host: 10.20.20.11
+        lab-1: {}
+        support-1: {}
     hsm_gateways:
       hosts:
-        test-hsm-gw-1:
-          ansible_host: 10.20.21.10
+        hsm-gw-1:
           hsm_proxy_ingress_backend_port: 8443
-        test-hsm-gw-2:
-          ansible_host: 10.20.21.11
+        hsm-gw-2:
           hsm_proxy_ingress_backend_port: 8443
     hsm_helpers:
       hosts:
-        test-hsm-recovery-1:
-          ansible_host: 10.20.22.10
-        # test-hsm-provisioner-1:
-        #   ansible_host: 10.20.22.11
+        hsm-recovery-1: {}
+        # hsm-provisioner-1: {}
     guests:
       children:
         foundation:

@@ -76,6 +76,8 @@ Examples:
 - `ansible/inventory/hosts.yml` ignored
 - `ansible/group_vars/all.yml.example` committed
 - `ansible/group_vars/all.yml` ignored
+- `ansible/group_vars/all.env.yml.example` committed
+- `ansible/group_vars/all.lab1.yml` ignored
 
 ## Bootstrap secret strategy
 

@@ -15,8 +15,10 @@ not push operational changes back to this upstream.
 
 ## Getting started
 
-Use the foundation fast path below for the shortest first run. For a fuller
-walkthrough of the same flow, start with
+Use the foundation fast path below for the shortest first run. Start with a
+disposable `test` deployment, verify the flow, destroy it, and then create a
+production environment when you are ready. For a fuller walkthrough of the same
+flow, start with
 [docs/foundation/identity-foundation-path.md](docs/foundation/identity-foundation-path.md).
 If your local tooling still needs to be prepared, read
 [docs/getting-started/local-setup.md](docs/getting-started/local-setup.md).
@@ -28,56 +30,47 @@ Foundation fast path:
    - [Proxmox reference platform](docs/platforms/proxmox/README.md)
    - [Proxmox API setup](docs/platforms/proxmox/setup-api.md)
 
-2. Initialize local working files:
+2. Initialize local working files and the first `test` environment:
 
 ```bash
-bash scripts/init-local-files.sh
+bash scripts/init-local-files.sh --env test
 ```
 
 3. Update the generated local files with your environment values.
-   This is a repo-local setup step, not something you rerun for every
-   deployment.
-   The wrapper automatically loads `.env.local` when it exists. In runners,
-   you can provide the same values as environment variables instead.
 
-4. Run the repository deployment wrapper:
+   For the first run, pay special attention to:
+
+   - `.env.local`
+   - `ansible/group_vars/all.test.yml`
+   - `terraform/common.test.tfvars`
+   - `terraform/environments/foundation/terraform.test.tfvars`
+   - `ansible/group_vars/foundation.test.yml`
+
+4. Run the repository deployment wrapper for the `test` environment:
+
+```bash
+bash scripts/deploy.sh foundation --env test \
+  --ansible-vars ansible/group_vars/foundation.test.yml
+```
+
+This wrapper runs the local control-node precheck first, then the mapped
+Terraform and Ansible steps for that setup. Read the detailed flow in the
+[identity foundation path](docs/foundation/identity-foundation-path.md).
+
+5. Destroy the test deployment when you are done validating the first run:
+
+```bash
+bash scripts/deploy.sh foundation --env test --destroy
+```
+
+6. When you are ready for production, update the base local files and run
+   without `--env`:
 
 ```bash
 bash scripts/deploy.sh foundation
 ```
 
-This wrapper runs the local control-node precheck first, then the mapped
-Terraform and Ansible steps for that setup. For `foundation`, it prepares the
-identity foundation layer first. The current reference shape is `2` identity
-hosts plus `1` issuing CA host before Vault.
-It also checks that the required local config files exist before the run, such
-as the shared `terraform/common.tfvars`, environment `terraform.tfvars`,
-inventory, and group vars files copied from the shipped examples.
-
-For a disposable test run before production, initialize the test file set once,
-then run and destroy the test environment with the same environment name:
-
-```bash
-bash scripts/init-local-files.sh --env test
-bash scripts/deploy.sh foundation --env test \
-  --inventory ansible/inventory/test.yml \
-  --ansible-vars ansible/group_vars/foundation.test.yml
-bash scripts/deploy.sh foundation --env test --destroy
-```
-
-When `terraform/common.test.tfvars` exists, the wrapper uses it for shared
-environment values such as VLANs, subnets, storage, templates, and the default
-Proxmox node.
-
-The wrapper keeps separate local Terraform state per setup and environment, so
-`test` and `prod` do not share one state file.
-
-Use `--env-file path/to/file` when you want to override `.env.local` with
-another environment file.
-After reviewing files refreshed with `--overwrite`, remove old backups with
-`bash scripts/init-local-files.sh --clean-backups`.
-
-5. Continue with:
+7. Continue with:
    - [Vault foundation deployment](docs/foundation/vault-foundation-deployment.md)
    - [Secret strategy](docs/security/secret-strategy.md)
    - [Private cloud maturity path](docs/getting-started/private-cloud-maturity-path.md)

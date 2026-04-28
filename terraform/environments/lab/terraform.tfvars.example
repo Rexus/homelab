@@ -6,8 +6,9 @@
 cluster_name = "lab-change-me"
 
 vm_instances = {
-  # Keys are the short hostnames and Proxmox VM names.
-  "test-lab-1" = {
+  # Keys match the stable logical host names in the Ansible inventory.
+  # The environment prefix from Ansible group vars becomes the Proxmox VM name.
+  "lab-1" = {
     size             = "tiny"
     storage_class    = "local"
     disk_size_gb     = 20
@@ -17,7 +18,7 @@ vm_instances = {
 }
 
 lxc_instances = {
-  "test-support-1" = {
+  "support-1" = {
     template_file_id = "local:vztmpl/el10-default_2024.x86_64.tar.xz"
     size             = "tiny"
     storage_class    = "local"

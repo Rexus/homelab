@@ -238,11 +238,11 @@ Use these field meanings:
 | Field | Meaning | Current repository use |
 | --- | --- | --- |
 | `default_proxmox_node_name` | default Proxmox host that receives guests | consumed by VM and LXC placement |
-| `vm_instances.<key>` | guest hostname and Proxmox VM name | joins Terraform placement with Ansible inventory |
+| `vm_instances.<key>` | stable logical guest key | joins Terraform placement with Ansible inventory |
 | `vm_instances.<key>.tags` | Proxmox tags for filtering and ownership | consumed by VM and LXC placement |
 | `network_zones.<key>.bridge` | Proxmox bridge name for that zone | consumed by VM and LXC placement |
 | `network_zones.<key>.vlan_id` | VLAN tag for that zone when your bridge is VLAN-aware | consumed by VM placement and kept as shared reference |
-| `network_zones.<key>.cidr_ipv4` | planning subnet for the zone | documentation and operator reference |
+| `network_zones.<key>.cidr_ipv4` | subnet for the zone | used for static guest CIDR prefixes and operator reference |
 | `network_zones.<key>.gateway_ipv4` | default guest gateway when you assign static addresses | consumed when a guest does not override the gateway |
 | `network_zones.<key>.notes` | local planning context or reminders | documentation and operator reference |
 | `vm_instances.*.network_zone_key` | which zone a VM belongs to | selects the bridge and optional VLAN |
@@ -251,7 +251,8 @@ Use these field meanings:
 This is the intended split:
 
 - put durable naming and logical intent in `network_zones`
-- put guest placement in `vm_instances` or `lxc_instances`
+- put guest hardware shape and zone placement in `vm_instances` or
+  `lxc_instances`
 - keep host-only platform networks, switch, firewall, and router
   implementation details outside Terraform
 

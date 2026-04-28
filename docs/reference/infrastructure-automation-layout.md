@@ -17,18 +17,26 @@ Keep shared host identity in Ansible and hardware placement in Terraform.
 
 | Owner | Defines |
 | --- | --- |
-| Ansible inventory | host keys, `ansible_host`, and service groups |
-| Ansible group vars | environment domain, service settings, and host configuration inputs |
+| Ansible inventory | stable logical host keys and service groups |
+| Ansible `all` group vars | environment prefix, domain, guest IP map, and baseline inputs |
+| Ansible setup group vars | service settings and host configuration inputs |
 | Terraform environment tfvars | Proxmox tags, size, storage class, disk size, network zone, and optional Proxmox node override |
 | Terraform common tfvars | default Proxmox node, shared storage mappings, network zones, template IDs, and cloud-init SSH keys |
 
-Terraform guest maps are keyed by the matching Ansible inventory host key. That
-key is also the Proxmox VM name and cloud-init hostname, for example
-`test-identity-1`.
+Terraform guest maps are keyed by the matching Ansible inventory host key, for
+example `identity-1`. Keep that key stable across environments.
 
-Use `platform_domain` in Ansible to append the environment domain, so the same
-short host key becomes `test-identity-1.example.com` for services that need a
-full DNS name.
+Use `platform_hostname_prefix`, `platform_domain`, and `platform_host_ips` in
+Ansible group vars to shape each environment. The same logical key can become
+`lab1-identity-1.example.com` in one environment and
+`prod-identity-1.example.com` in another.
+Use DNS-safe environment names with letters, numbers, and dashes.
+Include the separator in `platform_hostname_prefix`, for example `lab1-`.
+
+Terraform reads the same Ansible group vars for the guest IP map and generated
+Proxmox name, so IPs and names are not maintained in both tools.
+Every Terraform guest key should have a matching `platform_host_ips` entry, or
+the value `dhcp` when that guest is intentionally dynamic.
 
 Use `default_proxmox_node_name` for the normal Proxmox placement target.
 Only set `proxmox_node_name` on an individual guest when you intentionally
@@ -36,18 +44,21 @@ override that default for a clustered Proxmox placement.
 
 ## Environment data split
 
-Use the same source code for every environment and split only the data:
+Use the same source code and main inventory for every environment. Split only
+the data that changes:
 
-| Layer | Test or staging example | Production example |
+| Layer | Test example | Production default |
 | --- | --- | --- |
-| Terraform setup vars | `terraform/environments/foundation/terraform.test.tfvars` | `terraform/environments/foundation/terraform.prod.tfvars` |
-| Shared Terraform vars | `terraform/common.test.tfvars` or `--common-var-file` override | `terraform/common.prod.tfvars` or `--common-var-file` override |
-| Ansible inventory | `ansible/inventory/test.yml` | `ansible/inventory/prod.yml` |
-| Ansible setup vars | `ansible/group_vars/foundation.test.yml` | `ansible/group_vars/foundation.prod.yml` |
+| Terraform setup vars | `terraform/environments/foundation/terraform.test.tfvars` | `terraform/environments/foundation/terraform.tfvars` |
+| Shared Terraform vars | `terraform/common.test.tfvars` or `--common-var-file` override | `terraform/common.tfvars` or `--common-var-file` override |
+| Ansible inventory | `ansible/inventory/hosts.yml` | `ansible/inventory/hosts.yml` |
+| Ansible environment vars | `ansible/group_vars/all.test.yml` from `all.env.yml.example` | `ansible/group_vars/all.yml` |
+| Ansible setup vars | `ansible/group_vars/foundation.test.yml` | `ansible/group_vars/foundation.yml` |
 | Terraform state | `.terraform/state/foundation/test/terraform.tfstate` | `.terraform/state/foundation/prod/terraform.tfstate` |
 
 The repository wrapper keeps Terraform state separate per setup and
-environment. Do not share a Terraform state file between test and production.
+environment. Do not share a Terraform state file between environments. Omit
+`--env` for production.
 
 ## Main paths
 
@@ -76,6 +87,9 @@ environment. Do not share a Terraform state file between test and production.
 | Path | Contains |
 | --- | --- |
 | `ansible/requirements.yml` | required collections for the deployment machine |
+| `ansible/inventory/hosts.yml.example` | stable logical host keys and service groups |
+| `ansible/group_vars/all.yml.example` | shared Ansible defaults and default environment data |
+| `ansible/group_vars/all.env.yml.example` | environment-specific prefix, domain, and IP map overlay |
 | `ansible/playbooks/control-node.yml` | local precheck before each wrapper run |
 | `ansible/playbooks/foundation.yml` | staged FreeIPA identity foundation rollout |
 | `ansible/playbooks/vault.yml` | Vault host baseline and service installation |

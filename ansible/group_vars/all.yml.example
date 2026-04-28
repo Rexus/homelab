@@ -5,8 +5,35 @@
 ansible_user: automation-change-me
 ansible_port: 22
 
+# Keep inventory host keys stable. Set these per environment when the same
+# logical inventory is deployed more than once.
+platform_environment: default
+# Include the separator in the prefix when you use one, for example lab1-.
+platform_hostname_prefix: ""
 platform_domain: example.com
-platform_fqdn: "{{ inventory_hostname }}.{{ platform_domain }}"
+
+platform_hostname: "{{ platform_hostname_prefix }}{{ inventory_hostname }}"
+platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
+
+# Terraform also reads this map when it provisions guests, so IP addresses are
+# owned once and shared by both Terraform and Ansible.
+# Keep entries for the guests you deploy in this environment.
+# Use dhcp only for guests that are intentionally dynamic.
+platform_host_ips:
+  identity-1: 10.10.12.10
+  identity-2: 10.10.12.11
+  pki-1: 10.20.21.10
+  ceremony-1: 10.20.22.10
+  proxy-1: 10.30.30.10
+  vault-1: 10.10.10.21
+  lab-1: 10.20.20.10
+  support-1: 10.20.20.11
+  hsm-gw-1: 10.20.21.10
+  hsm-gw-2: 10.20.21.11
+  hsm-recovery-1: 10.20.22.10
+  hsm-provisioner-1: 10.20.22.11
+
+ansible_host: "{{ platform_host_ips.get(inventory_hostname, inventory_hostname) }}"
 
 baseline_timezone: Europe/Stockholm
 baseline_ntp_enabled: true

@@ -10,7 +10,8 @@ Usage:
 Options:
   --env NAME   Also create environment-specific local files, such as
                common.NAME.tfvars, terraform.NAME.tfvars, and
-               ansible/inventory/NAME.yml.
+               ansible/group_vars/all.NAME.yml. Omit for the base
+               production files.
   --overwrite  Replace existing local files from the current examples.
                Existing files are backed up first and ignored by Git.
   --clean-backups
@@ -20,6 +21,7 @@ Options:
 Examples:
   bash scripts/init-local-files.sh
   bash scripts/init-local-files.sh --env test
+  bash scripts/init-local-files.sh --env lab1
   bash scripts/init-local-files.sh --overwrite
   bash scripts/init-local-files.sh --clean-backups
 EOF
@@ -59,14 +61,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -n "$deployment_env" && ! "$deployment_env" =~ ^[A-Za-z0-9_-]+$ ]]; then
-  echo "--env may only contain letters, numbers, underscores, and dashes." >&2
+if [[ -n "$deployment_env" && ! "$deployment_env" =~ ^[A-Za-z0-9-]+$ ]]; then
+  echo "--env may only contain letters, numbers, and dashes." >&2
   exit 1
 fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 created=0
 updated=0
+last_file_changed=false
 backup_suffix="$(date +%Y%m%d%H%M%S)"
 backup_name_pattern="*.bak.[0-9][0-9][0-9][0-9][0-9][0-9]"
 backup_name_pattern+="[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]"
@@ -107,6 +110,7 @@ create_from_example() {
   if [[ -f "$target_path" ]]; then
     if [[ "$overwrite" == false ]]; then
       echo "exists  $target_path"
+      last_file_changed=false
       return
     fi
 
@@ -116,6 +120,7 @@ create_from_example() {
     echo "updated $target_path"
     echo "backup  $backup_path"
     updated=$((updated + 1))
+    last_file_changed=true
     return
   fi
 
@@ -123,6 +128,7 @@ create_from_example() {
   cp "$source_path" "$target_path"
   echo "created $target_path"
   created=$((created + 1))
+  last_file_changed=true
 }
 
 echo "==> Initializing repo-local files"
@@ -166,12 +172,22 @@ for terraform_env_dir in "$repo_root"/terraform/environments/*; do
 done
 
 if [[ -n "$deployment_env" ]]; then
+  environment_vars_file="$repo_root/ansible/group_vars/all.$deployment_env.yml"
+
   create_from_example \
     "$repo_root/terraform/common.tfvars.example" \
     "$repo_root/terraform/common.$deployment_env.tfvars"
   create_from_example \
-    "$repo_root/ansible/inventory/hosts.yml.example" \
-    "$repo_root/ansible/inventory/$deployment_env.yml"
+    "$repo_root/ansible/group_vars/all.env.yml.example" \
+    "$environment_vars_file"
+  if [[ "$last_file_changed" == true ]]; then
+    sed -i "s/platform_environment: lab1/platform_environment: $deployment_env/" \
+      "$environment_vars_file"
+    sed -i "s/platform_hostname_prefix: lab1-/platform_hostname_prefix: $deployment_env-/" \
+      "$environment_vars_file"
+    sed -i "s/platform_domain: lab1.example.com/platform_domain: $deployment_env.example.com/" \
+      "$environment_vars_file"
+  fi
   create_from_example \
     "$repo_root/ansible/group_vars/foundation.yml.example" \
     "$repo_root/ansible/group_vars/foundation.$deployment_env.yml"

@@ -14,7 +14,8 @@ Setups:
   hsm-lab
 
 Options:
-  --env NAME        Use terraform.NAME.tfvars and separate local state.
+  --env NAME        Use terraform.NAME.tfvars, ansible/group_vars/all.NAME.yml,
+                   and separate local state. Omit for production.
   --env-file PATH   Override the deployment environment file path.
                    By default, .env.local is used when it exists.
   --var-file PATH   Override the environment-specific Terraform variable file.
@@ -32,11 +33,10 @@ Options:
 
 Examples:
   bash scripts/deploy.sh foundation
-  bash scripts/deploy.sh foundation --env-file secrets/proxmox.env
   bash scripts/deploy.sh foundation --env test --plan-only
-  bash scripts/deploy.sh foundation --env prod \
-    --inventory ansible/inventory/prod.yml \
-    --ansible-vars ansible/group_vars/foundation.prod.yml
+  bash scripts/deploy.sh foundation --env-file secrets/proxmox.env
+  bash scripts/deploy.sh foundation --env lab1 \
+    --ansible-vars ansible/group_vars/foundation.lab1.yml
   bash scripts/deploy.sh foundation --env test --destroy
   bash scripts/deploy.sh vault --plan-only
   bash scripts/deploy.sh hsm-lab --auto-approve
@@ -56,7 +56,8 @@ terraform_only=false
 ansible_only=false
 auto_approve=false
 destroy=false
-deployment_env="default"
+deployment_env="prod"
+explicit_env=false
 env_file_path=""
 var_file_path=""
 common_var_file_path=""
@@ -71,6 +72,7 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       deployment_env="$2"
+      explicit_env=true
       shift 2
       ;;
     --var-file)
@@ -160,13 +162,20 @@ if [[ "$destroy" == true && "$ansible_only" == true ]]; then
   exit 1
 fi
 
-if [[ ! "$deployment_env" =~ ^[A-Za-z0-9_-]+$ ]]; then
-  echo "--env may only contain letters, numbers, underscores, and dashes." >&2
+if [[ ! "$deployment_env" =~ ^[A-Za-z0-9-]+$ ]]; then
+  echo "--env may only contain letters, numbers, and dashes." >&2
   exit 1
 fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ansible_dir="$repo_root/ansible"
+ansible_group_vars_paths=("$ansible_dir/group_vars/all.yml")
+environment_ansible_vars_path=""
+
+if [[ "$explicit_env" == true ]]; then
+  environment_ansible_vars_path="$ansible_dir/group_vars/all.$deployment_env.yml"
+  ansible_group_vars_paths+=("$environment_ansible_vars_path")
+fi
 
 if [[ -z "$inventory_path" ]]; then
   inventory_path="$ansible_dir/inventory/hosts.yml"
@@ -180,7 +189,7 @@ elif [[ -n "$env_file_path" && "$env_file_path" != /* ]]; then
   env_file_path="$repo_root/$env_file_path"
 fi
 
-if [[ -z "$common_var_file_path" && "$deployment_env" != "default" \
+if [[ -z "$common_var_file_path" && "$explicit_env" == true \
   && -f "$repo_root/terraform/common.$deployment_env.tfvars" ]]; then
   common_var_file_path="$repo_root/terraform/common.$deployment_env.tfvars"
 elif [[ -z "$common_var_file_path" && -f "$repo_root/terraform/common.tfvars" ]]; then
@@ -230,22 +239,26 @@ case "$setup_name" in
     ;;
 esac
 
-if [[ -z "$var_file_path" ]]; then
-  if [[ "$deployment_env" == "default" ]]; then
-    var_file_path="$terraform_dir/terraform.tfvars"
-  else
-    var_file_path="$terraform_dir/terraform.$deployment_env.tfvars"
-  fi
+if [[ -z "$var_file_path" && "$explicit_env" == true ]]; then
+  var_file_path="$terraform_dir/terraform.$deployment_env.tfvars"
+elif [[ -z "$var_file_path" ]]; then
+  var_file_path="$terraform_dir/terraform.tfvars"
 elif [[ "$var_file_path" != /* ]]; then
   var_file_path="$repo_root/$var_file_path"
 fi
 
 required_files=("$var_file_path" "${required_files[@]}")
+if [[ -n "$environment_ansible_vars_path" ]]; then
+  required_files=("$environment_ansible_vars_path" "${required_files[@]}")
+fi
 if [[ -n "$common_var_file_path" ]]; then
   required_files=("$common_var_file_path" "${required_files[@]}")
 fi
 
 resolved_ansible_vars_paths=()
+if [[ -n "$environment_ansible_vars_path" ]]; then
+  resolved_ansible_vars_paths+=("$environment_ansible_vars_path")
+fi
 for ansible_vars_path in "${ansible_vars_paths[@]}"; do
   if [[ "$ansible_vars_path" != /* ]]; then
     ansible_vars_path="$repo_root/$ansible_vars_path"
@@ -255,7 +268,7 @@ for ansible_vars_path in "${ansible_vars_paths[@]}"; do
   required_files+=("$ansible_vars_path")
 done
 
-if [[ "$setup_name" == "foundation" && "${#resolved_ansible_vars_paths[@]}" -eq 0 ]]; then
+if [[ "$setup_name" == "foundation" && "${#ansible_vars_paths[@]}" -eq 0 ]]; then
   required_files+=("$ansible_dir/group_vars/foundation.yml")
 fi
 
@@ -361,7 +374,7 @@ check_required_files() {
       echo "  - $file_path" >&2
     done
     echo "Run scripts/init-local-files.sh, then edit the generated files before deployment." >&2
-    if [[ "$deployment_env" != "default" ]]; then
+    if [[ "$explicit_env" == true ]]; then
       echo "For this environment, use scripts/init-local-files.sh --env $deployment_env." >&2
     fi
     exit 1
@@ -389,7 +402,18 @@ run_terraform() {
     if [[ -n "$common_var_file_path" ]]; then
       terraform_args+=("-var-file=$common_var_file_path")
     fi
+    terraform_group_vars_arg="["
+    terraform_group_vars_separator=""
+    for group_vars_path in "${ansible_group_vars_paths[@]}"; do
+      escaped_group_vars_path="${group_vars_path//\\/\\\\}"
+      escaped_group_vars_path="${escaped_group_vars_path//\"/\\\"}"
+      terraform_group_vars_arg+="$terraform_group_vars_separator\"$escaped_group_vars_path\""
+      terraform_group_vars_separator=","
+    done
+    terraform_group_vars_arg+="]"
+
     terraform_args+=("-var=ansible_inventory_path=$inventory_path")
+    terraform_args+=("-var=ansible_group_vars_paths=$terraform_group_vars_arg")
     terraform_args+=("-var-file=$var_file_path")
 
     if [[ "$destroy" == true ]]; then

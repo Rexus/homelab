@@ -6,8 +6,9 @@
 cluster_name = "vault-change-me"
 
 vm_instances = {
-  # Keys are the short hostnames and Proxmox VM names.
-  "test-vault-1" = {
+  # Keys match the stable logical host names in the Ansible inventory.
+  # The environment prefix from Ansible group vars becomes the Proxmox VM name.
+  "vault-1" = {
     size             = "large"
     storage_class    = "local"
     disk_size_gb     = 40

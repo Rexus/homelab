@@ -69,11 +69,17 @@ For provider credentials, use one of these paths:
 | local ignored env file | use the default `.env.local` file |
 | another env file path | pass `--env-file path/to/file` |
 
-For a disposable run before production, keep a separate ignored var file such
-as `terraform.test.tfvars` and run the setup with `--env test`. Use the same
-environment name with `--destroy` when you want to remove that test deployment.
-Use `--inventory` and `--ansible-vars` when the Ansible inventory or service
-variables also differ between test and production.
+No `--env` means production and uses the base local files. For a disposable run
+before production, use `--env test`. You can also use custom environment names
+such as `lab1`, `dev`, or `staging` when those match how you operate.
+
+The wrapper keeps the same main inventory and loads
+`ansible/group_vars/all.<env>.yml` for the environment prefix, domain, and IP
+map when you pass `--env`. That file is generated from
+`ansible/group_vars/all.env.yml.example`.
+Use DNS-safe environment names with letters, numbers, and dashes.
+The initializer fills the prefix from `--env`; you still edit the domain and
+IPs before deployment.
 
 When `terraform/common.test.tfvars` exists, `--env test` uses it instead of
 the default `terraform/common.tfvars`. Use that for environment-wide values
@@ -81,8 +87,9 @@ such as the default Proxmox node, VLANs, subnets, storage mappings, and
 template IDs.
 
 The wrapper keeps local Terraform state separate per setup and environment,
-for example `.terraform/state/foundation/test/terraform.tfstate`. Keep test
-and production state separate; do not reuse one state file for both.
+for example `.terraform/state/foundation/test/terraform.tfstate`. Keep every
+environment state separate; do not reuse one state file for multiple
+environments.
 
 ## Automation VM example
 
@@ -153,38 +160,40 @@ After local setup is ready:
 1. prepare the VM template or image source
 2. prepare the deployment machine or automation VM with `ansible-core` and
    `terraform`
-3. initialize the repo-local files once, then keep editing those files as the
-   environment matures:
+3. initialize the repo-local files and the first disposable `test` environment:
 
 ```bash
-bash scripts/init-local-files.sh
+bash scripts/init-local-files.sh --env test
 ```
 
 4. edit `.env.local`, or provide the same values through the shell or runner
-5. run the repository deployment wrapper for the setup you want:
+5. run the repository deployment wrapper for the first `test` setup:
 
 ```bash
-bash scripts/deploy.sh foundation
+bash scripts/deploy.sh foundation --env test \
+  --ansible-vars ansible/group_vars/foundation.test.yml
 ```
 
 That wrapper checks the required local working files first, then runs the
 control-node precheck, and only after that runs the mapped Terraform and
 Ansible steps.
 
-For a disposable foundation test:
+Destroy the disposable foundation environment after validation:
 
 ```bash
-bash scripts/init-local-files.sh --env test
-bash scripts/deploy.sh foundation --env test \
-  --inventory ansible/inventory/test.yml \
-  --ansible-vars ansible/group_vars/foundation.test.yml
 bash scripts/deploy.sh foundation --env test --destroy
 ```
 
-The `--env test` initializer creates the matching ignored Terraform var file,
-inventory file, and service vars files for that environment.
+The `--env test` initializer creates the matching ignored Terraform var files,
+Ansible environment vars file, and setup vars files for that environment.
 
-6. continue with the identity foundation path, then the Vault foundation path and
+6. run production without `--env` after the test path is understood:
+
+```bash
+bash scripts/deploy.sh foundation
+```
+
+7. continue with the identity foundation path, then the Vault foundation path and
    secret strategy
 
 ## Read more
