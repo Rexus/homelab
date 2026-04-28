@@ -49,13 +49,13 @@ bash scripts/init-local-files.sh --env test
 4. Run the repository deployment wrapper for the `test` environment:
 
 ```bash
-bash scripts/deploy.sh foundation --env test \
-  --ansible-vars ansible/group_vars/foundation.test.yml
+bash scripts/deploy.sh foundation --env test
 ```
 
 This wrapper runs the local control-node precheck first, then the mapped
-Terraform and Ansible steps for that setup. Read the detailed flow in the
-[identity foundation path](docs/foundation/identity-foundation-path.md).
+Terraform and Ansible steps for that setup. With `--env test`, it also loads
+the matching ignored Ansible vars files for that environment. Read the detailed
+flow in the [identity foundation path](docs/foundation/identity-foundation-path.md).
 
 5. Destroy the test deployment when you are done validating the first run:
 

@@ -14,16 +14,16 @@ Setups:
   hsm-lab
 
 Options:
-  --env NAME        Use ansible/group_vars/all.NAME.yml and separate local
-                   state. Optional terraform.NAME.tfvars files are layered
-                   only when present. Omit for production.
+  --env NAME        Use ansible/group_vars/all.NAME.yml, matching setup vars,
+                   and separate local state. Optional terraform.NAME.tfvars
+                   files are layered only when present. Omit for production.
   --env-file PATH   Override the deployment environment file path.
                    By default, .env.local is used when it exists.
   --var-file PATH   Override the base setup Terraform variable file.
   --common-var-file PATH
                    Override the shared Terraform variable file.
   --ansible-vars PATH
-                   Add an Ansible vars file for the mapped playbooks.
+                   Add an extra Ansible vars file after automatic vars.
   --plan-only       Run Terraform init and plan, then stop.
   --terraform-only  Run the precheck and Terraform only.
   --ansible-only    Run the precheck and mapped Ansible playbooks only.
@@ -36,8 +36,7 @@ Examples:
   bash scripts/deploy.sh foundation
   bash scripts/deploy.sh foundation --env test --plan-only
   bash scripts/deploy.sh foundation --env-file secrets/proxmox.env
-  bash scripts/deploy.sh foundation --env lab1 \
-    --ansible-vars ansible/group_vars/foundation.lab1.yml
+  bash scripts/deploy.sh foundation --env lab1
   bash scripts/deploy.sh foundation --env test --destroy
   bash scripts/deploy.sh vault --plan-only
   bash scripts/deploy.sh hsm-lab --auto-approve
@@ -174,6 +173,9 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ansible_dir="$repo_root/ansible"
 ansible_group_vars_paths=("$ansible_dir/group_vars/all.yml")
 environment_ansible_vars_path=""
+setup_ansible_vars_base_path=""
+environment_setup_ansible_vars_path=""
+setup_ansible_vars_required=false
 
 if [[ "$explicit_env" == true ]]; then
   environment_ansible_vars_path="$ansible_dir/group_vars/all.$deployment_env.yml"
@@ -210,6 +212,8 @@ case "$setup_name" in
   foundation)
     terraform_dir="$repo_root/terraform/environments/foundation"
     ansible_playbooks=("foundation.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/foundation.yml"
+    setup_ansible_vars_required=true
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"
@@ -226,10 +230,11 @@ case "$setup_name" in
   vault)
     terraform_dir="$repo_root/terraform/environments/vault"
     ansible_playbooks=("vault.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/vault.yml"
+    setup_ansible_vars_required=true
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"
-      "$ansible_dir/group_vars/vault.yml"
     )
     ;;
   hsm-lab)
@@ -259,9 +264,21 @@ if [[ "$explicit_env" == true \
   environment_var_file_path="$terraform_dir/terraform.$deployment_env.tfvars"
 fi
 
+if [[ "$explicit_env" == true ]]; then
+  setup_env_candidate_path="$ansible_dir/group_vars/$setup_name.$deployment_env.yml"
+  if [[ "$setup_ansible_vars_required" == true || -f "$setup_env_candidate_path" ]]; then
+    environment_setup_ansible_vars_path="$setup_env_candidate_path"
+  fi
+fi
+
 required_files=("$var_file_path" "${required_files[@]}")
 if [[ -n "$environment_ansible_vars_path" ]]; then
   required_files=("$environment_ansible_vars_path" "${required_files[@]}")
+fi
+if [[ -n "$environment_setup_ansible_vars_path" ]]; then
+  required_files=("$environment_setup_ansible_vars_path" "${required_files[@]}")
+elif [[ "$setup_ansible_vars_required" == true ]]; then
+  required_files=("$setup_ansible_vars_base_path" "${required_files[@]}")
 fi
 if [[ -n "$common_var_file_path" ]]; then
   required_files=("$common_var_file_path" "${required_files[@]}")
@@ -277,6 +294,9 @@ resolved_ansible_vars_paths=()
 if [[ -n "$environment_ansible_vars_path" ]]; then
   resolved_ansible_vars_paths+=("$environment_ansible_vars_path")
 fi
+if [[ -n "$environment_setup_ansible_vars_path" ]]; then
+  resolved_ansible_vars_paths+=("$environment_setup_ansible_vars_path")
+fi
 for ansible_vars_path in "${ansible_vars_paths[@]}"; do
   if [[ "$ansible_vars_path" != /* ]]; then
     ansible_vars_path="$repo_root/$ansible_vars_path"
@@ -285,10 +305,6 @@ for ansible_vars_path in "${ansible_vars_paths[@]}"; do
   resolved_ansible_vars_paths+=("$ansible_vars_path")
   required_files+=("$ansible_vars_path")
 done
-
-if [[ "$setup_name" == "foundation" && "${#ansible_vars_paths[@]}" -eq 0 ]]; then
-  required_files+=("$ansible_dir/group_vars/foundation.yml")
-fi
 
 load_env_file() {
   if [[ -z "$env_file_path" ]]; then

@@ -136,8 +136,8 @@ local data files and state:
 
 | Environment | Local var file | Wrapper command |
 | --- | --- | --- |
-| first validation run | `terraform/environments/foundation/terraform.tfvars` plus `ansible/group_vars/all.test.yml` | `bash scripts/deploy.sh foundation --env test` |
-| lab, dev, or staging | `terraform/environments/foundation/terraform.tfvars` plus `ansible/group_vars/all.lab1.yml` | `bash scripts/deploy.sh foundation --env lab1` |
+| first validation run | `terraform/environments/foundation/terraform.tfvars` plus `ansible/group_vars/all.test.yml` and `foundation.test.yml` | `bash scripts/deploy.sh foundation --env test` |
+| lab, dev, or staging | `terraform/environments/foundation/terraform.tfvars` plus matching Ansible env and setup vars | `bash scripts/deploy.sh foundation --env lab1` |
 | production | `terraform/environments/foundation/terraform.tfvars` | `bash scripts/deploy.sh foundation` |
 
 The wrapper stores local Terraform state separately per setup and environment,
@@ -160,17 +160,17 @@ No `--env` means production and uses the base local files:
 `terraform/common.tfvars`, `terraform/environments/foundation/terraform.tfvars`,
 `ansible/group_vars/all.yml`, and `ansible/group_vars/foundation.yml`.
 
-If FreeIPA values differ between disposable environments, pass an ignored vars
-file with `--ansible-vars`, such as
-`ansible/group_vars/foundation.test.yml`.
+With `--env`, the wrapper automatically loads both environment-wide vars and
+foundation setup vars, for example `ansible/group_vars/all.test.yml` and
+`ansible/group_vars/foundation.test.yml`. Use `--ansible-vars` only for an
+extra one-off override.
 
 Example with the recommended first `test` inputs:
 
 ```bash
 bash scripts/init-local-files.sh --env test
 
-bash scripts/deploy.sh foundation --env test \
-  --ansible-vars ansible/group_vars/foundation.test.yml
+bash scripts/deploy.sh foundation --env test
 ```
 
 The wrapper automatically loads `.env.local` when it exists. Add

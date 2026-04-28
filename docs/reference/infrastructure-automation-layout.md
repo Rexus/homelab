@@ -40,6 +40,11 @@ Proxmox name, so IPs and names are not maintained in both tools.
 Every Terraform guest key should have a matching `platform_host_ips` entry, or
 the value `dhcp` when that guest is intentionally dynamic.
 
+When `--env` is used, the wrapper loads both the environment-wide vars file and
+the matching setup vars file when that setup has one. For example,
+`--env test` with `foundation` loads `all.test.yml` and
+`foundation.test.yml`.
+
 Use `default_proxmox_node_name` for the normal Proxmox placement target.
 Only set `proxmox_node_name` on an individual guest when you intentionally
 override that default for a clustered Proxmox placement.
@@ -63,7 +68,7 @@ the data that changes:
 | Optional shared Terraform overlay | `terraform/common.test.tfvars` | not used by default |
 | Ansible inventory | `ansible/inventory/hosts.yml` | `ansible/inventory/hosts.yml` |
 | Ansible environment vars | `ansible/group_vars/all.test.yml` from `all.env.yml.example` | `ansible/group_vars/all.yml` |
-| Ansible setup vars | `ansible/group_vars/foundation.test.yml` | `ansible/group_vars/foundation.yml` |
+| Ansible setup vars | `ansible/group_vars/foundation.test.yml`, loaded by `--env test` | `ansible/group_vars/foundation.yml` |
 | Terraform state | `.terraform/state/foundation/test/terraform.tfstate` | `.terraform/state/foundation/prod/terraform.tfstate` |
 
 The repository wrapper keeps Terraform state separate per setup and

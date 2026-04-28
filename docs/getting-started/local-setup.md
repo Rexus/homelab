@@ -73,10 +73,10 @@ No `--env` means production and uses the base local files. For a disposable run
 before production, use `--env test`. You can also use custom environment names
 such as `lab1`, `dev`, or `staging` when those match how you operate.
 
-The wrapper keeps the same main inventory and loads
-`ansible/group_vars/all.<env>.yml` for hostname decoration, domain, and IP map
-when you pass `--env`. That file is generated from
-`ansible/group_vars/all.env.yml.example`.
+The wrapper keeps the same main inventory and loads the matching ignored
+Ansible vars files when you pass `--env`. For `--env test`, that means
+`ansible/group_vars/all.test.yml` and setup-specific files such as
+`ansible/group_vars/foundation.test.yml`.
 Use DNS-safe environment names with letters, numbers, and dashes.
 The initializer fills the prefix from `--env`; you still edit the domain and
 IPs before deployment. If you prefer suffix-style names, clear the prefix and
@@ -171,8 +171,7 @@ bash scripts/init-local-files.sh --env test
 5. run the repository deployment wrapper for the first `test` setup:
 
 ```bash
-bash scripts/deploy.sh foundation --env test \
-  --ansible-vars ansible/group_vars/foundation.test.yml
+bash scripts/deploy.sh foundation --env test
 ```
 
 That wrapper checks the required local working files first, then runs the
@@ -185,8 +184,8 @@ Destroy the disposable foundation environment after validation:
 bash scripts/deploy.sh foundation --env test --destroy
 ```
 
-The `--env test` initializer creates the matching Ansible environment vars file
-and setup vars files for that environment. Terraform keeps using the base
+The `--env test` initializer creates the matching Ansible environment vars and
+setup vars files for that environment. Terraform keeps using the base
 Terraform vars unless you create an environment-specific override.
 
 6. run production without `--env` after the test path is understood:

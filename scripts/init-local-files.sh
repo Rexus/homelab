@@ -9,8 +9,8 @@ Usage:
 
 Options:
   --env NAME   Also create environment-specific Ansible files, such as
-               ansible/group_vars/all.NAME.yml. Omit for the base
-               production files.
+               all.NAME.yml and setup vars like foundation.NAME.yml.
+               Omit for the base production files.
   --overwrite  Replace existing local files from the current examples.
                Existing files are backed up first and ignored by Git.
   --clean-backups
