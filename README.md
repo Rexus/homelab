@@ -17,7 +17,7 @@ not push operational changes back to this upstream.
 
 Use the foundation fast path below for the shortest first run. For a fuller
 walkthrough of the same flow, start with
-[docs/foundation/foundation-and-domain-path.md](docs/foundation/foundation-and-domain-path.md).
+[docs/foundation/identity-foundation-path.md](docs/foundation/identity-foundation-path.md).
 If your local tooling still needs to be prepared, read
 [docs/getting-started/local-setup.md](docs/getting-started/local-setup.md).
 If you want the broader documentation map, use [docs/README.md](docs/README.md).
@@ -48,7 +48,7 @@ bash scripts/deploy.sh foundation
 
 This wrapper runs the local control-node precheck first, then the mapped
 Terraform and Ansible steps for that setup. For `foundation`, it prepares the
-domain foundation layer first. The current reference shape is `2` identity
+identity foundation layer first. The current reference shape is `2` identity
 hosts plus `1` issuing CA host before Vault.
 It also checks that the required local config files exist before the run, such
 as the shared `terraform/common.tfvars`, environment `terraform.tfvars`,
@@ -78,7 +78,7 @@ After reviewing files refreshed with `--overwrite`, remove old backups with
 
 Recommended maturity path:
 
-- start with local example files and the smallest possible bootstrap-only secret set
+- start with local example files and the smallest possible first-run secret set
 - deploy the identity and PKI foundation first
 - establish naming, DNS, and the first issuing-CA path needed by early
   services
@@ -94,6 +94,7 @@ Read more in:
 - [docs/getting-started/private-cloud-maturity-path.md](docs/getting-started/private-cloud-maturity-path.md)
 - [Proxmox backup foundation](docs/platforms/proxmox/backup-foundation.md)
 - [docs/reference/environment-variables.md](docs/reference/environment-variables.md)
+- [docs/reference/infrastructure-automation-layout.md](docs/reference/infrastructure-automation-layout.md)
 - [docs/security/secret-strategy.md](docs/security/secret-strategy.md)
 - [docs/architecture/overview.md](docs/architecture/overview.md)
 - [docs/README.md](docs/README.md)
@@ -103,7 +104,7 @@ Read more in:
 - `docs/` overview, foundation, getting started, platform guides, security,
   architecture, reference, and decisions
 - `packer/` image build workflow and example variable files
-- `terraform/` infrastructure provisioning layout and bootstrap environments
+- `terraform/` infrastructure provisioning layout and deployment environments
 - `ansible/` configuration management layout, inventory examples, and playbooks
 - `scripts/` repo-local initialization and deployment wrappers that keep the
   control-node precheck in front of each setup run

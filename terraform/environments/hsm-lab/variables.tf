@@ -32,6 +32,12 @@ variable "cluster_name" {
   type        = string
 }
 
+variable "ansible_inventory_path" {
+  description = "Ansible inventory used as the source of truth for host identity and IPs."
+  type        = string
+  default     = "../../../ansible/inventory/hosts.yml"
+}
+
 variable "lab_variant" {
   description = "Whether the lab is intended for hardware-backed or software-only PKCS#11."
   type        = string
@@ -87,37 +93,27 @@ variable "default_lxc_network_zone_key" {
 }
 
 variable "vm_instances" {
-  description = "VM definitions keyed by a local logical name."
+  description = "VM hardware definitions keyed by Ansible inventory host."
   type = map(object({
-    name             = string
     node_name        = string
     template_vm_id   = optional(number)
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number
     network_zone_key = optional(string)
-    ipv4_address     = optional(string)
-    ipv4_gateway     = optional(string)
-    role             = optional(string)
-    tags             = optional(list(string))
   }))
   default = {}
 }
 
 variable "lxc_instances" {
-  description = "LXC definitions keyed by a local logical name."
+  description = "LXC hardware definitions keyed by Ansible inventory host."
   type = map(object({
-    name             = string
     node_name        = string
     template_file_id = string
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number
     network_zone_key = optional(string)
-    ipv4_address     = optional(string)
-    ipv4_gateway     = optional(string)
-    role             = optional(string)
-    tags             = optional(list(string))
   }))
   default = {}
 }

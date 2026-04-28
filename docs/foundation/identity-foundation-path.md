@@ -1,4 +1,4 @@
-# Domain foundation path
+# Identity foundation path
 
 ## Table of contents
 
@@ -14,7 +14,7 @@
 
 ## Purpose
 
-Use this path for the first managed domain foundation after the Proxmox and
+Use this path for the first managed identity foundation after the Proxmox and
 network prerequisites exist.
 
 The current reference shape is:
@@ -24,7 +24,7 @@ The current reference shape is:
 - `0-1` offline root CA host in `ceremony`
 
 This is the default authority path for the repository. Keep Windows support as
-an optional layer after the domain foundation is stable.
+an optional layer after the identity foundation is stable.
 
 ## Before you start
 
@@ -49,7 +49,7 @@ Use this as the starting point:
 | identity hosts | `2` | `identity` | `FreeIPA`, DNS, and the first identity authority |
 | issuing CA host | `1` | `cryptography` | online issuing CA for the platform |
 | root CA host | `0` by default | `ceremony` | optional offline root CA or ceremony host |
-| edge proxy host | `0` by default | `dmz` | optional later edge or ingress layer |
+| edge proxy host | `0` by default | `external_ingress` | optional later edge or ingress layer |
 
 Keep the root CA host separate from the identity hosts when you use it. Treat
 it as a ceremony system that should normally stay offline outside planned CA
@@ -66,7 +66,7 @@ Edit these local files before you deploy:
 | --- | --- |
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
 | [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | the foundation VMs in `vm_instances` |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | `identity_primary`, `identity_replicas`, `pki_issuers`, optional `pki_ceremony`, and optional `proxies` groups |
+| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | hostnames, `ansible_host`, Proxmox display names, tags, and foundation groups |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
 
 ## IaC used for this
@@ -76,7 +76,7 @@ Use these repo paths here:
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments | your local `terraform/common.tfvars` |
-| [`terraform/environments/foundation/`](../../terraform/environments/foundation/README.md) | provisions the foundation VM layout for identity, PKI, and optional edge hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
+| [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity, PKI, and optional edge hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the foundation inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | starting point for FreeIPA and foundation service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
 | [`ansible/playbooks/foundation.yml`](../../ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
@@ -84,7 +84,8 @@ Use these repo paths here:
 
 Current boundary:
 
-- Terraform prepares the domain foundation host layout
+- Ansible inventory owns host identity, IPs, service groups, and Proxmox tags
+- Terraform prepares the identity foundation hardware layout
 - the foundation playbook prepares those hosts for managed operation
 - the foundation playbook installs the first `FreeIPA` host, verifies it, and
   then installs the replica hosts
@@ -101,7 +102,7 @@ The foundation playbook handles `FreeIPA` as a staged deployment:
 | primary identity | the single host in `identity_primary` gets the first `FreeIPA` server | `ipactl status` and `ipa ping` pass |
 | replica identity | hosts in `identity_replicas` are configured one at a time | the same checks pass on every identity host |
 
-Keep exactly one host in `identity_primary`. Add additional domain controllers
+Keep exactly one host in `identity_primary`. Add additional identity replicas
 under `identity_replicas` so the first authority is always verified before the
 redundant pair is completed.
 
@@ -118,7 +119,7 @@ different authority layout.
 - keep the issuing CA on its own dedicated host in `cryptography`
 - enable a root CA host in `ceremony` only when you want a separate offline
   ceremony system from the start
-- keep the edge proxy commented until your environment actually needs `dmz`
+- keep the edge proxy commented until your environment actually needs external
   ingress
 - keep the inventory groups aligned with the host intent:
   `identity_primary`, `identity_replicas`, `pki_issuers`, optional
@@ -176,7 +177,7 @@ After the foundation hosts are ready:
 
 ## Read more
 
-- [Foundation environment](../../terraform/environments/foundation/README.md)
+- [Infrastructure automation layout](../reference/infrastructure-automation-layout.md)
 - [Windows and AD support](windows-support.md)
 - [Vault foundation deployment](vault-foundation-deployment.md)
 - [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)

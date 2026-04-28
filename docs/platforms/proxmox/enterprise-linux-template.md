@@ -246,8 +246,7 @@ sudo shutdown -h now
 14. After the VM stops, select `SSH public keys`, click `Edit`, remove the
     temporary key, then apply the change.
 15. Right click on the VM and chose `Convert to template`.
-16. Record the resulting template VM ID in
-    `terraform/environments/bootstrap/terraform.tfvars`.
+16. Record the resulting template VM ID in `terraform/common.tfvars`.
 
 ## What to keep in the template
 
@@ -276,6 +275,6 @@ Configure these at deploy time with Terraform and Ansible:
 
 - [Proxmox planning guidelines](conventions.md)
 - [Proxmox reference platform](README.md)
-- [Packer Proxmox templates](../../../packer/templates/proxmox/README.md)
+- [Infrastructure automation layout](../../reference/infrastructure-automation-layout.md)
 - [Private cloud maturity path](../../getting-started/private-cloud-maturity-path.md)
 - [Environment variable conventions](../../reference/environment-variables.md)

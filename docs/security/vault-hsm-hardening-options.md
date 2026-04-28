@@ -27,7 +27,7 @@ dependency.
 
 Use this order:
 
-1. deploy one dedicated Vault VM after the bootstrap domain foundation layer
+1. deploy one dedicated Vault VM after the identity foundation layer
    is ready
 2. use Shamir seal for the first node
 3. move shared secrets into Vault

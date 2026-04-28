@@ -34,7 +34,7 @@ Use [Network zones and IaC mapping](../../architecture/network-zones-and-iac-map
 as the source of truth for:
 
 - zone names such as `management`, `access`, `identity`, `application`,
-  `cryptography`, `dmz`, and `ceremony`
+  `cryptography`, `external_ingress`, and `ceremony`
 - the deployable guest `network_zones` keys used in Terraform
 - the bridge, VLAN, and subnet values you fill in locally
 
@@ -82,7 +82,7 @@ flowchart LR
       Vmbr1[vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500]
       Corosync2[host-management IPs<br/>Proxmox UI, API, SSH]
       CephPublic[corosync 1]
-      CephCluster[access, identity, application,<br/>dmz, cryptography, ceremony guests]
+      CephCluster[access, identity, application,<br/>external_ingress, cryptography, ceremony guests]
 
       Bond1 --> Vmbr1
       Vmbr1 --> Corosync2
@@ -149,7 +149,7 @@ hosts themselves use.
 | `ceph_public` | `vmbr1` | `9000` | separate from guest traffic when possible |
 | `ceph_cluster` | `vmbr1` | `9000` | keep distinct from `ceph_public` for Ceph replication and recovery |
 
-Guest VLANs such as `access`, `identity`, `application`, `dmz`,
+Guest VLANs such as `access`, `identity`, `application`, `external_ingress`,
 `cryptography`, and `ceremony` are carried on the fabric bridge `vmbr0` and
 selected on each VM NIC by
 assigning the intended VLAN tag to that VM.

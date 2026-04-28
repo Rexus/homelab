@@ -13,12 +13,12 @@
 
 ## Purpose
 
-Use this guide after the domain foundation layer is in place and you are
+Use this guide after the identity foundation layer is in place and you are
 ready to deploy Vault as the early secret-platform foundation.
 
 ```mermaid
 flowchart LR
-  A[Domain foundation ready] --> B[Terraform creates dedicated Vault VM]
+  A[Identity foundation ready] --> B[Terraform creates dedicated Vault VM]
   B --> C[Ansible Vault playbook]
   C --> D[Vault service installed and sealed]
   D --> E[Operator init and unseal]
@@ -34,13 +34,13 @@ flowchart LR
   class D,F vaultNode
 ```
 
-Figure: Vault is deployed after the domain foundation layer exists and
-becomes the handoff point from bootstrap-only secrets to the long-term secret
+Figure: Vault is deployed after the identity foundation layer exists and
+becomes the handoff point from first-run secrets to the long-term secret
 platform.
 
 ## Before you start
 
-- the domain foundation deployment is already complete
+- the identity foundation deployment is already complete
 - identity, DNS, and the first PKI path already exist
 - the deployment machine already has `ansible-core` and `terraform`
 - naming and the first TLS path for Vault already exist
@@ -59,7 +59,7 @@ Edit these local files before you run the Vault foundation deployment:
 | --- | --- |
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
 | [`terraform/environments/vault/terraform.tfvars.example`](../../terraform/environments/vault/terraform.tfvars.example) | Vault VM definitions in `vm_instances` |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | the first Vault host in the `vault` inventory group |
+| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | Vault host identity, IPs, Proxmox display names, tags, and inventory group |
 | [`ansible/group_vars/vault.yml.example`](../../ansible/group_vars/vault.yml.example) | `vault_api_addr`, `vault_cluster_addr`, `vault_node_id`, TLS source paths, and listener settings |
 
 ### Deployment shape
@@ -88,7 +88,7 @@ Use these repo paths for the Vault foundation deployment:
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments | your local `terraform/common.tfvars` |
-| [`terraform/environments/vault/`](../../terraform/environments/vault/) | provisions one or more dedicated Vault VMs | `terraform/environments/vault/terraform.tfvars` based on `.example` |
+| [`terraform/environments/vault/terraform.tfvars.example`](../../terraform/environments/vault/terraform.tfvars.example) | provisions one or more dedicated Vault VMs | `terraform/environments/vault/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the `vault` inventory group | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/vault.yml.example`](../../ansible/group_vars/vault.yml.example) | starting point for Vault listener, TLS, and node settings | your local `ansible/group_vars/vault.yml` |
 | [`ansible/playbooks/vault.yml`](../../ansible/playbooks/vault.yml) | baseline host preparation and Vault installation on hosts in the `vault` group | inventory and Vault group variables |
@@ -96,6 +96,11 @@ Use these repo paths for the Vault foundation deployment:
 
 This deployment flow installs Vault and prepares the first node. Operator
 initialization, unseal handling, and secret handoff stay manual.
+
+Use the shared ownership rule from
+[Infrastructure automation layout](../reference/infrastructure-automation-layout.md):
+Ansible inventory owns host identity, IPs, and Proxmox tags, while the Vault
+Terraform environment owns hardware placement.
 
 ## How to shape the deployment
 
@@ -152,8 +157,8 @@ After Vault is initialized:
 
 ## Later hardening
 
-Use this guide only for the first Vault foundation deployment after the domain
-foundation layer.
+Use this guide only for the first Vault foundation deployment after the
+identity foundation layer.
 
 For later hardening, higher availability, and future HSM-related paths, continue
 with the security docs instead of extending this deployment guide:
@@ -164,7 +169,7 @@ with the security docs instead of extending this deployment guide:
 
 ## Read more
 
-- [Domain foundation path](foundation-and-domain-path.md)
+- [Identity foundation path](identity-foundation-path.md)
 - [Windows and AD support](windows-support.md)
 - [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
 - [Secret strategy](../security/secret-strategy.md)

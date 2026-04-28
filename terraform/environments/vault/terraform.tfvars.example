@@ -1,33 +1,20 @@
 # Copy to: terraform/environments/vault/terraform.tfvars
 # Replace every value before use.
-# Setup guide: README.md
+# Setup guide: docs/foundation/vault-foundation-deployment.md
 # Shared values live in ../../common.tfvars.
 
 cluster_name = "vault-change-me"
 
 vm_instances = {
-  vault01 = {
-    name             = "vault01-change-me"
+  # Keys match Ansible inventory hosts. Identity, IP, and tags live there.
+  "vault01-change-me" = {
     node_name        = "pve01-change-me"
     size             = "large"
     storage_class    = "local"
     disk_size_gb     = 40
     network_zone_key = "application"
-    ipv4_address     = "dhcp"
-    role             = "vault"
   }
 }
 
-lxc_instances = {
-  support01 = {
-    name             = "container-01-change-me"
-    node_name        = "pve01-change-me"
-    template_file_id = "local:vztmpl/el10-default_2024.x86_64.tar.xz"
-    size             = "tiny"
-    storage_class    = "local"
-    disk_size_gb     = 8
-    network_zone_key = "application"
-    ipv4_address     = "dhcp"
-    role             = "support"
-  }
-}
+# Keep Vault VM-only unless you have a specific helper-container use case.
+lxc_instances = {}

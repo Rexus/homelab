@@ -13,7 +13,7 @@
 
 This repository is designed to be easy to bootstrap while moving toward a
 stronger secret model quickly. Vault is the preferred target state and should be
-introduced as early as the bootstrap domain foundation layer can support it
+introduced as early as the identity foundation layer can support it
 safely.
 
 ## Design goal
@@ -35,12 +35,12 @@ Before Vault is available:
 - keep sensitive runtime values in local environment variables or protected
   runner variables
 - limit off-Vault secrets to the minimum needed to create the bootstrap
-  domain foundation layer and the shared prerequisites that enable Vault
+  identity foundation layer and the shared prerequisites that enable Vault
 - commit only examples, defaults, and reusable automation
 
 ## Vault foundation deployment milestone
 
-Once the bootstrap domain foundation layer and its prerequisites are ready:
+Once the identity foundation layer and its prerequisites are ready:
 
 - install Vault as a dedicated early shared service
 - initialize and unseal Vault before broader service deployment

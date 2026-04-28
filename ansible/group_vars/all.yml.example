@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/all.yml
 # Replace every value before use.
-# Setup guide: README.md
+# Reference: docs/reference/infrastructure-automation-layout.md
 
 ansible_user: automation-change-me
 ansible_port: 22

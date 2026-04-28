@@ -33,7 +33,7 @@ when the platform starts at homelab or small-datacenter scale.
 flowchart TB
   subgraph Edge["Edge layer"]
     E1["External zone<br/>Internet, WAN, partner networks"]
-    E2["DMZ zone<br/>Ingress, edge proxy, controlled egress"]
+    E2["external_ingress zone<br/>Ingress, edge proxy, controlled egress"]
   end
 
   subgraph App["Application layer"]
@@ -72,7 +72,7 @@ platform.
 
 Proxy placement in this architecture:
 
-- an edge proxy in `dmz` handles early ingress and controlled egress for
+- an edge proxy in `external_ingress` handles early ingress and controlled egress for
   infrastructure and host-based services
 - a separate internal cluster proxy can be added later when Kubernetes becomes
   part of the platform
@@ -82,7 +82,7 @@ Proxy placement in this architecture:
 Each tool has one primary job:
 
 - Packer builds reusable images when custom templates are needed
-- Terraform provisions domain foundation hosts first and later shared-service
+- Terraform provisions identity foundation hosts first and later shared-service
   hosts
 - Ansible applies baseline configuration first and then service-specific
   playbooks, such as Vault, on dedicated hosts
@@ -105,11 +105,11 @@ flowchart LR
   class G vaultNode
 ```
 
-Figure: image build, domain foundation bring-up, and later shared-service
+Figure: image build, identity foundation bring-up, and later shared-service
 deployment stay separate until the first Vault handoff.
 
-Vault is treated as an early shared service that follows the bootstrap
-domain foundation layer, so the platform can reduce bootstrap-only secret
+Vault is treated as an early shared service that follows the identity
+foundation layer, so the platform can reduce first-run secret
 handling before broader service deployment.
 
 ## Network references
@@ -118,7 +118,7 @@ Use the shared zone catalog in
 [Network zones and IaC mapping](network-zones-and-iac-mapping.md) when you pick
 subnets, VLANs, Proxmox bridges, and guest placement keys. That document is the
 repository source of truth for zone names such as `management`, `access`,
-`identity`, `application`, `cryptography`, `dmz`, and `ceremony`.
+`identity`, `application`, `cryptography`, `external_ingress`, and `ceremony`.
 
 ## Boundaries
 
@@ -141,5 +141,5 @@ Operating assumptions:
   systems
 - workload access to secrets and other high-trust services is explicit
 - network segmentation must already exist before full platform automation
-- the `dmz` edge proxy stays separate from any later Kubernetes-specific
+- the `external_ingress` edge proxy stays separate from any later Kubernetes-specific
   cluster proxy

@@ -30,18 +30,18 @@ Use this order when you are new to the repository or returning after time away:
 - [Local setup](getting-started/local-setup.md) - prepare local tooling before
   the first run when needed
 - [Private cloud maturity path](getting-started/private-cloud-maturity-path.md) -
-  path from domain foundation deployment to Vault, backup, and more serious use
+  path from identity foundation deployment to Vault, backup, and more serious use
 
 ## Foundation and early services
 
-- [Foundation index](foundation/README.md) - entry point for the domain
-  foundation, DNS, PKI, optional Windows support, and early secret-platform layers
-- [Domain foundation path](foundation/foundation-and-domain-path.md) - shortest
+- [Foundation index](foundation/README.md) - entry point for identity, DNS, PKI,
+  optional Windows support, and early secret-platform layers
+- [Identity foundation path](foundation/identity-foundation-path.md) - shortest
   path from local setup to the first managed identity and PKI foundation layer
 - [Windows and AD support](foundation/windows-support.md) - optional
   secondary path for Windows clients and AD-compatible support
 - [Vault foundation deployment](foundation/vault-foundation-deployment.md) -
-  early secret-platform deployment after the domain foundation and certificate
+  early secret-platform deployment after the identity foundation and certificate
   prerequisites exist
 
 ## Architecture and design
@@ -88,6 +88,8 @@ Use this order when you are new to the repository or returning after time away:
   authoritative env-var patterns for bootstrap and CI execution
 - [Environment file example](reference/environment-file-example.md) - local
   foundation example that complements the env-var conventions
+- [Infrastructure automation layout](reference/infrastructure-automation-layout.md) -
+  where the Terraform, Ansible, Packer, and wrapper code lives
 - [Ansible Vault bootstrap](reference/ansible-vault-bootstrap.md) - local vault
   password and encrypted bootstrap vars pattern
 - [Decision log](decisions/README.md) - concise record of architectural choices

@@ -8,7 +8,6 @@ Usage:
   ./scripts/deploy.sh <setup> [options]
 
 Setups:
-  bootstrap
   foundation
   lab
   vault
@@ -188,14 +187,6 @@ elif [[ -n "$common_var_file_path" && "$common_var_file_path" != /* ]]; then
 fi
 
 case "$setup_name" in
-  bootstrap)
-    terraform_dir="$repo_root/terraform/environments/bootstrap"
-    ansible_playbooks=("bootstrap.yml")
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
   foundation)
     terraform_dir="$repo_root/terraform/environments/foundation"
     ansible_playbooks=("foundation.yml")
@@ -396,6 +387,7 @@ run_terraform() {
     if [[ -n "$common_var_file_path" ]]; then
       terraform_args+=("-var-file=$common_var_file_path")
     fi
+    terraform_args+=("-var=ansible_inventory_path=$inventory_path")
     terraform_args+=("-var-file=$var_file_path")
 
     if [[ "$destroy" == true ]]; then

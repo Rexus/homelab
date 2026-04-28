@@ -1,33 +1,28 @@
 # Copy to: terraform/environments/lab/terraform.tfvars
 # Replace every value before use.
-# Setup guide: README.md
+# Reference: docs/reference/infrastructure-automation-layout.md
 # Shared values live in ../../common.tfvars.
 
 cluster_name = "lab-change-me"
 
 vm_instances = {
-  lab01 = {
-    name             = "el10-01-change-me"
+  # Keys match Ansible inventory hosts. Identity, IP, and tags live there.
+  "lab01-change-me" = {
     node_name        = "pve01-change-me"
     size             = "tiny"
     storage_class    = "local"
     disk_size_gb     = 20
     network_zone_key = "application"
-    ipv4_address     = "dhcp"
-    role             = "general"
   }
 }
 
 lxc_instances = {
-  support01 = {
-    name             = "container-01-change-me"
+  "support01-change-me" = {
     node_name        = "pve01-change-me"
     template_file_id = "local:vztmpl/el10-default_2024.x86_64.tar.xz"
     size             = "tiny"
     storage_class    = "local"
     disk_size_gb     = 8
     network_zone_key = "application"
-    ipv4_address     = "dhcp"
-    role             = "support"
   }
 }

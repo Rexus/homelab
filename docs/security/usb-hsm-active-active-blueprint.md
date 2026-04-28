@@ -30,14 +30,14 @@ it to other USB-backed PKCS#11 devices such as `YubiHSM 2` [1][2][3][4][5].
 
 Before you start:
 
-- the foundation edge proxy or proxy set is already deployed in `dmz`
+- the foundation edge proxy or proxy set is already deployed in `external_ingress`
 - the deployment machine already has `ansible-core` and `terraform`
 - the proxy hosts already exist in `ansible/inventory/hosts.yml`
 - this guide only reruns proxy-related Ansible to add or refresh HSM gateway
   backends
 
 If not, start with
-[`terraform/environments/foundation/`](../../terraform/environments/foundation/README.md).
+[Identity foundation path](../foundation/identity-foundation-path.md).
 
 ## Default deployment
 
@@ -54,7 +54,7 @@ The default shape in this repo is:
 flowchart TD
   Client[Clients or internal callers]
 
-  subgraph DMZ["DMZ"]
+  subgraph ExternalIngress["external_ingress"]
     LB[Edge proxy]
   end
 
@@ -76,7 +76,7 @@ flowchart TD
   LB -->|HTTPS or mTLS| GW1
   LB -->|HTTPS or mTLS| GW2
 
-  style DMZ fill:#ecfdf5,stroke:#15803d,stroke-width:2px,color:#1f2937
+  style ExternalIngress fill:#ecfdf5,stroke:#15803d,stroke-width:2px,color:#1f2937
   style HostA fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1f2937
   style HostB fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1f2937
 
@@ -120,7 +120,7 @@ These existing zones are only references here:
 
 | Zone key | Why it still matters here |
 | --- | --- |
-| `dmz` | already deployed edge proxy or proxy set reaches the cryptography hosts |
+| `external_ingress` | already deployed edge proxy or proxy set reaches the cryptography hosts |
 | `management` | admin access, automation, and metrics reach the HSM hosts |
 | `application` | shared internal callers may reach the cryptography hosts if you expose them internally |
 | `identity` | identity or PKI dependencies may still need controlled reachability to issuing services on the cryptography network |
@@ -134,10 +134,9 @@ network mappings in `terraform/common.tfvars`:
   for the gateway and helper layer
 
 Set the values your environment needs for `cryptography` and optional
-`ceremony`,
-such as bridge, VLAN, subnet, gateway, and addressing conventions.
-Reuse the existing `dmz`, `management`, `identity`, and `application` mappings from your
-prerequisite deployments.
+`ceremony`, such as bridge, VLAN, subnet, gateway, and addressing conventions.
+Reuse the existing `external_ingress`, `management`, `identity`, and
+`application` mappings from your prerequisite deployments.
 
 ### Firewall openings
 
@@ -146,7 +145,7 @@ ports:
 
 | Source zone | Destination zone | Default port or protocol | Purpose |
 | --- | --- | --- | --- |
-| `dmz` | `cryptography` | `8443/TCP` | deployed edge proxy to gateway service |
+| `external_ingress` | `cryptography` | `8443/TCP` | deployed edge proxy to gateway service |
 | `management` | `cryptography` | `22/TCP` | SSH, Ansible, and troubleshooting |
 | `management` | `ceremony` | `22/TCP` | helper or recovery host administration |
 | `application` | `cryptography` | `8443/TCP` optional | internal callers using the same gateway service endpoint |
@@ -197,14 +196,19 @@ Use these repo paths here:
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments | your local `terraform/common.tfvars` |
-| [`terraform/environments/hsm-lab/`](../../terraform/environments/hsm-lab/README.md) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm-lab/terraform.tfvars` based on `.example` |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the `proxies`, `hsm_gateways`, and `hsm_helpers` groups | your local `ansible/inventory/hosts.yml` |
+| [`terraform/environments/hsm-lab/terraform.tfvars.example`](../../terraform/environments/hsm-lab/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm-lab/terraform.tfvars` based on `.example` |
+| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | HSM host identity, IPs, Proxmox display names, tags, and inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
 | [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns proxy configuration so the already deployed edge proxy or proxies point at the HSM gateways | inventory and proxy variables |
 | [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm-lab` setup when you are ready to run it |
 
 You do not use foundation Terraform as part of this HSM rollout. It only
 assumes that the deployed proxy prerequisite already exists.
+
+Use the shared ownership rule from
+[Infrastructure automation layout](../reference/infrastructure-automation-layout.md):
+Ansible inventory owns host identity, IPs, and Proxmox tags, while the HSM
+Terraform environment owns hardware placement.
 
 ## How to shape the deployment
 

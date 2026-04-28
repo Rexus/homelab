@@ -47,38 +47,34 @@ variable "common_tags" {
   default     = []
 }
 
+variable "ansible_inventory_path" {
+  description = "Ansible inventory used as the source of truth for host identity and IPs."
+  type        = string
+  default     = "../../../ansible/inventory/hosts.yml"
+}
+
 variable "vm_instances" {
-  description = "VM definitions for the environment."
+  description = "VM hardware definitions keyed by Ansible inventory host."
   type = map(object({
-    name             = string
     node_name        = string
     template_vm_id   = optional(number)
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number
     network_zone_key = optional(string)
-    ipv4_address     = optional(string)
-    ipv4_gateway     = optional(string)
-    role             = optional(string)
-    tags             = optional(list(string))
   }))
   default = {}
 }
 
 variable "lxc_instances" {
-  description = "LXC definitions for the environment."
+  description = "LXC hardware definitions keyed by Ansible inventory host."
   type = map(object({
-    name             = string
     node_name        = string
     template_file_id = string
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number
     network_zone_key = optional(string)
-    ipv4_address     = optional(string)
-    ipv4_gateway     = optional(string)
-    role             = optional(string)
-    tags             = optional(list(string))
   }))
   default = {}
 }

@@ -10,8 +10,8 @@
 
 ## Purpose
 
-Use this path only when the environment needs Windows support after the domain
-foundation already exists.
+Use this path only when the environment needs Windows support after the
+identity foundation already exists.
 
 This is a secondary layer. It is not part of the default foundation deployment
 that prepares DNS, PKI, and Vault prerequisites.
@@ -20,7 +20,7 @@ that prepares DNS, PKI, and Vault prerequisites.
 
 Use this order:
 
-1. deploy the domain foundation first
+1. deploy the identity foundation first
 2. stabilize identity, DNS, certificate handling, and baseline operations
 3. add Windows support only when Windows clients or GPO requirements
    justify it
@@ -35,18 +35,18 @@ The repository direction is:
   in `cryptography`, and the offline root CA in `ceremony`
 - treat `Samba AD` as the current Windows support extension
 - keep Windows-specific domain join, GPO, and logon handling in this secondary
-  path instead of the default domain foundation path
+  path instead of the default identity foundation path
 
 ## Boundaries
 
-- do not make the default domain foundation path depend on Windows support
+- do not make the default identity foundation path depend on Windows support
 - do not make Vault deployment wait on a Windows-specific layer
 - keep Windows support as an optional compatibility and operations layer, not
   the primary repo identity model
 
 ## Read more
 
-- [Domain foundation path](foundation-and-domain-path.md)
+- [Identity foundation path](identity-foundation-path.md)
 - [Vault foundation deployment](vault-foundation-deployment.md)
 - [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
 - [Design decision log](../decisions/README.md)

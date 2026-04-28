@@ -1,55 +1,43 @@
 # Copy to: terraform/environments/hsm-lab/terraform.tfvars
 # Replace every value before use.
-# Setup guide: README.md
+# Setup guide: docs/security/usb-hsm-active-active-blueprint.md
 # Shared values live in ../../common.tfvars.
 
 cluster_name = "hsm-lab-change-me"
 lab_variant = "hardware"
 
-# Keep the shared DMZ edge proxy in terraform/environments/foundation by default.
-# The repository reference shape is one edge proxy there plus two gateway
-# hosts here, each with its own local USB HSM.
-# Add more gateway hosts by extending this map.
+# Keep the shared external ingress edge proxy in terraform/environments/foundation by default.
+# Keys match Ansible inventory hosts. Identity, IP, and tags live there.
+# The repository reference shape is one edge proxy in foundation plus two
+# gateway hosts here, each with its own local USB HSM.
 vm_instances = {
-  gateway01 = {
-    name             = "hsm-gw01-change-me"
+  "gateway01-change-me" = {
     node_name        = "pve01-change-me"
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "cryptography"
-    ipv4_address     = "dhcp"
-    role             = "gateway"
   }
-  gateway02 = {
-    name             = "hsm-gw02-change-me"
+  "gateway02-change-me" = {
     node_name        = "pve02-change-me"
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "cryptography"
-    ipv4_address     = "dhcp"
-    role             = "gateway"
   }
-  # recovery01 = {
-  #   name             = "hsm-recovery01-change-me"
+  # "recovery01-change-me" = {
   #   node_name        = "pve01-change-me"
   #   size             = "tiny"
   #   storage_class    = "local"
   #   disk_size_gb     = 20
   #   network_zone_key = "ceremony"
-  #   ipv4_address     = "dhcp"
-  #   role             = "helper"
   # }
-  # provisioner01 = {
-  #   name             = "hsm-provisioner01-change-me"
+  # "provisioner01-change-me" = {
   #   node_name        = "pve02-change-me"
   #   size             = "tiny"
   #   storage_class    = "local"
   #   disk_size_gb     = 20
   #   network_zone_key = "ceremony"
-  #   ipv4_address     = "dhcp"
-  #   role             = "helper"
   # }
 }
 

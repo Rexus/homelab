@@ -4,7 +4,7 @@
 
 - [Purpose](#purpose)
 - [Maturity overview](#maturity-overview)
-- [Level 1 - Domain foundation deployment](#level-1---domain-foundation-deployment)
+- [Level 1 - Identity foundation deployment](#level-1---identity-foundation-deployment)
 - [Level 2 - Vault foundation deployment](#level-2---vault-foundation-deployment)
 - [Level 3 - Backup foundation](#level-3---backup-foundation)
 - [Level 4 - Higher availability and production use](#level-4---higher-availability-and-production-use)
@@ -20,12 +20,12 @@ keeps the same milestones in Proxmox terms.
 
 | Level | Goal | Success criteria |
 | --- | --- | --- |
-| 1 | Domain foundation deployment | First template, foundation hosts, and the identity, DNS, and PKI services Vault depends on are in place |
+| 1 | Identity foundation deployment | First template, foundation hosts, and the identity, DNS, and PKI services Vault depends on are in place |
 | 2 | Vault foundation deployment | Vault is deployed as the early secret-platform foundation and ready for initialization |
 | 3 | Backup foundation | PBS is deployed, connected, and tested |
 | 4 | Higher availability and production use | Backup, recovery, and platform patterns support more serious use |
 
-## Level 1 - Domain foundation deployment
+## Level 1 - Identity foundation deployment
 
 Goal:
 
@@ -42,7 +42,7 @@ Read more:
 - [Platform guide](README.md)
 - [Proxmox planning guidelines](conventions.md)
 - [Environment variable conventions](../../reference/environment-variables.md)
-- [Domain foundation path](../../foundation/foundation-and-domain-path.md)
+- [Identity foundation path](../../foundation/identity-foundation-path.md)
 - [Windows and AD support](../../foundation/windows-support.md)
 
 ## Level 2 - Vault foundation deployment

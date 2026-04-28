@@ -55,8 +55,7 @@ as `community.general` and `freeipa.ansible_freeipa`.
 
 Use [`scripts/deploy.sh`](../../scripts/deploy.sh) as the default entry point
 so that precheck always runs before the mapped Terraform and Ansible steps.
-The current setup names are `bootstrap`, `foundation`, `lab`, `vault`, and
-`hsm-lab`.
+The current setup names are `foundation`, `lab`, `vault`, and `hsm-lab`.
 Use [`scripts/init-local-files.sh`](../../scripts/init-local-files.sh) to
 create repo-local config files from the shipped examples. Do this as a
 separate setup step for the working copy, then let the deployment wrapper check
@@ -176,14 +175,14 @@ bash scripts/deploy.sh foundation --env test --destroy
 The `--env test` initializer creates the matching ignored Terraform var file,
 inventory file, and service vars files for that environment.
 
-6. continue with the domain foundation path, then the Vault foundation path and
+6. continue with the identity foundation path, then the Vault foundation path and
    secret strategy
 
 ## Read more
 
 - [Environment variable conventions](../reference/environment-variables.md)
 - [Secret strategy](../security/secret-strategy.md)
-- [Domain foundation path](../foundation/foundation-and-domain-path.md)
+- [Identity foundation path](../foundation/identity-foundation-path.md)
 - [Windows and AD support](../foundation/windows-support.md)
 - [Private cloud maturity path](private-cloud-maturity-path.md)
 - [Proxmox reference platform](../platforms/proxmox/README.md)

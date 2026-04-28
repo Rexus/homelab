@@ -14,7 +14,7 @@ setup is ready.
 
 This is where you establish:
 
-- the domain foundation layer
+- the identity foundation layer
 - the first identity and DNS services
 - the first PKI path with an issuing CA and an optional offline root CA
 - optional Windows or AD support later when you need it
@@ -24,7 +24,7 @@ This is where you establish:
 
 Use this order:
 
-1. [Domain foundation path](foundation-and-domain-path.md)
+1. [Identity foundation path](identity-foundation-path.md)
 2. [Vault foundation deployment](vault-foundation-deployment.md)
 3. [Windows and AD support](windows-support.md), when the environment needs it
 4. [Secret strategy](../security/secret-strategy.md)
@@ -32,12 +32,12 @@ Use this order:
 
 ## Foundation guides
 
-- [Domain foundation path](foundation-and-domain-path.md) - first managed
+- [Identity foundation path](identity-foundation-path.md) - first managed
   foundation hosts for `FreeIPA`, DNS, and the first PKI path
 - [Windows and AD support](windows-support.md) - optional Windows support
-  path after the domain foundation exists
+  path after the identity foundation exists
 - [Vault foundation deployment](vault-foundation-deployment.md) - first Vault
-  deployment after the domain foundation layer exists
+  deployment after the identity foundation layer exists
 
 ## Related docs
 

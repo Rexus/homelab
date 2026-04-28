@@ -40,6 +40,7 @@ module "environment" {
   default_lxc_network_zone_key = var.default_lxc_network_zone_key
   ssh_public_keys              = var.ssh_public_keys
   common_tags                  = local.common_tags
+  ansible_inventory_path       = var.ansible_inventory_path
   vm_instances                 = var.vm_instances
   lxc_instances                = var.lxc_instances
 }

@@ -1,67 +1,47 @@
 # Copy to: terraform/environments/foundation/terraform.tfvars
 # Or copy to terraform.test.tfvars / terraform.prod.tfvars when using --env.
 # Replace every value before use.
-# Setup guide: README.md
+# Setup guide: docs/foundation/identity-foundation-path.md
 # Shared values live in ../../common.tfvars.
 
 cluster_name = "test-change-me"
 
 vm_instances = {
-  # Place the two identity hosts on different nodes when the platform allows it.
-  identity01 = {
-    name             = "test-identity-1-change-me"
+  # Keys match Ansible inventory hosts. Identity, IP, and tags live there.
+  "test-identity-1.ipa.example.com" = {
     node_name        = "pve01-change-me"
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
     network_zone_key = "identity"
-    ipv4_address     = "dhcp"
-    role             = "identity"
-    tags             = ["freeipa", "dns"]
   }
-  identity02 = {
-    name             = "test-identity-2-change-me"
+  "test-identity-2.ipa.example.com" = {
     node_name        = "pve02-change-me"
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
     network_zone_key = "identity"
-    ipv4_address     = "dhcp"
-    role             = "identity"
-    tags             = ["freeipa", "dns"]
   }
-  issuingca01 = {
-    name             = "test-pki-1-change-me"
+  "test-pki-1-change-me" = {
     node_name        = "pve01-change-me"
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "cryptography"
-    ipv4_address     = "dhcp"
-    role             = "pki"
-    tags             = ["issuing-ca"]
   }
-  # rootca01 = {
-  #   name             = "test-ceremony-1-change-me"
+  # "test-ceremony-1-change-me" = {
   #   node_name        = "pve01-change-me"
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 30
   #   network_zone_key = "ceremony"
-  #   ipv4_address     = "dhcp"
-  #   role             = "ceremony"
-  #   tags             = ["root-ca", "offline"]
   # }
-  # proxy01 = {
-  #   name             = "test-proxy-1-change-me"
+  # "test-proxy-1-change-me" = {
   #   node_name        = "pve01-change-me"
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 20
-  #   network_zone_key = "dmz"
-  #   ipv4_address     = "dhcp"
-  #   role             = "proxy"
-  #   tags             = ["shared-ingress"]
+  #   network_zone_key = "external_ingress"
   # }
 }
 

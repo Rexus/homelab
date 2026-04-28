@@ -4,7 +4,7 @@
 
 - [Purpose](#purpose)
 - [Maturity overview](#maturity-overview)
-- [Level 1 - Domain foundation deployment](#level-1---domain-foundation-deployment)
+- [Level 1 - Identity foundation deployment](#level-1---identity-foundation-deployment)
 - [Level 2 - Vault foundation deployment](#level-2---vault-foundation-deployment)
 - [Level 3 - Backup and recovery](#level-3---backup-and-recovery)
 - [Level 4 - Higher availability and production use](#level-4---higher-availability-and-production-use)
@@ -21,12 +21,12 @@ reference foundation, but the maturity path is about the broader platform.
 
 | Level | Goal | Success criteria |
 | --- | --- | --- |
-| 1 | Domain foundation deployment | The identity and PKI foundation is in place, including the first `FreeIPA`, DNS, and issuing-CA path Vault depends on |
+| 1 | Identity foundation deployment | The identity and PKI foundation is in place, including the first `FreeIPA`, DNS, and issuing-CA path Vault depends on |
 | 2 | Vault foundation deployment | Vault is deployed as the early secret-platform foundation and ready for initialization |
 | 3 | Backup and recovery | PBS is deployed, connected, and tested |
 | 4 | Higher availability and production use | Backup, recovery, and platform patterns support more serious use |
 
-## Level 1 - Domain foundation deployment
+## Level 1 - Identity foundation deployment
 
 Goal:
 
@@ -37,7 +37,7 @@ Goal:
 - establish the identity, DNS, and PKI services Vault depends on
 - use the current reference shape of `2` identity hosts and `1` issuing CA
 - apply the baseline playbook so the hosts are managed
-- keep the first deployment focused on the foundation Vault and later shared
+- keep the first deployment focused on the services that Vault and later shared
   services depend on
 - keep Windows or AD support as a separate optional path
 
@@ -45,15 +45,15 @@ Read more:
 
 - [Platform guide](../platforms/proxmox/README.md)
 - [Environment variable conventions](../reference/environment-variables.md)
-- [Domain foundation path](../foundation/foundation-and-domain-path.md)
+- [Identity foundation path](../foundation/identity-foundation-path.md)
 - [Windows and AD support](../foundation/windows-support.md)
 
 ## Level 2 - Vault foundation deployment
 
 Goal:
 
-- deploy Vault as a dedicated early shared service after the foundation or
-  domain layer is ready
+- deploy Vault as a dedicated early shared service after the identity
+  foundation layer is ready
 - initialize and unseal Vault
 - move shared and long-lived secrets into Vault
 
