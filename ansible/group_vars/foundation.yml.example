@@ -3,6 +3,9 @@
 # Keep secrets encrypted with Ansible Vault for real deployments.
 
 foundation_freeipa_enabled: true
+
+# FreeIPA uses the platform domain by default. Override only if your identity
+# domain intentionally differs from the environment domain.
 foundation_freeipa_domain: "{{ platform_domain }}"
 foundation_freeipa_realm: "{{ platform_domain | upper }}"
 
@@ -10,6 +13,8 @@ foundation_freeipa_realm: "{{ platform_domain | upper }}"
 foundation_freeipa_dm_password: change-me
 foundation_freeipa_admin_password: change-me
 
+# Keep DNS enabled for the default identity foundation. Set explicit forwarders
+# only when you do not want FreeIPA to discover them automatically.
 foundation_freeipa_setup_dns: true
 foundation_freeipa_auto_forwarders: true
 foundation_freeipa_dns_forwarders: []

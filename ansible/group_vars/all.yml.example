@@ -2,6 +2,7 @@
 # Replace every value before use.
 # Reference: docs/reference/infrastructure-automation-layout.md
 
+# SSH user created by cloud-init on the cloned guests.
 ansible_user: automation-change-me
 ansible_port: 22
 
@@ -17,6 +18,7 @@ platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 
 # Terraform also reads this map when it provisions guests, so IP addresses are
 # owned once and shared by both Terraform and Ansible.
+# The keys must match ansible/inventory/hosts.yml and Terraform guest maps.
 # Keep entries for the guests you deploy in this environment.
 # Use dhcp only for guests that are intentionally dynamic.
 platform_host_ips:
@@ -25,15 +27,16 @@ platform_host_ips:
   pki-1: 10.20.21.10
   ceremony-1: 10.20.22.10
   proxy-1: 10.30.30.10
-  vault-1: 10.10.10.21
+  vault-1: 10.20.20.21
   lab-1: 10.20.20.10
   support-1: 10.20.20.11
-  hsm-gw-1: 10.20.21.10
-  hsm-gw-2: 10.20.21.11
-  hsm-recovery-1: 10.20.22.10
-  hsm-provisioner-1: 10.20.22.11
+  hsm-gw-1: 10.20.21.20
+  hsm-gw-2: 10.20.21.21
+  hsm-recovery-1: 10.20.22.20
+  hsm-provisioner-1: 10.20.22.21
 
 ansible_host: "{{ platform_host_ips.get(inventory_hostname, inventory_hostname) }}"
 
+# Baseline defaults applied by Ansible roles.
 baseline_timezone: Europe/Stockholm
 baseline_ntp_enabled: true

@@ -42,6 +42,12 @@ Use `default_proxmox_node_name` for the normal Proxmox placement target.
 Only set `proxmox_node_name` on an individual guest when you intentionally
 override that default for a clustered Proxmox placement.
 
+Use `default_linux_vm_template_id` in `terraform/common.tfvars` for the shared
+Linux cloud-init template. Override it in `terraform.tfvars` or
+`terraform.<env>.tfvars` when one deployment tests another supported distro or
+template. Use `vm_instances.<key>.template_vm_id` only when one guest should
+differ from the deployment default.
+
 ## Environment data split
 
 Use the same source code and main inventory for every environment. Split only
@@ -107,6 +113,6 @@ state file between environments. Omit `--env` for production.
 | Path | Contains |
 | --- | --- |
 | `packer/variables.auto.pkrvars.hcl.example` | safe example input values |
-| `packer/templates/proxmox/el10.pkr.hcl` | Enterprise Linux 10 VM image scaffold |
+| `packer/templates/proxmox/el10.pkr.hcl` | Enterprise Linux VM image scaffold for the current EL10 reference path |
 | `packer/templates/proxmox/debian-12.pkr.hcl` | Debian 12 VM image scaffold |
 | `packer/templates/proxmox/talos-linux.pkr.hcl` | Talos Linux VM image scaffold |

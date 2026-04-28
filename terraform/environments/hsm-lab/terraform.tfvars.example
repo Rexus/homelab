@@ -6,6 +6,10 @@
 cluster_name = "hsm-lab-change-me"
 lab_variant = "hardware"
 
+# Optional: override the shared default Linux VM template for this setup or
+# environment overlay, for example when testing another supported distro.
+# default_linux_vm_template_id = 111
+
 # Keep the shared external ingress edge proxy in terraform/environments/foundation by default.
 # Keys match the stable logical host names in the Ansible inventory.
 # The environment prefix from Ansible group vars becomes the Proxmox VM name.
@@ -13,6 +17,8 @@ lab_variant = "hardware"
 # gateway hosts here, each with its own local USB HSM.
 vm_instances = {
   "hsm-gw-1" = {
+    # Optional per-guest template override when one VM uses another template.
+    # template_vm_id = 111
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30

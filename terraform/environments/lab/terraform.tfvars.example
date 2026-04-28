@@ -5,10 +5,16 @@
 
 cluster_name = "lab-change-me"
 
+# Optional: override the shared default Linux VM template for this setup or
+# environment overlay, for example when testing another supported distro.
+# default_linux_vm_template_id = 111
+
 vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
   # The environment prefix from Ansible group vars becomes the Proxmox VM name.
   "lab-1" = {
+    # Optional per-guest template override when one VM uses another template.
+    # template_vm_id = 111
     size             = "tiny"
     storage_class    = "local"
     disk_size_gb     = 20
@@ -19,7 +25,8 @@ vm_instances = {
 
 lxc_instances = {
   "support-1" = {
-    template_file_id = "local:vztmpl/el10-default_2024.x86_64.tar.xz"
+    # Replace with the Proxmox LXC template file ID you actually uploaded.
+    template_file_id = "local:vztmpl/linux-default-change-me.tar.xz"
     size             = "tiny"
     storage_class    = "local"
     disk_size_gb     = 8

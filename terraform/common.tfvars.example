@@ -69,7 +69,10 @@ network_zones = {
   }
 }
 
-template_vm_id_el10 = 110
+# Default Linux cloud-init VM template cloned by Terraform.
+# The Enterprise Linux template guide is the recommended first path, but this
+# may point to any Linux template your Ansible roles support.
+default_linux_vm_template_id = 110
 
 # These keys are injected by cloud-init into VMs cloned from the template.
 # Use the deployment machine's public SSH key here so Ansible can connect

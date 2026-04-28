@@ -35,7 +35,9 @@ Current repository note:
 - this guide is currently based on EL10 releases from AlmaLinux and Rocky Linux
 - the manual Proxmox template flow in this guide works for either distribution
 - the shipped Packer scaffold is currently `packer/templates/proxmox/el10.pkr.hcl`
-- the Terraform examples use the neutral variable name `template_vm_id_el10`
+- Terraform uses the neutral variable name `default_linux_vm_template_id`
+- you can point that variable at another Linux cloud-init template, but review
+  Ansible service roles when you leave the Enterprise Linux family
 - RHEL Generic Cloud images can follow the same mechanical process, but this
   repository does not document the Red Hat subscription-specific path here
 

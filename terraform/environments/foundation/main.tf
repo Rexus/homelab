@@ -27,14 +27,14 @@ locals {
     var.cluster_name,
     "terraform",
     "foundation",
-    "el10",
+    "linux",
   ]
 }
 
 module "environment" {
   source = "../../modules/environment_guests"
 
-  template_vm_id_el10          = var.template_vm_id_el10
+  default_linux_vm_template_id = var.default_linux_vm_template_id
   proxmox_storage_classes      = var.proxmox_storage_classes
   network_zones                = var.network_zones
   default_proxmox_node_name    = var.default_proxmox_node_name

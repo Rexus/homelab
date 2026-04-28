@@ -1,5 +1,5 @@
-variable "template_vm_id_el10" {
-  description = "Default template VM ID for the Enterprise Linux 10 baseline image."
+variable "default_linux_vm_template_id" {
+  description = "Default Linux cloud-init template VM ID."
   type        = number
 }
 

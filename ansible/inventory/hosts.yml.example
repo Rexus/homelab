@@ -1,18 +1,29 @@
 # Copy to: ansible/inventory/hosts.yml
 # Replace every value before use.
 # Reference: docs/reference/infrastructure-automation-layout.md
+#
+# Keep these host keys stable and unprefixed. Environment names such as test-
+# or lab1- are added from ansible/group_vars/all.<env>.yml.
+# Guest IP addresses live in platform_host_ips in group_vars, not here.
 
 all:
   children:
     hypervisors:
-      hosts:
-        pve01-change-me:
-          ansible_host: 10.10.10.11
+      hosts: {}
+      # Optional reference group for future Proxmox host operations.
+      # The current foundation deployment does not run Ansible on Proxmox hosts.
+      # When you need it later, replace hosts: {} with:
+      # hosts:
+      #   pve-1:
+      #     ansible_host: 10.10.10.11
     identity_primary:
       hosts:
+        # Exactly one host belongs here. The foundation playbook installs this
+        # FreeIPA host first and verifies it before replicas are added.
         identity-1: {}
     identity_replicas:
       hosts:
+        # Add more identity replicas here when you expand beyond the default pair.
         identity-2: {}
     identity:
       children:
@@ -20,6 +31,7 @@ all:
         identity_replicas:
     pki_issuers:
       hosts:
+        # Online issuing CA host in the cryptography network.
         pki-1: {}
     pki_ceremony:
       hosts: {}
@@ -39,6 +51,7 @@ all:
         proxies:
     vault:
       hosts:
+        # Vault is deployed after the identity foundation is ready.
         vault-1: {}
     lab:
       hosts:
@@ -46,6 +59,8 @@ all:
         support-1: {}
     hsm_gateways:
       hosts:
+        # hsm_proxy_ingress_backend_port is the service port exposed to the
+        # edge proxy, not a raw PKCS#11 or USB endpoint.
         hsm-gw-1:
           hsm_proxy_ingress_backend_port: 8443
         hsm-gw-2:

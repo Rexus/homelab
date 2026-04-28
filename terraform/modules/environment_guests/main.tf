@@ -87,9 +87,9 @@ module "vms" {
 
   name                     = each.value.name
   node_name                = each.value.node_name
-  template_vm_id = coalesce(
+  template_vm_id           = coalesce(
     try(each.value.template_vm_id, null),
-    var.template_vm_id_el10,
+    var.default_linux_vm_template_id,
   )
   storage_class            = each.value.storage_class
   storage_class_datastores = var.proxmox_storage_classes
