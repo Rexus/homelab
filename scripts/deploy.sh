@@ -14,11 +14,12 @@ Setups:
   hsm-lab
 
 Options:
-  --env NAME        Use terraform.NAME.tfvars, ansible/group_vars/all.NAME.yml,
-                   and separate local state. Omit for production.
+  --env NAME        Use ansible/group_vars/all.NAME.yml and separate local
+                   state. Optional terraform.NAME.tfvars files are layered
+                   only when present. Omit for production.
   --env-file PATH   Override the deployment environment file path.
                    By default, .env.local is used when it exists.
-  --var-file PATH   Override the environment-specific Terraform variable file.
+  --var-file PATH   Override the base setup Terraform variable file.
   --common-var-file PATH
                    Override the shared Terraform variable file.
   --ansible-vars PATH
@@ -61,6 +62,8 @@ explicit_env=false
 env_file_path=""
 var_file_path=""
 common_var_file_path=""
+environment_var_file_path=""
+environment_common_var_file_path=""
 inventory_path=""
 ansible_vars_paths=()
 
@@ -189,13 +192,18 @@ elif [[ -n "$env_file_path" && "$env_file_path" != /* ]]; then
   env_file_path="$repo_root/$env_file_path"
 fi
 
-if [[ -z "$common_var_file_path" && "$explicit_env" == true \
-  && -f "$repo_root/terraform/common.$deployment_env.tfvars" ]]; then
-  common_var_file_path="$repo_root/terraform/common.$deployment_env.tfvars"
-elif [[ -z "$common_var_file_path" && -f "$repo_root/terraform/common.tfvars" ]]; then
+if [[ -z "$common_var_file_path" && -f "$repo_root/terraform/common.tfvars" ]]; then
   common_var_file_path="$repo_root/terraform/common.tfvars"
 elif [[ -n "$common_var_file_path" && "$common_var_file_path" != /* ]]; then
   common_var_file_path="$repo_root/$common_var_file_path"
+fi
+
+if [[ -z "$common_var_file_path" && "$explicit_env" == true \
+  && -f "$repo_root/terraform/common.$deployment_env.tfvars" ]]; then
+  common_var_file_path="$repo_root/terraform/common.$deployment_env.tfvars"
+elif [[ -n "$common_var_file_path" && "$explicit_env" == true \
+  && -f "$repo_root/terraform/common.$deployment_env.tfvars" ]]; then
+  environment_common_var_file_path="$repo_root/terraform/common.$deployment_env.tfvars"
 fi
 
 case "$setup_name" in
@@ -239,12 +247,16 @@ case "$setup_name" in
     ;;
 esac
 
-if [[ -z "$var_file_path" && "$explicit_env" == true ]]; then
-  var_file_path="$terraform_dir/terraform.$deployment_env.tfvars"
-elif [[ -z "$var_file_path" ]]; then
+if [[ -z "$var_file_path" ]]; then
   var_file_path="$terraform_dir/terraform.tfvars"
 elif [[ "$var_file_path" != /* ]]; then
   var_file_path="$repo_root/$var_file_path"
+fi
+
+if [[ "$explicit_env" == true \
+  && -f "$terraform_dir/terraform.$deployment_env.tfvars" \
+  && "$var_file_path" == "$terraform_dir/terraform.tfvars" ]]; then
+  environment_var_file_path="$terraform_dir/terraform.$deployment_env.tfvars"
 fi
 
 required_files=("$var_file_path" "${required_files[@]}")
@@ -253,6 +265,12 @@ if [[ -n "$environment_ansible_vars_path" ]]; then
 fi
 if [[ -n "$common_var_file_path" ]]; then
   required_files=("$common_var_file_path" "${required_files[@]}")
+fi
+if [[ -n "$environment_common_var_file_path" ]]; then
+  required_files=("$environment_common_var_file_path" "${required_files[@]}")
+fi
+if [[ -n "$environment_var_file_path" ]]; then
+  required_files=("$environment_var_file_path" "${required_files[@]}")
 fi
 
 resolved_ansible_vars_paths=()
@@ -402,6 +420,9 @@ run_terraform() {
     if [[ -n "$common_var_file_path" ]]; then
       terraform_args+=("-var-file=$common_var_file_path")
     fi
+    if [[ -n "$environment_common_var_file_path" ]]; then
+      terraform_args+=("-var-file=$environment_common_var_file_path")
+    fi
     terraform_group_vars_arg="["
     terraform_group_vars_separator=""
     for group_vars_path in "${ansible_group_vars_paths[@]}"; do
@@ -415,6 +436,9 @@ run_terraform() {
     terraform_args+=("-var=ansible_inventory_path=$inventory_path")
     terraform_args+=("-var=ansible_group_vars_paths=$terraform_group_vars_arg")
     terraform_args+=("-var-file=$var_file_path")
+    if [[ -n "$environment_var_file_path" ]]; then
+      terraform_args+=("-var-file=$environment_var_file_path")
+    fi
 
     if [[ "$destroy" == true ]]; then
       terraform plan -destroy "${terraform_args[@]}"

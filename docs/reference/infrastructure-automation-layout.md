@@ -49,16 +49,19 @@ the data that changes:
 
 | Layer | Test example | Production default |
 | --- | --- | --- |
-| Terraform setup vars | `terraform/environments/foundation/terraform.test.tfvars` | `terraform/environments/foundation/terraform.tfvars` |
-| Shared Terraform vars | `terraform/common.test.tfvars` or `--common-var-file` override | `terraform/common.tfvars` or `--common-var-file` override |
+| Terraform setup vars | `terraform/environments/foundation/terraform.tfvars` | `terraform/environments/foundation/terraform.tfvars` |
+| Optional Terraform setup overlay | `terraform/environments/foundation/terraform.test.tfvars` | not used by default |
+| Shared Terraform vars | `terraform/common.tfvars` or `--common-var-file` override | `terraform/common.tfvars` or `--common-var-file` override |
+| Optional shared Terraform overlay | `terraform/common.test.tfvars` | not used by default |
 | Ansible inventory | `ansible/inventory/hosts.yml` | `ansible/inventory/hosts.yml` |
 | Ansible environment vars | `ansible/group_vars/all.test.yml` from `all.env.yml.example` | `ansible/group_vars/all.yml` |
 | Ansible setup vars | `ansible/group_vars/foundation.test.yml` | `ansible/group_vars/foundation.yml` |
 | Terraform state | `.terraform/state/foundation/test/terraform.tfstate` | `.terraform/state/foundation/prod/terraform.tfstate` |
 
 The repository wrapper keeps Terraform state separate per setup and
-environment. Do not share a Terraform state file between environments. Omit
-`--env` for production.
+environment. Terraform vars are shared by default and only layered per
+environment when the optional override files exist. Do not share a Terraform
+state file between environments. Omit `--env` for production.
 
 ## Main paths
 

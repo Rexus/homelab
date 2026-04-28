@@ -136,16 +136,19 @@ local data files and state:
 
 | Environment | Local var file | Wrapper command |
 | --- | --- | --- |
-| first validation run | `terraform/environments/foundation/terraform.test.tfvars` | `bash scripts/deploy.sh foundation --env test` |
-| lab, dev, or staging | `terraform/environments/foundation/terraform.lab1.tfvars` | `bash scripts/deploy.sh foundation --env lab1` |
+| first validation run | `terraform/environments/foundation/terraform.tfvars` plus `ansible/group_vars/all.test.yml` | `bash scripts/deploy.sh foundation --env test` |
+| lab, dev, or staging | `terraform/environments/foundation/terraform.tfvars` plus `ansible/group_vars/all.lab1.yml` | `bash scripts/deploy.sh foundation --env lab1` |
 | production | `terraform/environments/foundation/terraform.tfvars` | `bash scripts/deploy.sh foundation` |
 
 The wrapper stores local Terraform state separately per setup and environment,
 for example `.terraform/state/foundation/test/terraform.tfstate`.
 
-When `terraform/common.test.tfvars` exists, `--env test` uses it for shared
-environment values such as VLANs, subnets, template IDs, storage mappings, and
-the default Proxmox node.
+Terraform uses the base `terraform/common.tfvars` and foundation
+`terraform.tfvars` for every environment by default. Add
+`terraform/common.<env>.tfvars` or
+`terraform/environments/foundation/terraform.<env>.tfvars` only when that
+environment intentionally needs different platform values, VM sizes, or
+placement.
 
 Put the environment prefix, domain, and IP map in
 `ansible/group_vars/all.<env>.yml`. Use DNS-safe environment names with

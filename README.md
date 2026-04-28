@@ -42,8 +42,8 @@ bash scripts/init-local-files.sh --env test
 
    - `.env.local`
    - `ansible/group_vars/all.test.yml`
-   - `terraform/common.test.tfvars`
-   - `terraform/environments/foundation/terraform.test.tfvars`
+   - `terraform/common.tfvars`
+   - `terraform/environments/foundation/terraform.tfvars`
    - `ansible/group_vars/foundation.test.yml`
 
 4. Run the repository deployment wrapper for the `test` environment:

@@ -8,8 +8,7 @@ Usage:
   bash scripts/init-local-files.sh [options]
 
 Options:
-  --env NAME   Also create environment-specific local files, such as
-               common.NAME.tfvars, terraform.NAME.tfvars, and
+  --env NAME   Also create environment-specific Ansible files, such as
                ansible/group_vars/all.NAME.yml. Omit for the base
                production files.
   --overwrite  Replace existing local files from the current examples.
@@ -164,19 +163,11 @@ for terraform_env_dir in "$repo_root"/terraform/environments/*; do
   fi
 
   create_from_example "$example_path" "$terraform_env_dir/terraform.tfvars"
-
-  if [[ -n "$deployment_env" ]]; then
-    create_from_example "$example_path" \
-      "$terraform_env_dir/terraform.$deployment_env.tfvars"
-  fi
 done
 
 if [[ -n "$deployment_env" ]]; then
   environment_vars_file="$repo_root/ansible/group_vars/all.$deployment_env.yml"
 
-  create_from_example \
-    "$repo_root/terraform/common.tfvars.example" \
-    "$repo_root/terraform/common.$deployment_env.tfvars"
   create_from_example \
     "$repo_root/ansible/group_vars/all.env.yml.example" \
     "$environment_vars_file"

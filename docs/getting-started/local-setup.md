@@ -81,10 +81,11 @@ Use DNS-safe environment names with letters, numbers, and dashes.
 The initializer fills the prefix from `--env`; you still edit the domain and
 IPs before deployment.
 
-When `terraform/common.test.tfvars` exists, `--env test` uses it instead of
-the default `terraform/common.tfvars`. Use that for environment-wide values
-such as the default Proxmox node, VLANs, subnets, storage mappings, and
-template IDs.
+Terraform uses the base `terraform/common.tfvars` and setup `terraform.tfvars`
+for every environment by default. Create `common.<env>.tfvars` or
+`terraform.<env>.tfvars` only when an environment intentionally needs different
+platform values, sizing, or placement.
+If one of those files already exists, the wrapper treats it as an override.
 
 The wrapper keeps local Terraform state separate per setup and environment,
 for example `.terraform/state/foundation/test/terraform.tfstate`. Keep every
@@ -114,8 +115,7 @@ For other distributions, follow the current official install guides for
 Keep the automation VM simple:
 
 - store a private working copy of the repository there
-- keep the local `terraform/common.tfvars`, environment `terraform.tfvars`,
-  inventory, and group vars there
+- keep the local Terraform vars, inventory, and group vars there
 - give it access to the Proxmox API, Git remotes, and the package or collection
   sources it needs
 
@@ -131,7 +131,7 @@ bash scripts/init-local-files.sh
 These ignored files are expected to evolve as the environment matures. Keep
 editing the same local files instead of recreating them for every run.
 The deployment wrapper loads `terraform/common.tfvars` before the selected
-environment `terraform.tfvars` file when the common file exists.
+setup `terraform.tfvars` file when the common file exists.
 
 When the repo examples change later, you can refresh the local files from the
 current examples and keep timestamped backups:
@@ -184,8 +184,9 @@ Destroy the disposable foundation environment after validation:
 bash scripts/deploy.sh foundation --env test --destroy
 ```
 
-The `--env test` initializer creates the matching ignored Terraform var files,
-Ansible environment vars file, and setup vars files for that environment.
+The `--env test` initializer creates the matching Ansible environment vars file
+and setup vars files for that environment. Terraform keeps using the base
+Terraform vars unless you create an environment-specific override.
 
 6. run production without `--env` after the test path is understood:
 
