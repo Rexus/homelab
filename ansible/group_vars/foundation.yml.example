@@ -3,8 +3,8 @@
 # Keep secrets encrypted with Ansible Vault for real deployments.
 
 foundation_freeipa_enabled: true
-foundation_freeipa_domain: ipa.example.com
-foundation_freeipa_realm: IPA.EXAMPLE.COM
+foundation_freeipa_domain: "{{ platform_domain }}"
+foundation_freeipa_realm: "{{ platform_domain | upper }}"
 
 # Use strong local values and encrypt this file with Ansible Vault.
 foundation_freeipa_dm_password: change-me
@@ -24,6 +24,7 @@ ipaserver_auto_forwarders: "{{ foundation_freeipa_auto_forwarders }}"
 ipaserver_forwarders: "{{ foundation_freeipa_dns_forwarders }}"
 ipaserver_allow_zone_overlap: "{{ foundation_freeipa_allow_zone_overlap }}"
 ipaserver_setup_firewalld: "{{ foundation_freeipa_setup_firewalld }}"
+ipaserver_hostname: "{{ platform_fqdn }}"
 ipaadmin_password: "{{ foundation_freeipa_admin_password }}"
 ipadm_password: "{{ foundation_freeipa_dm_password }}"
 
@@ -31,4 +32,8 @@ ipareplica_domain: "{{ foundation_freeipa_domain }}"
 ipareplica_realm: "{{ foundation_freeipa_realm }}"
 ipareplica_setup_dns: "{{ foundation_freeipa_setup_dns }}"
 ipareplica_setup_firewalld: "{{ foundation_freeipa_setup_firewalld }}"
-ipareplica_servers: "{{ groups.get('identity_primary', []) }}"
+ipareplica_hostname: "{{ platform_fqdn }}"
+ipareplica_servers: >-
+  {{ groups.get('identity_primary', [])
+    | map('extract', hostvars, 'platform_fqdn')
+    | list }}

@@ -220,12 +220,15 @@ network_zones = {
   }
 }
 
+default_proxmox_node_name = "pve01"
+
 vm_instances = {
-  signer_gw01 = {
-    name             = "signer-gw01"
-    node_name        = "pve01"
+  "signer-gw-1" = {
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 30
     network_zone_key = "cryptography"
-    ipv4_address     = "dhcp"
+    tags             = ["hsm-gateway"]
   }
 }
 ```
@@ -234,6 +237,9 @@ Use these field meanings:
 
 | Field | Meaning | Current repository use |
 | --- | --- | --- |
+| `default_proxmox_node_name` | default Proxmox host that receives guests | consumed by VM and LXC placement |
+| `vm_instances.<key>` | guest hostname and Proxmox VM name | joins Terraform placement with Ansible inventory |
+| `vm_instances.<key>.tags` | Proxmox tags for filtering and ownership | consumed by VM and LXC placement |
 | `network_zones.<key>.bridge` | Proxmox bridge name for that zone | consumed by VM and LXC placement |
 | `network_zones.<key>.vlan_id` | VLAN tag for that zone when your bridge is VLAN-aware | consumed by VM placement and kept as shared reference |
 | `network_zones.<key>.cidr_ipv4` | planning subnet for the zone | documentation and operator reference |

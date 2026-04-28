@@ -5,6 +5,8 @@
 
 platform = "proxmox"
 
+default_proxmox_node_name = "pve01-change-me"
+
 proxmox_storage_classes = {
   local = {
     vm_disk        = "local-lvm-change-me"
@@ -70,6 +72,8 @@ network_zones = {
 template_vm_id_el10 = 110
 
 # These keys are injected by cloud-init into VMs cloned from the template.
+# Use the deployment machine's public SSH key here so Ansible can connect
+# from that machine after provisioning.
 # Do not bake deployment SSH keys into the reusable template itself.
 ssh_public_keys = [
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@platform"

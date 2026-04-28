@@ -7,41 +7,41 @@
 cluster_name = "test-change-me"
 
 vm_instances = {
-  # Keys match Ansible inventory hosts. Identity, IP, and tags live there.
-  "test-identity-1.ipa.example.com" = {
-    node_name        = "pve01-change-me"
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 40
-    network_zone_key = "identity"
+  # Keys are the short hostnames and Proxmox VM names.
+  "test-identity-1" = {
+    size              = "small"
+    storage_class     = "local"
+    disk_size_gb      = 40
+    network_zone_key  = "identity"
+    tags              = ["freeipa", "dns"]
   }
-  "test-identity-2.ipa.example.com" = {
-    node_name        = "pve02-change-me"
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 40
-    network_zone_key = "identity"
+  "test-identity-2" = {
+    size              = "small"
+    storage_class     = "local"
+    disk_size_gb      = 40
+    network_zone_key  = "identity"
+    tags              = ["freeipa", "dns"]
   }
-  "test-pki-1-change-me" = {
-    node_name        = "pve01-change-me"
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 30
-    network_zone_key = "cryptography"
+  "test-pki-1" = {
+    size              = "small"
+    storage_class     = "local"
+    disk_size_gb      = 30
+    network_zone_key  = "cryptography"
+    tags              = ["issuing-ca"]
   }
-  # "test-ceremony-1-change-me" = {
-  #   node_name        = "pve01-change-me"
-  #   size             = "small"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 30
-  #   network_zone_key = "ceremony"
+  # "test-ceremony-1" = {
+  #   size              = "small"
+  #   storage_class     = "local"
+  #   disk_size_gb      = 30
+  #   network_zone_key  = "ceremony"
+  #   tags              = ["root-ca", "offline"]
   # }
-  # "test-proxy-1-change-me" = {
-  #   node_name        = "pve01-change-me"
-  #   size             = "small"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 20
-  #   network_zone_key = "external_ingress"
+  # "test-proxy-1" = {
+  #   size              = "small"
+  #   storage_class     = "local"
+  #   disk_size_gb      = 20
+  #   network_zone_key  = "external_ingress"
+  #   tags              = ["shared-ingress"]
   # }
 }
 

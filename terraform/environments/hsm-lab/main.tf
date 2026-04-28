@@ -1,6 +1,8 @@
 terraform {
   required_version = ">= 1.6.0"
 
+  backend "local" {}
+
   required_providers {
     proxmox = {
       source  = "bpg/proxmox"
@@ -36,6 +38,7 @@ module "environment" {
   template_vm_id_el10          = var.template_vm_id_el10
   proxmox_storage_classes      = var.proxmox_storage_classes
   network_zones                = var.network_zones
+  default_proxmox_node_name    = var.default_proxmox_node_name
   default_vm_network_zone_key  = var.default_vm_network_zone_key
   default_lxc_network_zone_key = var.default_lxc_network_zone_key
   ssh_public_keys              = var.ssh_public_keys

@@ -14,7 +14,7 @@ Setups:
   hsm-lab
 
 Options:
-  --env NAME        Use Terraform workspace NAME and terraform.NAME.tfvars.
+  --env NAME        Use terraform.NAME.tfvars and separate local state.
   --env-file PATH   Override the deployment environment file path.
                    By default, .env.local is used when it exists.
   --var-file PATH   Override the environment-specific Terraform variable file.
@@ -180,7 +180,10 @@ elif [[ -n "$env_file_path" && "$env_file_path" != /* ]]; then
   env_file_path="$repo_root/$env_file_path"
 fi
 
-if [[ -z "$common_var_file_path" && -f "$repo_root/terraform/common.tfvars" ]]; then
+if [[ -z "$common_var_file_path" && "$deployment_env" != "default" \
+  && -f "$repo_root/terraform/common.$deployment_env.tfvars" ]]; then
+  common_var_file_path="$repo_root/terraform/common.$deployment_env.tfvars"
+elif [[ -z "$common_var_file_path" && -f "$repo_root/terraform/common.tfvars" ]]; then
   common_var_file_path="$repo_root/terraform/common.tfvars"
 elif [[ -n "$common_var_file_path" && "$common_var_file_path" != /* ]]; then
   common_var_file_path="$repo_root/$common_var_file_path"
@@ -377,11 +380,10 @@ run_terraform() {
   echo "==> Running Terraform for $setup_name"
   (
     cd "$terraform_dir"
-    terraform init
-
-    if [[ "$deployment_env" != "default" ]]; then
-      terraform workspace select "$deployment_env" || terraform workspace new "$deployment_env"
-    fi
+    terraform_state_path="$repo_root/.terraform/state/$setup_name/$deployment_env/terraform.tfstate"
+    mkdir -p "$(dirname "$terraform_state_path")"
+    echo "==> Using Terraform state $terraform_state_path"
+    terraform init -reconfigure -backend-config="path=$terraform_state_path"
 
     terraform_args=()
     if [[ -n "$common_var_file_path" ]]; then

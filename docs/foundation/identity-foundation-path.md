@@ -64,9 +64,10 @@ Edit these local files before you deploy:
 
 | Path | What you configure |
 | --- | --- |
-| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
+| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | default Proxmox node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
 | [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | the foundation VMs in `vm_instances` |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | hostnames, `ansible_host`, Proxmox display names, tags, and foundation groups |
+| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | host keys, `ansible_host`, and foundation groups |
+| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | `platform_domain`, SSH user, port, and baseline defaults |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
 
 ## IaC used for this
@@ -75,7 +76,7 @@ Use these repo paths here:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments | your local `terraform/common.tfvars` |
+| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default Proxmox node | your local `terraform/common.tfvars` |
 | [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity, PKI, and optional edge hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the foundation inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | starting point for FreeIPA and foundation service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
@@ -84,8 +85,9 @@ Use these repo paths here:
 
 Current boundary:
 
-- Ansible inventory owns host identity, IPs, service groups, and Proxmox tags
-- Terraform prepares the identity foundation hardware layout
+- Ansible inventory owns host keys, IPs, and service groups
+- Ansible group vars append `platform_domain` when services need an FQDN
+- Terraform prepares the identity foundation hardware layout and Proxmox tags
 - the foundation playbook prepares those hosts for managed operation
 - the foundation playbook installs the first `FreeIPA` host, verifies it, and
   then installs the replica hosts
@@ -125,13 +127,20 @@ different authority layout.
   `identity_primary`, `identity_replicas`, `pki_issuers`, optional
   `pki_ceremony`, and optional `proxies`
 
-For test and production separation, keep separate ignored local var files and
-Terraform workspaces:
+For test and production separation, keep separate ignored local data files and
+state:
 
 | Environment | Local var file | Wrapper command |
 | --- | --- | --- |
 | test or staging | `terraform/environments/foundation/terraform.test.tfvars` | `bash scripts/deploy.sh foundation --env test` |
 | production | `terraform/environments/foundation/terraform.prod.tfvars` | `bash scripts/deploy.sh foundation --env prod` |
+
+The wrapper stores local Terraform state separately per setup and environment,
+for example `.terraform/state/foundation/test/terraform.tfstate`.
+
+When `terraform/common.test.tfvars` exists, `--env test` uses it for shared
+environment values such as VLANs, subnets, template IDs, storage mappings, and
+the default Proxmox node.
 
 Use the same pattern for inventory when you want separate host inventories,
 for example `--inventory ansible/inventory/test.yml`. If FreeIPA values differ

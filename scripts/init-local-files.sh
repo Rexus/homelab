@@ -9,7 +9,8 @@ Usage:
 
 Options:
   --env NAME   Also create environment-specific local files, such as
-               terraform.NAME.tfvars and ansible/inventory/NAME.yml.
+               common.NAME.tfvars, terraform.NAME.tfvars, and
+               ansible/inventory/NAME.yml.
   --overwrite  Replace existing local files from the current examples.
                Existing files are backed up first and ignored by Git.
   --clean-backups
@@ -165,6 +166,9 @@ for terraform_env_dir in "$repo_root"/terraform/environments/*; do
 done
 
 if [[ -n "$deployment_env" ]]; then
+  create_from_example \
+    "$repo_root/terraform/common.tfvars.example" \
+    "$repo_root/terraform/common.$deployment_env.tfvars"
   create_from_example \
     "$repo_root/ansible/inventory/hosts.yml.example" \
     "$repo_root/ansible/inventory/$deployment_env.yml"

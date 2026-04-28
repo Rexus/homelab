@@ -17,14 +17,37 @@ Keep shared host identity in Ansible and hardware placement in Terraform.
 
 | Owner | Defines |
 | --- | --- |
-| Ansible inventory | hostnames, `ansible_host`, Proxmox display name, service groups, and tags |
-| Terraform environment tfvars | Proxmox node, size, storage class, disk size, and network zone |
-| Terraform common tfvars | shared storage mappings, network zones, template IDs, and cloud-init SSH keys |
+| Ansible inventory | host keys, `ansible_host`, and service groups |
+| Ansible group vars | environment domain, service settings, and host configuration inputs |
+| Terraform environment tfvars | Proxmox tags, size, storage class, disk size, network zone, and optional Proxmox node override |
+| Terraform common tfvars | default Proxmox node, shared storage mappings, network zones, template IDs, and cloud-init SSH keys |
 
-Terraform guest maps are keyed by the matching Ansible inventory host. Keep
-hostnames, IP addresses, and Proxmox tags out of the environment tfvars so
-Terraform can read shared host identity from inventory while keeping hardware
-shape in Terraform.
+Terraform guest maps are keyed by the matching Ansible inventory host key. That
+key is also the Proxmox VM name and cloud-init hostname, for example
+`test-identity-1`.
+
+Use `platform_domain` in Ansible to append the environment domain, so the same
+short host key becomes `test-identity-1.example.com` for services that need a
+full DNS name.
+
+Use `default_proxmox_node_name` for the normal Proxmox placement target.
+Only set `proxmox_node_name` on an individual guest when you intentionally
+override that default for a clustered Proxmox placement.
+
+## Environment data split
+
+Use the same source code for every environment and split only the data:
+
+| Layer | Test or staging example | Production example |
+| --- | --- | --- |
+| Terraform setup vars | `terraform/environments/foundation/terraform.test.tfvars` | `terraform/environments/foundation/terraform.prod.tfvars` |
+| Shared Terraform vars | `terraform/common.test.tfvars` or `--common-var-file` override | `terraform/common.prod.tfvars` or `--common-var-file` override |
+| Ansible inventory | `ansible/inventory/test.yml` | `ansible/inventory/prod.yml` |
+| Ansible setup vars | `ansible/group_vars/foundation.test.yml` | `ansible/group_vars/foundation.prod.yml` |
+| Terraform state | `.terraform/state/foundation/test/terraform.tfstate` | `.terraform/state/foundation/prod/terraform.tfstate` |
+
+The repository wrapper keeps Terraform state separate per setup and
+environment. Do not share a Terraform state file between test and production.
 
 ## Main paths
 
@@ -39,7 +62,7 @@ shape in Terraform.
 
 | Path | Contains | Owner guide |
 | --- | --- | --- |
-| `terraform/common.tfvars.example` | shared storage, network, template, and SSH-key inputs | [Local setup](../getting-started/local-setup.md) |
+| `terraform/common.tfvars.example` | default Proxmox node, storage, network, template, and SSH-key inputs | [Local setup](../getting-started/local-setup.md) |
 | `terraform/environments/foundation/` | identity, DNS, PKI, and optional edge-proxy guest layout | [Identity foundation path](../foundation/identity-foundation-path.md) |
 | `terraform/environments/vault/` | dedicated Vault guest layout | [Vault foundation deployment](../foundation/vault-foundation-deployment.md) |
 | `terraform/environments/hsm-lab/` | USB HSM gateway and optional helper guest layout | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |

@@ -15,6 +15,13 @@
         that:
           - groups.get('identity_primary', []) | length == 1
           - groups.get('identity_replicas', []) | length >= 1
+          - platform_domain is defined
+          - >-
+            groups.get('identity', [])
+            | map('extract', hostvars, 'platform_fqdn')
+            | select('defined')
+            | list
+            | length == groups.get('identity', []) | length
           - foundation_freeipa_domain is defined
           - foundation_freeipa_realm is defined
           - foundation_freeipa_dm_password is defined
@@ -23,8 +30,20 @@
           - foundation_freeipa_admin_password != "change-me"
         fail_msg: >-
           Foundation FreeIPA requires one identity_primary host, at least one
-          identity_replicas host, and real encrypted FreeIPA passwords.
+          identity_replicas host, platform_domain, resolvable identity FQDNs,
+          and real encrypted FreeIPA passwords.
       run_once: true
+      when: foundation_freeipa_enabled | default(false) | bool
+
+- name: Prepare identity hostnames
+  hosts: identity
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  tasks:
+    - name: Set system hostname to the identity FQDN
+      ansible.builtin.hostname:
+        name: "{{ platform_fqdn }}"
       when: foundation_freeipa_enabled | default(false) | bool
 
 - name: Configure the first FreeIPA identity host

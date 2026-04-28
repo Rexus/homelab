@@ -7,37 +7,37 @@ cluster_name = "hsm-lab-change-me"
 lab_variant = "hardware"
 
 # Keep the shared external ingress edge proxy in terraform/environments/foundation by default.
-# Keys match Ansible inventory hosts. Identity, IP, and tags live there.
+# Keys are the short hostnames and Proxmox VM names.
 # The repository reference shape is one edge proxy in foundation plus two
 # gateway hosts here, each with its own local USB HSM.
 vm_instances = {
-  "gateway01-change-me" = {
-    node_name        = "pve01-change-me"
+  "test-hsm-gw-1" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "cryptography"
+    tags             = ["hsm-gateway"]
   }
-  "gateway02-change-me" = {
-    node_name        = "pve02-change-me"
+  "test-hsm-gw-2" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "cryptography"
+    tags             = ["hsm-gateway"]
   }
-  # "recovery01-change-me" = {
-  #   node_name        = "pve01-change-me"
+  # "test-hsm-recovery-1" = {
   #   size             = "tiny"
   #   storage_class    = "local"
   #   disk_size_gb     = 20
   #   network_zone_key = "ceremony"
+  #   tags             = ["recovery"]
   # }
-  # "provisioner01-change-me" = {
-  #   node_name        = "pve02-change-me"
+  # "test-hsm-provisioner-1" = {
   #   size             = "tiny"
   #   storage_class    = "local"
   #   disk_size_gb     = 20
   #   network_zone_key = "ceremony"
+  #   tags             = ["provisioning"]
   # }
 }
 

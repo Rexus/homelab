@@ -11,42 +11,32 @@ all:
           ansible_host: 10.10.10.11
     identity_primary:
       hosts:
-        test-identity-1.ipa.example.com:
+        test-identity-1:
           ansible_host: 10.10.12.10
-          proxmox_vm_name: test-identity-1
-          proxmox_tags: [freeipa, dns]
     identity_replicas:
       hosts:
-        test-identity-2.ipa.example.com:
+        test-identity-2:
           ansible_host: 10.10.12.11
-          proxmox_vm_name: test-identity-2
-          proxmox_tags: [freeipa, dns]
     identity:
       children:
         identity_primary:
         identity_replicas:
     pki_issuers:
       hosts:
-        test-pki-1-change-me:
+        test-pki-1:
           ansible_host: 10.20.21.10
-          proxmox_vm_name: test-pki-1
-          proxmox_tags: [issuing-ca]
     pki_ceremony:
       hosts: {}
       # When enabled, replace hosts: {} with:
       # hosts:
-      #   test-ceremony-1-change-me:
+      #   test-ceremony-1:
       #     ansible_host: 10.20.22.10
-      #     proxmox_vm_name: test-ceremony-1
-      #     proxmox_tags: [root-ca, offline]
     proxies:
       hosts: {}
       # When enabled, replace hosts: {} with:
       # hosts:
-      #   test-proxy-1-change-me:
+      #   test-proxy-1:
       #     ansible_host: 10.30.30.10
-      #     proxmox_vm_name: test-proxy-1
-      #     proxmox_tags: [shared-ingress]
     foundation:
       children:
         identity:
@@ -55,42 +45,28 @@ all:
         proxies:
     vault:
       hosts:
-        vault01-change-me:
+        test-vault-1:
           ansible_host: 10.10.10.21
-          proxmox_vm_name: vault01
-          proxmox_tags: [vault]
     lab:
       hosts:
-        lab01-change-me:
+        test-lab-1:
           ansible_host: 10.20.20.10
-          proxmox_vm_name: lab01
-          proxmox_tags: [lab]
-        support01-change-me:
+        test-support-1:
           ansible_host: 10.20.20.11
-          proxmox_vm_name: support01
-          proxmox_tags: [support]
     hsm_gateways:
       hosts:
-        gateway01-change-me:
+        test-hsm-gw-1:
           ansible_host: 10.20.21.10
-          proxmox_vm_name: hsm-gw01
-          proxmox_tags: [hsm-gateway]
           hsm_proxy_ingress_backend_port: 8443
-        gateway02-change-me:
+        test-hsm-gw-2:
           ansible_host: 10.20.21.11
-          proxmox_vm_name: hsm-gw02
-          proxmox_tags: [hsm-gateway]
           hsm_proxy_ingress_backend_port: 8443
     hsm_helpers:
       hosts:
-        recovery01-change-me:
+        test-hsm-recovery-1:
           ansible_host: 10.20.22.10
-          proxmox_vm_name: hsm-recovery01
-          proxmox_tags: [recovery]
-        # provisioner01-change-me:
+        # test-hsm-provisioner-1:
         #   ansible_host: 10.20.22.11
-        #   proxmox_vm_name: hsm-provisioner01
-        #   proxmox_tags: [provisioning]
     guests:
       children:
         foundation:

@@ -4,5 +4,9 @@
 
 ansible_user: automation-change-me
 ansible_port: 22
+
+platform_domain: example.com
+platform_fqdn: "{{ inventory_hostname }}.{{ platform_domain }}"
+
 baseline_timezone: Europe/Stockholm
 baseline_ntp_enabled: true

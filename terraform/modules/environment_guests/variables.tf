@@ -23,6 +23,11 @@ variable "network_zones" {
   }))
 }
 
+variable "default_proxmox_node_name" {
+  description = "Default Proxmox node used when a guest does not override placement."
+  type        = string
+}
+
 variable "default_vm_network_zone_key" {
   description = "Default network zone key used by VM instances when they do not override it."
   type        = string
@@ -48,33 +53,35 @@ variable "common_tags" {
 }
 
 variable "ansible_inventory_path" {
-  description = "Ansible inventory used as the source of truth for host identity and IPs."
+  description = "Ansible inventory used as the source of truth for guest IPs."
   type        = string
   default     = "../../../ansible/inventory/hosts.yml"
 }
 
 variable "vm_instances" {
-  description = "VM hardware definitions keyed by Ansible inventory host."
+  description = "VM hardware definitions keyed by hostname and Proxmox VM name."
   type = map(object({
-    node_name        = string
+    proxmox_node_name = optional(string)
     template_vm_id   = optional(number)
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number
     network_zone_key = optional(string)
+    tags             = optional(list(string))
   }))
   default = {}
 }
 
 variable "lxc_instances" {
-  description = "LXC hardware definitions keyed by Ansible inventory host."
+  description = "LXC hardware definitions keyed by hostname and Proxmox VM name."
   type = map(object({
-    node_name        = string
+    proxmox_node_name = optional(string)
     template_file_id = string
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number
     network_zone_key = optional(string)
+    tags             = optional(list(string))
   }))
   default = {}
 }

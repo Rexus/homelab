@@ -75,6 +75,15 @@ environment name with `--destroy` when you want to remove that test deployment.
 Use `--inventory` and `--ansible-vars` when the Ansible inventory or service
 variables also differ between test and production.
 
+When `terraform/common.test.tfvars` exists, `--env test` uses it instead of
+the default `terraform/common.tfvars`. Use that for environment-wide values
+such as the default Proxmox node, VLANs, subnets, storage mappings, and
+template IDs.
+
+The wrapper keeps local Terraform state separate per setup and environment,
+for example `.terraform/state/foundation/test/terraform.tfstate`. Keep test
+and production state separate; do not reuse one state file for both.
+
 ## Automation VM example
 
 After the first template exists, a small dedicated automation VM is often

@@ -65,6 +65,13 @@ bash scripts/deploy.sh foundation --env test \
 bash scripts/deploy.sh foundation --env test --destroy
 ```
 
+When `terraform/common.test.tfvars` exists, the wrapper uses it for shared
+environment values such as VLANs, subnets, storage, templates, and the default
+Proxmox node.
+
+The wrapper keeps separate local Terraform state per setup and environment, so
+`test` and `prod` do not share one state file.
+
 Use `--env-file path/to/file` when you want to override `.env.local` with
 another environment file.
 After reviewing files refreshed with `--overwrite`, remove old backups with

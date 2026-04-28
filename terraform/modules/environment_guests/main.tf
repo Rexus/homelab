@@ -16,11 +16,11 @@ locals {
 
   resolved_vm_instances = {
     for key, vm in var.vm_instances : key => {
-      name = coalesce(
-        try(local.ansible_inventory_hosts[key].proxmox_vm_name, null),
-        key,
+      name = key
+      node_name = coalesce(
+        try(vm.proxmox_node_name, null),
+        var.default_proxmox_node_name,
       )
-      node_name      = vm.node_name
       template_vm_id = try(vm.template_vm_id, null)
       size           = coalesce(try(vm.size, null), "small")
       storage_class  = coalesce(try(vm.storage_class, null), "local")
@@ -39,17 +39,17 @@ locals {
         ),
         "dhcp",
       )
-      tags = try(local.ansible_inventory_hosts[key].proxmox_tags, [])
+      tags = try(vm.tags, [])
     }
   }
 
   resolved_lxc_instances = {
     for key, lxc in var.lxc_instances : key => {
-      name = coalesce(
-        try(local.ansible_inventory_hosts[key].proxmox_vm_name, null),
-        key,
+      name = key
+      node_name = coalesce(
+        try(lxc.proxmox_node_name, null),
+        var.default_proxmox_node_name,
       )
-      node_name        = lxc.node_name
       template_file_id = lxc.template_file_id
       size             = coalesce(try(lxc.size, null), "small")
       storage_class    = coalesce(try(lxc.storage_class, null), "local")
@@ -68,7 +68,7 @@ locals {
         ),
         "dhcp",
       )
-      tags = try(local.ansible_inventory_hosts[key].proxmox_tags, [])
+      tags = try(lxc.tags, [])
     }
   }
 }

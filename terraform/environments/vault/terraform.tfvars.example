@@ -6,13 +6,13 @@
 cluster_name = "vault-change-me"
 
 vm_instances = {
-  # Keys match Ansible inventory hosts. Identity, IP, and tags live there.
-  "vault01-change-me" = {
-    node_name        = "pve01-change-me"
+  # Keys are the short hostnames and Proxmox VM names.
+  "test-vault-1" = {
     size             = "large"
     storage_class    = "local"
     disk_size_gb     = 40
     network_zone_key = "application"
+    tags             = ["vault"]
   }
 }
 
