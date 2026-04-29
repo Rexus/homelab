@@ -40,8 +40,8 @@ variable "storage_class" {
 variable "storage_class_datastores" {
   description = "Mapping of storage classes to Proxmox datastore IDs."
   type = map(object({
-    vm_disk        = string
-    initialization = string
+    vm_disk          = string
+    cloud_init_drive = optional(string)
   }))
 }
 

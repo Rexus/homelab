@@ -8,17 +8,18 @@ platform = "proxmox"
 default_proxmox_node_name = "pve01-change-me"
 
 proxmox_storage_classes = {
+  # cloud_init_drive uses vm_disk by default. Set it only when your Proxmox
+  # storage design separates the small cloud-init config drive from VM disks,
+  # for example when VM disks use shared or faster storage.
   local = {
-    vm_disk        = "local-lvm-change-me"
-    initialization = "local-lvm-change-me"
+    vm_disk = "local-lvm-change-me"
   }
   shared = {
-    vm_disk        = "shared-change-me"
-    initialization = "shared-change-me"
+    vm_disk = "shared-change-me"
   }
   fast = {
-    vm_disk        = "nvme-change-me"
-    initialization = "local-lvm-change-me"
+    vm_disk          = "nvme-change-me"
+    cloud_init_drive = "local-lvm-change-me"
   }
 }
 

@@ -151,8 +151,8 @@ pveum acl modify /storage/local-lvm \
 GUI: add a `Group Permission` with path `/storage/local-lvm`, group
 `platform-automation`, and role `PlatformAutomationStorage`.
 
-If you use a separate datastore for cloud-init snippets or initialization
-media, grant the same storage role there too.
+If you use a separate datastore for the cloud-init config drive, grant the same
+storage role there too.
 
 ### 5. Grant Proxmox node read access to the group
 

@@ -53,21 +53,18 @@ variable "vlan_id" {
 variable "storage_class_datastores" {
   description = "Mapping of storage classes to Proxmox datastore IDs."
   type = map(object({
-    vm_disk        = string
-    initialization = string
+    vm_disk          = string
+    cloud_init_drive = optional(string)
   }))
   default = {
     local = {
-      vm_disk        = "local-lvm"
-      initialization = "local-lvm"
+      vm_disk = "local-lvm"
     }
     shared = {
-      vm_disk        = "shared"
-      initialization = "shared"
+      vm_disk = "shared"
     }
     fast = {
-      vm_disk        = "nvme"
-      initialization = "local-lvm"
+      vm_disk = "nvme"
     }
   }
 }

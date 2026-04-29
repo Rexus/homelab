@@ -38,7 +38,8 @@ locals {
   resolved_datastore_id = coalesce(var.datastore_id, local.selected_storage.vm_disk)
   resolved_initialization_datastore_id = coalesce(
     var.initialization_datastore_id,
-    local.selected_storage.initialization,
+    try(local.selected_storage.cloud_init_drive, null),
+    local.selected_storage.vm_disk,
   )
 }
 

@@ -58,8 +58,8 @@ variable "lab_variant" {
 variable "proxmox_storage_classes" {
   description = "Mapping of logical storage classes to Proxmox datastore IDs."
   type = map(object({
-    vm_disk        = string
-    initialization = string
+    vm_disk          = string
+    cloud_init_drive = optional(string)
   }))
 }
 
