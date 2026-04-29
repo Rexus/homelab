@@ -91,7 +91,8 @@ platform_vm_privs="VM.Allocate VM.Audit VM.Clone VM.Config.CDROM"
 platform_vm_privs="$platform_vm_privs VM.Config.CPU VM.Config.Cloudinit"
 platform_vm_privs="$platform_vm_privs VM.Config.Disk VM.Config.HWType"
 platform_vm_privs="$platform_vm_privs VM.Config.Memory VM.Config.Network"
-platform_vm_privs="$platform_vm_privs VM.Config.Options VM.PowerMgmt"
+platform_vm_privs="$platform_vm_privs VM.Config.Options VM.GuestAgent.Audit"
+platform_vm_privs="$platform_vm_privs VM.GuestAgent.Unrestricted VM.PowerMgmt"
 pveum role add PlatformAutomationVM --privs "$platform_vm_privs"
 ```
 
@@ -283,6 +284,7 @@ Expected validation result:
 | --- | --- |
 | token authentication | Terraform can read cluster, node, storage, and template data |
 | VM clone | Terraform can clone the selected template |
+| guest agent read | Terraform can wait for guest network information when the QEMU guest agent is enabled |
 | disk allocation | Terraform can create disks only on the datastores you granted |
 | network placement | Terraform can attach guests only to allowed bridges, VNets, or VLAN tags |
 | cleanup | `--destroy` removes the disposable test guests |

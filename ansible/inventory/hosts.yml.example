@@ -7,6 +7,14 @@
 # Guest IP addresses live in platform_host_ips in group_vars, not here.
 
 all:
+  vars:
+    # Bootstrap connects by IP because DNS may not exist yet.
+    ansible_host: >-
+      {{
+        platform_host_ips.get(inventory_hostname, inventory_hostname)
+        if platform_host_ips is defined
+        else inventory_hostname
+      }}
   children:
     hypervisors:
       hosts: {}

@@ -27,45 +27,52 @@ proxmox_storage_classes = {
 network_zones = {
   management = {
     description = "Operator, automation, and hypervisor-adjacent access."
-    bridge      = "vmbr0"
-    vlan_id     = 10
-    cidr_ipv4   = "10.10.10.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 10
+    cidr_ipv4    = "10.10.10.0/24"
+    gateway_ipv4 = "10.10.10.1"
   }
   access = {
     description = "SSO, Keycloak, and controlled user access services."
-    bridge      = "vmbr0"
-    vlan_id     = 11
-    cidr_ipv4   = "10.10.11.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 11
+    cidr_ipv4    = "10.10.11.0/24"
+    gateway_ipv4 = "10.10.11.1"
   }
   identity = {
     description = "FreeIPA, DNS, and identity services."
-    bridge      = "vmbr0"
-    vlan_id     = 12
-    cidr_ipv4   = "10.10.12.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 12
+    cidr_ipv4    = "10.10.12.0/24"
+    gateway_ipv4 = "10.10.12.1"
   }
   application = {
     description = "Internal application traffic and shared application consumers."
-    bridge      = "vmbr0"
-    vlan_id     = 120
-    cidr_ipv4   = "10.20.20.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 120
+    cidr_ipv4    = "10.20.20.0/24"
+    gateway_ipv4 = "10.20.20.1"
   }
   cryptography = {
     description = "Live cryptography, issuing CA, and HSM-backed gateway traffic."
-    bridge      = "vmbr0"
-    vlan_id     = 220
-    cidr_ipv4   = "10.20.21.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 220
+    cidr_ipv4    = "10.20.21.0/24"
+    gateway_ipv4 = "10.20.21.1"
   }
   ceremony = {
     description = "Restricted ceremony, provisioning, recovery, or root-CA path."
-    bridge      = "vmbr0"
-    vlan_id     = 221
-    cidr_ipv4   = "10.20.22.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 221
+    cidr_ipv4    = "10.20.22.0/24"
+    gateway_ipv4 = "10.20.22.1"
   }
   external_edge = {
     description = "External edge, edge load balancing, ingress, and controlled egress."
-    bridge      = "vmbr0"
-    vlan_id     = 320
-    cidr_ipv4   = "10.30.30.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 320
+    cidr_ipv4    = "10.30.30.0/24"
+    gateway_ipv4 = "10.30.30.1"
   }
 }
 

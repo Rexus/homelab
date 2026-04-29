@@ -1,16 +1,3 @@
-variable "default_linux_vm_template_id" {
-  description = "Default Linux cloud-init template VM ID."
-  type        = number
-}
-
-variable "proxmox_storage_classes" {
-  description = "Mapping of logical storage classes to Proxmox datastore IDs."
-  type = map(object({
-    vm_disk        = string
-    initialization = string
-  }))
-}
-
 variable "network_zones" {
   description = "Network zone catalog keyed by the repository reference names."
   type = map(object({
@@ -38,18 +25,6 @@ variable "default_lxc_network_zone_key" {
   description = "Default network zone key used by LXC instances when they do not override it."
   type        = string
   default     = "application"
-}
-
-variable "ssh_public_keys" {
-  description = "SSH public keys injected into VMs."
-  type        = list(string)
-  default     = []
-}
-
-variable "common_tags" {
-  description = "Tags applied to every guest in the environment."
-  type        = list(string)
-  default     = []
 }
 
 variable "ansible_inventory_path" {

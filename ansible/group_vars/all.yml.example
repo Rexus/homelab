@@ -52,8 +52,6 @@ platform_host_ips:
   hsm-2: 10.20.21.21
   crypto-admin-1: 10.20.22.20
 
-ansible_host: "{{ platform_host_ips.get(inventory_hostname, inventory_hostname) }}"
-
 # Baseline defaults applied by Ansible roles.
 baseline_timezone: Europe/Stockholm
 baseline_ntp_enabled: true

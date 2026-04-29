@@ -346,6 +346,14 @@ load_env_file() {
       exit 1
     fi
 
+    case "$key" in
+      ansible_dir|deployment_env|env_file_path|inventory_path|repo_root|setup_name|terraform_dir|terraform_state_path|terraform_data_dir|var_file_path)
+        echo "Environment file uses reserved wrapper variable: $key" >&2
+        echo "Rename or remove it from $env_file_path." >&2
+        exit 1
+        ;;
+    esac
+
     if [[ "$value" =~ ^\".*\"$ || "$value" =~ ^\'.*\'$ ]]; then
       value="${value:1:${#value}-2}"
     fi
@@ -419,17 +427,25 @@ run_control_node_precheck() {
   echo "==> Running deployment control-node precheck"
   (
     cd "$ansible_dir"
-    ansible-playbook playbooks/control-node.yml
+    ansible-playbook -i localhost, playbooks/control-node.yml
   )
 }
 
 run_terraform() {
   echo "==> Running Terraform for $setup_name"
   (
+    echo "==> Terraform directory $terraform_dir"
     cd "$terraform_dir"
     terraform_state_path="$repo_root/.terraform/state/$setup_name/$deployment_env/terraform.tfstate"
+    terraform_data_dir="$repo_root/.terraform/data/$setup_name/$deployment_env"
     mkdir -p "$(dirname "$terraform_state_path")"
+    mkdir -p "$terraform_data_dir"
     echo "==> Using Terraform state $terraform_state_path"
+    export TF_DATA_DIR="$terraform_data_dir"
+    if [[ -d "$TF_DATA_DIR/modules" ]]; then
+      echo "==> Refreshing Terraform module cache"
+      rm -rf "$TF_DATA_DIR/modules"
+    fi
     terraform init -reconfigure -backend-config="path=$terraform_state_path"
 
     terraform_args=()

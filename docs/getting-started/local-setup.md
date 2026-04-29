@@ -93,6 +93,11 @@ for example `.terraform/state/foundation/test/terraform.tfstate`. Keep every
 environment state separate; do not reuse one state file for multiple
 environments.
 
+Ansible is configured for bootstrap-friendly SSH. New host keys are accepted
+automatically with OpenSSH `StrictHostKeyChecking=accept-new`, while changed
+host keys still stop the run. For fully unattended Terraform runs, add
+`--auto-approve` after you have reviewed the first plan.
+
 ## Automation VM example
 
 After the first template exists, a small dedicated automation VM is often

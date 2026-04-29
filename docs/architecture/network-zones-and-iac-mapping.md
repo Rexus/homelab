@@ -184,39 +184,46 @@ Use the same guest-facing keys in Terraform:
 ```hcl
 network_zones = {
   management = {
-    bridge    = "vmbr0"
-    vlan_id   = 10
-    cidr_ipv4 = "10.10.10.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 10
+    cidr_ipv4    = "10.10.10.0/24"
+    gateway_ipv4 = "10.10.10.1"
   }
   access = {
-    bridge    = "vmbr0"
-    vlan_id   = 11
-    cidr_ipv4 = "10.10.11.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 11
+    cidr_ipv4    = "10.10.11.0/24"
+    gateway_ipv4 = "10.10.11.1"
   }
   identity = {
-    bridge    = "vmbr0"
-    vlan_id   = 12
-    cidr_ipv4 = "10.10.12.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 12
+    cidr_ipv4    = "10.10.12.0/24"
+    gateway_ipv4 = "10.10.12.1"
   }
   application = {
-    bridge    = "vmbr0"
-    vlan_id   = 120
-    cidr_ipv4 = "10.20.20.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 120
+    cidr_ipv4    = "10.20.20.0/24"
+    gateway_ipv4 = "10.20.20.1"
   }
   cryptography = {
-    bridge    = "vmbr0"
-    vlan_id   = 220
-    cidr_ipv4 = "10.20.21.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 220
+    cidr_ipv4    = "10.20.21.0/24"
+    gateway_ipv4 = "10.20.21.1"
   }
   ceremony = {
-    bridge    = "vmbr0"
-    vlan_id   = 221
-    cidr_ipv4 = "10.20.22.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 221
+    cidr_ipv4    = "10.20.22.0/24"
+    gateway_ipv4 = "10.20.22.1"
   }
   external_edge = {
-    bridge    = "vmbr0"
-    vlan_id   = 320
-    cidr_ipv4 = "10.30.30.0/24"
+    bridge       = "vmbr0"
+    vlan_id      = 320
+    cidr_ipv4    = "10.30.30.0/24"
+    gateway_ipv4 = "10.30.30.1"
   }
 }
 
