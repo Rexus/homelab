@@ -28,6 +28,12 @@ locals {
     local.ansible_group_vars.platform_hostname_suffix,
     "",
   )))
+  platform_hostname_prefix_normalized = (
+    local.platform_hostname_prefix == "" ? "" : "${local.platform_hostname_prefix}-"
+  )
+  platform_hostname_suffix_normalized = (
+    local.platform_hostname_suffix == "" ? "" : "-${local.platform_hostname_suffix}"
+  )
   inventory_host_keys = setunion(
     keys(var.vm_instances),
     keys(var.lxc_instances),
@@ -40,12 +46,12 @@ locals {
     for key, matches in local.inventory_host_name_matches :
     key => (
       local.platform_hostname_suffix == "" || length(matches) == 0
-      ? "${local.platform_hostname_prefix}${key}"
+      ? "${local.platform_hostname_prefix_normalized}${key}"
       : format(
         "%s%s%s-%s",
-        local.platform_hostname_prefix,
+        local.platform_hostname_prefix_normalized,
         matches[0][0],
-        local.platform_hostname_suffix,
+        local.platform_hostname_suffix_normalized,
         matches[0][1],
       )
     )

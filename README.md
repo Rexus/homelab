@@ -56,6 +56,8 @@ This wrapper runs the local control-node precheck first, then the mapped
 Terraform and Ansible steps for that setup. With `--env test`, it also loads
 the matching ignored Ansible vars files for that environment. Read the detailed
 flow in the [identity foundation path](docs/foundation/identity-foundation-path.md).
+After you have reviewed the first plan and want a non-interactive run, add
+`--auto-approve` to the same command.
 
 5. Destroy the test deployment when you are done validating the first run:
 

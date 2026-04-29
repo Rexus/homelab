@@ -174,7 +174,7 @@ if [[ -n "$deployment_env" ]]; then
   if [[ "$last_file_changed" == true ]]; then
     sed -i "s/platform_environment: lab1/platform_environment: $deployment_env/" \
       "$environment_vars_file"
-    sed -i "s/platform_hostname_prefix: lab1-/platform_hostname_prefix: $deployment_env-/" \
+    sed -i "s/platform_hostname_prefix: lab1/platform_hostname_prefix: $deployment_env/" \
       "$environment_vars_file"
     sed -i "s/platform_domain: lab1.example.com/platform_domain: $deployment_env.example.com/" \
       "$environment_vars_file"

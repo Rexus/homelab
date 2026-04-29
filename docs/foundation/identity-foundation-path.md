@@ -152,9 +152,11 @@ placement.
 
 Put the hostname prefix or suffix, domain, and IP map in
 `ansible/group_vars/all.<env>.yml`. Use DNS-safe environment names with
-letters, numbers, and dashes. The initializer fills the prefix from `--env`;
-you still edit the domain and IPs before deployment. If you prefer suffix-style
-names, clear the prefix and set `platform_hostname_suffix` instead.
+letters, numbers, and dashes. Do not add leading or trailing separators to the
+prefix or suffix; the automation adds the dash when needed. The initializer
+fills the prefix from `--env`; you still edit the domain and IPs before
+deployment. If you prefer suffix-style names, clear the prefix and set
+`platform_hostname_suffix` instead.
 
 No `--env` means production and uses the base local files:
 `terraform/common.tfvars`, `terraform/environments/foundation/terraform.tfvars`,

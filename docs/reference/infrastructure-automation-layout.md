@@ -31,9 +31,9 @@ Use `platform_hostname_prefix`, `platform_hostname_suffix`,
 environment. The same logical key can become `test-idm-1.example.com`,
 `idm-test-1.example.com`, or `idm-1.example.com`.
 Use DNS-safe environment names with letters, numbers, and dashes.
-Include separators in the prefix or suffix value, for example `test-` or
-`-test`. Suffixes are inserted before the numeric suffix, so `ca-root-1`
-becomes `ca-root-test-1`.
+Do not include separators in the prefix or suffix value; the automation adds
+the dash only when the value is not empty. Suffixes are inserted before the
+numeric suffix, so `ca-root-1` becomes `ca-root-test-1`.
 
 Terraform reads the same Ansible group vars for the guest IP map and generated
 Proxmox name, so IPs and names are not maintained in both tools.

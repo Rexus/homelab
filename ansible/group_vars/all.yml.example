@@ -12,20 +12,32 @@ ansible_port: 22
 # logical inventory is deployed more than once.
 platform_environment: prod
 # Use either a prefix or suffix when you deploy the same logical inventory more
-# than once. Include separators in the value, for example lab1- or -lab1.
+# than once. Do not include separators; they are added automatically.
 platform_hostname_prefix: ""
-# Suffix is inserted before the numeric suffix, so ca-root-1 becomes
-# ca-root-lab1-1.
+# Suffix is inserted before the numeric suffix, so ca-root-1 with suffix lab1
+# becomes ca-root-lab1-1.
 platform_hostname_suffix: ""
 platform_domain: example.com
 
 # Keep hostname generation here so all.<env>.yml only has to override prefix,
 # suffix, domain, and IP values.
+platform_hostname_prefix_normalized: >-
+  {{
+    (platform_hostname_prefix ~ '-')
+    if platform_hostname_prefix | default('') | trim
+    else ''
+  }}
+platform_hostname_suffix_normalized: >-
+  {{
+    ('-' ~ platform_hostname_suffix)
+    if platform_hostname_suffix | default('') | trim
+    else ''
+  }}
 platform_hostname: >-
   {{
-    platform_hostname_prefix ~ (
+    platform_hostname_prefix_normalized ~ (
       inventory_hostname
-      | regex_replace('^(.*)-([0-9]+)$', '\\1' ~ platform_hostname_suffix ~ '-\\2')
+      | regex_replace('^(.*)-([0-9]+)$', '\\1' ~ platform_hostname_suffix_normalized ~ '-\\2')
       if platform_hostname_suffix
       else inventory_hostname
     )

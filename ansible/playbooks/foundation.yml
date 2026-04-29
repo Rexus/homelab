@@ -16,9 +16,16 @@
           - groups.get('identity_primary', []) | length == 1
           - groups.get('identity_replicas', []) | length >= 1
           - platform_domain is defined
+          - platform_hostname_prefix is defined
+          - platform_hostname_suffix is defined
           - >-
             groups.get('identity', [])
-            | map('extract', hostvars, 'platform_fqdn')
+            | difference(platform_host_ips.keys() | list)
+            | length == 0
+          - >-
+            groups.get('identity', [])
+            | map('extract', platform_host_ips)
+            | reject('equalto', 'dhcp')
             | select('defined')
             | list
             | length == groups.get('identity', []) | length
@@ -30,8 +37,8 @@
           - foundation_freeipa_admin_password != "change-me"
         fail_msg: >-
           Foundation FreeIPA requires one identity_primary host, at least one
-          identity_replicas host, platform_domain, resolvable identity FQDNs,
-          and real encrypted FreeIPA passwords.
+          identity_replicas host, platform_domain, static platform_host_ips
+          for every identity host, and real encrypted FreeIPA passwords.
       run_once: true
       when: foundation_freeipa_enabled | default(false) | bool
 
