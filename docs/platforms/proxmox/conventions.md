@@ -179,7 +179,7 @@ Use these related documents as the source of truth for adjacent platform
 guidelines:
 
 - use [Host networking](network-prerequisites.md) and
-  [Network zones and IaC mapping](../../architecture/network-zones-and-iac-mapping.md)
+  [Network architecture](../../architecture/network.md)
   for bridge, VLAN, and subnet naming
 - use [Hardening baseline](hardening.md) for the checkpoint that node, bridge,
   and storage names are finalized before broad automation

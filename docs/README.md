@@ -4,7 +4,8 @@
 
 - [Recommended path](#recommended-path)
 - [Start here](#start-here)
-- [Foundation and early services](#foundation-and-early-services)
+- [Reader paths](#reader-paths)
+- [Path guides](#path-guides)
 - [Architecture and design](#architecture-and-design)
 - [Platform guides](#platform-guides)
 - [Security and hardening](#security-and-hardening)
@@ -16,12 +17,15 @@ Use this order when you are new to the repository or returning after time away:
 
 1. [Safe repository usage](usage-model.md)
 2. [Local setup](getting-started/local-setup.md)
-3. [Foundation](foundation/README.md)
-4. [Private cloud maturity path](getting-started/private-cloud-maturity-path.md)
-5. [Architecture overview](architecture/overview.md)
-6. [Platform index](platforms/README.md)
-7. [Secret strategy](security/secret-strategy.md)
-8. [Decision log](decisions/README.md)
+3. [Repository scripts](reference/repository-scripts.md)
+4. [Reader paths](paths/README.md)
+5. [Shared services path](paths/shared-services/README.md)
+6. [Private cloud maturity path](paths/private-cloud-maturity.md)
+7. [Architecture overview](architecture/overview.md)
+8. [Private cloud model](architecture/private-cloud.md)
+9. [Platform index](platforms/README.md)
+10. [Secret strategy](security/secret-strategy.md)
+11. [Decision log](decisions/README.md)
 
 ## Start here
 
@@ -29,27 +33,43 @@ Use this order when you are new to the repository or returning after time away:
   without publishing live configuration
 - [Local setup](getting-started/local-setup.md) - prepare local tooling before
   the first run when needed
-- [Private cloud maturity path](getting-started/private-cloud-maturity-path.md) -
-  path from identity foundation deployment to Vault, backup, and more serious use
+- [Repository scripts](reference/repository-scripts.md) - what the wrapper
+  scripts do and how to run the equivalent Terraform and Ansible steps manually
+- [Private cloud maturity path](paths/private-cloud-maturity.md) -
+  path from shared private-domain services to Vault, observability, backup, and
+  more serious use
 
-## Foundation and early services
+## Reader paths
 
-- [Foundation index](foundation/README.md) - entry point for identity, DNS, PKI,
-  optional Windows support, and early secret-platform layers
-- [Identity foundation path](foundation/identity-foundation-path.md) - shortest
+- [Reader paths](paths/README.md) - task-oriented routes through the docs
+  without duplicating the source documents
+
+## Path guides
+
+- [Shared services path](paths/shared-services/README.md) - entry point for
+  identity, DNS, PKI, Vault, observability, and optional Windows support
+- [Identity foundation path](paths/shared-services/identity.md) - shortest
   path from local setup to the first managed identity and PKI foundation layer
-- [Windows and AD support](foundation/windows-support.md) - optional
+- [Windows and AD support](paths/shared-services/windows-support.md) - optional
   secondary path for Windows clients and AD-compatible support
-- [Vault foundation deployment](foundation/vault-foundation-deployment.md) -
-  early secret-platform deployment after the identity foundation and certificate
+- [Vault foundation deployment](paths/shared-services/vault.md) -
+  early secret-platform deployment after the identity, DNS, and PKI
   prerequisites exist
+- [Observability path](paths/observability.md) - telemetry backbone, syslog,
+  metrics, traces, and log/event search path after Vault
+- [Development platform path](paths/development.md) - source control,
+  automation, runners, and GitOps direction for internal projects
 
 ## Architecture and design
 
 - [Architecture overview](architecture/overview.md) - layered zones, automation
   flow, and trust boundaries
-- [Network zones and IaC mapping](architecture/network-zones-and-iac-mapping.md) -
-  shared network reference for subnets, VLANs, bridges, and Terraform zone keys
+- [Private cloud model](architecture/private-cloud.md) - what private cloud
+  means here and when Proxmox, Kubernetes, or OpenStack fit
+- [Shared services model](architecture/shared-services.md) - why identity, PKI,
+  Vault, and observability form the reusable private-domain backbone
+- [Network architecture](architecture/network.md) - shared network reference
+  for zones, VLAN strategy, bridges, and Terraform guest placement keys
 
 ## Platform guides
 
@@ -90,6 +110,8 @@ Use this order when you are new to the repository or returning after time away:
   foundation example that complements the env-var conventions
 - [Infrastructure automation layout](reference/infrastructure-automation-layout.md) -
   where the Terraform, Ansible, Packer, and wrapper code lives
+- [Repository scripts](reference/repository-scripts.md) - wrapper commands,
+  environment handling, and manual command equivalents
 - [Ansible Vault bootstrap](reference/ansible-vault-bootstrap.md) - local vault
   password and encrypted bootstrap vars pattern
 - [Decision log](decisions/README.md) - concise record of architectural choices

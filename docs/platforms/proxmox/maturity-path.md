@@ -4,15 +4,16 @@
 
 - [Purpose](#purpose)
 - [Maturity overview](#maturity-overview)
-- [Level 1 - Identity foundation deployment](#level-1---identity-foundation-deployment)
+- [Level 1 - Shared private-domain services](#level-1---shared-private-domain-services)
 - [Level 2 - Vault foundation deployment](#level-2---vault-foundation-deployment)
-- [Level 3 - Backup foundation](#level-3---backup-foundation)
-- [Level 4 - Higher availability and production use](#level-4---higher-availability-and-production-use)
+- [Level 3 - Observability and syslog](#level-3---observability-and-syslog)
+- [Level 4 - Backup foundation](#level-4---backup-foundation)
+- [Level 5 - Higher availability and production use](#level-5---higher-availability-and-production-use)
 
 ## Purpose
 
 Use this as a Proxmox-specific view of the broader
-[private cloud maturity path](../../getting-started/private-cloud-maturity-path.md). The private
+[private cloud maturity path](../../paths/private-cloud-maturity.md). The private
 cloud path is the authoritative repository-wide source of truth; this page
 keeps the same milestones in Proxmox terms.
 
@@ -20,20 +21,23 @@ keeps the same milestones in Proxmox terms.
 
 | Level | Goal | Success criteria |
 | --- | --- | --- |
-| 1 | Identity foundation deployment | First template, foundation hosts, and the identity, DNS, and PKI services Vault depends on are in place |
+| 1 | Shared private-domain services | First template, foundation hosts, and the identity, DNS, and PKI services Vault depends on are in place or mapped to existing services |
 | 2 | Vault foundation deployment | Vault is deployed as the early secret-platform foundation and ready for initialization |
-| 3 | Backup foundation | PBS is deployed, connected, and tested |
-| 4 | Higher availability and production use | Backup, recovery, and platform patterns support more serious use |
+| 3 | Observability and syslog | telemetry, syslog, metrics, traces, and log/event search have a Proxmox-aware path |
+| 4 | Backup foundation | PBS is deployed, connected, and tested |
+| 5 | Higher availability and production use | Backup, recovery, observability, and platform patterns support more serious use |
 
-## Level 1 - Identity foundation deployment
+## Level 1 - Shared private-domain services
 
 Goal:
 
 - copy the example files
 - prepare the local deployment environment file
 - build or prepare a template
-- provision the first managed foundation hosts
-- establish the identity, DNS, and certificate or PKI services Vault depends on
+- provision the first managed foundation hosts when you use the repo reference
+  path
+- establish or map the identity, DNS, and certificate or PKI services Vault
+  depends on
 - apply the first Ansible baseline run
 - keep Windows or AD support as a later optional path
 
@@ -42,8 +46,9 @@ Read more:
 - [Platform guide](README.md)
 - [Proxmox planning guidelines](conventions.md)
 - [Environment variable conventions](../../reference/environment-variables.md)
-- [Identity foundation path](../../foundation/identity-foundation-path.md)
-- [Windows and AD support](../../foundation/windows-support.md)
+- [Shared services model](../../architecture/shared-services.md)
+- [Identity foundation path](../../paths/shared-services/identity.md)
+- [Windows and AD support](../../paths/shared-services/windows-support.md)
 
 ## Level 2 - Vault foundation deployment
 
@@ -56,10 +61,24 @@ Goal:
 
 Read more:
 
-- [Vault foundation deployment](../../foundation/vault-foundation-deployment.md)
+- [Vault foundation deployment](../../paths/shared-services/vault.md)
 - [Secret strategy](../../security/secret-strategy.md)
 
-## Level 3 - Backup foundation
+## Level 3 - Observability and syslog
+
+Goal:
+
+- deploy or connect the telemetry gateway and syslog intake path
+- collect Proxmox host, VM, storage, network, and security signals through
+  controlled collectors
+- keep source systems away from direct backend access
+
+Read more:
+
+- [Observability path](../../paths/observability.md)
+- [Network architecture](../../architecture/network.md)
+
+## Level 4 - Backup foundation
 
 Goal:
 
@@ -74,7 +93,7 @@ Read more:
 - [Host networking](network-prerequisites.md)
 - [API setup](setup-api.md)
 
-## Level 4 - Higher availability and production use
+## Level 5 - Higher availability and production use
 
 Goal:
 

@@ -1,4 +1,4 @@
-# Network zones and IaC mapping
+# Network architecture
 
 ## Table of contents
 
@@ -6,7 +6,7 @@
 - [Big picture](#big-picture)
 - [Zone catalog](#zone-catalog)
 - [VLAN ID strategy](#vlan-id-strategy)
-- [IaC mapping](#iac-mapping)
+- [Automation mapping](#automation-mapping)
 - [Stage guidance](#stage-guidance)
 - [Proxmox notes](#proxmox-notes)
 - [Continue reading](#continue-reading)
@@ -40,16 +40,20 @@ flowchart TB
     Internet --> ExternalEdge
   end
 
-  subgraph App["Access, identity, and application layer"]
+  subgraph App["Access, identity, application, and telemetry layer"]
     Access[access]
     Identity[identity]
     Application[application]
+    TelemetryGateway[telemetry_gateway]
+    SecurityTelemetry[security_telemetry]
+    Observability[observability]
     Cryptography[cryptography]
   end
 
   subgraph Infra["Infrastructure and restricted layer"]
     Mgmt[management]
     Ceremony[ceremony]
+    Storage[storage]
 
     subgraph Fabric["Host and storage-close networks"]
       Corosync[corosync]
@@ -70,7 +74,13 @@ flowchart TB
   Access --> Application
   Identity --> Application
   Application --> Cryptography
+  Application --> TelemetryGateway
+  Identity --> TelemetryGateway
+  TelemetryGateway --> Observability
+  SecurityTelemetry --> Observability
+  Observability --> Storage
   Mgmt --> Identity
+  Mgmt --> Observability
   Mgmt --> Ceremony
   Ceremony --> Cryptography
 
@@ -82,17 +92,21 @@ flowchart TB
   classDef edgeNode fill:#dcfce7,stroke:#15803d,color:#1f2937
   classDef appNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
   classDef gatewayNode fill:#bfdbfe,stroke:#2563eb,color:#1f2937
+  classDef telemetryNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
+  classDef securityNode fill:#fecaca,stroke:#dc2626,color:#1f2937
   classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
   classDef proxmoxNode fill:#fdba74,stroke:#9a3412,color:#1f2937
   classDef hsmNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
   classDef cephNode fill:#fee2e2,stroke:#dc2626,color:#1f2937
 
   class Client,Internet,ExternalEdge edgeNode
-  class Access,Identity,Application appNode
+  class Access,Identity,Application,Observability appNode
   class Cryptography gatewayNode
+  class TelemetryGateway telemetryNode
+  class SecurityTelemetry securityNode
   class Mgmt mgmtNode
   class Corosync proxmoxNode
-  class Ceremony hsmNode
+  class Ceremony,Storage hsmNode
   class CephPublic,CephCluster cephNode
 ```
 
@@ -118,8 +132,12 @@ Use these zone meanings:
 | `ceph_public` | Ceph client-facing storage traffic | hypervisors, storage clients, selected guests | usually no |
 | `ceph_cluster` | Ceph replication, recovery, and back-end storage traffic | Ceph nodes only | no |
 | `application` | shared internal application traffic and service consumers | Vault, APIs, apps, internal callers | yes |
+| `observability` | telemetry backends, dashboards, and query endpoints | Netdata parent, VictoriaMetrics, SigNoZ, OpenSearch, telemetry UI | yes |
+| `telemetry_gateway` | telemetry routing and enrichment before backend storage | OpenTelemetry gateways, vmagent, telemetry routers | yes |
+| `security_telemetry` | hardened security log and audit intake | syslog collectors, audit collectors, security event intake | yes |
 | `cryptography` | live cryptography and issuing-CA service plane | HSM gateways, issuing CA services, signing APIs, PKI frontends | yes |
 | `ceremony` | restricted custody, provisioning, recovery, and root-CA path | offline root CA, recovery hosts, provisioning hosts, ceremony helpers | sometimes |
+| `storage` | storage service and archive access for guests that need it | archive writers, NAS gateways, object storage gateways | sometimes |
 | `external_edge` | external edge, edge load balancers, ingress, and controlled egress | edge load balancers, selected edge services | yes |
 
 Practical notes:
@@ -132,9 +150,16 @@ Practical notes:
 - domain, DNS, and shared identity services usually live on `identity`, such as
   `FreeIPA` replicas
 - `application` is the shared internal application network
+- `observability` is where telemetry backends and dashboards live
+- `telemetry_gateway` is where telemetry is received, enriched, sampled, and
+  routed before it reaches backends
+- `security_telemetry` is the hardened intake path for syslog, audit, and
+  selected security events
 - `cryptography` is the live service microsegment for HSM-backed gateways,
   signing services, and the online issuing CA when you keep those systems
   together
+- `storage` is for guest-facing archive or storage-service access; it is
+  separate from host-only Ceph replication networks
 - `ceremony` does not mean the USB device itself is networked; it is the
   restricted path around an offline root CA, recovery, provisioning, and
   custody-adjacent systems
@@ -156,8 +181,8 @@ Use a range model such as this:
 | VLAN ID range | Suggested use | Example zones |
 | --- | --- | --- |
 | `2-99` | critical control, access, identity, clustering, and storage | `management`, `access`, `identity`, host-only cluster and storage VLANs |
-| `100-199` | shared internal application networks | `application` |
-| `200-299` | cryptography and ceremony networks | `cryptography`, `ceremony` |
+| `100-199` | shared internal application and observability networks | `application`, `observability` |
+| `200-299` | telemetry, cryptography, and ceremony networks | `telemetry_gateway`, `security_telemetry`, `cryptography`, `ceremony` |
 | `300-399` | edge-facing paths | `external_edge`, ingress, egress, reverse proxies |
 | `400+` | local extensions and future segments | site-specific app, lab, or client-reference networks |
 
@@ -172,12 +197,16 @@ One example based on that pattern is:
 | `ceph_public` | `21` |
 | `ceph_cluster` | `22` |
 | `application` | `120` |
+| `observability` | `130` |
+| `storage` | `140` |
 | `cryptography` | `220` |
 | `ceremony` | `221` |
+| `telemetry_gateway` | `230` |
+| `security_telemetry` | `231` |
 | `external_edge` | `320` |
 | `client` | reference only |
 
-## IaC mapping
+## Automation mapping
 
 Use the same guest-facing keys in Terraform:
 
@@ -227,7 +256,7 @@ network_zones = {
   }
 }
 
-default_proxmox_node_name = "pve01"
+default_platform_node_name = "pve01"
 
 vm_instances = {
   "signer-gw-1" = {
@@ -244,7 +273,7 @@ Use these field meanings:
 
 | Field | Meaning | Current repository use |
 | --- | --- | --- |
-| `default_proxmox_node_name` | default Proxmox host that receives guests | consumed by VM and LXC placement |
+| `default_platform_node_name` | default platform node that receives guests | consumed by VM and LXC placement |
 | `vm_instances.<key>` | stable logical guest key | joins Terraform placement with Ansible inventory |
 | `vm_instances.<key>.tags` | Proxmox tags for filtering and ownership | consumed by VM and LXC placement |
 | `network_zones.<key>.bridge` | Proxmox bridge name for that zone | consumed by VM and LXC placement |
@@ -269,8 +298,9 @@ Use the catalog progressively:
 
 | Stage | Zones you usually need now | Zones you can leave as reference only |
 | --- | --- | --- |
-| identity foundation | `management`, `identity`, `cryptography`, optional `ceremony` | `access`, `application`, `external_edge`, `client`, host-only platform networks |
+| shared private-domain services | `management`, `identity`, `cryptography`, optional `ceremony` | `access`, `application`, `external_edge`, `client`, host-only platform networks |
 | early private cloud | `management`, `identity`, `cryptography`, `application`, optional `access`, optional `external_edge`, optional `ceremony` | `client`, host-only platform networks |
+| observability and syslog | `management`, `observability`, `telemetry_gateway`, `security_telemetry`, optional `storage` | `access`, `client`, host-only platform networks |
 | clustered platform | `management`, `identity`, `application`, optional `access`, optional `external_edge` | `cryptography`, `ceremony`, `client`, host-only platform networks |
 | storage-heavy platform | `management`, `identity`, `application` | `access`, `external_edge`, `cryptography`, `ceremony`, `client`, host-only platform networks |
 | HSM or signing lab | `management`, `identity`, `application`, `cryptography`, optional `ceremony`, optional `external_edge` | `access`, `client`, host-only platform networks |

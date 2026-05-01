@@ -23,6 +23,10 @@ provider "proxmox" {
 }
 
 locals {
+  effective_default_platform_node_name = coalesce(
+    var.default_platform_node_name,
+    var.default_proxmox_node_name,
+  )
   common_tags = [
     var.cluster_name,
     "terraform",
@@ -35,7 +39,7 @@ module "environment" {
   source = "../../modules/environment_guests"
 
   network_zones                = var.network_zones
-  default_proxmox_node_name    = var.default_proxmox_node_name
+  default_platform_node_name   = local.effective_default_platform_node_name
   default_vm_network_zone_key  = var.default_vm_network_zone_key
   default_lxc_network_zone_key = var.default_lxc_network_zone_key
   ansible_inventory_path       = var.ansible_inventory_path

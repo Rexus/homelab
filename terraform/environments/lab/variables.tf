@@ -1,5 +1,5 @@
 variable "platform" {
-  description = "Current reference platform name."
+  description = "Current reference platform implementation. Defaults to proxmox."
   type        = string
   default     = "proxmox"
 }
@@ -75,9 +75,18 @@ variable "network_zones" {
   }))
 }
 
-variable "default_proxmox_node_name" {
-  description = "Default Proxmox node used when a guest does not override placement."
+variable "default_platform_node_name" {
+  description = "Default platform node used when a guest does not override placement."
   type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "default_proxmox_node_name" {
+  description = "Deprecated. Use default_platform_node_name."
+  type        = string
+  default     = null
+  nullable    = true
 }
 
 variable "default_vm_network_zone_key" {

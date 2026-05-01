@@ -13,8 +13,7 @@
 
 This repository is designed to be easy to bootstrap while moving toward a
 stronger secret model quickly. Vault is the preferred target state and should be
-introduced as early as the identity foundation layer can support it
-safely.
+introduced as early as the shared identity and PKI layer can support it safely.
 
 ## Design goal
 
@@ -35,12 +34,12 @@ Before Vault is available:
 - keep sensitive runtime values in local environment variables or protected
   runner variables
 - limit off-Vault secrets to the minimum needed to create the bootstrap
-  identity foundation layer and the shared prerequisites that enable Vault
+  shared identity and PKI layer, or to connect to existing shared services
 - commit only examples, defaults, and reusable automation
 
 ## Vault foundation deployment milestone
 
-Once the identity foundation layer and its prerequisites are ready:
+Once the shared identity, DNS, and PKI prerequisites are ready:
 
 - install Vault as a dedicated early shared service
 - initialize and unseal Vault before broader service deployment
@@ -48,7 +47,7 @@ Once the identity foundation layer and its prerequisites are ready:
 - treat Ansible Vault and plain environment variables as fallback bootstrap
   mechanisms, not the long-term system of record
 
-Read more in [Vault foundation deployment](../foundation/vault-foundation-deployment.md).
+Read more in [Vault foundation deployment](../paths/shared-services/vault.md).
 
 ## Vault operating target
 

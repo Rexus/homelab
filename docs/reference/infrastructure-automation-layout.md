@@ -21,7 +21,7 @@ Keep shared host identity in Ansible and hardware placement in Terraform.
 | Ansible `all` group vars | hostname prefix or suffix, domain, guest IP map, and baseline inputs |
 | Ansible setup group vars | service settings and host configuration inputs |
 | Terraform environment tfvars | Proxmox tags, size, storage class, disk size, network zone, and optional Proxmox node override |
-| Terraform common tfvars | default Proxmox node, shared storage mappings, network zones, template IDs, and cloud-init SSH keys |
+| Terraform common tfvars | default platform node, shared storage mappings, network zones, template IDs, and cloud-init SSH keys |
 
 Terraform guest maps are keyed by the matching Ansible inventory host key, for
 example `idm-1`. Keep that key stable across environments.
@@ -45,9 +45,11 @@ the matching setup vars file when that setup has one. For example,
 `--env test` with `foundation` loads `all.test.yml` and
 `foundation.test.yml`.
 
-Use `default_proxmox_node_name` for the normal Proxmox placement target.
+Use `default_platform_node_name` for the normal platform placement target.
 Only set `proxmox_node_name` on an individual guest when you intentionally
 override that default for a clustered Proxmox placement.
+The older `default_proxmox_node_name` key is still accepted as a compatibility
+fallback, but new local files should use the platform-generic name.
 
 Use `default_linux_vm_template_id` in `terraform/common.tfvars` for the shared
 Linux cloud-init template. Override it in `terraform.tfvars` or
@@ -80,18 +82,18 @@ state file between environments. Omit `--env` for production.
 
 | Path | Purpose | Read first |
 | --- | --- | --- |
-| `scripts/` | repo-local initialization and deployment wrappers | [Local setup](../getting-started/local-setup.md) |
-| `terraform/` | platform provisioning environments and modules | [Identity foundation path](../foundation/identity-foundation-path.md) |
-| `ansible/` | baseline and service configuration playbooks | [Vault foundation deployment](../foundation/vault-foundation-deployment.md) |
+| `scripts/` | repo-local initialization and deployment wrappers | [Repository scripts](repository-scripts.md) |
+| `terraform/` | platform provisioning environments and modules | [Shared services model](../architecture/shared-services.md) |
+| `ansible/` | baseline and service configuration playbooks | [Shared services path](../paths/shared-services/README.md) |
 | `packer/` | optional custom image builds | [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |
 
 ## Terraform
 
 | Path | Contains | Owner guide |
 | --- | --- | --- |
-| `terraform/common.tfvars.example` | default Proxmox node, storage, network, template, and SSH-key inputs | [Local setup](../getting-started/local-setup.md) |
-| `terraform/environments/foundation/` | identity, DNS, PKI, and optional edge load-balancer guest layout | [Identity foundation path](../foundation/identity-foundation-path.md) |
-| `terraform/environments/vault/` | dedicated Vault guest layout | [Vault foundation deployment](../foundation/vault-foundation-deployment.md) |
+| `terraform/common.tfvars.example` | default platform node, storage, network, template, and SSH-key inputs | [Local setup](../getting-started/local-setup.md) |
+| `terraform/environments/foundation/` | identity, DNS, PKI, and optional edge load-balancer guest layout | [Identity foundation path](../paths/shared-services/identity.md) |
+| `terraform/environments/vault/` | dedicated Vault guest layout | [Vault foundation deployment](../paths/shared-services/vault.md) |
 | `terraform/environments/hsm-lab/` | USB HSM gateway and optional helper guest layout | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
 | `terraform/environments/lab/` | general lab guest layout | [Local setup](../getting-started/local-setup.md) |
 | `terraform/modules/vm/` | reusable Proxmox VM module | this reference |

@@ -30,7 +30,7 @@ it to other USB-backed PKCS#11 devices such as `YubiHSM 2` [1][2][3][4][5].
 
 Before you start:
 
-- the foundation edge load-balancer pair or set is already deployed in
+- the shared-service edge load-balancer pair or set is already deployed in
   `external_edge`
 - the deployment machine already has `ansible-core` and `terraform`
 - the edge load-balancer hosts already exist in `ansible/inventory/hosts.yml`
@@ -38,14 +38,14 @@ Before you start:
   gateway backends
 
 If not, start with
-[Identity foundation path](../foundation/identity-foundation-path.md).
+[Identity foundation path](../paths/shared-services/identity.md).
 
 ## Default deployment
 
 The default shape in this repo is:
 
 - `2` deployed edge load-balancer VMs, or a larger load-balancer set, from the
-  foundation environment
+  `foundation` setup
 - `2` gateway hosts in the `cryptography` zone
 - `1` local USB HSM or software token per gateway host
 - `0-1` helper or recovery VM in `ceremony`
@@ -90,14 +90,14 @@ flowchart TD
   class H1,H2,Backup hsmNode
 ```
 
-Figure: the default path is the deployed foundation edge load-balancer layer in
+Figure: the default path is the deployed shared-service edge load-balancer in
 front of two gateway hosts, one local USB HSM per host, and one offline backup
 device.
 
 Keep these boundaries:
 
 - one gateway service talks only to one local token
-- the deployed edge load balancer stays in the foundation layer and is a
+- the deployed edge load balancer stays in the shared-service layer and is a
   prerequisite here
 - active devices are independent replicas, not a native HSM cluster
 - USB or PKCS#11 access stays host-local
@@ -109,7 +109,7 @@ Before you deploy, fill in these inputs.
 ### Network zones
 
 Use the shared zone keys from
-[Network zones and IaC mapping](../architecture/network-zones-and-iac-mapping.md).
+[Network architecture](../architecture/network.md).
 
 You mainly add these zones here:
 
@@ -131,7 +131,7 @@ Copy these examples to your local Terraform variable files and edit the shared
 network mappings in `terraform/common.tfvars`:
 
 - [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example)
-  for the default Proxmox node, shared storage, deployable guest networks,
+  for the default platform node, shared storage, deployable guest networks,
   template IDs, and SSH keys
 - [`terraform/environments/hsm-lab/terraform.tfvars.example`](../../terraform/environments/hsm-lab/terraform.tfvars.example)
   for the gateway and helper layer
@@ -177,7 +177,7 @@ Edit the `vm_instances` maps to match the shape you want.
 | gateway VMs | `2` | `1-8` | `terraform/environments/hsm-lab/terraform.tfvars` |
 | helper VMs | `0` enabled by default | `0-2+` as needed | `terraform/environments/hsm-lab/terraform.tfvars` |
 
-The deployed edge load balancer stays in the foundation layer. Start here with
+The deployed edge load balancer stays in the shared-service layer. Start here with
 the gateway and helper hosts.
 
 ### HSM mode
@@ -198,7 +198,7 @@ Use these repo paths here:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default Proxmox node | your local `terraform/common.tfvars` |
+| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
 | [`terraform/environments/hsm-lab/terraform.tfvars.example`](../../terraform/environments/hsm-lab/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm-lab/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | stable HSM host keys and inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
@@ -221,7 +221,8 @@ Terraform environment owns hardware placement and Proxmox tags.
 Shape the HSM lab around one stable service pattern and then change the size by
 data only.
 
-- keep the edge load balancer in foundation and treat it as a prerequisite here
+- keep the edge load balancer in the shared-service layer and treat it as a
+  prerequisite here
 - keep the default `2` gateway hosts unless you have measured reasons to change
   the count
 - grow or shrink gateway and helper counts only through `vm_instances`

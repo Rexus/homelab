@@ -146,7 +146,7 @@ smaller internal platforms.
 
 - [USB HSM active-active blueprint](usb-hsm-active-active-blueprint.md)
 - [Vault HSM hardening options](vault-hsm-hardening-options.md)
-- [Vault foundation deployment](../foundation/vault-foundation-deployment.md)
+- [Vault foundation deployment](../paths/shared-services/vault.md)
 - [Secret strategy](secret-strategy.md)
 
 ## References

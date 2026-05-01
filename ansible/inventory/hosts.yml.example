@@ -16,13 +16,15 @@ all:
         else inventory_hostname
       }}
   children:
+    # Platform path: reference group for Proxmox host operations.
+    # The foundation deployment does not run Ansible on Proxmox hosts.
     hypervisors:
       hosts: {}
-      # Optional reference group for future Proxmox host operations.
-      # The current foundation deployment does not run Ansible on Proxmox hosts.
-      # When you need it later, remove "{}" above and add:
+      # To manage platform hosts with Ansible, remove "{}" above and add:
       # pve-1:
       #   ansible_host: 10.10.10.11
+
+    # Foundation identity path: default foundation run.
     identity_primary:
       hosts:
         # Exactly one host belongs here. The foundation playbook installs this
@@ -40,54 +42,105 @@ all:
       hosts:
         # Online issuing CA host in the cryptography network.
         ca-1: {}
+
+    # Foundation ceremony path: root CA host.
     root_ca:
       hosts: {}
-      # Optional offline root CA hosts in the ceremony network.
-      # When enabled, remove "{}" above and add:
+      # To deploy an offline root CA host, remove "{}" above and add:
       # ca-root-1: {}
-    identity_providers:
-      hosts: {}
-      # Optional access-layer identity provider hosts, such as Keycloak.
-      # When enabled, remove "{}" above and add:
-      # idp-1: {}
+
+    # Foundation edge path: north-south ingress, egress, and load balancing.
     edge_load_balancers:
       hosts: {}
-      # Optional north-south ingress, egress, and load-balancer hosts.
-      # When enabled, remove "{}" above and add:
+      # To deploy edge load balancers, remove "{}" above and add:
       # edge-lb-1: {}
       # edge-lb-2: {}
+
     foundation:
       children:
         identity:
         issuing_ca:
         root_ca:
         edge_load_balancers:
+
+    # Vault path.
     vault:
-      hosts:
-        # Vault is deployed after the identity foundation is ready.
-        vault-1: {}
+      hosts: {}
+      # To deploy Vault, remove "{}" above and add:
+      # vault-1: {}
+
+    # Observability path: telemetry routing and enrichment.
+    telemetry_gateways:
+      hosts: {}
+      # To deploy telemetry gateways, remove "{}" above and add:
+      # telemetry-1: {}
+      # telemetry-2: {}
+
+    # Observability path: hardened syslog and security event intake.
+    security_telemetry:
+      hosts: {}
+      # To deploy security telemetry collectors, remove "{}" above and add:
+      # syslog-1: {}
+      # syslog-2: {}
+
+    # Observability path: dashboards, metrics, traces, and log backends.
+    observability:
+      hosts: {}
+      # To deploy observability backends, remove "{}" above and add:
+      # health-1: {}
+      # metrics-1: {}
+      # apm-1: {}
+      # logs-1: {}
+      # logs-2: {}
+      # logs-3: {}
+      # telemetry-ui-1: {}
+
+    # Observability path: archive writer for cold log and snapshot targets.
+    archive:
+      hosts: {}
+      # To deploy an archive writer, remove "{}" above and add:
+      # archive-1: {}
+
+    # Access path: identity provider hosts, such as Keycloak.
+    identity_providers:
+      hosts: {}
+      # To deploy access-layer identity provider hosts, remove "{}" above and add:
+      # idp-1: {}
+
+    # Lab path.
     lab:
-      hosts:
-        lab-1: {}
-        support-1: {}
+      hosts: {}
+      # To deploy lab hosts, remove "{}" above and add:
+      # lab-1: {}
+      # support-1: {}
+
+    # HSM path.
     hsm_gateways:
-      hosts:
-        # hsm_proxy_ingress_backend_port is the service port exposed to the
-        # edge load balancer, not a raw PKCS#11 or USB endpoint.
-        hsm-1:
-          hsm_proxy_ingress_backend_port: 8443
-        hsm-2:
-          hsm_proxy_ingress_backend_port: 8443
+      hosts: {}
+      # hsm_proxy_ingress_backend_port is the service port exposed to the
+      # edge load balancer, not a raw PKCS#11 or USB endpoint.
+      # To deploy HSM gateways, remove "{}" above and add:
+      # hsm-1:
+      #   hsm_proxy_ingress_backend_port: 8443
+      # hsm-2:
+      #   hsm_proxy_ingress_backend_port: 8443
+
+    # Cryptography administration path.
     crypto_admin:
-      hosts:
-        # Restricted ceremony or recovery host for cryptography and HSM work.
-        crypto-admin-1: {}
+      hosts: {}
+      # Restricted ceremony or recovery host for cryptography and HSM work.
+      # To deploy a crypto administration host, remove "{}" above and add:
+      # crypto-admin-1: {}
     guests:
       children:
         foundation:
         edge_load_balancers:
         identity_providers:
         vault:
+        telemetry_gateways:
+        security_telemetry:
+        observability:
+        archive:
         lab:
         hsm_gateways:
         crypto_admin:

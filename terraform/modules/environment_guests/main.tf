@@ -82,7 +82,7 @@ locals {
       inventory_host = local.ansible_inventory_hosts[key]
       node_name = coalesce(
         try(vm.proxmox_node_name, null),
-        var.default_proxmox_node_name,
+        var.default_platform_node_name,
       )
       template_vm_id = try(vm.template_vm_id, null)
       size           = coalesce(try(vm.size, null), "small")
@@ -109,7 +109,7 @@ locals {
       inventory_host = local.ansible_inventory_hosts[key]
       node_name = coalesce(
         try(lxc.proxmox_node_name, null),
-        var.default_proxmox_node_name,
+        var.default_platform_node_name,
       )
       template_file_id = lxc.template_file_id
       size             = coalesce(try(lxc.size, null), "small")

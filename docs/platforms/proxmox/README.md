@@ -15,6 +15,10 @@ infrastructure layer in this repository. It provides the cluster, storage,
 networking, and API surface used by the first image build, provisioning, and
 configuration workflows.
 
+Use [Private cloud model](../../architecture/private-cloud.md) to understand
+where Proxmox fits compared with a later Kubernetes layer or an OpenStack-style
+private cloud.
+
 ## What this covers
 
 Use the Proxmox platform layer for:
@@ -46,18 +50,18 @@ Use the Proxmox platform layer for:
 Recommended next maturity step:
 
 - continue with the
-  [Identity foundation path](../../foundation/identity-foundation-path.md)
+  [Identity foundation path](../../paths/shared-services/identity.md)
 - add
-  [Windows and AD support](../../foundation/windows-support.md) only when
+  [Windows and AD support](../../paths/shared-services/windows-support.md) only when
   the environment needs Windows support
 - continue with the
-  [Vault foundation deployment](../../foundation/vault-foundation-deployment.md)
+  [Vault foundation deployment](../../paths/shared-services/vault.md)
 - add the [backup foundation](backup-foundation.md) before the environment
   becomes important
 
 ## Related references
 
-- [Private cloud maturity path](../../getting-started/private-cloud-maturity-path.md)
+- [Private cloud maturity path](../../paths/private-cloud-maturity.md)
 - [Proxmox maturity path](maturity-path.md)
 - [Safe repository usage](../../usage-model.md)
 - [Secret strategy](../../security/secret-strategy.md)

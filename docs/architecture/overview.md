@@ -19,6 +19,12 @@ The design is meant to stay stable as the environment grows. The number of
 segments, hosts, and services can change without changing the core model, even
 when the platform starts at homelab or small-datacenter scale.
 
+For the repository definition of private cloud and the boundary between
+Proxmox, Kubernetes, and OpenStack, read
+[Private cloud model](private-cloud.md).
+For the shared identity, PKI, secrets, and telemetry backbone, read
+[Shared services model](shared-services.md).
+
 ## Goals
 
 - clear separation of edge, application, and infrastructure concerns
@@ -115,10 +121,11 @@ handling before broader service deployment.
 ## Network references
 
 Use the shared zone catalog in
-[Network zones and IaC mapping](network-zones-and-iac-mapping.md) when you pick
-subnets, VLANs, Proxmox bridges, and guest placement keys. That document is the
-repository source of truth for zone names such as `management`, `access`,
-`identity`, `application`, `cryptography`, `external_edge`, and `ceremony`.
+[Network architecture](network.md) when you pick subnets, VLANs, Proxmox
+bridges, and guest placement keys. That document is the repository source of
+truth for zone names such as `management`, `access`, `identity`, `application`,
+`observability`, `telemetry_gateway`, `security_telemetry`, `cryptography`,
+`external_edge`, and `ceremony`.
 
 ## Boundaries
 

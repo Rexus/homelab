@@ -5,7 +5,8 @@
 
 platform = "proxmox"
 
-default_proxmox_node_name = "pve01-change-me"
+# Default automation target node unless a deployment overrides it.
+default_platform_node_name = "pve01-change-me"
 
 proxmox_storage_classes = {
   # cloud_init_drive uses vm_disk by default. Set it only when your Proxmox
@@ -54,6 +55,20 @@ network_zones = {
     cidr_ipv4    = "10.20.20.0/24"
     gateway_ipv4 = "10.20.20.1"
   }
+  # observability = {
+  #   description = "Telemetry backends, dashboards, and query endpoints."
+  #   bridge       = "vmbr0"
+  #   vlan_id      = 130
+  #   cidr_ipv4    = "10.20.30.0/24"
+  #   gateway_ipv4 = "10.20.30.1"
+  # }
+  # storage = {
+  #   description = "Guest-facing archive and storage service access."
+  #   bridge       = "vmbr0"
+  #   vlan_id      = 140
+  #   cidr_ipv4    = "10.20.40.0/24"
+  #   gateway_ipv4 = "10.20.40.1"
+  # }
   cryptography = {
     description = "Live cryptography, issuing CA, and HSM-backed gateway traffic."
     bridge       = "vmbr0"
@@ -68,6 +83,20 @@ network_zones = {
     cidr_ipv4    = "10.20.22.0/24"
     gateway_ipv4 = "10.20.22.1"
   }
+  # telemetry_gateway = {
+  #   description = "Telemetry routing and enrichment before backend storage."
+  #   bridge       = "vmbr0"
+  #   vlan_id      = 230
+  #   cidr_ipv4    = "10.20.31.0/24"
+  #   gateway_ipv4 = "10.20.31.1"
+  # }
+  # security_telemetry = {
+  #   description = "Hardened security log and audit intake."
+  #   bridge       = "vmbr0"
+  #   vlan_id      = 231
+  #   cidr_ipv4    = "10.20.32.0/24"
+  #   gateway_ipv4 = "10.20.32.1"
+  # }
   external_edge = {
     description = "External edge, edge load balancing, ingress, and controlled egress."
     bridge       = "vmbr0"

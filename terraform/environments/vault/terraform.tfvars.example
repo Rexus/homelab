@@ -1,6 +1,6 @@
 # Copy to: terraform/environments/vault/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/foundation/vault-foundation-deployment.md
+# Setup guide: docs/paths/shared-services/vault.md
 # Shared values live in ../../common.tfvars.
 
 cluster_name = "vault-change-me"

@@ -1,7 +1,7 @@
 # Copy to: terraform/environments/foundation/terraform.tfvars
 # Optionally copy to terraform.<env>.tfvars only for environment overrides.
 # Replace every value before use.
-# Setup guide: docs/foundation/identity-foundation-path.md
+# Setup guide: docs/paths/shared-services/identity.md
 # Shared values live in ../../common.tfvars.
 
 cluster_name = "foundation-change-me"

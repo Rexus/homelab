@@ -14,3 +14,7 @@ security posture, and tool separation across Packer, Terraform, and Ansible.
 ## Current platforms
 
 - [Proxmox](proxmox/README.md) - current reference implementation
+
+Read [Private cloud model](../architecture/private-cloud.md) when you want to
+understand why the current reference path starts with Proxmox and when a
+heavier private-cloud control plane becomes a better fit.

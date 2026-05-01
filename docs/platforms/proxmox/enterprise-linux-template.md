@@ -278,5 +278,5 @@ Configure these at deploy time with Terraform and Ansible:
 - [Proxmox planning guidelines](conventions.md)
 - [Proxmox reference platform](README.md)
 - [Infrastructure automation layout](../../reference/infrastructure-automation-layout.md)
-- [Private cloud maturity path](../../getting-started/private-cloud-maturity-path.md)
+- [Private cloud maturity path](../../paths/private-cloud-maturity.md)
 - [Environment variable conventions](../../reference/environment-variables.md)

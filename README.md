@@ -8,6 +8,9 @@ environments quickly, consistently, and without committing secrets into Git.
 Proxmox is the current reference foundation for the hypervisor and initial
 infrastructure layer, but the repository is organized around the broader
 private-cloud lifecycle rather than one product.
+Read [docs/architecture/private-cloud.md](docs/architecture/private-cloud.md)
+for how this project uses the term private cloud and where Proxmox, Kubernetes,
+and OpenStack fit.
 
 This public repository is maintained as a curated upstream reference. Use a
 private fork, private mirror, or local copy for actual deployment work and do
@@ -15,16 +18,22 @@ not push operational changes back to this upstream.
 
 ## Getting started
 
-Use the foundation fast path below for the shortest first run. Start with a
+Use the shared-service fast path below for the shortest first run. Start with a
 disposable `test` deployment, verify the flow, destroy it, and then create a
-production environment when you are ready. For a fuller walkthrough of the same
-flow, start with
-[docs/foundation/identity-foundation-path.md](docs/foundation/identity-foundation-path.md).
+production environment when you are ready. The current wrapper setup for this
+path is still named `foundation`. For a fuller walkthrough of the same flow,
+start with
+[docs/paths/shared-services/identity.md](docs/paths/shared-services/identity.md).
 If your local tooling still needs to be prepared, read
 [docs/getting-started/local-setup.md](docs/getting-started/local-setup.md).
+For wrapper behavior and manual command equivalents, read
+[docs/reference/repository-scripts.md](docs/reference/repository-scripts.md).
+The repository scripts also expose short inline help with `--help`.
 If you want the broader documentation map, use [docs/README.md](docs/README.md).
+If you know the outcome you want but not the document order, use
+[docs/paths/README.md](docs/paths/README.md).
 
-Foundation fast path:
+Shared-service fast path:
 
 1. Review platform prerequisites:
    - [Proxmox reference platform](docs/platforms/proxmox/README.md)
@@ -55,7 +64,7 @@ bash scripts/deploy.sh foundation --env test
 This wrapper runs the local control-node precheck first, then the mapped
 Terraform and Ansible steps for that setup. With `--env test`, it also loads
 the matching ignored Ansible vars files for that environment. Read the detailed
-flow in the [identity foundation path](docs/foundation/identity-foundation-path.md).
+flow in the [identity foundation path](docs/paths/shared-services/identity.md).
 After you have reviewed the first plan and want a non-interactive run, add
 `--auto-approve` to the same command.
 
@@ -73,9 +82,11 @@ bash scripts/deploy.sh foundation
 ```
 
 7. Continue with:
-   - [Vault foundation deployment](docs/foundation/vault-foundation-deployment.md)
+   - [Vault foundation deployment](docs/paths/shared-services/vault.md)
+   - [Observability path](docs/paths/observability.md)
+   - [Development platform path](docs/paths/development.md)
    - [Secret strategy](docs/security/secret-strategy.md)
-   - [Private cloud maturity path](docs/getting-started/private-cloud-maturity-path.md)
+   - [Private cloud maturity path](docs/paths/private-cloud-maturity.md)
    - [Documentation index](docs/README.md)
 
 Recommended maturity path:
@@ -87,17 +98,25 @@ Recommended maturity path:
 - add Windows or AD support later only if the environment needs it
 - deploy Vault as the early secret-platform foundation
 - move long-lived and shared secrets to Vault before broader deployment
+- add observability, syslog intake, and telemetry routing before the platform
+  becomes hard to reason about
 - add backup and recovery before the environment becomes important
 - improve resilience and availability as the environment becomes more serious
 
 Read more in:
 
-- [docs/foundation/vault-foundation-deployment.md](docs/foundation/vault-foundation-deployment.md)
-- [docs/getting-started/private-cloud-maturity-path.md](docs/getting-started/private-cloud-maturity-path.md)
+- [docs/paths/shared-services/vault.md](docs/paths/shared-services/vault.md)
+- [docs/paths/observability.md](docs/paths/observability.md)
+- [docs/paths/development.md](docs/paths/development.md)
+- [docs/paths/private-cloud-maturity.md](docs/paths/private-cloud-maturity.md)
 - [Proxmox backup foundation](docs/platforms/proxmox/backup-foundation.md)
 - [docs/reference/environment-variables.md](docs/reference/environment-variables.md)
 - [docs/reference/infrastructure-automation-layout.md](docs/reference/infrastructure-automation-layout.md)
+- [docs/reference/repository-scripts.md](docs/reference/repository-scripts.md)
+- [docs/paths/README.md](docs/paths/README.md)
 - [docs/security/secret-strategy.md](docs/security/secret-strategy.md)
+- [docs/architecture/private-cloud.md](docs/architecture/private-cloud.md)
+- [docs/architecture/shared-services.md](docs/architecture/shared-services.md)
 - [docs/architecture/overview.md](docs/architecture/overview.md)
 - [docs/README.md](docs/README.md)
 

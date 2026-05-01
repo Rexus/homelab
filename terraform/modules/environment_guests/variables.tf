@@ -10,8 +10,8 @@ variable "network_zones" {
   }))
 }
 
-variable "default_proxmox_node_name" {
-  description = "Default Proxmox node used when a guest does not override placement."
+variable "default_platform_node_name" {
+  description = "Default platform node used when a guest does not override placement."
   type        = string
 }
 

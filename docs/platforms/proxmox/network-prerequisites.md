@@ -30,7 +30,7 @@ reach the Proxmox web UI, API, and SSH.
 
 ## Shared network reference
 
-Use [Network zones and IaC mapping](../../architecture/network-zones-and-iac-mapping.md)
+Use [Network architecture](../../architecture/network.md)
 as the source of truth for:
 
 - zone names such as `management`, `access`, `identity`, `application`,
@@ -158,7 +158,7 @@ assigning the intended VLAN tag to that VM.
 
 This is not Proxmox-specific, but it makes the Proxmox bridge configuration
 easier to keep readable. Read more in
-[Network zones and IaC mapping](../../architecture/network-zones-and-iac-mapping.md#vlan-id-strategy).
+[Network architecture](../../architecture/network.md#vlan-id-strategy).
 
 Recommended practice:
 

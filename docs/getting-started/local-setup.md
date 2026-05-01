@@ -28,7 +28,7 @@ Have these ready before running automation:
 For Proxmox token setup, read
 [Proxmox API setup](../platforms/proxmox/setup-api.md).
 For the shared zone names and IaC mapping, read
-[Network zones and IaC mapping](../architecture/network-zones-and-iac-mapping.md).
+[Network architecture](../architecture/network.md).
 
 ## Deployment machine
 
@@ -114,8 +114,9 @@ Keep live secrets out of Git.
 ## Read more
 
 - [Environment variable conventions](../reference/environment-variables.md)
+- [Repository scripts](../reference/repository-scripts.md)
 - [Secret strategy](../security/secret-strategy.md)
-- [Identity foundation path](../foundation/identity-foundation-path.md)
-- [Windows and AD support](../foundation/windows-support.md)
-- [Private cloud maturity path](private-cloud-maturity-path.md)
+- [Identity foundation path](../paths/shared-services/identity.md)
+- [Windows and AD support](../paths/shared-services/windows-support.md)
+- [Private cloud maturity path](../paths/private-cloud-maturity.md)
 - [Proxmox reference platform](../platforms/proxmox/README.md)

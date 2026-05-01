@@ -11,16 +11,16 @@
 ## Purpose
 
 Use this path only when the environment needs Windows support after the
-identity foundation already exists.
+primary identity and DNS layer already exists.
 
-This is a secondary layer. It is not part of the default foundation deployment
-that prepares DNS, PKI, and Vault prerequisites.
+This is a secondary layer. It is not part of the default shared-service
+deployment that prepares DNS, PKI, and Vault prerequisites.
 
 ## Position in the repo
 
 Use this order:
 
-1. deploy the identity foundation first
+1. deploy or connect the primary identity path first
 2. stabilize identity, DNS, certificate handling, and baseline operations
 3. add Windows support only when Windows clients or GPO requirements
    justify it
@@ -46,7 +46,7 @@ The repository direction is:
 
 ## Read more
 
-- [Identity foundation path](identity-foundation-path.md)
-- [Vault foundation deployment](vault-foundation-deployment.md)
-- [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
-- [Design decision log](../decisions/README.md)
+- [Identity foundation path](identity.md)
+- [Vault foundation deployment](vault.md)
+- [Private cloud maturity path](../private-cloud-maturity.md)
+- [Design decision log](../../decisions/README.md)

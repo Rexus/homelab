@@ -27,8 +27,8 @@ dependency.
 
 Use this order:
 
-1. deploy one dedicated Vault VM after the identity foundation layer
-   is ready
+1. deploy one dedicated Vault VM after the shared identity and PKI layer is
+   ready
 2. use Shamir seal for the first node
 3. move shared secrets into Vault
 4. evaluate HSM-backed hardening and PKI workflows later
@@ -161,7 +161,7 @@ Use this rule of thumb:
 
 - [HSM getting started](hsm-planning-and-comparison.md)
 - [USB HSM active-active blueprint](usb-hsm-active-active-blueprint.md)
-- [Vault foundation deployment](../foundation/vault-foundation-deployment.md)
+- [Vault foundation deployment](../paths/shared-services/vault.md)
 - [Secret strategy](secret-strategy.md)
 
 ## References

@@ -4,7 +4,8 @@
 
 - [Purpose](#purpose)
 - [Before you start](#before-you-start)
-- [Default foundation shape](#default-foundation-shape)
+- [Default private-domain shape](#default-private-domain-shape)
+- [Using an existing domain](#using-an-existing-domain)
 - [What you configure](#what-you-configure)
 - [IaC used for this](#iac-used-for-this)
 - [Staged identity rollout](#staged-identity-rollout)
@@ -14,8 +15,8 @@
 
 ## Purpose
 
-Use this path for the first managed identity foundation after the Proxmox and
-network prerequisites exist.
+Use this path when you want the repository to deploy the shared private-domain
+identity and PKI layer after the Proxmox and network prerequisites exist.
 
 The current reference shape is:
 
@@ -23,8 +24,9 @@ The current reference shape is:
 - `1` issuing CA in `cryptography`
 - `0-1` offline root CA host in `ceremony`
 
-This is the default authority path for the repository. Keep Windows support as
-an optional layer after the identity foundation is stable.
+This is the default authority path for the repository, not a mandatory global
+prerequisite. If you already operate identity, DNS, and PKI, use those as the
+shared services for later paths.
 
 ## Before you start
 
@@ -38,9 +40,9 @@ an optional layer after the identity foundation is stable.
   equivalent variables set
 - the network plan already includes at least `management`, `identity`, and
   `cryptography`
-- the Enterprise Linux template is available for the first foundation hosts
+- the Enterprise Linux template is available for the first shared-service hosts
 
-## Default foundation shape
+## Default private-domain shape
 
 Use this as the starting point:
 
@@ -56,7 +58,31 @@ it as a ceremony system that should normally stay offline outside planned CA
 operations.
 
 Both CA layers can later be hardened with HSM-backed keys, but the default
-foundation path does not require HSM on day one.
+identity path does not require HSM on day one.
+
+## Using an existing domain
+
+You can skip this deployment when an existing environment already provides the
+services this path would create.
+
+Use the existing environment as the source for:
+
+| Existing service | Later paths need |
+| --- | --- |
+| DNS and private domain | stable FQDNs for platform hosts and services |
+| identity | users, groups, service identities, and host enrollment model |
+| PKI | trusted certificates for internal TLS and service identity |
+| secrets platform | shared secret storage and token handoff |
+| telemetry or syslog | audit, troubleshooting, and platform visibility |
+
+Keep the same repo pattern even when the services already exist:
+
+- keep stable inventory host keys such as `idm-1`, `vault-1`, or `logs-1`
+- keep environment-specific domains and IP maps in `all.<env>.yml`
+- override subnets and VLANs in Terraform only when that environment needs a
+  different network shape
+- avoid deploying duplicate identity systems for labs unless isolation is the
+  goal
 
 ## What you configure
 
@@ -64,12 +90,12 @@ Edit these local files before you deploy:
 
 | Path | What you configure |
 | --- | --- |
-| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | default Proxmox node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
-| [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
-| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, guest IP map, SSH user, port, and baseline defaults |
-| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
-| [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
+| [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | default platform node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
+| [`terraform/environments/foundation/terraform.tfvars.example`](../../../terraform/environments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
+| [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
+| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, guest IP map, SSH user, port, and baseline defaults |
+| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
+| [`ansible/group_vars/foundation.yml.example`](../../../ansible/group_vars/foundation.yml.example) | FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
 
 ## IaC used for this
 
@@ -77,14 +103,14 @@ Use these repo paths here:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default Proxmox node | your local `terraform/common.tfvars` |
-| [`terraform/environments/foundation/terraform.tfvars.example`](../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity, PKI, and optional edge hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | your local `ansible/inventory/hosts.yml` |
-| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration, domain, and IP maps | your local `ansible/group_vars/all.<env>.yml` |
-| [`ansible/group_vars/foundation.yml.example`](../../ansible/group_vars/foundation.yml.example) | starting point for FreeIPA and foundation service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
-| [`ansible/playbooks/foundation.yml`](../../ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
-| [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `foundation` setup when you are ready to run it |
+| [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
+| [`terraform/environments/foundation/terraform.tfvars.example`](../../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity, PKI, and optional edge hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
+| [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | your local `ansible/inventory/hosts.yml` |
+| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration, domain, and IP maps | your local `ansible/group_vars/all.<env>.yml` |
+| [`ansible/group_vars/foundation.yml.example`](../../../ansible/group_vars/foundation.yml.example) | starting point for FreeIPA and foundation service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
+| [`ansible/playbooks/foundation.yml`](../../../ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
+| [`scripts/deploy.sh`](../../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `foundation` setup when you are ready to run it |
 
 Current boundary:
 
@@ -192,7 +218,7 @@ config files for the setup before it runs.
 
 ## What comes next
 
-After the foundation hosts are ready:
+After the shared-service hosts are ready:
 
 1. verify `FreeIPA`, DNS, and replication health from the deployment machine
 2. configure the issuing CA on the `cryptography` host and chain it to the root
@@ -204,11 +230,13 @@ After the foundation hosts are ready:
 
 ## Read more
 
-- [Infrastructure automation layout](../reference/infrastructure-automation-layout.md)
+- [Infrastructure automation layout](../../reference/infrastructure-automation-layout.md)
+- [Repository scripts](../../reference/repository-scripts.md)
+- [Shared services model](../../architecture/shared-services.md)
 - [Windows and AD support](windows-support.md)
-- [Vault foundation deployment](vault-foundation-deployment.md)
-- [Private cloud maturity path](../getting-started/private-cloud-maturity-path.md)
-- [Secret strategy](../security/secret-strategy.md)
-- [Environment variable conventions](../reference/environment-variables.md)
-- [Network zones and IaC mapping](../architecture/network-zones-and-iac-mapping.md)
-- [Proxmox reference platform](../platforms/proxmox/README.md)
+- [Vault foundation deployment](vault.md)
+- [Private cloud maturity path](../private-cloud-maturity.md)
+- [Secret strategy](../../security/secret-strategy.md)
+- [Environment variable conventions](../../reference/environment-variables.md)
+- [Network architecture](../../architecture/network.md)
+- [Proxmox reference platform](../../platforms/proxmox/README.md)
