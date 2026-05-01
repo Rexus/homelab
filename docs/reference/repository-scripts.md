@@ -119,9 +119,12 @@ Useful options:
 
 | Setup | What it targets | Start with |
 | --- | --- | --- |
-| `foundation` | shared identity, DNS, issuing CA, optional root CA, and optional edge hosts | [Identity foundation path](../paths/shared-services/identity.md) |
+| `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../paths/shared-services/identity.md) |
+| `edge` | shared edge load-balancer pair or larger set | [Edge proxy path](../paths/shared-services/edge.md) |
+| `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../paths/shared-services/cache.md) |
 | `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../paths/shared-services/vault.md) |
-| `hsm-lab` | USB or software HSM gateway lab pattern | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
+| `observability` | system-control telemetry, syslog, metrics, logs, and archive hosts | [Observability path](../paths/system-control/observability.md) |
+| `hsm` | USB or software HSM gateway deployment pattern | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
 | `lab` | general-purpose lab guests | this reference and your local inventory |
 
 ## What the deployment wrapper does

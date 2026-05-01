@@ -1,0 +1,6 @@
+---
+- name: Apply system control host baseline
+  hosts: telemetry_gateways:security_telemetry:observability:archive
+  become: true
+  roles:
+    - baseline

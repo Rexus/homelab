@@ -36,26 +36,14 @@ vm_instances = {
     network_zone_key  = "cryptography"
     tags              = ["issuing-ca"]
   }
+  # Optional root CA host, default 0. Uncomment together with the matching
+  # Ansible inventory host and platform_host_ips entry.
   # "ca-root-1" = {
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 30
   #   network_zone_key  = "ceremony"
   #   tags              = ["root-ca", "offline"]
-  # }
-  # "edge-lb-1" = {
-  #   size              = "small"
-  #   storage_class     = "local"
-  #   disk_size_gb      = 20
-  #   network_zone_key  = "external_edge"
-  #   tags              = ["edge-lb"]
-  # }
-  # "edge-lb-2" = {
-  #   size              = "small"
-  #   storage_class     = "local"
-  #   disk_size_gb      = 20
-  #   network_zone_key  = "external_edge"
-  #   tags              = ["edge-lb"]
   # }
 }
 

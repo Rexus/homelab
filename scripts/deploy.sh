@@ -9,9 +9,12 @@ Usage:
 
 Setups:
   foundation
+  edge
+  cache
+  observability
   lab
   vault
-  hsm-lab
+  hsm
 
 Options:
   --env NAME        Use ansible/group_vars/all.NAME.yml, matching setup vars,
@@ -39,7 +42,8 @@ Examples:
   bash scripts/deploy.sh foundation --env lab1
   bash scripts/deploy.sh foundation --env test --destroy
   bash scripts/deploy.sh vault --plan-only
-  bash scripts/deploy.sh hsm-lab --auto-approve
+  bash scripts/deploy.sh observability --env test --plan-only
+  bash scripts/deploy.sh hsm --auto-approve
 EOF
 }
 
@@ -219,9 +223,33 @@ case "$setup_name" in
       "$ansible_dir/group_vars/all.yml"
     )
     ;;
+  edge)
+    terraform_dir="$repo_root/terraform/environments/edge"
+    ansible_playbooks=("edge.yml")
+    required_files=(
+      "$inventory_path"
+      "$ansible_dir/group_vars/all.yml"
+    )
+    ;;
+  cache)
+    terraform_dir="$repo_root/terraform/environments/cache"
+    ansible_playbooks=("cache.yml")
+    required_files=(
+      "$inventory_path"
+      "$ansible_dir/group_vars/all.yml"
+    )
+    ;;
+  observability)
+    terraform_dir="$repo_root/terraform/environments/observability"
+    ansible_playbooks=("observability.yml")
+    required_files=(
+      "$inventory_path"
+      "$ansible_dir/group_vars/all.yml"
+    )
+    ;;
   lab)
     terraform_dir="$repo_root/terraform/environments/lab"
-    ansible_playbooks=("site.yml")
+    ansible_playbooks=("lab.yml")
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"
@@ -237,9 +265,9 @@ case "$setup_name" in
       "$ansible_dir/group_vars/all.yml"
     )
     ;;
-  hsm-lab)
-    terraform_dir="$repo_root/terraform/environments/hsm-lab"
-    ansible_playbooks=("site.yml" "ingress.yml")
+  hsm)
+    terraform_dir="$repo_root/terraform/environments/hsm"
+    ansible_playbooks=("hsm.yml" "ingress.yml")
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"

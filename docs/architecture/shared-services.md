@@ -151,8 +151,7 @@ Use this split:
 | Vault | shared early | project requires separate secret administration or blast-radius boundary |
 | observability | shared early | project has strict isolation, high-risk data, or separate retention policy |
 | syslog/security archive | shared with clear source tagging | regulated or high-risk project needs independent archive custody |
-| Kubernetes worker clusters | multiplied | teams or projects need isolated compute and scaling boundaries |
-| development platform | shared first | project needs isolated CI/CD runners, registry, or build secrets |
+| application platform | shared first, then multiplied where needed | teams or projects need source control, CI/CD, GitOps, Kubernetes, or isolated runtime boundaries |
 
 The default private-cloud path is a shared service backbone with isolated
 project resources on top. High-risk or air-gapped projects can still bring
@@ -192,10 +191,9 @@ Think of the repository as paths that consume shared services:
 | Path type | Uses shared identity/PKI/Vault/telemetry | Can be standalone |
 | --- | --- | --- |
 | shared services path | creates or connects to the shared services | yes |
-| HSM and cryptography lab | consumes PKI/Vault when present | yes |
-| observability path | creates shared telemetry services | yes |
-| development platform path | should consume shared identity, PKI, Vault, and telemetry | yes |
-| Kubernetes path | should consume shared identity, PKI, Vault, and telemetry | yes |
+| HSM and cryptography | consumes PKI/Vault when present | yes |
+| system control path | creates shared telemetry services | yes |
+| application platform path | should consume shared identity, PKI, Vault, and telemetry | yes |
 | isolated project lab | may consume shared services or bring its own | yes |
 
 This keeps the repo useful for two cases:

@@ -47,56 +47,76 @@ platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 # Terraform also reads this map when it provisions guests, so IP addresses are
 # owned once and shared by both Terraform and Ansible.
 # The keys must match ansible/inventory/hosts.yml and Terraform guest maps.
-# Keep entries for the guests you deploy in this environment.
+# When you add or uncomment a host, update this map and the matching
+# Terraform vm_instances for that path.
 # Use dhcp only for guests that are intentionally dynamic.
 platform_host_ips:
-  # Foundation identity path: default foundation run.
+  # Shared private-domain path.
+  # Guide: docs/paths/shared-services/identity.md
   idm-1: 10.10.12.10
   idm-2: 10.10.12.11
   ca-1: 10.20.21.10
 
-  # Foundation ceremony path.
+  # Shared private-domain path: optional root CA host.
+  # Guide: docs/paths/shared-services/identity.md
   # ca-root-1: 10.20.22.10
 
-  # Foundation edge path.
-  # edge-lb-1: 10.30.30.10
-  # edge-lb-2: 10.30.30.11
+  # Edge load-balancer path.
+  # Guide: docs/paths/shared-services/edge.md
+  edge-lb-1: 10.30.30.10
+  edge-lb-2: 10.30.30.11
+  # edge-lb-3: 10.30.30.12
 
-  # Access path.
+  # Cache path.
+  # Guide: docs/paths/shared-services/cache.md
+  cache-1: 10.30.30.20
+  cache-2: 10.30.30.21
+  # cache-3: 10.30.30.22
+
+  # Access path: identity provider hosts.
+  # Guide: docs/architecture/network.md
   # idp-1: 10.10.11.10
 
   # Vault path.
-  # vault-1: 10.20.20.21
+  # Guide: docs/paths/shared-services/vault.md
+  vault-1: 10.20.20.21
 
-  # Observability path.
-  # health-1: 10.20.30.10
-  # metrics-1: 10.20.30.11
-  # apm-1: 10.20.30.12
-  # logs-1: 10.20.30.20
+  # System control path: backends and dashboards.
+  # Guide: docs/paths/system-control/observability.md
+  health-1: 10.20.30.10
+  metrics-1: 10.20.30.11
+  apm-1: 10.20.30.12
+  logs-1: 10.20.30.20
   # logs-2: 10.20.30.21
   # logs-3: 10.20.30.22
-  # telemetry-ui-1: 10.20.30.30
+  telemetry-ui-1: 10.20.30.30
 
-  # Telemetry gateway path.
-  # telemetry-1: 10.20.31.10
+  # System control path: telemetry gateways.
+  # Guide: docs/paths/system-control/observability.md
+  telemetry-1: 10.20.31.10
   # telemetry-2: 10.20.31.11
 
-  # Security telemetry path.
-  # syslog-1: 10.20.32.10
+  # System control path: security telemetry collectors.
+  # Guide: docs/paths/system-control/observability.md
+  syslog-1: 10.20.32.10
   # syslog-2: 10.20.32.11
 
-  # Archive path.
-  # archive-1: 10.20.40.10
+  # System control path: archive writer.
+  # Guide: docs/paths/system-control/observability.md
+  archive-1: 10.20.40.10
 
   # Lab path.
-  # lab-1: 10.20.20.10
-  # support-1: 10.20.20.11
+  # Guide: docs/paths/private-cloud-maturity.md
+  lab-1: 10.20.20.10
+  support-1: 10.20.20.11
 
-  # HSM path.
-  # hsm-1: 10.20.21.20
-  # hsm-2: 10.20.21.21
+  # HSM path: active gateways.
+  # Guide: docs/security/usb-hsm-active-active-blueprint.md
+  hsm-1: 10.20.21.20
+  hsm-2: 10.20.21.21
 
-  # Cryptography administration path.
+  # HSM path: cryptography administration helper.
+  # Guide: docs/security/usb-hsm-active-active-blueprint.md
   # crypto-admin-1: 10.20.22.20
 
 # Baseline defaults applied by Ansible roles.

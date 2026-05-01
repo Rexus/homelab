@@ -36,8 +36,8 @@ Use this order when you are new to the repository or returning after time away:
 - [Repository scripts](reference/repository-scripts.md) - what the wrapper
   scripts do and how to run the equivalent Terraform and Ansible steps manually
 - [Private cloud maturity path](paths/private-cloud-maturity.md) -
-  path from shared private-domain services to Vault, observability, backup, and
-  more serious use
+  capability-grouped path from platform preparation to shared services, system
+  control, recovery, and application-platform growth
 
 ## Reader paths
 
@@ -47,7 +47,7 @@ Use this order when you are new to the repository or returning after time away:
 ## Path guides
 
 - [Shared services path](paths/shared-services/README.md) - entry point for
-  identity, DNS, PKI, Vault, observability, and optional Windows support
+  identity, DNS, PKI, edge, cache, Vault, and optional Windows support
 - [Identity foundation path](paths/shared-services/identity.md) - shortest
   path from local setup to the first managed identity and PKI foundation layer
 - [Windows and AD support](paths/shared-services/windows-support.md) - optional
@@ -55,10 +55,15 @@ Use this order when you are new to the repository or returning after time away:
 - [Vault foundation deployment](paths/shared-services/vault.md) -
   early secret-platform deployment after the identity, DNS, and PKI
   prerequisites exist
-- [Observability path](paths/observability.md) - telemetry backbone, syslog,
-  metrics, traces, and log/event search path after Vault
-- [Development platform path](paths/development.md) - source control,
-  automation, runners, and GitOps direction for internal projects
+- [Edge proxy path](paths/shared-services/edge.md) - shared edge load
+  balancing, ingress, egress, and service backend entry point
+- [Cache path](paths/shared-services/cache.md) - optional outbound cache for
+  restricted update access
+- [System control path](paths/system-control/README.md) - telemetry backbone,
+  syslog, metrics, traces, and log/event search after Vault
+- [Application platform path](paths/application-platform/README.md) - source
+  control, automation, runners, Kubernetes, and GitOps direction for internal
+  projects
 
 ## Architecture and design
 

@@ -18,36 +18,44 @@ The shared services are:
 
 - private domain, DNS, and identity
 - PKI with an issuing CA and optional offline root CA
+- edge load balancing and controlled north-south proxying
+- cache services for controlled outbound update access
 - Vault for shared secrets and later dynamic credentials
-- observability, syslog, metrics, traces, and log/event search
 - Windows or AD-compatible support when the environment needs it
 
 The identity path is the current reference starting point, but it is not a
 hard requirement for every repo user. If you already have identity, DNS, PKI,
-Vault, or telemetry, treat those systems as prerequisites and configure the
-other paths to consume them.
+or Vault, treat those systems as prerequisites and configure the other paths
+to consume them. Use the system-control path for shared telemetry, syslog,
+metrics, traces, and log/event search.
 
 ## Recommended order
 
 Use this order:
 
 1. [Identity foundation path](identity.md)
-2. [Vault foundation deployment](vault.md)
-3. [Observability path](../observability.md)
-4. [Windows and AD support](windows-support.md), when the environment needs it
-5. [Secret strategy](../../security/secret-strategy.md)
-6. [Private cloud maturity path](../private-cloud-maturity.md)
+2. [Edge proxy path](edge.md)
+3. [Vault foundation deployment](vault.md)
+4. [Cache path](cache.md), when restricted systems need it
+5. [System control path](../system-control/README.md)
+6. [Windows and AD support](windows-support.md), when the environment needs it
+7. [Secret strategy](../../security/secret-strategy.md)
+8. [Private cloud maturity path](../private-cloud-maturity.md)
 
 ## Path guides
 
 - [Identity foundation path](identity.md) - first managed
   private-domain hosts for `FreeIPA`, DNS, and the first PKI path
+- [Edge proxy path](edge.md) - shared edge load-balancer pair with horizontal
+  expansion for ingress, egress, and service backends
+- [Cache path](cache.md) - optional `Squid` cache pair for controlled outbound
+  update access from restricted systems
 - [Windows and AD support](windows-support.md) - optional Windows support
   path after the identity foundation exists
 - [Vault foundation deployment](vault.md) - first Vault
   deployment after the identity and PKI layer exists
-- [Observability path](../observability.md) - telemetry backbone, syslog,
-  metrics, traces, and log/event search path after Vault
+- [System control path](../system-control/README.md) - telemetry backbone,
+  syslog, metrics, traces, and log/event search after Vault
 
 ## Related docs
 

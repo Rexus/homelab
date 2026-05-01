@@ -1,0 +1,6 @@
+---
+- name: Apply edge load-balancer host baseline
+  hosts: edge_load_balancers
+  become: true
+  roles:
+    - baseline

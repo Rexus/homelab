@@ -92,9 +92,12 @@ state file between environments. Omit `--env` for production.
 | Path | Contains | Owner guide |
 | --- | --- | --- |
 | `terraform/common.tfvars.example` | default platform node, storage, network, template, and SSH-key inputs | [Local setup](../getting-started/local-setup.md) |
-| `terraform/environments/foundation/` | identity, DNS, PKI, and optional edge load-balancer guest layout | [Identity foundation path](../paths/shared-services/identity.md) |
+| `terraform/environments/foundation/` | identity, DNS, PKI, and optional root CA guest layout | [Identity foundation path](../paths/shared-services/identity.md) |
+| `terraform/environments/edge/` | edge load-balancer guest layout | [Edge proxy path](../paths/shared-services/edge.md) |
+| `terraform/environments/cache/` | cache guest layout | [Cache path](../paths/shared-services/cache.md) |
 | `terraform/environments/vault/` | dedicated Vault guest layout | [Vault foundation deployment](../paths/shared-services/vault.md) |
-| `terraform/environments/hsm-lab/` | USB HSM gateway and optional helper guest layout | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
+| `terraform/environments/observability/` | system-control telemetry, syslog, metrics, logs, and archive guest layout | [Observability path](../paths/system-control/observability.md) |
+| `terraform/environments/hsm/` | USB HSM gateway and optional helper guest layout | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
 | `terraform/environments/lab/` | general lab guest layout | [Local setup](../getting-started/local-setup.md) |
 | `terraform/modules/vm/` | reusable Proxmox VM module | this reference |
 | `terraform/modules/lxc/` | reusable Proxmox LXC module | this reference |
@@ -110,8 +113,13 @@ state file between environments. Omit `--env` for production.
 | `ansible/group_vars/all.env.yml.example` | environment-specific hostname decoration, domain, and IP map overlay |
 | `ansible/playbooks/control-node.yml` | local precheck before each wrapper run |
 | `ansible/playbooks/foundation.yml` | staged FreeIPA identity foundation rollout |
+| `ansible/playbooks/edge.yml` | edge load-balancer host baseline |
+| `ansible/playbooks/cache.yml` | cache host baseline |
 | `ansible/playbooks/vault.yml` | Vault host baseline and service installation |
-| `ansible/playbooks/site.yml` | broader baseline entry point |
+| `ansible/playbooks/lab.yml` | lab host baseline |
+| `ansible/playbooks/observability.yml` | system-control host baseline |
+| `ansible/playbooks/hsm.yml` | HSM host baseline |
+| `ansible/playbooks/site.yml` | broad baseline entry point for manual use |
 | `ansible/playbooks/ingress.yml` | edge load-balancer backend registration for HSM gateways |
 | `ansible/roles/baseline/` | security-first baseline scaffold |
 | `ansible/roles/vault/` | Vault service role |

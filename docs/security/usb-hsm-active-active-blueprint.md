@@ -133,7 +133,7 @@ network mappings in `terraform/common.tfvars`:
 - [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example)
   for the default platform node, shared storage, deployable guest networks,
   template IDs, and SSH keys
-- [`terraform/environments/hsm-lab/terraform.tfvars.example`](../../terraform/environments/hsm-lab/terraform.tfvars.example)
+- [`terraform/environments/hsm/terraform.tfvars.example`](../../terraform/environments/hsm/terraform.tfvars.example)
   for the gateway and helper layer
 
 Set the values your environment needs for `cryptography` and optional
@@ -172,13 +172,17 @@ Keep these boundaries:
 
 Edit the `vm_instances` maps to match the shape you want.
 
-| Component | Default | Current example range | Edit here |
-| --- | --- | --- | --- |
-| gateway VMs | `2` | `1-8` | `terraform/environments/hsm-lab/terraform.tfvars` |
-| helper VMs | `0` enabled by default | `0-2+` as needed | `terraform/environments/hsm-lab/terraform.tfvars` |
+| Component | Terraform default | Inventory action | Current example range | Edit here |
+| --- | --- | --- | --- | --- |
+| gateway VMs | `hsm-1`, `hsm-2` active | `hsm-1`, `hsm-2` present by default | `1-8` | `terraform/environments/hsm/terraform.tfvars` |
+| helper VMs | `crypto-admin-1` commented, default `0` | uncomment `crypto-admin-1` when enabled | `0-2+` as needed | `terraform/environments/hsm/terraform.tfvars` |
 
 The deployed edge load balancer stays in the shared-service layer. Start here with
 the gateway and helper hosts.
+
+The shared Ansible inventory includes `hsm-1` and `hsm-2` for the default HSM
+shape. If you add or remove HSM hosts, update both the HSM Terraform
+`vm_instances` map and the Ansible IP map.
 
 ### HSM mode
 
@@ -199,13 +203,13 @@ Use these repo paths here:
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
 | [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
-| [`terraform/environments/hsm-lab/terraform.tfvars.example`](../../terraform/environments/hsm-lab/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm-lab/terraform.tfvars` based on `.example` |
+| [`terraform/environments/hsm/terraform.tfvars.example`](../../terraform/environments/hsm/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | stable HSM host keys and inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
 | [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration, domain, and guest IP map shared by Terraform and Ansible | your local `ansible/group_vars/all.<env>.yml` |
-| [`ansible/playbooks/site.yml`](../../ansible/playbooks/site.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
+| [`ansible/playbooks/hsm.yml`](../../ansible/playbooks/hsm.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
 | [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns edge load-balancer configuration so the deployed edge layer points at the HSM gateways | inventory and edge load-balancer variables |
-| [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm-lab` setup when you are ready to run it |
+| [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm` setup when you are ready to run it |
 
 You do not use foundation Terraform as part of this HSM rollout. It only
 assumes that the deployed edge load-balancer prerequisite already exists.
@@ -218,7 +222,7 @@ Terraform environment owns hardware placement and Proxmox tags.
 
 ## How to shape the deployment
 
-Shape the HSM lab around one stable service pattern and then change the size by
+Shape the HSM deployment around one stable service pattern and then change the size by
 data only.
 
 - keep the edge load balancer in the shared-service layer and treat it as a
@@ -236,7 +240,7 @@ data only.
   the same HSM product family
 
 When you are ready to run the setup, use the repository deployment wrapper with
-the `hsm-lab` setup. Keep the exact execution flow in the wrapper rather than
+the `hsm` setup. Keep the exact execution flow in the wrapper rather than
 repeating it in this guide. That wrapper also checks the required local config
 files for the setup before it runs.
 

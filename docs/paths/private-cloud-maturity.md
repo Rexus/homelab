@@ -4,177 +4,129 @@
 
 - [Purpose](#purpose)
 - [How to read this path](#how-to-read-this-path)
-- [Maturity overview](#maturity-overview)
-- [Level 0 - Platform preparation](#level-0---platform-preparation)
-- [Level 1 - Shared private-domain services](#level-1---shared-private-domain-services)
-- [Level 2 - Vault and secret management](#level-2---vault-and-secret-management)
-- [Level 3 - Observability and syslog](#level-3---observability-and-syslog)
-- [Level 4 - Backup and recovery](#level-4---backup-and-recovery)
-- [Level 5 - Project and lab expansion](#level-5---project-and-lab-expansion)
-- [Level 6 - Higher availability and application platform](#level-6---higher-availability-and-application-platform)
+- [Capability groups](#capability-groups)
+- [Dependency order](#dependency-order)
+- [Maturity levels](#maturity-levels)
+- [Platform preparation](#platform-preparation)
+- [Shared services](#shared-services)
+- [System control](#system-control)
+- [Recovery](#recovery)
+- [Application platform](#application-platform)
+- [Security and cryptography](#security-and-cryptography)
 
 ## Purpose
 
-Use this as the authoritative maturity path for the repository. It grows the
-environment from an initial working deployment toward a more resilient and
-production-ready private cloud. The pattern is aimed at enterprise-style
-operation on a homelab or small-datacenter scale. Proxmox is the current
-reference foundation, but the maturity path is about the broader platform.
+Use this as the repository-wide maturity map for an enterprise-style private
+cloud on homelab or small-datacenter scale.
+
+The maturity model is grouped by capability. Each capability has its own
+`Level 0`, `Level 1`, and `Level 2`. A level describes how mature that
+capability is, not where it sits in the deployment order.
 
 ## How to read this path
 
-The levels describe capabilities, not a mandatory install order.
+Use this page in two ways:
 
-For every shared service, choose one of these patterns:
+- use [Dependency order](#dependency-order) to see what normally needs to exist
+  before another setup can run
+- use the capability sections to decide how far to mature each area
+
+For every capability, choose one of these patterns:
 
 | Pattern | Use it when |
 | --- | --- |
 | deploy from this repo | the environment starts clean and needs the reference path |
-| connect to existing service | identity, DNS, PKI, Vault, or telemetry already exists |
-| isolate for a lab or project | the project needs a separate trust boundary or subnet set |
-
-The first production-quality shape is a shared private-domain service layer:
-DNS, identity, PKI, Vault, syslog, and observability. Other labs and projects
-can consume that layer instead of deploying their own identity system.
+| connect to existing service | the capability already exists outside this repo |
+| isolate for a project | the project needs a separate trust boundary, subnet set, or operator group |
 
 Use `--env` for disposable or parallel environments such as `test`, `dev`,
 `stage`, or `lab1`. Omit `--env` for production. Override subnets, VLANs, IPs,
 or VM sizes only when an environment needs a different shape.
 
-## Maturity overview
+## Capability groups
 
-| Level | Goal | Success criteria |
+| Capability group | Owns | Main path |
 | --- | --- | --- |
-| 0 | Platform preparation | Proxmox, API access, templates, local repo files, and deployment tooling are ready |
-| 1 | Shared private-domain services | DNS, identity, and PKI are deployed here or mapped to existing services |
-| 2 | Vault and secret management | Vault or an existing secret platform becomes the shared secret handoff |
-| 3 | Observability and syslog | telemetry, syslog, metrics, traces, logs, and audit events have a shared path |
-| 4 | Backup and recovery | PBS or another recovery path is deployed, connected, and tested |
-| 5 | Project and lab expansion | isolated labs and projects consume shared services or define their own boundary |
-| 6 | Higher availability and application platform | Kubernetes, GitOps, and HA patterns support broader application use |
+| platform preparation | Proxmox, API access, templates, networking, deployment tooling | [Proxmox reference platform](../platforms/proxmox/README.md) |
+| shared services | identity, DNS, PKI, edge, cache, Vault, and optional Windows support | [Shared services path](shared-services/README.md) |
+| system control | telemetry, syslog, metrics, traces, logs, dashboards, and archive | [System control path](system-control/README.md) |
+| recovery | backup, restore, and disaster recovery readiness | [Backup foundation](../platforms/proxmox/backup-foundation.md) |
+| application platform | development platform, GitOps direction, Kubernetes, and project runtimes | [Application platform path](application-platform/README.md) |
+| security and cryptography | HSM planning, USB HSM topology, Vault hardening, and secret strategy | [Security and hardening](../security/security-principles.md) |
 
-## Level 0 - Platform preparation
+## Dependency order
 
-Goal:
+This is the normal dependency flow for a clean environment:
 
-- prepare Proxmox, API access, and the first Linux template
-- prepare the deployment machine with Terraform and Ansible
-- initialize ignored local config files
-- use a disposable environment before production
+| Step | Capability | Why it comes here |
+| --- | --- | --- |
+| 1 | platform preparation | Terraform, Ansible, API access, networks, and templates must exist first |
+| 2 | shared services: identity and PKI | DNS, identity, and certificates become prerequisites for later services |
+| 3 | shared services: edge | ingress and controlled north-south routing become available early |
+| 4 | shared services: Vault | secrets move out of local bootstrap files after identity and PKI exist |
+| 5 | shared services: cache | restricted systems can get controlled outbound update access when needed |
+| 6 | system control | telemetry and logs become shared before the platform grows too far |
+| 7 | recovery | backups and restore tests protect the environment before it becomes important |
+| 8 | application platform | development, GitOps, Kubernetes, and projects consume the shared foundation |
+| 9 | security and cryptography | HSM and stronger key custody can harden selected PKI and Vault paths |
 
-Read more:
+If a dependency already exists, map the repo to that service instead of
+deploying a duplicate.
 
-- [Local setup](../getting-started/local-setup.md)
-- [Repository scripts](../reference/repository-scripts.md)
-- [Proxmox reference platform](../platforms/proxmox/README.md)
-- [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md)
+## Maturity levels
 
-## Level 1 - Shared private-domain services
+Use the same level meaning inside each capability group:
 
-Goal:
+| Level | Meaning |
+| --- | --- |
+| 0 | prerequisites, planning, or mapping to an existing service |
+| 1 | first useful deployment that other paths can consume |
+| 2 | hardened, redundant, scaled, or isolated production-style shape |
 
-- copy the example files
-- prepare the local deployment environment file
-- build or prepare a template
-- provision the private-domain hosts when you use the repo reference path
-- establish or map the identity, DNS, and PKI services Vault depends on
-- use the current reference shape of `2` identity hosts and `1` issuing CA
-- apply the baseline playbook so the hosts are managed
-- keep Windows or AD support as a separate path
-- skip this deployment when existing identity, DNS, and PKI already satisfy
-  the later paths
+## Platform preparation
 
-Read more:
+| Level | Meaning | Read |
+| --- | --- | --- |
+| 0 | Proxmox, networks, storage, and local tooling are planned | [Local setup](../getting-started/local-setup.md), [Host networking](../platforms/proxmox/network-prerequisites.md) |
+| 1 | API access, templates, and deployment wrapper are ready | [API setup](../platforms/proxmox/setup-api.md), [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |
+| 2 | platform conventions, hardening, and operational patterns are established | [Planning guidelines](../platforms/proxmox/conventions.md), [Proxmox hardening](../platforms/proxmox/hardening.md) |
 
-- [Platform guide](../platforms/proxmox/README.md)
-- [Environment variable conventions](../reference/environment-variables.md)
-- [Shared services model](../architecture/shared-services.md)
-- [Identity foundation path](shared-services/identity.md)
-- [Windows and AD support](shared-services/windows-support.md)
+## Shared services
 
-## Level 2 - Vault and secret management
+| Level | Meaning | Read |
+| --- | --- | --- |
+| 0 | existing identity, DNS, PKI, edge, Vault, or cache services are mapped | [Shared services model](../architecture/shared-services.md) |
+| 1 | identity, DNS, issuing CA, edge, and Vault are deployed or connected | [Identity foundation path](shared-services/identity.md), [Edge proxy path](shared-services/edge.md), [Vault foundation deployment](shared-services/vault.md) |
+| 2 | shared services are redundant, hardened, and expanded with cache or Windows support where needed | [Cache path](shared-services/cache.md), [Windows and AD support](shared-services/windows-support.md), [Secret strategy](../security/secret-strategy.md) |
 
-Goal:
+## System control
 
-- deploy Vault as a dedicated shared service after identity, DNS, and PKI are
-  available, or map later paths to an existing secret platform
-- initialize and unseal Vault
-- move shared and long-lived secrets into Vault
-- keep local Ansible Vault files as the fallback bootstrap path, not the main
-  long-term secret system
-- keep HSM hardening as an upgrade path for selected keys and seal patterns
+| Level | Meaning | Read |
+| --- | --- | --- |
+| 0 | telemetry and log sources are identified | [System control path](system-control/README.md) |
+| 1 | first telemetry, syslog, metrics, logs, dashboards, and archive hosts exist | [Observability path](system-control/observability.md) |
+| 2 | collectors, log stores, retention, alerting, and isolated project telemetry are scaled where needed | [Observability path](system-control/observability.md), [Network architecture](../architecture/network.md) |
 
-Read more:
+## Recovery
 
-- [Vault foundation deployment](shared-services/vault.md)
-- [Secret strategy](../security/secret-strategy.md)
-- [Vault HSM hardening options](../security/vault-hsm-hardening-options.md)
+| Level | Meaning | Read |
+| --- | --- | --- |
+| 0 | backup targets and restore expectations are planned | [Backup foundation](../platforms/proxmox/backup-foundation.md) |
+| 1 | Proxmox Backup Server or another recovery target is connected and tested | [Backup foundation](../platforms/proxmox/backup-foundation.md) |
+| 2 | restore drills, retention, offsite copies, and service-specific recovery paths are proven | [Secret strategy](../security/secret-strategy.md), [Security principles](../security/security-principles.md) |
 
-## Level 3 - Observability and syslog
+## Application platform
 
-Goal:
+| Level | Meaning | Read |
+| --- | --- | --- |
+| 0 | project and lab boundaries are planned | [Private cloud model](../architecture/private-cloud.md), [Infrastructure automation layout](../reference/infrastructure-automation-layout.md) |
+| 1 | first development platform or project environment consumes shared services | [Development platform path](application-platform/development.md) |
+| 2 | Kubernetes, GitOps, runners, registries, and isolated worker clusters support broader application use | [Kubernetes platform path](application-platform/kubernetes.md) |
 
-- define the telemetry gateway and syslog intake pattern
-- collect platform health, metrics, logs, traces, and security events through
-  controlled collectors
-- keep sources away from direct backend access
-- establish the live health, metrics, APM, log search, and archive roles
-- decide which parts are shared and which high-risk projects need isolated
-  telemetry or archive paths
+## Security and cryptography
 
-Read more:
-
-- [Observability path](observability.md)
-- [Network architecture](../architecture/network.md)
-- [Security principles](../security/security-principles.md)
-
-## Level 4 - Backup and recovery
-
-Goal:
-
-- add Proxmox Backup Server before the environment becomes important
-- create a datastore
-- add PBS to Proxmox VE as storage
-- run and validate at least one backup and one restore
-
-Read more:
-
-- [Backup foundation](../platforms/proxmox/backup-foundation.md)
-- [Host networking](../platforms/proxmox/network-prerequisites.md)
-- [API setup](../platforms/proxmox/setup-api.md)
-
-## Level 5 - Project and lab expansion
-
-Goal:
-
-- deploy labs and project environments without duplicating shared identity by
-  default
-- use separate state and environment overlays for test, dev, stage, lab, or
-  production copies
-- give isolated projects their own subnets, VLANs, Vault, telemetry, or
-  identity only when the trust boundary requires it
-- prepare the development path around GitLab or another source platform that
-  consumes shared identity, PKI, Vault, and telemetry
-
-Read more:
-
-- [Shared services model](../architecture/shared-services.md)
-- [Development platform path](development.md)
-- [Infrastructure automation layout](../reference/infrastructure-automation-layout.md)
-- [Network architecture](../architecture/network.md)
-
-## Level 6 - Higher availability and application platform
-
-Goal:
-
-- improve resilience, recovery, and operational confidence
-- move beyond single-host assumptions where needed
-- use the platform for more serious application and infrastructure services
-- introduce Kubernetes as the application platform when application scale,
-  GitOps, namespaces, and worker-cluster isolation become the main need
-
-Read more:
-
-- [Architecture overview](../architecture/overview.md)
-- [Private cloud model](../architecture/private-cloud.md)
-- [Security principles](../security/security-principles.md)
+| Level | Meaning | Read |
+| --- | --- | --- |
+| 0 | secret ownership, key custody, and HSM need are planned | [Secret strategy](../security/secret-strategy.md), [HSM getting started](../security/hsm-planning-and-comparison.md) |
+| 1 | local secret handling is reduced and selected keys have clear custody | [Vault HSM hardening options](../security/vault-hsm-hardening-options.md) |
+| 2 | HSM-backed or ceremony-backed paths protect selected PKI, Vault, or signing workflows | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |

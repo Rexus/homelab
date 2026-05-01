@@ -1,0 +1,40 @@
+# Copy to: terraform/environments/edge/terraform.tfvars
+# Replace every value before use.
+# Setup guide: docs/paths/shared-services/edge.md
+# Shared values live in ../../common.tfvars.
+
+cluster_name = "edge-change-me"
+
+# Optional: override the shared default Linux VM template for this setup or
+# environment overlay, for example when testing another supported distro.
+# default_linux_vm_template_id = 111
+
+vm_instances = {
+  # Keys match the stable logical host names in the Ansible inventory.
+  # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
+  # The default is a pair. Add edge-lb-3 and higher when you need horizontal
+  # scale, and keep matching Ansible inventory and IP entries.
+  "edge-lb-1" = {
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 20
+    network_zone_key = "external_edge"
+    tags             = ["load-balancer", "haproxy"]
+  }
+  "edge-lb-2" = {
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 20
+    network_zone_key = "external_edge"
+    tags             = ["load-balancer", "haproxy"]
+  }
+  # "edge-lb-3" = {
+  #   size             = "small"
+  #   storage_class    = "local"
+  #   disk_size_gb     = 20
+  #   network_zone_key = "external_edge"
+  #   tags             = ["load-balancer", "haproxy"]
+  # }
+}
+
+lxc_instances = {}

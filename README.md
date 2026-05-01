@@ -83,8 +83,9 @@ bash scripts/deploy.sh foundation
 
 7. Continue with:
    - [Vault foundation deployment](docs/paths/shared-services/vault.md)
-   - [Observability path](docs/paths/observability.md)
-   - [Development platform path](docs/paths/development.md)
+   - [Edge proxy path](docs/paths/shared-services/edge.md)
+   - [System control path](docs/paths/system-control/README.md)
+   - [Application platform path](docs/paths/application-platform/README.md)
    - [Secret strategy](docs/security/secret-strategy.md)
    - [Private cloud maturity path](docs/paths/private-cloud-maturity.md)
    - [Documentation index](docs/README.md)
@@ -98,16 +99,18 @@ Recommended maturity path:
 - add Windows or AD support later only if the environment needs it
 - deploy Vault as the early secret-platform foundation
 - move long-lived and shared secrets to Vault before broader deployment
-- add observability, syslog intake, and telemetry routing before the platform
-  becomes hard to reason about
+- add the system-control path before the platform becomes hard to reason about
 - add backup and recovery before the environment becomes important
-- improve resilience and availability as the environment becomes more serious
+- grow into the application-platform path when projects, GitOps, or Kubernetes
+  become the next scaling concern
 
 Read more in:
 
 - [docs/paths/shared-services/vault.md](docs/paths/shared-services/vault.md)
-- [docs/paths/observability.md](docs/paths/observability.md)
-- [docs/paths/development.md](docs/paths/development.md)
+- [docs/paths/system-control/observability.md](docs/paths/system-control/observability.md)
+- [docs/paths/shared-services/edge.md](docs/paths/shared-services/edge.md)
+- [docs/paths/shared-services/cache.md](docs/paths/shared-services/cache.md)
+- [docs/paths/application-platform/development.md](docs/paths/application-platform/development.md)
 - [docs/paths/private-cloud-maturity.md](docs/paths/private-cloud-maturity.md)
 - [Proxmox backup foundation](docs/platforms/proxmox/backup-foundation.md)
 - [docs/reference/environment-variables.md](docs/reference/environment-variables.md)

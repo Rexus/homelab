@@ -44,14 +44,14 @@ variable "ansible_group_vars_paths" {
   default     = ["../../../ansible/group_vars/all.yml"]
 }
 
-variable "lab_variant" {
-  description = "Whether the lab is intended for hardware-backed or software-only PKCS#11."
+variable "hsm_variant" {
+  description = "Whether the deployment is hardware-backed or software-only PKCS#11."
   type        = string
   default     = "hardware"
 
   validation {
-    condition     = contains(["hardware", "software"], var.lab_variant)
-    error_message = "lab_variant must be either hardware or software."
+    condition     = contains(["hardware", "software"], var.hsm_variant)
+    error_message = "hsm_variant must be either hardware or software."
   }
 }
 
@@ -69,7 +69,7 @@ variable "default_linux_vm_template_id" {
 }
 
 variable "ssh_public_keys" {
-  description = "SSH public keys injected into the lab VMs."
+  description = "SSH public keys injected into the HSM VMs."
   type        = list(string)
   default     = []
 }

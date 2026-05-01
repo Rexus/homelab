@@ -1,0 +1,6 @@
+---
+- name: Apply lab host baseline
+  hosts: lab
+  become: true
+  roles:
+    - baseline

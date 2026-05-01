@@ -30,9 +30,8 @@ locals {
   common_tags = [
     var.cluster_name,
     "terraform",
-    "hsm-lab",
+    "observability",
     "linux",
-    "pkcs11-${var.lab_variant}",
   ]
 }
 

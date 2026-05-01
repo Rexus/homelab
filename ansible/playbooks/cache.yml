@@ -1,0 +1,6 @@
+---
+- name: Apply cache host baseline
+  hosts: cache
+  become: true
+  roles:
+    - baseline

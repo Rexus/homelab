@@ -5,6 +5,10 @@
 # Keep these host keys stable and undecorated. Environment names are added as
 # a prefix or suffix from ansible/group_vars/all.<env>.yml.
 # Guest IP addresses live in platform_host_ips in group_vars, not here.
+#
+# This is one shared inventory map. When you add or uncomment hosts here, also
+# update the matching platform_host_ips entry and Terraform vm_instances for
+# that path.
 
 all:
   vars:
@@ -17,14 +21,17 @@ all:
       }}
   children:
     # Platform path: reference group for Proxmox host operations.
-    # The foundation deployment does not run Ansible on Proxmox hosts.
+    # Guide: docs/platforms/proxmox/README.md
+    # Foundation playbooks do not target Proxmox hosts.
     hypervisors:
       hosts: {}
       # To manage platform hosts with Ansible, remove "{}" above and add:
       # pve-1:
       #   ansible_host: 10.10.10.11
 
-    # Foundation identity path: default foundation run.
+    # Shared private-domain path.
+    # Guide: docs/paths/shared-services/identity.md
+    # Terraform config: terraform/environments/foundation/terraform.tfvars
     identity_primary:
       hosts:
         # Exactly one host belongs here. The foundation playbook installs this
@@ -43,98 +50,131 @@ all:
         # Online issuing CA host in the cryptography network.
         ca-1: {}
 
-    # Foundation ceremony path: root CA host.
+    # Shared private-domain path: optional root CA host.
+    # Guide: docs/paths/shared-services/identity.md
     root_ca:
       hosts: {}
-      # To deploy an offline root CA host, remove "{}" above and add:
+      # If you add an offline root CA host, remove "{}" above and add it here.
+      # Then add the same host to foundation vm_instances and platform_host_ips.
       # ca-root-1: {}
 
-    # Foundation edge path: north-south ingress, egress, and load balancing.
+    # Edge load-balancer path.
+    # Guide: docs/paths/shared-services/edge.md
+    # Terraform config: terraform/environments/edge/terraform.tfvars
     edge_load_balancers:
-      hosts: {}
-      # To deploy edge load balancers, remove "{}" above and add:
-      # edge-lb-1: {}
-      # edge-lb-2: {}
+      hosts:
+        # Add edge-lb-3 and higher only after adding the same hosts to
+        # edge vm_instances and platform_host_ips.
+        edge-lb-1: {}
+        edge-lb-2: {}
+
+    # Cache path.
+    # Guide: docs/paths/shared-services/cache.md
+    # Terraform config: terraform/environments/cache/terraform.tfvars
+    cache:
+      hosts:
+        # Add cache-3 and higher only after adding the same hosts to
+        # cache vm_instances and platform_host_ips.
+        cache-1: {}
+        cache-2: {}
 
     foundation:
       children:
         identity:
         issuing_ca:
         root_ca:
-        edge_load_balancers:
 
     # Vault path.
+    # Guide: docs/paths/shared-services/vault.md
+    # Terraform config: terraform/environments/vault/terraform.tfvars
     vault:
-      hosts: {}
-      # To deploy Vault, remove "{}" above and add:
-      # vault-1: {}
+      hosts:
+        vault-1: {}
 
-    # Observability path: telemetry routing and enrichment.
+    # System control path: telemetry routing and enrichment.
+    # Guide: docs/paths/system-control/observability.md
+    # Terraform config: terraform/environments/observability/terraform.tfvars
     telemetry_gateways:
-      hosts: {}
-      # To deploy telemetry gateways, remove "{}" above and add:
-      # telemetry-1: {}
+      hosts:
+        telemetry-1: {}
+      # If you uncomment telemetry-2, add it to observability vm_instances and
+      # platform_host_ips.
       # telemetry-2: {}
 
-    # Observability path: hardened syslog and security event intake.
+    # System control path: hardened syslog and security event intake.
+    # Guide: docs/paths/system-control/observability.md
+    # Terraform config: terraform/environments/observability/terraform.tfvars
     security_telemetry:
-      hosts: {}
-      # To deploy security telemetry collectors, remove "{}" above and add:
-      # syslog-1: {}
+      hosts:
+        syslog-1: {}
+      # If you uncomment syslog-2, add it to observability vm_instances and
+      # platform_host_ips.
       # syslog-2: {}
 
-    # Observability path: dashboards, metrics, traces, and log backends.
+    # System control path: dashboards, metrics, traces, and log backends.
+    # Guide: docs/paths/system-control/observability.md
+    # Terraform config: terraform/environments/observability/terraform.tfvars
     observability:
-      hosts: {}
-      # To deploy observability backends, remove "{}" above and add:
-      # health-1: {}
-      # metrics-1: {}
-      # apm-1: {}
-      # logs-1: {}
+      hosts:
+        health-1: {}
+        metrics-1: {}
+        apm-1: {}
+        logs-1: {}
+        telemetry-ui-1: {}
+      # If you uncomment more OpenSearch hosts, add them to observability
+      # vm_instances and platform_host_ips.
       # logs-2: {}
       # logs-3: {}
-      # telemetry-ui-1: {}
 
-    # Observability path: archive writer for cold log and snapshot targets.
+    # System control path: archive writer for cold log and snapshot targets.
+    # Guide: docs/paths/system-control/observability.md
+    # Terraform config: terraform/environments/observability/terraform.tfvars
     archive:
-      hosts: {}
-      # To deploy an archive writer, remove "{}" above and add:
-      # archive-1: {}
+      hosts:
+        archive-1: {}
 
-    # Access path: identity provider hosts, such as Keycloak.
+    # Access path: identity provider hosts.
+    # Guide: docs/architecture/network.md
     identity_providers:
       hosts: {}
-      # To deploy access-layer identity provider hosts, remove "{}" above and add:
+      # If you add access-layer identity provider hosts, remove "{}" above and
+      # add them here. Then add the same hosts to the matching Terraform setup
+      # and platform_host_ips.
       # idp-1: {}
 
     # Lab path.
+    # Guide: docs/paths/private-cloud-maturity.md
+    # Terraform config: terraform/environments/lab/terraform.tfvars
     lab:
-      hosts: {}
-      # To deploy lab hosts, remove "{}" above and add:
-      # lab-1: {}
-      # support-1: {}
+      hosts:
+        lab-1: {}
+        support-1: {}
 
     # HSM path.
+    # Guide: docs/security/usb-hsm-active-active-blueprint.md
+    # Terraform config: terraform/environments/hsm/terraform.tfvars
     hsm_gateways:
-      hosts: {}
-      # hsm_proxy_ingress_backend_port is the service port exposed to the
-      # edge load balancer, not a raw PKCS#11 or USB endpoint.
-      # To deploy HSM gateways, remove "{}" above and add:
-      # hsm-1:
-      #   hsm_proxy_ingress_backend_port: 8443
-      # hsm-2:
-      #   hsm_proxy_ingress_backend_port: 8443
+      hosts:
+        # hsm_proxy_ingress_backend_port is the service port exposed to the
+        # edge load balancer, not a raw PKCS#11 or USB endpoint.
+        hsm-1:
+          hsm_proxy_ingress_backend_port: 8443
+        hsm-2:
+          hsm_proxy_ingress_backend_port: 8443
 
-    # Cryptography administration path.
+    # HSM path: cryptography administration helper.
+    # Guide: docs/security/usb-hsm-active-active-blueprint.md
     crypto_admin:
       hosts: {}
       # Restricted ceremony or recovery host for cryptography and HSM work.
-      # To deploy a crypto administration host, remove "{}" above and add:
+      # If you add a crypto administration host, remove "{}" above and add it
+      # here. Then add the same host to hsm vm_instances and platform_host_ips.
       # crypto-admin-1: {}
     guests:
       children:
         foundation:
         edge_load_balancers:
+        cache:
         identity_providers:
         vault:
         telemetry_gateways:

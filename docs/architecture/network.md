@@ -20,7 +20,7 @@ It gives you one stable set of zone names for:
 - architecture and platform planning
 - deployable Terraform guest network keys
 - Proxmox bridge and VLAN mapping
-- later service-specific guides such as the USB HSM lab
+- later service-specific guides such as the USB HSM deployment
 
 Not every zone is required on Day 1. The point is to keep one consistent map so
 the repository can grow without renaming networks every time a new sub-project

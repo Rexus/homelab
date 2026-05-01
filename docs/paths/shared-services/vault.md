@@ -68,6 +68,20 @@ Edit these local files before you run the Vault foundation deployment:
 The Vault environment can deploy one or more Vault nodes through
 `vm_instances`, but this guide uses the default single-node path.
 
+Use this default matrix:
+
+| Component | Terraform default | Inventory action | Zone | Purpose |
+| --- | --- | --- | --- | --- |
+| Vault host | `vault-1` active | `vault-1` present by default | `application` | first dedicated Vault node |
+| additional Vault hosts | not present, default `0` | add matching inventory and IP entries when added | `application` | optional multi-node Raft expansion |
+| LXC helpers | `lxc_instances = {}` | not used | n/a | no helper containers by default |
+
+The Terraform example for this path lives in
+`terraform/environments/vault/terraform.tfvars.example`. The shared Ansible
+inventory includes `vault-1` because it matches the active Terraform default.
+The foundation run does not touch it because the foundation playbook targets
+only the foundation groups.
+
 Use this rule:
 
 - keep `1` dedicated Vault VM for the default deployment flow

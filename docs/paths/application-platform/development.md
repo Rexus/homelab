@@ -90,7 +90,8 @@ the repository:
 
 ## Read more
 
-- [Shared services model](../architecture/shared-services.md)
-- [Private cloud model](../architecture/private-cloud.md)
-- [Private cloud maturity path](private-cloud-maturity.md)
-- [Infrastructure automation layout](../reference/infrastructure-automation-layout.md)
+- [Application platform path](README.md)
+- [Shared services model](../../architecture/shared-services.md)
+- [Private cloud model](../../architecture/private-cloud.md)
+- [Private cloud maturity path](../private-cloud-maturity.md)
+- [Infrastructure automation layout](../../reference/infrastructure-automation-layout.md)

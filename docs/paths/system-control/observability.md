@@ -9,6 +9,7 @@
 - [Traffic model](#traffic-model)
 - [VM roles](#vm-roles)
 - [Starting shape](#starting-shape)
+- [IaC defaults](#iac-defaults)
 - [Data routing](#data-routing)
 - [Shared or isolated](#shared-or-isolated)
 - [Operations model](#operations-model)
@@ -16,9 +17,9 @@
 
 ## Purpose
 
-Use this path after identity, PKI, and secret management are available from
-this repo or from an existing environment, and you want central control over
-platform health, logs, traces, audit events, and capacity signals.
+Use this system-control path after identity, PKI, and secret management are
+available from this repo or from an existing environment, and you want central
+control over platform health, logs, traces, audit events, and capacity signals.
 
 The goal is not to force every signal into one product. The goal is to use one
 clear telemetry backbone and route each signal to the backend that is best at
@@ -183,6 +184,28 @@ Start with one of each role when you are proving the path:
 Scale the path by adding `telemetry-2`, `syslog-2`, and `logs-2`/`logs-3`
 when you need high availability, larger buffers, or real log retention.
 
+## IaC defaults
+
+The `observability` setup deploys the first useful system-control stack by
+default. High-availability expansion is represented as commented Terraform
+instances and matching commented inventory/IP examples.
+
+Use this matrix for the default Terraform shape:
+
+| Component | Terraform default | Inventory action | Zone |
+| --- | --- | --- | --- |
+| telemetry gateway | `telemetry-1` active, `telemetry-2` commented | `telemetry-1` present by default | `telemetry_gateway` |
+| syslog collector | `syslog-1` active, `syslog-2` commented | `syslog-1` present by default | `security_telemetry` |
+| live health | `health-1` active | `health-1` present by default | `observability` |
+| metrics store | `metrics-1` active | `metrics-1` present by default | `observability` |
+| APM and traces | `apm-1` active | `apm-1` present by default | `observability` |
+| log store | `logs-1` active, `logs-2` and `logs-3` commented | `logs-1` present by default | `observability` |
+| dashboard entry | `telemetry-ui-1` active | `telemetry-ui-1` present by default | `observability` |
+| archive writer | `archive-1` active | `archive-1` present by default | `storage` |
+
+Commented Terraform `vm_instances` are default `0` and should stay commented
+until you also enable the matching Ansible inventory group and IP entry.
+
 ## Data routing
 
 | Data type | Source | Collector | Backend |
@@ -217,7 +240,7 @@ Use a separate observability path when a project has:
 - separate operators who should not see other projects
 - a need to destroy all telemetry with the project
 
-Read [Shared services model](../architecture/shared-services.md) for the
+Read [Shared services model](../../architecture/shared-services.md) for the
 broader split between shared and multiplied services.
 
 ## Operations model

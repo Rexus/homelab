@@ -6,7 +6,7 @@
 - [Maturity overview](#maturity-overview)
 - [Level 1 - Shared private-domain services](#level-1---shared-private-domain-services)
 - [Level 2 - Vault foundation deployment](#level-2---vault-foundation-deployment)
-- [Level 3 - Observability and syslog](#level-3---observability-and-syslog)
+- [Level 3 - System control](#level-3---system-control)
 - [Level 4 - Backup foundation](#level-4---backup-foundation)
 - [Level 5 - Higher availability and production use](#level-5---higher-availability-and-production-use)
 
@@ -23,7 +23,7 @@ keeps the same milestones in Proxmox terms.
 | --- | --- | --- |
 | 1 | Shared private-domain services | First template, foundation hosts, and the identity, DNS, and PKI services Vault depends on are in place or mapped to existing services |
 | 2 | Vault foundation deployment | Vault is deployed as the early secret-platform foundation and ready for initialization |
-| 3 | Observability and syslog | telemetry, syslog, metrics, traces, and log/event search have a Proxmox-aware path |
+| 3 | System control | telemetry, syslog, metrics, traces, and log/event search have a Proxmox-aware path |
 | 4 | Backup foundation | PBS is deployed, connected, and tested |
 | 5 | Higher availability and production use | Backup, recovery, observability, and platform patterns support more serious use |
 
@@ -64,7 +64,7 @@ Read more:
 - [Vault foundation deployment](../../paths/shared-services/vault.md)
 - [Secret strategy](../../security/secret-strategy.md)
 
-## Level 3 - Observability and syslog
+## Level 3 - System control
 
 Goal:
 
@@ -75,7 +75,7 @@ Goal:
 
 Read more:
 
-- [Observability path](../../paths/observability.md)
+- [System control path](../../paths/system-control/README.md)
 - [Network architecture](../../architecture/network.md)
 
 ## Level 4 - Backup foundation

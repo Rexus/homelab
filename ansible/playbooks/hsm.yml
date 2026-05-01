@@ -1,0 +1,6 @@
+---
+- name: Apply HSM host baseline
+  hosts: hsm_gateways:crypto_admin
+  become: true
+  roles:
+    - baseline

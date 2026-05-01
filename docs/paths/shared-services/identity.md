@@ -46,12 +46,11 @@ shared services for later paths.
 
 Use this as the starting point:
 
-| Component | Default | Zone | Purpose |
-| --- | --- | --- | --- |
-| identity hosts | `2` | `identity` | `FreeIPA`, DNS, and the first identity authority |
-| issuing CA host | `1` | `cryptography` | online issuing CA for the platform |
-| root CA host | `0` by default | `ceremony` | optional offline root CA host |
-| edge load-balancer hosts | `0` by default, `2+` when enabled | `external_edge` | optional later north-south ingress, egress, and load-balancing layer |
+| Component | Terraform default | Inventory entry | Zone | Purpose |
+| --- | --- | --- | --- | --- |
+| identity hosts | `idm-1`, `idm-2` active | `idm-1`, `idm-2` present by default | `identity` | `FreeIPA`, DNS, and the first identity authority |
+| issuing CA host | `ca-1` active | `ca-1` present by default | `cryptography` | online issuing CA for the platform |
+| root CA host | `ca-root-1` commented, default `0` | uncomment `ca-root-1` when enabled | `ceremony` | optional offline root CA host |
 
 Keep the root CA host separate from the identity hosts when you use it. Treat
 it as a ceremony system that should normally stay offline outside planned CA
@@ -59,6 +58,11 @@ operations.
 
 Both CA layers can later be hardened with HSM-backed keys, but the default
 identity path does not require HSM on day one.
+
+The Terraform example for this path lives in
+`terraform/environments/foundation/terraform.tfvars.example`. Commented
+`vm_instances` are default `0` and should stay commented until you also enable
+the matching Ansible inventory group and IP entry.
 
 ## Using an existing domain
 
@@ -104,7 +108,7 @@ Use these repo paths here:
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
 | [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
-| [`terraform/environments/foundation/terraform.tfvars.example`](../../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity, PKI, and optional edge hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
+| [`terraform/environments/foundation/terraform.tfvars.example`](../../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity and PKI hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
 | [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration, domain, and IP maps | your local `ansible/group_vars/all.<env>.yml` |
@@ -151,11 +155,9 @@ different authority layout.
 - keep the issuing CA on its own dedicated host in `cryptography`
 - enable a root CA host in `ceremony` only when you want a separate offline
   ceremony system from the start
-- keep the edge load balancers commented until your environment actually needs
-  external ingress or controlled egress
 - keep the inventory groups aligned with the host intent:
-  `identity_primary`, `identity_replicas`, `issuing_ca`, optional
-  `root_ca`, and optional `edge_load_balancers`
+  `identity_primary`, `identity_replicas`, `issuing_ca`, and optional
+  `root_ca`
 
 For environment separation, keep one stable inventory and separate ignored
 local data files and state:
@@ -234,6 +236,7 @@ After the shared-service hosts are ready:
 - [Repository scripts](../../reference/repository-scripts.md)
 - [Shared services model](../../architecture/shared-services.md)
 - [Windows and AD support](windows-support.md)
+- [Edge proxy path](edge.md)
 - [Vault foundation deployment](vault.md)
 - [Private cloud maturity path](../private-cloud-maturity.md)
 - [Secret strategy](../../security/secret-strategy.md)
