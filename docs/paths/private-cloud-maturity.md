@@ -43,6 +43,10 @@ Use `--env` for disposable or parallel environments such as `test`, `dev`,
 `stage`, or `lab1`. Omit `--env` for production. Override subnets, VLANs, IPs,
 or VM sizes only when an environment needs a different shape.
 
+Read [Private cloud model](../architecture/private-cloud.md) before choosing
+how much belongs on your own infrastructure and what should be offloaded to
+public cloud.
+
 ## Capability groups
 
 | Capability group | Owns | Main path |
