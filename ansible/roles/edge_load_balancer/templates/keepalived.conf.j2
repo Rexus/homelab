@@ -1,0 +1,36 @@
+{% set members = groups.get(edge_keepalived_group, []) %}
+{% set node_index = members.index(inventory_hostname) if inventory_hostname in members else 0 %}
+global_defs {
+  router_id {{ platform_hostname | default(inventory_hostname) }}
+  enable_script_security
+  script_user root
+}
+
+vrrp_script chk_haproxy {
+  script "{{ edge_haproxy_check_script_path }}"
+  interval 2
+  fall 2
+  rise 2
+}
+
+vrrp_instance edge_vip {
+  state BACKUP
+  interface {{ edge_keepalived_interface }}
+  virtual_router_id {{ edge_keepalived_virtual_router_id }}
+  priority {{ edge_keepalived_priority_base - (node_index * edge_keepalived_priority_step) }}
+  advert_int 1
+  unicast_src_ip {{ platform_host_ips[inventory_hostname] }}
+{% if members | length > 1 %}
+  unicast_peer {
+{% for peer in members if peer != inventory_hostname %}
+    {{ platform_host_ips[peer] }}
+{% endfor %}
+  }
+{% endif %}
+  virtual_ipaddress {
+    {{ edge_keepalived_vip_cidr }}
+  }
+  track_script {
+    chk_haproxy
+  }
+}

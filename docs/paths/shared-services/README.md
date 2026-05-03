@@ -18,6 +18,7 @@ The shared services are:
 
 - private domain, DNS, and identity
 - PKI with an issuing CA and optional offline root CA
+- hardware-backed user authentication when operators are ready for it
 - edge load balancing and controlled north-south proxying
 - cache services for controlled outbound update access
 - Vault for shared secrets and later dynamic credentials
@@ -37,10 +38,12 @@ Use this order:
 2. [Edge proxy path](edge.md)
 3. [Vault foundation deployment](vault.md)
 4. [Cache path](cache.md), when restricted systems need it
-5. [System control path](../system-control/README.md)
-6. [Windows and AD support](windows-support.md), when the environment needs it
-7. [Secret strategy](../../security/secret-strategy.md)
-8. [Private cloud maturity path](../private-cloud-maturity.md)
+5. [Hardware-backed user authentication](hardware-keys.md), when privileged
+   users are ready for it
+6. [System control path](../system-control/README.md)
+7. [Windows and AD support](windows-support.md), when the environment needs it
+8. [Secret strategy](../../security/secret-strategy.md)
+9. [Private cloud maturity path](../private-cloud-maturity.md)
 
 ## Path guides
 
@@ -50,6 +53,8 @@ Use this order:
   expansion for ingress, egress, and service backends
 - [Cache path](cache.md) - optional `Squid` cache pair for controlled outbound
   update access from restricted systems
+- [Hardware-backed user authentication](hardware-keys.md) - optional YubiKey,
+  OTP, and PIV hardening after the identity foundation works
 - [Windows and AD support](windows-support.md) - optional Windows support
   path after the identity foundation exists
 - [Vault foundation deployment](vault.md) - first Vault

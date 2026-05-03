@@ -45,6 +45,8 @@ Examples:
   bash scripts/deploy.sh foundation --env-file secrets/proxmox.env
   bash scripts/deploy.sh foundation --env lab1
   bash scripts/deploy.sh foundation --env test --destroy
+  bash scripts/deploy.sh edge --env test --plan-only
+  bash scripts/deploy.sh cache --env test --plan-only
   bash scripts/deploy.sh vault --plan-only
   bash scripts/deploy.sh development --env test --plan-only
   bash scripts/deploy.sh observability --env test --plan-only
@@ -235,6 +237,8 @@ case "$setup_name" in
   edge)
     terraform_dir="$repo_root/terraform/environments/edge"
     ansible_playbooks=("edge.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/edge.yml"
+    setup_ansible_vars_required=true
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"
@@ -243,6 +247,8 @@ case "$setup_name" in
   cache)
     terraform_dir="$repo_root/terraform/environments/cache"
     ansible_playbooks=("cache.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/cache.yml"
+    setup_ansible_vars_required=true
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"
@@ -371,6 +377,9 @@ if [[ -n "$environment_var_file_path" ]]; then
 fi
 
 resolved_ansible_vars_paths=()
+if [[ "$setup_ansible_vars_required" == true && -n "$setup_ansible_vars_base_path" ]]; then
+  resolved_ansible_vars_paths+=("$setup_ansible_vars_base_path")
+fi
 if [[ -n "$environment_ansible_vars_path" ]]; then
   resolved_ansible_vars_paths+=("$environment_ansible_vars_path")
 fi

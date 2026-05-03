@@ -1,0 +1,76 @@
+---
+- name: Validate edge load-balancer inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+      - edge_keepalived_vip_cidr is defined
+      - groups.get(edge_keepalived_group, []) | length >= 1
+      - >-
+        groups.get(edge_keepalived_group, [])
+        | difference(platform_host_ips.keys() | list)
+        | length == 0
+    fail_msg: >-
+      The edge load-balancer role currently targets Enterprise Linux guests and
+      requires a keepalived VIP plus static platform_host_ips for every edge host.
+
+- name: Install edge load-balancer packages
+  ansible.builtin.package:
+    name:
+      - "{{ edge_haproxy_package_name }}"
+      - "{{ edge_keepalived_package_name }}"
+    state: "{{ edge_haproxy_package_state }}"
+
+- name: Allow HAProxy to bind the VIP on standby nodes
+  ansible.builtin.sysctl:
+    name: net.ipv4.ip_nonlocal_bind
+    value: "1"
+    state: present
+    reload: true
+  when: edge_haproxy_bind_nonlocal | bool
+
+- name: Install HAProxy health check for keepalived
+  ansible.builtin.copy:
+    dest: "{{ edge_haproxy_check_script_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/usr/bin/env bash
+      systemctl is-active --quiet haproxy
+  notify: Restart keepalived
+
+- name: Render HAProxy configuration
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: "{{ edge_haproxy_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "haproxy -c -f %s"
+  notify: Restart haproxy
+
+- name: Render keepalived configuration for the edge VIP
+  ansible.builtin.template:
+    src: keepalived.conf.j2
+    dest: "{{ edge_keepalived_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart keepalived
+  when: edge_keepalived_enabled | bool
+
+- name: Apply pending edge service handler changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure HAProxy service is enabled and started
+  ansible.builtin.service:
+    name: haproxy
+    enabled: "{{ edge_haproxy_service_enabled }}"
+    state: "{{ edge_haproxy_service_state }}"
+
+- name: Ensure keepalived service is enabled and started
+  ansible.builtin.service:
+    name: keepalived
+    enabled: true
+    state: started
+  when: edge_keepalived_enabled | bool

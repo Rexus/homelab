@@ -1,0 +1,40 @@
+# Copy to: ansible/group_vars/cache.yml
+# Replace every value before use.
+# Guide: docs/paths/shared-services/cache.md
+
+cache_keepalived_enabled: true
+cache_keepalived_group: cache
+cache_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
+cache_keepalived_virtual_router_id: 31
+cache_keepalived_vip_cidr: 10.30.30.120/24
+cache_keepalived_priority_base: 110
+cache_keepalived_priority_step: 10
+
+cache_squid_package_state: present
+cache_squid_service_enabled: true
+cache_squid_service_state: started
+cache_squid_http_port: 3128
+cache_squid_cache_mb: 2048
+cache_squid_max_object_size: 1024 MB
+
+# Keep this explicit. Add only the networks that may use the cache.
+cache_squid_allowed_cidrs:
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+
+# First use case: controlled OS and package updates for restricted systems.
+# Replace with the repository domains your environment actually allows.
+cache_squid_allowed_domains:
+  - .almalinux.org
+  - .rockylinux.org
+  - .centos.org
+  - .fedoraproject.org
+  - .epel.cloud
+  - .redhat.com
+  - .cdn.redhat.com
+
+# Optional upstream proxy when this cache must chain through another egress
+# proxy. Leave unset for direct outbound access from the cache nodes.
+# cache_squid_upstream_proxy: upstream-proxy.example.com
+# cache_squid_upstream_port: 3128

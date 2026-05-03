@@ -5,6 +5,7 @@
 - [Purpose](#purpose)
 - [Why shared services matter](#why-shared-services-matter)
 - [Private domain services](#private-domain-services)
+- [Identity security principles](#identity-security-principles)
 - [Passwordless direction](#passwordless-direction)
 - [Key custody and cloud boundaries](#key-custody-and-cloud-boundaries)
 - [Shared or multiplied](#shared-or-multiplied)
@@ -54,6 +55,7 @@ In the reference implementation, that means:
 | --- | --- | --- |
 | identity and DNS | `FreeIPA` | shared identity authority, Kerberos, LDAP, DNS, host enrollment |
 | PKI | root CA plus issuing CA | private certificate hierarchy for internal services |
+| user hardware keys | YubiKey or compatible tokens | optional OTP or PIV hardening for privileged users |
 | secrets | `Vault` | secret storage and later dynamic credential paths |
 | telemetry | OpenTelemetry, syslog, metrics, logs, traces | operational control and audit visibility |
 | cryptographic hardening | USB HSM or other HSM path | stronger protection for selected CA or seal keys |
@@ -61,6 +63,17 @@ In the reference implementation, that means:
 The path is still optional. If you already have a domain, DNS, PKI, Vault, or
 telemetry stack, use those systems as prerequisites and configure the later
 paths to consume them instead of deploying duplicates.
+
+## Identity security principles
+
+Use these principles for the identity path and any service that consumes it:
+
+| Principle | Meaning |
+| --- | --- |
+| hardware key = identity proof | Treat the user's hardware key as the strongest proof of operator identity and the practical user root of trust. |
+| Kerberos = internal SSO | Use Kerberos for internal SSO, but keep delegation tightly constrained and prefer service principals over reused user credentials. |
+| SSH = short-lived or non-delegatable | Prefer short-lived OpenSSH user certificates or scoped SSH credentials that services cannot reuse as the user. |
+| assume every host can be compromised | Design so one compromised host does not expose reusable user passwords, broad Kerberos delegation, or unrestricted automation credentials. |
 
 ## Passwordless direction
 
@@ -72,13 +85,19 @@ The preferred direction is:
 ```text
 shared identity
   -> enrolled users, hosts, and groups
-  -> certificates, Kerberos, FIDO2, PIV, or other token-backed login
+  -> Kerberos as the core login protocol
+  -> certificates, OTP, PIV, FIDO2, or other token-backed user hardening
   -> short-lived or scoped credentials from Vault where possible
 ```
 
 This does not mean passwords disappear from every bootstrap step. It means the
 long-term platform should avoid passwords as the normal operator and service
 authentication model.
+
+Keep the default identity deployment password-capable for recovery and
+compatibility. Harden privileged users first with hardware-backed OTP or PIV,
+and avoid service designs where reusable user passwords are delegated to other
+systems.
 
 NIST describes passwords as not phishing-resistant, while phishing-resistant
 authentication uses cryptographic protocols that prevent an impostor verifier

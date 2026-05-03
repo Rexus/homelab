@@ -1,0 +1,26 @@
+---
+cache_squid_package_name: squid
+cache_keepalived_package_name: keepalived
+cache_squid_config_path: /etc/squid/squid.conf
+cache_keepalived_config_path: /etc/keepalived/keepalived.conf
+cache_squid_check_script_path: /usr/local/sbin/check-squid
+
+cache_keepalived_enabled: true
+cache_keepalived_group: cache
+cache_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
+cache_keepalived_virtual_router_id: 31
+cache_keepalived_vip_cidr: 10.30.30.120/24
+cache_keepalived_priority_base: 110
+cache_keepalived_priority_step: 10
+
+cache_squid_package_state: present
+cache_squid_service_enabled: true
+cache_squid_service_state: started
+cache_squid_http_port: 3128
+cache_squid_cache_mb: 2048
+cache_squid_max_object_size: 1024 MB
+cache_squid_allowed_cidrs:
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+cache_squid_allowed_domains: []

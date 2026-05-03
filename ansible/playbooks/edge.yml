@@ -4,3 +4,4 @@
   become: true
   roles:
     - baseline
+    - edge_load_balancer

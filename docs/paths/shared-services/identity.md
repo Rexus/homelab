@@ -5,6 +5,7 @@
 - [Purpose](#purpose)
 - [Before you start](#before-you-start)
 - [Default private-domain shape](#default-private-domain-shape)
+- [Authentication design](#authentication-design)
 - [Using an existing domain](#using-an-existing-domain)
 - [What you configure](#what-you-configure)
 - [IaC used for this](#iac-used-for-this)
@@ -68,6 +69,39 @@ The Terraform example for this path lives in
 `terraform/environments/foundation/terraform.tfvars.example`. Commented
 `vm_instances` are default `0` and should stay commented until you also enable
 the matching Ansible inventory group and IP entry.
+
+## Authentication design
+
+Use `FreeIPA` with Kerberos as the core identity authority. Anchor user, host,
+and service trust in PKI, then harden privileged users with hardware-backed
+authentication.
+
+Apply these rules when you shape the domain:
+
+| Rule | What it means for this path |
+| --- | --- |
+| hardware key = identity proof | Use YubiKey or compatible hardware tokens as the strongest proof of user identity once the domain is stable. |
+| Kerberos = internal SSO | Use Kerberos for enrolled hosts and services, but avoid broad or unconstrained delegation. |
+| SSH = short-lived or non-delegatable | Prefer short-lived OpenSSH user certificates, scoped keys, or credentials that services cannot reuse as the user. |
+| assume every host can be compromised | Do not place reusable passwords or unrestricted credentials on managed hosts. |
+
+Default behavior:
+
+| Auth path | Default | Notes |
+| --- | --- | --- |
+| user passwords | enabled | needed for first deployment, recovery, and compatibility |
+| Kerberos through SSSD | expected | normal Linux domain authentication path |
+| SSH certificates | recommended hardening | stronger SSH access path after the domain and host enrollment are stable |
+| YubiKey or hardware OTP | recommended hardening | optional after the first domain is stable |
+| PIV or smart-card certificates | stronger hardening path | optional after PKI and recovery processes are ready |
+
+Avoid credential delegation. Services should not collect reusable user
+passwords so they can act as users later. Prefer Kerberos tickets, service
+principals, certificates, Vault-issued credentials, or the access-layer SSO
+path when that exists.
+
+Use [Hardware-backed user authentication](hardware-keys.md) when you are ready
+to add YubiKey OTP or PIV authentication.
 
 ## Using an existing domain
 
@@ -241,6 +275,7 @@ After the shared-service hosts are ready:
 - [Repository scripts](../../reference/repository-scripts.md)
 - [Shared services model](../../architecture/shared-services.md)
 - [Windows and AD support](windows-support.md)
+- [Hardware-backed user authentication](hardware-keys.md)
 - [Edge proxy path](edge.md)
 - [Vault foundation deployment](vault.md)
 - [Private cloud maturity path](../private-cloud-maturity.md)

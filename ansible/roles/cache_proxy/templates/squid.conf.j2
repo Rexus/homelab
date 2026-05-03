@@ -1,0 +1,39 @@
+visible_hostname {{ platform_fqdn | default(inventory_hostname) }}
+
+acl localnet src {{ cache_squid_allowed_cidrs | join(' ') }}
+{% if cache_squid_allowed_domains | length > 0 %}
+acl allowed_update_domains dstdomain {{ cache_squid_allowed_domains | join(' ') }}
+{% endif %}
+acl SSL_ports port 443
+acl Safe_ports port 80
+acl Safe_ports port 443
+acl CONNECT method CONNECT
+
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+http_access allow localhost manager
+http_access deny manager
+http_access allow localhost
+{% if cache_squid_allowed_domains | length > 0 %}
+http_access allow localnet allowed_update_domains
+{% else %}
+http_access allow localnet
+{% endif %}
+http_access deny all
+
+http_port {{ cache_squid_http_port }}
+
+cache_mem 256 MB
+maximum_object_size {{ cache_squid_max_object_size }}
+cache_dir ufs /var/spool/squid {{ cache_squid_cache_mb }} 16 256
+coredump_dir /var/spool/squid
+
+{% if cache_squid_upstream_proxy is defined %}
+cache_peer {{ cache_squid_upstream_proxy }} parent {{ cache_squid_upstream_port | default(3128) }} 0 no-query default
+never_direct allow all
+{% endif %}
+
+refresh_pattern ^ftp: 1440 20% 10080
+refresh_pattern ^gopher: 1440 0% 1440
+refresh_pattern -i (/cgi-bin/|\?) 0 0% 0
+refresh_pattern . 0 20% 4320

@@ -1,0 +1,28 @@
+---
+edge_haproxy_package_name: haproxy
+edge_keepalived_package_name: keepalived
+edge_haproxy_config_path: /etc/haproxy/haproxy.cfg
+edge_keepalived_config_path: /etc/keepalived/keepalived.conf
+edge_haproxy_check_script_path: /usr/local/sbin/check-haproxy
+
+edge_keepalived_enabled: true
+edge_keepalived_group: edge_load_balancers
+edge_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
+edge_keepalived_virtual_router_id: 30
+edge_keepalived_vip_cidr: 10.30.30.100/24
+edge_keepalived_priority_base: 110
+edge_keepalived_priority_step: 10
+
+edge_haproxy_package_state: present
+edge_haproxy_service_enabled: true
+edge_haproxy_service_state: started
+edge_haproxy_bind_nonlocal: true
+edge_haproxy_maxconn: 4096
+edge_haproxy_timeout_connect: 5s
+edge_haproxy_timeout_client: 60s
+edge_haproxy_timeout_server: 60s
+edge_haproxy_stats_enabled: true
+edge_haproxy_stats_bind: 127.0.0.1:8404
+edge_haproxy_stats_uri: /haproxy?stats
+edge_haproxy_frontends: []
+edge_haproxy_backends: {}

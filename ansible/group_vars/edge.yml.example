@@ -1,0 +1,44 @@
+# Copy to: ansible/group_vars/edge.yml
+# Replace every value before use.
+# Guide: docs/paths/shared-services/edge.md
+
+edge_keepalived_enabled: true
+edge_keepalived_group: edge_load_balancers
+edge_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
+edge_keepalived_virtual_router_id: 30
+edge_keepalived_vip_cidr: 10.30.30.100/24
+edge_keepalived_priority_base: 110
+edge_keepalived_priority_step: 10
+
+edge_haproxy_package_state: present
+edge_haproxy_service_enabled: true
+edge_haproxy_service_state: started
+edge_haproxy_bind_nonlocal: true
+edge_haproxy_maxconn: 4096
+edge_haproxy_timeout_connect: 5s
+edge_haproxy_timeout_client: 60s
+edge_haproxy_timeout_server: 60s
+
+# Local stats listener only. Publish stats through a protected internal path if
+# you want dashboard access.
+edge_haproxy_stats_enabled: true
+edge_haproxy_stats_bind: 127.0.0.1:8404
+edge_haproxy_stats_uri: /haproxy?stats
+
+# Service paths can add frontends and backends later.
+# Example:
+# edge_haproxy_frontends:
+#   - name: vault_https
+#     bind: 10.30.30.100:443
+#     mode: tcp
+#     default_backend: vault_https
+# edge_haproxy_backends:
+#   vault_https:
+#     mode: tcp
+#     balance: roundrobin
+#     servers:
+#       - name: vault-1
+#         address: 10.20.20.21
+#         port: 8200
+edge_haproxy_frontends: []
+edge_haproxy_backends: {}

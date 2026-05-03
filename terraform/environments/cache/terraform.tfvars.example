@@ -19,21 +19,21 @@ vm_instances = {
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "external_edge"
-    tags             = ["forward-proxy", "squid"]
+    tags             = ["cache", "forward-proxy", "squid", "keepalived"]
   }
   "cache-2" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "external_edge"
-    tags             = ["forward-proxy", "squid"]
+    tags             = ["cache", "forward-proxy", "squid", "keepalived"]
   }
   # "cache-3" = {
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 30
   #   network_zone_key = "external_edge"
-  #   tags             = ["forward-proxy", "squid"]
+  #   tags             = ["cache", "forward-proxy", "squid", "keepalived"]
   # }
 }
 

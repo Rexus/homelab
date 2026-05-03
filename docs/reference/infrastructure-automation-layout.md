@@ -117,14 +117,16 @@ state file between environments. Omit `--env` for production.
 | `ansible/inventory/hosts.yml.example` | stable logical host keys and service groups |
 | `ansible/group_vars/all.yml.example` | shared Ansible defaults and default environment data |
 | `ansible/group_vars/all.env.yml.example` | environment-specific hostname decoration, domain, and IP map overlay |
+| `ansible/group_vars/edge.yml.example` | HAProxy and keepalived VIP settings for the edge path |
+| `ansible/group_vars/cache.yml.example` | Squid and keepalived VIP settings for the cache path |
 | `ansible/group_vars/development.yml.example` | GitLab container setup settings |
 | `ansible/group_vars/podman_runner.yml.example` | Podman runner package and registration settings |
 | `ansible/group_vars/image_template.yml.example` | image-based Linux template conversion settings |
 | `ansible/group_vars/template_refresh.yml.example` | mutable Enterprise Linux template refresh and replacement settings |
 | `ansible/playbooks/control-node.yml` | local precheck before each wrapper run |
 | `ansible/playbooks/foundation.yml` | staged FreeIPA identity foundation rollout |
-| `ansible/playbooks/edge.yml` | edge load-balancer host baseline |
-| `ansible/playbooks/cache.yml` | cache host baseline |
+| `ansible/playbooks/edge.yml` | edge load-balancer baseline plus HAProxy and keepalived |
+| `ansible/playbooks/cache.yml` | cache baseline plus Squid and keepalived |
 | `ansible/playbooks/development.yml` | GitLab development platform setup |
 | `ansible/playbooks/vault.yml` | Vault host baseline and service installation |
 | `ansible/playbooks/lab.yml` | lab host baseline |
@@ -136,6 +138,8 @@ state file between environments. Omit `--env` for production.
 | `ansible/playbooks/site.yml` | broad baseline entry point for manual use |
 | `ansible/playbooks/ingress.yml` | edge load-balancer backend registration for HSM gateways |
 | `ansible/roles/baseline/` | security-first baseline scaffold |
+| `ansible/roles/edge_load_balancer/` | HAProxy and keepalived edge VIP setup |
+| `ansible/roles/cache_proxy/` | Squid and keepalived cache VIP setup |
 | `ansible/roles/gitlab_container/` | GitLab container host setup role |
 | `ansible/roles/vault/` | Vault service role |
 | `ansible/roles/podman_runner/` | Podman and GitLab Runner setup role |

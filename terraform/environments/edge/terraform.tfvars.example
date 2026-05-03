@@ -19,21 +19,21 @@ vm_instances = {
     storage_class    = "local"
     disk_size_gb     = 20
     network_zone_key = "external_edge"
-    tags             = ["load-balancer", "haproxy"]
+    tags             = ["load-balancer", "haproxy", "keepalived"]
   }
   "edge-lb-2" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
     network_zone_key = "external_edge"
-    tags             = ["load-balancer", "haproxy"]
+    tags             = ["load-balancer", "haproxy", "keepalived"]
   }
   # "edge-lb-3" = {
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 20
   #   network_zone_key = "external_edge"
-  #   tags             = ["load-balancer", "haproxy"]
+  #   tags             = ["load-balancer", "haproxy", "keepalived"]
   # }
 }
 

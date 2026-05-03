@@ -31,6 +31,7 @@ Use the same group names when reading the docs or browsing the repository:
 | Proxmox platform preparation | [Proxmox reference platform](../platforms/proxmox/README.md) | [API setup](../platforms/proxmox/setup-api.md), [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md), [Host networking](../platforms/proxmox/network-prerequisites.md) |
 | Shared services model | [Shared services model](../architecture/shared-services.md) | [Shared services path](shared-services/README.md), [Private cloud maturity path](private-cloud-maturity.md) |
 | Identity and PKI foundation | [Shared services path](shared-services/README.md) | [Identity foundation path](shared-services/identity.md), [Network architecture](../architecture/network.md) |
+| Hardware-backed user auth | [Hardware-backed user authentication](shared-services/hardware-keys.md) | [Identity foundation path](shared-services/identity.md), [Secret strategy](../security/secret-strategy.md) |
 | Vault foundation | [Vault foundation deployment](shared-services/vault.md) | [Secret strategy](../security/secret-strategy.md), [Ansible Vault bootstrap](../reference/ansible-vault-bootstrap.md) |
 | Edge proxy | [Edge proxy path](shared-services/edge.md) | [Network architecture](../architecture/network.md), [Shared services model](../architecture/shared-services.md) |
 | Cache | [Cache path](shared-services/cache.md) | [Network architecture](../architecture/network.md), [Security principles](../security/security-principles.md) |

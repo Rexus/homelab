@@ -52,7 +52,7 @@ public cloud.
 | Capability group | Owns | Main path |
 | --- | --- | --- |
 | platform preparation | Proxmox, API access, templates, networking, deployment tooling | [Proxmox reference platform](../platforms/proxmox/README.md) |
-| shared services | identity, DNS, PKI, edge, cache, Vault, and optional Windows support | [Shared services path](shared-services/README.md) |
+| shared services | identity, DNS, PKI, edge, cache, Vault, hardware-backed user auth, and optional Windows support | [Shared services path](shared-services/README.md) |
 | system control | telemetry, syslog, metrics, traces, logs, dashboards, and archive | [System control path](system-control/README.md) |
 | recovery | backup, restore, and disaster recovery readiness | [Backup foundation](../platforms/proxmox/backup-foundation.md) |
 | application platform | development platform, registry, image-based Linux, Kubernetes, and project runtimes | [Application platform path](application-platform/README.md) |
@@ -101,7 +101,7 @@ Use the same level meaning inside each capability group:
 | --- | --- | --- |
 | 0 | existing identity, DNS, PKI, edge, Vault, or cache services are mapped | [Shared services model](../architecture/shared-services.md) |
 | 1 | identity, DNS, issuing CA, edge, and Vault are deployed or connected | [Identity foundation path](shared-services/identity.md), [Edge proxy path](shared-services/edge.md), [Vault foundation deployment](shared-services/vault.md) |
-| 2 | shared services are redundant, hardened, and expanded with cache or Windows support where needed | [Cache path](shared-services/cache.md), [Windows and AD support](shared-services/windows-support.md), [Secret strategy](../security/secret-strategy.md) |
+| 2 | shared services are redundant, hardened, and expanded with hardware-backed auth, cache, or Windows support where needed | [Hardware-backed user authentication](shared-services/hardware-keys.md), [Cache path](shared-services/cache.md), [Windows and AD support](shared-services/windows-support.md), [Secret strategy](../security/secret-strategy.md) |
 
 ## System control
 

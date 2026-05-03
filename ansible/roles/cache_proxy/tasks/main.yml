@@ -1,0 +1,69 @@
+---
+- name: Validate cache proxy inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+      - cache_keepalived_vip_cidr is defined
+      - cache_squid_allowed_cidrs | length > 0
+      - groups.get(cache_keepalived_group, []) | length >= 1
+      - >-
+        groups.get(cache_keepalived_group, [])
+        | difference(platform_host_ips.keys() | list)
+        | length == 0
+    fail_msg: >-
+      The cache proxy role currently targets Enterprise Linux guests and
+      requires a keepalived VIP, allowed CIDRs, and static platform_host_ips
+      for every cache host.
+
+- name: Install cache proxy packages
+  ansible.builtin.package:
+    name:
+      - "{{ cache_squid_package_name }}"
+      - "{{ cache_keepalived_package_name }}"
+    state: "{{ cache_squid_package_state }}"
+
+- name: Install Squid health check for keepalived
+  ansible.builtin.copy:
+    dest: "{{ cache_squid_check_script_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/usr/bin/env bash
+      systemctl is-active --quiet squid
+  notify: Restart keepalived
+
+- name: Render Squid configuration
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: "{{ cache_squid_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart squid
+
+- name: Render keepalived configuration for the cache VIP
+  ansible.builtin.template:
+    src: keepalived.conf.j2
+    dest: "{{ cache_keepalived_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart keepalived
+  when: cache_keepalived_enabled | bool
+
+- name: Apply pending cache service handler changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure Squid service is enabled and started
+  ansible.builtin.service:
+    name: squid
+    enabled: "{{ cache_squid_service_enabled }}"
+    state: "{{ cache_squid_service_state }}"
+
+- name: Ensure keepalived service is enabled and started
+  ansible.builtin.service:
+    name: keepalived
+    enabled: true
+    state: started
+  when: cache_keepalived_enabled | bool

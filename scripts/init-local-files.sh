@@ -149,6 +149,12 @@ create_from_example \
   "$repo_root/ansible/group_vars/foundation.yml.example" \
   "$repo_root/ansible/group_vars/foundation.yml"
 create_from_example \
+  "$repo_root/ansible/group_vars/edge.yml.example" \
+  "$repo_root/ansible/group_vars/edge.yml"
+create_from_example \
+  "$repo_root/ansible/group_vars/cache.yml.example" \
+  "$repo_root/ansible/group_vars/cache.yml"
+create_from_example \
   "$repo_root/ansible/group_vars/vault.yml.example" \
   "$repo_root/ansible/group_vars/vault.yml"
 create_from_example \
@@ -194,6 +200,12 @@ if [[ -n "$deployment_env" ]]; then
   create_from_example \
     "$repo_root/ansible/group_vars/foundation.yml.example" \
     "$repo_root/ansible/group_vars/foundation.$deployment_env.yml"
+  create_from_example \
+    "$repo_root/ansible/group_vars/edge.yml.example" \
+    "$repo_root/ansible/group_vars/edge.$deployment_env.yml"
+  create_from_example \
+    "$repo_root/ansible/group_vars/cache.yml.example" \
+    "$repo_root/ansible/group_vars/cache.$deployment_env.yml"
   create_from_example \
     "$repo_root/ansible/group_vars/vault.yml.example" \
     "$repo_root/ansible/group_vars/vault.$deployment_env.yml"

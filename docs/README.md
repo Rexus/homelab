@@ -50,6 +50,8 @@ Use this order when you are new to the repository or returning after time away:
   identity, DNS, PKI, edge, cache, Vault, and optional Windows support
 - [Identity foundation path](paths/shared-services/identity.md) - shortest
   path from local setup to the first managed identity and PKI foundation layer
+- [Hardware-backed user authentication](paths/shared-services/hardware-keys.md) -
+  optional YubiKey, OTP, and PIV hardening after identity is stable
 - [Windows and AD support](paths/shared-services/windows-support.md) - optional
   secondary path for Windows clients and AD-compatible support
 - [Vault foundation deployment](paths/shared-services/vault.md) -

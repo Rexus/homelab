@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Use this path to deploy the shared `external_edge` proxy layer. This is the
-north-south boundary for services that need controlled ingress, controlled
-egress, or load balancing from the edge network into internal service networks.
+Use this path to deploy the shared `external_edge` load-balancer layer. This
+is the north-south boundary for services that need controlled ingress,
+controlled egress, or load balancing from the edge network into internal
+service networks.
 
-The reference implementation is `HAProxy`, but the path keeps the role generic
-as edge load balancing. Product-specific configuration belongs in Ansible roles
-and service variables.
+The reference implementation is `HAProxy` with `keepalived`. The default pair
+shares one VIP, so services can point at the VIP instead of a single edge host.
 
 ## Default deployment
 
@@ -20,6 +20,14 @@ and service variables.
 The default is a pair. Add `edge-lb-3` and higher when the environment needs
 more horizontal capacity, site spread, or maintenance headroom.
 
+## Service shape
+
+| Service | Default role |
+| --- | --- |
+| `HAProxy` | runs the edge load-balancer configuration |
+| `keepalived` | owns the shared VIP and fails it over between edge hosts |
+| local HAProxy stats | enabled on `127.0.0.1:8404` for local checks |
+
 ## What you configure
 
 | Path | What you configure |
@@ -28,6 +36,7 @@ more horizontal capacity, site spread, or maintenance headroom.
 | [`terraform/environments/edge/terraform.tfvars.example`](../../../terraform/environments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
 | [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | `edge_load_balancers` host group |
 | [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | edge host IP addresses |
+| [`ansible/group_vars/edge.yml.example`](../../../ansible/group_vars/edge.yml.example) | VIP, keepalived router ID, HAProxy stats listener, and frontend/backend entries |
 
 ## How other paths use it
 
@@ -39,6 +48,7 @@ Keep this boundary:
 
 - the edge setup owns the edge hosts
 - service paths own their backend snippets or routing entries
+- the edge VIP is the stable address other services consume
 - raw service protocols should not be exposed directly through the edge layer
 - more edge nodes are added by extending `vm_instances`, inventory, and IP map
 
