@@ -1,0 +1,27 @@
+# Copy to: terraform/environments/template-refresh/terraform.tfvars
+# Replace every value before use.
+# Setup guide: docs/platforms/proxmox/enterprise-linux-template.md
+# Shared values live in ../../common.tfvars.
+
+cluster_name = "template-refresh-change-me"
+
+vm_instances = {
+  # Default refresh target: one staged replacement for the normal Enterprise
+  # Linux template. Expand this map when you maintain more than one template.
+  #
+  # vm_id is the temporary staged template ID. It must be different from the
+  # final template ID until the explicit replacement step runs.
+  "alma-10-tmpl-stage" = {
+    vm_id            = 910
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 20
+    network_zone_key = "application"
+    started          = true
+    template         = false
+    stop_on_destroy  = true
+    tags             = ["template-refresh", "template-builder", "alma10", "el10"]
+  }
+}
+
+lxc_instances = {}

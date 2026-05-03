@@ -1,0 +1,118 @@
+---
+- name: Validate Podman runner registration inputs
+  ansible.builtin.assert:
+    that:
+      - not podman_runner_register | bool or podman_runner_gitlab_url | length > 0
+      - not podman_runner_register | bool or podman_runner_authentication_token | length > 0
+    fail_msg: >-
+      Set podman_runner_gitlab_url and podman_runner_authentication_token when
+      podman_runner_register is true.
+  no_log: "{{ podman_runner_register | bool }}"
+
+- name: Install private CA certificate for runner traffic
+  ansible.builtin.copy:
+    src: "{{ podman_runner_trust_ca_src }}"
+    dest: "{{ podman_runner_trust_ca_dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: podman_runner_trust_ca
+  when: podman_runner_trust_ca_src | length > 0
+
+- name: Update system CA trust
+  ansible.builtin.command:
+    argv:
+      - update-ca-trust
+  changed_when: true
+  when:
+    - podman_runner_trust_ca_src | length > 0
+    - podman_runner_trust_ca.changed
+
+- name: Install Podman build packages
+  ansible.builtin.package:
+    name: "{{ podman_runner_packages }}"
+    state: present
+
+- name: Install GitLab Runner package
+  ansible.builtin.package:
+    name: "{{ podman_runner_gitlab_runner_package }}"
+    state: present
+  when: podman_runner_install_gitlab_runner | bool
+
+- name: Check GitLab Runner user
+  ansible.builtin.command:
+    argv:
+      - getent
+      - passwd
+      - "{{ podman_runner_user }}"
+  register: podman_runner_user_lookup
+  changed_when: false
+  failed_when: false
+  when: podman_runner_configure_subuids | bool
+
+- name: Configure subuid range for rootless Podman builds
+  ansible.builtin.lineinfile:
+    path: /etc/subuid
+    regexp: "^{{ podman_runner_user }}:"
+    line: "{{ podman_runner_user }}:{{ podman_runner_subid_start }}:{{ podman_runner_subid_count }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - podman_runner_configure_subuids | bool
+    - podman_runner_user_lookup.rc == 0
+
+- name: Configure subgid range for rootless Podman builds
+  ansible.builtin.lineinfile:
+    path: /etc/subgid
+    regexp: "^{{ podman_runner_user }}:"
+    line: "{{ podman_runner_user }}:{{ podman_runner_subid_start }}:{{ podman_runner_subid_count }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - podman_runner_configure_subuids | bool
+    - podman_runner_user_lookup.rc == 0
+
+- name: Ensure GitLab Runner service is enabled
+  ansible.builtin.service:
+    name: "{{ podman_runner_service_name }}"
+    enabled: true
+    state: started
+  when:
+    - podman_runner_install_gitlab_runner | bool
+    - podman_runner_manage_service | bool
+
+- name: Check GitLab Runner configuration
+  ansible.builtin.stat:
+    path: "{{ podman_runner_config_file }}"
+  register: podman_runner_config
+  when:
+    - podman_runner_install_gitlab_runner | bool
+    - podman_runner_register | bool
+
+- name: Register GitLab Runner
+  ansible.builtin.command:
+    argv:
+      - gitlab-runner
+      - register
+      - --non-interactive
+      - --url
+      - "{{ podman_runner_gitlab_url }}"
+      - --token
+      - "{{ podman_runner_authentication_token }}"
+      - --executor
+      - "{{ podman_runner_executor }}"
+      - --description
+      - "{{ podman_runner_description }}"
+      - --tag-list
+      - "{{ podman_runner_tags | join(',') }}"
+      - "--run-untagged={{ podman_runner_run_untagged | bool | ternary('true', 'false') }}"
+      - "--locked={{ podman_runner_locked | bool | ternary('true', 'false') }}"
+  no_log: true
+  when:
+    - podman_runner_install_gitlab_runner | bool
+    - podman_runner_register | bool
+    - not podman_runner_config.stat.exists

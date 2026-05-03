@@ -1,0 +1,21 @@
+---
+- name: Prepare staged Enterprise Linux templates
+  hosts: template_refresh_builders
+  gather_facts: false
+  become: true
+  pre_tasks:
+    - name: Gather facts for staged template builders
+      ansible.builtin.setup:
+      when: template_refresh_prepare_builders | default(true) | bool
+  roles:
+    - role: template_refresh
+      when: template_refresh_prepare_builders | default(true) | bool
+
+- name: Replace Proxmox templates with staged versions
+  hosts: hypervisors
+  gather_facts: false
+  become: true
+  run_once: true
+  roles:
+    - proxmox_template_replace
+  when: template_refresh_replace_enabled | default(false) | bool

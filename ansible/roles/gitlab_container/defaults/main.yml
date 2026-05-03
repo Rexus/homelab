@@ -1,0 +1,23 @@
+---
+gitlab_container_image: docker.io/gitlab/gitlab-ce:latest
+gitlab_container_name: gitlab
+gitlab_home: /srv/gitlab
+
+gitlab_hostname: "git.{{ platform_domain | default('corp.example.com') }}"
+gitlab_external_url: "https://{{ gitlab_hostname }}"
+gitlab_http_host_port: 80
+gitlab_https_host_port: 443
+gitlab_ssh_host_port: 2222
+gitlab_ssh_container_port: 22
+gitlab_container_shm_size: 256m
+
+gitlab_letsencrypt_enabled: false
+gitlab_redirect_http_to_https: true
+gitlab_tls_cert_src: ""
+gitlab_tls_key_src: ""
+gitlab_omnibus_extra_config: []
+
+gitlab_packages:
+  - podman
+
+gitlab_systemd_unit_path: /etc/systemd/system/gitlab-container.service

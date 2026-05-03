@@ -1,0 +1,31 @@
+---
+podman_runner_packages:
+  - podman
+  - buildah
+  - skopeo
+  - git
+
+podman_runner_trust_ca_src: ""
+podman_runner_trust_ca_dest: /etc/pki/ca-trust/source/anchors/platform-ca.crt
+
+podman_runner_install_gitlab_runner: true
+podman_runner_gitlab_runner_package: gitlab-runner
+podman_runner_manage_service: true
+podman_runner_service_name: gitlab-runner
+podman_runner_user: gitlab-runner
+
+podman_runner_config_file: /etc/gitlab-runner/config.toml
+podman_runner_register: false
+podman_runner_gitlab_url: ""
+podman_runner_authentication_token: ""
+podman_runner_description: "{{ platform_hostname | default(inventory_hostname) }}"
+podman_runner_executor: shell
+podman_runner_tags:
+  - bootc
+  - podman
+podman_runner_run_untagged: false
+podman_runner_locked: true
+
+podman_runner_configure_subuids: true
+podman_runner_subid_start: 100000
+podman_runner_subid_count: 65536

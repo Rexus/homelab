@@ -133,6 +133,41 @@ all:
       hosts:
         archive-1: {}
 
+    # Application platform path: Podman image runner.
+    # Guide: docs/paths/application-platform/podman-runner.md
+    # Terraform config: terraform/environments/podman-runner/terraform.tfvars
+    podman_runner:
+      hosts:
+        runner-1: {}
+      # If you uncomment runner-2, add it to podman-runner vm_instances and
+      # platform_host_ips.
+      # runner-2: {}
+
+    # Application platform path: development platform.
+    # Guide: docs/paths/application-platform/development.md
+    # Terraform config: terraform/environments/development/terraform.tfvars
+    development_platform:
+      hosts:
+        git-1: {}
+
+    # Application platform path: image-based Linux template builders.
+    # Guide: docs/paths/application-platform/image-based-linux.md
+    # Terraform config: terraform/environments/image-template/terraform.tfvars
+    image_template_builders:
+      hosts:
+        # Use the target Proxmox template name as the host key. If you change
+        # it, update image-template vm_instances and platform_host_ips too.
+        rhel-10-immu-tmpl: {}
+
+    # Proxmox platform path: mutable Enterprise Linux template refresh.
+    # Guide: docs/platforms/proxmox/enterprise-linux-template.md
+    # Terraform config: terraform/environments/template-refresh/terraform.tfvars
+    template_refresh_builders:
+      hosts:
+        # Default is one staged replacement. Add more hosts only after adding
+        # matching template-refresh vm_instances and platform_host_ips.
+        alma-10-tmpl-stage: {}
+
     # Access path: identity provider hosts.
     # Guide: docs/architecture/network.md
     identity_providers:
@@ -181,6 +216,10 @@ all:
         security_telemetry:
         observability:
         archive:
+        development_platform:
+        podman_runner:
+        image_template_builders:
+        template_refresh_builders:
         lab:
         hsm_gateways:
         crypto_admin:

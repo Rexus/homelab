@@ -1,0 +1,79 @@
+---
+- name: Validate GitLab container inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+      - gitlab_hostname | length > 0
+      - gitlab_external_url | length > 0
+      - >-
+        not gitlab_external_url.startswith('https://')
+        or gitlab_letsencrypt_enabled | bool
+        or (gitlab_tls_cert_src | length > 0 and gitlab_tls_key_src | length > 0)
+    fail_msg: >-
+      The gitlab_container role targets Fedora or Enterprise Linux-like hosts.
+      HTTPS requires either GitLab Let's Encrypt or local certificate and key
+      files from the shared PKI.
+
+- name: Install GitLab container host packages
+  ansible.builtin.package:
+    name: "{{ gitlab_packages }}"
+    state: present
+
+- name: Ensure GitLab persistent directories exist
+  ansible.builtin.file:
+    path: "{{ gitlab_home }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - config
+    - config/ssl
+    - logs
+    - data
+
+- name: Install GitLab TLS certificate
+  ansible.builtin.copy:
+    src: "{{ gitlab_tls_cert_src }}"
+    dest: "{{ gitlab_home }}/config/ssl/{{ gitlab_hostname }}.crt"
+    owner: root
+    group: root
+    mode: "0644"
+  when: gitlab_tls_cert_src | length > 0
+
+- name: Install GitLab TLS private key
+  ansible.builtin.copy:
+    src: "{{ gitlab_tls_key_src }}"
+    dest: "{{ gitlab_home }}/config/ssl/{{ gitlab_hostname }}.key"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: gitlab_tls_key_src | length > 0
+
+- name: Render GitLab Omnibus configuration
+  ansible.builtin.template:
+    src: gitlab.rb.j2
+    dest: "{{ gitlab_home }}/config/gitlab.rb"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart GitLab container
+
+- name: Render GitLab container systemd unit
+  ansible.builtin.template:
+    src: gitlab-container.service.j2
+    dest: "{{ gitlab_systemd_unit_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart GitLab container
+
+- name: Start and enable GitLab container
+  ansible.builtin.systemd:
+    name: gitlab-container.service
+    enabled: true
+    state: started
+    daemon_reload: true

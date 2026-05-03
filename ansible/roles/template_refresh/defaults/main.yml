@@ -1,0 +1,13 @@
+---
+template_refresh_prepare_builders: true
+template_refresh_apply_updates: true
+template_refresh_reboot_after_update: true
+template_refresh_prepare_for_template: false
+
+template_refresh_packages:
+  - acpid
+  - qemu-guest-agent
+
+template_refresh_clean_cloud_init: true
+template_refresh_clean_ssh_host_keys: true
+template_refresh_clean_package_cache: true

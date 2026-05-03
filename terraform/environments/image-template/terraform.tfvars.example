@@ -1,0 +1,30 @@
+# Copy to: terraform/environments/image-template/terraform.tfvars
+# Replace every value before use.
+# Setup guide: docs/paths/application-platform/image-based-linux.md
+# Shared values live in ../../common.tfvars.
+
+cluster_name = "image-template-change-me"
+
+# Optional: override the source mutable Linux template for this setup or
+# environment overlay, for example when converting another supported distro.
+# default_linux_vm_template_id = 111
+
+vm_instances = {
+  # First run with template=false and started=true so Ansible can configure
+  # the builder VM. After verification, set template=true and started=false,
+  # then run the deployment with --terraform-only to convert it in place.
+  # Use the target template name as the key. Change this consistently in
+  # inventory and platform_host_ips when you build another OS or major release.
+  "rhel-10-immu-tmpl" = {
+    size             = "medium"
+    storage_class    = "local"
+    disk_size_gb     = 40
+    network_zone_key = "application"
+    started          = true
+    template         = false
+    stop_on_destroy  = true
+    tags             = ["template-builder", "image-based-linux", "bootc", "immu"]
+  }
+}
+
+lxc_instances = {}

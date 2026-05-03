@@ -1,0 +1,8 @@
+external_url '{{ gitlab_external_url }}'
+letsencrypt['enable'] = {{ gitlab_letsencrypt_enabled | bool | ternary('true', 'false') }}
+gitlab_rails['gitlab_shell_ssh_port'] = {{ gitlab_ssh_host_port }}
+nginx['redirect_http_to_https'] = {{ gitlab_redirect_http_to_https | bool | ternary('true', 'false') }}
+{% for config_line in gitlab_omnibus_extra_config %}
+{{ config_line }}
+{% endfor %}
+

@@ -30,7 +30,7 @@ These services give later projects a common base:
 
 | Shared service | What it gives other paths |
 | --- | --- |
-| DNS and private domain | stable names such as `idm-1.example.com` or `vault-1.corp.example.com` |
+| DNS and private domain | stable names such as `idm-1.corp.example.com` or `vault-1.internal.example.com` |
 | identity | one user and group authority for operators, services, and automation |
 | PKI | trusted certificates for internal TLS, mTLS, service identity, and device identity |
 | Vault | one controlled place for long-lived secrets, tokens, and service credentials |

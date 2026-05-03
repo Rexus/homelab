@@ -1,0 +1,7 @@
+---
+- name: Prepare image-based Linux template builders
+  hosts: image_template_builders
+  become: true
+  roles:
+    - baseline
+    - image_template

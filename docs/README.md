@@ -62,8 +62,16 @@ Use this order when you are new to the repository or returning after time away:
 - [System control path](paths/system-control/README.md) - telemetry backbone,
   syslog, metrics, traces, and log/event search after Vault
 - [Application platform path](paths/application-platform/README.md) - source
-  control, automation, runners, Kubernetes, and GitOps direction for internal
-  projects
+  control, automation, runners, registry, image-based Linux, Kubernetes, and
+  GitOps direction for internal projects
+- [Development platform path](paths/application-platform/development.md) -
+  GitLab on a dedicated Podman VM after identity and PKI exist
+- [Podman image runner guide](paths/application-platform/podman-runner.md) -
+  Terraform and Ansible shape for the first GitLab-stage bootc build runner
+- [Container registry path](paths/application-platform/registry.md) - Harbor
+  as the shared OCI artifact registry after GitLab
+- [Image-based Linux path](paths/application-platform/image-based-linux.md) -
+  bootc reference builds and the `image-template` Proxmox template lifecycle
 
 ## Architecture and design
 
@@ -89,7 +97,7 @@ Use this order when you are new to the repository or returning after time away:
 - [Proxmox host networking](platforms/proxmox/network-prerequisites.md) -
   network assumptions and preparation
 - [Enterprise Linux template](platforms/proxmox/enterprise-linux-template.md) -
-  guest template reference
+  guest template creation and refresh reference
 - [Proxmox hardening](platforms/proxmox/hardening.md) - later-stage platform
   hardening guidance
 

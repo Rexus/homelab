@@ -43,11 +43,15 @@ variable "vm_instances" {
   description = "VM hardware definitions keyed by logical Ansible inventory hostname."
   type = map(object({
     proxmox_node_name = optional(string)
+    vm_id             = optional(number)
     template_vm_id   = optional(number)
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number
     network_zone_key = optional(string)
+    started          = optional(bool)
+    template         = optional(bool)
+    stop_on_destroy  = optional(bool)
     tags             = optional(list(string))
   }))
   default = {}

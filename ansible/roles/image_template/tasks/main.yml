@@ -1,0 +1,157 @@
+---
+- name: Validate image template inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+      - not image_template_apply_bootc | bool or image_template_bootc_image | length > 0
+    fail_msg: >-
+      The image_template role currently targets Fedora or Enterprise Linux-like
+      guests. Set image_template_bootc_image when image_template_apply_bootc is
+      true.
+
+- name: Install private CA certificate for image and registry traffic
+  ansible.builtin.copy:
+    src: "{{ image_template_trust_ca_src }}"
+    dest: "{{ image_template_trust_ca_dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: image_template_trust_ca
+  when: image_template_trust_ca_src | length > 0
+
+- name: Update system CA trust
+  ansible.builtin.command:
+    argv:
+      - update-ca-trust
+  changed_when: true
+  when:
+    - image_template_trust_ca_src | length > 0
+    - image_template_trust_ca.changed
+
+- name: Install image-template packages
+  ansible.builtin.package:
+    name: "{{ image_template_packages }}"
+    state: present
+
+- name: Ensure bootc auth directory exists
+  ansible.builtin.file:
+    path: "{{ image_template_registry_auth_dest | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: image_template_registry_auth_src | length > 0
+
+- name: Install bootc registry auth file
+  ansible.builtin.copy:
+    src: "{{ image_template_registry_auth_src }}"
+    dest: "{{ image_template_registry_auth_dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: image_template_registry_auth_src | length > 0
+
+- name: Check current bootc status
+  ansible.builtin.command:
+    argv:
+      - bootc
+      - status
+  register: image_template_bootc_status
+  changed_when: false
+  failed_when: false
+
+- name: Switch builder to bootc image and retain current deployment
+  ansible.builtin.command:
+    argv:
+      - bootc
+      - switch
+      - --transport
+      - "{{ image_template_bootc_transport }}"
+      - --retain
+      - "{{ image_template_bootc_image }}"
+  register: image_template_bootc_switch_retain
+  when:
+    - image_template_apply_bootc | bool
+    - image_template_bootc_retain | bool
+    - image_template_bootc_image not in (image_template_bootc_status.stdout | default(''))
+
+- name: Switch builder to bootc image
+  ansible.builtin.command:
+    argv:
+      - bootc
+      - switch
+      - --transport
+      - "{{ image_template_bootc_transport }}"
+      - "{{ image_template_bootc_image }}"
+  register: image_template_bootc_switch
+  when:
+    - image_template_apply_bootc | bool
+    - not image_template_bootc_retain | bool
+    - image_template_bootc_image not in (image_template_bootc_status.stdout | default(''))
+
+- name: Reboot into staged bootc image
+  ansible.builtin.reboot:
+    reboot_timeout: 900
+  when:
+    - image_template_reboot_after_switch | bool
+    - >-
+      (
+        image_template_bootc_switch_retain is defined
+        and image_template_bootc_switch_retain.changed
+      )
+      or (
+        image_template_bootc_switch is defined
+        and image_template_bootc_switch.changed
+      )
+
+- name: Verify bootc status after preparation
+  ansible.builtin.command:
+    argv:
+      - bootc
+      - status
+  changed_when: false
+  when: image_template_apply_bootc | bool
+
+- name: Clean package manager cache before template conversion
+  ansible.builtin.command:
+    argv:
+      - dnf
+      - clean
+      - all
+  changed_when: true
+  when:
+    - image_template_prepare_for_template | bool
+    - image_template_clean_package_cache | bool
+
+- name: Clean cloud-init state before template conversion
+  ansible.builtin.command:
+    argv:
+      - cloud-init
+      - clean
+      - --logs
+      - --machine-id
+  changed_when: true
+  failed_when: false
+  when:
+    - image_template_prepare_for_template | bool
+    - image_template_clean_cloud_init | bool
+
+- name: Find SSH host keys before template conversion
+  ansible.builtin.find:
+    paths: /etc/ssh
+    patterns: "ssh_host_*"
+    file_type: file
+  register: image_template_ssh_host_keys
+  when:
+    - image_template_prepare_for_template | bool
+    - image_template_clean_ssh_host_keys | bool
+
+- name: Remove SSH host keys before template conversion
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ image_template_ssh_host_keys.files | default([]) }}"
+  when:
+    - image_template_prepare_for_template | bool
+    - image_template_clean_ssh_host_keys | bool

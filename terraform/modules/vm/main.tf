@@ -44,9 +44,13 @@ locals {
 }
 
 resource "proxmox_virtual_environment_vm" "this" {
-  name      = var.name
-  node_name = var.node_name
-  tags      = var.tags
+  name            = var.name
+  node_name       = var.node_name
+  vm_id           = var.vm_id
+  tags            = var.tags
+  started         = var.template ? false : var.started
+  template        = var.template
+  stop_on_destroy = var.stop_on_destroy
 
   clone {
     vm_id = var.template_vm_id

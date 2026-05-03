@@ -1,0 +1,80 @@
+---
+- name: Validate template refresh target
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+    fail_msg: >-
+      The template_refresh role currently targets Fedora or Enterprise
+      Linux-like guests.
+
+- name: Update staged template packages
+  ansible.builtin.package:
+    name: "*"
+    state: latest
+  register: template_refresh_package_update
+  when: template_refresh_apply_updates | bool
+
+- name: Install template baseline packages
+  ansible.builtin.package:
+    name: "{{ template_refresh_packages }}"
+    state: present
+
+- name: Enable template baseline services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - acpid
+    - qemu-guest-agent
+
+- name: Reboot after package refresh
+  ansible.builtin.reboot:
+    reboot_timeout: 900
+  when:
+    - template_refresh_reboot_after_update | bool
+    - template_refresh_package_update is defined
+    - template_refresh_package_update.changed
+
+- name: Clean package manager cache before template conversion
+  ansible.builtin.command:
+    argv:
+      - dnf
+      - clean
+      - all
+  changed_when: true
+  when:
+    - template_refresh_prepare_for_template | bool
+    - template_refresh_clean_package_cache | bool
+
+- name: Clean cloud-init state before template conversion
+  ansible.builtin.command:
+    argv:
+      - cloud-init
+      - clean
+      - --logs
+      - --machine-id
+  changed_when: true
+  failed_when: false
+  when:
+    - template_refresh_prepare_for_template | bool
+    - template_refresh_clean_cloud_init | bool
+
+- name: Find SSH host keys before template conversion
+  ansible.builtin.find:
+    paths: /etc/ssh
+    patterns: "ssh_host_*"
+    file_type: file
+  register: template_refresh_ssh_host_keys
+  when:
+    - template_refresh_prepare_for_template | bool
+    - template_refresh_clean_ssh_host_keys | bool
+
+- name: Remove SSH host keys before template conversion
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ template_refresh_ssh_host_keys.files | default([]) }}"
+  when:
+    - template_refresh_prepare_for_template | bool
+    - template_refresh_clean_ssh_host_keys | bool

@@ -1,0 +1,26 @@
+# Copy to: ansible/group_vars/template_refresh.yml
+# Replace every value before use.
+# Setup guide: docs/platforms/proxmox/enterprise-linux-template.md
+
+# Keep true for normal template maintenance.
+template_refresh_prepare_builders: true
+template_refresh_apply_updates: true
+template_refresh_reboot_after_update: true
+
+# Enable only after you have verified the staged VM and are ready to convert it
+# into a staged Proxmox template.
+template_refresh_prepare_for_template: false
+
+# The same-ID replacement runs on a Proxmox host and is intentionally disabled
+# by default. Enable only after the staged template is verified.
+template_refresh_replace_enabled: false
+template_refresh_replacements:
+  # Default one-template example. Add more entries when you maintain more
+  # template IDs. The name is the final Proxmox template name; set it
+  # explicitly in environment overlays when test and production templates
+  # should have different names.
+  - name: alma-10-tmpl
+    staged_vm_id: 910
+    target_vm_id: 110
+    # Optional: set when the final clone should land on another datastore.
+    # storage: local-lvm

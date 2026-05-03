@@ -55,7 +55,7 @@ public cloud.
 | shared services | identity, DNS, PKI, edge, cache, Vault, and optional Windows support | [Shared services path](shared-services/README.md) |
 | system control | telemetry, syslog, metrics, traces, logs, dashboards, and archive | [System control path](system-control/README.md) |
 | recovery | backup, restore, and disaster recovery readiness | [Backup foundation](../platforms/proxmox/backup-foundation.md) |
-| application platform | development platform, GitOps direction, Kubernetes, and project runtimes | [Application platform path](application-platform/README.md) |
+| application platform | development platform, registry, image-based Linux, Kubernetes, and project runtimes | [Application platform path](application-platform/README.md) |
 | security and cryptography | HSM planning, USB HSM topology, Vault hardening, and secret strategy | [Security and hardening](../security/security-principles.md) |
 
 ## Dependency order
@@ -71,7 +71,7 @@ This is the normal dependency flow for a clean environment:
 | 5 | shared services: cache | restricted systems can get controlled outbound update access when needed |
 | 6 | system control | telemetry and logs become shared before the platform grows too far |
 | 7 | recovery | backups and restore tests protect the environment before it becomes important |
-| 8 | application platform | development, GitOps, Kubernetes, and projects consume the shared foundation |
+| 8 | application platform | development, registry, image-based Linux, GitOps, Kubernetes, and projects consume the shared foundation |
 | 9 | security and cryptography | HSM and stronger key custody can harden selected PKI and Vault paths |
 
 If a dependency already exists, map the repo to that service instead of
@@ -124,8 +124,8 @@ Use the same level meaning inside each capability group:
 | Level | Meaning | Read |
 | --- | --- | --- |
 | 0 | project and lab boundaries are planned | [Private cloud model](../architecture/private-cloud.md), [Infrastructure automation layout](../reference/infrastructure-automation-layout.md) |
-| 1 | first development platform or project environment consumes shared services | [Development platform path](application-platform/development.md) |
-| 2 | Kubernetes, GitOps, runners, registries, and isolated worker clusters support broader application use | [Kubernetes platform path](application-platform/kubernetes.md) |
+| 1 | first development platform, Podman runner, registry, image-based Linux path, or project environment consumes shared services | [Development platform path](application-platform/development.md), [Podman image runner guide](application-platform/podman-runner.md), [Container registry path](application-platform/registry.md), [Image-based Linux path](application-platform/image-based-linux.md) |
+| 2 | Kubernetes, GitOps, runners, registries, OS image promotion, and isolated worker clusters support broader application use | [Kubernetes platform path](application-platform/kubernetes.md) |
 
 ## Security and cryptography
 

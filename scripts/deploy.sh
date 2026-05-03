@@ -11,7 +11,11 @@ Setups:
   foundation
   edge
   cache
+  development
   observability
+  podman-runner
+  image-template
+  template-refresh
   lab
   vault
   hsm
@@ -42,7 +46,11 @@ Examples:
   bash scripts/deploy.sh foundation --env lab1
   bash scripts/deploy.sh foundation --env test --destroy
   bash scripts/deploy.sh vault --plan-only
+  bash scripts/deploy.sh development --env test --plan-only
   bash scripts/deploy.sh observability --env test --plan-only
+  bash scripts/deploy.sh podman-runner --env test --plan-only
+  bash scripts/deploy.sh image-template --env test --plan-only
+  bash scripts/deploy.sh template-refresh --env test --plan-only
   bash scripts/deploy.sh hsm --auto-approve
 EOF
 }
@@ -180,6 +188,7 @@ environment_ansible_vars_path=""
 setup_ansible_vars_base_path=""
 environment_setup_ansible_vars_path=""
 setup_ansible_vars_required=false
+setup_ansible_vars_env_stem="$setup_name"
 
 if [[ "$explicit_env" == true ]]; then
   environment_ansible_vars_path="$ansible_dir/group_vars/all.$deployment_env.yml"
@@ -239,9 +248,52 @@ case "$setup_name" in
       "$ansible_dir/group_vars/all.yml"
     )
     ;;
+  development)
+    terraform_dir="$repo_root/terraform/environments/development"
+    ansible_playbooks=("development.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/development.yml"
+    setup_ansible_vars_required=true
+    required_files=(
+      "$inventory_path"
+      "$ansible_dir/group_vars/all.yml"
+    )
+    ;;
   observability)
     terraform_dir="$repo_root/terraform/environments/observability"
     ansible_playbooks=("observability.yml")
+    required_files=(
+      "$inventory_path"
+      "$ansible_dir/group_vars/all.yml"
+    )
+    ;;
+  podman-runner)
+    terraform_dir="$repo_root/terraform/environments/podman-runner"
+    ansible_playbooks=("podman-runner.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/podman_runner.yml"
+    setup_ansible_vars_env_stem="podman_runner"
+    setup_ansible_vars_required=true
+    required_files=(
+      "$inventory_path"
+      "$ansible_dir/group_vars/all.yml"
+    )
+    ;;
+  image-template)
+    terraform_dir="$repo_root/terraform/environments/image-template"
+    ansible_playbooks=("image-template.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/image_template.yml"
+    setup_ansible_vars_env_stem="image_template"
+    setup_ansible_vars_required=true
+    required_files=(
+      "$inventory_path"
+      "$ansible_dir/group_vars/all.yml"
+    )
+    ;;
+  template-refresh)
+    terraform_dir="$repo_root/terraform/environments/template-refresh"
+    ansible_playbooks=("template-refresh.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/template_refresh.yml"
+    setup_ansible_vars_env_stem="template_refresh"
+    setup_ansible_vars_required=true
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"
@@ -293,7 +345,7 @@ if [[ "$explicit_env" == true \
 fi
 
 if [[ "$explicit_env" == true ]]; then
-  setup_env_candidate_path="$ansible_dir/group_vars/$setup_name.$deployment_env.yml"
+  setup_env_candidate_path="$ansible_dir/group_vars/$setup_ansible_vars_env_stem.$deployment_env.yml"
   if [[ "$setup_ansible_vars_required" == true || -f "$setup_env_candidate_path" ]]; then
     environment_setup_ansible_vars_path="$setup_env_candidate_path"
   fi

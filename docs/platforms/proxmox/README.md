@@ -26,7 +26,7 @@ Use the Proxmox platform layer for:
 - shared Proxmox planning guidelines such as VM ID ranges and template naming
 - API token setup and least-privilege access
 - node, bridge, and storage naming conventions
-- template publication from Packer
+- template creation and refresh
 - VM provisioning from Terraform
 - host and guest configuration touchpoints from Ansible
 

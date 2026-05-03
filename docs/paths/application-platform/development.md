@@ -3,95 +3,169 @@
 ## Table of contents
 
 - [Purpose](#purpose)
-- [Target direction](#target-direction)
-- [Shared services](#shared-services)
-- [Starting shape](#starting-shape)
-- [Growth shape](#growth-shape)
-- [Environment model](#environment-model)
+- [Before you start](#before-you-start)
+- [What this deploys](#what-this-deploys)
+- [IaC used for this](#iac-used-for-this)
+- [Configure the deployment](#configure-the-deployment)
+- [Ports and DNS](#ports-and-dns)
+- [Operations](#operations)
+- [High availability direction](#high-availability-direction)
 - [Read more](#read-more)
+- [References](#references)
 
 ## Purpose
 
-Use this path when the private cloud needs a place for source control,
-automation, registries, CI/CD, and internal software projects.
+Use this path when the private cloud needs source control, CI/CD coordination,
+and a starting point for internal software projects.
 
-This is a path guide, not a deployment guide yet. It gives the future GitLab
-and GitOps work a clear home without making the shared services path carry
-development-platform details.
+The reference implementation is GitLab on one dedicated Podman VM. This keeps
+the first deployment simple and movable. Dedicated runners, Harbor, bootc image
+builds, and Kubernetes build on top of this path later.
 
-## Target direction
+## Before you start
 
-The reference direction is:
+Have these in place first:
 
-| Stage | Shape | Why |
-| --- | --- | --- |
-| first development platform | one dedicated GitLab VM | simple to operate and easy to back up |
-| stronger development platform | GitLab plus dedicated runners and registry storage | separates build work from the source-control host |
-| application-platform phase | Kubernetes-hosted GitLab components or GitOps tooling | supports scaling, policies, and workload separation |
-
-Keep the product choice separate from the role. The role is `development
-platform`; GitLab is the current reference implementation.
-
-## Shared services
-
-The development path should consume shared services when they exist:
-
-| Shared service | How the development path uses it |
+| Requirement | Why it matters |
 | --- | --- |
-| identity | user login, groups, project ownership, runner access |
-| PKI | internal TLS for Git, registry, and web UI endpoints |
-| Vault | CI/CD secrets, deploy tokens, runner credentials |
-| observability | logs, metrics, audit events, runner health |
-| backup | repository, registry, database, and configuration recovery |
+| Identity foundation | GitLab should use the shared private-domain DNS name and later consume central identity. |
+| PKI certificate | The default deployment expects HTTPS with a certificate from the shared PKI. |
+| Linux template | Terraform clones the normal Linux cloud-init template. |
+| Backup target | Repository and database data live on the VM and must be backed up before the platform matters. |
 
-Do not deploy a new identity system just for the development platform unless
-the project is intentionally isolated.
+## What this deploys
 
-## Starting shape
+Default deployment:
 
-Start with one dedicated VM when the environment is small:
+| Role | Default host | Default count | Notes |
+| --- | --- | --- | --- |
+| development platform | `git-1` | `1` | Podman host running the GitLab container |
 
-| Role | Example name | Notes |
+Default VM shape:
+
+| Setting | Default |
+| --- | --- |
+| size | `xl` |
+| disk | `200 GB` |
+| storage class | `shared` |
+| network zone | `application` |
+
+This path does not deploy runners by default. Use the
+[Podman image runner guide](podman-runner.md) when build jobs should run away
+from the GitLab host.
+
+## IaC used for this
+
+| Layer | File |
+| --- | --- |
+| Terraform setup | `terraform/environments/development/terraform.tfvars` |
+| Ansible inventory | `ansible/inventory/hosts.yml` |
+| Ansible environment vars | `ansible/group_vars/all.yml` or `all.<env>.yml` |
+| Ansible setup vars | `ansible/group_vars/development.yml` |
+| Ansible role | `ansible/roles/gitlab_container/` |
+
+## Configure the deployment
+
+Edit `terraform/environments/development/terraform.tfvars`:
+
+| Value | What to choose |
+| --- | --- |
+| `vm_instances.git-1.size` | keep `xl` unless this is a small test deployment |
+| `vm_instances.git-1.disk_size_gb` | increase before storing important repositories |
+| `vm_instances.git-1.storage_class` | use storage that matches your backup and restore plan |
+| `vm_instances.git-1.network_zone_key` | normally `application` |
+
+Edit `ansible/group_vars/development.yml`:
+
+| Value | What to choose |
+| --- | --- |
+| `gitlab_container_image` | pin a GitLab image tag before production use |
+| `gitlab_hostname` | the DNS name GitLab should present to users |
+| `gitlab_external_url` | the final HTTPS URL for GitLab |
+| `gitlab_tls_cert_src` | certificate file from the shared PKI |
+| `gitlab_tls_key_src` | private key file from the shared PKI |
+| `gitlab_ssh_host_port` | host port used for Git over SSH, default `2222` |
+
+Deploy a test environment first:
+
+```bash
+bash scripts/deploy.sh development --env test --plan-only
+bash scripts/deploy.sh development --env test
+```
+
+Run production by omitting `--env`:
+
+```bash
+bash scripts/deploy.sh development
+```
+
+## Ports and DNS
+
+Publish these ports to users or to the edge proxy, depending on your network
+design:
+
+| Port | Purpose |
+| --- | --- |
+| `80/tcp` | HTTP redirect and GitLab internal web handling |
+| `443/tcp` | HTTPS web UI and Git over HTTPS |
+| `2222/tcp` | Git over SSH, mapped to container port `22` |
+
+Use the DNS name from `gitlab_external_url`. Do not use `localhost` as the
+GitLab hostname.
+
+## Operations
+
+Persistent data is mounted under `gitlab_home`, default `/srv/gitlab`:
+
+| Host path | Container path | Purpose |
 | --- | --- | --- |
-| development platform | `dev-1` or `git-1` | GitLab reference host |
-| runner host | `runner-1` | separate when builds should not run on the GitLab host |
-| registry storage | shared storage, NAS, or object target | choose based on backup and retention needs |
+| `/srv/gitlab/config` | `/etc/gitlab` | GitLab configuration and TLS files |
+| `/srv/gitlab/logs` | `/var/log/gitlab` | GitLab logs |
+| `/srv/gitlab/data` | `/var/opt/gitlab` | repositories, database, uploads, and runtime data |
 
-The VM should use the shared private domain, trusted certificate path, Vault
-handoff, and observability intake when those services are available.
+Maintenance notes:
 
-## Growth shape
+- Back up `/srv/gitlab` before upgrades.
+- Pin the GitLab image tag before production use.
+- Keep runners on separate hosts when build workloads become noisy.
+- Route logs and metrics into the system-control path when observability exists.
 
-Move toward Kubernetes when the main scaling problem becomes application and
-automation workload growth.
+For the first login, retrieve the initial root password from the container:
 
-Use Kubernetes for:
+```bash
+sudo podman exec -it gitlab grep 'Password:' /etc/gitlab/initial_root_password
+```
 
-- GitOps controllers
-- isolated worker clusters
-- horizontally scaled runners
-- application namespaces and policy boundaries
-- deployment automation for internal projects
+Store the new admin credential in the chosen secret-management path after
+login. The initial password file is temporary.
 
-Keep Proxmox as the VM and cluster boundary. Use Kubernetes as the application
-platform on top, not as a replacement for the shared private-domain services.
+## High availability direction
 
-## Environment model
+The first deployment is a single GitLab VM. Treat it as simple, early, and easy
+to back up.
 
-The development path should follow the same environment model as the rest of
-the repository:
+The HA direction is Kubernetes. Move there when the platform needs stronger
+separation, dedicated scaling, and Kubernetes-native operations. Use the
+GitLab Helm chart or operator path there instead of running the Docker image as
+a single container.
 
-- use `--env test`, `--env dev`, or another environment name for disposable or
-  parallel copies
-- omit `--env` for production
-- keep shared settings in the base files
-- override subnet, VLAN, IP, storage, or VM size only when that environment
-  needs a different shape
+Do not scale this by starting several independent GitLab containers. The later
+Kubernetes path needs shared stateful services and the GitLab cloud-native
+deployment model.
 
 ## Read more
 
 - [Application platform path](README.md)
+- [Podman image runner guide](podman-runner.md)
+- [Container registry path](registry.md)
+- [Kubernetes platform path](kubernetes.md)
 - [Shared services model](../../architecture/shared-services.md)
-- [Private cloud model](../../architecture/private-cloud.md)
-- [Private cloud maturity path](../private-cloud-maturity.md)
 - [Infrastructure automation layout](../../reference/infrastructure-automation-layout.md)
+- [Repository scripts](../../reference/repository-scripts.md)
+
+## References
+
+1. [GitLab Docker installation](https://docs.gitlab.com/install/docker/installation/)
+2. [GitLab Docker configuration](https://docs.gitlab.com/ee/install/docker/configuration.html)
+3. [GitLab SSL configuration](https://docs.gitlab.com/omnibus/settings/ssl/)
+4. [GitLab Helm chart installation](https://docs.gitlab.com/charts/installation/)

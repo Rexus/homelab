@@ -1,0 +1,31 @@
+# Copy to: terraform/environments/podman-runner/terraform.tfvars
+# Replace every value before use.
+# Setup guide: docs/paths/application-platform/podman-runner.md
+# Shared values live in ../../common.tfvars.
+
+cluster_name = "podman-runner-change-me"
+
+# Optional: override the shared default Linux VM template for this setup or
+# environment overlay, for example when testing another supported distro.
+# default_linux_vm_template_id = 111
+
+vm_instances = {
+  # Keys match the stable logical host names in the Ansible inventory.
+  # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
+  "runner-1" = {
+    size             = "medium"
+    storage_class    = "local"
+    disk_size_gb     = 80
+    network_zone_key = "application"
+    tags             = ["runner", "gitlab-runner", "podman", "bootc"]
+  }
+  # "runner-2" = {
+  #   size             = "medium"
+  #   storage_class    = "local"
+  #   disk_size_gb     = 80
+  #   network_zone_key = "application"
+  #   tags             = ["runner", "gitlab-runner", "podman", "bootc"]
+  # }
+}
+
+lxc_instances = {}

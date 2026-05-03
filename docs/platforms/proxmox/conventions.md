@@ -74,6 +74,21 @@ Current examples:
 - `alma-10-tmpl`
 - `rocky-10-tmpl`
 
+When the same OS release has different image lifecycle tracks, add a short
+generic variant before `tmpl`. Keep implementation names such as `bootc` out of
+the VM name unless you intentionally want the template tied to that
+implementation:
+
+```text
+<os>-<major>-<variant>-tmpl
+```
+
+Examples:
+
+- `rhel-10-immu-tmpl`
+- `alma-10-immu-tmpl`
+- `fedora-42-immu-tmpl`
+
 Keep environment-specific names, hostnames, and workload labels out of reusable
 templates.
 
@@ -97,7 +112,7 @@ Suggested tag categories:
 | --- | --- | --- |
 | `arch` | target architecture | `x86_64`, `aarch64` |
 | `family_release` | OS family or release track | `el10`, `debian12`, `windows_nt` |
-| `capability` | image capability or build style | `cloud-init`, `uefi` |
+| `capability` | image capability or build style | `cloud-init`, `uefi`, `immutable`, `bootc` |
 | `image_source` | exact distro or OS image source | `alma10`, `rocky10`, `ubuntu2404`, `debian12`, `windows11` |
 
 ## Virtual machines

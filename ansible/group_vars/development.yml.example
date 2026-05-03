@@ -1,0 +1,27 @@
+# Copy to: ansible/group_vars/development.yml
+# Replace every value before use.
+# Setup guide: docs/paths/application-platform/development.md
+
+gitlab_container_image: docker.io/gitlab/gitlab-ce:latest
+gitlab_container_name: gitlab
+gitlab_home: /srv/gitlab
+
+# Use the service DNS name users and runners will use. Point it at git-1 in
+# DNS or through the edge proxy. For production, pin the image tag and use a
+# certificate from the shared PKI.
+gitlab_hostname: "git.{{ platform_domain }}"
+gitlab_external_url: "https://{{ gitlab_hostname }}"
+
+# Keep host SSH on 22. Git clone over SSH uses this published container port.
+gitlab_ssh_host_port: 2222
+gitlab_http_host_port: 80
+gitlab_https_host_port: 443
+
+# HTTPS is expected after the identity and PKI path exists. Set these to files
+# on the deployment machine. They are copied into /srv/gitlab/config/ssl/.
+gitlab_tls_cert_src: ""
+gitlab_tls_key_src: ""
+gitlab_letsencrypt_enabled: false
+
+# Add one gitlab.rb line per item when this instance needs extra settings.
+gitlab_omnibus_extra_config: []

@@ -1,0 +1,98 @@
+---
+- name: Validate Proxmox template replacement inputs
+  ansible.builtin.assert:
+    that:
+      - template_refresh_replace_enabled | bool
+      - template_refresh_replacements | length > 0
+      - item.name | length > 0
+      - item.staged_vm_id | int != item.target_vm_id | int
+    fail_msg: >-
+      Template replacement requires template_refresh_replace_enabled=true, at
+      least one replacement entry, a name, and different staged and target VM
+      IDs.
+  loop: "{{ template_refresh_replacements }}"
+
+- name: Verify staged template exists
+  ansible.builtin.command:
+    argv:
+      - qm
+      - config
+      - "{{ item.staged_vm_id }}"
+  changed_when: false
+  register: template_refresh_staged_configs
+  loop: "{{ template_refresh_replacements }}"
+
+- name: Verify staged VM is already a Proxmox template
+  ansible.builtin.assert:
+    that:
+      - item.stdout is search('(?m)^template:\\s*1$')
+    fail_msg: >-
+      Staged VM {{ item.item.staged_vm_id }} must be converted to a Proxmox
+      template before it replaces target ID {{ item.item.target_vm_id }}.
+  loop: "{{ template_refresh_staged_configs.results }}"
+
+- name: Check current target template
+  ansible.builtin.command:
+    argv:
+      - qm
+      - config
+      - "{{ item.target_vm_id }}"
+  changed_when: false
+  failed_when: false
+  register: template_refresh_target_configs
+  loop: "{{ template_refresh_replacements }}"
+
+- name: Destroy current target template before same-ID replacement
+  ansible.builtin.command:
+    argv:
+      - qm
+      - destroy
+      - "{{ item.item.target_vm_id }}"
+      - --purge
+      - "1"
+  changed_when: true
+  loop: "{{ template_refresh_target_configs.results }}"
+  when: item.rc == 0
+
+- name: Clone staged template to target VM ID
+  ansible.builtin.command:
+    argv:
+      - qm
+      - clone
+      - "{{ item.staged_vm_id }}"
+      - "{{ item.target_vm_id }}"
+      - --name
+      - "{{ item.name }}"
+      - --full
+      - "1"
+  changed_when: true
+  loop: "{{ template_refresh_replacements }}"
+  when: item.storage is not defined or item.storage | length == 0
+
+- name: Clone staged template to target VM ID and storage
+  ansible.builtin.command:
+    argv:
+      - qm
+      - clone
+      - "{{ item.staged_vm_id }}"
+      - "{{ item.target_vm_id }}"
+      - --name
+      - "{{ item.name }}"
+      - --full
+      - "1"
+      - --storage
+      - "{{ item.storage }}"
+  changed_when: true
+  loop: "{{ template_refresh_replacements }}"
+  when:
+    - item.storage is defined
+    - item.storage | length > 0
+
+- name: Convert replacement VM to Proxmox template
+  ansible.builtin.command:
+    argv:
+      - qm
+      - template
+      - "{{ item.target_vm_id }}"
+  changed_when: true
+  loop: "{{ template_refresh_replacements }}"

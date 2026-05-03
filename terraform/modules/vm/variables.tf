@@ -8,6 +8,13 @@ variable "node_name" {
   type        = string
 }
 
+variable "vm_id" {
+  description = "Optional target Proxmox VM ID. Null lets Proxmox allocate one."
+  type        = number
+  default     = null
+  nullable    = true
+}
+
 variable "template_vm_id" {
   description = "Source template VM ID."
   type        = number
@@ -103,6 +110,25 @@ variable "memory" {
 variable "disk_size_gb" {
   description = "Disk size in GB for this deployment."
   type        = number
+}
+
+variable "started" {
+  description = "Whether the VM should be started."
+  type        = bool
+  default     = true
+}
+
+variable "template" {
+  description = "Whether the VM should be converted to a Proxmox template."
+  type        = bool
+  default     = false
+}
+
+variable "stop_on_destroy" {
+  description = "Whether to stop the VM instead of graceful shutdown on destroy."
+  type        = bool
+  default     = null
+  nullable    = true
 }
 
 variable "qemu_agent" {

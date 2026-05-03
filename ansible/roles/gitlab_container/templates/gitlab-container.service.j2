@@ -1,0 +1,26 @@
+[Unit]
+Description=GitLab container
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/podman rm -f {{ gitlab_container_name }}
+ExecStartPre=/usr/bin/podman pull {{ gitlab_container_image }}
+ExecStart=/usr/bin/podman run \
+  --name {{ gitlab_container_name }} \
+  --hostname {{ gitlab_hostname }} \
+  --publish {{ gitlab_http_host_port }}:80 \
+  --publish {{ gitlab_https_host_port }}:443 \
+  --publish {{ gitlab_ssh_host_port }}:{{ gitlab_ssh_container_port }} \
+  --volume {{ gitlab_home }}/config:/etc/gitlab:Z \
+  --volume {{ gitlab_home }}/logs:/var/log/gitlab:Z \
+  --volume {{ gitlab_home }}/data:/var/opt/gitlab:Z \
+  --shm-size {{ gitlab_container_shm_size }} \
+  {{ gitlab_container_image }}
+ExecStop=/usr/bin/podman stop -t 120 {{ gitlab_container_name }}
+ExecStopPost=-/usr/bin/podman rm -f {{ gitlab_container_name }}
+
+[Install]
+WantedBy=multi-user.target

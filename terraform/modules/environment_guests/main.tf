@@ -84,6 +84,7 @@ locals {
         try(vm.proxmox_node_name, null),
         var.default_platform_node_name,
       )
+      vm_id          = try(vm.vm_id, null)
       template_vm_id = try(vm.template_vm_id, null)
       size           = coalesce(try(vm.size, null), "small")
       storage_class  = coalesce(try(vm.storage_class, null), "local")
@@ -92,6 +93,9 @@ locals {
         try(vm.network_zone_key, null),
         var.default_vm_network_zone_key,
       )
+      started         = coalesce(try(vm.started, null), true)
+      template        = coalesce(try(vm.template, null), false)
+      stop_on_destroy = try(vm.stop_on_destroy, null)
       ipv4_address = local.platform_host_ips[key] == "dhcp" ? "dhcp" : format(
         "%s/%s",
         local.platform_host_ips[key],

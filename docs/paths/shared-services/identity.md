@@ -46,6 +46,11 @@ shared services for later paths.
 
 Use this as the starting point:
 
+Use a private internal subdomain for the platform domain, such as
+`corp.example.com` or `internal.example.com`. Do not use the same DNS name as
+the public website, such as `example.com`, for the internal identity and PKI
+domain.
+
 | Component | Terraform default | Inventory entry | Zone | Purpose |
 | --- | --- | --- | --- | --- |
 | identity hosts | `idm-1`, `idm-2` active | `idm-1`, `idm-2` present by default | `identity` | `FreeIPA`, DNS, and the first identity authority |

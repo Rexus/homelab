@@ -1,0 +1,8 @@
+---
+- name: Configure development platform hosts
+  hosts: development_platform
+  become: true
+  roles:
+    - baseline
+    - gitlab_container
+

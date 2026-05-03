@@ -151,6 +151,18 @@ create_from_example \
 create_from_example \
   "$repo_root/ansible/group_vars/vault.yml.example" \
   "$repo_root/ansible/group_vars/vault.yml"
+create_from_example \
+  "$repo_root/ansible/group_vars/development.yml.example" \
+  "$repo_root/ansible/group_vars/development.yml"
+create_from_example \
+  "$repo_root/ansible/group_vars/podman_runner.yml.example" \
+  "$repo_root/ansible/group_vars/podman_runner.yml"
+create_from_example \
+  "$repo_root/ansible/group_vars/image_template.yml.example" \
+  "$repo_root/ansible/group_vars/image_template.yml"
+create_from_example \
+  "$repo_root/ansible/group_vars/template_refresh.yml.example" \
+  "$repo_root/ansible/group_vars/template_refresh.yml"
 
 for terraform_env_dir in "$repo_root"/terraform/environments/*; do
   if [[ ! -d "$terraform_env_dir" ]]; then
@@ -176,7 +188,7 @@ if [[ -n "$deployment_env" ]]; then
       "$environment_vars_file"
     sed -i "s/platform_hostname_prefix: lab1/platform_hostname_prefix: $deployment_env/" \
       "$environment_vars_file"
-    sed -i "s/platform_domain: lab1.example.com/platform_domain: $deployment_env.example.com/" \
+    sed -i "s/platform_domain: lab1.corp.example.com/platform_domain: $deployment_env.corp.example.com/" \
       "$environment_vars_file"
   fi
   create_from_example \
@@ -185,6 +197,18 @@ if [[ -n "$deployment_env" ]]; then
   create_from_example \
     "$repo_root/ansible/group_vars/vault.yml.example" \
     "$repo_root/ansible/group_vars/vault.$deployment_env.yml"
+  create_from_example \
+    "$repo_root/ansible/group_vars/development.yml.example" \
+    "$repo_root/ansible/group_vars/development.$deployment_env.yml"
+  create_from_example \
+    "$repo_root/ansible/group_vars/podman_runner.yml.example" \
+    "$repo_root/ansible/group_vars/podman_runner.$deployment_env.yml"
+  create_from_example \
+    "$repo_root/ansible/group_vars/image_template.yml.example" \
+    "$repo_root/ansible/group_vars/image_template.$deployment_env.yml"
+  create_from_example \
+    "$repo_root/ansible/group_vars/template_refresh.yml.example" \
+    "$repo_root/ansible/group_vars/template_refresh.$deployment_env.yml"
 fi
 
 echo "Review and edit the local files before deployment."

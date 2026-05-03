@@ -1,0 +1,25 @@
+# Copy to: ansible/group_vars/podman_runner.yml
+# Replace every value before use.
+# Setup guide: docs/paths/application-platform/podman-runner.md
+
+# Keep true when the GitLab Runner package is available through your package
+# path, repo cache, or configured upstream repository.
+podman_runner_install_gitlab_runner: true
+
+# Set this when GitLab or the registry uses your private CA and the runner
+# image does not already trust it.
+# podman_runner_trust_ca_src: secrets/ca/platform-ca.crt
+
+# Keep registration disabled until you have a project or group runner
+# authentication token. Store real tokens in an encrypted vars file or runner
+# secret, not in a tracked example.
+podman_runner_register: false
+podman_runner_gitlab_url: "https://git.corp.example.com"
+podman_runner_authentication_token: "change-me"
+
+podman_runner_tags:
+  - bootc
+  - podman
+
+podman_runner_run_untagged: false
+podman_runner_locked: true

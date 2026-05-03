@@ -18,7 +18,7 @@ Use the same group names when reading the docs or browsing the repository:
 | platform preparation | `docs/platforms/` | Proxmox, templates, API setup, networking, backup, and host operations |
 | shared services | `docs/paths/shared-services/` | identity, DNS, PKI, edge, cache, Vault, and Windows support |
 | system control | `docs/paths/system-control/` | telemetry, syslog, metrics, traces, logs, dashboards, and archive |
-| application platform | `docs/paths/application-platform/` | development platform, GitOps direction, Kubernetes, and app runtime patterns |
+| application platform | `docs/paths/application-platform/` | development platform, registry, image-based Linux, Kubernetes, and app runtime patterns |
 | security and cryptography | `docs/security/` | secret strategy, HSM planning, USB HSM topology, and Vault hardening |
 | architecture and reference | `docs/architecture/`, `docs/reference/` | durable models, repo usage, scripts, variables, and layout |
 
@@ -35,7 +35,7 @@ Use the same group names when reading the docs or browsing the repository:
 | Edge proxy | [Edge proxy path](shared-services/edge.md) | [Network architecture](../architecture/network.md), [Shared services model](../architecture/shared-services.md) |
 | Cache | [Cache path](shared-services/cache.md) | [Network architecture](../architecture/network.md), [Security principles](../security/security-principles.md) |
 | System control | [System control path](system-control/README.md) | [Observability path](system-control/observability.md), [Network architecture](../architecture/network.md) |
-| Application platform | [Application platform path](application-platform/README.md) | [Development platform path](application-platform/development.md), [Kubernetes platform path](application-platform/kubernetes.md), [Private cloud model](../architecture/private-cloud.md) |
+| Application platform | [Application platform path](application-platform/README.md) | [Development platform path](application-platform/development.md), [Podman image runner guide](application-platform/podman-runner.md), [Container registry path](application-platform/registry.md), [Image-based Linux path](application-platform/image-based-linux.md), [Kubernetes platform path](application-platform/kubernetes.md) |
 | Windows support | [Windows and AD support](shared-services/windows-support.md) | [Identity foundation path](shared-services/identity.md) |
 | HSM and cryptography | [HSM getting started](../security/hsm-planning-and-comparison.md) | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md), [Vault HSM hardening options](../security/vault-hsm-hardening-options.md) |
 | Maturing the private cloud | [Private cloud maturity path](private-cloud-maturity.md) | [Backup foundation](../platforms/proxmox/backup-foundation.md), [Security principles](../security/security-principles.md) |

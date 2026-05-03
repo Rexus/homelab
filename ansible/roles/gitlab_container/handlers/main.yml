@@ -1,0 +1,11 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart GitLab container
+  ansible.builtin.systemd:
+    name: gitlab-container.service
+    state: restarted
+    daemon_reload: true
+

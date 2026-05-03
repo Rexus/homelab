@@ -28,8 +28,10 @@ example `idm-1`. Keep that key stable across environments.
 
 Use `platform_hostname_prefix`, `platform_hostname_suffix`,
 `platform_domain`, and `platform_host_ips` in Ansible group vars to shape each
-environment. The same logical key can become `test-idm-1.example.com`,
-`idm-test-1.example.com`, or `idm-1.example.com`.
+environment. The same logical key can become `test-idm-1.corp.example.com`,
+`idm-test-1.corp.example.com`, or `idm-1.corp.example.com`.
+Use a private internal subdomain such as `corp.example.com` or
+`internal.example.com` instead of the public website apex.
 Use DNS-safe environment names with letters, numbers, and dashes.
 Do not include separators in the prefix or suffix value; the automation adds
 the dash only when the value is not empty. Suffixes are inserted before the
@@ -95,8 +97,12 @@ state file between environments. Omit `--env` for production.
 | `terraform/environments/foundation/` | identity, DNS, PKI, and optional root CA guest layout | [Identity foundation path](../paths/shared-services/identity.md) |
 | `terraform/environments/edge/` | edge load-balancer guest layout | [Edge proxy path](../paths/shared-services/edge.md) |
 | `terraform/environments/cache/` | cache guest layout | [Cache path](../paths/shared-services/cache.md) |
+| `terraform/environments/development/` | GitLab development platform guest layout | [Development platform path](../paths/application-platform/development.md) |
 | `terraform/environments/vault/` | dedicated Vault guest layout | [Vault foundation deployment](../paths/shared-services/vault.md) |
 | `terraform/environments/observability/` | system-control telemetry, syslog, metrics, logs, and archive guest layout | [Observability path](../paths/system-control/observability.md) |
+| `terraform/environments/podman-runner/` | application-platform runner guest layout | [Podman image runner guide](../paths/application-platform/podman-runner.md) |
+| `terraform/environments/image-template/` | image-based Linux template builder guest layout | [Image-based Linux path](../paths/application-platform/image-based-linux.md) |
+| `terraform/environments/template-refresh/` | staged mutable Enterprise Linux template refresh layout | [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |
 | `terraform/environments/hsm/` | USB HSM gateway and optional helper guest layout | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
 | `terraform/environments/lab/` | general lab guest layout | [Local setup](../getting-started/local-setup.md) |
 | `terraform/modules/vm/` | reusable Proxmox VM module | this reference |
@@ -111,18 +117,31 @@ state file between environments. Omit `--env` for production.
 | `ansible/inventory/hosts.yml.example` | stable logical host keys and service groups |
 | `ansible/group_vars/all.yml.example` | shared Ansible defaults and default environment data |
 | `ansible/group_vars/all.env.yml.example` | environment-specific hostname decoration, domain, and IP map overlay |
+| `ansible/group_vars/development.yml.example` | GitLab container setup settings |
+| `ansible/group_vars/podman_runner.yml.example` | Podman runner package and registration settings |
+| `ansible/group_vars/image_template.yml.example` | image-based Linux template conversion settings |
+| `ansible/group_vars/template_refresh.yml.example` | mutable Enterprise Linux template refresh and replacement settings |
 | `ansible/playbooks/control-node.yml` | local precheck before each wrapper run |
 | `ansible/playbooks/foundation.yml` | staged FreeIPA identity foundation rollout |
 | `ansible/playbooks/edge.yml` | edge load-balancer host baseline |
 | `ansible/playbooks/cache.yml` | cache host baseline |
+| `ansible/playbooks/development.yml` | GitLab development platform setup |
 | `ansible/playbooks/vault.yml` | Vault host baseline and service installation |
 | `ansible/playbooks/lab.yml` | lab host baseline |
 | `ansible/playbooks/observability.yml` | system-control host baseline |
+| `ansible/playbooks/podman-runner.yml` | Podman runner host baseline and runner setup |
+| `ansible/playbooks/image-template.yml` | image-based Linux template builder setup |
+| `ansible/playbooks/template-refresh.yml` | staged Enterprise Linux template refresh and optional same-ID replacement |
 | `ansible/playbooks/hsm.yml` | HSM host baseline |
 | `ansible/playbooks/site.yml` | broad baseline entry point for manual use |
 | `ansible/playbooks/ingress.yml` | edge load-balancer backend registration for HSM gateways |
 | `ansible/roles/baseline/` | security-first baseline scaffold |
+| `ansible/roles/gitlab_container/` | GitLab container host setup role |
 | `ansible/roles/vault/` | Vault service role |
+| `ansible/roles/podman_runner/` | Podman and GitLab Runner setup role |
+| `ansible/roles/image_template/` | bootc template conversion preparation role |
+| `ansible/roles/template_refresh/` | mutable Enterprise Linux template refresh role |
+| `ansible/roles/proxmox_template_replace/` | Proxmox same-ID template replacement role |
 | `ansible/roles/hsm_proxy_ingress/` | HSM gateway backend snippet scaffold |
 
 ## Packer

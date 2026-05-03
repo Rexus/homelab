@@ -11,7 +11,9 @@
 - [Finalize the template](#finalize-the-template)
 - [What to keep in the template](#what-to-keep-in-the-template)
 - [What to configure later](#what-to-configure-later)
+- [Refresh the template](#refresh-the-template)
 - [Read more](#read-more)
+- [References](#references)
 
 ## Purpose
 
@@ -273,10 +275,71 @@ Configure these at deploy time with Terraform and Ansible:
 - Secure Boot when you intentionally want that path
 - TPM state when a specific workload or policy requires it
 
+## Refresh the template
+
+Use the `template-refresh` setup when you want to maintain the mutable
+Enterprise Linux templates created by this guide.
+
+The default refresh path maintains one staged template. Add more entries when
+you maintain both AlmaLinux, Rocky Linux, RHEL, or multiple major releases.
+
+What the automation uses:
+
+| File | What you edit |
+| --- | --- |
+| `terraform/environments/template-refresh/terraform.tfvars` | staged template VM ID, source template, size, storage, and tags |
+| `ansible/group_vars/template_refresh.yml` | package refresh, cleanup, and same-ID replacement settings |
+| `ansible/inventory/hosts.yml` | `template_refresh_builders` and the Proxmox host used for replacement |
+| `ansible/group_vars/all.yml` or `all.<env>.yml` | staged template IP address |
+
+Refresh flow:
+
+1. Clone the current template into a staged VM with a temporary VM ID, such as
+   `910`.
+2. Let Ansible update packages and verify `acpid`, `qemu-guest-agent`, and
+   cloud-init behavior.
+3. Set `template_refresh_prepare_for_template: true` and rerun Ansible to clean
+   cloud-init state, SSH host keys, and package cache.
+4. Set the staged VM to `template = true` and `started = false` in
+   `terraform/environments/template-refresh/terraform.tfvars`.
+5. Run Terraform only to convert the staged VM into a staged Proxmox template.
+6. Enable `template_refresh_replace_enabled: true`, set
+   `template_refresh_prepare_builders: false`, and run Ansible only.
+
+The final replacement deletes the old target template ID, clones the staged
+template into that same ID, and converts the clone back into a Proxmox
+template. Existing Terraform deployments can keep referencing the same
+`default_linux_vm_template_id` after the replacement.
+
+Run sequence:
+
+| Step | Edit first | Command |
+| --- | --- | --- |
+| Plan staged VM | template-refresh Terraform and Ansible vars | `bash scripts/deploy.sh template-refresh --env test --plan-only` |
+| Create and update staged VM | reviewed plan | `bash scripts/deploy.sh template-refresh --env test` |
+| Clean staged VM | `template_refresh_prepare_for_template: true` | `bash scripts/deploy.sh template-refresh --env test --ansible-only` |
+| Convert staged VM to template | staged VM `template = true` and `started = false` | `bash scripts/deploy.sh template-refresh --env test --terraform-only` |
+| Replace old template ID | `template_refresh_replace_enabled: true` and `template_refresh_prepare_builders: false` | `bash scripts/deploy.sh template-refresh --env test --ansible-only` |
+
+The same-ID replacement is intentionally a separate final step. Do not enable
+it until the staged template has been tested, the `hypervisors` inventory group
+points at the Proxmox host that will run `qm`, and no VM clones should start
+from the old template during the replacement window.
+
+This repository provisions full clones from templates. If you create linked
+clones outside this repository, confirm that those clones do not block deletion
+of the old template before you enable the replacement step.
+
 ## Read more
 
 - [Proxmox planning guidelines](conventions.md)
 - [Proxmox reference platform](README.md)
+- [Image-based Linux path](../../paths/application-platform/image-based-linux.md)
 - [Infrastructure automation layout](../../reference/infrastructure-automation-layout.md)
 - [Private cloud maturity path](../../paths/private-cloud-maturity.md)
 - [Environment variable conventions](../../reference/environment-variables.md)
+
+## References
+
+1. [BPG Proxmox provider VM resource](https://bpg.sh/docs/resources/virtual_environment_vm/)
+2. [Proxmox `qm` command reference](https://pve.proxmox.com/pve-docs/qm.1.html)
