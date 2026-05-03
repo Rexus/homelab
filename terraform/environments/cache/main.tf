@@ -27,12 +27,6 @@ locals {
     var.default_platform_node_name,
     var.default_proxmox_node_name,
   )
-  common_tags = [
-    var.cluster_name,
-    "terraform",
-    "cache",
-    "linux",
-  ]
 }
 
 module "environment" {
@@ -70,7 +64,7 @@ module "vms" {
     null,
   )
   ssh_public_keys          = var.ssh_public_keys
-  tags                     = concat(local.common_tags, each.value.tags)
+  tags                     = each.value.tags
 }
 
 module "lxcs" {
@@ -90,5 +84,5 @@ module "lxcs" {
     var.network_zones[each.value.network_zone_key].gateway_ipv4,
     null,
   )
-  tags                     = concat(local.common_tags, each.value.tags)
+  tags                     = each.value.tags
 }

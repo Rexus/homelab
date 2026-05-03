@@ -3,8 +3,6 @@
 # Setup guide: docs/paths/application-platform/image-based-linux.md
 # Shared values live in ../../common.tfvars.
 
-cluster_name = "image-template-change-me"
-
 # Optional: override the source mutable Linux template for this setup or
 # environment overlay, for example when converting another supported distro.
 # default_linux_vm_template_id = 111
@@ -23,7 +21,7 @@ vm_instances = {
     started          = true
     template         = false
     stop_on_destroy  = true
-    tags             = ["template-builder", "image-based-linux", "bootc", "immu"]
+    tags             = ["x86_64", "bootc", "rhel10", "el10"]
   }
 }
 

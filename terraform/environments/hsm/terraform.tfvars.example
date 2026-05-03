@@ -3,7 +3,6 @@
 # Setup guide: docs/security/usb-hsm-active-active-blueprint.md
 # Shared values live in ../../common.tfvars.
 
-cluster_name = "hsm-change-me"
 hsm_variant = "hardware"
 
 # Optional: override the shared default Linux VM template for this setup or
@@ -25,14 +24,14 @@ vm_instances = {
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "cryptography"
-    tags             = ["hsm-gateway"]
+    tags             = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
   }
   "hsm-2" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "cryptography"
-    tags             = ["hsm-gateway"]
+    tags             = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
   }
   # Optional cryptography administration helper, default 0. Uncomment together
   # with the matching Ansible inventory host and platform_host_ips entry.
@@ -41,7 +40,7 @@ vm_instances = {
   #   storage_class    = "local"
   #   disk_size_gb     = 20
   #   network_zone_key = "ceremony"
-  #   tags             = ["crypto-admin"]
+  #   tags             = ["isolated", "maintenance", "security"]
   # }
 }
 

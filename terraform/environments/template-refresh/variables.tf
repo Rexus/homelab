@@ -28,8 +28,10 @@ variable "proxmox_api_token_secret" {
 }
 
 variable "cluster_name" {
-  description = "Logical name for the environment."
+  description = "Deprecated compatibility value. Do not use for Proxmox tags."
   type        = string
+  default     = null
+  nullable    = true
 }
 
 variable "ansible_inventory_path" {

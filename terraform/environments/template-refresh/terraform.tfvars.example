@@ -3,8 +3,6 @@
 # Setup guide: docs/platforms/proxmox/enterprise-linux-template.md
 # Shared values live in ../../common.tfvars.
 
-cluster_name = "template-refresh-change-me"
-
 vm_instances = {
   # Default refresh target: one staged replacement for the normal Enterprise
   # Linux template. Expand this map when you maintain more than one template.
@@ -20,7 +18,7 @@ vm_instances = {
     started          = true
     template         = false
     stop_on_destroy  = true
-    tags             = ["template-refresh", "template-builder", "alma10", "el10"]
+    tags             = ["x86_64", "alma10", "el10", "cloud-init"]
   }
 }
 

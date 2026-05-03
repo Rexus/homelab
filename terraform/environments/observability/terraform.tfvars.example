@@ -3,8 +3,6 @@
 # Setup guide: docs/paths/system-control/observability.md
 # Shared values live in ../../common.tfvars.
 
-cluster_name = "observability-change-me"
-
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
 # default_linux_vm_template_id = 111
@@ -17,84 +15,84 @@ vm_instances = {
     storage_class    = "local"
     disk_size_gb     = 40
     network_zone_key = "telemetry_gateway"
-    tags             = ["otel-collector"]
+    tags             = ["otel-collector", "internal", "always-on", "platform"]
   }
   # "telemetry-2" = {
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 40
   #   network_zone_key = "telemetry_gateway"
-  #   tags             = ["otel-collector"]
+  #   tags             = ["otel-collector", "internal", "always-on", "platform"]
   # }
   "syslog-1" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 100
     network_zone_key = "security_telemetry"
-    tags             = ["syslog", "security-events"]
+    tags             = ["syslog", "restricted", "always-on", "security"]
   }
   # "syslog-2" = {
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 100
   #   network_zone_key = "security_telemetry"
-  #   tags             = ["syslog", "security-events"]
+  #   tags             = ["syslog", "restricted", "always-on", "security"]
   # }
   "health-1" = {
     size             = "medium"
     storage_class    = "local"
     disk_size_gb     = 100
     network_zone_key = "observability"
-    tags             = ["netdata"]
+    tags             = ["netdata", "internal", "always-on", "platform"]
   }
   "metrics-1" = {
     size             = "large"
     storage_class    = "shared"
     disk_size_gb     = 500
     network_zone_key = "observability"
-    tags             = ["victoriametrics"]
+    tags             = ["victoriametrics", "internal", "always-on", "platform"]
   }
   "apm-1" = {
     size             = "large"
     storage_class    = "shared"
     disk_size_gb     = 1000
     network_zone_key = "observability"
-    tags             = ["signoz", "clickhouse"]
+    tags             = ["signoz", "clickhouse", "internal", "always-on", "apps"]
   }
   "logs-1" = {
     size             = "large"
     storage_class    = "shared"
     disk_size_gb     = 1000
     network_zone_key = "observability"
-    tags             = ["opensearch"]
+    tags             = ["opensearch", "restricted", "always-on", "security"]
   }
   # "logs-2" = {
   #   size             = "large"
   #   storage_class    = "shared"
   #   disk_size_gb     = 1000
   #   network_zone_key = "observability"
-  #   tags             = ["opensearch"]
+  #   tags             = ["opensearch", "restricted", "always-on", "security"]
   # }
   # "logs-3" = {
   #   size             = "large"
   #   storage_class    = "shared"
   #   disk_size_gb     = 1000
   #   network_zone_key = "observability"
-  #   tags             = ["opensearch"]
+  #   tags             = ["opensearch", "restricted", "always-on", "security"]
   # }
   "telemetry-ui-1" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
     network_zone_key = "observability"
-    tags             = ["dashboard", "sso-entry"]
+    tags             = ["opensearch-dashboards", "internal", "always-on", "platform"]
   }
   "archive-1" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
     network_zone_key = "storage"
-    tags             = ["archive"]
+    tags             = ["restricted", "always-on", "security"]
   }
 }
 

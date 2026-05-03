@@ -3,8 +3,6 @@
 # Setup guide: docs/paths/shared-services/cache.md
 # Shared values live in ../../common.tfvars.
 
-cluster_name = "cache-change-me"
-
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
 # default_linux_vm_template_id = 111
@@ -19,21 +17,21 @@ vm_instances = {
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "external_edge"
-    tags             = ["cache", "forward-proxy", "squid", "keepalived"]
+    tags             = ["squid", "keepalived", "restricted", "always-on", "platform"]
   }
   "cache-2" = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
     network_zone_key = "external_edge"
-    tags             = ["cache", "forward-proxy", "squid", "keepalived"]
+    tags             = ["squid", "keepalived", "restricted", "always-on", "platform"]
   }
   # "cache-3" = {
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 30
   #   network_zone_key = "external_edge"
-  #   tags             = ["cache", "forward-proxy", "squid", "keepalived"]
+  #   tags             = ["squid", "keepalived", "restricted", "always-on", "platform"]
   # }
 }
 

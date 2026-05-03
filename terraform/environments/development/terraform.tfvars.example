@@ -3,8 +3,6 @@
 # Setup guide: docs/paths/application-platform/development.md
 # Shared values live in ../../common.tfvars.
 
-cluster_name = "development-change-me"
-
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
 # default_linux_vm_template_id = 111
@@ -18,7 +16,7 @@ vm_instances = {
     storage_class    = "shared"
     disk_size_gb     = 200
     network_zone_key = "application"
-    tags             = ["development", "gitlab", "source-control", "podman"]
+    tags             = ["gitlab", "podman", "internal", "always-on", "apps"]
   }
 }
 

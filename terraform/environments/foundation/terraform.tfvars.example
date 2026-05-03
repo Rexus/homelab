@@ -4,8 +4,6 @@
 # Setup guide: docs/paths/shared-services/identity.md
 # Shared values live in ../../common.tfvars.
 
-cluster_name = "foundation-change-me"
-
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
 # default_linux_vm_template_id = 111
@@ -20,21 +18,21 @@ vm_instances = {
     storage_class     = "local"
     disk_size_gb      = 40
     network_zone_key  = "identity"
-    tags              = ["freeipa", "dns"]
+    tags              = ["freeipa", "dns", "critical", "internal", "always-on", "platform"]
   }
   "idm-2" = {
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
     network_zone_key  = "identity"
-    tags              = ["freeipa", "dns"]
+    tags              = ["freeipa", "dns", "critical", "internal", "always-on", "platform"]
   }
   "ca-1" = {
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 30
     network_zone_key  = "cryptography"
-    tags              = ["issuing-ca"]
+    tags              = ["issuing-ca", "critical", "restricted", "always-on", "security"]
   }
   # Optional root CA host, default 0. Uncomment together with the matching
   # Ansible inventory host and platform_host_ips entry.
@@ -43,7 +41,7 @@ vm_instances = {
   #   storage_class     = "local"
   #   disk_size_gb      = 30
   #   network_zone_key  = "ceremony"
-  #   tags              = ["root-ca", "offline"]
+  #   tags              = ["root-ca", "isolated", "maintenance", "security"]
   # }
 }
 
