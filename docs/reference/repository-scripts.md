@@ -245,6 +245,7 @@ cd ../../..
 cd ansible
 ansible-playbook \
   -i inventory/hosts.yml \
+  -e @group_vars/all.yml \
   -e @group_vars/foundation.yml \
   -e @group_vars/all.test.yml \
   -e @group_vars/foundation.test.yml \

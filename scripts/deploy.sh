@@ -391,7 +391,7 @@ if [[ -n "$environment_var_file_path" ]]; then
   required_files=("$environment_var_file_path" "${required_files[@]}")
 fi
 
-resolved_ansible_vars_paths=()
+resolved_ansible_vars_paths=("$ansible_dir/group_vars/all.yml")
 if [[ "$setup_ansible_vars_required" == true && -n "$setup_ansible_vars_base_path" ]]; then
   resolved_ansible_vars_paths+=("$setup_ansible_vars_base_path")
 fi
