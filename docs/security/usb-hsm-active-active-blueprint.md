@@ -206,7 +206,8 @@ Use these repo paths here:
 | [`terraform/environments/hsm/terraform.tfvars.example`](../../terraform/environments/hsm/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | stable HSM host keys and inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration, domain, and guest IP map shared by Terraform and Ansible | your local `ansible/group_vars/all.<env>.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
+| [`ansible/group_vars/hsm.yml.example`](../../ansible/group_vars/hsm.yml.example) | HSM and edge host IPs needed by the HSM rollout | your local `ansible/group_vars/hsm.yml` |
 | [`ansible/playbooks/hsm.yml`](../../ansible/playbooks/hsm.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
 | [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns edge load-balancer configuration so the deployed edge layer points at the HSM gateways | inventory and edge load-balancer variables |
 | [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm` setup when you are ready to run it |
@@ -217,8 +218,9 @@ assumes that the deployed edge load-balancer prerequisite already exists.
 Use the shared ownership rule from
 [Infrastructure automation layout](../reference/infrastructure-automation-layout.md):
 Ansible inventory owns stable logical host keys and service groups. Ansible
-group vars own hostname decoration, domain, and guest IP map, while the HSM
-Terraform environment owns hardware placement and Proxmox tags.
+`all` group vars own hostname decoration and domain. HSM group vars own the
+HSM rollout IP map, while the HSM Terraform environment owns hardware
+placement and Proxmox tags.
 
 ## How to shape the deployment
 

@@ -104,6 +104,8 @@ These ignored files are expected to evolve as the environment matures. Keep
 editing the same local files instead of recreating them for every run.
 The deployment wrapper loads `terraform/common.tfvars` before the selected
 setup `terraform.tfvars` file when the common file exists.
+Use `scripts/init-local-files.sh --setup <name>` when you only want to create
+the local files for one deployment path plus the shared defaults.
 
 When the repo examples change later, refresh local files carefully and review
 any backups before deployment. The repository does not try to merge YAML, HCL,

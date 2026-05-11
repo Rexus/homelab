@@ -2,6 +2,9 @@
 # Replace every value before use.
 # Reference guide: ../docs/paths/shared-services/vault.md
 
+platform_host_ips:
+  vault-1: 10.20.20.21
+
 vault_api_addr: "https://vault01.example.internal:8200"
 vault_cluster_addr: "https://vault01.example.internal:8201"
 vault_node_id: "vault01"

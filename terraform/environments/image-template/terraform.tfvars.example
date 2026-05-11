@@ -11,8 +11,8 @@ vm_instances = {
   # First run with template=false and started=true so Ansible can configure
   # the builder VM. After verification, set template=true and started=false,
   # then run the deployment with --terraform-only to convert it in place.
-  # Use the target template name as the key. Change this consistently in
-  # inventory and platform_host_ips when you build another OS or major release.
+  # Use the target template name as the key. Change this consistently in the
+  # inventory and image_template.yml when you build another OS or major release.
   "rhel-10-immu-tmpl" = {
     size             = "medium"
     storage_class    = "local"

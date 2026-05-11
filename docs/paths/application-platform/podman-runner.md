@@ -66,7 +66,8 @@ Edit:
 | --- | --- |
 | `terraform/environments/podman-runner/terraform.tfvars` | runner count, size, storage, network zone, and tags |
 | `ansible/inventory/hosts.yml` | `podman_runner` hosts when you add or remove runners |
-| `ansible/group_vars/all.yml` or `all.<env>.yml` | `platform_host_ips` for each runner |
+| `ansible/group_vars/podman_runner.yml` | `platform_host_ips` for each runner |
+| `ansible/group_vars/podman_runner.<env>.yml` | environment-specific runner IPs when `--env` is used |
 
 Default Terraform shape:
 

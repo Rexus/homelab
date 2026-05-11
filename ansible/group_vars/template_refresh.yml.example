@@ -2,6 +2,9 @@
 # Replace every value before use.
 # Setup guide: docs/platforms/proxmox/enterprise-linux-template.md
 
+platform_host_ips:
+  alma-10-tmpl-stage: 10.20.20.41
+
 # Keep true for normal template maintenance.
 template_refresh_prepare_builders: true
 template_refresh_apply_updates: true

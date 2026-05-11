@@ -194,7 +194,6 @@ setup_ansible_vars_env_stem="$setup_name"
 
 if [[ "$explicit_env" == true ]]; then
   environment_ansible_vars_path="$ansible_dir/group_vars/all.$deployment_env.yml"
-  ansible_group_vars_paths+=("$environment_ansible_vars_path")
 fi
 
 if [[ -z "$inventory_path" ]]; then
@@ -267,6 +266,8 @@ case "$setup_name" in
   observability)
     terraform_dir="$repo_root/terraform/environments/observability"
     ansible_playbooks=("observability.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/observability.yml"
+    setup_ansible_vars_required=true
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"
@@ -308,6 +309,8 @@ case "$setup_name" in
   lab)
     terraform_dir="$repo_root/terraform/environments/lab"
     ansible_playbooks=("lab.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/lab.yml"
+    setup_ansible_vars_required=true
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"
@@ -326,6 +329,8 @@ case "$setup_name" in
   hsm)
     terraform_dir="$repo_root/terraform/environments/hsm"
     ansible_playbooks=("hsm.yml" "ingress.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/hsm.yml"
+    setup_ansible_vars_required=true
     required_files=(
       "$inventory_path"
       "$ansible_dir/group_vars/all.yml"
@@ -358,13 +363,14 @@ if [[ "$explicit_env" == true ]]; then
 fi
 
 required_files=("$var_file_path" "${required_files[@]}")
+if [[ "$setup_ansible_vars_required" == true ]]; then
+  required_files=("$setup_ansible_vars_base_path" "${required_files[@]}")
+fi
 if [[ -n "$environment_ansible_vars_path" ]]; then
   required_files=("$environment_ansible_vars_path" "${required_files[@]}")
 fi
 if [[ -n "$environment_setup_ansible_vars_path" ]]; then
   required_files=("$environment_setup_ansible_vars_path" "${required_files[@]}")
-elif [[ "$setup_ansible_vars_required" == true ]]; then
-  required_files=("$setup_ansible_vars_base_path" "${required_files[@]}")
 fi
 if [[ -n "$common_var_file_path" ]]; then
   required_files=("$common_var_file_path" "${required_files[@]}")
@@ -386,6 +392,18 @@ fi
 if [[ -n "$environment_setup_ansible_vars_path" ]]; then
   resolved_ansible_vars_paths+=("$environment_setup_ansible_vars_path")
 fi
+
+ansible_group_vars_paths=("$ansible_dir/group_vars/all.yml")
+if [[ "$setup_ansible_vars_required" == true && -n "$setup_ansible_vars_base_path" ]]; then
+  ansible_group_vars_paths+=("$setup_ansible_vars_base_path")
+fi
+if [[ -n "$environment_ansible_vars_path" ]]; then
+  ansible_group_vars_paths+=("$environment_ansible_vars_path")
+fi
+if [[ -n "$environment_setup_ansible_vars_path" ]]; then
+  ansible_group_vars_paths+=("$environment_setup_ansible_vars_path")
+fi
+
 for ansible_vars_path in "${ansible_vars_paths[@]}"; do
   if [[ "$ansible_vars_path" != /* ]]; then
     ansible_vars_path="$repo_root/$ansible_vars_path"
@@ -504,9 +522,9 @@ check_required_files() {
     for file_path in "${missing_files[@]}"; do
       echo "  - $file_path" >&2
     done
-    echo "Run scripts/init-local-files.sh, then edit the generated files before deployment." >&2
+    echo "Run scripts/init-local-files.sh --setup $setup_name, then edit the generated files." >&2
     if [[ "$explicit_env" == true ]]; then
-      echo "For this environment, use scripts/init-local-files.sh --env $deployment_env." >&2
+      echo "For this environment, use scripts/init-local-files.sh --setup $setup_name --env $deployment_env." >&2
     fi
     exit 1
   fi

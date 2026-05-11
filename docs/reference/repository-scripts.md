@@ -37,10 +37,16 @@ Create the base production files:
 bash scripts/init-local-files.sh
 ```
 
-Create base files plus a disposable `test` environment:
+Create only the shared defaults and foundation files:
 
 ```bash
-bash scripts/init-local-files.sh --env test
+bash scripts/init-local-files.sh --setup foundation
+```
+
+Create foundation files plus a disposable `test` environment:
+
+```bash
+bash scripts/init-local-files.sh --setup foundation --env test
 ```
 
 Refresh local files from current examples and keep timestamped backups:
@@ -54,6 +60,9 @@ Remove timestamped backups created by `--overwrite`:
 ```bash
 bash scripts/init-local-files.sh --clean-backups
 ```
+
+Use `--setup <name>` when you only want local files for one path. Repeat it
+when you want several setups. Omit `--setup` to create every setup.
 
 Use `--env <name>` for any environment name you want, such as `test`, `lab1`,
 `dev`, or `stage`. Omit `--env` for production.
@@ -150,8 +159,9 @@ When `--env test` is used, the wrapper automatically looks for:
 
 | File | Purpose |
 | --- | --- |
-| `ansible/group_vars/all.test.yml` | environment-wide domain, hostname decoration, and IP map |
-| `ansible/group_vars/foundation.test.yml` | foundation setup settings for that environment |
+| `ansible/group_vars/foundation.yml` | base foundation setup settings and IP map |
+| `ansible/group_vars/all.test.yml` | environment-wide domain and hostname decoration |
+| `ansible/group_vars/foundation.test.yml` | foundation setup settings and IP map for that environment |
 | `terraform/common.test.tfvars` | optional shared Terraform override |
 | `terraform/environments/foundation/terraform.test.tfvars` | optional setup Terraform override |
 
@@ -172,6 +182,7 @@ cp terraform/environments/foundation/terraform.tfvars.example \
   terraform/environments/foundation/terraform.tfvars
 cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
 cp ansible/group_vars/all.yml.example ansible/group_vars/all.yml
+cp ansible/group_vars/foundation.yml.example ansible/group_vars/foundation.yml
 cp ansible/group_vars/all.env.yml.example ansible/group_vars/all.test.yml
 cp ansible/group_vars/foundation.yml.example ansible/group_vars/foundation.test.yml
 ```
@@ -208,13 +219,13 @@ terraform init -reconfigure \
 terraform plan \
   -var-file=../../common.tfvars \
   -var='ansible_inventory_path=../../../ansible/inventory/hosts.yml' \
-  -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/all.test.yml"]' \
+  -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]' \
   -var-file=terraform.tfvars
 
 terraform apply \
   -var-file=../../common.tfvars \
   -var='ansible_inventory_path=../../../ansible/inventory/hosts.yml' \
-  -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/all.test.yml"]' \
+  -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]' \
   -var-file=terraform.tfvars
 
 cd ../../..
@@ -226,6 +237,7 @@ cd ../../..
 cd ansible
 ansible-playbook \
   -i inventory/hosts.yml \
+  -e @group_vars/foundation.yml \
   -e @group_vars/all.test.yml \
   -e @group_vars/foundation.test.yml \
   playbooks/foundation.yml

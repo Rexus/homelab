@@ -2,6 +2,10 @@
 # Replace every value before use.
 # Setup guide: docs/paths/application-platform/podman-runner.md
 
+platform_host_ips:
+  runner-1: 10.20.20.30
+  # runner-2: 10.20.20.31
+
 # Keep true when the GitLab Runner package is available through your package
 # path, repo cache, or configured upstream repository.
 podman_runner_install_gitlab_runner: true

@@ -1,0 +1,17 @@
+# Copy to: ansible/group_vars/observability.yml
+# Replace every value before use.
+# Setup guide: docs/paths/system-control/observability.md
+
+platform_host_ips:
+  health-1: 10.20.30.10
+  metrics-1: 10.20.30.11
+  apm-1: 10.20.30.12
+  logs-1: 10.20.30.20
+  # logs-2: 10.20.30.21
+  # logs-3: 10.20.30.22
+  telemetry-ui-1: 10.20.30.30
+  telemetry-1: 10.20.31.10
+  # telemetry-2: 10.20.31.11
+  syslog-1: 10.20.32.10
+  # syslog-2: 10.20.32.11
+  archive-1: 10.20.40.10

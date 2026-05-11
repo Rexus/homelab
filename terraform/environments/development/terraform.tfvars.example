@@ -10,7 +10,7 @@
 vm_instances = {
   # Default first development platform: one GitLab host on Podman.
   # Keep the host key aligned with ansible/inventory/hosts.yml and
-  # platform_host_ips.
+  # ansible/group_vars/development.yml.
   "git-1" = {
     size             = "xl"
     storage_class    = "shared"

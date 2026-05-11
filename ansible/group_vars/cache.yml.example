@@ -2,6 +2,11 @@
 # Replace every value before use.
 # Guide: docs/paths/shared-services/cache.md
 
+platform_host_ips:
+  cache-1: 10.30.30.20
+  cache-2: 10.30.30.21
+  # cache-3: 10.30.30.22
+
 cache_keepalived_enabled: true
 cache_keepalived_group: cache
 cache_keepalived_interface: "{{ ansible_default_ipv4.interface }}"

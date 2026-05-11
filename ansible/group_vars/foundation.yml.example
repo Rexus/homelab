@@ -2,6 +2,12 @@
 # Replace every value before use.
 # Keep secrets encrypted with Ansible Vault for real deployments.
 
+platform_host_ips:
+  idm-1: 10.10.12.10
+  idm-2: 10.10.12.11
+  ca-1: 10.20.21.10
+  # ca-root-1: 10.20.22.10
+
 foundation_freeipa_enabled: true
 
 # FreeIPA uses the platform domain by default. Override only if your identity

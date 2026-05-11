@@ -60,8 +60,8 @@ Edit these local files before you run the Vault foundation deployment:
 | [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | default platform node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
 | [`terraform/environments/vault/terraform.tfvars.example`](../../../terraform/environments/vault/terraform.tfvars.example) | Vault VM definitions in `vm_instances` |
 | [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | stable Vault host key and inventory group |
-| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration, domain, and guest IP map when using `--env` |
-| [`ansible/group_vars/vault.yml.example`](../../../ansible/group_vars/vault.yml.example) | `vault_api_addr`, `vault_cluster_addr`, `vault_node_id`, TLS source paths, and listener settings |
+| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain when using `--env` |
+| [`ansible/group_vars/vault.yml.example`](../../../ansible/group_vars/vault.yml.example) | Vault host IPs, `vault_api_addr`, `vault_cluster_addr`, `vault_node_id`, TLS source paths, and listener settings |
 
 ### Deployment shape
 
@@ -105,8 +105,8 @@ Use these repo paths for the Vault foundation deployment:
 | [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
 | [`terraform/environments/vault/terraform.tfvars.example`](../../../terraform/environments/vault/terraform.tfvars.example) | provisions one or more dedicated Vault VMs | `terraform/environments/vault/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | starting point for the `vault` inventory group | your local `ansible/inventory/hosts.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration, domain, and IP maps | your local `ansible/group_vars/all.<env>.yml` |
-| [`ansible/group_vars/vault.yml.example`](../../../ansible/group_vars/vault.yml.example) | starting point for Vault listener, TLS, and node settings | your local `ansible/group_vars/vault.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
+| [`ansible/group_vars/vault.yml.example`](../../../ansible/group_vars/vault.yml.example) | starting point for Vault IPs, listener, TLS, and node settings | your local `ansible/group_vars/vault.yml` |
 | [`ansible/playbooks/vault.yml`](../../../ansible/playbooks/vault.yml) | baseline host preparation and Vault installation on hosts in the `vault` group | inventory and Vault group variables |
 | [`scripts/deploy.sh`](../../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `vault` setup when you are ready to run it |
 
@@ -116,8 +116,9 @@ initialization, unseal handling, and secret handoff stay manual.
 Use the shared ownership rule from
 [Infrastructure automation layout](../../reference/infrastructure-automation-layout.md):
 Ansible inventory owns stable logical host keys and service groups. Ansible
-group vars own hostname decoration, domain, and guest IP map, while the Vault
-Terraform environment owns hardware placement and Proxmox tags.
+`all` group vars own hostname decoration and domain. Vault group vars own the
+Vault IP map, while the Vault Terraform environment owns hardware placement
+and Proxmox tags.
 
 ## How to shape the deployment
 

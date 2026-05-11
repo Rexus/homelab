@@ -290,7 +290,7 @@ What the automation uses:
 | `terraform/environments/template-refresh/terraform.tfvars` | staged template VM ID, source template, size, storage, and tags |
 | `ansible/group_vars/template_refresh.yml` | package refresh, cleanup, and same-ID replacement settings |
 | `ansible/inventory/hosts.yml` | `template_refresh_builders` and the Proxmox host used for replacement |
-| `ansible/group_vars/all.yml` or `all.<env>.yml` | staged template IP address |
+| `ansible/group_vars/template_refresh.yml` or `template_refresh.<env>.yml` | staged template IP address |
 
 Refresh flow:
 

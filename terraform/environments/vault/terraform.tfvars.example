@@ -10,8 +10,8 @@
 vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
   # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
-  # Terraform defaults to one Vault VM here. The shared Ansible inventory and
-  # platform_host_ips examples include the matching vault-1 entry.
+  # Terraform defaults to one Vault VM here. vault.yml owns the matching
+  # vault-1 IP entry.
   "vault-1" = {
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 111

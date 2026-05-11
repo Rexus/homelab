@@ -1,0 +1,7 @@
+# Copy to: ansible/group_vars/lab.yml
+# Replace every value before use.
+# Guide: docs/paths/private-cloud-maturity.md
+
+platform_host_ips:
+  lab-1: 10.20.20.10
+  support-1: 10.20.20.11

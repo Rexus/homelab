@@ -18,17 +18,17 @@ Keep shared host identity in Ansible and hardware placement in Terraform.
 | Owner | Defines |
 | --- | --- |
 | Ansible inventory | stable logical host keys and service groups |
-| Ansible `all` group vars | hostname prefix or suffix, domain, guest IP map, and baseline inputs |
-| Ansible setup group vars | service settings and host configuration inputs |
+| Ansible `all` group vars | hostname prefix or suffix, domain, and baseline inputs |
+| Ansible setup group vars | guest IP map, service settings, and host configuration inputs |
 | Terraform environment tfvars | Proxmox tags, size, storage class, disk size, network zone, and optional Proxmox node override |
 | Terraform common tfvars | default platform node, shared storage mappings, network zones, template IDs, and cloud-init SSH keys |
 
 Terraform guest maps are keyed by the matching Ansible inventory host key, for
 example `idm-1`. Keep that key stable across environments.
 
-Use `platform_hostname_prefix`, `platform_hostname_suffix`,
-`platform_domain`, and `platform_host_ips` in Ansible group vars to shape each
-environment. The same logical key can become `test-idm-1.corp.example.com`,
+Use `platform_hostname_prefix`, `platform_hostname_suffix`, and
+`platform_domain` in `all.yml` or `all.<env>.yml` to shape each environment.
+The same logical key can become `test-idm-1.corp.example.com`,
 `idm-test-1.corp.example.com`, or `idm-1.corp.example.com`.
 Use a private internal subdomain such as `corp.example.com` or
 `internal.example.com` instead of the public website apex.
@@ -37,10 +37,15 @@ Do not include separators in the prefix or suffix value; the automation adds
 the dash only when the value is not empty. Suffixes are inserted before the
 numeric suffix, so `ca-root-1` becomes `ca-root-test-1`.
 
-Terraform reads the same Ansible group vars for the guest IP map and generated
+Setup group vars own `platform_host_ips`, so `foundation.yml`,
+`edge.yml`, and the other setup files stay small and focused.
+Terraform reads the same setup group vars for the guest IP map and generated
 Proxmox name, so IPs and names are not maintained in both tools.
 Every Terraform guest key should have a matching `platform_host_ips` entry, or
 the value `dhcp` when that guest is intentionally dynamic.
+When you use `<setup>.<env>.yml`, keep the full IP map for that setup in the
+environment file. The wrapper layers YAML files predictably, but it does not
+try to merge partial maps.
 
 When `--env` is used, the wrapper loads both the environment-wide vars file and
 the matching setup vars file when that setup has one. For example,
@@ -72,7 +77,7 @@ the data that changes:
 | Optional shared Terraform overlay | `terraform/common.test.tfvars` | not used by default |
 | Ansible inventory | `ansible/inventory/hosts.yml` | `ansible/inventory/hosts.yml` |
 | Ansible environment vars | `ansible/group_vars/all.test.yml` from `all.env.yml.example` | `ansible/group_vars/all.yml` |
-| Ansible setup vars | `ansible/group_vars/foundation.test.yml`, loaded by `--env test` | `ansible/group_vars/foundation.yml` |
+| Ansible setup vars | `ansible/group_vars/foundation.yml` plus `foundation.test.yml` | `ansible/group_vars/foundation.yml` |
 | Terraform state | `.terraform/state/foundation/test/terraform.tfstate` | `.terraform/state/foundation/prod/terraform.tfstate` |
 
 The repository wrapper keeps Terraform state separate per setup and
@@ -115,14 +120,19 @@ state file between environments. Omit `--env` for production.
 | --- | --- |
 | `ansible/requirements.yml` | required collections for the deployment machine |
 | `ansible/inventory/hosts.yml.example` | stable logical host keys and service groups |
-| `ansible/group_vars/all.yml.example` | shared Ansible defaults and default environment data |
-| `ansible/group_vars/all.env.yml.example` | environment-specific hostname decoration, domain, and IP map overlay |
+| `ansible/group_vars/all.yml.example` | shared Ansible defaults and production environment identity |
+| `ansible/group_vars/all.env.yml.example` | environment-specific hostname decoration and domain overlay |
+| `ansible/group_vars/foundation.yml.example` | foundation IP map and FreeIPA settings |
 | `ansible/group_vars/edge.yml.example` | HAProxy and keepalived VIP settings for the edge path |
 | `ansible/group_vars/cache.yml.example` | Squid and keepalived VIP settings for the cache path |
 | `ansible/group_vars/development.yml.example` | GitLab container setup settings |
+| `ansible/group_vars/vault.yml.example` | Vault IP map and service settings |
+| `ansible/group_vars/observability.yml.example` | system-control IP map |
 | `ansible/group_vars/podman_runner.yml.example` | Podman runner package and registration settings |
 | `ansible/group_vars/image_template.yml.example` | image-based Linux template conversion settings |
 | `ansible/group_vars/template_refresh.yml.example` | mutable Enterprise Linux template refresh and replacement settings |
+| `ansible/group_vars/lab.yml.example` | lab IP map |
+| `ansible/group_vars/hsm.yml.example` | HSM IP map |
 | `ansible/playbooks/control-node.yml` | local precheck before each wrapper run |
 | `ansible/playbooks/foundation.yml` | staged FreeIPA identity foundation rollout |
 | `ansible/playbooks/edge.yml` | edge load-balancer baseline plus HAProxy and keepalived |

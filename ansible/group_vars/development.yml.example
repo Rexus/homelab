@@ -2,6 +2,9 @@
 # Replace every value before use.
 # Setup guide: docs/paths/application-platform/development.md
 
+platform_host_ips:
+  git-1: 10.20.20.35
+
 gitlab_container_image: docker.io/gitlab/gitlab-ce:latest
 gitlab_container_name: gitlab
 gitlab_home: /srv/gitlab

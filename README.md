@@ -39,10 +39,11 @@ Shared-service fast path:
    - [Proxmox reference platform](docs/platforms/proxmox/README.md)
    - [Proxmox API setup](docs/platforms/proxmox/setup-api.md)
 
-2. Initialize local working files and the first `test` environment:
+2. Initialize local working files for the foundation setup and the first
+   `test` environment:
 
 ```bash
-bash scripts/init-local-files.sh --env test
+bash scripts/init-local-files.sh --setup foundation --env test
 ```
 
 3. Update the generated local files with your environment values.
@@ -51,9 +52,9 @@ bash scripts/init-local-files.sh --env test
 
    - `.env.local`
    - `ansible/group_vars/all.test.yml`
+   - `ansible/group_vars/foundation.test.yml`
    - `terraform/common.tfvars`
    - `terraform/environments/foundation/terraform.tfvars`
-   - `ansible/group_vars/foundation.test.yml`
 
 4. Run the repository deployment wrapper for the `test` environment:
 

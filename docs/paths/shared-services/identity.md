@@ -35,7 +35,7 @@ shared services for later paths.
 - the deployment machine already has `ansible-core` and `terraform`
 - Proxmox API access is working
 - repo-local working files have been initialized with
-  `bash scripts/init-local-files.sh`
+  `bash scripts/init-local-files.sh --setup foundation`
 - the local FreeIPA vars file has real values and encrypted passwords
 - the deployment environment file has the Proxmox API values, or the shell has
   equivalent variables set
@@ -121,7 +121,9 @@ Use the existing environment as the source for:
 Keep the same repo pattern even when the services already exist:
 
 - keep stable inventory host keys such as `idm-1`, `vault-1`, or `logs-1`
-- keep environment-specific domains and IP maps in `all.<env>.yml`
+- keep environment-specific domains in `all.<env>.yml`
+- keep environment-specific IP maps in the matching setup overlay, such as
+  `foundation.<env>.yml`
 - override subnets and VLANs in Terraform only when that environment needs a
   different network shape
 - avoid deploying duplicate identity systems for labs unless isolation is the
@@ -136,9 +138,9 @@ Edit these local files before you deploy:
 | [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | default platform node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
 | [`terraform/environments/foundation/terraform.tfvars.example`](../../../terraform/environments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
 | [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
-| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, guest IP map, SSH user, port, and baseline defaults |
+| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, SSH user, port, and baseline defaults |
 | [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
-| [`ansible/group_vars/foundation.yml.example`](../../../ansible/group_vars/foundation.yml.example) | FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
+| [`ansible/group_vars/foundation.yml.example`](../../../ansible/group_vars/foundation.yml.example) | foundation host IPs, FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
 
 ## IaC used for this
 
@@ -150,15 +152,16 @@ Use these repo paths here:
 | [`terraform/environments/foundation/terraform.tfvars.example`](../../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity and PKI hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration, domain, and IP maps | your local `ansible/group_vars/all.<env>.yml` |
-| [`ansible/group_vars/foundation.yml.example`](../../../ansible/group_vars/foundation.yml.example) | starting point for FreeIPA and foundation service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
+| [`ansible/group_vars/foundation.yml.example`](../../../ansible/group_vars/foundation.yml.example) | starting point for foundation IPs, FreeIPA, and service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
 | [`ansible/playbooks/foundation.yml`](../../../ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
 | [`scripts/deploy.sh`](../../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `foundation` setup when you are ready to run it |
 
 Current boundary:
 
 - Ansible inventory owns stable logical host keys and service groups
-- Ansible group vars own hostname decoration, domain, and guest IP map
+- Ansible `all` group vars own hostname decoration and domain
+- foundation group vars own the foundation guest IP map
 - Terraform prepares the identity foundation hardware layout and Proxmox tags
 - Terraform reads the Ansible group vars to derive the Proxmox VM names and IPs
 - the foundation playbook prepares those hosts for managed operation
@@ -217,11 +220,12 @@ Terraform uses the base `terraform/common.tfvars` and foundation
 environment intentionally needs different platform values, VM sizes, or
 placement.
 
-Put the hostname prefix or suffix, domain, and IP map in
-`ansible/group_vars/all.<env>.yml`. Use DNS-safe environment names with
+Put the hostname prefix or suffix and domain in
+`ansible/group_vars/all.<env>.yml`. Put foundation IPs in
+`ansible/group_vars/foundation.<env>.yml`. Use DNS-safe environment names with
 letters, numbers, and dashes. Do not add leading or trailing separators to the
 prefix or suffix; the automation adds the dash when needed. The initializer
-fills the prefix from `--env`; you still edit the domain and IPs before
+fills the prefix from `--env`; you still edit the domain and setup IPs before
 deployment. If you prefer suffix-style names, clear the prefix and set
 `platform_hostname_suffix` instead.
 
@@ -237,7 +241,7 @@ extra one-off override.
 Example with the recommended first `test` inputs:
 
 ```bash
-bash scripts/init-local-files.sh --env test
+bash scripts/init-local-files.sh --setup foundation --env test
 
 bash scripts/deploy.sh foundation --env test
 ```
