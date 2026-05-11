@@ -5,7 +5,7 @@
 # Reference: docs/reference/infrastructure-automation-layout.md
 
 # SSH user created by cloud-init on the cloned guests.
-ansible_user: automation-change-me
+ansible_user: automation
 ansible_port: 22
 
 # Keep inventory host keys stable. Set these per environment when the same
