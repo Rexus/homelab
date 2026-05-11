@@ -10,6 +10,13 @@ platform_host_ips:
 
 foundation_freeipa_enabled: true
 
+# Bootstrap SSH waits are intentionally setup-owned so first-run timing can be
+# tuned without changing global Ansible SSH behavior.
+foundation_ssh_wait_timeout: 90
+foundation_ssh_wait_sleep: 3
+foundation_connection_wait_timeout: 60
+foundation_connection_wait_sleep: 3
+
 # FreeIPA uses the platform domain by default. Override only if your identity
 # domain intentionally differs from the environment domain.
 foundation_freeipa_domain: "{{ platform_domain }}"
