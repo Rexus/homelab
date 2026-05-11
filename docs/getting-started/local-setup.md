@@ -66,7 +66,9 @@ For provider credentials, use one of these paths:
 
 Ansible is configured for bootstrap-friendly SSH. New host keys are accepted
 automatically with OpenSSH `StrictHostKeyChecking=accept-new`, while changed
-host keys still stop the run.
+host keys still stop the run. If you destroy and recreate test guests with the
+same IPs, use the deployment wrapper's `--reset-known-hosts` option for that
+setup.
 
 ## Automation VM example
 

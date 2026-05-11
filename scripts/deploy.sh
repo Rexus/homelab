@@ -36,6 +36,9 @@ Options:
   --ansible-only    Run the precheck and mapped Ansible playbooks only.
   --destroy         Destroy the Terraform resources for this setup.
   --auto-approve    Pass -auto-approve to terraform apply.
+  --reset-known-hosts
+                   Remove local SSH known_hosts entries for this setup's
+                   static IPs before Ansible runs.
   --inventory PATH  Override the Ansible inventory file.
   -h, --help        Show this help text.
 
@@ -44,6 +47,7 @@ Examples:
   bash scripts/deploy.sh foundation --env test --plan-only
   bash scripts/deploy.sh foundation --env-file secrets/proxmox.env
   bash scripts/deploy.sh foundation --env lab1
+  bash scripts/deploy.sh foundation --env test --reset-known-hosts
   bash scripts/deploy.sh foundation --env test --destroy
   bash scripts/deploy.sh edge --env test --plan-only
   bash scripts/deploy.sh cache --env test --plan-only
@@ -70,6 +74,7 @@ terraform_only=false
 ansible_only=false
 auto_approve=false
 destroy=false
+reset_known_hosts=false
 deployment_env="prod"
 explicit_env=false
 env_file_path=""
@@ -141,6 +146,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --auto-approve)
       auto_approve=true
+      shift
+      ;;
+    --reset-known-hosts)
+      reset_known_hosts=true
       shift
       ;;
     --inventory)
@@ -538,6 +547,71 @@ run_control_node_precheck() {
   )
 }
 
+collect_static_host_ips() {
+  local vars_file
+
+  for vars_file in "${resolved_ansible_vars_paths[@]}"; do
+    if [[ ! -f "$vars_file" ]]; then
+      continue
+    fi
+
+    awk '
+      /^[[:space:]]*platform_host_ips:[[:space:]]*$/ {
+        in_map = 1
+        next
+      }
+      in_map && /^[^[:space:]#]/ {
+        in_map = 0
+      }
+      in_map && /^[[:space:]]+[A-Za-z0-9_.-]+:[[:space:]]*[^#[:space:]]+/ {
+        line = $0
+        sub(/#.*/, "", line)
+        sub(/^[[:space:]]+[A-Za-z0-9_.-]+:[[:space:]]*/, "", line)
+        gsub(/["\047]/, "", line)
+        gsub(/[[:space:]]+$/, "", line)
+        if (line != "" && line != "dhcp") {
+          print line
+        }
+      }
+    ' "$vars_file"
+  done | sort -u
+}
+
+reset_known_host_entries() {
+  local known_hosts_file="${HOME}/.ssh/known_hosts"
+  local target
+  local removed=0
+
+  if [[ "$reset_known_hosts" == false ]]; then
+    return
+  fi
+
+  if [[ ! -f "$known_hosts_file" ]]; then
+    echo "==> No SSH known_hosts file found at $known_hosts_file"
+    return
+  fi
+
+  if ! command -v ssh-keygen >/dev/null 2>&1; then
+    echo "ssh-keygen is required for --reset-known-hosts." >&2
+    exit 1
+  fi
+
+  echo "==> Removing SSH known_hosts entries for $setup_name ($deployment_env)"
+
+  while IFS= read -r target; do
+    if [[ -z "$target" ]]; then
+      continue
+    fi
+
+    ssh-keygen -R "$target" -f "$known_hosts_file" >/dev/null 2>&1 || true
+    ssh-keygen -R "[$target]:22" -f "$known_hosts_file" >/dev/null 2>&1 || true
+    echo "removed known_hosts entries for $target"
+    removed=$((removed + 1))
+  done < <(collect_static_host_ips)
+
+  echo "Removed known_hosts entries for $removed static host target(s)."
+}
+
 run_terraform() {
   echo "==> Running Terraform for $setup_name"
   (
@@ -647,4 +721,5 @@ if [[ "$destroy" == true ]]; then
   exit 0
 fi
 
+reset_known_host_entries
 run_ansible_playbooks

@@ -96,6 +96,13 @@ Destroy a disposable environment:
 bash scripts/deploy.sh foundation --env test --destroy
 ```
 
+If you destroy and recreate VMs with the same IPs, clear stale SSH host keys
+for that setup before Ansible runs:
+
+```bash
+bash scripts/deploy.sh foundation --env test --reset-known-hosts
+```
+
 Run production by omitting `--env`:
 
 ```bash
@@ -119,6 +126,7 @@ Useful options:
 | `--ansible-only` | you want to rerun mapped host playbooks without Terraform |
 | `--destroy` | you want Terraform to destroy the selected setup and environment |
 | `--auto-approve` | you want Terraform apply or destroy to run without an interactive approval |
+| `--reset-known-hosts` | you rebuilt guests and want to remove stale SSH known-host entries for the setup IPs |
 | `--var-file PATH` | you want to replace the setup Terraform tfvars file |
 | `--common-var-file PATH` | you want to replace the shared Terraform tfvars file |
 | `--ansible-vars PATH` | you want one extra Ansible vars file after automatic vars |
