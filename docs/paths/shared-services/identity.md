@@ -4,6 +4,7 @@
 
 - [Purpose](#purpose)
 - [Before you start](#before-you-start)
+- [Package access](#package-access)
 - [Default private-domain shape](#default-private-domain-shape)
 - [Authentication design](#authentication-design)
 - [Using an existing domain](#using-an-existing-domain)
@@ -42,6 +43,14 @@ shared services for later paths.
 - the network plan already includes at least `management`, `identity`, and
   `cryptography`
 - the Enterprise Linux template is available for the first shared-service hosts
+- package access exists for the foundation hosts
+
+## Package access
+
+Do not start this path until the foundation hosts can install operating-system
+packages. That access can come from your existing network, mirrors, offline
+repos, or the repository [Cache path](cache.md). The cache guide owns the
+proxy design, variables, and bootstrap notes.
 
 ## Default private-domain shape
 
@@ -281,6 +290,7 @@ After the shared-service hosts are ready:
 - [Windows and AD support](windows-support.md)
 - [Hardware-backed user authentication](hardware-keys.md)
 - [Edge proxy path](edge.md)
+- [Cache path](cache.md)
 - [Vault foundation deployment](vault.md)
 - [Private cloud maturity path](../private-cloud-maturity.md)
 - [Secret strategy](../../security/secret-strategy.md)

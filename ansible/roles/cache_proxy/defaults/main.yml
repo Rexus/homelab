@@ -9,7 +9,7 @@ cache_keepalived_enabled: true
 cache_keepalived_group: cache
 cache_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
 cache_keepalived_virtual_router_id: 31
-cache_keepalived_vip_cidr: 10.30.30.120/24
+cache_keepalived_vip_cidr: ""
 cache_keepalived_priority_base: 110
 cache_keepalived_priority_step: 10
 

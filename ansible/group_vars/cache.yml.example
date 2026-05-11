@@ -11,14 +11,21 @@ cache_keepalived_enabled: true
 cache_keepalived_group: cache
 cache_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
 cache_keepalived_virtual_router_id: 31
-cache_keepalived_vip_cidr: 10.30.30.120/24
+# Set cache_proxy_vip_cidr in all.yml or all.<env>.yml so the cache VIP and
+# FQDN-based cache_proxy_url are derived from the shared environment values.
+cache_keepalived_vip_cidr: "{{ cache_proxy_vip_cidr | default('') }}"
 cache_keepalived_priority_base: 110
 cache_keepalived_priority_step: 10
+
+# Optional upstream proxy for the cache hosts themselves. Leave empty when
+# cache hosts have direct egress, internal mirrors, or offline repos. Do not
+# set this to the cache VIP while building the cache hosts.
+cache_upstream_proxy_url: ""
 
 cache_squid_package_state: present
 cache_squid_service_enabled: true
 cache_squid_service_state: started
-cache_squid_http_port: 3128
+cache_squid_http_port: "{{ cache_proxy_port | default(3128) }}"
 cache_squid_cache_mb: 2048
 cache_squid_max_object_size: 1024 MB
 
@@ -39,7 +46,10 @@ cache_squid_allowed_domains:
   - .redhat.com
   - .cdn.redhat.com
 
-# Optional upstream proxy when this cache must chain through another egress
-# proxy. Leave unset for direct outbound access from the cache nodes.
+# Optional upstream proxy when Squid must chain through another egress proxy.
+# Leave unset for direct outbound access from the cache nodes. For disconnected
+# or air-gapped clients, point allowed repository domains at internal mirrors
+# or offline repos and use this only if those mirrors are reached through
+# another proxy.
 # cache_squid_upstream_proxy: upstream-proxy.example.com
 # cache_squid_upstream_port: 3128

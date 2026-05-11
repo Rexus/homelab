@@ -4,6 +4,8 @@
     that:
       - ansible_os_family == "RedHat"
       - cache_keepalived_vip_cidr is defined
+      - cache_keepalived_vip_cidr | length > 0
+      - cache_squid_http_port is defined
       - cache_squid_allowed_cidrs | length > 0
       - groups.get(cache_keepalived_group, []) | length >= 1
       - >-

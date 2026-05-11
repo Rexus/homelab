@@ -56,3 +56,33 @@ platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 # Baseline defaults applied by Ansible roles.
 baseline_timezone: Europe/Stockholm
 baseline_ntp_enabled: true
+
+# Shared cache proxy address. Leave empty when hosts have direct egress,
+# internal mirrors, or offline repos. The VIP is the keepalived address; the
+# URL intentionally uses an FQDN.
+# Example: cache.corp.example.com resolves to <cache_proxy_vip>.
+cache_proxy_vip_cidr: ""
+cache_proxy_name: cache
+cache_proxy_fqdn: "{{ cache_proxy_name }}.{{ platform_domain }}"
+cache_proxy_port: 3128
+cache_proxy_vip: >-
+  {{
+    cache_proxy_vip_cidr | regex_replace('/.*$', '')
+    if cache_proxy_vip_cidr | default('') | trim
+    else ''
+  }}
+cache_proxy_url: >-
+  {{
+    'http://'
+    ~ cache_proxy_fqdn
+    ~ ':'
+    ~ cache_proxy_port
+    if (
+      cache_proxy_vip_cidr | default('') | trim
+      and cache_proxy_fqdn | default('') | trim
+    )
+    else ''
+  }}
+baseline_package_proxy_url: "{{ cache_proxy_url }}"
+baseline_package_proxy_fqdn: "{{ cache_proxy_fqdn }}"
+baseline_package_proxy_ip: "{{ cache_proxy_vip }}"

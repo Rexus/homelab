@@ -3,5 +3,8 @@
   hosts: cache
   become: true
   roles:
-    - baseline
+    - role: baseline
+      vars:
+        # Do not point cache hosts at their own VIP while Squid is being built.
+        baseline_package_proxy_url: "{{ cache_upstream_proxy_url | default('') }}"
     - cache_proxy

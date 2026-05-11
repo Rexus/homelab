@@ -38,6 +38,8 @@ Shared-service fast path:
 1. Review platform prerequisites:
    - [Proxmox reference platform](docs/platforms/proxmox/README.md)
    - [Proxmox API setup](docs/platforms/proxmox/setup-api.md)
+   - package access for managed hosts, through approved egress, mirrors,
+     offline repos, or the [cache path](docs/paths/shared-services/cache.md)
 
 2. Initialize local working files for the foundation setup and the first
    `test` environment:

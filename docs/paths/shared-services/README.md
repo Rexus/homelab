@@ -14,6 +14,10 @@ Use this section for the shared services that other paths can consume.
 This is where you either deploy the repository reference services or connect
 later paths to services you already operate.
 
+Every setup that installs software needs a trusted package source before it
+can converge. That can be direct egress, an existing mirror, offline repos, or
+the cache path in this section.
+
 The shared services are:
 
 - private domain, DNS, and identity
@@ -24,20 +28,21 @@ The shared services are:
 - Vault for shared secrets and later dynamic credentials
 - Windows or AD-compatible support when the environment needs it
 
-The identity path is the current reference starting point, but it is not a
-hard requirement for every repo user. If you already have identity, DNS, PKI,
-or Vault, treat those systems as prerequisites and configure the other paths
-to consume them. Use the system-control path for shared telemetry, syslog,
-metrics, traces, and log/event search.
+The identity path is the current reference starting point after package access
+exists, but it is not a hard requirement for every repo user. If you already
+have identity, DNS, PKI, or Vault, treat those systems as prerequisites and
+configure the other paths to consume them. Use the system-control path for
+shared telemetry, syslog, metrics, traces, and log/event search.
 
 ## Recommended order
 
 Use this order:
 
-1. [Identity foundation path](identity.md)
-2. [Edge proxy path](edge.md)
-3. [Vault foundation deployment](vault.md)
-4. [Cache path](cache.md), when restricted systems need it
+1. Package access, either from existing egress, mirrors, offline repos, or the
+   [Cache path](cache.md) when restricted systems need controlled updates
+2. [Identity foundation path](identity.md)
+3. [Edge proxy path](edge.md)
+4. [Vault foundation deployment](vault.md)
 5. [Hardware-backed user authentication](hardware-keys.md), when privileged
    users are ready for it
 6. [System control path](../system-control/README.md)
@@ -51,8 +56,8 @@ Use this order:
   private-domain hosts for `FreeIPA`, DNS, and the first PKI path
 - [Edge proxy path](edge.md) - shared edge load-balancer pair with horizontal
   expansion for ingress, egress, and service backends
-- [Cache path](cache.md) - optional `Squid` cache pair for controlled outbound
-  update access from restricted systems
+- [Cache path](cache.md) - `Squid` cache pair for controlled outbound update
+  access from restricted systems before other package-installing paths run
 - [Hardware-backed user authentication](hardware-keys.md) - optional YubiKey,
   OTP, and PIV hardening after the identity foundation works
 - [Windows and AD support](windows-support.md) - optional Windows support
