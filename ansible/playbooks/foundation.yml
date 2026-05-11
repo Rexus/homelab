@@ -1,10 +1,4 @@
 ---
-- name: Apply foundation baseline
-  hosts: foundation
-  become: true
-  roles:
-    - baseline
-
 - name: Validate foundation identity inputs
   hosts: identity
   gather_facts: false
@@ -42,6 +36,23 @@
       run_once: true
       when: foundation_freeipa_enabled | default(false) | bool
 
+- name: Wait for foundation hosts to accept SSH
+  hosts: foundation
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Wait for bootstrap SSH to become reachable
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        sleep: 5
+        timeout: 300
+
+- name: Apply foundation baseline
+  hosts: foundation
+  become: true
+  roles:
+    - baseline
+
 - name: Prepare identity hostnames
   hosts: identity
   become: true
@@ -76,12 +87,16 @@
       changed_when: false
       when: foundation_freeipa_enabled | default(false) | bool
 
-    - name: Verify FreeIPA API health on the first identity host
+    - name: Wait for FreeIPA API health on the first identity host
       ansible.builtin.command:
         argv:
           - ipa
           - ping
+      register: foundation_primary_ipa_ping
       changed_when: false
+      until: foundation_primary_ipa_ping.rc == 0
+      retries: 12
+      delay: 10
       when: foundation_freeipa_enabled | default(false) | bool
 
 - name: Configure FreeIPA replica identity hosts
@@ -108,10 +123,14 @@
       changed_when: false
       when: foundation_freeipa_enabled | default(false) | bool
 
-    - name: Verify FreeIPA API health on each identity host
+    - name: Wait for FreeIPA API health on each identity host
       ansible.builtin.command:
         argv:
           - ipa
           - ping
+      register: foundation_identity_ipa_ping
       changed_when: false
+      until: foundation_identity_ipa_ping.rc == 0
+      retries: 12
+      delay: 10
       when: foundation_freeipa_enabled | default(false) | bool

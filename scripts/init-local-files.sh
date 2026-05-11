@@ -263,8 +263,6 @@ if [[ -n "$deployment_env" ]]; then
   if [[ "$last_file_changed" == true ]]; then
     sed -i "s/platform_environment: test/platform_environment: $deployment_env/" \
       "$environment_vars_file"
-    sed -i "s/platform_hostname_prefix: \"\"/platform_hostname_prefix: $deployment_env/" \
-      "$environment_vars_file"
     sed -i "s/platform_domain: test.example.com/platform_domain: $deployment_env.example.com/" \
       "$environment_vars_file"
   fi
