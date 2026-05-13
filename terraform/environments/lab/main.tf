@@ -34,6 +34,8 @@ module "environment" {
 
   network_zones                = var.network_zones
   default_platform_node_name   = local.effective_default_platform_node_name
+  default_vm_template_id       = var.default_linux_vm_template_id
+  linux_vm_template_catalog    = var.linux_vm_template_catalog
   default_vm_network_zone_key  = var.default_vm_network_zone_key
   default_lxc_network_zone_key = var.default_lxc_network_zone_key
   ansible_inventory_path       = var.ansible_inventory_path
@@ -48,10 +50,7 @@ module "vms" {
 
   name                     = each.value.name
   node_name                = each.value.node_name
-  template_vm_id = coalesce(
-    try(each.value.template_vm_id, null),
-    var.default_linux_vm_template_id,
-  )
+  template_vm_id            = each.value.template_vm_id
   storage_class            = each.value.storage_class
   storage_class_datastores = var.proxmox_storage_classes
   bridge                   = var.network_zones[each.value.network_zone_key].bridge

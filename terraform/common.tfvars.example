@@ -111,6 +111,24 @@ network_zones = {
 # may point to any Linux template your Ansible roles support.
 default_linux_vm_template_id = 110
 
+# Template catalog keyed by Proxmox template VM ID. Terraform uses the selected
+# template ID to carry source-image tags onto cloned VMs.
+linux_vm_template_catalog = {
+  "110" = {
+    description = "Default AlmaLinux 10 cloud-init template."
+    tags        = ["x86_64", "el10", "cloud-init", "alma10"]
+  }
+  # "111" = {
+  #   description = "Rocky Linux 10 cloud-init template."
+  #   tags        = ["x86_64", "el10", "cloud-init", "rocky10"]
+  # }
+  # Add this after the immutable-template path has created the template.
+  # "120" = {
+  #   description = "RHEL 10 image-based Linux template."
+  #   tags        = ["x86_64", "el10", "cloud-init", "bootc", "rhel10"]
+  # }
+}
+
 # These keys are injected by cloud-init into VMs cloned from the template.
 # Use the deployment machine's public SSH key here so Ansible can connect
 # from that machine after provisioning.

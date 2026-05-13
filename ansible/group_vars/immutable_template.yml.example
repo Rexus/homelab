@@ -1,4 +1,4 @@
-# Copy to: ansible/group_vars/image_template.yml
+# Copy to: ansible/group_vars/immutable_template.yml
 # Replace every value before use.
 # Setup guide: docs/paths/application-platform/image-based-linux.md
 
@@ -7,18 +7,18 @@ platform_host_ips:
 
 # Set this when the bootc image registry uses your private CA and the builder
 # VM does not already trust it.
-# image_template_trust_ca_src: secrets/ca/platform-ca.crt
+# immutable_template_trust_ca_src: secrets/ca/platform-ca.crt
 
 # Set this when the bootc image is stored in a private registry. bootc reads
 # registry auth from /etc/ostree/auth.json.
-# image_template_registry_auth_src: secrets/registries/bootc-auth.json
+# immutable_template_registry_auth_src: secrets/registries/bootc-auth.json
 
 # Keep false until the target image has been built and published.
-image_template_apply_bootc: false
-image_template_bootc_image: "registry.corp.example.com/platform/rhel-10-immu:stable"
-image_template_bootc_transport: registry
-image_template_bootc_retain: true
+immutable_template_apply_bootc: false
+immutable_template_bootc_image: "registry.corp.example.com/platform/rhel-10-immu:stable"
+immutable_template_bootc_transport: registry
+immutable_template_bootc_retain: true
 
 # Enable this only after you have verified the staged bootc system and are
 # ready to convert the VM into a reusable Proxmox template.
-image_template_prepare_for_template: false
+immutable_template_prepare_for_template: false

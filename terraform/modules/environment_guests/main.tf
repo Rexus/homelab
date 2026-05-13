@@ -75,6 +75,28 @@ locals {
       ].gateway_ipv4, null) == null
     ],
   ))
+  resolved_vm_template_ids = {
+    for key, vm in var.vm_instances : key => coalesce(
+      try(vm.template_vm_id, null),
+      var.default_vm_template_id,
+    )
+  }
+  resolved_vm_template_catalog_ids = {
+    for key, vm in var.vm_instances : key => coalesce(
+      try(vm.template_catalog_id, null),
+      local.resolved_vm_template_ids[key],
+    )
+  }
+  resolved_vm_template_tags = {
+    for key, vm in var.vm_instances : key => (
+      try(vm.template_tags, null) == null
+      ? try(
+        var.linux_vm_template_catalog[tostring(local.resolved_vm_template_catalog_ids[key])].tags,
+        [],
+      )
+      : vm.template_tags
+    )
+  }
 
   resolved_vm_instances = {
     for key, vm in var.vm_instances : key => {
@@ -85,7 +107,7 @@ locals {
         var.default_platform_node_name,
       )
       vm_id          = try(vm.vm_id, null)
-      template_vm_id = try(vm.template_vm_id, null)
+      template_vm_id = local.resolved_vm_template_ids[key]
       size           = coalesce(try(vm.size, null), "small")
       storage_class  = coalesce(try(vm.storage_class, null), "local")
       disk_size_gb   = vm.disk_size_gb
@@ -103,7 +125,10 @@ locals {
           coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
         ],
       )
-      tags = try(vm.tags, [])
+      tags = distinct(concat(
+        local.resolved_vm_template_tags[key],
+        coalesce(try(vm.tags, null), []),
+      ))
     }
   }
 

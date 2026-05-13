@@ -41,7 +41,7 @@ all_setups=(
   development
   observability
   podman-runner
-  image-template
+  immutable-template
   template-refresh
   lab
   vault
@@ -53,11 +53,22 @@ setup_group_vars_stem() {
     podman-runner)
       echo "podman_runner"
       ;;
-    image-template)
-      echo "image_template"
+    immutable-template)
+      echo "immutable_template"
       ;;
     template-refresh)
       echo "template_refresh"
+      ;;
+    *)
+      echo "$1"
+      ;;
+  esac
+}
+
+normalize_setup_name() {
+  case "$1" in
+    image-template)
+      echo "immutable-template"
       ;;
     *)
       echo "$1"
@@ -93,7 +104,7 @@ while [[ $# -gt 0 ]]; do
         echo "Missing value for $1" >&2
         exit 1
       fi
-      selected_setups+=("$2")
+      selected_setups+=("$(normalize_setup_name "$2")")
       shift 2
       ;;
     --overwrite)

@@ -6,6 +6,9 @@
 
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
+# Source-image tags are read from linux_vm_template_catalog in common.tfvars
+# by template ID. Use template_catalog_id only when a builder VM should use
+# tags for a target template ID instead of the source clone template ID.
 # default_linux_vm_template_id = 111
 
 vm_instances = {

@@ -24,7 +24,7 @@ patterns belong.
 | development | GitLab on a dedicated Podman VM, repositories, and CI/CD coordination | shared identity, PKI, Vault |
 | Podman image runner | runner VM for bootc and container image builds | development path |
 | registry | Harbor and shared OCI artifacts | development path for automated builds |
-| image-based Linux | `image-template` setup and bootc template lifecycle | Podman image runner, then shared registry later |
+| image-based Linux | `immutable-template` setup and bootc template lifecycle | Podman image runner, then shared registry later |
 | Kubernetes | application runtime and GitOps direction | shared services, registry, and development paths |
 
 ## How this path grows

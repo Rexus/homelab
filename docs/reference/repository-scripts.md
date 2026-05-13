@@ -167,7 +167,7 @@ Useful options:
 | `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../paths/shared-services/vault.md) |
 | `observability` | system-control telemetry, syslog, metrics, logs, and archive hosts | [Observability path](../paths/system-control/observability.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../paths/application-platform/podman-runner.md) |
-| `image-template` | image-based Linux template builder hosts | [Image-based Linux path](../paths/application-platform/image-based-linux.md) |
+| `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../paths/application-platform/image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |
 | `hsm` | USB or software HSM gateway deployment pattern | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
 | `lab` | general-purpose lab guests | this reference and your local inventory |

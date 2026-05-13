@@ -64,6 +64,19 @@ Linux cloud-init template. Override it in `terraform.tfvars` or
 template. Use `vm_instances.<key>.template_vm_id` only when one guest should
 differ from the deployment default.
 
+Use `linux_vm_template_catalog` in `terraform/common.tfvars` for the OS,
+distro, architecture, and image-capability tags that should carry from source
+templates onto cloned VMs. Terraform looks up catalog tags by the selected
+template VM ID, so a per-VM `template_vm_id` override also changes the image
+tags when that ID exists in the catalog. Terraform combines catalog tags with
+`vm_instances.<key>.tags`, where the latter should stay focused on workload
+identity. Template-producing setups can set
+`vm_instances.<key>.template_catalog_id` when a builder VM should receive tags
+for the target template ID instead of the source clone template ID. Set
+`vm_instances.<key>.template_tags` only as an escape hatch for a source image
+that is not in the catalog, or set it to `[]` when you intentionally do not
+want source-image tags on that deployed VM.
+
 ## Environment data split
 
 Use the same source code and main inventory for every environment. Split only
@@ -106,7 +119,7 @@ state file between environments. Omit `--env` for production.
 | `terraform/environments/vault/` | dedicated Vault guest layout | [Vault foundation deployment](../paths/shared-services/vault.md) |
 | `terraform/environments/observability/` | system-control telemetry, syslog, metrics, logs, and archive guest layout | [Observability path](../paths/system-control/observability.md) |
 | `terraform/environments/podman-runner/` | application-platform runner guest layout | [Podman image runner guide](../paths/application-platform/podman-runner.md) |
-| `terraform/environments/image-template/` | image-based Linux template builder guest layout | [Image-based Linux path](../paths/application-platform/image-based-linux.md) |
+| `terraform/environments/immutable-template/` | image-based Linux template builder guest layout | [Image-based Linux path](../paths/application-platform/image-based-linux.md) |
 | `terraform/environments/template-refresh/` | staged mutable Enterprise Linux template refresh layout | [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |
 | `terraform/environments/hsm/` | USB HSM gateway and optional helper guest layout | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
 | `terraform/environments/lab/` | general lab guest layout | [Local setup](../getting-started/local-setup.md) |
@@ -129,7 +142,7 @@ state file between environments. Omit `--env` for production.
 | `ansible/group_vars/vault.yml.example` | Vault IP map and service settings |
 | `ansible/group_vars/observability.yml.example` | system-control IP map |
 | `ansible/group_vars/podman_runner.yml.example` | Podman runner package and registration settings |
-| `ansible/group_vars/image_template.yml.example` | image-based Linux template conversion settings |
+| `ansible/group_vars/immutable_template.yml.example` | image-based Linux template conversion settings |
 | `ansible/group_vars/template_refresh.yml.example` | mutable Enterprise Linux template refresh and replacement settings |
 | `ansible/group_vars/lab.yml.example` | lab IP map |
 | `ansible/group_vars/hsm.yml.example` | HSM IP map |
@@ -142,7 +155,7 @@ state file between environments. Omit `--env` for production.
 | `ansible/playbooks/lab.yml` | lab host baseline |
 | `ansible/playbooks/observability.yml` | system-control host baseline |
 | `ansible/playbooks/podman-runner.yml` | Podman runner host baseline and runner setup |
-| `ansible/playbooks/image-template.yml` | image-based Linux template builder setup |
+| `ansible/playbooks/immutable-template.yml` | image-based Linux template builder setup |
 | `ansible/playbooks/template-refresh.yml` | staged Enterprise Linux template refresh and optional same-ID replacement |
 | `ansible/playbooks/hsm.yml` | HSM host baseline |
 | `ansible/playbooks/site.yml` | broad baseline entry point for manual use |
@@ -153,7 +166,7 @@ state file between environments. Omit `--env` for production.
 | `ansible/roles/gitlab_container/` | GitLab container host setup role |
 | `ansible/roles/vault/` | Vault service role |
 | `ansible/roles/podman_runner/` | Podman and GitLab Runner setup role |
-| `ansible/roles/image_template/` | bootc template conversion preparation role |
+| `ansible/roles/immutable_template/` | bootc template conversion preparation role |
 | `ansible/roles/template_refresh/` | mutable Enterprise Linux template refresh role |
 | `ansible/roles/proxmox_template_replace/` | Proxmox same-ID template replacement role |
 | `ansible/roles/hsm_proxy_ingress/` | HSM gateway backend snippet scaffold |

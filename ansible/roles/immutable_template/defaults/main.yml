@@ -1,0 +1,23 @@
+---
+immutable_template_packages:
+  - bootc
+  - podman
+  - skopeo
+  - git
+
+immutable_template_trust_ca_src: ""
+immutable_template_trust_ca_dest: /etc/pki/ca-trust/source/anchors/platform-ca.crt
+
+immutable_template_registry_auth_src: ""
+immutable_template_registry_auth_dest: /etc/ostree/auth.json
+
+immutable_template_apply_bootc: false
+immutable_template_bootc_image: ""
+immutable_template_bootc_transport: registry
+immutable_template_bootc_retain: true
+immutable_template_reboot_after_switch: false
+
+immutable_template_prepare_for_template: false
+immutable_template_clean_cloud_init: true
+immutable_template_clean_ssh_host_keys: true
+immutable_template_clean_package_cache: true

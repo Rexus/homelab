@@ -152,11 +152,11 @@ all:
 
     # Application platform path: image-based Linux template builders.
     # Guide: docs/paths/application-platform/image-based-linux.md
-    # Terraform config: terraform/environments/image-template/terraform.tfvars
-    image_template_builders:
+    # Terraform config: terraform/environments/immutable-template/terraform.tfvars
+    immutable_template_builders:
       hosts:
         # Use the target Proxmox template name as the host key. If you change
-        # it, update image-template vm_instances and image_template
+        # it, update immutable-template vm_instances and immutable_template
         # platform_host_ips too.
         rhel-10-immu-tmpl: {}
 
@@ -221,7 +221,7 @@ all:
         archive:
         development_platform:
         podman_runner:
-        image_template_builders:
+        immutable_template_builders:
         template_refresh_builders:
         lab:
         hsm_gateways:

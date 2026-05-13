@@ -1,7 +1,7 @@
 ---
 - name: Prepare image-based Linux template builders
-  hosts: image_template_builders
+  hosts: immutable_template_builders
   become: true
   roles:
     - baseline
-    - image_template
+    - immutable_template

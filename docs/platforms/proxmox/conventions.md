@@ -105,6 +105,8 @@ Recommended practice:
   capabilities
 - avoid service or workload tags on templates because those belong on deployed
   VMs
+- register template tags in `linux_vm_template_catalog` so Terraform-created
+  guests can carry source-image tags based on the selected template VM ID
 
 Suggested tag categories:
 
@@ -165,6 +167,16 @@ Recommended practice:
 
 Use tags for the exact service or implementation when that detail may change
 over time while the VM name and DNS stay stable.
+
+Terraform-created guests receive source-image tags from
+`linux_vm_template_catalog` in `terraform/common.tfvars` before their workload
+tags are added. Terraform looks up the tags by the selected template VM ID,
+including per-VM `template_vm_id` overrides. Treat `vm_instances.<key>.tags` as
+workload-specific tags and use `vm_instances.<key>.template_tags` only as an
+escape hatch for a source image that is not in the catalog. Template-producing
+setups may use `vm_instances.<key>.template_catalog_id` when the builder should
+receive tags for the target template ID instead of the source clone template
+ID.
 
 Recommended practice:
 

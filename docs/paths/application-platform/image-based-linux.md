@@ -78,12 +78,17 @@ reference for the later shared registry stage.
 
 This path has a dedicated template-builder setup:
 
+The deployment setup is named `immutable-template` because it creates reusable
+Proxmox templates for immutable or image-based Linux hosts. The guide keeps the
+broader name "image-based Linux" because bootc is the current implementation,
+not the only possible model.
+
 | Layer | File | Responsibility |
 | --- | --- | --- |
-| Terraform | `terraform/environments/image-template/terraform.tfvars` | deploys the temporary template-builder VM |
-| Ansible inventory | `ansible/inventory/hosts.yml` | keeps the stable `image_template_builders` host group |
-| Ansible vars | `ansible/group_vars/image_template.yml` | controls bootc image, registry auth, CA trust, and cleanup |
-| Ansible role | `ansible/roles/image_template/` | installs bootc tooling and prepares the VM for template conversion |
+| Terraform | `terraform/environments/immutable-template/terraform.tfvars` | deploys the temporary template-builder VM |
+| Ansible inventory | `ansible/inventory/hosts.yml` | keeps the stable `immutable_template_builders` host group |
+| Ansible vars | `ansible/group_vars/immutable_template.yml` | controls bootc image, registry auth, CA trust, and cleanup |
+| Ansible role | `ansible/roles/immutable_template/` | installs bootc tooling and prepares the VM for template conversion |
 
 The default is one builder VM named for the target template,
 `rhel-10-immu-tmpl`. The builder starts as a normal VM so Ansible can configure
@@ -128,8 +133,8 @@ Use this flow:
 
 1. Create or reuse normal cloud-init templates such as `rhel-10-tmpl`,
    `alma-10-tmpl`, or `rocky-10-tmpl`.
-2. Edit `terraform/environments/image-template/terraform.tfvars`.
-3. Edit `ansible/group_vars/image_template.yml`.
+2. Edit `terraform/environments/immutable-template/terraform.tfvars`.
+3. Edit `ansible/group_vars/immutable_template.yml`.
 4. Clone the template into a temporary conversion VM.
 5. Use Ansible to install the bootc tooling required by the selected distro.
 6. Switch or install the host to the target bootc image.
@@ -138,34 +143,37 @@ Use this flow:
 8. Clean machine-specific state.
 9. Convert the result into a dedicated image-based template such as
    `rhel-10-immu-tmpl`.
-10. Point Terraform deployments at the bootc template only after the update and
+10. Add the finished template ID and source-image tags to
+    `linux_vm_template_catalog` in `terraform/common.tfvars`, then point the
+    builder VM at that catalog entry with `template_catalog_id`.
+11. Point Terraform deployments at the bootc template only after the update and
     rollback workflow has been tested.
 
 Plan the builder first:
 
 ```bash
-bash scripts/deploy.sh image-template --env test --plan-only
+bash scripts/deploy.sh immutable-template --env test --plan-only
 ```
 
 Prepare the builder VM:
 
 ```bash
-bash scripts/deploy.sh image-template --env test
+bash scripts/deploy.sh immutable-template --env test
 ```
 
 After you have verified the bootc system, enable cleanup in
-`ansible/group_vars/image_template.<env>.yml` or `image_template.yml`:
+`ansible/group_vars/immutable_template.<env>.yml` or `immutable_template.yml`:
 
 ```yaml
-image_template_prepare_for_template: true
+immutable_template_prepare_for_template: true
 ```
 
 Rerun Ansible, then set the builder VM to `template = true` and
-`started = false` in `terraform/environments/image-template/terraform.tfvars`.
+`started = false` in `terraform/environments/immutable-template/terraform.tfvars`.
 Run only Terraform for the final conversion:
 
 ```bash
-bash scripts/deploy.sh image-template --env test --terraform-only
+bash scripts/deploy.sh immutable-template --env test --terraform-only
 ```
 
 The BPG Proxmox provider supports converting a VM to a template by setting the

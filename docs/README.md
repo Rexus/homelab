@@ -73,7 +73,7 @@ Use this order when you are new to the repository or returning after time away:
 - [Container registry path](paths/application-platform/registry.md) - Harbor
   as the shared OCI artifact registry after GitLab
 - [Image-based Linux path](paths/application-platform/image-based-linux.md) -
-  bootc reference builds and the `image-template` Proxmox template lifecycle
+  bootc reference builds and the `immutable-template` Proxmox template lifecycle
 
 ## Architecture and design
 

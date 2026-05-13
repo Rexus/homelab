@@ -129,7 +129,7 @@ Read more in:
 
 ## Repository structure
 
-- `docs/` overview, foundation, getting started, platform guides, security,
+- `docs/` overview, reader paths, getting started, platform guides, security,
   architecture, reference, and decisions
 - `packer/` image build workflow and example variable files
 - `terraform/` infrastructure provisioning layout and deployment environments

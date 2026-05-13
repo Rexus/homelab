@@ -14,7 +14,7 @@ Setups:
   development
   observability
   podman-runner
-  image-template
+  immutable-template
   template-refresh
   lab
   vault
@@ -55,7 +55,7 @@ Examples:
   bash scripts/deploy.sh development --env test --plan-only
   bash scripts/deploy.sh observability --env test --plan-only
   bash scripts/deploy.sh podman-runner --env test --plan-only
-  bash scripts/deploy.sh image-template --env test --plan-only
+  bash scripts/deploy.sh immutable-template --env test --plan-only
   bash scripts/deploy.sh template-refresh --env test --plan-only
   bash scripts/deploy.sh hsm --auto-approve
 EOF
@@ -68,6 +68,11 @@ fi
 
 setup_name="$1"
 shift
+
+if [[ "$setup_name" == "image-template" ]]; then
+  echo "==> setup image-template is deprecated; use immutable-template"
+  setup_name="immutable-template"
+fi
 
 plan_only=false
 terraform_only=false
@@ -293,11 +298,11 @@ case "$setup_name" in
       "$ansible_dir/group_vars/all.yml"
     )
     ;;
-  image-template)
-    terraform_dir="$repo_root/terraform/environments/image-template"
-    ansible_playbooks=("image-template.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/image_template.yml"
-    setup_ansible_vars_env_stem="image_template"
+  immutable-template)
+    terraform_dir="$repo_root/terraform/environments/immutable-template"
+    ansible_playbooks=("immutable-template.yml")
+    setup_ansible_vars_base_path="$ansible_dir/group_vars/immutable_template.yml"
+    setup_ansible_vars_env_stem="immutable_template"
     setup_ansible_vars_required=true
     required_files=(
       "$inventory_path"

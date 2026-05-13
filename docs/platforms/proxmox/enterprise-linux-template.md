@@ -311,6 +311,13 @@ template into that same ID, and converts the clone back into a Proxmox
 template. Existing Terraform deployments can keep referencing the same
 `default_linux_vm_template_id` after the replacement.
 
+Keep the matching `linux_vm_template_catalog` entry in
+`terraform/common.tfvars` aligned with the final template ID. Deployments use
+that catalog to copy source-image tags, such as architecture, OS family, and
+distro, onto cloned VMs. The staged refresh VM should use
+`template_catalog_id` for the final target template ID so its tags also come
+from the shared catalog.
+
 Run sequence:
 
 | Step | Edit first | Command |

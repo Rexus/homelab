@@ -15,6 +15,20 @@ variable "default_platform_node_name" {
   type        = string
 }
 
+variable "default_vm_template_id" {
+  description = "Default Linux cloud-init template VM ID."
+  type        = number
+}
+
+variable "linux_vm_template_catalog" {
+  description = "Template metadata catalog keyed by Proxmox template VM ID."
+  type = map(object({
+    description = optional(string)
+    tags        = list(string)
+  }))
+  default = {}
+}
+
 variable "default_vm_network_zone_key" {
   description = "Default network zone key used by VM instances when they do not override it."
   type        = string
@@ -45,6 +59,10 @@ variable "vm_instances" {
     proxmox_node_name = optional(string)
     vm_id             = optional(number)
     template_vm_id   = optional(number)
+    # Uses catalog tags from another template ID, useful while building templates.
+    template_catalog_id = optional(number)
+    # Overrides catalog tags when a VM uses a source image not in the catalog.
+    template_tags      = optional(list(string))
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number

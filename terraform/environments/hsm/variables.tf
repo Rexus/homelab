@@ -70,6 +70,15 @@ variable "default_linux_vm_template_id" {
   type        = number
 }
 
+variable "linux_vm_template_catalog" {
+  description = "Template metadata catalog keyed by Proxmox template VM ID."
+  type = map(object({
+    description = optional(string)
+    tags        = list(string)
+  }))
+  default = {}
+}
+
 variable "ssh_public_keys" {
   description = "SSH public keys injected into the HSM VMs."
   type        = list(string)
@@ -119,6 +128,8 @@ variable "vm_instances" {
   type = map(object({
     proxmox_node_name = optional(string)
     template_vm_id   = optional(number)
+    template_catalog_id = optional(number)
+    template_tags       = optional(list(string))
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number
