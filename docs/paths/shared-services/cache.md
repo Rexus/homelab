@@ -67,8 +67,8 @@ Deploy a separate cache per environment only when you need isolated egress
 policy, isolated testing of the cache service itself, or an environment that
 must not depend on production shared services.
 
-This is intentional in the Ansible layout. Cache service settings live in
-`cache.yml`, while consumers only need a repository proxy URL in `all.yml` or
+This is intentional in the Ansible layout. The cache service settings live in
+`cache.yml`, and consumers enable `repository_proxy_url` in `all.yml` or
 `all.<env>.yml`. That lets any setup use a cache that was deployed somewhere
 else.
 
@@ -77,7 +77,9 @@ unset or blank, the baseline role does not configure a proxy. Any setup can
 opt out of a shared proxy by setting `repository_proxy_enabled: false` in that
 setup's group vars file.
 
-For the cache service itself, set the cache VIP and FQDN in `cache.yml`:
+For the cache service itself, set the cache VIP and service endpoint in
+`cache.yml`. Use CIDR form for the VIP because keepalived assigns this address
+to the interface:
 
 ```yaml
 cache_proxy_vip_cidr: "<cache_proxy_vip>/<prefix>"
@@ -86,13 +88,17 @@ cache_proxy_fqdn: "{{ cache_proxy_name }}.{{ platform_domain }}"
 cache_proxy_port: 3128
 ```
 
-For Enterprise Linux guests managed by this repo, set only the repository proxy
-consumer values in `all.yml` or `all.<env>.yml` before running paths that need
-controlled software-source access:
+The role derives the plain VIP IP from `cache_proxy_vip_cidr` for consumers
+that must not include a prefix, such as `/etc/hosts` entries.
+
+For Enterprise Linux guests managed by this repo, enable only the repository
+proxy consumer values in `all.yml` or `all.<env>.yml` before running paths that
+need controlled software-source access:
 
 ```yaml
-repository_proxy_url: "http://<cache_proxy_fqdn>:<cache_proxy_port>"
-repository_proxy_fqdn: "<cache_proxy_fqdn>"
+repository_proxy_enabled: true
+repository_proxy_fqdn: "cache.{{ platform_domain }}"
+repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
 repository_proxy_ip: "<cache_proxy_vip>"
 ```
 
@@ -100,9 +106,9 @@ Use `all.yml` when the cache should be shared by default. Use `all.<env>.yml`
 only when an environment should use a different cache or explicitly consume a
 shared cache by FQDN.
 
-The URL should use the FQDN. If identity DNS is not online yet, the baseline
-role can write a temporary `/etc/hosts` entry from `repository_proxy_ip` to
-`repository_proxy_fqdn` before it configures DNF.
+The URL should use the FQDN. `repository_proxy_ip` can stay unset when DNS
+resolves `repository_proxy_fqdn`. Set it only when the baseline role must write
+a temporary `/etc/hosts` entry before identity DNS exists.
 
 The cache hosts are the bootstrap exception. They do not use the shared
 repository proxy from `all.yml` while Squid is being installed. The cache setup

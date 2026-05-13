@@ -20,10 +20,12 @@ cache_keepalived_enabled: true
 cache_keepalived_group: cache
 cache_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
 cache_keepalived_virtual_router_id: 31
+# Keepalived needs CIDR form when assigning the VIP to the interface.
 cache_proxy_vip_cidr: "<cache_proxy_vip>/<prefix>"
 cache_proxy_name: cache
 cache_proxy_fqdn: "{{ cache_proxy_name }}.{{ platform_domain }}"
 cache_proxy_port: 3128
+# Plain IP form for consumers that cannot use CIDR, such as /etc/hosts.
 cache_proxy_vip: >-
   {{
     cache_proxy_vip_cidr | regex_replace('/.*$', '')

@@ -57,14 +57,13 @@ platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 baseline_timezone: Europe/Stockholm
 baseline_ntp_enabled: true
 
-# Repository proxy consumed by managed hosts. Uncomment when hosts should reach
-# approved software sources through an existing cache/proxy. This can cover OS
-# package repos, Git remotes, and registry/update endpoints as policy allows.
-# If repository_proxy_url is unset or blank, no proxy is configured. A setup
-# vars file can set repository_proxy_enabled: false to opt out even when this
-# file points to a shared proxy. The cache setup owns how the cache VIP and
-# service are built.
+# Repository proxy consumed by managed hosts. Uncomment after a cache/proxy
+# exists and managed hosts should use it.
+# This can cover OS package repos, Git remotes, and registry/update endpoints
+# as policy allows. A setup can set repository_proxy_enabled: false to opt out.
 # repository_proxy_enabled: true
-# repository_proxy_url: "http://cache.{{ platform_domain }}:3128"
 # repository_proxy_fqdn: "cache.{{ platform_domain }}"
+# repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
+# repository_proxy_ip can stay unset when DNS resolves repository_proxy_fqdn.
+# Set it only when the baseline must seed /etc/hosts before DNS exists.
 # repository_proxy_ip: "<cache_proxy_vip>"
