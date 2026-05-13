@@ -56,6 +56,10 @@ platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 # Baseline defaults applied by Ansible roles.
 baseline_timezone: Europe/Stockholm
 baseline_ntp_enabled: true
+# IPv6 is disabled by default because this repo currently models IPv4-only
+# guests. Set to false only for environments where IPv6 addressing, DNS,
+# routing, and firewall rules are intentionally managed.
+baseline_disable_ipv6: true
 
 # Repository proxy consumed by managed hosts. Uncomment after a cache/proxy
 # exists and managed hosts should use it.

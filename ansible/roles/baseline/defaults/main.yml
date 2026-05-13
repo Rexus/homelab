@@ -7,6 +7,8 @@ repository_proxy_fqdn: ""
 repository_proxy_ip: ""
 baseline_manage_timezone: true
 baseline_timezone: UTC
+baseline_disable_ipv6: true
+baseline_network_sysctl_file: /etc/sysctl.d/90-homelab-network.conf
 baseline_manage_ssh: true
 baseline_disable_password_auth: true
 baseline_permit_root_login: false
