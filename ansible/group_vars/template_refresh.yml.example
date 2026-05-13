@@ -23,7 +23,7 @@ template_refresh_replacements:
   # explicitly in environment overlays when test and production templates
   # should have different names.
   - name: alma-10-tmpl
-    staged_vm_id: 910
+    staged_vm_id: 190
     target_vm_id: 110
     # Optional: set when the final clone should land on another datastore.
     # storage: local-lvm

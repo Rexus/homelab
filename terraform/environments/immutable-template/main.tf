@@ -48,9 +48,9 @@ module "vms" {
   for_each = module.environment.vm_instances
   source   = "../../modules/vm"
 
-  name      = each.value.name
-  node_name = each.value.node_name
-  vm_id     = each.value.vm_id
+  name                      = each.value.name
+  node_name                 = each.value.node_name
+  vm_id                     = each.value.vm_id
   template_vm_id            = each.value.template_vm_id
   storage_class            = each.value.storage_class
   storage_class_datastores = var.proxmox_storage_classes
@@ -76,6 +76,7 @@ module "lxcs" {
 
   name                     = each.value.name
   node_name                = each.value.node_name
+  vm_id                    = each.value.vm_id
   template_file_id         = each.value.template_file_id
   storage_class            = each.value.storage_class
   storage_class_datastores = var.proxmox_storage_classes

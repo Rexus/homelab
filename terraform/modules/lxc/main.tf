@@ -44,6 +44,7 @@ locals {
 }
 
 resource "proxmox_virtual_environment_container" "this" {
+  vm_id        = var.vm_id
   node_name    = var.node_name
   description  = var.description
   tags         = var.tags

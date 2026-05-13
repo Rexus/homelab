@@ -4,6 +4,7 @@ cache_keepalived_package_name: keepalived
 cache_squid_config_path: /etc/squid/squid.conf
 cache_keepalived_config_path: /etc/keepalived/keepalived.conf
 cache_squid_check_script_path: /usr/local/sbin/check-squid
+cache_squid_binary: /usr/sbin/squid
 
 cache_keepalived_enabled: true
 cache_keepalived_group: cache
@@ -19,6 +20,14 @@ cache_squid_service_state: started
 cache_squid_http_port: 3128
 cache_squid_cache_mb: 2048
 cache_squid_max_object_size: 1024 MB
+cache_squid_cache_dir: /var/spool/squid
+cache_squid_initialize_cache: true
+cache_squid_data_disk_enabled: false
+cache_squid_data_device: ""
+cache_squid_data_device_wait_timeout: 60
+cache_squid_data_fstype: xfs
+cache_squid_data_fstype_package: xfsprogs
+cache_squid_data_mount_opts: defaults,noatime
 cache_squid_allowed_cidrs:
   - 10.0.0.0/8
   - 172.16.0.0/12

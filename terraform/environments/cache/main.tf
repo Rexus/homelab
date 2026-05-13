@@ -50,6 +50,7 @@ module "vms" {
 
   name                     = each.value.name
   node_name                = each.value.node_name
+  vm_id                    = each.value.vm_id
   template_vm_id            = each.value.template_vm_id
   storage_class            = each.value.storage_class
   storage_class_datastores = var.proxmox_storage_classes
@@ -57,6 +58,7 @@ module "vms" {
   vlan_id                  = try(var.network_zones[each.value.network_zone_key].vlan_id, null)
   size                     = each.value.size
   disk_size_gb             = each.value.disk_size_gb
+  extra_disks              = each.value.extra_disks
   ipv4_address             = each.value.ipv4_address
   ipv4_gateway = each.value.ipv4_address == "dhcp" ? null : try(
     var.network_zones[each.value.network_zone_key].gateway_ipv4,
@@ -72,6 +74,7 @@ module "lxcs" {
 
   name                     = each.value.name
   node_name                = each.value.node_name
+  vm_id                    = each.value.vm_id
   template_file_id         = each.value.template_file_id
   storage_class            = each.value.storage_class
   storage_class_datastores = var.proxmox_storage_classes

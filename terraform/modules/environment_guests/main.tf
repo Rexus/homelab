@@ -111,6 +111,7 @@ locals {
       size           = coalesce(try(vm.size, null), "small")
       storage_class  = coalesce(try(vm.storage_class, null), "local")
       disk_size_gb   = vm.disk_size_gb
+      extra_disks    = coalesce(try(vm.extra_disks, null), [])
       network_zone_key = coalesce(
         try(vm.network_zone_key, null),
         var.default_vm_network_zone_key,
@@ -140,6 +141,7 @@ locals {
         try(lxc.proxmox_node_name, null),
         var.default_platform_node_name,
       )
+      vm_id            = try(lxc.vm_id, null)
       template_file_id = lxc.template_file_id
       size             = coalesce(try(lxc.size, null), "small")
       storage_class    = coalesce(try(lxc.storage_class, null), "local")

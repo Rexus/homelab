@@ -7,10 +7,10 @@ vm_instances = {
   # Default refresh target: one staged replacement for the normal Enterprise
   # Linux template. Expand this map when you maintain more than one template.
   #
-  # vm_id is the temporary staged template ID. It must be different from the
-  # final template ID until the explicit replacement step runs.
+  # vm_id is the temporary staged template ID. Keep it in the template range
+  # and make it different from the final template ID until replacement runs.
   "alma-10-tmpl-stage" = {
-    vm_id               = 910
+    vm_id               = 190
     template_catalog_id = 110
     size                = "small"
     storage_class       = "local"

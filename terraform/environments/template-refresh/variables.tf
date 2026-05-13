@@ -136,6 +136,7 @@ variable "lxc_instances" {
   description = "LXC hardware definitions keyed by logical Ansible inventory hostname."
   type = map(object({
     proxmox_node_name = optional(string)
+    vm_id             = optional(number)
     template_file_id = string
     size             = optional(string)
     storage_class    = optional(string)

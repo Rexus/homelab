@@ -20,6 +20,7 @@ vm_instances = {
   "hsm-1" = {
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 111
+    vm_id            = 250
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
@@ -27,6 +28,7 @@ vm_instances = {
     tags             = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
   }
   "hsm-2" = {
+    vm_id            = 251
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
@@ -37,6 +39,7 @@ vm_instances = {
   # with the matching Ansible inventory host and hsm.yml platform_host_ips
   # entry.
   # "crypto-admin-1" = {
+  #   vm_id            = 252
   #   size             = "tiny"
   #   storage_class    = "local"
   #   disk_size_gb     = 20

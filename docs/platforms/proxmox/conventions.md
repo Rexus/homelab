@@ -59,6 +59,11 @@ before broad provisioning starts and keep it consistent.
 | `400-499` | Databases |
 | `500-999` | User and app VMs |
 
+Terraform examples should set `vm_id` explicitly for repo-managed guests so
+deployments are predictable and do not depend on Proxmox auto-allocation.
+Change the example IDs before deployment when the range is already used in your
+cluster.
+
 ## Templates
 
 ### Template names

@@ -122,9 +122,10 @@ permission changes in one place.
 
 ### 3. Grant VM permissions to the group
 
-This repo currently creates new VM IDs from automation, so grant VM permissions on
-`/vms` unless you have changed the Terraform model to create guests inside a
-specific Proxmox pool.
+This repo uses explicit Proxmox VMIDs in the Terraform examples so the deployed
+guests follow the recommended ranges in [conventions.md](conventions.md).
+Grant VM permissions on `/vms` unless you have changed the Terraform model to
+create guests inside a specific Proxmox pool.
 
 ```bash
 pveum acl modify /vms --groups platform-automation --roles PlatformAutomationVM

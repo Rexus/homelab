@@ -116,6 +116,7 @@ variable "vm_instances" {
   description = "VM hardware definitions keyed by logical Ansible inventory hostname."
   type = map(object({
     proxmox_node_name = optional(string)
+    vm_id             = optional(number)
     template_vm_id   = optional(number)
     template_catalog_id = optional(number)
     template_tags       = optional(list(string))
@@ -132,6 +133,7 @@ variable "lxc_instances" {
   description = "LXC hardware definitions keyed by logical Ansible inventory hostname."
   type = map(object({
     proxmox_node_name = optional(string)
+    vm_id             = optional(number)
     template_file_id = string
     size             = optional(string)
     storage_class    = optional(string)

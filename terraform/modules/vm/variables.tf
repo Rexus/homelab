@@ -112,6 +112,20 @@ variable "disk_size_gb" {
   type        = number
 }
 
+variable "extra_disks" {
+  description = "Optional extra data disks attached to the VM."
+  type = list(object({
+    interface     = string
+    size_gb       = number
+    storage_class = optional(string)
+    datastore_id  = optional(string)
+    iothread      = optional(bool)
+    discard       = optional(string)
+    ssd           = optional(bool)
+  }))
+  default = []
+}
+
 variable "started" {
   description = "Whether the VM should be started."
   type        = bool

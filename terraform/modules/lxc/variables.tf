@@ -10,6 +10,13 @@ variable "description" {
   nullable    = true
 }
 
+variable "vm_id" {
+  description = "Optional target Proxmox container VMID. Null lets Proxmox allocate one."
+  type        = number
+  default     = null
+  nullable    = true
+}
+
 variable "node_name" {
   description = "Proxmox node name."
   type        = string

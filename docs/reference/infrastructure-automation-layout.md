@@ -20,11 +20,14 @@ Keep shared host identity in Ansible and hardware placement in Terraform.
 | Ansible inventory | stable logical host keys and service groups |
 | Ansible `all` group vars | hostname prefix or suffix, domain, and baseline inputs |
 | Ansible setup group vars | guest IP map, service settings, and host configuration inputs |
-| Terraform environment tfvars | Proxmox tags, size, storage class, disk size, network zone, and optional Proxmox node override |
+| Terraform environment tfvars | Proxmox VMID, tags, size, storage class, disk size, network zone, and optional Proxmox node override |
 | Terraform common tfvars | default platform node, shared storage mappings, network zones, template IDs, and cloud-init SSH keys |
 
 Terraform guest maps are keyed by the matching Ansible inventory host key, for
 example `idm-1`. Keep that key stable across environments.
+Set `vm_instances.<key>.vm_id` and `lxc_instances.<key>.vm_id` explicitly in
+examples so repo-managed guests follow the Proxmox VMID ranges from the platform
+conventions. Change the IDs when those ranges are already used in your cluster.
 
 Use `platform_hostname_prefix`, `platform_hostname_suffix`, and
 `platform_domain` in `all.yml` or `all.<env>.yml` to shape each environment.

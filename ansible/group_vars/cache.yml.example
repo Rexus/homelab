@@ -41,8 +41,18 @@ cache_squid_package_state: present
 cache_squid_service_enabled: true
 cache_squid_service_state: started
 cache_squid_http_port: "{{ cache_proxy_port }}"
-cache_squid_cache_mb: 2048
+# Keep below the Terraform data disk size. The default example disk is 100 GB.
+cache_squid_cache_mb: 81920
 cache_squid_max_object_size: 1024 MB
+cache_squid_cache_dir: /var/spool/squid
+
+# Terraform attaches a dedicated cache disk as scsi1 in the example.
+# Enterprise Linux normally discovers that as /dev/sdb. Adjust if your
+# template or hypervisor exposes the disk under a different stable path.
+cache_squid_data_disk_enabled: true
+cache_squid_data_device: /dev/sdb
+cache_squid_data_fstype: xfs
+cache_squid_data_mount_opts: defaults,noatime
 
 # Keep this explicit. Add only the networks that may use the cache.
 cache_squid_allowed_cidrs:

@@ -25,8 +25,8 @@ http_port {{ cache_squid_http_port }}
 
 cache_mem 256 MB
 maximum_object_size {{ cache_squid_max_object_size }}
-cache_dir ufs /var/spool/squid {{ cache_squid_cache_mb }} 16 256
-coredump_dir /var/spool/squid
+cache_dir ufs {{ cache_squid_cache_dir }} {{ cache_squid_cache_mb }} 16 256
+coredump_dir {{ cache_squid_cache_dir }}
 
 {% if cache_squid_upstream_proxy is defined %}
 cache_peer {{ cache_squid_upstream_proxy }} parent {{ cache_squid_upstream_port | default(3128) }} 0 no-query default

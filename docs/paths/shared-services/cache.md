@@ -27,6 +27,7 @@ upstream.
 | Component | Terraform default | Inventory entry | Zone | Purpose |
 | --- | --- | --- | --- | --- |
 | caches | `cache-1`, `cache-2` active | present by default | `external_edge` | controlled outbound web access |
+| cache data disks | one `scsi1` data disk per cache VM | mounted by Ansible | VM local/shared storage | Squid cache data |
 | extra cache nodes | commented examples | add matching inventory and IP entries | `external_edge` | horizontal scale or isolated policy sets |
 
 The default is a pair. Add `cache-3` and higher when the environment needs more
@@ -46,10 +47,30 @@ horizontal capacity or separate egress policy sets.
 | Path | What you configure |
 | --- | --- |
 | [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | `external_edge` network mapping, shared storage, template ID, and SSH keys |
-| [`terraform/environments/cache/terraform.tfvars.example`](../../../terraform/environments/cache/terraform.tfvars.example) | cache VM count, size, storage, and tags |
+| [`terraform/environments/cache/terraform.tfvars.example`](../../../terraform/environments/cache/terraform.tfvars.example) | cache VM count, size, OS disk, cache data disk, storage, and tags |
 | [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | `cache` host group |
 | [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | shared hostname, domain, SSH, optional repository proxy URL, and baseline defaults |
 | [`ansible/group_vars/cache.yml.example`](../../../ansible/group_vars/cache.yml.example) | cache host IPs, VIP, FQDN, port, keepalived router ID, allowed client CIDRs, allowed software-source domains, and optional upstream proxy |
+
+## Cache storage
+
+Keep Squid cache data off the OS disk. The Terraform example attaches a
+dedicated `scsi1` data disk to each cache VM, and the Ansible cache role formats
+and mounts it at `cache_squid_cache_dir`, which defaults to `/var/spool/squid`.
+
+The example uses `/dev/sdb` because an Enterprise Linux VM with one OS disk and
+one extra `scsi1` disk normally discovers the extra disk there. Change
+`cache_squid_data_device` in `cache.yml` if your template exposes the disk under
+a different stable device path.
+
+Tune both sides together:
+
+| Setting | Purpose |
+| --- | --- |
+| `vm_instances.<cache>.extra_disks[*].size_gb` | Proxmox data disk size |
+| `cache_squid_data_device` | guest device to format and mount |
+| `cache_squid_cache_dir` | mount point and Squid cache directory |
+| `cache_squid_cache_mb` | Squid cache size inside that mounted filesystem |
 
 ## How other paths use it
 

@@ -66,6 +66,15 @@ variable "vm_instances" {
     size             = optional(string)
     storage_class    = optional(string)
     disk_size_gb     = number
+    extra_disks = optional(list(object({
+      interface     = string
+      size_gb       = number
+      storage_class = optional(string)
+      datastore_id  = optional(string)
+      iothread      = optional(bool)
+      discard       = optional(string)
+      ssd           = optional(bool)
+    })))
     network_zone_key = optional(string)
     started          = optional(bool)
     template         = optional(bool)
@@ -79,6 +88,7 @@ variable "lxc_instances" {
   description = "LXC hardware definitions keyed by logical Ansible inventory hostname."
   type = map(object({
     proxmox_node_name = optional(string)
+    vm_id             = optional(number)
     template_file_id = string
     size             = optional(string)
     storage_class    = optional(string)

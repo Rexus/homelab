@@ -294,8 +294,8 @@ What the automation uses:
 
 Refresh flow:
 
-1. Clone the current template into a staged VM with a temporary VM ID, such as
-   `910`.
+1. Clone the current template into a staged VM with a temporary template-range
+   VM ID, such as `190`.
 2. Let Ansible update packages and verify `acpid`, `qemu-guest-agent`, and
    cloud-init behavior.
 3. Set `template_refresh_prepare_for_template: true` and rerun Ansible to clean

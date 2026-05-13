@@ -12,6 +12,7 @@ vm_instances = {
   # Keep the host key aligned with ansible/inventory/hosts.yml and
   # ansible/group_vars/development.yml.
   "git-1" = {
+    vm_id            = 300
     size             = "xl"
     storage_class    = "shared"
     disk_size_gb     = 200

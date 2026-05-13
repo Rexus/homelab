@@ -17,6 +17,7 @@ vm_instances = {
   "idm-1" = {
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 111
+    vm_id             = 200
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
@@ -24,6 +25,7 @@ vm_instances = {
     tags              = ["freeipa", "dns", "critical", "internal", "always-on", "platform"]
   }
   "idm-2" = {
+    vm_id             = 201
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
@@ -31,6 +33,7 @@ vm_instances = {
     tags              = ["freeipa", "dns", "critical", "internal", "always-on", "platform"]
   }
   "ca-1" = {
+    vm_id             = 210
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 30
@@ -40,6 +43,7 @@ vm_instances = {
   # Optional root CA host, default 0. Uncomment together with the matching
   # Ansible inventory host and foundation.yml platform_host_ips entry.
   # "ca-root-1" = {
+  #   vm_id             = 211
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 30

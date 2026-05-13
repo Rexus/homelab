@@ -13,23 +13,48 @@ vm_instances = {
   # The default is a pair. Add cache-3 and higher when you need horizontal
   # scale, and keep matching Ansible inventory and IP entries.
   "cache-1" = {
+    vm_id            = 230
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
+    # Dedicated Squid cache disk mounted by Ansible at /var/spool/squid.
+    extra_disks = [
+      {
+        interface     = "scsi1"
+        size_gb       = 100
+        storage_class = "local"
+      }
+    ]
     network_zone_key = "external_edge"
     tags             = ["squid", "keepalived", "restricted", "always-on", "platform"]
   }
   "cache-2" = {
+    vm_id            = 231
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
+    extra_disks = [
+      {
+        interface     = "scsi1"
+        size_gb       = 100
+        storage_class = "local"
+      }
+    ]
     network_zone_key = "external_edge"
     tags             = ["squid", "keepalived", "restricted", "always-on", "platform"]
   }
   # "cache-3" = {
+  #   vm_id            = 232
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 30
+  #   extra_disks = [
+  #     {
+  #       interface     = "scsi1"
+  #       size_gb       = 100
+  #       storage_class = "local"
+  #     }
+  #   ]
   #   network_zone_key = "external_edge"
   #   tags             = ["squid", "keepalived", "restricted", "always-on", "platform"]
   # }

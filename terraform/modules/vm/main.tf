@@ -41,6 +41,25 @@ locals {
     try(local.selected_storage.cloud_init_drive, null),
     local.selected_storage.vm_disk,
   )
+  resolved_extra_disks = [
+    for disk in var.extra_disks : {
+      interface = disk.interface
+      size_gb   = disk.size_gb
+      datastore_id = coalesce(
+        try(disk.datastore_id, null),
+        try(
+          var.storage_class_datastores[
+            coalesce(try(disk.storage_class, null), var.storage_class)
+          ].vm_disk,
+          null,
+        ),
+        local.resolved_datastore_id,
+      )
+      iothread = coalesce(try(disk.iothread, null), true)
+      discard  = coalesce(try(disk.discard, null), "on")
+      ssd      = coalesce(try(disk.ssd, null), true)
+    }
+  ]
 }
 
 resource "proxmox_virtual_environment_vm" "this" {
@@ -78,6 +97,19 @@ resource "proxmox_virtual_environment_vm" "this" {
     iothread     = true
     discard      = "on"
     ssd          = true
+  }
+
+  dynamic "disk" {
+    for_each = local.resolved_extra_disks
+
+    content {
+      datastore_id = disk.value.datastore_id
+      interface    = disk.value.interface
+      size         = disk.value.size_gb
+      iothread     = disk.value.iothread
+      discard      = disk.value.discard
+      ssd          = disk.value.ssd
+    }
   }
 
   network_device {

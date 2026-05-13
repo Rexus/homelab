@@ -11,6 +11,7 @@ vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
   # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
   "telemetry-1" = {
+    vm_id            = 260
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
@@ -18,6 +19,7 @@ vm_instances = {
     tags             = ["otel-collector", "internal", "always-on", "platform"]
   }
   # "telemetry-2" = {
+  #   vm_id            = 261
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 40
@@ -25,6 +27,7 @@ vm_instances = {
   #   tags             = ["otel-collector", "internal", "always-on", "platform"]
   # }
   "syslog-1" = {
+    vm_id            = 262
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 100
@@ -32,6 +35,7 @@ vm_instances = {
     tags             = ["syslog", "restricted", "always-on", "security"]
   }
   # "syslog-2" = {
+  #   vm_id            = 263
   #   size             = "small"
   #   storage_class    = "local"
   #   disk_size_gb     = 100
@@ -39,6 +43,7 @@ vm_instances = {
   #   tags             = ["syslog", "restricted", "always-on", "security"]
   # }
   "health-1" = {
+    vm_id            = 270
     size             = "medium"
     storage_class    = "local"
     disk_size_gb     = 100
@@ -46,6 +51,7 @@ vm_instances = {
     tags             = ["netdata", "internal", "always-on", "platform"]
   }
   "metrics-1" = {
+    vm_id            = 400
     size             = "large"
     storage_class    = "shared"
     disk_size_gb     = 500
@@ -53,6 +59,7 @@ vm_instances = {
     tags             = ["victoriametrics", "internal", "always-on", "platform"]
   }
   "apm-1" = {
+    vm_id            = 401
     size             = "large"
     storage_class    = "shared"
     disk_size_gb     = 1000
@@ -60,6 +67,7 @@ vm_instances = {
     tags             = ["signoz", "clickhouse", "internal", "always-on", "apps"]
   }
   "logs-1" = {
+    vm_id            = 410
     size             = "large"
     storage_class    = "shared"
     disk_size_gb     = 1000
@@ -67,6 +75,7 @@ vm_instances = {
     tags             = ["opensearch", "restricted", "always-on", "security"]
   }
   # "logs-2" = {
+  #   vm_id            = 411
   #   size             = "large"
   #   storage_class    = "shared"
   #   disk_size_gb     = 1000
@@ -74,6 +83,7 @@ vm_instances = {
   #   tags             = ["opensearch", "restricted", "always-on", "security"]
   # }
   # "logs-3" = {
+  #   vm_id            = 412
   #   size             = "large"
   #   storage_class    = "shared"
   #   disk_size_gb     = 1000
@@ -81,6 +91,7 @@ vm_instances = {
   #   tags             = ["opensearch", "restricted", "always-on", "security"]
   # }
   "telemetry-ui-1" = {
+    vm_id            = 271
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
@@ -88,6 +99,7 @@ vm_instances = {
     tags             = ["opensearch-dashboards", "internal", "always-on", "platform"]
   }
   "archive-1" = {
+    vm_id            = 272
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
