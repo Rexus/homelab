@@ -7,25 +7,38 @@ platform_host_ips:
   cache-2: 10.30.30.21
   # cache-3: 10.30.30.22
 
+# Cache hosts build the repository proxy, so they do not consume the shared
+# all.yml repository_proxy_url by default. If they need an existing upstream
+# proxy during bootstrap, set repository_proxy_enabled to true and point
+# repository_proxy_url at that upstream proxy, not at the cache VIP.
+repository_proxy_enabled: false
+repository_proxy_url: ""
+repository_proxy_fqdn: ""
+repository_proxy_ip: ""
+
 cache_keepalived_enabled: true
 cache_keepalived_group: cache
 cache_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
 cache_keepalived_virtual_router_id: 31
-# Set cache_proxy_vip_cidr in all.yml or all.<env>.yml so the cache VIP and
-# FQDN-based cache_proxy_url are derived from the shared environment values.
-cache_keepalived_vip_cidr: "{{ cache_proxy_vip_cidr | default('') }}"
+cache_proxy_vip_cidr: "<cache_proxy_vip>/<prefix>"
+cache_proxy_name: cache
+cache_proxy_fqdn: "{{ cache_proxy_name }}.{{ platform_domain }}"
+cache_proxy_port: 3128
+cache_proxy_vip: >-
+  {{
+    cache_proxy_vip_cidr | regex_replace('/.*$', '')
+    if cache_proxy_vip_cidr | default('') | trim
+    else ''
+  }}
+cache_proxy_url: "http://{{ cache_proxy_fqdn }}:{{ cache_proxy_port }}"
+cache_keepalived_vip_cidr: "{{ cache_proxy_vip_cidr }}"
 cache_keepalived_priority_base: 110
 cache_keepalived_priority_step: 10
-
-# Optional upstream proxy for the cache hosts themselves. Leave empty when
-# cache hosts have direct egress, internal mirrors, or offline repos. Do not
-# set this to the cache VIP while building the cache hosts.
-cache_upstream_proxy_url: ""
 
 cache_squid_package_state: present
 cache_squid_service_enabled: true
 cache_squid_service_state: started
-cache_squid_http_port: "{{ cache_proxy_port | default(3128) }}"
+cache_squid_http_port: "{{ cache_proxy_port }}"
 cache_squid_cache_mb: 2048
 cache_squid_max_object_size: 1024 MB
 
@@ -35,8 +48,8 @@ cache_squid_allowed_cidrs:
   - 172.16.0.0/12
   - 192.168.0.0/16
 
-# First use case: controlled OS and package updates for restricted systems.
-# Replace with the repository domains your environment actually allows.
+# First use case: controlled repository/update access for restricted systems.
+# Replace with the software-source domains your environment actually allows.
 cache_squid_allowed_domains:
   - .almalinux.org
   - .rockylinux.org

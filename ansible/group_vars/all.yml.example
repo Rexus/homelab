@@ -57,32 +57,14 @@ platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 baseline_timezone: Europe/Stockholm
 baseline_ntp_enabled: true
 
-# Shared cache proxy address. Leave empty when hosts have direct egress,
-# internal mirrors, or offline repos. The VIP is the keepalived address; the
-# URL intentionally uses an FQDN.
-# Example: cache.corp.example.com resolves to <cache_proxy_vip>.
-cache_proxy_vip_cidr: ""
-cache_proxy_name: cache
-cache_proxy_fqdn: "{{ cache_proxy_name }}.{{ platform_domain }}"
-cache_proxy_port: 3128
-cache_proxy_vip: >-
-  {{
-    cache_proxy_vip_cidr | regex_replace('/.*$', '')
-    if cache_proxy_vip_cidr | default('') | trim
-    else ''
-  }}
-cache_proxy_url: >-
-  {{
-    'http://'
-    ~ cache_proxy_fqdn
-    ~ ':'
-    ~ cache_proxy_port
-    if (
-      cache_proxy_vip_cidr | default('') | trim
-      and cache_proxy_fqdn | default('') | trim
-    )
-    else ''
-  }}
-baseline_package_proxy_url: "{{ cache_proxy_url }}"
-baseline_package_proxy_fqdn: "{{ cache_proxy_fqdn }}"
-baseline_package_proxy_ip: "{{ cache_proxy_vip }}"
+# Repository proxy consumed by managed hosts. Uncomment when hosts should reach
+# approved software sources through an existing cache/proxy. This can cover OS
+# package repos, Git remotes, and registry/update endpoints as policy allows.
+# If repository_proxy_url is unset or blank, no proxy is configured. A setup
+# vars file can set repository_proxy_enabled: false to opt out even when this
+# file points to a shared proxy. The cache setup owns how the cache VIP and
+# service are built.
+# repository_proxy_enabled: true
+# repository_proxy_url: "http://cache.{{ platform_domain }}:3128"
+# repository_proxy_fqdn: "cache.{{ platform_domain }}"
+# repository_proxy_ip: "<cache_proxy_vip>"

@@ -1,66 +1,75 @@
 ---
-- name: Configure package proxy host entry when requested
-  ansible.builtin.blockinfile:
-    path: /etc/hosts
-    marker: "# {mark} HOMELAB BASELINE PACKAGE PROXY HOST"
-    block: |
-      {{ baseline_package_proxy_ip }} {{ baseline_package_proxy_fqdn }}
-  when:
-    - baseline_manage_package_proxy | bool
-    - baseline_manage_package_proxy_hosts_entry | bool
-    - baseline_package_proxy_fqdn | length > 0
-    - baseline_package_proxy_ip | length > 0
+- name: Normalize repository proxy inputs
+  ansible.builtin.set_fact:
+    baseline_repository_proxy_enabled: "{{ repository_proxy_enabled | default(true) | bool }}"
+    baseline_repository_proxy_url: "{{ repository_proxy_url | default('') | string | trim }}"
+    baseline_repository_proxy_manage_hosts_entry: >-
+      {{ repository_proxy_manage_hosts_entry | default(true) | bool }}
+    baseline_repository_proxy_fqdn: "{{ repository_proxy_fqdn | default('') | string | trim }}"
+    baseline_repository_proxy_ip: "{{ repository_proxy_ip | default('') | string | trim }}"
 
-- name: Remove managed package proxy host entry when unset
+- name: Configure repository proxy host entry when requested
   ansible.builtin.blockinfile:
     path: /etc/hosts
-    marker: "# {mark} HOMELAB BASELINE PACKAGE PROXY HOST"
+    marker: "# {mark} HOMELAB BASELINE REPOSITORY PROXY HOST"
+    block: |
+      {{ baseline_repository_proxy_ip }} {{ baseline_repository_proxy_fqdn }}
+  when:
+    - baseline_repository_proxy_enabled
+    - baseline_repository_proxy_manage_hosts_entry
+    - baseline_repository_proxy_fqdn | length > 0
+    - baseline_repository_proxy_ip | length > 0
+
+- name: Remove managed repository proxy host entry when unset
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} HOMELAB BASELINE REPOSITORY PROXY HOST"
     state: absent
   when:
-    - baseline_manage_package_proxy | bool
-    - baseline_manage_package_proxy_hosts_entry | bool
+    - baseline_repository_proxy_manage_hosts_entry
     - >-
-      baseline_package_proxy_fqdn | length == 0
-      or baseline_package_proxy_ip | length == 0
+      not baseline_repository_proxy_enabled
+      or baseline_repository_proxy_fqdn | length == 0
+      or baseline_repository_proxy_ip | length == 0
 
 - name: Check DNF package manager configuration
   ansible.builtin.stat:
     path: /etc/dnf/dnf.conf
   register: baseline_dnf_config
-  when: baseline_manage_package_proxy | bool
 
-- name: Fail when a package proxy is requested but DNF is unavailable
+- name: Fail when a repository proxy is requested but DNF is unavailable
   ansible.builtin.fail:
     msg: >-
-      baseline_package_proxy_url is set, but /etc/dnf/dnf.conf was not found.
+      repository_proxy_url is set, but /etc/dnf/dnf.conf was not found.
       This baseline proxy hook currently targets Enterprise Linux guests that
-      use DNF. Use direct package access, configure the host manually, or add a
+      use DNF. Use direct repository access, configure the host manually, or add a
       distro-specific baseline task before enabling the proxy for this host.
   when:
-    - baseline_manage_package_proxy | bool
-    - baseline_package_proxy_url | length > 0
+    - baseline_repository_proxy_enabled
+    - baseline_repository_proxy_url | length > 0
     - not baseline_dnf_config.stat.exists | default(false)
 
-- name: Configure DNF package proxy when requested
+- name: Configure DNF repository proxy when requested
   ansible.builtin.blockinfile:
     path: /etc/dnf/dnf.conf
-    marker: "# {mark} HOMELAB BASELINE PACKAGE PROXY"
+    marker: "# {mark} HOMELAB BASELINE REPOSITORY PROXY"
     insertafter: '^\[main\]'
     block: |
-      proxy={{ baseline_package_proxy_url }}
+      proxy={{ baseline_repository_proxy_url }}
   when:
-    - baseline_manage_package_proxy | bool
-    - baseline_package_proxy_url | length > 0
+    - baseline_repository_proxy_enabled
+    - baseline_repository_proxy_url | length > 0
     - baseline_dnf_config.stat.exists | default(false)
 
-- name: Remove managed DNF package proxy when unset
+- name: Remove managed DNF repository proxy when unset
   ansible.builtin.blockinfile:
     path: /etc/dnf/dnf.conf
-    marker: "# {mark} HOMELAB BASELINE PACKAGE PROXY"
+    marker: "# {mark} HOMELAB BASELINE REPOSITORY PROXY"
     state: absent
   when:
-    - baseline_manage_package_proxy | bool
-    - baseline_package_proxy_url | length == 0
+    - >-
+      not baseline_repository_proxy_enabled
+      or baseline_repository_proxy_url | length == 0
     - baseline_dnf_config.stat.exists | default(false)
 
 - name: Ensure timezone is configured when enabled

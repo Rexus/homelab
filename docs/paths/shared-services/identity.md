@@ -4,7 +4,7 @@
 
 - [Purpose](#purpose)
 - [Before you start](#before-you-start)
-- [Package access](#package-access)
+- [Repository access](#repository-access)
 - [Default private-domain shape](#default-private-domain-shape)
 - [Authentication design](#authentication-design)
 - [Using an existing domain](#using-an-existing-domain)
@@ -43,12 +43,12 @@ shared services for later paths.
 - the network plan already includes at least `management`, `identity`, and
   `cryptography`
 - the Enterprise Linux template is available for the first shared-service hosts
-- package access exists for the foundation hosts
+- repository/update access exists for the foundation hosts
 
-## Package access
+## Repository access
 
-Do not start this path until the foundation hosts can install operating-system
-packages. That access can come from your existing network, mirrors, offline
+Do not start this path until the foundation hosts can install required
+software. That access can come from your existing network, mirrors, offline
 repos, or the repository [Cache path](cache.md). The cache guide owns the
 proxy design, variables, and bootstrap notes.
 

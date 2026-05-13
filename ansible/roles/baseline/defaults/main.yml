@@ -1,10 +1,10 @@
 ---
 baseline_manage_packages: true
-baseline_manage_package_proxy: true
-baseline_package_proxy_url: ""
-baseline_manage_package_proxy_hosts_entry: true
-baseline_package_proxy_fqdn: ""
-baseline_package_proxy_ip: ""
+repository_proxy_enabled: true
+repository_proxy_url: ""
+repository_proxy_manage_hosts_entry: true
+repository_proxy_fqdn: ""
+repository_proxy_ip: ""
 baseline_manage_timezone: true
 baseline_timezone: UTC
 baseline_manage_ssh: true

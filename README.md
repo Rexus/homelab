@@ -26,7 +26,8 @@ start with
 [docs/paths/shared-services/identity.md](docs/paths/shared-services/identity.md).
 If your local tooling still needs to be prepared, read
 [docs/getting-started/local-setup.md](docs/getting-started/local-setup.md).
-For wrapper behavior and manual command equivalents, read
+For the command cheat sheet, wrapper behavior, and manual command equivalents,
+read
 [docs/reference/repository-scripts.md](docs/reference/repository-scripts.md).
 The repository scripts also expose short inline help with `--help`.
 If you want the broader documentation map, use [docs/README.md](docs/README.md).
@@ -38,7 +39,7 @@ Shared-service fast path:
 1. Review platform prerequisites:
    - [Proxmox reference platform](docs/platforms/proxmox/README.md)
    - [Proxmox API setup](docs/platforms/proxmox/setup-api.md)
-   - package access for managed hosts, through approved egress, mirrors,
+   - repository/update access for managed hosts, through approved egress, mirrors,
      offline repos, or the [cache path](docs/paths/shared-services/cache.md)
 
 2. Initialize local working files for the foundation setup and the first

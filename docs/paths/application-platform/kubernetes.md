@@ -19,7 +19,7 @@ Kubernetes should consume the shared services when they exist:
 | PKI | internal TLS, ingress certificates, and service identity |
 | Vault | secrets, workload credentials, and dynamic secret patterns |
 | edge | north-south entry into selected cluster services |
-| cache | controlled outbound update and package access for restricted clusters |
+| cache | controlled outbound repository/update access for restricted clusters |
 | system control | metrics, logs, traces, audit events, and alert routing |
 
 Keep Proxmox as the infrastructure and VM boundary. Use Kubernetes as the

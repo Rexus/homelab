@@ -4,6 +4,7 @@
 
 - [Purpose](#purpose)
 - [Script overview](#script-overview)
+- [Cheat sheet](#cheat-sheet)
 - [Initialize local files](#initialize-local-files)
 - [Run a deployment](#run-a-deployment)
 - [Available setups](#available-setups)
@@ -28,6 +29,29 @@ Both scripts support `--help`.
 | --- | --- | --- |
 | `scripts/init-local-files.sh` | creates ignored local files from the tracked examples | once when you set up the repo, and again when you add a new environment |
 | `scripts/deploy.sh` | runs the control-node precheck, Terraform, and mapped Ansible playbooks | whenever you deploy, plan, or destroy a setup |
+
+## Cheat sheet
+
+Replace `<setup>` with a setup such as `foundation`, `cache`, `vault`, or
+`observability`. Omit `--env <env>` for production.
+
+| Goal | Command |
+| --- | --- |
+| Show init help | `bash scripts/init-local-files.sh --help` |
+| Show deploy help | `bash scripts/deploy.sh --help` |
+| Create all local files | `bash scripts/init-local-files.sh` |
+| Create local files for one setup | `bash scripts/init-local-files.sh --setup <setup>` |
+| Create local files for one environment | `bash scripts/init-local-files.sh --setup <setup> --env <env>` |
+| Refresh local files from examples | `bash scripts/init-local-files.sh --overwrite` |
+| Remove generated backup files | `bash scripts/init-local-files.sh --clean-backups` |
+| Plan an environment deployment | `bash scripts/deploy.sh <setup> --env <env> --plan-only` |
+| Deploy an environment | `bash scripts/deploy.sh <setup> --env <env>` |
+| Deploy production | `bash scripts/deploy.sh <setup>` |
+| Deploy without Terraform prompt | `bash scripts/deploy.sh <setup> --env <env> --auto-approve` |
+| Rerun Ansible only | `bash scripts/deploy.sh <setup> --env <env> --ansible-only` |
+| Run Terraform only | `bash scripts/deploy.sh <setup> --env <env> --terraform-only` |
+| Destroy an environment | `bash scripts/deploy.sh <setup> --env <env> --destroy` |
+| Reset rebuilt host SSH keys | `bash scripts/deploy.sh <setup> --env <env> --reset-known-hosts` |
 
 ## Initialize local files
 
