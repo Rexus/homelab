@@ -8,3 +8,8 @@
   ansible.builtin.service:
     name: keepalived
     state: restarted
+
+- name: Reload firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: reloaded

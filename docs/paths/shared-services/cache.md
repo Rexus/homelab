@@ -39,7 +39,7 @@ horizontal capacity or separate egress policy sets.
 | --- | --- |
 | `Squid` | serves the repository/cache proxy on `cache_proxy_port` |
 | `keepalived` | owns the shared cache VIP and fails it over between cache hosts |
-| firewalld | opens the proxy port and keepalived VRRP when firewalld is active |
+| firewalld | opens the proxy port and keepalived VRRP when firewalld is active; reloads only when rules change |
 | allowed CIDRs | defines which internal networks may use the cache |
 | allowed domains | defines which external software-source domains are reachable |
 

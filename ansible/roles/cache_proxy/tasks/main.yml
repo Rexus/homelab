@@ -44,113 +44,30 @@
   changed_when: false
   when: cache_manage_firewalld | bool
 
-- name: Check whether firewalld allows the Squid proxy port permanently
-  ansible.builtin.command:
-    argv:
-      - firewall-cmd
-      - --permanent
-      - "--query-port={{ cache_squid_http_port }}/tcp"
-  register: cache_firewalld_proxy_port_permanent
-  failed_when: cache_firewalld_proxy_port_permanent.rc not in [0, 1]
-  changed_when: false
+- name: Ensure firewalld allows the Squid proxy port
+  ansible.posix.firewalld:
+    port: "{{ cache_squid_http_port }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+  notify: Reload firewalld
   when:
     - cache_manage_firewalld | bool
     - cache_firewalld_open_proxy_port | bool
     - cache_firewalld_state.rc | default(1) == 0
 
-- name: Allow the Squid proxy port through firewalld permanently
-  ansible.builtin.command:
-    argv:
-      - firewall-cmd
-      - --permanent
-      - "--add-port={{ cache_squid_http_port }}/tcp"
-  changed_when: true
-  when:
-    - cache_manage_firewalld | bool
-    - cache_firewalld_open_proxy_port | bool
-    - cache_firewalld_state.rc | default(1) == 0
-    - cache_firewalld_proxy_port_permanent.rc | default(1) == 1
-
-- name: Check whether firewalld allows the Squid proxy port now
-  ansible.builtin.command:
-    argv:
-      - firewall-cmd
-      - "--query-port={{ cache_squid_http_port }}/tcp"
-  register: cache_firewalld_proxy_port_runtime
-  failed_when: cache_firewalld_proxy_port_runtime.rc not in [0, 1]
-  changed_when: false
-  when:
-    - cache_manage_firewalld | bool
-    - cache_firewalld_open_proxy_port | bool
-    - cache_firewalld_state.rc | default(1) == 0
-
-- name: Allow the Squid proxy port through firewalld now
-  ansible.builtin.command:
-    argv:
-      - firewall-cmd
-      - "--add-port={{ cache_squid_http_port }}/tcp"
-  changed_when: true
-  when:
-    - cache_manage_firewalld | bool
-    - cache_firewalld_open_proxy_port | bool
-    - cache_firewalld_state.rc | default(1) == 0
-    - cache_firewalld_proxy_port_runtime.rc | default(1) == 1
-
-- name: Check whether firewalld allows keepalived VRRP permanently
-  ansible.builtin.command:
-    argv:
-      - firewall-cmd
-      - --permanent
-      - "--query-rich-rule={{ cache_firewalld_vrrp_rich_rule }}"
-  register: cache_firewalld_vrrp_permanent
-  failed_when: cache_firewalld_vrrp_permanent.rc not in [0, 1]
-  changed_when: false
+- name: Ensure firewalld allows keepalived VRRP
+  ansible.posix.firewalld:
+    rich_rule: "{{ cache_firewalld_vrrp_rich_rule }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  notify: Reload firewalld
   when:
     - cache_manage_firewalld | bool
     - cache_firewalld_open_keepalived_vrrp | bool
     - cache_keepalived_enabled | bool
     - cache_firewalld_state.rc | default(1) == 0
-
-- name: Allow keepalived VRRP through firewalld permanently
-  ansible.builtin.command:
-    argv:
-      - firewall-cmd
-      - --permanent
-      - "--add-rich-rule={{ cache_firewalld_vrrp_rich_rule }}"
-  changed_when: true
-  when:
-    - cache_manage_firewalld | bool
-    - cache_firewalld_open_keepalived_vrrp | bool
-    - cache_keepalived_enabled | bool
-    - cache_firewalld_state.rc | default(1) == 0
-    - cache_firewalld_vrrp_permanent.rc | default(1) == 1
-
-- name: Check whether firewalld allows keepalived VRRP now
-  ansible.builtin.command:
-    argv:
-      - firewall-cmd
-      - "--query-rich-rule={{ cache_firewalld_vrrp_rich_rule }}"
-  register: cache_firewalld_vrrp_runtime
-  failed_when: cache_firewalld_vrrp_runtime.rc not in [0, 1]
-  changed_when: false
-  when:
-    - cache_manage_firewalld | bool
-    - cache_firewalld_open_keepalived_vrrp | bool
-    - cache_keepalived_enabled | bool
-    - cache_firewalld_state.rc | default(1) == 0
-
-- name: Allow keepalived VRRP through firewalld now
-  ansible.builtin.command:
-    argv:
-      - firewall-cmd
-      - "--add-rich-rule={{ cache_firewalld_vrrp_rich_rule }}"
-  changed_when: true
-  when:
-    - cache_manage_firewalld | bool
-    - cache_firewalld_open_keepalived_vrrp | bool
-    - cache_keepalived_enabled | bool
-    - cache_firewalld_state.rc | default(1) == 0
-    - cache_firewalld_vrrp_runtime.rc | default(1) == 1
 
 - name: Ensure Squid cache directory exists
   ansible.builtin.file:
