@@ -16,7 +16,7 @@ vm_instances = {
   # matching Ansible inventory and IP entries.
   #
   # Storage design:
-  # - use explicit memory overrides because cache sizing is workload-specific
+  # - use high-memory size profiles because cache sizing is memory-sensitive
   # - keep the OS disk modest
   # - put Squid cache data on the dedicated extra disk
   # - start around 200-500 GB for a small repository/update cache pair
@@ -28,8 +28,7 @@ vm_instances = {
   # default.
   "cache-1" = {
     vm_id            = 230
-    size             = "small"
-    memory           = 8192
+    size             = "small-mem"
     storage_class    = "local"
     disk_size_gb     = 30
     # Dedicated Squid cache disk mounted by Ansible at /var/spool/squid.
@@ -46,8 +45,7 @@ vm_instances = {
   }
   "cache-2" = {
     vm_id            = 231
-    size             = "small"
-    memory           = 8192
+    size             = "small-mem"
     storage_class    = "local"
     disk_size_gb     = 30
     extra_disks = [
@@ -63,8 +61,7 @@ vm_instances = {
   }
   # "cache-3" = {
   #   vm_id            = 232
-  #   size             = "small"
-  #   memory           = 8192
+  #   size             = "small-mem"
   #   storage_class    = "local"
   #   disk_size_gb     = 30
   #   extra_disks = [

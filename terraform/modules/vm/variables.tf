@@ -77,13 +77,24 @@ variable "storage_class_datastores" {
 }
 
 variable "size" {
-  description = "Logical VM size such as tiny, small, medium, large, or xl."
+  description = "Logical VM size profile. Use -mem variants for memory-heavy workloads."
   type        = string
   default     = "small"
 
   validation {
-    condition = contains(["tiny", "small", "medium", "large", "xl"], var.size)
-    error_message = "size must be one of: tiny, small, medium, large, xl."
+    condition = contains([
+      "tiny",
+      "tiny-mem",
+      "small",
+      "small-mem",
+      "medium",
+      "medium-mem",
+      "large",
+      "large-mem",
+      "xl",
+      "xl-mem",
+    ], var.size)
+    error_message = "size must be a supported VM size profile."
   }
 }
 

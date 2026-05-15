@@ -12,21 +12,41 @@ locals {
       cores  = 1
       memory = 1024
     }
+    "tiny-mem" = {
+      cores  = 1
+      memory = 4096
+    }
     small = {
       cores  = 2
       memory = 2048
+    }
+    "small-mem" = {
+      cores  = 2
+      memory = 8192
     }
     medium = {
       cores  = 2
       memory = 4096
     }
+    "medium-mem" = {
+      cores  = 4
+      memory = 16384
+    }
     large = {
       cores  = 4
       memory = 8192
     }
+    "large-mem" = {
+      cores  = 8
+      memory = 32768
+    }
     xl = {
       cores  = 8
       memory = 16384
+    }
+    "xl-mem" = {
+      cores  = 16
+      memory = 65536
     }
   }
 

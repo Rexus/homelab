@@ -124,11 +124,12 @@ testing the generated config with the role's `squid -k parse` validation.
 Start small and scale the cache where the bottleneck appears. Cache data is
 rebuildable, so capacity and throughput matter more than replication.
 
-| Size | VM shape | Cache disk | Active clients | `cache_squid_cache_mem` | Use case |
+| Size profile | VM shape | Cache disk | Active clients | `cache_squid_cache_mem` | Use case |
 | --- | --- | --- | --- | --- | --- |
-| small | 2 vCPU, 8 GB RAM | 200-500 GB local NVMe/SSD | about 25-100 | 1024-2048 MB | small homelab, first HA pair, package updates |
-| medium | 4 vCPU, 16 GB RAM | 1-2 TB local NVMe/SSD | about 100-500 | 4096 MB | several networks, more clients, template and image pulls |
-| large | 8+ vCPU, 32+ GB RAM | 2+ TB or multiple local NVMe devices | about 500-2000+ | 8192 MB | heavy enterprise update egress or many parallel pulls |
+| `tiny-mem` | 1 vCPU, 4 GB RAM | 100-250 GB local NVMe/SSD | about 10-25 | 512-1024 MB | small test cache, single-site experiments |
+| `small-mem` | 2 vCPU, 8 GB RAM | 200-500 GB local NVMe/SSD | about 25-100 | 1024-2048 MB | small homelab, first HA pair, package updates |
+| `medium-mem` | 4 vCPU, 16 GB RAM | 1-2 TB local NVMe/SSD | about 100-500 | 4096 MB | several networks, more clients, template and image pulls |
+| `large-mem` | 8 vCPU, 32 GB RAM | 2+ TB or multiple local NVMe devices | about 500-2000+ | 8192 MB | heavy enterprise update egress or many parallel pulls |
 
 Do not overallocate memory to Squid. Disk cache size and storage latency are
 usually more important for repository, package, and image traffic.
