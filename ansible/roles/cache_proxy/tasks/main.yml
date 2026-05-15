@@ -53,11 +53,41 @@
     timeout: "{{ cache_squid_data_device_wait_timeout }}"
   when: cache_squid_data_disk_enabled | bool
 
-- name: Create filesystem on Squid cache data disk
-  community.general.filesystem:
-    dev: "{{ cache_squid_data_device }}"
-    fstype: "{{ cache_squid_data_fstype }}"
+- name: Check Squid cache data disk filesystem
+  ansible.builtin.command:
+    argv:
+      - blkid
+      - -o
+      - value
+      - -s
+      - TYPE
+      - "{{ cache_squid_data_device }}"
+  register: cache_squid_data_device_blkid
+  failed_when: false
+  changed_when: false
   when: cache_squid_data_disk_enabled | bool
+
+- name: Fail when Squid cache data disk has an unexpected filesystem
+  ansible.builtin.fail:
+    msg: >-
+      {{ cache_squid_data_device }} already has filesystem
+      {{ cache_squid_data_device_blkid.stdout }}. Expected
+      {{ cache_squid_data_fstype }}. Refusing to reformat automatically.
+  when:
+    - cache_squid_data_disk_enabled | bool
+    - cache_squid_data_device_blkid.rc == 0
+    - cache_squid_data_device_blkid.stdout != cache_squid_data_fstype
+
+- name: Create filesystem on Squid cache data disk when empty
+  ansible.builtin.command:
+    argv:
+      - mkfs
+      - -t
+      - "{{ cache_squid_data_fstype }}"
+      - "{{ cache_squid_data_device }}"
+  when:
+    - cache_squid_data_disk_enabled | bool
+    - cache_squid_data_device_blkid.rc != 0
 
 - name: Mount Squid cache data disk
   ansible.posix.mount:

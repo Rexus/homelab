@@ -149,7 +149,7 @@ state file between environments. Omit `--env` for production.
 | `ansible/group_vars/template_refresh.yml.example` | mutable Enterprise Linux template refresh and replacement settings |
 | `ansible/group_vars/lab.yml.example` | lab IP map |
 | `ansible/group_vars/hsm.yml.example` | HSM IP map |
-| `ansible/playbooks/control-node.yml` | local precheck that verifies Terraform and required Ansible collections |
+| `ansible/playbooks/control-node.yml` | setup-aware precheck for Terraform and required Ansible collections |
 | `ansible/playbooks/foundation.yml` | staged FreeIPA identity foundation rollout |
 | `ansible/playbooks/edge.yml` | edge load-balancer baseline plus HAProxy and keepalived |
 | `ansible/playbooks/cache.yml` | cache baseline plus Squid and keepalived |

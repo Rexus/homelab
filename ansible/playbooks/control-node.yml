@@ -4,31 +4,72 @@
   connection: local
   gather_facts: false
   vars:
-    control_node_required_collections:
-      - name: ansible.posix
+    control_node_selected_setup: "{{ control_node_setup | default('site') }}"
+    control_node_collection_catalog:
+      ansible.posix:
+        name: ansible.posix
         os_packages:
           RedHat:
             - ansible-collection-ansible-posix
           Debian:
             - ansible-collection-ansible-posix
-      - name: community.general
-        os_packages:
-          RedHat:
-            - ansible-collection-community-general
-          Debian:
-            - ansible-collection-community-general
-      - name: freeipa.ansible_freeipa
+      freeipa.ansible_freeipa:
+        name: freeipa.ansible_freeipa
         os_packages:
           RedHat:
             - ansible-freeipa
           Debian:
             - ansible-freeipa
+    control_node_setup_collection_names:
+      foundation:
+        - freeipa.ansible_freeipa
+      cache:
+        - ansible.posix
+      edge: []
+      development: []
+      observability: []
+      podman-runner: []
+      immutable-template: []
+      template-refresh: []
+      lab: []
+      vault: []
+      hsm: []
+      site: []
+      ingress: []
 
   tasks:
     - name: Gather deployment control-node facts
       ansible.builtin.setup:
         gather_subset:
           - min
+
+    - name: Validate selected setup precheck mapping
+      ansible.builtin.assert:
+        that:
+          - control_node_selected_setup in control_node_setup_collection_names
+        fail_msg: >-
+          No control-node precheck mapping exists for setup
+          {{ control_node_selected_setup }}. Add it to
+          control_node_setup_collection_names.
+
+    - name: Resolve required collections for selected setup
+      ansible.builtin.set_fact:
+        control_node_required_collections: >-
+          {{
+            control_node_setup_collection_names[control_node_selected_setup]
+            | map('extract', control_node_collection_catalog)
+            | list
+          }}
+
+    - name: Show selected setup collection precheck
+      ansible.builtin.debug:
+        msg: >-
+          Setup {{ control_node_selected_setup }} requires Ansible collections:
+          {{
+            control_node_required_collections | map(attribute='name') | join(', ')
+            if control_node_required_collections | length > 0
+            else 'none'
+          }}.
 
     - name: Verify Terraform is installed on the deployment machine
       ansible.builtin.command:
@@ -53,7 +94,7 @@
       ansible.builtin.set_fact:
         control_node_missing_collections: >-
           {{ (control_node_missing_collections | default([])) + [item.item] }}
-      loop: "{{ control_node_collection_checks.results }}"
+      loop: "{{ control_node_collection_checks.results | default([]) }}"
       when: item.rc != 0 or item.item.name not in item.stdout
 
     - name: Build OS package list for missing Ansible collections
@@ -97,8 +138,8 @@
     - name: Explain Ansible Galaxy fallback
       ansible.builtin.debug:
         msg: >-
-          OS packages did not provide all required collections. Falling back to
-          ansible-galaxy for {{
+          OS packages did not provide all required collections for setup
+          {{ control_node_selected_setup }}. Falling back to ansible-galaxy for {{
             control_node_still_missing_collections | map(attribute='name') | join(', ')
           }}.
       when: (control_node_still_missing_collections | default([]) | length) > 0

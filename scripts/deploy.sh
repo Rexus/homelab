@@ -548,7 +548,8 @@ run_control_node_precheck() {
   echo "==> Running deployment control-node precheck"
   (
     cd "$ansible_dir"
-    ansible-playbook -i localhost, playbooks/control-node.yml
+    ansible-playbook -i localhost, playbooks/control-node.yml \
+      -e "control_node_setup=$setup_name"
   )
 }
 
