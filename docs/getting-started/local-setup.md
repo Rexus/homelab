@@ -49,8 +49,9 @@ Require these tools there:
 `Packer` is only needed when you build templates from this same machine.
 
 Each deployment run starts with a local Ansible precheck on that deployment
-machine. That precheck installs or refreshes required Ansible collections such
-as `community.general` and `freeipa.ansible_freeipa`.
+machine. That precheck verifies required Ansible collections, tries to install
+missing collections from the OS package manager first, and falls back to
+`ansible-galaxy` only when the OS package path does not provide them.
 
 The repository deployment wrapper runs that precheck before Terraform or host
 playbooks. Follow the root README or the setup-specific guide for the actual

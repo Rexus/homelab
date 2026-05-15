@@ -134,7 +134,7 @@ state file between environments. Omit `--env` for production.
 
 | Path | Contains |
 | --- | --- |
-| `ansible/requirements.yml` | required collections for the deployment machine |
+| `ansible/requirements.yml` | Galaxy-compatible reference list of required collections |
 | `ansible/inventory/hosts.yml.example` | stable logical host keys and service groups |
 | `ansible/group_vars/all.yml.example` | shared Ansible defaults and production environment identity |
 | `ansible/group_vars/all.env.yml.example` | environment-specific hostname decoration and domain overlay |
@@ -149,7 +149,7 @@ state file between environments. Omit `--env` for production.
 | `ansible/group_vars/template_refresh.yml.example` | mutable Enterprise Linux template refresh and replacement settings |
 | `ansible/group_vars/lab.yml.example` | lab IP map |
 | `ansible/group_vars/hsm.yml.example` | HSM IP map |
-| `ansible/playbooks/control-node.yml` | local precheck before each wrapper run |
+| `ansible/playbooks/control-node.yml` | local precheck that verifies Terraform and required Ansible collections |
 | `ansible/playbooks/foundation.yml` | staged FreeIPA identity foundation rollout |
 | `ansible/playbooks/edge.yml` | edge load-balancer baseline plus HAProxy and keepalived |
 | `ansible/playbooks/cache.yml` | cache baseline plus Squid and keepalived |

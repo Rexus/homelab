@@ -179,7 +179,8 @@ For each setup, `scripts/deploy.sh`:
 1. checks that required local files exist
 2. loads `.env.local` when it exists, unless `--env-file` points elsewhere
 3. maps `PROXMOX_*` values to the Terraform provider variables
-4. runs the local Ansible control-node precheck
+4. runs the local Ansible control-node precheck, preferring OS packages for
+   missing collections before falling back to Galaxy
 5. runs Terraform with setup-specific local state under `.terraform/state/`
 6. layers `terraform/common.tfvars`, optional environment overlays, and setup
    tfvars in a predictable order

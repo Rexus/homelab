@@ -4,9 +4,32 @@
   connection: local
   gather_facts: false
   vars:
-    ansible_requirements_file: "{{ playbook_dir }}/../requirements.yml"
+    control_node_required_collections:
+      - name: ansible.posix
+        os_packages:
+          RedHat:
+            - ansible-collection-ansible-posix
+          Debian:
+            - ansible-collection-ansible-posix
+      - name: community.general
+        os_packages:
+          RedHat:
+            - ansible-collection-community-general
+          Debian:
+            - ansible-collection-community-general
+      - name: freeipa.ansible_freeipa
+        os_packages:
+          RedHat:
+            - ansible-freeipa
+          Debian:
+            - ansible-freeipa
 
   tasks:
+    - name: Gather deployment control-node facts
+      ansible.builtin.setup:
+        gather_subset:
+          - min
+
     - name: Verify Terraform is installed on the deployment machine
       ansible.builtin.command:
         argv:
@@ -14,13 +37,79 @@
           - version
       changed_when: false
 
-    - name: Install required Ansible collections on the deployment machine
+    - name: Check required Ansible collections
+      ansible.builtin.command:
+        argv:
+          - ansible-galaxy
+          - collection
+          - list
+          - "{{ item.name }}"
+      loop: "{{ control_node_required_collections }}"
+      register: control_node_collection_checks
+      failed_when: false
+      changed_when: false
+
+    - name: Track missing Ansible collections
+      ansible.builtin.set_fact:
+        control_node_missing_collections: >-
+          {{ (control_node_missing_collections | default([])) + [item.item] }}
+      loop: "{{ control_node_collection_checks.results }}"
+      when: item.rc != 0 or item.item.name not in item.stdout
+
+    - name: Build OS package list for missing Ansible collections
+      ansible.builtin.set_fact:
+        control_node_collection_packages: >-
+          {{
+            (control_node_collection_packages | default([]))
+            + (item.os_packages[ansible_os_family] | default([]))
+          }}
+      loop: "{{ control_node_missing_collections | default([]) }}"
+
+    - name: Install missing Ansible collections from OS packages first
+      ansible.builtin.package:
+        name: "{{ control_node_collection_packages | unique | list }}"
+        state: present
+      become: true
+      register: control_node_os_package_install
+      failed_when: false
+      when: (control_node_collection_packages | default([]) | length) > 0
+
+    - name: Re-check required Ansible collections after OS packages
+      ansible.builtin.command:
+        argv:
+          - ansible-galaxy
+          - collection
+          - list
+          - "{{ item.name }}"
+      loop: "{{ control_node_missing_collections | default([]) }}"
+      register: control_node_collection_rechecks
+      failed_when: false
+      changed_when: false
+      when: (control_node_missing_collections | default([]) | length) > 0
+
+    - name: Track collections still missing after OS package install
+      ansible.builtin.set_fact:
+        control_node_still_missing_collections: >-
+          {{ (control_node_still_missing_collections | default([])) + [item.item] }}
+      loop: "{{ control_node_collection_rechecks.results | default([]) }}"
+      when: item.rc != 0 or item.item.name not in item.stdout
+
+    - name: Explain Ansible Galaxy fallback
+      ansible.builtin.debug:
+        msg: >-
+          OS packages did not provide all required collections. Falling back to
+          ansible-galaxy for {{
+            control_node_still_missing_collections | map(attribute='name') | join(', ')
+          }}.
+      when: (control_node_still_missing_collections | default([]) | length) > 0
+
+    - name: Install remaining Ansible collections from Galaxy
       ansible.builtin.command:
         argv:
           - ansible-galaxy
           - collection
           - install
-          - -r
-          - "{{ ansible_requirements_file }}"
-      register: control_node_collections
-      changed_when: "'Nothing to do' not in control_node_collections.stdout"
+          - "{{ item.name }}"
+      loop: "{{ control_node_still_missing_collections | default([]) }}"
+      register: control_node_galaxy_install
+      changed_when: false
