@@ -3,7 +3,31 @@
   ansible.builtin.assert:
     that:
       - ansible_os_family == "RedHat"
-      - edge_keepalived_vip_cidr is defined
+      - >-
+        edge_keepalived_vips | default([]) | length > 0
+        or edge_keepalived_vip_cidr is defined
+      - >-
+        (
+          edge_keepalived_vips | default([])
+          | selectattr('vip_cidr', 'defined')
+          | list
+          | length
+        ) == (edge_keepalived_vips | default([]) | length)
+      - >-
+        (
+          edge_keepalived_vips | default([])
+          | selectattr('virtual_router_id', 'defined')
+          | list
+          | length
+        ) == (edge_keepalived_vips | default([]) | length)
+      - >-
+        (
+          edge_keepalived_vips | default([])
+          | map(attribute='virtual_router_id')
+          | list
+          | unique
+          | length
+        ) == (edge_keepalived_vips | default([]) | length)
       - groups.get(edge_keepalived_group, []) | length >= 1
       - >-
         groups.get(edge_keepalived_group, [])
@@ -11,7 +35,8 @@
         | length == 0
     fail_msg: >-
       The edge load-balancer role currently targets Enterprise Linux guests and
-      requires a keepalived VIP plus static platform_host_ips for every edge host.
+      requires keepalived VIP settings plus static platform_host_ips for every
+      edge host.
 
 - name: Install edge load-balancer packages
   ansible.builtin.package:

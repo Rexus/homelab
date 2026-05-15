@@ -1,5 +1,12 @@
 {% set members = groups.get(edge_keepalived_group, []) %}
-{% set node_index = members.index(inventory_hostname) if inventory_hostname in members else 0 %}
+{% set legacy_vips = [{
+  'name': 'edge_vip',
+  'vip_cidr': edge_keepalived_vip_cidr,
+  'virtual_router_id': edge_keepalived_virtual_router_id,
+  'priority_base': edge_keepalived_priority_base,
+  'priority_step': edge_keepalived_priority_step
+}] %}
+{% set keepalived_vips = edge_keepalived_vips if edge_keepalived_vips | default([]) | length > 0 else legacy_vips %}
 global_defs {
   router_id {{ platform_hostname | default(inventory_hostname) }}
   enable_script_security
@@ -13,12 +20,21 @@ vrrp_script chk_haproxy {
   rise 2
 }
 
-vrrp_instance edge_vip {
+{% for vip in keepalived_vips %}
+{% set vip_name = vip.name | default('vip_' ~ loop.index) %}
+{% set instance_name = vip.instance_name | default('edge_' ~ vip_name) | regex_replace('[^A-Za-z0-9_]', '_') %}
+{% set node_index = members.index(inventory_hostname) if inventory_hostname in members else 0 %}
+{% set priority_map = vip.priorities | default({}) %}
+{% set priority_base = vip.priority_base | default(edge_keepalived_priority_base) %}
+{% set priority_step = vip.priority_step | default(edge_keepalived_priority_step) %}
+{% set fallback_priority = priority_base - (node_index * priority_step) %}
+{% set priority = priority_map[inventory_hostname] if inventory_hostname in priority_map else fallback_priority %}
+vrrp_instance {{ instance_name }} {
   state BACKUP
   interface {{ edge_keepalived_interface }}
-  virtual_router_id {{ edge_keepalived_virtual_router_id }}
-  priority {{ edge_keepalived_priority_base - (node_index * edge_keepalived_priority_step) }}
-  advert_int 1
+  virtual_router_id {{ vip.virtual_router_id }}
+  priority {{ priority }}
+  advert_int {{ vip.advert_int | default(edge_keepalived_advert_int) }}
   unicast_src_ip {{ platform_host_ips[inventory_hostname] }}
 {% if members | length > 1 %}
   unicast_peer {
@@ -28,9 +44,16 @@ vrrp_instance edge_vip {
   }
 {% endif %}
   virtual_ipaddress {
-    {{ edge_keepalived_vip_cidr }}
+    {{ vip.vip_cidr }}
   }
+{% if vip.auth_pass is defined and vip.auth_pass | length > 0 %}
+  authentication {
+    auth_type PASS
+    auth_pass {{ vip.auth_pass }}
+  }
+{% endif %}
   track_script {
     chk_haproxy
   }
 }
+{% endfor %}

@@ -12,6 +12,8 @@ edge_keepalived_virtual_router_id: 30
 edge_keepalived_vip_cidr: 10.30.30.100/24
 edge_keepalived_priority_base: 110
 edge_keepalived_priority_step: 10
+edge_keepalived_advert_int: 1
+edge_keepalived_vips: []
 
 edge_haproxy_package_state: present
 edge_haproxy_service_enabled: true

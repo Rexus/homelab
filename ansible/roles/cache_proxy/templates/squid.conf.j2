@@ -23,17 +23,30 @@ http_access deny all
 
 http_port {{ cache_squid_http_port }}
 
-cache_mem 256 MB
+cache_mem {{ cache_squid_cache_mem }}
+maximum_object_size_in_memory {{ cache_squid_max_object_size_in_memory }}
 maximum_object_size {{ cache_squid_max_object_size }}
-cache_dir ufs {{ cache_squid_cache_dir }} {{ cache_squid_cache_mb }} 16 256
+range_offset_limit {{ cache_squid_range_offset_limit }}
+quick_abort_min {{ cache_squid_quick_abort_min }}
+quick_abort_max {{ cache_squid_quick_abort_max }}
+quick_abort_pct {{ cache_squid_quick_abort_pct }}
+cache_replacement_policy {{ cache_squid_cache_replacement_policy }}
+memory_replacement_policy {{ cache_squid_memory_replacement_policy }}
+cache_dir {{ cache_squid_cache_dir_type }} {{ cache_squid_cache_dir }} {{ cache_squid_cache_mb }} {{ cache_squid_l1_dirs }} {{ cache_squid_l2_dirs }}
 coredump_dir {{ cache_squid_cache_dir }}
+logfile_rotate {{ cache_squid_logfile_rotate }}
+access_log daemon:/var/log/squid/access.log squid
+cache_log /var/log/squid/cache.log
+
+{% for option in cache_squid_extra_options %}
+{{ option }}
+{% endfor %}
 
 {% if cache_squid_upstream_proxy is defined %}
 cache_peer {{ cache_squid_upstream_proxy }} parent {{ cache_squid_upstream_port | default(3128) }} 0 no-query default
 never_direct allow all
 {% endif %}
 
-refresh_pattern ^ftp: 1440 20% 10080
-refresh_pattern ^gopher: 1440 0% 1440
-refresh_pattern -i (/cgi-bin/|\?) 0 0% 0
-refresh_pattern . 0 20% 4320
+{% for pattern in cache_squid_refresh_patterns %}
+refresh_pattern {{ pattern }}
+{% endfor %}

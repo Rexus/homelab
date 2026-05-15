@@ -63,10 +63,11 @@ all:
     # Terraform config: terraform/environments/edge/terraform.tfvars
     edge_load_balancers:
       hosts:
-        # Add edge-lb-3 and higher only after adding the same hosts to
-        # edge vm_instances and edge platform_host_ips.
+        # Add or remove edge hosts together with edge vm_instances and
+        # edge platform_host_ips.
         edge-lb-1: {}
         edge-lb-2: {}
+        edge-lb-3: {}
 
     # Cache path.
     # Guide: docs/paths/shared-services/cache.md

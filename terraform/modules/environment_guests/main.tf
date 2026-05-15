@@ -109,6 +109,8 @@ locals {
       vm_id          = try(vm.vm_id, null)
       template_vm_id = local.resolved_vm_template_ids[key]
       size           = coalesce(try(vm.size, null), "small")
+      cores          = try(vm.cores, null)
+      memory         = try(vm.memory, null)
       storage_class  = coalesce(try(vm.storage_class, null), "local")
       disk_size_gb   = vm.disk_size_gb
       extra_disks    = coalesce(try(vm.extra_disks, null), [])

@@ -44,10 +44,39 @@ cache_squid_http_port: "{{ cache_proxy_port }}"
 cache_manage_firewalld: true
 cache_firewalld_open_proxy_port: true
 cache_firewalld_open_keepalived_vrrp: true
-# Keep below the Terraform data disk size. The default example disk is 100 GB.
-cache_squid_cache_mb: 81920
-cache_squid_max_object_size: 1024 MB
+
+# Repository/update cache tuning. These defaults target a small HA pair with
+# 8 GB RAM and a 200-500 GB local NVMe/local SSD cache disk. Increase
+# cache_squid_cache_mb when Terraform attaches a larger local cache disk.
+cache_squid_cache_mem: 2048 MB
+cache_squid_max_object_size_in_memory: 512 KB
+cache_squid_max_object_size: 20 GB
+cache_squid_cache_dir_type: ufs
+# Keep below the Terraform data disk size. Example: 180000 = 180 GB cache.
+cache_squid_cache_mb: 180000
 cache_squid_cache_dir: /var/spool/squid
+cache_squid_l1_dirs: 16
+cache_squid_l2_dirs: 256
+cache_squid_range_offset_limit: -1
+cache_squid_quick_abort_min: 0 KB
+cache_squid_quick_abort_max: 0 KB
+cache_squid_quick_abort_pct: 95
+cache_squid_cache_replacement_policy: heap LFUDA
+cache_squid_memory_replacement_policy: heap GDSF
+cache_squid_logfile_rotate: 14
+cache_squid_manage_systemd_limits: true
+cache_squid_limit_nofile: 65535
+cache_squid_manage_sysctl: true
+cache_squid_sysctl_settings:
+  fs.file-max: "2097152"
+  net.core.somaxconn: "65535"
+  net.ipv4.ip_local_port_range: "10240 65535"
+  net.ipv4.tcp_fin_timeout: "15"
+  net.ipv4.tcp_tw_reuse: "1"
+cache_squid_extra_options: []
+# If your installed Squid supports it and IPv6 is imperfect, you may add:
+# cache_squid_extra_options:
+#   - dns_v4_first on
 
 # Terraform attaches a dedicated cache disk as scsi1 in the example.
 # Enterprise Linux normally discovers that as /dev/sdb. Adjust if your
@@ -55,7 +84,7 @@ cache_squid_cache_dir: /var/spool/squid
 cache_squid_data_disk_enabled: true
 cache_squid_data_device: /dev/sdb
 cache_squid_data_fstype: xfs
-cache_squid_data_mount_opts: defaults,noatime
+cache_squid_data_mount_opts: defaults,noatime,nodiratime,logbufs=8
 
 # Keep this explicit. Add only the networks that may use the cache.
 cache_squid_allowed_cidrs:
@@ -73,6 +102,46 @@ cache_squid_allowed_domains:
   - .epel.cloud
   - .redhat.com
   - .cdn.redhat.com
+  - .ubuntu.com
+  - .debian.org
+  - .proxmox.com
+  - .ceph.com
+  - .canonical.com
+  - .launchpad.net
+  - .hashicorp.com
+  - .terraform.io
+  - .docker.com
+  - .docker.io
+  - .gcr.io
+  - .ghcr.io
+  - .pkg.dev
+  - .quay.io
+  - .registry.k8s.io
+  - .k8s.io
+  - .github.com
+  - .githubusercontent.com
+  - .microsoft.com
+  - .packages.microsoft.com
+  - .windowsupdate.com
+  - .windowsupdate.microsoft.com
+  - .update.microsoft.com
+  - .download.windowsupdate.com
+  - .windows.com
+  - .msftconnecttest.com
+  - .msftncsi.com
+  - .azureedge.net
+  - .mp.microsoft.com
+  - .delivery.mp.microsoft.com
+
+cache_squid_refresh_patterns:
+  - '-i \.(deb|udeb|rpm)$ 4320 90% 43200 override-expire ignore-no-cache ignore-private'
+  - '-i (Release|Packages|Sources|repomd\.xml|primary\.xml\.gz)$ 0 20% 60 reload-into-ims'
+  - '-i \.(cab|msu|psf|esd|wim|iso|img|qcow2|vmdk|ova|ovf)$ 4320 90% 43200 override-expire ignore-no-cache ignore-private'
+  - '-i \.(tar|tgz|gz|xz|bz2|zst)$ 1440 90% 20160'
+  - '^ftp: 1440 20% 10080'
+  - '^gopher: 1440 0% 1440'
+  - '-i (/cgi-bin/|\?) 0 0% 0'
+  - '. 0 20% 4320'
 
 # Optional upstream proxy when Squid must chain through another egress proxy.
 # Leave unset for direct outbound access from the cache nodes. For disconnected

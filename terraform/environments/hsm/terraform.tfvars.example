@@ -12,7 +12,7 @@ hsm_variant = "hardware"
 # Keep the shared external edge load balancer in the edge setup by default.
 # Keys match the stable logical host names in the Ansible inventory.
 # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
-# The repository reference shape is one edge load-balancer pair from edge
+# The repository reference shape is the shared edge load-balancer set from edge
 # plus two gateway hosts here, each with its own local USB HSM.
 # The shared Ansible inventory and hsm.yml include the matching hsm-1 and
 # hsm-2 entries.

@@ -161,7 +161,7 @@ Useful options:
 | Setup | What it targets | Start with |
 | --- | --- | --- |
 | `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../paths/shared-services/identity.md) |
-| `edge` | shared edge load-balancer pair or larger set | [Edge proxy path](../paths/shared-services/edge.md) |
+| `edge` | shared edge load-balancer set with rotated VIP ownership | [Edge proxy path](../paths/shared-services/edge.md) |
 | `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../paths/shared-services/cache.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../paths/application-platform/development.md) |
 | `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../paths/shared-services/vault.md) |

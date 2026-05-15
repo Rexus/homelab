@@ -55,8 +55,8 @@ Use this order:
 
 - [Identity foundation path](identity.md) - first managed
   private-domain hosts for `FreeIPA`, DNS, and the first PKI path
-- [Edge proxy path](edge.md) - shared edge load-balancer pair with horizontal
-  expansion for ingress, egress, and service backends
+- [Edge proxy path](edge.md) - shared 3-node edge load-balancer set with
+  rotated VIP ownership for ingress, egress, and service backends
 - [Cache path](cache.md) - `Squid` cache pair for controlled outbound
   repository/update access from restricted systems before other software
   installation paths run

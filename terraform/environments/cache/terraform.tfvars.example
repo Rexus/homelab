@@ -10,18 +10,34 @@
 vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
   # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
-  # The default is a pair. Add cache-3 and higher when you need horizontal
-  # scale, and keep matching Ansible inventory and IP entries.
+  # The default is a pair behind one keepalived VIP. Add cache-3 and higher
+  # for extra failover members. For true horizontal throughput, create another
+  # cache VIP/policy group or load-balance multiple cache endpoints, and keep
+  # matching Ansible inventory and IP entries.
+  #
+  # Storage design:
+  # - use explicit memory overrides because cache sizing is workload-specific
+  # - keep the OS disk modest
+  # - put Squid cache data on the dedicated extra disk
+  # - start around 200-500 GB for a small repository/update cache pair
+  # - prefer local NVMe/local SSD for cache data, even in Ceph-backed clusters
+  # - avoid replicated Ceph for rebuildable cache data unless policy requires it
+  #
+  # If your common storage classes include a specific local-NVMe class, use it
+  # for extra_disks[*].storage_class. The example uses "local" as the portable
+  # default.
   "cache-1" = {
     vm_id            = 230
     size             = "small"
+    memory           = 8192
     storage_class    = "local"
     disk_size_gb     = 30
     # Dedicated Squid cache disk mounted by Ansible at /var/spool/squid.
+    # Prefer local NVMe/local SSD because this data is hot and rebuildable.
     extra_disks = [
       {
         interface     = "scsi1"
-        size_gb       = 100
+        size_gb       = 250
         storage_class = "local"
       }
     ]
@@ -31,12 +47,14 @@ vm_instances = {
   "cache-2" = {
     vm_id            = 231
     size             = "small"
+    memory           = 8192
     storage_class    = "local"
     disk_size_gb     = 30
     extra_disks = [
       {
         interface     = "scsi1"
-        size_gb       = 100
+        size_gb       = 250
+        # Prefer local NVMe/local SSD because this data is hot and rebuildable.
         storage_class = "local"
       }
     ]
@@ -46,12 +64,14 @@ vm_instances = {
   # "cache-3" = {
   #   vm_id            = 232
   #   size             = "small"
+  #   memory           = 8192
   #   storage_class    = "local"
   #   disk_size_gb     = 30
   #   extra_disks = [
   #     {
   #       interface     = "scsi1"
-  #       size_gb       = 100
+  #       size_gb       = 250
+  #       # Prefer local NVMe/local SSD because this data is hot and rebuildable.
   #       storage_class = "local"
   #     }
   #   ]

@@ -30,7 +30,7 @@ it to other USB-backed PKCS#11 devices such as `YubiHSM 2` [1][2][3][4][5].
 
 Before you start:
 
-- the shared-service edge load-balancer pair or set is already deployed in
+- the shared-service edge load-balancer set is already deployed in
   `external_edge`
 - the deployment machine already has `ansible-core` and `terraform`
 - the edge load-balancer hosts already exist in `ansible/inventory/hosts.yml`

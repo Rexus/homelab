@@ -28,10 +28,17 @@ upstream.
 | --- | --- | --- | --- | --- |
 | caches | `cache-1`, `cache-2` active | present by default | `external_edge` | controlled outbound web access |
 | cache data disks | one `scsi1` data disk per cache VM | mounted by Ansible | VM local/shared storage | Squid cache data |
-| extra cache nodes | commented examples | add matching inventory and IP entries | `external_edge` | horizontal scale or isolated policy sets |
+| extra cache nodes | commented examples | add matching inventory and IP entries | `external_edge` | extra failover members, separate VIPs, or isolated policy sets |
 
-The default is a pair. Add `cache-3` and higher when the environment needs more
-horizontal capacity or separate egress policy sets.
+The default is a pair behind one keepalived VIP. That is an HA endpoint, not
+active-active load balancing. Add `cache-3` and higher for extra failover
+members, or add separate VIPs/policy groups when you need true horizontal
+capacity.
+
+The example allow-list is intentionally broad enough to cover common Linux
+repos, Proxmox/Ceph sources, GitHub-hosted projects, HashiCorp tooling,
+container registries, and Windows update endpoints. Treat it as a starting
+policy and remove domains your environment does not need.
 
 ## Service shape
 
@@ -43,6 +50,23 @@ horizontal capacity or separate egress policy sets.
 | health check | keepalived runs `cache_squid_check_script_path` from `/usr/libexec/keepalived` |
 | allowed CIDRs | defines which internal networks may use the cache |
 | allowed domains | defines which external software-source domains are reachable |
+
+## Hardening TODO
+
+The default proxy listener is HTTP on an internal, restricted network. That is
+normal for repository proxy use: clients speak HTTP proxy protocol to Squid,
+while HTTPS destinations still use CONNECT tunnels and remain encrypted to the
+upstream site.
+
+Future hardening work can add:
+
+- authenticated proxy access
+- TLS on the client-to-proxy listener
+- mTLS for selected high-security zones
+- separate proxy pairs per security zone or policy boundary
+
+Avoid TLS interception by default. It changes end-to-end trust and should only
+be introduced with an explicit policy, internal CA rollout, and audit model.
 
 ## What you configure
 
@@ -60,10 +84,26 @@ Keep Squid cache data off the OS disk. The Terraform example attaches a
 dedicated `scsi1` data disk to each cache VM, and the Ansible cache role formats
 and mounts it at `cache_squid_cache_dir`, which defaults to `/var/spool/squid`.
 
+Prefer local NVMe or local SSD storage for the cache data disk. Squid cache data
+is hot, noisy, and rebuildable; it does not need replicated Ceph storage by
+default, even when the Proxmox cluster has a Ceph NVMe pool. Using local storage
+keeps replicated storage capacity and write amplification for data that must
+survive a host failure.
+
+Use shared or replicated storage only when policy explicitly requires it, for
+example when cache warmness is more important than storage efficiency or when
+local disks are not available. The normal recovery model is to fail over to the
+other cache node and let the rebuilt node refill its local cache.
+
 The example uses `/dev/sdb` because an Enterprise Linux VM with one OS disk and
 one extra `scsi1` disk normally discovers the extra disk there. Change
 `cache_squid_data_device` in `cache.yml` if your template exposes the disk under
 a different stable device path.
+
+For existing cache VMs, Terraform plans hardware changes and Ansible converges
+the guest. Growing the extra cache disk should expand the Proxmox disk first;
+the cache role then grows the mounted XFS filesystem when it detects more
+device space. Shrinking disks is not automated.
 
 Tune both sides together:
 
@@ -73,6 +113,48 @@ Tune both sides together:
 | `cache_squid_data_device` | guest device to format and mount |
 | `cache_squid_cache_dir` | mount point and Squid cache directory |
 | `cache_squid_cache_mb` | Squid cache size inside that mounted filesystem |
+
+The example uses the portable Squid `ufs` cache directory type. If your
+Enterprise Linux Squid package supports `aufs`, it can be a better fit for
+busy local SSD/NVMe caches. Change `cache_squid_cache_dir_type` only after
+testing the generated config with the role's `squid -k parse` validation.
+
+## Sizing and throttling
+
+Start small and scale the cache where the bottleneck appears. Cache data is
+rebuildable, so capacity and throughput matter more than replication.
+
+| Size | VM shape | Cache disk | Active clients | `cache_squid_cache_mem` | Use case |
+| --- | --- | --- | --- | --- | --- |
+| small | 2 vCPU, 8 GB RAM | 200-500 GB local NVMe/SSD | about 25-100 | 1024-2048 MB | small homelab, first HA pair, package updates |
+| medium | 4 vCPU, 16 GB RAM | 1-2 TB local NVMe/SSD | about 100-500 | 4096 MB | several networks, more clients, template and image pulls |
+| large | 8+ vCPU, 32+ GB RAM | 2+ TB or multiple local NVMe devices | about 500-2000+ | 8192 MB | heavy enterprise update egress or many parallel pulls |
+
+Do not overallocate memory to Squid. Disk cache size and storage latency are
+usually more important for repository, package, and image traffic.
+
+Scale based on symptoms:
+
+| Symptom | First action |
+| --- | --- |
+| cache disk fills quickly | increase `extra_disks[*].size_gb` and `cache_squid_cache_mb` |
+| high disk latency or IO wait | move the cache disk to local NVMe/SSD |
+| many simultaneous clients stall | increase vCPU, `cache_squid_limit_nofile`, and keep local NVMe |
+| repeated downloads miss cache | review `cache_squid_allowed_domains` and `cache_squid_refresh_patterns` |
+| one proxy pair is saturated | add another cache VIP/pair, load-balance multiple endpoints, or split policy zones |
+
+Keep `maximum_object_size` large enough for ISO, cloud-image, Windows update,
+and container-layer payloads. Keep `range_offset_limit -1` enabled for
+resumable and ranged downloads.
+
+Expansion usually follows this order:
+
+1. Increase the local cache disk and `cache_squid_cache_mb` when capacity is
+   the bottleneck.
+2. Increase vCPU/RAM and keep the cache on local NVMe/SSD when concurrency is
+   the bottleneck.
+3. Add another cache VIP or policy group when one active proxy endpoint is
+   saturated.
 
 ## How other paths use it
 
@@ -189,6 +271,7 @@ direct while external update repositories go through the cache.
 ## Read more
 
 - [Shared services path](README.md)
+- [Using the cache from Proxmox](../../platforms/proxmox/cache-usage.md)
 - [Network architecture](../../architecture/network.md)
 - [Security principles](../../security/security-principles.md)
 - [Set proxy for YUM/DNF repositories](https://www.baeldung.com/linux/yum-dnf-repositories-set-proxy)

@@ -34,6 +34,7 @@ Use the Proxmox platform layer for:
 
 - [Planning guidelines](conventions.md)
 - [Enterprise Linux template](enterprise-linux-template.md)
+- [Using the cache from Proxmox](cache-usage.md)
 - [Backup foundation](backup-foundation.md)
 - [API setup](setup-api.md)
 - [Host networking](network-prerequisites.md)

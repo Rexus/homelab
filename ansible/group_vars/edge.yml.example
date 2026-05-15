@@ -5,15 +5,41 @@
 platform_host_ips:
   edge-lb-1: 10.30.30.10
   edge-lb-2: 10.30.30.11
-  # edge-lb-3: 10.30.30.12
+  edge-lb-3: 10.30.30.12
 
 edge_keepalived_enabled: true
 edge_keepalived_group: edge_load_balancers
 edge_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
-edge_keepalived_virtual_router_id: 30
-edge_keepalived_vip_cidr: 10.30.30.100/24
-edge_keepalived_priority_base: 110
-edge_keepalived_priority_step: 10
+edge_keepalived_advert_int: 1
+
+# One VIP becomes one keepalived vrrp_instance. Keep virtual_router_id values
+# unique on the L2 segment. All nodes run BACKUP; priorities decide ownership.
+# The default spreads VIP ownership when healthy:
+# - internal_prod prefers edge-lb-1
+# - internal_mgmt prefers edge-lb-2
+# - dmz_ingress prefers edge-lb-3
+edge_keepalived_vips:
+  - name: internal_prod
+    virtual_router_id: 30
+    vip_cidr: 10.30.30.100/24
+    priorities:
+      edge-lb-1: 150
+      edge-lb-2: 120
+      edge-lb-3: 100
+  - name: internal_mgmt
+    virtual_router_id: 31
+    vip_cidr: 10.30.30.101/24
+    priorities:
+      edge-lb-1: 100
+      edge-lb-2: 150
+      edge-lb-3: 120
+  - name: dmz_ingress
+    virtual_router_id: 32
+    vip_cidr: 10.30.30.102/24
+    priorities:
+      edge-lb-1: 120
+      edge-lb-2: 100
+      edge-lb-3: 150
 
 edge_haproxy_package_state: present
 edge_haproxy_service_enabled: true
@@ -31,6 +57,7 @@ edge_haproxy_stats_bind: 127.0.0.1:8404
 edge_haproxy_stats_uri: /haproxy?stats
 
 # Service paths can add frontends and backends later.
+# Bind each frontend to the VIP that matches the traffic class.
 # Example:
 # edge_haproxy_frontends:
 #   - name: vault_https

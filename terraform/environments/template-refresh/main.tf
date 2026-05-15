@@ -57,6 +57,8 @@ module "vms" {
   bridge                   = var.network_zones[each.value.network_zone_key].bridge
   vlan_id                  = try(var.network_zones[each.value.network_zone_key].vlan_id, null)
   size                     = each.value.size
+  cores                    = each.value.cores
+  memory                   = each.value.memory
   disk_size_gb             = each.value.disk_size_gb
   started                  = each.value.started
   template                 = each.value.template

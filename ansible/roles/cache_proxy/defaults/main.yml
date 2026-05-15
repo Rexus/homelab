@@ -5,6 +5,8 @@ cache_squid_config_path: /etc/squid/squid.conf
 cache_keepalived_config_path: /etc/keepalived/keepalived.conf
 cache_keepalived_script_dir: /usr/libexec/keepalived
 cache_squid_check_script_path: "{{ cache_keepalived_script_dir }}/check-squid"
+cache_squid_systemd_override_dir: /etc/systemd/system/squid.service.d
+cache_squid_systemd_override_path: "{{ cache_squid_systemd_override_dir }}/limits.conf"
 cache_systemctl_binary: /usr/bin/systemctl
 cache_squid_binary: /usr/sbin/squid
 cache_squid_selinux_package: policycoreutils
@@ -26,9 +28,41 @@ cache_squid_package_state: present
 cache_squid_service_enabled: true
 cache_squid_service_state: started
 cache_squid_http_port: 3128
+cache_squid_cache_mem: 256 MB
+cache_squid_max_object_size_in_memory: 512 KB
+cache_squid_cache_dir_type: ufs
 cache_squid_cache_mb: 2048
 cache_squid_max_object_size: 1024 MB
 cache_squid_cache_dir: /var/spool/squid
+cache_squid_l1_dirs: 16
+cache_squid_l2_dirs: 256
+cache_squid_range_offset_limit: -1
+cache_squid_quick_abort_min: 0 KB
+cache_squid_quick_abort_max: 0 KB
+cache_squid_quick_abort_pct: 95
+cache_squid_cache_replacement_policy: heap LFUDA
+cache_squid_memory_replacement_policy: heap GDSF
+cache_squid_logfile_rotate: 14
+cache_squid_manage_systemd_limits: true
+cache_squid_limit_nofile: 65535
+cache_squid_manage_sysctl: true
+cache_squid_sysctl_file: /etc/sysctl.d/91-homelab-cache.conf
+cache_squid_sysctl_settings:
+  fs.file-max: "2097152"
+  net.core.somaxconn: "65535"
+  net.ipv4.ip_local_port_range: "10240 65535"
+  net.ipv4.tcp_fin_timeout: "15"
+  net.ipv4.tcp_tw_reuse: "1"
+cache_squid_extra_options: []
+cache_squid_refresh_patterns:
+  - '-i \.(deb|udeb|rpm)$ 4320 90% 43200 override-expire ignore-no-cache ignore-private'
+  - '-i (Release|Packages|Sources|repomd\.xml|primary\.xml\.gz)$ 0 20% 60 reload-into-ims'
+  - '-i \.(cab|msu|psf|esd|wim|iso|img|qcow2|vmdk|ova|ovf)$ 4320 90% 43200 override-expire ignore-no-cache ignore-private'
+  - '-i \.(tar|tgz|gz|xz|bz2|zst)$ 1440 90% 20160'
+  - '^ftp: 1440 20% 10080'
+  - '^gopher: 1440 0% 1440'
+  - '-i (/cgi-bin/|\?) 0 0% 0'
+  - '. 0 20% 4320'
 cache_squid_initialize_cache: true
 cache_squid_data_disk_enabled: false
 cache_squid_data_device: ""

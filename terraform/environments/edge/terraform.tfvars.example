@@ -10,8 +10,8 @@
 vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
   # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
-  # The default is a pair. Add edge-lb-3 and higher when you need horizontal
-  # scale, and keep matching Ansible inventory and IP entries.
+  # The default is a 3-node edge set. Keep matching Ansible inventory and IP
+  # entries when you add or remove edge hosts.
   "edge-lb-1" = {
     vm_id            = 220
     size             = "small"
@@ -28,14 +28,14 @@ vm_instances = {
     network_zone_key = "external_edge"
     tags             = ["haproxy", "keepalived", "public", "always-on", "platform"]
   }
-  # "edge-lb-3" = {
-  #   vm_id            = 222
-  #   size             = "small"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 20
-  #   network_zone_key = "external_edge"
-  #   tags             = ["haproxy", "keepalived", "public", "always-on", "platform"]
-  # }
+  "edge-lb-3" = {
+    vm_id            = 222
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 20
+    network_zone_key = "external_edge"
+    tags             = ["haproxy", "keepalived", "public", "always-on", "platform"]
+  }
 }
 
 lxc_instances = {}

@@ -33,6 +33,54 @@
     - cache_validation_enabled | default(true) | bool
     - cache_validation_client_package | length > 0
 
+- name: Ensure Squid systemd override directory exists
+  ansible.builtin.file:
+    path: "{{ cache_squid_systemd_override_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: cache_squid_manage_systemd_limits | bool
+
+- name: Configure Squid file descriptor limit
+  ansible.builtin.copy:
+    dest: "{{ cache_squid_systemd_override_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Service]
+      LimitNOFILE={{ cache_squid_limit_nofile }}
+  notify:
+    - Reload systemd
+    - Restart squid
+  when: cache_squid_manage_systemd_limits | bool
+
+- name: Write cache proxy sysctl settings
+  ansible.builtin.copy:
+    dest: "{{ cache_squid_sysctl_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible cache_proxy role.
+      {% for key, value in cache_squid_sysctl_settings | dictsort %}
+      {{ key }} = {{ value }}
+      {% endfor %}
+  register: cache_squid_sysctl_config
+  when: cache_squid_manage_sysctl | bool
+
+- name: Apply cache proxy sysctl settings
+  ansible.builtin.command:
+    argv:
+      - sysctl
+      - -p
+      - "{{ cache_squid_sysctl_file }}"
+  changed_when: cache_squid_sysctl_config.changed
+  when:
+    - cache_squid_manage_sysctl | bool
+    - cache_squid_sysctl_config.changed | default(false)
+
 - name: Check firewalld service state
   ansible.builtin.command:
     argv:
@@ -160,6 +208,46 @@
     state: mounted
   register: cache_squid_data_mount
   when: cache_squid_data_disk_enabled | bool
+
+- name: Check Squid cache data disk size
+  ansible.builtin.command:
+    argv:
+      - blockdev
+      - --getsize64
+      - "{{ cache_squid_data_device }}"
+  register: cache_squid_data_device_size
+  changed_when: false
+  when:
+    - cache_squid_data_disk_enabled | bool
+    - cache_squid_data_fstype == "xfs"
+
+- name: Check Squid cache filesystem size
+  ansible.builtin.command:
+    argv:
+      - findmnt
+      - --bytes
+      - --noheadings
+      - --output
+      - SIZE
+      - --target
+      - "{{ cache_squid_cache_dir }}"
+  register: cache_squid_data_filesystem_size
+  changed_when: false
+  when:
+    - cache_squid_data_disk_enabled | bool
+    - cache_squid_data_fstype == "xfs"
+
+- name: Grow Squid cache XFS filesystem when the data disk expanded
+  ansible.builtin.command:
+    argv:
+      - xfs_growfs
+      - "{{ cache_squid_cache_dir }}"
+  when:
+    - cache_squid_data_disk_enabled | bool
+    - cache_squid_data_fstype == "xfs"
+    - >-
+      (cache_squid_data_device_size.stdout | trim | int)
+      > (cache_squid_data_filesystem_size.stdout | trim | int)
 
 - name: Ensure Squid owns the mounted cache directory
   ansible.builtin.file:

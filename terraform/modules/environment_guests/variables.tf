@@ -64,6 +64,8 @@ variable "vm_instances" {
     # Overrides catalog tags when a VM uses a source image not in the catalog.
     template_tags      = optional(list(string))
     size             = optional(string)
+    cores            = optional(number)
+    memory           = optional(number)
     storage_class    = optional(string)
     disk_size_gb     = number
     extra_disks = optional(list(object({

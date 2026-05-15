@@ -7,6 +7,7 @@
 - [Choose a CPU type](#choose-a-cpu-type)
 - [Download and verify the image](#download-and-verify-the-image)
 - [Upload the image to the Proxmox node](#upload-the-image-to-the-proxmox-node)
+- [Optional cache usage](#optional-cache-usage)
 - [Create the VM shell in Proxmox](#create-the-vm-shell-in-proxmox)
 - [Finalize the template](#finalize-the-template)
 - [What to keep in the template](#what-to-keep-in-the-template)
@@ -145,6 +146,15 @@ In the Proxmox GUI:
 
 This keeps the verification in the Proxmox task flow and shows which hash
 algorithm and digest were used for the file on the node.
+
+## Optional cache usage
+
+If the shared cache already exists, Proxmox hosts and temporary template prep
+VMs can use it for package and image access. This is optional, not a template
+prerequisite.
+
+Use [Proxmox cache usage](cache-usage.md) for the host-side APT proxy example,
+one-off download commands, and template-prep guidance.
 
 ## Create the VM shell in Proxmox
 

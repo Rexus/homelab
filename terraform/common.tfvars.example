@@ -22,6 +22,12 @@ proxmox_storage_classes = {
     vm_disk          = "nvme-change-me"
     cloud_init_drive = "local-lvm-change-me"
   }
+  # Optional class for rebuildable cache data, such as Squid cache disks.
+  # Prefer local NVMe/local SSD over replicated Ceph for hot cache data unless
+  # policy requires the cache contents to survive a host failure.
+  # local_nvme = {
+  #   vm_disk = "local-nvme-change-me"
+  # }
 }
 
 # Keep only networks where Terraform may place guests.
