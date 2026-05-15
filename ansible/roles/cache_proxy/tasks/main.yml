@@ -177,6 +177,14 @@
     - cache_squid_restore_selinux_context | bool
     - ansible_selinux.status | default('disabled') == 'enabled'
 
+- name: Ensure keepalived helper script directory exists
+  ansible.builtin.file:
+    path: "{{ cache_keepalived_script_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Install Squid health check for keepalived
   ansible.builtin.copy:
     dest: "{{ cache_squid_check_script_path }}"
@@ -187,6 +195,33 @@
       #!/bin/sh
       exec {{ cache_systemctl_binary }} is-active --quiet squid
   notify: Restart keepalived
+
+- name: Check SELinux context drift on keepalived files
+  ansible.builtin.command:
+    argv:
+      - restorecon
+      - -nRFv
+      - "{{ cache_keepalived_script_dir }}"
+  register: cache_keepalived_selinux_context_check
+  changed_when: false
+  when:
+    - cache_squid_restore_selinux_context | bool
+    - ansible_selinux.status | default('disabled') == 'enabled'
+
+- name: Restore SELinux context on keepalived files when needed
+  ansible.builtin.command:
+    argv:
+      - restorecon
+      - -RF
+      - "{{ cache_keepalived_script_dir }}"
+  changed_when: true
+  notify: Restart keepalived
+  when:
+    - cache_squid_restore_selinux_context | bool
+    - ansible_selinux.status | default('disabled') == 'enabled'
+    - >-
+      cache_keepalived_selinux_context_check.stdout | default('') | length > 0
+      or cache_keepalived_selinux_context_check.stderr | default('') | length > 0
 
 - name: Render Squid configuration
   ansible.builtin.template:

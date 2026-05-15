@@ -6,6 +6,85 @@
     - baseline
     - cache_proxy
 
+- name: Validate cache VIP from cache hosts
+  hosts: cache
+  gather_facts: false
+  vars:
+    cache_validation_cache_hosts: "{{ groups.get(cache_keepalived_group | default('cache'), []) }}"
+    cache_validation_proxy_port: "{{ cache_proxy_port | default(cache_squid_http_port | default(3128)) }}"
+    cache_validation_port_timeout: "{{ cache_validation_connect_timeout | default(5) }}"
+
+  tasks:
+    - name: Check cache VIP address on this host
+      ansible.builtin.command:
+        argv:
+          - ip
+          - -o
+          - -4
+          - addr
+          - show
+          - dev
+          - "{{ cache_keepalived_interface }}"
+      become: true
+      register: cache_validation_local_vip_check
+      changed_when: false
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_keepalived_enabled | default(true) | bool
+        - cache_proxy_vip | default('') | length > 0
+
+    - name: Record whether this host owns the cache VIP
+      ansible.builtin.set_fact:
+        cache_validation_owns_vip: >-
+          {{ cache_proxy_vip in cache_validation_local_vip_check.stdout | default('') }}
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_keepalived_enabled | default(true) | bool
+        - cache_proxy_vip | default('') | length > 0
+
+    - name: Record cache VIP owners
+      ansible.builtin.set_fact:
+        cache_validation_vip_owners: >-
+          {{ (cache_validation_vip_owners | default([])) + [item] }}
+      loop: "{{ cache_validation_cache_hosts }}"
+      run_once: true
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_keepalived_enabled | default(true) | bool
+        - cache_validation_cache_hosts | length > 0
+        - cache_proxy_vip | default('') | length > 0
+        - hostvars[item].cache_validation_owns_vip | default(false) | bool
+
+    - name: Validate exactly one cache host owns the VIP
+      ansible.builtin.assert:
+        that:
+          - cache_validation_vip_owners | default([]) | length == 1
+        fail_msg: >-
+          Expected exactly one cache host to own VIP {{ cache_proxy_vip }}, got
+          {{ cache_validation_vip_owners | default([]) }}. Check keepalived
+          health checks, VRRP reachability, and cache_keepalived_vip_cidr.
+        success_msg: >-
+          Cache VIP {{ cache_proxy_vip }} is owned by
+          {{ cache_validation_vip_owners[0] }}.
+      run_once: true
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_keepalived_enabled | default(true) | bool
+        - cache_validation_cache_hosts | length > 0
+        - cache_proxy_vip | default('') | length > 0
+
+    - name: Test cache VIP proxy port from cache hosts
+      ansible.builtin.wait_for:
+        host: "{{ cache_proxy_vip }}"
+        port: "{{ cache_validation_proxy_port }}"
+        state: started
+        timeout: "{{ cache_validation_port_timeout }}"
+      changed_when: false
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_keepalived_enabled | default(true) | bool
+        - cache_proxy_vip | default('') | length > 0
+
 - name: Validate cache service from deployment host
   hosts: localhost
   connection: local

@@ -40,6 +40,7 @@ horizontal capacity or separate egress policy sets.
 | `Squid` | serves the repository/cache proxy on `cache_proxy_port` |
 | `keepalived` | owns the shared cache VIP and fails it over between cache hosts |
 | firewalld | opens the proxy port and keepalived VRRP when firewalld is active; reloads only when rules change |
+| health check | keepalived runs `cache_squid_check_script_path` from `/usr/libexec/keepalived` |
 | allowed CIDRs | defines which internal networks may use the cache |
 | allowed domains | defines which external software-source domains are reachable |
 
@@ -148,9 +149,10 @@ software sources, but the cache upstream is private instead of internet-facing.
 
 After the cache role finishes, the cache playbook runs a validation step from
 the deployment host. Before that external validation, each cache host tests
-that it can reach `cache_validation_url` directly. The deployment-host
-validation then tests each cache node proxy port, tests each cache node as a
-proxy, tests the cache VIP by IP,
+that it can reach `cache_validation_url` directly. The cache hosts also verify
+that exactly one node owns the VIP and that the VIP proxy port is reachable
+from the cache network. The deployment-host validation then tests each cache
+node proxy port, tests each cache node as a proxy, tests the cache VIP by IP,
 warns if the expected cache FQDN does not work, then stops keepalived on the
 current VIP owner to verify failover before starting keepalived again.
 
