@@ -121,6 +121,8 @@ variable "vm_instances" {
     template_catalog_id = optional(number)
     template_tags       = optional(list(string))
     size             = optional(string)
+    cores            = optional(number)
+    memory           = optional(number)
     storage_class    = optional(string)
     disk_size_gb     = number
     extra_disks = optional(list(object({
