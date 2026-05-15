@@ -84,6 +84,6 @@ cache_squid_allowed_domains:
 # cache nodes or their upstream mirror/proxy.
 cache_validation_enabled: true
 cache_validation_failover_enabled: true
-cache_validation_url: https://repo.almalinux.org/
+cache_validation_url: https://mirrors.fedoraproject.org/
 cache_validation_timeout: 20
 cache_validation_failover_settle_seconds: 8

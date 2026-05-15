@@ -31,6 +31,9 @@ cache_squid_data_device_wait_timeout: 60
 cache_squid_data_fstype: xfs
 cache_squid_data_fstype_package: xfsprogs
 cache_squid_data_mount_opts: defaults,noatime
+cache_validation_enabled: true
+cache_validation_url: ""
+cache_validation_timeout: 20
 cache_squid_allowed_cidrs:
   - 10.0.0.0/8
   - 172.16.0.0/12

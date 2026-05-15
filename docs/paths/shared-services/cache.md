@@ -146,12 +146,16 @@ software sources, but the cache upstream is private instead of internet-facing.
 ## Validation
 
 After the cache role finishes, the cache playbook runs a validation step from
-the deployment host. It tests each cache node directly, tests the cache VIP by
-IP, warns if the expected cache FQDN does not work, then stops keepalived on
-the current VIP owner to verify failover before starting keepalived again.
+the deployment host. Before that external validation, each cache host tests
+that it can reach `cache_validation_url` directly. The deployment-host
+validation then tests each cache node as a proxy, tests the cache VIP by IP,
+warns if the expected cache FQDN does not work, then stops keepalived on the
+current VIP owner to verify failover before starting keepalived again.
 
 Set `cache_validation_url` to a URL allowed by `cache_squid_allowed_domains`.
-For disconnected environments, point it at an internal mirror or offline repo
+The default example uses `https://mirrors.fedoraproject.org/` because it is a
+neutral mirror redirector and aligns with Fedora/EPEL repository access. For
+disconnected environments, point it at an internal mirror or offline repo
 endpoint reachable through the cache path. Set
 `cache_validation_failover_enabled: false` only when you want to skip the
 temporary keepalived failover test.
