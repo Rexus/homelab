@@ -101,7 +101,6 @@ cache_squid_allowed_domains:
   - .fedoraproject.org
   - .epel.cloud
   - .redhat.com
-  - .cdn.redhat.com
   - .ubuntu.com
   - .debian.org
   - .proxmox.com
@@ -116,7 +115,6 @@ cache_squid_allowed_domains:
   - .ghcr.io
   - .pkg.dev
   - .quay.io
-  - .registry.k8s.io
   - .k8s.io
   - .github.com
   - .githubusercontent.com

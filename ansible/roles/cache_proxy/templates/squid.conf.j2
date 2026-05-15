@@ -1,8 +1,21 @@
+{% set raw_allowed_domains = cache_squid_allowed_domains | default([]) | map('trim') | reject('equalto', '') | unique | list %}
+{% set effective_allowed_domains = namespace(values=[]) %}
+{% for domain in raw_allowed_domains %}
+{% set covered = namespace(value=false) %}
+{% for parent in raw_allowed_domains %}
+{% if domain != parent and domain.endswith(parent) %}
+{% set covered.value = true %}
+{% endif %}
+{% endfor %}
+{% if not covered.value %}
+{% set effective_allowed_domains.values = effective_allowed_domains.values + [domain] %}
+{% endif %}
+{% endfor %}
 visible_hostname {{ platform_fqdn | default(inventory_hostname) }}
 
 acl localnet src {{ cache_squid_allowed_cidrs | join(' ') }}
-{% if cache_squid_allowed_domains | length > 0 %}
-acl allowed_update_domains dstdomain {{ cache_squid_allowed_domains | join(' ') }}
+{% if effective_allowed_domains.values | length > 0 %}
+acl allowed_update_domains dstdomain {{ effective_allowed_domains.values | join(' ') }}
 {% endif %}
 acl SSL_ports port 443
 acl Safe_ports port 80
@@ -14,7 +27,7 @@ http_access deny CONNECT !SSL_ports
 http_access allow localhost manager
 http_access deny manager
 http_access allow localhost
-{% if cache_squid_allowed_domains | length > 0 %}
+{% if effective_allowed_domains.values | length > 0 %}
 http_access allow localnet allowed_update_domains
 {% else %}
 http_access allow localnet

@@ -41,7 +41,7 @@ platform_hostname: >-
   {{
     platform_hostname_prefix_normalized ~ (
       inventory_hostname
-      | regex_replace('^(.*)-([0-9]+)$', '\\1' ~ platform_hostname_suffix_normalized ~ '-\\2')
+      | regex_replace('^(.*)-([0-9]+)$', '\1' ~ platform_hostname_suffix_normalized ~ '-\2')
       if platform_hostname_suffix
       else inventory_hostname
     )
