@@ -15,6 +15,13 @@
     cache_validation_port_timeout: "{{ cache_validation_connect_timeout | default(5) }}"
 
   tasks:
+    - name: Record keepalived interface for this cache host
+      ansible.builtin.set_fact:
+        cache_validation_keepalived_interface: "{{ cache_keepalived_interface }}"
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_keepalived_enabled | default(true) | bool
+
     - name: Check cache VIP address on this host
       ansible.builtin.command:
         argv:
@@ -24,7 +31,7 @@
           - addr
           - show
           - dev
-          - "{{ cache_keepalived_interface }}"
+          - "{{ cache_validation_keepalived_interface }}"
       become: true
       register: cache_validation_local_vip_check
       changed_when: false
@@ -109,9 +116,16 @@
           - cache_validation_cache_hosts | length > 0
           - cache_validation_url | default('') | length > 0
           - cache_proxy_vip | default('') | length > 0
+          - >-
+            cache_validation_cache_hosts
+            | map('extract', hostvars, 'cache_validation_keepalived_interface')
+            | select('defined')
+            | list
+            | length == cache_validation_cache_hosts | length
         fail_msg: >-
-          Cache validation requires cache hosts, cache_validation_url, and
-          cache_proxy_vip.
+          Cache validation requires cache hosts, cache_validation_url,
+          cache_proxy_vip, and a resolved keepalived interface for every cache
+          host.
       when: cache_validation_enabled | default(true) | bool
 
     - name: Test cache proxy port on each cache node
@@ -221,7 +235,7 @@
           - addr
           - show
           - dev
-          - "{{ cache_keepalived_interface }}"
+          - "{{ hostvars[item].cache_validation_keepalived_interface }}"
       loop: "{{ cache_validation_cache_hosts }}"
       delegate_to: "{{ item }}"
       become: true
@@ -281,7 +295,7 @@
               - addr
               - show
               - dev
-              - "{{ cache_keepalived_interface }}"
+              - "{{ hostvars[item].cache_validation_keepalived_interface }}"
           loop: "{{ cache_validation_cache_hosts }}"
           delegate_to: "{{ item }}"
           become: true
