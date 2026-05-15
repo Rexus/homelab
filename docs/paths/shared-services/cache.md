@@ -39,6 +39,7 @@ horizontal capacity or separate egress policy sets.
 | --- | --- |
 | `Squid` | serves the repository/cache proxy on `cache_proxy_port` |
 | `keepalived` | owns the shared cache VIP and fails it over between cache hosts |
+| firewalld | opens the proxy port and keepalived VRRP when firewalld is active |
 | allowed CIDRs | defines which internal networks may use the cache |
 | allowed domains | defines which external software-source domains are reachable |
 
@@ -148,7 +149,8 @@ software sources, but the cache upstream is private instead of internet-facing.
 After the cache role finishes, the cache playbook runs a validation step from
 the deployment host. Before that external validation, each cache host tests
 that it can reach `cache_validation_url` directly. The deployment-host
-validation then tests each cache node as a proxy, tests the cache VIP by IP,
+validation then tests each cache node proxy port, tests each cache node as a
+proxy, tests the cache VIP by IP,
 warns if the expected cache FQDN does not work, then stops keepalived on the
 current VIP owner to verify failover before starting keepalived again.
 
@@ -159,6 +161,13 @@ disconnected environments, point it at an internal mirror or offline repo
 endpoint reachable through the cache path. Set
 `cache_validation_failover_enabled: false` only when you want to skip the
 temporary keepalived failover test.
+
+For a manual proxy check from the deployment host, use lowercase `-x` or
+`--proxy`:
+
+```bash
+curl -x "http://<cache-ip>:3128" -I "https://mirrors.fedoraproject.org/"
+```
 
 Keep this boundary:
 

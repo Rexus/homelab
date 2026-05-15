@@ -41,6 +41,9 @@ cache_squid_package_state: present
 cache_squid_service_enabled: true
 cache_squid_service_state: started
 cache_squid_http_port: "{{ cache_proxy_port }}"
+cache_manage_firewalld: true
+cache_firewalld_open_proxy_port: true
+cache_firewalld_open_keepalived_vrrp: true
 # Keep below the Terraform data disk size. The default example disk is 100 GB.
 cache_squid_cache_mb: 81920
 cache_squid_max_object_size: 1024 MB
@@ -85,5 +88,7 @@ cache_squid_allowed_domains:
 cache_validation_enabled: true
 cache_validation_failover_enabled: true
 cache_validation_url: https://mirrors.fedoraproject.org/
+cache_validation_connect_timeout: 5
 cache_validation_timeout: 20
+cache_validation_client_package: curl
 cache_validation_failover_settle_seconds: 8

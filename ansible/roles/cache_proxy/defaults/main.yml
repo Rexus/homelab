@@ -8,6 +8,10 @@ cache_systemctl_binary: /usr/bin/systemctl
 cache_squid_binary: /usr/sbin/squid
 cache_squid_selinux_package: policycoreutils
 cache_squid_restore_selinux_context: true
+cache_manage_firewalld: true
+cache_firewalld_open_proxy_port: true
+cache_firewalld_open_keepalived_vrrp: true
+cache_firewalld_vrrp_rich_rule: 'rule protocol value="vrrp" accept'
 
 cache_keepalived_enabled: true
 cache_keepalived_group: cache
@@ -34,6 +38,8 @@ cache_squid_data_mount_opts: defaults,noatime
 cache_validation_enabled: true
 cache_validation_url: ""
 cache_validation_timeout: 20
+cache_validation_connect_timeout: 5
+cache_validation_client_package: curl
 cache_squid_allowed_cidrs:
   - 10.0.0.0/8
   - 172.16.0.0/12

@@ -13,6 +13,7 @@
   vars:
     cache_validation_cache_hosts: "{{ groups.get(cache_keepalived_group | default('cache'), []) }}"
     cache_validation_proxy_port: "{{ cache_proxy_port | default(cache_squid_http_port | default(3128)) }}"
+    cache_validation_port_timeout: "{{ cache_validation_connect_timeout | default(5) }}"
 
   tasks:
     - name: Verify curl exists on the deployment host for cache validation
@@ -34,7 +35,17 @@
           cache_proxy_vip.
       when: cache_validation_enabled | default(true) | bool
 
-    - name: Test direct proxy request through each cache node
+    - name: Test cache proxy port on each cache node
+      ansible.builtin.wait_for:
+        host: "{{ platform_host_ips[item] }}"
+        port: "{{ cache_validation_proxy_port }}"
+        state: started
+        timeout: "{{ cache_validation_port_timeout }}"
+      loop: "{{ cache_validation_cache_hosts }}"
+      changed_when: false
+      when: cache_validation_enabled | default(true) | bool
+
+    - name: Test proxy request through each cache node
       ansible.builtin.command:
         argv:
           - curl
@@ -50,6 +61,15 @@
           - /dev/null
           - "{{ cache_validation_url }}"
       loop: "{{ cache_validation_cache_hosts }}"
+      changed_when: false
+      when: cache_validation_enabled | default(true) | bool
+
+    - name: Test cache VIP proxy port
+      ansible.builtin.wait_for:
+        host: "{{ cache_proxy_vip }}"
+        port: "{{ cache_validation_proxy_port }}"
+        state: started
+        timeout: "{{ cache_validation_port_timeout }}"
       changed_when: false
       when: cache_validation_enabled | default(true) | bool
 
@@ -205,6 +225,14 @@
               Expected VIP {{ cache_proxy_vip }} to move away from
               {{ cache_validation_initial_vip_hosts[0] }}, got
               {{ cache_validation_failover_vip_hosts | default([]) }}.
+
+        - name: Test cache VIP proxy port after failover
+          ansible.builtin.wait_for:
+            host: "{{ cache_proxy_vip }}"
+            port: "{{ cache_validation_proxy_port }}"
+            state: started
+            timeout: "{{ cache_validation_port_timeout }}"
+          changed_when: false
 
         - name: Test proxy request through cache VIP after failover
           ansible.builtin.command:
