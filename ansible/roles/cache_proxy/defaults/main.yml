@@ -4,6 +4,7 @@ cache_keepalived_package_name: keepalived
 cache_squid_config_path: /etc/squid/squid.conf
 cache_keepalived_config_path: /etc/keepalived/keepalived.conf
 cache_squid_check_script_path: /usr/local/sbin/check-squid
+cache_systemctl_binary: /usr/bin/systemctl
 cache_squid_binary: /usr/sbin/squid
 cache_squid_selinux_package: policycoreutils
 cache_squid_restore_selinux_context: true

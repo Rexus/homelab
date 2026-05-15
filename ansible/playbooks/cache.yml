@@ -5,3 +5,265 @@
   roles:
     - baseline
     - cache_proxy
+
+- name: Validate cache service from deployment host
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    cache_validation_cache_hosts: "{{ groups.get(cache_keepalived_group | default('cache'), []) }}"
+    cache_validation_proxy_port: "{{ cache_proxy_port | default(cache_squid_http_port | default(3128)) }}"
+
+  tasks:
+    - name: Verify curl exists on the deployment host for cache validation
+      ansible.builtin.command:
+        argv:
+          - curl
+          - --version
+      changed_when: false
+      when: cache_validation_enabled | default(true) | bool
+
+    - name: Validate cache test inputs
+      ansible.builtin.assert:
+        that:
+          - cache_validation_cache_hosts | length > 0
+          - cache_validation_url | default('') | length > 0
+          - cache_proxy_vip | default('') | length > 0
+        fail_msg: >-
+          Cache validation requires cache hosts, cache_validation_url, and
+          cache_proxy_vip.
+      when: cache_validation_enabled | default(true) | bool
+
+    - name: Test direct proxy request through each cache node
+      ansible.builtin.command:
+        argv:
+          - curl
+          - --fail
+          - --silent
+          - --show-error
+          - --location
+          - --max-time
+          - "{{ cache_validation_timeout | default(20) | string }}"
+          - --proxy
+          - "http://{{ platform_host_ips[item] }}:{{ cache_validation_proxy_port }}"
+          - --output
+          - /dev/null
+          - "{{ cache_validation_url }}"
+      loop: "{{ cache_validation_cache_hosts }}"
+      changed_when: false
+      when: cache_validation_enabled | default(true) | bool
+
+    - name: Test proxy request through the cache VIP
+      ansible.builtin.command:
+        argv:
+          - curl
+          - --fail
+          - --silent
+          - --show-error
+          - --location
+          - --max-time
+          - "{{ cache_validation_timeout | default(20) | string }}"
+          - --proxy
+          - "http://{{ cache_proxy_vip }}:{{ cache_validation_proxy_port }}"
+          - --output
+          - /dev/null
+          - "{{ cache_validation_url }}"
+      changed_when: false
+      when: cache_validation_enabled | default(true) | bool
+
+    - name: Test proxy request through the cache VIP FQDN
+      ansible.builtin.command:
+        argv:
+          - curl
+          - --fail
+          - --silent
+          - --show-error
+          - --location
+          - --max-time
+          - "{{ cache_validation_timeout | default(20) | string }}"
+          - --proxy
+          - "http://{{ cache_proxy_fqdn }}:{{ cache_validation_proxy_port }}"
+          - --output
+          - /dev/null
+          - "{{ cache_validation_url }}"
+      register: cache_validation_vip_fqdn_test
+      failed_when: false
+      changed_when: false
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_proxy_fqdn | default('') | length > 0
+
+    - name: Warn when cache VIP FQDN validation fails
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: cache VIP works by IP, but {{ cache_proxy_fqdn }} did not
+          complete a proxy request from the deployment host. Check DNS or
+          temporary hosts entries before using the cache by name.
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_proxy_fqdn | default('') | length > 0
+        - cache_validation_vip_fqdn_test.rc | default(0) != 0
+
+    - name: Warn when cache proxy FQDN is not set
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: cache_proxy_fqdn is not set, so the cache VIP DNS validation
+          was skipped.
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_proxy_fqdn | default('') | length == 0
+
+    - name: Check initial cache VIP ownership
+      ansible.builtin.command:
+        argv:
+          - ip
+          - -o
+          - -4
+          - addr
+          - show
+          - dev
+          - "{{ cache_keepalived_interface }}"
+      loop: "{{ cache_validation_cache_hosts }}"
+      delegate_to: "{{ item }}"
+      become: true
+      register: cache_validation_initial_vip_checks
+      changed_when: false
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_validation_failover_enabled | default(true) | bool
+        - cache_validation_cache_hosts | length > 1
+
+    - name: Record initial cache VIP owner
+      ansible.builtin.set_fact:
+        cache_validation_initial_vip_hosts: >-
+          {{ (cache_validation_initial_vip_hosts | default([])) + [item.item] }}
+      loop: "{{ cache_validation_initial_vip_checks.results | default([]) }}"
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_validation_failover_enabled | default(true) | bool
+        - cache_validation_cache_hosts | length > 1
+        - cache_proxy_vip in item.stdout
+
+    - name: Validate initial cache VIP ownership
+      ansible.builtin.assert:
+        that:
+          - cache_validation_initial_vip_hosts | default([]) | length == 1
+        fail_msg: >-
+          Expected exactly one cache host to own VIP {{ cache_proxy_vip }}, got
+          {{ cache_validation_initial_vip_hosts | default([]) }}.
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_validation_failover_enabled | default(true) | bool
+        - cache_validation_cache_hosts | length > 1
+
+    - name: Test cache VIP failover
+      when:
+        - cache_validation_enabled | default(true) | bool
+        - cache_validation_failover_enabled | default(true) | bool
+        - cache_validation_cache_hosts | length > 1
+      block:
+        - name: Stop keepalived on the current cache VIP owner
+          ansible.builtin.service:
+            name: keepalived
+            state: stopped
+          delegate_to: "{{ cache_validation_initial_vip_hosts[0] }}"
+          become: true
+
+        - name: Wait for cache VIP failover to settle
+          ansible.builtin.pause:
+            seconds: "{{ cache_validation_failover_settle_seconds | default(8) }}"
+
+        - name: Check cache VIP ownership after failover
+          ansible.builtin.command:
+            argv:
+              - ip
+              - -o
+              - -4
+              - addr
+              - show
+              - dev
+              - "{{ cache_keepalived_interface }}"
+          loop: "{{ cache_validation_cache_hosts }}"
+          delegate_to: "{{ item }}"
+          become: true
+          register: cache_validation_failover_vip_checks
+          changed_when: false
+
+        - name: Record cache VIP owner after failover
+          ansible.builtin.set_fact:
+            cache_validation_failover_vip_hosts: >-
+              {{ (cache_validation_failover_vip_hosts | default([])) + [item.item] }}
+          loop: "{{ cache_validation_failover_vip_checks.results | default([]) }}"
+          when: cache_proxy_vip in item.stdout
+
+        - name: Validate cache VIP moved to another node
+          ansible.builtin.assert:
+            that:
+              - cache_validation_failover_vip_hosts | default([]) | length == 1
+              - cache_validation_failover_vip_hosts[0] != cache_validation_initial_vip_hosts[0]
+            fail_msg: >-
+              Expected VIP {{ cache_proxy_vip }} to move away from
+              {{ cache_validation_initial_vip_hosts[0] }}, got
+              {{ cache_validation_failover_vip_hosts | default([]) }}.
+
+        - name: Test proxy request through cache VIP after failover
+          ansible.builtin.command:
+            argv:
+              - curl
+              - --fail
+              - --silent
+              - --show-error
+              - --location
+              - --max-time
+              - "{{ cache_validation_timeout | default(20) | string }}"
+              - --proxy
+              - "http://{{ cache_proxy_vip }}:{{ cache_validation_proxy_port }}"
+              - --output
+              - /dev/null
+              - "{{ cache_validation_url }}"
+          changed_when: false
+
+        - name: Test proxy request through cache VIP FQDN after failover
+          ansible.builtin.command:
+            argv:
+              - curl
+              - --fail
+              - --silent
+              - --show-error
+              - --location
+              - --max-time
+              - "{{ cache_validation_timeout | default(20) | string }}"
+              - --proxy
+              - "http://{{ cache_proxy_fqdn }}:{{ cache_validation_proxy_port }}"
+              - --output
+              - /dev/null
+              - "{{ cache_validation_url }}"
+          register: cache_validation_failover_vip_fqdn_test
+          failed_when: false
+          changed_when: false
+          when: cache_proxy_fqdn | default('') | length > 0
+
+        - name: Warn when cache VIP FQDN validation fails after failover
+          ansible.builtin.debug:
+            msg: >-
+              WARNING: cache VIP failover works by IP, but {{ cache_proxy_fqdn }}
+              did not complete a proxy request from the deployment host after
+              failover. Check DNS or temporary hosts entries before using the
+              cache by name.
+          when:
+            - cache_proxy_fqdn | default('') | length > 0
+            - cache_validation_failover_vip_fqdn_test.rc | default(0) != 0
+
+      always:
+        - name: Restart keepalived on the original cache VIP owner
+          ansible.builtin.service:
+            name: keepalived
+            state: started
+          delegate_to: "{{ cache_validation_initial_vip_hosts[0] }}"
+          become: true
+          when: cache_validation_initial_vip_hosts | default([]) | length == 1
+
+        - name: Wait after restoring keepalived
+          ansible.builtin.pause:
+            seconds: "{{ cache_validation_failover_settle_seconds | default(8) }}"
+          when: cache_validation_initial_vip_hosts | default([]) | length == 1

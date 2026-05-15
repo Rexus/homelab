@@ -78,3 +78,12 @@ cache_squid_allowed_domains:
 # another proxy.
 # cache_squid_upstream_proxy: upstream-proxy.example.com
 # cache_squid_upstream_port: 3128
+
+# Post-deployment validation runs from the deployment host after cache setup.
+# Keep this URL aligned with cache_squid_allowed_domains and reachable from the
+# cache nodes or their upstream mirror/proxy.
+cache_validation_enabled: true
+cache_validation_failover_enabled: true
+cache_validation_url: https://repo.almalinux.org/
+cache_validation_timeout: 20
+cache_validation_failover_settle_seconds: 8

@@ -143,6 +143,19 @@ For disconnected environments, point the cache at internal mirrors or offline
 repository content. In that shape, clients are still isolated from direct
 software sources, but the cache upstream is private instead of internet-facing.
 
+## Validation
+
+After the cache role finishes, the cache playbook runs a validation step from
+the deployment host. It tests each cache node directly, tests the cache VIP by
+IP, warns if the expected cache FQDN does not work, then stops keepalived on
+the current VIP owner to verify failover before starting keepalived again.
+
+Set `cache_validation_url` to a URL allowed by `cache_squid_allowed_domains`.
+For disconnected environments, point it at an internal mirror or offline repo
+endpoint reachable through the cache path. Set
+`cache_validation_failover_enabled: false` only when you want to skip the
+temporary keepalived failover test.
+
 Keep this boundary:
 
 - the cache setup owns the cache hosts
