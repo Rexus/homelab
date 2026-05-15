@@ -151,10 +151,12 @@ After the cache role finishes, the cache playbook runs a validation step from
 the deployment host. Before that external validation, each cache host tests
 that it can reach `cache_validation_url` directly. The cache hosts also verify
 that exactly one node owns the VIP and that the VIP proxy port is reachable
-from the cache network. The deployment-host validation then tests each cache
-node proxy port, tests each cache node as a proxy, tests the cache VIP by IP,
-warns if the expected cache FQDN does not work, then stops keepalived on the
-current VIP owner to verify failover before starting keepalived again.
+from the cache network. When failover validation is enabled, the cache hosts
+stop keepalived on the current VIP owner, verify that another host takes over,
+and then restart keepalived on the original owner. The deployment-host
+validation then tests each cache node proxy port, tests each cache node as a
+proxy, tests the cache VIP by IP, and warns if the expected cache FQDN does
+not work.
 
 Set `cache_validation_url` to a URL allowed by `cache_squid_allowed_domains`.
 The default example uses `https://mirrors.fedoraproject.org/` because it is a
