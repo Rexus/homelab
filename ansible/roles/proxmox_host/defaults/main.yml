@@ -1,0 +1,19 @@
+---
+proxmox_host_proxy_enabled: >-
+  {{
+    repository_proxy_enabled
+    | default(repository_proxy_url | default('') | string | trim | length > 0)
+    | bool
+  }}
+proxmox_host_proxy_url: "{{ repository_proxy_url | default('') | string | trim }}"
+proxmox_host_proxy_https_url: >-
+  {{
+    repository_proxy_https_url
+    | default(proxmox_host_proxy_url)
+    | string
+    | trim
+  }}
+proxmox_host_remove_proxy_when_disabled: false
+proxmox_host_manage_datacenter_proxy: true
+proxmox_host_manage_apt_proxy: true
+proxmox_host_apt_proxy_file: /etc/apt/apt.conf.d/76pveproxy

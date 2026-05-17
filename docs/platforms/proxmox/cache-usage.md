@@ -16,54 +16,72 @@ Proxmox-facing workflows can consume that proxy.
 
 ## Proxy endpoint
 
-Use the cache VIP FQDN when DNS exists:
+Set `CACHE_PROXY_URL` to the cache endpoint for your environment. Use the FQDN
+or VIP IP that Proxmox should reach:
 
 ```bash
 CACHE_PROXY_URL="http://cache.corp.example.com:3128"
 ```
 
-Use the VIP IP only when DNS is not ready yet:
+## Configure the Proxmox cluster
+
+Use the Proxmox Datacenter setting when you want the Proxmox cluster itself to
+use the cache for Proxmox-managed downloads.
+
+In the Proxmox UI:
+
+1. Open `Datacenter`.
+2. Select `Options`.
+3. Select the `HTTP proxy` row.
+4. Click `Edit`.
+5. Enter the value you use for `CACHE_PROXY_URL`.
+6. Save.
+
+The setting is cluster-wide and is stored in `/etc/pve/datacenter.cfg` as
+`http_proxy`. You can verify it from any Proxmox node:
 
 ```bash
-CACHE_PROXY_URL="http://<cache_proxy_vip>:3128"
+grep '^http_proxy:' /etc/pve/datacenter.cfg
 ```
 
-The proxy URL is `http://` even when the destination URL is HTTPS. Clients
-speak HTTP proxy protocol to Squid, and HTTPS destinations use CONNECT tunnels.
+This setting is for Proxmox download workflows. If you also want host shell
+commands or `apt update` to use the cache, configure the host package manager as
+shown below.
 
-Test from a Proxmox host:
+## Configure with Ansible
+
+If `ansible/inventory/hosts.yml` has Proxmox hosts in the `hypervisors` group,
+Ansible can manage the Datacenter HTTP proxy and the per-host APT proxy file.
+
+Set the shared proxy URL in `ansible/group_vars/all.yml`:
+
+```yaml
+repository_proxy_enabled: true
+repository_proxy_fqdn: "cache.{{ platform_domain }}"
+repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
+```
+
+Then run:
+
+```bash
+cd ansible
+ansible-playbook -i inventory/hosts.yml playbooks/proxmox-hosts.yml
+```
+
+## Test from a Proxmox host
+
+Run this from a Proxmox host shell:
 
 ```bash
 curl -x "$CACHE_PROXY_URL" -I "https://mirrors.fedoraproject.org/"
 ```
 
-## Proxmox host package updates
+## Optional host package updates
 
-Proxmox hosts use Debian package tooling. Run these commands as `root` on the
-Proxmox host. To make the host use the cache for package updates, create an
-APT proxy config:
+Proxmox hosts use Debian package tooling. If host package updates should also
+use the cache, first test APT with the proxy without writing host config.
 
-```bash
-cat >/etc/apt/apt.conf.d/80homelab-repository-proxy <<EOF
-Acquire::http::Proxy "${CACHE_PROXY_URL}";
-Acquire::https::Proxy "${CACHE_PROXY_URL}";
-EOF
-```
-
-Then test package metadata access:
-
-```bash
-apt update
-```
-
-Remove the host-level proxy by deleting the managed file:
-
-```bash
-rm -f /etc/apt/apt.conf.d/80homelab-repository-proxy
-apt update
-```
-
-For a one-off test without writing host config:
+### Test APT through the proxy
 
 ```bash
 apt \
@@ -72,10 +90,40 @@ apt \
   update
 ```
 
+### Persist the APT proxy
+
+Create or update `/etc/apt/apt.conf.d/76pveproxy` as `root` on each Proxmox
+host:
+
+```aptconf
+Acquire::http::Proxy "${CACHE_PROXY_URL}";
+Acquire::https::Proxy "${CACHE_PROXY_URL}";
+```
+
+Use a different HTTPS proxy URL only when your environment provides one.
+Otherwise, keep the same cache endpoint for both entries. In Ansible, set
+`repository_proxy_https_url` only when it should differ from
+`repository_proxy_url`.
+
+Then confirm package metadata access still works through the persisted config:
+
+```bash
+apt update
+```
+
+### Remove the APT proxy
+
+Delete the proxy config file:
+
+```bash
+rm -f /etc/apt/apt.conf.d/76pveproxy
+apt update
+```
+
 ## Image downloads on Proxmox hosts
 
-When downloading cloud images, ISOs, or checksum files from a Proxmox host
-shell, use standard proxy environment variables:
+For manual cloud image, ISO, or checksum downloads from a Proxmox host shell,
+use standard proxy environment variables:
 
 ```bash
 export http_proxy="$CACHE_PROXY_URL"
@@ -91,10 +139,9 @@ Unset them after the download window:
 unset http_proxy https_proxy
 ```
 
-If you use the Proxmox GUI `Download from URL` workflow, verify in your own
-environment whether that task uses the host proxy configuration. For controlled
-egress, the more predictable path is to download from the Proxmox host shell
-with explicit proxy variables, verify checksums, then use the local file.
+For controlled egress, the most predictable manual path is to download from the
+Proxmox host shell with explicit proxy variables, verify checksums, then use the
+local file.
 
 ## Template preparation VMs
 
@@ -105,7 +152,6 @@ variables consumed by the Ansible baseline role:
 repository_proxy_enabled: true
 repository_proxy_fqdn: "cache.{{ platform_domain }}"
 repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
-repository_proxy_ip: "<cache_proxy_vip>"
 ```
 
 Keep permanent proxy settings out of reusable templates unless every future
@@ -129,3 +175,4 @@ sudo dnf \
 - [Cache path](../../paths/shared-services/cache.md)
 - [Enterprise Linux template](enterprise-linux-template.md)
 - [Proxmox hardening baseline](hardening.md)
+- [Proxmox datacenter configuration](https://pve.proxmox.com/pve-docs/datacenter.cfg.5.html)

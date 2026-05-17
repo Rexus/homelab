@@ -1,0 +1,113 @@
+---
+- name: Normalize Proxmox host cache proxy inputs
+  ansible.builtin.set_fact:
+    pve_proxy_enabled: >-
+      {{
+        proxmox_host_proxy_enabled | bool
+        and proxmox_host_proxy_url | length > 0
+      }}
+    pve_proxy_url: "{{ proxmox_host_proxy_url }}"
+    pve_proxy_https_url: >-
+      {{ proxmox_host_proxy_https_url | default(proxmox_host_proxy_url) | string | trim }}
+
+- name: Validate Proxmox host cache proxy URL
+  ansible.builtin.assert:
+    that:
+      - pve_proxy_url | length > 0
+    fail_msg: >-
+      proxmox_host_proxy_enabled is true, but no proxy URL is set.
+      Set repository_proxy_url or proxmox_host_proxy_url.
+  when: proxmox_host_proxy_enabled | bool
+
+- name: Validate HTTPS proxy override has a base proxy URL
+  ansible.builtin.assert:
+    that:
+      - pve_proxy_url | length > 0
+    fail_msg: >-
+      proxmox_host_proxy_https_url or repository_proxy_https_url is set, but the
+      base proxy URL is missing. Set repository_proxy_url or
+      proxmox_host_proxy_url first.
+  when:
+    - proxmox_host_proxy_https_url | length > 0
+    - proxmox_host_proxy_https_url != proxmox_host_proxy_url
+
+- name: Validate Proxmox host HTTPS cache proxy URL
+  ansible.builtin.assert:
+    that:
+      - pve_proxy_https_url | length > 0
+    fail_msg: >-
+      proxmox_host_proxy_enabled is true, but no HTTPS proxy URL could be
+      resolved. Set repository_proxy_url, repository_proxy_https_url, or
+      proxmox_host_proxy_https_url.
+  when: proxmox_host_proxy_enabled | bool
+
+- name: Validate Proxmox datacenter config path
+  ansible.builtin.stat:
+    path: /etc/pve/datacenter.cfg
+  register: proxmox_host_datacenter_config
+  when: proxmox_host_manage_datacenter_proxy | bool
+
+- name: Fail when Proxmox datacenter config is missing
+  ansible.builtin.fail:
+    msg: >-
+      /etc/pve/datacenter.cfg was not found. This playbook targets Proxmox VE
+      hosts in the hypervisors inventory group.
+  when:
+    - proxmox_host_manage_datacenter_proxy | bool
+    - not proxmox_host_datacenter_config.stat.exists | default(false)
+
+- name: Configure Proxmox Datacenter HTTP proxy
+  ansible.builtin.lineinfile:
+    path: /etc/pve/datacenter.cfg
+    regexp: '^http_proxy:'
+    line: "http_proxy: {{ pve_proxy_url }}"
+  run_once: true
+  when:
+    - proxmox_host_manage_datacenter_proxy | bool
+    - pve_proxy_enabled
+
+- name: Remove Proxmox Datacenter HTTP proxy when disabled
+  ansible.builtin.lineinfile:
+    path: /etc/pve/datacenter.cfg
+    regexp: '^http_proxy:'
+    state: absent
+  run_once: true
+  when:
+    - proxmox_host_manage_datacenter_proxy | bool
+    - proxmox_host_remove_proxy_when_disabled | bool
+    - not pve_proxy_enabled
+
+- name: Validate APT proxy config directory
+  ansible.builtin.stat:
+    path: /etc/apt/apt.conf.d
+  register: proxmox_host_apt_config_dir
+  when: proxmox_host_manage_apt_proxy | bool
+
+- name: Fail when APT proxy config directory is missing
+  ansible.builtin.fail:
+    msg: >-
+      /etc/apt/apt.conf.d was not found. This playbook expects Debian-based
+      Proxmox VE hosts.
+  when:
+    - proxmox_host_manage_apt_proxy | bool
+    - not proxmox_host_apt_config_dir.stat.isdir | default(false)
+
+- name: Configure Proxmox host APT proxy
+  ansible.builtin.template:
+    src: 76pveproxy.j2
+    dest: "{{ proxmox_host_apt_proxy_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - proxmox_host_manage_apt_proxy | bool
+    - pve_proxy_enabled
+
+- name: Remove Proxmox host APT proxy when disabled
+  ansible.builtin.file:
+    path: "{{ proxmox_host_apt_proxy_file }}"
+    state: absent
+  when:
+    - proxmox_host_manage_apt_proxy | bool
+    - proxmox_host_remove_proxy_when_disabled | bool
+    - not pve_proxy_enabled

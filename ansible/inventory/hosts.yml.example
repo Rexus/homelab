@@ -21,6 +21,7 @@ all:
   children:
     # Platform path: reference group for Proxmox host operations.
     # Guide: docs/platforms/proxmox/README.md
+    # Playbook: ansible/playbooks/proxmox-hosts.yml
     # Foundation playbooks do not target Proxmox hosts.
     hypervisors:
       hosts: {}
