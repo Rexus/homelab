@@ -31,85 +31,81 @@ proxmox_storage_classes = {
 }
 
 # Keep only networks where Terraform may place guests.
-# Host-only platform networks belong in platform design and operations docs.
+# Host-management, Corosync, and Ceph transport networks belong in Proxmox
+# host/network operations, not in this guest network catalog.
+#
+# bridge is the VM network attachment target:
+# - SDN: bridge is the short Proxmox VNet ID; vlan_id can be omitted.
+# - Non-SDN: bridge is vmbr0/vmbr1, and vlan_id tags the VM NIC.
+# The examples keep vlan_id = null so switching to non-SDN is a small edit.
 network_zones = {
-  management = {
-    description = "Operator, automation, and hypervisor-adjacent access."
-    bridge       = "vmbr0"
-    vlan_id      = 10
-    cidr_ipv4    = "10.10.10.0/24"
-    gateway_ipv4 = "10.10.10.1"
-  }
   access = {
-    description = "SSO, Keycloak, and controlled user access services."
-    bridge       = "vmbr0"
-    vlan_id      = 11
+    bridge       = "access"
+    vlan_id      = null
     cidr_ipv4    = "10.10.11.0/24"
     gateway_ipv4 = "10.10.11.1"
   }
   identity = {
-    description = "FreeIPA, DNS, and identity services."
-    bridge       = "vmbr0"
-    vlan_id      = 12
+    bridge       = "ident"
+    vlan_id      = null
     cidr_ipv4    = "10.10.12.0/24"
     gateway_ipv4 = "10.10.12.1"
   }
   application = {
-    description = "Internal application traffic and shared application consumers."
-    bridge       = "vmbr0"
-    vlan_id      = 120
+    bridge       = "app"
+    vlan_id      = null
     cidr_ipv4    = "10.20.20.0/24"
     gateway_ipv4 = "10.20.20.1"
   }
   observability = {
-    description = "Telemetry backends, dashboards, and query endpoints."
-    bridge       = "vmbr0"
-    vlan_id      = 130
+    bridge       = "obs"
+    vlan_id      = null
     cidr_ipv4    = "10.20.30.0/24"
     gateway_ipv4 = "10.20.30.1"
   }
   storage = {
-    description = "Guest-facing archive and storage service access."
-    bridge       = "vmbr0"
-    vlan_id      = 140
+    bridge       = "stor"
+    vlan_id      = null
     cidr_ipv4    = "10.20.40.0/24"
     gateway_ipv4 = "10.20.40.1"
   }
   cryptography = {
-    description = "Live cryptography, issuing CA, and HSM-backed gateway traffic."
-    bridge       = "vmbr0"
-    vlan_id      = 220
+    bridge       = "crypto"
+    vlan_id      = null
     cidr_ipv4    = "10.20.21.0/24"
     gateway_ipv4 = "10.20.21.1"
   }
   ceremony = {
-    description = "Restricted ceremony, provisioning, recovery, or root-CA path."
-    bridge       = "vmbr0"
-    vlan_id      = 221
+    bridge       = "cerem"
+    vlan_id      = null
     cidr_ipv4    = "10.20.22.0/24"
     gateway_ipv4 = "10.20.22.1"
   }
   telemetry_gateway = {
-    description = "Telemetry routing and enrichment before backend storage."
-    bridge       = "vmbr0"
-    vlan_id      = 230
+    bridge       = "tgw"
+    vlan_id      = null
     cidr_ipv4    = "10.20.31.0/24"
     gateway_ipv4 = "10.20.31.1"
   }
   security_telemetry = {
-    description = "Hardened security log and audit intake."
-    bridge       = "vmbr0"
-    vlan_id      = 231
+    bridge       = "sectel"
+    vlan_id      = null
     cidr_ipv4    = "10.20.32.0/24"
     gateway_ipv4 = "10.20.32.1"
   }
   external_edge = {
-    description = "External edge, edge load balancing, ingress, and controlled egress."
     bridge       = "vmbr0"
     vlan_id      = 320
     cidr_ipv4    = "10.30.30.0/24"
     gateway_ipv4 = "10.30.30.1"
   }
+  # Non-SDN bridge+VLAN examples use vmbr0/vmbr1 with vlan_id set. For example:
+  # application = {
+  #   bridge       = "vmbr0"
+  #   vlan_id      = 120
+  #   cidr_ipv4    = "10.20.20.0/24"
+  #   gateway_ipv4 = "10.20.20.1"
+  # }
 }
 
 # Default Linux cloud-init VM template cloned by Terraform.

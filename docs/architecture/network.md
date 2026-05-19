@@ -208,43 +208,32 @@ One example based on that pattern is:
 
 ## Automation mapping
 
-Use the same guest-facing keys in Terraform:
+Use the same guest-facing keys in Terraform `common.tfvars`:
 
 ```hcl
 network_zones = {
-  management = {
-    bridge       = "vmbr0"
-    vlan_id      = 10
-    cidr_ipv4    = "10.10.10.0/24"
-    gateway_ipv4 = "10.10.10.1"
-  }
   access = {
-    bridge       = "vmbr0"
-    vlan_id      = 11
+    bridge       = "access"
     cidr_ipv4    = "10.10.11.0/24"
     gateway_ipv4 = "10.10.11.1"
   }
   identity = {
-    bridge       = "vmbr0"
-    vlan_id      = 12
+    bridge       = "ident"
     cidr_ipv4    = "10.10.12.0/24"
     gateway_ipv4 = "10.10.12.1"
   }
   application = {
-    bridge       = "vmbr0"
-    vlan_id      = 120
+    bridge       = "app"
     cidr_ipv4    = "10.20.20.0/24"
     gateway_ipv4 = "10.20.20.1"
   }
   cryptography = {
-    bridge       = "vmbr0"
-    vlan_id      = 220
+    bridge       = "crypto"
     cidr_ipv4    = "10.20.21.0/24"
     gateway_ipv4 = "10.20.21.1"
   }
   ceremony = {
-    bridge       = "vmbr0"
-    vlan_id      = 221
+    bridge       = "cerem"
     cidr_ipv4    = "10.20.22.0/24"
     gateway_ipv4 = "10.20.22.1"
   }
@@ -255,7 +244,11 @@ network_zones = {
     gateway_ipv4 = "10.30.30.1"
   }
 }
+```
 
+Then place guests in Terraform setup vars by logical zone:
+
+```hcl
 default_platform_node_name = "pve01"
 
 vm_instances = {
@@ -276,17 +269,16 @@ Use these field meanings:
 | `default_platform_node_name` | default platform node that receives guests | consumed by VM and LXC placement |
 | `vm_instances.<key>` | stable logical guest key | joins Terraform placement with Ansible inventory |
 | `vm_instances.<key>.tags` | Proxmox tags for filtering and ownership | consumed by VM and LXC placement |
-| `network_zones.<key>.bridge` | Proxmox bridge name for that zone | consumed by VM and LXC placement |
-| `network_zones.<key>.vlan_id` | VLAN tag for that zone when your bridge is VLAN-aware | consumed by VM placement and kept as shared reference |
-| `network_zones.<key>.cidr_ipv4` | subnet for the zone | used for static guest CIDR prefixes and operator reference |
-| `network_zones.<key>.gateway_ipv4` | default guest gateway when you assign static addresses | consumed when a guest does not override the gateway |
-| `network_zones.<key>.notes` | local planning context or reminders | documentation and operator reference |
+| `network_zones.<key>.bridge` | SDN VNet ID or non-SDN Proxmox bridge name for that guest network | consumed by VM and LXC placement |
+| `network_zones.<key>.vlan_id` | optional VLAN tag for non-SDN bridge tagging; omit for SDN VNets | consumed by VM placement |
+| `network_zones.<key>.cidr_ipv4` | subnet for static guest addressing | used for static guest CIDR prefixes |
+| `network_zones.<key>.gateway_ipv4` | default guest gateway for static addresses | consumed when Terraform builds cloud-init IP config |
 | `vm_instances.*.network_zone_key` | which zone a VM belongs to | selects the bridge and optional VLAN |
 | `lxc_instances.*.network_zone_key` | which zone an LXC belongs to | selects the bridge |
 
 This is the intended split:
 
-- put durable naming and logical intent in `network_zones`
+- put VM attachment and static IPv4 metadata in `network_zones`
 - put guest hardware shape and zone placement in `vm_instances` or
   `lxc_instances`
 - keep host-only platform networks, switch, firewall, and router
@@ -294,16 +286,17 @@ This is the intended split:
 
 ## Stage guidance
 
-Use the catalog progressively:
+Use the guest catalog progressively. Host management stays outside Terraform
+`network_zones`.
 
 | Stage | Zones you usually need now | Zones you can leave as reference only |
 | --- | --- | --- |
-| shared private-domain services | `management`, `identity`, `cryptography`, optional `ceremony` | `access`, `application`, `external_edge`, `client`, host-only platform networks |
-| early private cloud | `management`, `identity`, `cryptography`, `application`, optional `access`, optional `external_edge`, optional `ceremony` | `client`, host-only platform networks |
-| observability and syslog | `management`, `observability`, `telemetry_gateway`, `security_telemetry`, optional `storage` | `access`, `client`, host-only platform networks |
-| clustered platform | `management`, `identity`, `application`, optional `access`, optional `external_edge` | `cryptography`, `ceremony`, `client`, host-only platform networks |
-| storage-heavy platform | `management`, `identity`, `application` | `access`, `external_edge`, `cryptography`, `ceremony`, `client`, host-only platform networks |
-| HSM or signing lab | `management`, `identity`, `application`, `cryptography`, optional `ceremony`, optional `external_edge` | `access`, `client`, host-only platform networks |
+| shared private-domain services | `identity`, `cryptography`, optional `ceremony` | `access`, `application`, `external_edge`, `client`, host-only platform networks |
+| early private cloud | `identity`, `cryptography`, `application`, optional `access`, optional `external_edge`, optional `ceremony` | `client`, host-only platform networks |
+| observability and syslog | `observability`, `telemetry_gateway`, `security_telemetry`, optional `storage` | `access`, `client`, host-only platform networks |
+| clustered platform | `identity`, `application`, optional `access`, optional `external_edge` | `cryptography`, `ceremony`, `client`, host-only platform networks |
+| storage-heavy platform | `identity`, `application` | `access`, `external_edge`, `cryptography`, `ceremony`, `client`, host-only platform networks |
+| HSM or signing lab | `identity`, `application`, `cryptography`, optional `ceremony`, optional `external_edge` | `access`, `client`, host-only platform networks |
 
 This is why the Terraform examples only include networks where automation may
 place guests. You do not need to run every network before the repository is

@@ -20,8 +20,8 @@ Have these ready before running automation:
 
 - access to the current platform, such as Proxmox
 - an automation API token
-- prepared network values for the shared deployable `network_zones` map, such
-  as bridge, VLAN, subnet, gateway, or DHCP usage
+- prepared guest network attachment values for `network_zones`, such as bridge
+  or SDN VNet ID, optional VLAN tag, subnet, and gateway
 - a prepared VM template or image source for managed instances
 - an LXC template file if container provisioning will be used
 

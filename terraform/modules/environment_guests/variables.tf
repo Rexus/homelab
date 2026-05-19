@@ -1,12 +1,10 @@
 variable "network_zones" {
-  description = "Network zone catalog keyed by the repository reference names."
+  description = "Guest network catalog keyed by repository reference names."
   type = map(object({
-    description  = optional(string)
     bridge       = string
     vlan_id      = optional(number)
-    cidr_ipv4    = optional(string)
+    cidr_ipv4    = string
     gateway_ipv4 = optional(string)
-    notes        = optional(string)
   }))
 }
 

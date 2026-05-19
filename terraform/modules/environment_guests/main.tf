@@ -118,6 +118,15 @@ locals {
         try(vm.network_zone_key, null),
         var.default_vm_network_zone_key,
       )
+      bridge = var.network_zones[
+        coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
+      ].bridge
+      vlan_id = try(
+        var.network_zones[
+          coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
+        ].vlan_id,
+        null,
+      )
       started         = coalesce(try(vm.started, null), true)
       template        = coalesce(try(vm.template, null), false)
       stop_on_destroy = try(vm.stop_on_destroy, null)
@@ -127,6 +136,12 @@ locals {
         local.network_zone_ipv4_prefixes[
           coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
         ],
+      )
+      ipv4_gateway = local.platform_host_ips[key] == "dhcp" ? null : try(
+        var.network_zones[
+          coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
+        ].gateway_ipv4,
+        null,
       )
       tags = distinct(concat(
         local.resolved_vm_template_tags[key],
@@ -152,12 +167,21 @@ locals {
         try(lxc.network_zone_key, null),
         var.default_lxc_network_zone_key,
       )
+      bridge = var.network_zones[
+        coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
+      ].bridge
       ipv4_address = local.platform_host_ips[key] == "dhcp" ? "dhcp" : format(
         "%s/%s",
         local.platform_host_ips[key],
         local.network_zone_ipv4_prefixes[
           coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
         ],
+      )
+      ipv4_gateway = local.platform_host_ips[key] == "dhcp" ? null : try(
+        var.network_zones[
+          coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
+        ].gateway_ipv4,
+        null,
       )
       tags = try(lxc.tags, [])
     }

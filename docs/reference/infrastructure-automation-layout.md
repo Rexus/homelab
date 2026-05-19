@@ -21,7 +21,7 @@ Keep shared host identity in Ansible and hardware placement in Terraform.
 | Ansible `all` group vars | hostname prefix or suffix, domain, and baseline inputs |
 | Ansible setup group vars | guest IP map, service settings, and host configuration inputs |
 | Terraform environment tfvars | Proxmox VMID, tags, size, storage class, disk size, network zone, and optional Proxmox node override |
-| Terraform common tfvars | default platform node, shared storage mappings, network zones, template IDs, and cloud-init SSH keys |
+| Terraform common tfvars | default platform node, shared storage mappings, guest network attachments, template IDs, and cloud-init SSH keys |
 
 Terraform guest maps are keyed by the matching Ansible inventory host key, for
 example `idm-1`. Keep that key stable across environments.
@@ -46,6 +46,9 @@ Terraform reads the same setup group vars for the guest IP map and generated
 Proxmox name, so IPs and names are not maintained in both tools.
 Every Terraform guest key should have a matching `platform_host_ips` entry, or
 the value `dhcp` when that guest is intentionally dynamic.
+Static guest addressing uses the CIDR prefix and gateway in Terraform
+`network_zones`. Keep each zone focused on deployable guest networks:
+`bridge`, optional `vlan_id`, `cidr_ipv4`, and optional `gateway_ipv4`.
 When you use `<setup>.<env>.yml`, keep the full IP map for that setup in the
 environment file. The wrapper layers YAML files predictably, but it does not
 try to merge partial maps.

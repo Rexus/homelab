@@ -54,17 +54,14 @@ module "vms" {
   template_vm_id            = each.value.template_vm_id
   storage_class            = each.value.storage_class
   storage_class_datastores = var.proxmox_storage_classes
-  bridge                   = var.network_zones[each.value.network_zone_key].bridge
-  vlan_id                  = try(var.network_zones[each.value.network_zone_key].vlan_id, null)
+  bridge                   = each.value.bridge
+  vlan_id                  = each.value.vlan_id
   size                     = each.value.size
   cores                    = each.value.cores
   memory                   = each.value.memory
   disk_size_gb             = each.value.disk_size_gb
   ipv4_address             = each.value.ipv4_address
-  ipv4_gateway = each.value.ipv4_address == "dhcp" ? null : try(
-    var.network_zones[each.value.network_zone_key].gateway_ipv4,
-    null,
-  )
+  ipv4_gateway             = each.value.ipv4_gateway
   ssh_public_keys          = var.ssh_public_keys
   tags                     = each.value.tags
 }
@@ -79,13 +76,10 @@ module "lxcs" {
   template_file_id         = each.value.template_file_id
   storage_class            = each.value.storage_class
   storage_class_datastores = var.proxmox_storage_classes
-  bridge                   = var.network_zones[each.value.network_zone_key].bridge
+  bridge                   = each.value.bridge
   size                     = each.value.size
   disk_size_gb             = each.value.disk_size_gb
   ipv4_address             = each.value.ipv4_address
-  ipv4_gateway = each.value.ipv4_address == "dhcp" ? null : try(
-    var.network_zones[each.value.network_zone_key].gateway_ipv4,
-    null,
-  )
+  ipv4_gateway             = each.value.ipv4_gateway
   tags                     = each.value.tags
 }

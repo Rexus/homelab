@@ -7,6 +7,7 @@
 - [What to implement on Proxmox](#what-to-implement-on-proxmox)
 - [Recommended host pattern](#recommended-host-pattern)
 - [Bonds and bridges](#bonds-and-bridges)
+- [Optional SDN for guest networks](#optional-sdn-for-guest-networks)
 - [Host-side VLANs](#host-side-vlans)
 - [VLAN strategy](#vlan-strategy)
 - [MTU planning](#mtu-planning)
@@ -36,7 +37,8 @@ as the source of truth for:
 - zone names such as `management`, `access`, `identity`, `application`,
   `cryptography`, `external_edge`, and `ceremony`
 - the deployable guest `network_zones` keys used in Terraform
-- the bridge, VLAN, and subnet values you fill in locally
+- the SDN VNet ID or non-SDN bridge, optional VLAN tag, and subnet values you
+  fill in locally
 
 This page stays Proxmox-specific and explains how those logical zones are
 presented on the hosts.
@@ -50,6 +52,8 @@ On the Proxmox side, decide and document:
 - which bridge carries the normal fabric traffic
 - which bridge carries storage traffic when you separate storage
 - whether the bridges are VLAN-aware
+- whether guest/workload networks consume Proxmox SDN VNets or non-SDN
+  bridge-and-VLAN tagging
 - whether any trunks allow native or untagged VLANs at all
 - whether `corosync`, `ceph_public`, or `ceph_cluster` use shared or dedicated
   uplinks
@@ -136,6 +140,60 @@ Bonding and bridge notes:
 - keep `vmbr0` VLAN-aware and carry the remaining allowed VLAN IDs there, for
   example `10-12 120 220-221 320`
 
+## Optional SDN for guest networks
+
+Use SDN as a Proxmox-side convenience for VM-facing networks. This repository
+only needs the final VM attachment name.
+
+Short guardrails:
+
+- use SDN for guest/workload networks such as `identity`, `application`,
+  `external_edge`, `cryptography`, `ceremony`, labs, and tenant networks
+- do not move host-management, Corosync, `ceph_public`, `ceph_cluster`, or
+  other Proxmox/Ceph transport networks into SDN
+- keep `bond0`/`vmbr0` and optional `bond1`/`vmbr1` as the stable underlay
+- test SDN on a non-critical guest network before using it broadly
+- stage bridge, LACP, VLAN, and SDN changes instead of changing everything at
+  once
+
+Use the current
+[Proxmox SDN documentation](https://pve.proxmox.com/pve-docs/chapter-pvesdn.html)
+for exact UI fields. For this repo, a VLAN-backed SDN setup usually looks like:
+
+1. Confirm the underlay bridge, usually `vmbr0`, is VLAN-aware and trunked on
+   the switch.
+2. In Proxmox, open `Datacenter` -> `SDN` -> `Zones` and create a VLAN zone.
+   Use a short zone ID and point it at the underlay bridge, such as `vmbr0`.
+3. Open `Datacenter` -> `SDN` -> `VNets` and create one VNet per guest
+   network. Keep VNet IDs short, ideally eight characters or fewer, such as
+   `app`, `ident`, `crypto`, `edge`, or `tenant1`.
+4. Set the VNet VLAN tag to the real VLAN carried by the underlay trunk. Use
+   the Proxmox Alias or description fields for longer human-readable names.
+5. Apply the SDN configuration from the main SDN panel and verify that the VNet
+   exists on the intended nodes before Terraform attaches guests to it.
+6. Skip Proxmox SDN subnets unless you intentionally use Proxmox IPAM, DHCP, or
+   routed SDN features. This repo still provides static guest IPs through
+   Terraform cloud-init values in `network_zones`.
+
+Map the result into `terraform/common.tfvars`:
+
+```hcl
+network_zones = {
+  application = {
+    bridge       = "app" # SDN VNet ID
+    cidr_ipv4    = "10.20.20.0/24"
+    gateway_ipv4 = "10.20.20.1"
+  }
+
+  external_edge = {
+    bridge       = "vmbr0" # non-SDN bridge
+    vlan_id      = 320     # VM NIC is tagged
+    cidr_ipv4    = "10.30.30.0/24"
+    gateway_ipv4 = "10.30.30.1"
+  }
+}
+```
+
 ## Host-side VLANs
 
 In this Proxmox pattern, focus the host-side VLAN plan on the VLANs that the
@@ -143,16 +201,15 @@ hosts themselves use.
 
 | VLAN or path | Recommended bridge or port | MTU | Notes |
 | --- | --- | --- | --- |
-| `management` | `vmbr0` | `1500` | keep the web UI, API, and SSH reachable before automation starts |
+| `management` | `vmbr0` | `1500` | keep the web UI, API, and SSH reachable before automation starts; do not move this into SDN |
 | `corosync 1` | dedicated `eth` port if possible, else `vmbr0` | `1500` | keep the first Corosync path on the fabric side |
 | `corosync 2` | dedicated `eth` port if possible, else `vmbr1` | `1500` | keep the second Corosync path away from the first one |
-| `ceph_public` | `vmbr1` | `9000` | separate from guest traffic when possible |
-| `ceph_cluster` | `vmbr1` | `9000` | keep distinct from `ceph_public` for Ceph replication and recovery |
+| `ceph_public` | `vmbr1` | `9000` | separate from guest traffic when possible; do not move this into SDN |
+| `ceph_cluster` | `vmbr1` | `9000` | keep distinct from `ceph_public` for Ceph replication and recovery; do not move this into SDN |
 
-Guest VLANs such as `access`, `identity`, `application`, `external_edge`,
-`cryptography`, and `ceremony` are carried on the fabric bridge `vmbr0` and
-selected on each VM NIC by
-assigning the intended VLAN tag to that VM.
+Guest networks such as `access`, `identity`, `application`, `external_edge`,
+`cryptography`, and `ceremony` can be consumed either through Proxmox SDN VNets
+or through non-SDN bridge-and-VLAN tagging on `vmbr0`.
 
 ## VLAN strategy
 
@@ -162,8 +219,11 @@ easier to keep readable. Read more in
 
 Recommended practice:
 
-- record deployable guest VLAN IDs in Terraform `network_zones` so automation
-  matches the host implementation
+- record deployable guest network attachments in Terraform `network_zones` so
+  automation matches the host implementation
+- for SDN, record the VNet ID as `bridge` and omit `vlan_id`
+- for non-SDN networking, record the Linux bridge as `bridge` and set
+  `vlan_id` to tag the VM NIC
 - keep host-only platform VLANs in the Proxmox host/network documentation
 - decide the reserved VLAN ID ranges early because later changes are harder
   across bridges, guests, switches, and firewalls
@@ -186,8 +246,8 @@ Recommended practice:
   that requirement
 - a second Corosync VLAN can still stay at `1500` even when the storage bridge
   itself is `9000`
-- set MTU explicitly for VMs too when mixed-MTU designs exist, especially when
-  a single bridge must stay at `9000` for Ceph
+- keep VM MTU decisions aligned with the Proxmox-side network design; this
+  repository does not carry MTU in the shared Terraform guest network catalog
 
 ## Single-trunk fallback
 
@@ -208,7 +268,7 @@ Practical Ceph threshold examples:
 When you use the single-trunk fallback:
 
 - set the bridge MTU high enough for the Ceph networks if they need `9000`
-- keep explicit MTU settings on the VM interfaces and host paths
+- keep explicit MTU settings on the Proxmox host paths
 
 ## Host-side notes
 
@@ -227,8 +287,11 @@ Before running automation, confirm:
 - every node has the expected bond and bridge layout
 - host-management access is working on every node
 - VLAN tags exist end-to-end on the underlay where needed
-- guest bridge names and VLAN IDs line up with the local `network_zones`
+- guest bridge names or SDN VNet IDs line up with the local `network_zones`
   values
+- SDN VNets exist before Terraform attaches VMs to them
+- SDN VNets are only used for guest/workload networks, not host-management,
+  Corosync, or Ceph transport networks
 - no bridge or trunk is accidentally carrying an untagged or native VLAN
 - no host IPs are left on bond slaves or physical NICs by mistake
 - both Corosync networks are present and placed on the intended paths if
