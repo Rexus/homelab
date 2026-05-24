@@ -62,12 +62,17 @@ baseline_ntp_enabled: true
 baseline_disable_ipv6: true
 # NetworkManager owns network configuration on the default Enterprise
 # Linux/Fedora-style guests, so baseline uses community.general.nmcli for guest
-# network settings. Use the existing connection profile name, not just the
-# interface name. The common cloud-init/sysconfig profile is usually
-# "System eth0"; change it if your template uses another profile name.
+# network settings. By default, Ethernet interfaces are mapped to connection
+# profiles named "System <ifname>", while loopback and common container
+# interfaces are ignored.
 baseline_manage_networkmanager_ipv6: true
-baseline_networkmanager_ipv6_connections:
-  - conn_name: "System eth0"
+baseline_networkmanager_ipv6_auto_connections: true
+# If your template uses different profile names, disable auto mode and list
+# the profiles explicitly:
+# baseline_networkmanager_ipv6_auto_connections: false
+# baseline_networkmanager_ipv6_connections:
+#   - conn_name: "Wired connection 1"
+#     ifname: eth0
 # Sysctl is only a fallback for hosts that are not NetworkManager-managed.
 baseline_manage_ipv6_sysctl: false
 
