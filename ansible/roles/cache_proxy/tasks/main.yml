@@ -192,29 +192,13 @@
   register: cache_squid_data_mount
   when: cache_squid_data_disk_enabled | bool
 
-- name: Check Squid cache data disk size
+- name: Check whether Squid cache XFS filesystem can grow
   ansible.builtin.command:
     argv:
-      - blockdev
-      - --getsize64
-      - "{{ cache_squid_data_device }}"
-  register: cache_squid_data_device_size
-  changed_when: false
-  when:
-    - cache_squid_data_disk_enabled | bool
-    - cache_squid_data_fstype == "xfs"
-
-- name: Check Squid cache filesystem size
-  ansible.builtin.command:
-    argv:
-      - findmnt
-      - --bytes
-      - --noheadings
-      - --output
-      - SIZE
-      - --target
+      - xfs_growfs
+      - -n
       - "{{ cache_squid_cache_dir }}"
-  register: cache_squid_data_filesystem_size
+  register: cache_squid_xfs_grow_check
   changed_when: false
   when:
     - cache_squid_data_disk_enabled | bool
@@ -225,12 +209,22 @@
     argv:
       - xfs_growfs
       - "{{ cache_squid_cache_dir }}"
+  register: cache_squid_xfs_grow
+  changed_when: >-
+    'data blocks changed'
+    in (
+      (cache_squid_xfs_grow.stdout | default(''))
+      ~ (cache_squid_xfs_grow.stderr | default(''))
+    )
   when:
     - cache_squid_data_disk_enabled | bool
     - cache_squid_data_fstype == "xfs"
     - >-
-      (cache_squid_data_device_size.stdout | trim | int)
-      > (cache_squid_data_filesystem_size.stdout | trim | int)
+      'data blocks changed'
+      in (
+        (cache_squid_xfs_grow_check.stdout | default(''))
+        ~ (cache_squid_xfs_grow_check.stderr | default(''))
+      )
 
 - name: Ensure Squid owns the mounted cache directory
   ansible.builtin.file:
