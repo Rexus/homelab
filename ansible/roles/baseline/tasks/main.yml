@@ -77,23 +77,14 @@
     name: "{{ baseline_timezone }}"
   when: baseline_manage_timezone
 
-- name: Write baseline network sysctl settings
-  ansible.builtin.copy:
-    dest: "{{ baseline_network_sysctl_file }}"
-    owner: root
-    group: root
-    mode: "0644"
-    content: |
-      # Managed by Ansible baseline role.
-      net.ipv6.conf.all.disable_ipv6 = {{ '1' if baseline_disable_ipv6 | bool else '0' }}
-      net.ipv6.conf.default.disable_ipv6 = {{ '1' if baseline_disable_ipv6 | bool else '0' }}
-  register: baseline_network_sysctl_config
-
-- name: Apply baseline network sysctl settings
-  ansible.builtin.command:
-    argv:
-      - sysctl
-      - -p
-      - "{{ baseline_network_sysctl_file }}"
-  changed_when: baseline_network_sysctl_config.changed
-  when: baseline_network_sysctl_config.changed
+- name: Configure baseline network sysctl settings
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: "{{ '1' if baseline_disable_ipv6 | bool else '0' }}"
+    sysctl_file: "{{ baseline_network_sysctl_file }}"
+    state: present
+    sysctl_set: true
+    reload: true
+  loop:
+    - net.ipv6.conf.all.disable_ipv6
+    - net.ipv6.conf.default.disable_ipv6

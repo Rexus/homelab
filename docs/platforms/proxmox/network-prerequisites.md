@@ -7,6 +7,7 @@
 - [What to implement on Proxmox](#what-to-implement-on-proxmox)
 - [Recommended host pattern](#recommended-host-pattern)
 - [Bonds and bridges](#bonds-and-bridges)
+- [Storage fabric OVS/RSTP](#storage-fabric-ovsrstp)
 - [Optional SDN for guest networks](#optional-sdn-for-guest-networks)
 - [Host-side VLANs](#host-side-vlans)
 - [VLAN strategy](#vlan-strategy)
@@ -124,7 +125,7 @@ Use stable host-side components such as these:
 | `bond0` | fabric bond | `1500` | use for the main host-management, guest, access, identity, and application trunk |
 | `vmbr0` | fabric bridge | `1500` | keep it VLAN-aware and do not allow native VLANs so untagged traffic does not land on the wrong network |
 | `bond1` | storage bond | `9000` | use for storage-heavy traffic when Ceph benefits from jumbo frames |
-| `vmbr1` | storage bridge | `9000` | keep it VLAN-aware and limit it to the storage VLANs plus the second Corosync VLAN |
+| `vmbr1` | storage bridge | `9000` | use OVS with RSTP for direct/full-mesh storage fabric; otherwise keep it VLAN-aware and limited to storage VLANs plus the second Corosync VLAN |
 | extra copper ports | optional dedicated Corosync paths | `1500` | prefer using them for `corosync 1` and `corosync 2` when you want extra cluster stability and separation instead of sharing those paths on `vmbr0` and `vmbr1` |
 
 Bonding and bridge notes:
@@ -139,6 +140,66 @@ Bonding and bridge notes:
   second Corosync VLAN on it, for example `20-22`
 - keep `vmbr0` VLAN-aware and carry the remaining allowed VLAN IDs there, for
   example `10-12 120 220-221 320`
+
+## Storage fabric OVS/RSTP
+
+For a three-node direct/full-mesh storage fabric, use Open vSwitch with RSTP on
+the storage bridge. This follows the
+[Proxmox full-mesh Ceph pattern](https://pve.proxmox.com/wiki/Full_Mesh_Network_for_Ceph_Server)
+and gives the storage fabric a faster loop-recovery mechanism than classic
+Linux bridge STP.
+
+Use this for the storage side only:
+
+- install `openvswitch-switch` on every Proxmox node before switching the
+  storage fabric to OVS
+- keep the fabric side, host-management, and guest SDN underlay separate from
+  this storage bridge unless your design intentionally collapses them
+- do not mix Linux bridge or Linux bond members inside the same OVS path
+- adapt NIC names, IP addresses, MTU, and path costs per node
+- prefer a switched storage fabric when the cluster will grow beyond three
+  nodes
+
+Minimal storage-fabric shape:
+
+```text
+node-1 ens18 ----- ens19 node-2
+node-2 ens18 ----- ens19 node-3
+node-3 ens18 ----- ens19 node-1
+```
+
+Example `/etc/network/interfaces` pattern for `vmbr1`:
+
+```ini
+auto ens18
+iface ens18 inet manual
+    ovs_type OVSPort
+    ovs_bridge vmbr1
+    ovs_mtu 9000
+    ovs_options other_config:rstp-enable=true other_config:rstp-path-cost=150 other_config:rstp-port-admin-edge=false other_config:rstp-port-auto-edge=false other_config:rstp-port-mcheck=true vlan_mode=native-untagged
+
+auto ens19
+iface ens19 inet manual
+    ovs_type OVSPort
+    ovs_bridge vmbr1
+    ovs_mtu 9000
+    ovs_options other_config:rstp-enable=true other_config:rstp-path-cost=150 other_config:rstp-port-admin-edge=false other_config:rstp-port-auto-edge=false other_config:rstp-port-mcheck=true vlan_mode=native-untagged
+
+auto vmbr1
+iface vmbr1 inet static
+    address 10.15.15.50/24
+    ovs_type OVSBridge
+    ovs_ports ens18 ens19
+    ovs_mtu 9000
+    up ovs-vsctl set Bridge ${IFACE} rstp_enable=true other_config:rstp-priority=32768 other_config:rstp-forward-delay=4 other_config:rstp-max-age=6
+    post-up sleep 10
+```
+
+Verify RSTP after applying the host network change:
+
+```bash
+ovs-appctl rstp/show
+```
 
 ## Optional SDN for guest networks
 

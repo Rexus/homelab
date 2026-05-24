@@ -40,14 +40,10 @@
   when: podman_runner_install_gitlab_runner | bool
 
 - name: Check GitLab Runner user
-  ansible.builtin.command:
-    argv:
-      - getent
-      - passwd
-      - "{{ podman_runner_user }}"
-  register: podman_runner_user_lookup
-  changed_when: false
-  failed_when: false
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ podman_runner_user }}"
+    fail_key: false
   when: podman_runner_configure_subuids | bool
 
 - name: Configure subuid range for rootless Podman builds
@@ -61,7 +57,7 @@
     mode: "0644"
   when:
     - podman_runner_configure_subuids | bool
-    - podman_runner_user_lookup.rc == 0
+    - podman_runner_user in (ansible_facts.getent_passwd | default({}))
 
 - name: Configure subgid range for rootless Podman builds
   ansible.builtin.lineinfile:
@@ -74,7 +70,7 @@
     mode: "0644"
   when:
     - podman_runner_configure_subuids | bool
-    - podman_runner_user_lookup.rc == 0
+    - podman_runner_user in (ansible_facts.getent_passwd | default({}))
 
 - name: Ensure GitLab Runner service is enabled
   ansible.builtin.service:

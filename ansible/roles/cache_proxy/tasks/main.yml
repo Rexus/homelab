@@ -25,14 +25,6 @@
       - "{{ cache_keepalived_package_name }}"
     state: "{{ cache_squid_package_state }}"
 
-- name: Install cache validation client
-  ansible.builtin.package:
-    name: "{{ cache_validation_client_package }}"
-    state: present
-  when:
-    - cache_validation_enabled | default(true) | bool
-    - cache_validation_client_package | length > 0
-
 - name: Ensure Squid systemd override directory exists
   ansible.builtin.file:
     path: "{{ cache_squid_systemd_override_dir }}"
@@ -56,40 +48,31 @@
     - Restart squid
   when: cache_squid_manage_systemd_limits | bool
 
-- name: Write cache proxy sysctl settings
-  ansible.builtin.copy:
-    dest: "{{ cache_squid_sysctl_file }}"
-    owner: root
-    group: root
-    mode: "0644"
-    content: |
-      # Managed by Ansible cache_proxy role.
-      {% for key, value in cache_squid_sysctl_settings | dictsort %}
-      {{ key }} = {{ value }}
-      {% endfor %}
-  register: cache_squid_sysctl_config
+- name: Configure cache proxy sysctl settings
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: "{{ cache_squid_sysctl_file }}"
+    state: present
+    sysctl_set: true
+    reload: true
+  loop: "{{ cache_squid_sysctl_settings | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
   when: cache_squid_manage_sysctl | bool
 
-- name: Apply cache proxy sysctl settings
-  ansible.builtin.command:
-    argv:
-      - sysctl
-      - -p
-      - "{{ cache_squid_sysctl_file }}"
-  changed_when: cache_squid_sysctl_config.changed
-  when:
-    - cache_squid_manage_sysctl | bool
-    - cache_squid_sysctl_config.changed | default(false)
+- name: Gather service facts for firewall management
+  ansible.builtin.service_facts:
+  when: cache_manage_firewalld | bool
 
-- name: Check firewalld service state
-  ansible.builtin.command:
-    argv:
-      - "{{ cache_systemctl_binary }}"
-      - is-active
-      - firewalld
-  register: cache_firewalld_state
-  failed_when: false
-  changed_when: false
+- name: Record firewalld service state
+  ansible.builtin.set_fact:
+    cache_firewalld_running: >-
+      {{
+        ansible_facts.services.get('firewalld.service', {}).state
+        | default('')
+        == 'running'
+      }}
   when: cache_manage_firewalld | bool
 
 - name: Ensure firewalld allows the Squid proxy port
@@ -102,7 +85,7 @@
   when:
     - cache_manage_firewalld | bool
     - cache_firewalld_open_proxy_port | bool
-    - cache_firewalld_state.rc | default(1) == 0
+    - cache_firewalld_running | default(false) | bool
 
 - name: Ensure firewalld allows keepalived VRRP
   ansible.posix.firewalld:
@@ -115,7 +98,7 @@
     - cache_manage_firewalld | bool
     - cache_firewalld_open_keepalived_vrrp | bool
     - cache_keepalived_enabled | bool
-    - cache_firewalld_state.rc | default(1) == 0
+    - cache_firewalld_running | default(false) | bool
 
 - name: Ensure Squid cache directory exists
   ansible.builtin.file:
@@ -392,18 +375,11 @@
   changed_when: false
 
 - name: Test upstream URL reachability from cache host
-  ansible.builtin.command:
-    argv:
-      - curl
-      - --fail
-      - --silent
-      - --show-error
-      - --location
-      - --max-time
-      - "{{ cache_validation_timeout | default(20) | string }}"
-      - --output
-      - /dev/null
-      - "{{ cache_validation_url }}"
+  ansible.builtin.uri:
+    url: "{{ cache_validation_url }}"
+    follow_redirects: all
+    timeout: "{{ cache_validation_timeout | default(20) }}"
+    use_proxy: false
   changed_when: false
   when:
     - cache_validation_enabled | default(true) | bool

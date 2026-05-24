@@ -65,30 +65,14 @@
         ansible_host: localhost
 
     - name: Verify bootstrap SSH login succeeds
-      ansible.builtin.command:
-        argv:
-          - ssh
-          - -o
-          - BatchMode=yes
-          - -o
-          - StrictHostKeyChecking=accept-new
-          - -o
-          - ConnectTimeout={{ foundation_connection_connect_timeout | default(8) }}
-          - -o
-          - ConnectionAttempts=1
-          - -p
-          - "{{ ansible_port | default(22) }}"
-          - "{{ ansible_user }}@{{ hostvars[inventory_hostname].ansible_host | default(inventory_hostname) }}"
-          - "true"
-      register: foundation_bootstrap_ssh
-      changed_when: false
-      until: foundation_bootstrap_ssh.rc == 0
-      retries: "{{ foundation_connection_wait_retries | default(10) }}"
-      delay: "{{ foundation_connection_wait_delay | default(3) }}"
-      delegate_to: localhost
-      vars:
-        ansible_connection: local
-        ansible_host: localhost
+      ansible.builtin.wait_for_connection:
+        connect_timeout: "{{ foundation_connection_connect_timeout | default(8) }}"
+        sleep: "{{ foundation_connection_wait_delay | default(3) }}"
+        timeout: >-
+          {{
+            (foundation_connection_wait_retries | default(10) | int)
+            * (foundation_connection_wait_delay | default(3) | int)
+          }}
 
 - name: Apply foundation baseline
   hosts: foundation

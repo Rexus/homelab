@@ -5,6 +5,8 @@
   gather_facts: false
   vars:
     control_node_selected_setup: "{{ control_node_setup | default('site') }}"
+    control_node_common_collection_names:
+      - ansible.posix
     control_node_collection_catalog:
       ansible.posix:
         name: ansible.posix
@@ -23,8 +25,7 @@
     control_node_setup_collection_names:
       foundation:
         - freeipa.ansible_freeipa
-      cache:
-        - ansible.posix
+      cache: []
       edge: []
       development: []
       observability: []
@@ -56,7 +57,11 @@
       ansible.builtin.set_fact:
         control_node_required_collections: >-
           {{
-            control_node_setup_collection_names[control_node_selected_setup]
+            (
+              control_node_common_collection_names
+              + control_node_setup_collection_names[control_node_selected_setup]
+            )
+            | unique
             | map('extract', control_node_collection_catalog)
             | list
           }}

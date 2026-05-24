@@ -157,5 +157,4 @@ cache_validation_failover_enabled: true
 cache_validation_url: https://mirrors.fedoraproject.org/
 cache_validation_connect_timeout: 5
 cache_validation_timeout: 20
-cache_validation_client_package: curl
 cache_validation_failover_settle_seconds: 8
