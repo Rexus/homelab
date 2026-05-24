@@ -60,12 +60,16 @@ baseline_ntp_enabled: true
 # guests. Set to false only for environments where IPv6 addressing, DNS,
 # routing, and firewall rules are intentionally managed.
 baseline_disable_ipv6: true
-# By default, baseline applies the IPv6 policy to the default IPv4 interface
-# using community.general.nmcli. Override only when the NetworkManager
-# connection name differs from the interface name.
-# baseline_networkmanager_ipv6_connections:
-#   - conn_name: eth0
-#     ifname: eth0
+# NetworkManager owns network configuration on the default Enterprise
+# Linux/Fedora-style guests, so baseline uses community.general.nmcli for guest
+# network settings. Use the existing connection profile name, not just the
+# interface name. The common cloud-init/sysconfig profile is usually
+# "System eth0"; change it if your template uses another profile name.
+baseline_manage_networkmanager_ipv6: true
+baseline_networkmanager_ipv6_connections:
+  - conn_name: "System eth0"
+# Sysctl is only a fallback for hosts that are not NetworkManager-managed.
+baseline_manage_ipv6_sysctl: false
 
 # Repository proxy consumed by managed hosts. Uncomment after a cache/proxy
 # exists and managed hosts should use it.
