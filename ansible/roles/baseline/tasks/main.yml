@@ -1,100 +1,63 @@
 ---
-- name: Normalize repository proxy inputs
-  ansible.builtin.set_fact:
-    baseline_repository_proxy_enabled: "{{ repository_proxy_enabled | default(true) | bool }}"
-    baseline_repository_proxy_url: "{{ repository_proxy_url | default('') | string | trim }}"
-    baseline_repository_proxy_manage_hosts_entry: >-
-      {{ repository_proxy_manage_hosts_entry | default(true) | bool }}
-    baseline_repository_proxy_fqdn: "{{ repository_proxy_fqdn | default('') | string | trim }}"
-    baseline_repository_proxy_ip: "{{ repository_proxy_ip | default('') | string | trim }}"
+- name: Manage host-wide repository proxy settings
+  ansible.builtin.include_tasks: repository_proxy.yml
+  when: baseline_manage_repository_proxy | bool
 
-- name: Configure repository proxy host entry when requested
-  ansible.builtin.blockinfile:
-    path: /etc/hosts
-    marker: "# {mark} HOMELAB BASELINE REPOSITORY PROXY HOST"
-    block: |
-      {{ baseline_repository_proxy_ip }} {{ baseline_repository_proxy_fqdn }}
-  when:
-    - baseline_repository_proxy_enabled
-    - baseline_repository_proxy_manage_hosts_entry
-    - baseline_repository_proxy_fqdn | length > 0
-    - baseline_repository_proxy_ip | length > 0
-
-- name: Remove managed repository proxy host entry when unset
-  ansible.builtin.blockinfile:
-    path: /etc/hosts
-    marker: "# {mark} HOMELAB BASELINE REPOSITORY PROXY HOST"
-    state: absent
-  when:
-    - baseline_repository_proxy_manage_hosts_entry
-    - >-
-      not baseline_repository_proxy_enabled
-      or baseline_repository_proxy_fqdn | length == 0
-      or baseline_repository_proxy_ip | length == 0
-
-- name: Check DNF package manager configuration
-  ansible.builtin.stat:
-    path: /etc/dnf/dnf.conf
-  register: baseline_dnf_config
-
-- name: Fail when a repository proxy is requested but DNF is unavailable
-  ansible.builtin.fail:
-    msg: >-
-      repository_proxy_url is set, but /etc/dnf/dnf.conf was not found.
-      This baseline proxy hook currently targets Enterprise Linux guests that
-      use DNF. Use direct repository access, configure the host manually, or add a
-      distro-specific baseline task before enabling the proxy for this host.
-  when:
-    - baseline_repository_proxy_enabled
-    - baseline_repository_proxy_url | length > 0
-    - not baseline_dnf_config.stat.exists | default(false)
-
-- name: Configure DNF repository proxy when requested
-  ansible.builtin.blockinfile:
-    path: /etc/dnf/dnf.conf
-    marker: "# {mark} HOMELAB BASELINE REPOSITORY PROXY"
-    insertafter: '^\[main\]'
-    block: |
-      proxy={{ baseline_repository_proxy_url }}
-  when:
-    - baseline_repository_proxy_enabled
-    - baseline_repository_proxy_url | length > 0
-    - baseline_dnf_config.stat.exists | default(false)
-
-- name: Remove managed DNF repository proxy when unset
-  ansible.builtin.blockinfile:
-    path: /etc/dnf/dnf.conf
-    marker: "# {mark} HOMELAB BASELINE REPOSITORY PROXY"
-    state: absent
-  when:
-    - >-
-      not baseline_repository_proxy_enabled
-      or baseline_repository_proxy_url | length == 0
-    - baseline_dnf_config.stat.exists | default(false)
+- name: Manage optional shell proxy environment
+  ansible.builtin.include_tasks: shell_proxy.yml
+  when: baseline_manage_shell_proxy | bool
 
 - name: Ensure timezone is configured when enabled
   ansible.builtin.timezone:
     name: "{{ baseline_timezone }}"
   when: baseline_manage_timezone
 
-- name: Build baseline network sysctl keys
+- name: Resolve NetworkManager connections for IPv6 policy
   ansible.builtin.set_fact:
-    baseline_network_sysctl_keys: >-
+    baseline_resolved_networkmanager_ipv6_connections: >-
       {{
-        (
-          [
-            'net.ipv6.conf.all.disable_ipv6',
-            'net.ipv6.conf.default.disable_ipv6'
-          ]
-          + (
-            ansible_facts.interfaces
-            | default([])
-            | map('regex_replace', '^(.+)$', 'net.ipv6.conf.\\1.disable_ipv6')
-            | list
-          )
-        )
-        | unique
+        baseline_networkmanager_ipv6_connections
+        if baseline_networkmanager_ipv6_connections | length > 0
+        else [
+          {
+            'conn_name': ansible_default_ipv4.interface,
+            'ifname': ansible_default_ipv4.interface
+          }
+        ]
       }}
+  when:
+    - baseline_manage_networkmanager_ipv6 | bool
+    - baseline_disable_ipv6 | bool
+    - ansible_default_ipv4.interface is defined
+
+- name: Disable IPv6 on NetworkManager Ethernet connections
+  community.general.nmcli:
+    conn_name: "{{ item.conn_name }}"
+    ifname: "{{ item.ifname | default(item.conn_name) }}"
+    type: ethernet
+    method6: disabled
+    state: present
+  loop: "{{ baseline_resolved_networkmanager_ipv6_connections | default([]) }}"
+  loop_control:
+    label: "{{ item.conn_name }}"
+  register: baseline_networkmanager_ipv6_profiles
+  when:
+    - baseline_manage_networkmanager_ipv6 | bool
+    - baseline_disable_ipv6 | bool
+
+- name: Reapply NetworkManager Ethernet connections after IPv6 changes
+  community.general.nmcli:
+    conn_name: "{{ item.item.conn_name }}"
+    ifname: "{{ item.item.ifname | default(item.item.conn_name) }}"
+    type: ethernet
+    state: up
+  loop: "{{ baseline_networkmanager_ipv6_profiles.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.conn_name }}"
+  when:
+    - baseline_manage_networkmanager_ipv6 | bool
+    - baseline_disable_ipv6 | bool
+    - item.changed | default(false)
 
 - name: Configure baseline network sysctl settings
   ansible.posix.sysctl:
@@ -104,6 +67,8 @@
     state: present
     sysctl_set: true
     reload: true
-  loop: "{{ baseline_network_sysctl_keys }}"
+  loop:
+    - net.ipv6.conf.all.disable_ipv6
+    - net.ipv6.conf.default.disable_ipv6
   loop_control:
     label: "{{ item }}"

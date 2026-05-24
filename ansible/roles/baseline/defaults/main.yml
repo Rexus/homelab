@@ -1,14 +1,85 @@
 ---
 baseline_manage_packages: true
-repository_proxy_enabled: true
+baseline_manage_repository_proxy: true
+repository_proxy_enabled: false
 repository_proxy_url: ""
+repository_proxy_https_url: ""
 repository_proxy_manage_hosts_entry: true
 repository_proxy_fqdn: ""
 repository_proxy_ip: ""
+repository_proxy_remove_when_disabled: true
+repository_proxy_manage_dnf: "{{ ansible_os_family | default('') == 'RedHat' }}"
+repository_proxy_manage_apt: "{{ ansible_os_family | default('') == 'Debian' }}"
+repository_proxy_dnf_conf_path: /etc/dnf/dnf.conf
+repository_proxy_apt_conf_dir: /etc/apt/apt.conf.d
+repository_proxy_apt_conf_path: "{{ repository_proxy_apt_conf_dir }}/80repositoryproxy"
+repository_proxy_effective_https_url: >-
+  {{
+    repository_proxy_https_url | string | trim
+    if repository_proxy_https_url | default('') | string | trim | length > 0
+    else repository_proxy_url | default('') | string | trim
+  }}
+repository_proxy_active: >-
+  {{
+    repository_proxy_url | default('') | string | trim | length > 0
+    and repository_proxy_enabled | default(false) | bool
+  }}
+baseline_manage_shell_proxy: true
+shell_proxy_enabled: "{{ repository_proxy_enabled | default(false) }}"
+shell_proxy_http_url: "{{ repository_proxy_url | default('') }}"
+shell_proxy_https_url: >-
+  {{
+    repository_proxy_https_url | string | trim
+    if repository_proxy_https_url | default('') | string | trim | length > 0
+    else shell_proxy_http_url | default('') | string | trim
+  }}
+shell_proxy_remove_when_disabled: true
+shell_proxy_manage_csh_profile: false
+shell_proxy_profile_dir: /etc/profile.d
+shell_proxy_profile_sh_path: "{{ shell_proxy_profile_dir }}/shell-proxy.sh"
+shell_proxy_profile_csh_path: "{{ shell_proxy_profile_dir }}/shell-proxy.csh"
+shell_proxy_no_proxy_extra: []
+shell_proxy_no_proxy_defaults:
+  - localhost
+  - 127.0.0.1
+  - ::1
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+shell_proxy_no_proxy_domain_entries: >-
+  {{
+    [
+      platform_domain | default('') | string | trim,
+      '.' ~ (platform_domain | default('') | string | trim)
+    ]
+    if platform_domain | default('') | string | trim | length > 0
+    else []
+  }}
+shell_proxy_no_proxy_list: >-
+  {{
+    (
+      shell_proxy_no_proxy_defaults
+      + shell_proxy_no_proxy_domain_entries
+      + shell_proxy_no_proxy_extra
+    )
+    | map('string')
+    | map('trim')
+    | reject('equalto', '')
+    | unique
+    | list
+  }}
+shell_proxy_no_proxy: "{{ shell_proxy_no_proxy_list | join(',') }}"
+shell_proxy_active: >-
+  {{
+    shell_proxy_http_url | default('') | string | trim | length > 0
+    and shell_proxy_enabled | default(false) | bool
+  }}
 baseline_manage_timezone: true
 baseline_timezone: UTC
 baseline_disable_ipv6: true
 baseline_network_sysctl_file: /etc/sysctl.d/90-homelab-network.conf
+baseline_manage_networkmanager_ipv6: true
+baseline_networkmanager_ipv6_connections: []
 baseline_manage_ssh: true
 baseline_disable_password_auth: true
 baseline_permit_root_login: false

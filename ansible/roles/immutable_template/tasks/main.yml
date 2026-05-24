@@ -29,9 +29,10 @@
     - immutable_template_trust_ca.changed
 
 - name: Install immutable template packages
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ immutable_template_packages }}"
     state: present
+    update_cache: true
 
 - name: Ensure bootc auth directory exists
   ansible.builtin.file:

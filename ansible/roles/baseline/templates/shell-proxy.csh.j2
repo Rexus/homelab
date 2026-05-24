@@ -1,0 +1,7 @@
+# Managed by Ansible.
+setenv http_proxy "{{ shell_proxy_http_url }}"
+setenv https_proxy "{{ shell_proxy_https_url }}"
+setenv HTTP_PROXY "{{ shell_proxy_http_url }}"
+setenv HTTPS_PROXY "{{ shell_proxy_https_url }}"
+setenv no_proxy "{{ shell_proxy_no_proxy }}"
+setenv NO_PROXY "{{ shell_proxy_no_proxy }}"

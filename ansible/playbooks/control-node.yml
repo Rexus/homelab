@@ -5,9 +5,14 @@
   gather_facts: false
   vars:
     control_node_selected_setup: "{{ control_node_setup | default('site') }}"
-    control_node_common_collection_names:
-      - ansible.posix
     control_node_collection_catalog:
+      community.general:
+        name: community.general
+        os_packages:
+          RedHat:
+            - ansible-collection-community-general
+          Debian:
+            - ansible-collection-community-general
       ansible.posix:
         name: ansible.posix
         os_packages:
@@ -24,18 +29,40 @@
             - ansible-freeipa
     control_node_setup_collection_names:
       foundation:
+        - community.general
+        - ansible.posix
         - freeipa.ansible_freeipa
-      cache: []
-      edge: []
-      development: []
-      observability: []
-      podman-runner: []
-      immutable-template: []
+      cache:
+        - community.general
+        - ansible.posix
+      edge:
+        - community.general
+        - ansible.posix
+      development:
+        - community.general
+        - ansible.posix
+      observability:
+        - community.general
+        - ansible.posix
+      podman-runner:
+        - community.general
+        - ansible.posix
+      immutable-template:
+        - community.general
+        - ansible.posix
       template-refresh: []
-      lab: []
-      vault: []
-      hsm: []
-      site: []
+      lab:
+        - community.general
+        - ansible.posix
+      vault:
+        - community.general
+        - ansible.posix
+      hsm:
+        - community.general
+        - ansible.posix
+      site:
+        - community.general
+        - ansible.posix
       ingress: []
 
   tasks:
@@ -57,10 +84,7 @@
       ansible.builtin.set_fact:
         control_node_required_collections: >-
           {{
-            (
-              control_node_common_collection_names
-              + control_node_setup_collection_names[control_node_selected_setup]
-            )
+            control_node_setup_collection_names[control_node_selected_setup]
             | unique
             | map('extract', control_node_collection_catalog)
             | list

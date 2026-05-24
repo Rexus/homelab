@@ -1,0 +1,45 @@
+---
+- name: Ensure shell proxy profile directory exists
+  ansible.builtin.file:
+    path: "{{ shell_proxy_profile_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: shell_proxy_active | bool
+
+- name: Render shell proxy profile
+  ansible.builtin.template:
+    src: shell-proxy.sh.j2
+    dest: "{{ shell_proxy_profile_sh_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: shell_proxy_active | bool
+
+- name: Render csh shell proxy profile
+  ansible.builtin.template:
+    src: shell-proxy.csh.j2
+    dest: "{{ shell_proxy_profile_csh_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - shell_proxy_active | bool
+    - shell_proxy_manage_csh_profile | bool
+
+- name: Remove shell proxy profile when disabled
+  ansible.builtin.file:
+    path: "{{ shell_proxy_profile_sh_path }}"
+    state: absent
+  when:
+    - not shell_proxy_active | bool
+    - shell_proxy_remove_when_disabled | bool
+
+- name: Remove csh shell proxy profile when disabled
+  ansible.builtin.file:
+    path: "{{ shell_proxy_profile_csh_path }}"
+    state: absent
+  when:
+    - not shell_proxy_active | bool or not shell_proxy_manage_csh_profile | bool
+    - shell_proxy_remove_when_disabled | bool

@@ -60,6 +60,12 @@ baseline_ntp_enabled: true
 # guests. Set to false only for environments where IPv6 addressing, DNS,
 # routing, and firewall rules are intentionally managed.
 baseline_disable_ipv6: true
+# By default, baseline applies the IPv6 policy to the default IPv4 interface
+# using community.general.nmcli. Override only when the NetworkManager
+# connection name differs from the interface name.
+# baseline_networkmanager_ipv6_connections:
+#   - conn_name: eth0
+#     ifname: eth0
 
 # Repository proxy consumed by managed hosts. Uncomment after a cache/proxy
 # exists and managed hosts should use it.
@@ -68,6 +74,17 @@ baseline_disable_ipv6: true
 # repository_proxy_enabled: true
 # repository_proxy_fqdn: "cache.{{ platform_domain }}"
 # repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
+# repository_proxy_https_url defaults to repository_proxy_url when unset.
 # repository_proxy_ip can stay unset when DNS resolves repository_proxy_fqdn.
 # Set it only when the baseline must seed /etc/hosts before DNS exists.
 # repository_proxy_ip: "<cache_proxy_vip>"
+
+# Shell proxy exports are managed separately from package-manager proxying,
+# but follow repository_proxy_enabled by default. This writes /etc/profile.d
+# files so admin/user login shells can use the proxy without per-user bashrc
+# edits. Uncomment only to override the default behavior.
+# baseline_manage_shell_proxy: false
+# shell_proxy_enabled: false
+# shell_proxy_http_url: "{{ repository_proxy_url }}"
+# shell_proxy_https_url defaults to shell_proxy_http_url when unset.
+# shell_proxy_no_proxy_extra: []

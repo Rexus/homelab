@@ -39,14 +39,15 @@
       edge host.
 
 - name: Install edge load-balancer packages
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name:
       - "{{ edge_haproxy_package_name }}"
       - "{{ edge_keepalived_package_name }}"
     state: "{{ edge_haproxy_package_state }}"
+    update_cache: true
 
 - name: Allow HAProxy to bind the VIP on standby nodes
-  ansible.builtin.sysctl:
+  ansible.posix.sysctl:
     name: net.ipv4.ip_nonlocal_bind
     value: "1"
     state: present

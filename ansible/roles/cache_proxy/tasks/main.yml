@@ -19,11 +19,12 @@
       for every cache host.
 
 - name: Install cache proxy packages
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name:
       - "{{ cache_squid_package_name }}"
       - "{{ cache_keepalived_package_name }}"
     state: "{{ cache_squid_package_state }}"
+    update_cache: true
 
 - name: Ensure Squid systemd override directory exists
   ansible.builtin.file:
@@ -109,9 +110,10 @@
     mode: "0750"
 
 - name: Install cache filesystem tooling
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ cache_squid_data_fstype_package }}"
     state: present
+    update_cache: true
   when:
     - cache_squid_data_disk_enabled | bool
     - cache_squid_data_fstype_package | length > 0
@@ -122,44 +124,25 @@
     timeout: "{{ cache_squid_data_device_wait_timeout }}"
   when: cache_squid_data_disk_enabled | bool
 
-- name: Check Squid cache data disk filesystem
-  ansible.builtin.command:
-    argv:
-      - blkid
-      - -o
-      - value
-      - -s
-      - TYPE
-      - "{{ cache_squid_data_device }}"
-  register: cache_squid_data_device_blkid
-  failed_when: false
-  changed_when: false
+- name: Gather mount facts before cache data disk changes
+  ansible.builtin.setup:
+    gather_subset:
+      - hardware
+    filter:
+      - ansible_mounts
   when: cache_squid_data_disk_enabled | bool
 
-- name: Check whether Squid cache data disk is mounted
-  ansible.builtin.command:
-    argv:
-      - findmnt
-      - --noheadings
-      - --target
-      - "{{ cache_squid_cache_dir }}"
-      - --source
-      - "{{ cache_squid_data_device }}"
-  register: cache_squid_data_mount_check
-  failed_when: false
-  changed_when: false
+- name: Record Squid cache data mount state
+  ansible.builtin.set_fact:
+    cache_squid_data_mount_active: >-
+      {{
+        ansible_facts.mounts
+        | default([])
+        | selectattr('mount', 'equalto', cache_squid_cache_dir)
+        | list
+        | length > 0
+      }}
   when: cache_squid_data_disk_enabled | bool
-
-- name: Fail when Squid cache data disk has an unexpected filesystem
-  ansible.builtin.fail:
-    msg: >-
-      {{ cache_squid_data_device }} already has filesystem
-      {{ cache_squid_data_device_blkid.stdout }}. Expected
-      {{ cache_squid_data_fstype }}. Refusing to reformat automatically.
-  when:
-    - cache_squid_data_disk_enabled | bool
-    - cache_squid_data_device_blkid.rc == 0
-    - cache_squid_data_device_blkid.stdout != cache_squid_data_fstype
 
 - name: Stop Squid before changing cache data disk state
   ansible.builtin.service:
@@ -167,20 +150,13 @@
     state: stopped
   when:
     - cache_squid_data_disk_enabled | bool
-    - >-
-      cache_squid_data_device_blkid.rc != 0
-      or cache_squid_data_mount_check.rc != 0
+    - not cache_squid_data_mount_active | default(false) | bool
 
-- name: Create filesystem on Squid cache data disk when empty
-  ansible.builtin.command:
-    argv:
-      - mkfs
-      - -t
-      - "{{ cache_squid_data_fstype }}"
-      - "{{ cache_squid_data_device }}"
-  when:
-    - cache_squid_data_disk_enabled | bool
-    - cache_squid_data_device_blkid.rc != 0
+- name: Ensure Squid cache data disk has the requested filesystem
+  community.general.filesystem:
+    dev: "{{ cache_squid_data_device }}"
+    fstype: "{{ cache_squid_data_fstype }}"
+  when: cache_squid_data_disk_enabled | bool
 
 - name: Ensure Squid cache data disk is mounted
   ansible.posix.mount:
@@ -192,39 +168,12 @@
   register: cache_squid_data_mount
   when: cache_squid_data_disk_enabled | bool
 
-- name: Check whether Squid cache XFS filesystem can grow
-  ansible.builtin.command:
-    argv:
-      - xfs_growfs
-      - -n
-      - "{{ cache_squid_cache_dir }}"
-  register: cache_squid_xfs_grow_check
-  changed_when: false
-  when:
-    - cache_squid_data_disk_enabled | bool
-    - cache_squid_data_fstype == "xfs"
-
-- name: Grow Squid cache XFS filesystem when the data disk expanded
-  ansible.builtin.command:
-    argv:
-      - xfs_growfs
-      - "{{ cache_squid_cache_dir }}"
-  register: cache_squid_xfs_grow
-  changed_when: >-
-    'data blocks changed'
-    in (
-      (cache_squid_xfs_grow.stdout | default(''))
-      ~ (cache_squid_xfs_grow.stderr | default(''))
-    )
-  when:
-    - cache_squid_data_disk_enabled | bool
-    - cache_squid_data_fstype == "xfs"
-    - >-
-      'data blocks changed'
-      in (
-        (cache_squid_xfs_grow_check.stdout | default(''))
-        ~ (cache_squid_xfs_grow_check.stderr | default(''))
-      )
+- name: Grow Squid cache data filesystem when the disk expanded
+  community.general.filesystem:
+    dev: "{{ cache_squid_data_device }}"
+    fstype: "{{ cache_squid_data_fstype }}"
+    resizefs: true
+  when: cache_squid_data_disk_enabled | bool
 
 - name: Ensure Squid owns the mounted cache directory
   ansible.builtin.file:
@@ -235,9 +184,10 @@
     mode: "0750"
 
 - name: Install SELinux restore tooling for Squid cache path
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ cache_squid_selinux_package }}"
     state: present
+    update_cache: true
   when:
     - cache_squid_restore_selinux_context | bool
     - ansible_selinux.status | default('disabled') == 'enabled'

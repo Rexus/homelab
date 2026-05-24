@@ -15,9 +15,10 @@
       files from the shared PKI.
 
 - name: Install GitLab container host packages
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ gitlab_packages }}"
     state: present
+    update_cache: true
 
 - name: Ensure GitLab persistent directories exist
   ansible.builtin.file:

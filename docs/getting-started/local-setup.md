@@ -53,7 +53,8 @@ machine. That precheck is setup-aware: it verifies only the Ansible collections
 needed by the selected setup, tries to install missing collections from the OS
 package manager first, and falls back to `ansible-galaxy` only when the OS
 package path does not provide them.
-For example, `foundation` needs `freeipa.ansible_freeipa`, while `cache` needs
+For example, `foundation` needs `community.general`, `ansible.posix`, and
+`freeipa.ansible_freeipa`, while `cache` needs `community.general` and
 `ansible.posix`.
 
 The repository deployment wrapper runs that precheck before Terraform or host

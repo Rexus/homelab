@@ -1,0 +1,82 @@
+---
+- name: Configure repository proxy host entry when requested
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} HOMELAB REPOSITORY PROXY HOST"
+    block: |
+      {{ repository_proxy_ip }} {{ repository_proxy_fqdn }}
+  when:
+    - repository_proxy_active | bool
+    - repository_proxy_manage_hosts_entry | bool
+    - repository_proxy_fqdn | default('') | string | trim | length > 0
+    - repository_proxy_ip | default('') | string | trim | length > 0
+
+- name: Remove repository proxy host entry when disabled
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} HOMELAB REPOSITORY PROXY HOST"
+    state: absent
+  when:
+    - repository_proxy_manage_hosts_entry | bool
+    - >-
+      not repository_proxy_active | bool
+      or repository_proxy_fqdn | default('') | string | trim | length == 0
+      or repository_proxy_ip | default('') | string | trim | length == 0
+
+- name: Configure DNF repository proxy
+  community.general.ini_file:
+    path: "{{ repository_proxy_dnf_conf_path }}"
+    section: main
+    option: proxy
+    value: "{{ repository_proxy_url }}"
+    no_extra_spaces: true
+    create: false
+    mode: "0644"
+  when:
+    - repository_proxy_active | bool
+    - repository_proxy_manage_dnf | bool
+
+- name: Ensure APT proxy config directory exists
+  ansible.builtin.file:
+    path: "{{ repository_proxy_apt_conf_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - repository_proxy_active | bool
+    - repository_proxy_manage_apt | bool
+
+- name: Render APT repository proxy config
+  ansible.builtin.template:
+    src: apt-repository-proxy.conf.j2
+    dest: "{{ repository_proxy_apt_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - repository_proxy_active | bool
+    - repository_proxy_manage_apt | bool
+
+- name: Remove DNF repository proxy when disabled
+  community.general.ini_file:
+    path: "{{ repository_proxy_dnf_conf_path }}"
+    section: main
+    option: proxy
+    state: absent
+    no_extra_spaces: true
+    create: false
+    mode: "0644"
+  when:
+    - not repository_proxy_active | bool
+    - repository_proxy_remove_when_disabled | bool
+    - repository_proxy_manage_dnf | bool
+
+- name: Remove APT repository proxy when disabled
+  ansible.builtin.file:
+    path: "{{ repository_proxy_apt_conf_path }}"
+    state: absent
+  when:
+    - not repository_proxy_active | bool
+    - repository_proxy_remove_when_disabled | bool
+    - repository_proxy_manage_apt | bool

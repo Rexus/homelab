@@ -29,14 +29,16 @@
     - podman_runner_trust_ca.changed
 
 - name: Install Podman build packages
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ podman_runner_packages }}"
     state: present
+    update_cache: true
 
 - name: Install GitLab Runner package
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ podman_runner_gitlab_runner_package }}"
     state: present
+    update_cache: true
   when: podman_runner_install_gitlab_runner | bool
 
 - name: Check GitLab Runner user

@@ -178,10 +178,10 @@ This is intentional in the Ansible layout. The cache service settings live in
 `all.<env>.yml`. That lets any setup use a cache that was deployed somewhere
 else.
 
-The repository proxy is opt-in for consumers. If `repository_proxy_url` is
-unset or blank, the baseline role does not configure a proxy. Any setup can
-opt out of a shared proxy by setting `repository_proxy_enabled: false` in that
-setup's group vars file.
+The repository proxy is opt-in for consumers. If `repository_proxy_enabled` is
+false or `repository_proxy_url` is unset, the baseline role does not configure
+a proxy. Any setup can opt out of a shared proxy by setting
+`repository_proxy_enabled: false` in that setup's group vars file.
 
 For the cache service itself, set the cache VIP and service endpoint in
 `cache.yml`. Use CIDR form for the VIP because keepalived assigns this address
@@ -207,6 +207,23 @@ repository_proxy_fqdn: "cache.{{ platform_domain }}"
 repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
 repository_proxy_ip: "<cache_proxy_vip>"
 ```
+
+Managed Linux hosts use the `repository_proxy` baseline task when
+`repository_proxy_enabled` is true and `repository_proxy_url` is set. By
+default it writes package-manager proxy configuration for the host OS. Red
+Hat-family hosts use an INI-aware Ansible module for `/etc/dnf/dnf.conf`;
+Debian-family hosts get an owned APT template under `/etc/apt/apt.conf.d/`.
+
+Package tasks then use the host package-manager configuration instead of
+temporary Ansible task environment variables. That keeps repository egress as a
+real host setting, which is easier to inspect and also works after the
+deployment run.
+
+Shell proxy profiles under `/etc/profile.d/` are handled by a separate baseline
+task, but they follow `repository_proxy_enabled` by default. That means admins
+and users who log in get `http_proxy`, `https_proxy`, and `no_proxy` without
+editing individual `.bashrc` files. Set `baseline_manage_shell_proxy: false`
+when a setup should configure package managers only.
 
 Use `all.yml` when the cache should be shared by default. Use `all.<env>.yml`
 only when an environment should use a different cache or explicitly consume a
@@ -264,10 +281,9 @@ Keep this boundary:
 - air-gapped systems should use the cache only when policy allows it
 - more cache nodes are added by extending `vm_instances`, inventory, and IP map
 
-For Enterprise Linux package managers, client systems can use the cache as a
-global DNF/YUM proxy or set it only on selected repository files. Use
-repository-specific proxy settings when internal repositories should remain
-direct while external update repositories go through the cache.
+For Enterprise Linux package managers managed by this repo, cache use is
+transaction-scoped through Ansible tasks instead of persistent DNF/YUM client
+configuration.
 
 ## Read more
 
@@ -275,4 +291,3 @@ direct while external update repositories go through the cache.
 - [Using the cache from Proxmox](../../platforms/proxmox/cache-usage.md)
 - [Network architecture](../../architecture/network.md)
 - [Security principles](../../security/security-principles.md)
-- [Set proxy for YUM/DNF repositories](https://www.baeldung.com/linux/yum-dnf-repositories-set-proxy)

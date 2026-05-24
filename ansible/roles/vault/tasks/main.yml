@@ -11,9 +11,10 @@
       requires vault_tls_cert_src, vault_tls_key_src, and vault_tls_ca_src.
 
 - name: Install repository tooling
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: dnf-plugins-core
     state: present
+    update_cache: true
 
 - name: Configure HashiCorp RPM repository
   ansible.builtin.get_url:
@@ -23,9 +24,10 @@
   when: vault_manage_rpm_repo
 
 - name: Install Vault package
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ vault_package_name }}"
     state: "{{ vault_package_state }}"
+    update_cache: true
 
 - name: Ensure Vault directories exist
   ansible.builtin.file:

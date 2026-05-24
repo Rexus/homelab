@@ -8,16 +8,18 @@
       Linux-like guests.
 
 - name: Update staged template packages
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "*"
     state: latest
+    update_cache: true
   register: template_refresh_package_update
   when: template_refresh_apply_updates | bool
 
 - name: Install template baseline packages
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ template_refresh_packages }}"
     state: present
+    update_cache: true
 
 - name: Enable template baseline services
   ansible.builtin.service:
