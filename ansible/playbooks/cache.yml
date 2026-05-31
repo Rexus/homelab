@@ -1,4 +1,15 @@
 ---
+- name: Wait for cache hosts to accept Ansible connections
+  hosts: cache
+  gather_facts: false
+  tasks:
+    - name: Wait for cache host connection to become usable
+      ansible.builtin.wait_for_connection:
+        delay: "{{ platform_wait_for_connection_delay | default(5) }}"
+        sleep: "{{ platform_wait_for_connection_sleep | default(5) }}"
+        connect_timeout: "{{ platform_wait_for_connection_connect_timeout | default(5) }}"
+        timeout: "{{ platform_wait_for_connection_timeout | default(300) }}"
+
 - name: Apply cache host baseline
   hosts: cache
   become: true

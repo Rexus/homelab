@@ -251,6 +251,10 @@ software sources, but the cache upstream is private instead of internet-facing.
 
 ## Validation
 
+The cache playbook waits for every cache host to accept an Ansible connection
+before the baseline play gathers facts. This covers the normal fresh-clone
+window where the guest already has its IP address but sshd is not ready yet.
+
 When validation is enabled, each cache host first tests that it can reach
 `cache_validation_url` directly. After the cache role finishes, the cache hosts
 verify that exactly one node owns the VIP and that the VIP proxy port is

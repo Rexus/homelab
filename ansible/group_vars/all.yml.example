@@ -8,6 +8,13 @@
 ansible_user: automation
 ansible_port: 22
 
+# Fresh clones can have an address before sshd is ready. Playbooks that run
+# immediately after provisioning use these before gathering facts.
+platform_wait_for_connection_delay: 5
+platform_wait_for_connection_sleep: 5
+platform_wait_for_connection_connect_timeout: 5
+platform_wait_for_connection_timeout: 300
+
 # Keep inventory host keys stable. Set these per environment when the same
 # logical inventory is deployed more than once.
 platform_environment: prod
