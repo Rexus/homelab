@@ -1,0 +1,22 @@
+---
+- name: Render keepalived configuration for the cache VIP
+  ansible.builtin.include_role:
+    name: shared
+    tasks_from: keepalived
+  vars:
+    shared_keepalived_enabled: "{{ cache_keepalived_enabled }}"
+    shared_keepalived_config_path: "{{ cache_keepalived_config_path }}"
+    shared_keepalived_group: "{{ cache_keepalived_group }}"
+    shared_keepalived_interface: "{{ cache_keepalived_interface }}"
+    shared_keepalived_scripts:
+      - name: chk_squid
+        path: "{{ cache_squid_check_script_path }}"
+    shared_keepalived_default_track_scripts:
+      - chk_squid
+    shared_keepalived_instances:
+      - name: cache_vip
+        vip_cidr: "{{ cache_keepalived_vip_cidr }}"
+        virtual_router_id: "{{ cache_keepalived_virtual_router_id }}"
+        priority_base: "{{ cache_keepalived_priority_base }}"
+        priority_step: "{{ cache_keepalived_priority_step }}"
+  when: cache_keepalived_enabled | bool

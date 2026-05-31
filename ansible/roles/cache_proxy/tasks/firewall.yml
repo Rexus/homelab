@@ -1,0 +1,39 @@
+---
+- name: Gather service facts for firewall management
+  ansible.builtin.service_facts:
+  when: cache_manage_firewalld | bool
+
+- name: Record firewalld service state
+  ansible.builtin.set_fact:
+    cache_firewalld_running: >-
+      {{
+        ansible_facts.services.get('firewalld.service', {}).state
+        | default('')
+        == 'running'
+      }}
+  when: cache_manage_firewalld | bool
+
+- name: Ensure firewalld allows the Squid proxy port
+  ansible.posix.firewalld:
+    port: "{{ cache_squid_http_port }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+  notify: Reload firewalld
+  when:
+    - cache_manage_firewalld | bool
+    - cache_firewalld_open_proxy_port | bool
+    - cache_firewalld_running | default(false) | bool
+
+- name: Ensure firewalld allows keepalived VRRP
+  ansible.posix.firewalld:
+    rich_rule: "{{ cache_firewalld_vrrp_rich_rule }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  notify: Reload firewalld
+  when:
+    - cache_manage_firewalld | bool
+    - cache_firewalld_open_keepalived_vrrp | bool
+    - cache_keepalived_enabled | bool
+    - cache_firewalld_running | default(false) | bool

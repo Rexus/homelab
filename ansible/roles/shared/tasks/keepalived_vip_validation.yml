@@ -1,0 +1,157 @@
+---
+- name: Validate shared keepalived VIP test inputs
+  ansible.builtin.assert:
+    that:
+      - shared_keepalived_group | default('') | length > 0
+      - shared_keepalived_vip | default('') | length > 0
+      - groups.get(shared_keepalived_group | default(''), []) | length > 0
+    fail_msg: >-
+      Keepalived VIP validation requires shared_keepalived_group,
+      shared_keepalived_vip, and at least one host in the group.
+  when: shared_keepalived_validation_enabled | default(true) | bool
+
+- name: Gather shared keepalived network facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+  when: shared_keepalived_validation_enabled | default(true) | bool
+
+- name: Record whether this host owns the shared keepalived VIP
+  ansible.builtin.set_fact:
+    shared_keepalived_owns_vip: >-
+      {{
+        shared_keepalived_vip
+        in (ansible_facts.all_ipv4_addresses | default([]))
+      }}
+  when: shared_keepalived_validation_enabled | default(true) | bool
+
+- name: Initialize shared keepalived VIP owner list
+  ansible.builtin.set_fact:
+    shared_keepalived_vip_owners: []
+  run_once: true
+  when: shared_keepalived_validation_enabled | default(true) | bool
+
+- name: Record shared keepalived VIP owners
+  ansible.builtin.set_fact:
+    shared_keepalived_vip_owners: >-
+      {{ shared_keepalived_vip_owners + [item] }}
+  loop: "{{ groups.get(shared_keepalived_group | default(''), []) }}"
+  run_once: true
+  when:
+    - shared_keepalived_validation_enabled | default(true) | bool
+    - hostvars[item].shared_keepalived_owns_vip | default(false) | bool
+
+- name: Validate exactly one host owns the shared keepalived VIP
+  ansible.builtin.assert:
+    that:
+      - shared_keepalived_vip_owners | default([]) | length == 1
+    fail_msg: >-
+      Expected exactly one host to own {{ shared_keepalived_vip_label | default('VIP') }}
+      {{ shared_keepalived_vip }}, got {{ shared_keepalived_vip_owners | default([]) }}.
+      Check keepalived health checks, VRRP reachability, and VIP configuration.
+    success_msg: >-
+      {{ shared_keepalived_vip_label | default('VIP') }} {{ shared_keepalived_vip }}
+      is owned by {{ shared_keepalived_vip_owners[0] }}.
+  run_once: true
+  when: shared_keepalived_validation_enabled | default(true) | bool
+
+- name: Test shared keepalived VIP port from cluster hosts
+  ansible.builtin.wait_for:
+    host: "{{ shared_keepalived_vip }}"
+    port: "{{ shared_keepalived_port | default(0) }}"
+    state: started
+    timeout: "{{ shared_keepalived_port_timeout | default(5) }}"
+  changed_when: false
+  when:
+    - shared_keepalived_validation_enabled | default(true) | bool
+    - shared_keepalived_port | default('') | string | length > 0
+
+- name: Test shared keepalived VIP failover from cluster hosts
+  when:
+    - shared_keepalived_validation_enabled | default(true) | bool
+    - shared_keepalived_failover_enabled | default(false) | bool
+    - groups.get(shared_keepalived_group | default(''), []) | length > 1
+  block:
+    - name: Stop keepalived on the current shared VIP owner
+      ansible.builtin.service:
+        name: "{{ shared_keepalived_service_name | default('keepalived') }}"
+        state: stopped
+      become: true
+      when: shared_keepalived_owns_vip | default(false) | bool
+
+    - name: Wait for shared keepalived VIP failover to settle
+      ansible.builtin.pause:
+        seconds: "{{ shared_keepalived_failover_settle_seconds | default(8) }}"
+      run_once: true
+
+    - name: Refresh shared keepalived network facts after failover
+      ansible.builtin.setup:
+        gather_subset:
+          - network
+
+    - name: Record whether this host owns the shared keepalived VIP after failover
+      ansible.builtin.set_fact:
+        shared_keepalived_owns_vip_after_failover: >-
+          {{
+            shared_keepalived_vip
+            in (ansible_facts.all_ipv4_addresses | default([]))
+          }}
+
+    - name: Initialize shared keepalived failover VIP owner list
+      ansible.builtin.set_fact:
+        shared_keepalived_failover_vip_owners: []
+      run_once: true
+
+    - name: Record shared keepalived VIP owners after failover
+      ansible.builtin.set_fact:
+        shared_keepalived_failover_vip_owners: >-
+          {{ shared_keepalived_failover_vip_owners + [item] }}
+      loop: "{{ groups.get(shared_keepalived_group | default(''), []) }}"
+      run_once: true
+      when: hostvars[item].shared_keepalived_owns_vip_after_failover | default(false) | bool
+
+    - name: Validate shared keepalived VIP moved to another node
+      ansible.builtin.assert:
+        that:
+          - shared_keepalived_vip_owners | default([]) | length == 1
+          - shared_keepalived_failover_vip_owners | default([]) | length == 1
+          - >-
+            (
+              shared_keepalived_failover_vip_owners
+              | default([])
+              | first
+              | default('')
+            ) != (
+              shared_keepalived_vip_owners
+              | default([])
+              | first
+              | default('')
+            )
+        fail_msg: >-
+          Expected {{ shared_keepalived_vip_label | default('VIP') }}
+          {{ shared_keepalived_vip }} to move away from
+          {{ shared_keepalived_vip_owners | default([]) }}, got
+          {{ shared_keepalived_failover_vip_owners | default([]) }}.
+      run_once: true
+
+    - name: Test shared keepalived VIP port after failover from cluster hosts
+      ansible.builtin.wait_for:
+        host: "{{ shared_keepalived_vip }}"
+        port: "{{ shared_keepalived_port | default(0) }}"
+        state: started
+        timeout: "{{ shared_keepalived_port_timeout | default(5) }}"
+      changed_when: false
+      when: shared_keepalived_port | default('') | string | length > 0
+
+  always:
+    - name: Restart keepalived on the original shared VIP owner
+      ansible.builtin.service:
+        name: "{{ shared_keepalived_service_name | default('keepalived') }}"
+        state: started
+      become: true
+      when: shared_keepalived_owns_vip | default(false) | bool
+
+    - name: Wait after restoring shared keepalived
+      ansible.builtin.pause:
+        seconds: "{{ shared_keepalived_failover_settle_seconds | default(8) }}"
+      run_once: true

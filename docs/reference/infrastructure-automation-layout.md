@@ -166,6 +166,7 @@ state file between environments. Omit `--env` for production.
 | `ansible/playbooks/hsm.yml` | HSM host baseline |
 | `ansible/playbooks/site.yml` | broad baseline entry point for manual use |
 | `ansible/playbooks/ingress.yml` | edge load-balancer backend registration for HSM gateways |
+| `ansible/roles/shared/` | callable task fragments reused with `include_role` and `tasks_from` |
 | `ansible/roles/baseline/` | security-first baseline scaffold |
 | `ansible/roles/edge_load_balancer/` | HAProxy and keepalived edge VIP setup |
 | `ansible/roles/cache_proxy/` | Squid and keepalived cache VIP setup |

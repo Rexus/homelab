@@ -40,6 +40,10 @@ repos, Proxmox/Ceph sources, GitHub-hosted projects, HashiCorp tooling,
 container registries, and Windows update endpoints. Treat it as a starting
 policy and remove domains your environment does not need.
 
+The Ansible role is written for Linux guests with systemd and supports
+Red Hat-family/Fedora and Debian-family package managers. Rocky and Alma are
+the reference feedback distros for the current cache path.
+
 ## Service shape
 
 | Service | Default role |
@@ -95,8 +99,8 @@ example when cache warmness is more important than storage efficiency or when
 local disks are not available. The normal recovery model is to fail over to the
 other cache node and let the rebuilt node refill its local cache.
 
-The example uses `/dev/sdb` because an Enterprise Linux VM with one OS disk and
-one extra `scsi1` disk normally discovers the extra disk there. Change
+The example uses `/dev/sdb` because a Linux VM with one OS disk and one extra
+`scsi1` disk often discovers the extra disk there. Change
 `cache_squid_data_device` in `cache.yml` if your template exposes the disk under
 a different stable device path.
 
@@ -115,9 +119,9 @@ Tune both sides together:
 | `cache_squid_cache_mb` | Squid cache size inside that mounted filesystem |
 
 The example uses the portable Squid `ufs` cache directory type. If your
-Enterprise Linux Squid package supports `aufs`, it can be a better fit for
-busy local SSD/NVMe caches. Change `cache_squid_cache_dir_type` only after
-testing the generated config with the role's `squid -k parse` validation.
+installed Squid package supports `aufs`, it can be a better fit for busy local
+SSD/NVMe caches. Change `cache_squid_cache_dir_type` only after testing the
+generated config with the role's `squid -k parse` validation.
 
 ## Sizing and throttling
 
@@ -197,9 +201,9 @@ cache_proxy_port: 3128
 The role derives the plain VIP IP from `cache_proxy_vip_cidr` for consumers
 that must not include a prefix, such as `/etc/hosts` entries.
 
-For Enterprise Linux guests managed by this repo, enable only the repository
-proxy consumer values in `all.yml` or `all.<env>.yml` before running paths that
-need controlled software-source access:
+For managed Linux guests, enable only the repository proxy consumer values in
+`all.yml` or `all.<env>.yml` before running paths that need controlled
+software-source access:
 
 ```yaml
 repository_proxy_enabled: true
@@ -247,16 +251,15 @@ software sources, but the cache upstream is private instead of internet-facing.
 
 ## Validation
 
-After the cache role finishes, the cache playbook runs a validation step from
-the deployment host. Before that external validation, each cache host tests
-that it can reach `cache_validation_url` directly. The cache hosts also verify
-that exactly one node owns the VIP and that the VIP proxy port is reachable
-from the cache network. When failover validation is enabled, the cache hosts
-stop keepalived on the current VIP owner, verify that another host takes over,
-and then restart keepalived on the original owner. The deployment-host
-validation then tests each cache node proxy port, tests each cache node as a
-proxy, tests the cache VIP by IP, and warns if the expected cache FQDN does
-not work.
+When validation is enabled, each cache host first tests that it can reach
+`cache_validation_url` directly. After the cache role finishes, the cache hosts
+verify that exactly one node owns the VIP and that the VIP proxy port is
+reachable from the cache network. When failover validation is enabled and at
+least two cache hosts are present, the cache hosts stop keepalived on the
+current VIP owner, verify that another host takes over, and then restart
+keepalived on the original owner. The deployment-host validation then tests
+each cache node proxy port, tests each cache node as a proxy, tests the cache
+VIP by IP, and warns if the expected cache FQDN does not work.
 
 Set `cache_validation_url` to a URL allowed by `cache_squid_allowed_domains`.
 The default example uses `https://mirrors.fedoraproject.org/` because it is a
@@ -281,9 +284,9 @@ Keep this boundary:
 - air-gapped systems should use the cache only when policy allows it
 - more cache nodes are added by extending `vm_instances`, inventory, and IP map
 
-For Enterprise Linux package managers managed by this repo, cache use is
-transaction-scoped through Ansible tasks instead of persistent DNF/YUM client
-configuration.
+For Linux package managers managed by this repo, cache use is persistent
+package-manager configuration applied by the baseline role, not a temporary
+environment setting that only exists during one Ansible task.
 
 ## Read more
 

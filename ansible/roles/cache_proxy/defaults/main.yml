@@ -1,6 +1,13 @@
 ---
+cache_proxy_supported_os_families:
+  - RedHat
+  - Debian
+cache_package_update_cache: true
 cache_squid_package_name: squid
 cache_keepalived_package_name: keepalived
+cache_proxy_packages:
+  - "{{ cache_squid_package_name }}"
+  - "{{ cache_keepalived_package_name }}"
 cache_squid_config_path: /etc/squid/squid.conf
 cache_keepalived_config_path: /etc/keepalived/keepalived.conf
 cache_keepalived_script_dir: /usr/libexec/keepalived
@@ -9,6 +16,8 @@ cache_squid_systemd_override_dir: /etc/systemd/system/squid.service.d
 cache_squid_systemd_override_path: "{{ cache_squid_systemd_override_dir }}/limits.conf"
 cache_systemctl_binary: /usr/bin/systemctl
 cache_squid_binary: /usr/sbin/squid
+cache_squid_user: "{{ 'proxy' if ansible_os_family | default('') == 'Debian' else 'squid' }}"
+cache_squid_group: "{{ cache_squid_user }}"
 cache_squid_selinux_package: policycoreutils
 cache_squid_restore_selinux_context: true
 cache_manage_firewalld: true
@@ -19,7 +28,7 @@ cache_firewalld_vrrp_rich_rule: 'rule protocol value="vrrp" accept'
 cache_keepalived_enabled: true
 cache_keepalived_group: cache
 cache_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
-cache_keepalived_virtual_router_id: 31
+cache_keepalived_virtual_router_id: 40
 cache_keepalived_vip_cidr: ""
 cache_keepalived_priority_base: 110
 cache_keepalived_priority_step: 10

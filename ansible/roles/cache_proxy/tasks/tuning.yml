@@ -1,0 +1,32 @@
+---
+- name: Ensure Squid systemd override directory exists
+  ansible.builtin.file:
+    path: "{{ cache_squid_systemd_override_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: cache_squid_manage_systemd_limits | bool
+
+- name: Configure Squid file descriptor limit
+  ansible.builtin.copy:
+    dest: "{{ cache_squid_systemd_override_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Service]
+      LimitNOFILE={{ cache_squid_limit_nofile }}
+  notify:
+    - Reload systemd
+    - Restart squid
+  when: cache_squid_manage_systemd_limits | bool
+
+- name: Configure cache proxy sysctl settings
+  ansible.builtin.include_role:
+    name: shared
+    tasks_from: sysctl
+  vars:
+    shared_sysctl_file: "{{ cache_squid_sysctl_file }}"
+    shared_sysctl_settings: "{{ cache_squid_sysctl_settings }}"
+  when: cache_squid_manage_sysctl | bool

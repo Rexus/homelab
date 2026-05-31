@@ -78,23 +78,6 @@ baseline_manage_timezone: true
 baseline_timezone: UTC
 baseline_disable_ipv6: true
 baseline_network_sysctl_file: /etc/sysctl.d/90-homelab-network.conf
-baseline_manage_networkmanager_ipv6: "{{ ansible_os_family | default('') == 'RedHat' }}"
-baseline_networkmanager_ipv6_auto_connections: true
-baseline_networkmanager_ipv6_connection_name_prefix: "System "
-baseline_networkmanager_ipv6_connections: []
-baseline_networkmanager_ipv6_excluded_interface_patterns:
-  - "^lo$"
-  - "^docker.*"
-  - "^br-.*"
-  - "^veth.*"
-  - "^virbr.*"
-  - "^cni.*"
-  - "^flannel.*"
-  - "^cali.*"
-  - "^podman.*"
-baseline_networkmanager_ipv6_excluded_interface_regex: >-
-  {{ baseline_networkmanager_ipv6_excluded_interface_patterns | join('|') }}
-baseline_manage_ipv6_sysctl: "{{ not baseline_manage_networkmanager_ipv6 | bool }}"
 baseline_manage_ssh: true
 baseline_disable_password_auth: true
 baseline_permit_root_login: false

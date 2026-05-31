@@ -1,0 +1,61 @@
+{% set members = groups.get(shared_keepalived_group | default(''), []) %}
+global_defs {
+  router_id {{ platform_hostname | default(inventory_hostname) }}
+  enable_script_security
+  script_user {{ shared_keepalived_script_user | default('root') }}
+}
+
+{% for script in shared_keepalived_scripts | default([]) %}
+vrrp_script {{ script.name }} {
+  script "{{ script.path }}"
+  interval {{ script.interval | default(2) }}
+  fall {{ script.fall | default(2) }}
+  rise {{ script.rise | default(2) }}
+}
+
+{% endfor %}
+{% for instance in shared_keepalived_instances %}
+{% set node_index = members.index(inventory_hostname) if inventory_hostname in members else 0 %}
+{% set priority_map = instance.priorities | default({}) %}
+{% set priority_base = instance.priority_base | default(shared_keepalived_priority_base | default(110)) %}
+{% set priority_step = instance.priority_step | default(shared_keepalived_priority_step | default(10)) %}
+{% set fallback_priority = priority_base - (node_index * priority_step) %}
+{% set priority = priority_map[inventory_hostname] if inventory_hostname in priority_map else fallback_priority %}
+{% set name_prefix = shared_keepalived_instance_name_prefix | default('') %}
+{% set fallback_name = instance.name | default('vip_' ~ loop.index) %}
+{% set generated_name = name_prefix ~ fallback_name %}
+{% set raw_name = instance.instance_name | default(generated_name) %}
+{% set instance_name = raw_name | regex_replace('[^A-Za-z0-9_]', '_') %}
+{% set track_scripts = instance.track_scripts | default(shared_keepalived_default_track_scripts | default([])) %}
+vrrp_instance {{ instance_name }} {
+  state {{ instance.state | default('BACKUP') }}
+  interface {{ instance.interface | default(shared_keepalived_interface) }}
+  virtual_router_id {{ instance.virtual_router_id }}
+  priority {{ priority }}
+  advert_int {{ instance.advert_int | default(shared_keepalived_advert_int | default(1)) }}
+{% if members | length > 1 %}
+  unicast_src_ip {{ instance.unicast_src_ip | default(platform_host_ips[inventory_hostname]) }}
+  unicast_peer {
+{% for peer in members if peer != inventory_hostname %}
+    {{ platform_host_ips[peer] }}
+{% endfor %}
+  }
+{% endif %}
+  virtual_ipaddress {
+    {{ instance.vip_cidr }}
+  }
+{% if instance.auth_pass is defined and instance.auth_pass | length > 0 %}
+  authentication {
+    auth_type PASS
+    auth_pass {{ instance.auth_pass }}
+  }
+{% endif %}
+{% if track_scripts | length > 0 %}
+  track_script {
+{% for script_name in track_scripts %}
+    {{ script_name }}
+{% endfor %}
+  }
+{% endif %}
+}
+{% endfor %}

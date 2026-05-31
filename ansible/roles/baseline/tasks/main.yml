@@ -12,139 +12,27 @@
     name: "{{ baseline_timezone }}"
   when: baseline_manage_timezone
 
-- name: Initialize auto-discovered NetworkManager IPv6 profile list
-  ansible.builtin.set_fact:
-    baseline_networkmanager_ipv6_auto_connection_list: []
-  when:
-    - baseline_manage_networkmanager_ipv6 | bool
-    - baseline_disable_ipv6 | bool
-    - baseline_networkmanager_ipv6_auto_connections | bool
-    - baseline_networkmanager_ipv6_connections | length == 0
+- name: Configure baseline IPv6 sysctl settings
+  ansible.builtin.include_role:
+    name: shared
+    tasks_from: sysctl
+  vars:
+    shared_sysctl_file: "{{ baseline_network_sysctl_file }}"
+    shared_sysctl_settings:
+      - name: net.ipv6.conf.all.disable_ipv6
+        value: "{{ '1' if baseline_disable_ipv6 | bool else '0' }}"
+      - name: net.ipv6.conf.default.disable_ipv6
+        value: "{{ '1' if baseline_disable_ipv6 | bool else '0' }}"
+      - name: net.ipv6.conf.lo.disable_ipv6
+        value: "{{ '1' if baseline_disable_ipv6 | bool else '0' }}"
 
-- name: Resolve NetworkManager Ethernet profiles for IPv6 policy
-  ansible.builtin.set_fact:
-    baseline_networkmanager_ipv6_auto_connection_list: >-
-      {{
-        baseline_networkmanager_ipv6_auto_connection_list
-        + [
-          {
-            'conn_name': baseline_networkmanager_ipv6_connection_name_prefix ~ item,
-            'ifname': item
-          }
-        ]
-      }}
-  loop: "{{ ansible_interfaces | default([]) }}"
-  loop_control:
-    label: "{{ item }}"
-  when:
-    - baseline_manage_networkmanager_ipv6 | bool
-    - baseline_disable_ipv6 | bool
-    - baseline_networkmanager_ipv6_auto_connections | bool
-    - baseline_networkmanager_ipv6_connections | length == 0
-    - ansible_facts.get(item, {}).type | default('') == 'ether'
-    - not (item is match(baseline_networkmanager_ipv6_excluded_interface_regex))
-
-- name: Resolve NetworkManager profiles for IPv6 policy
-  ansible.builtin.set_fact:
-    baseline_networkmanager_ipv6_resolved_connections: >-
-      {{
-        baseline_networkmanager_ipv6_connections
-        if baseline_networkmanager_ipv6_connections | length > 0
-        else baseline_networkmanager_ipv6_auto_connection_list | default([])
-      }}
-  when:
-    - baseline_manage_networkmanager_ipv6 | bool
-    - baseline_disable_ipv6 | bool
-
-- name: Validate NetworkManager profiles are listed for IPv6 policy
-  ansible.builtin.assert:
-    that:
-      - baseline_networkmanager_ipv6_resolved_connections | length > 0
-      - >-
-        (
-          baseline_networkmanager_ipv6_resolved_connections
-          | selectattr('conn_name', 'defined')
-          | map(attribute='conn_name')
-          | map('string')
-          | map('trim')
-          | reject('equalto', '')
-          | list
-          | length
-        ) == (baseline_networkmanager_ipv6_resolved_connections | length)
-      - >-
-        (
-          baseline_networkmanager_ipv6_resolved_connections
-          | selectattr('ifname', 'defined')
-          | map(attribute='ifname')
-          | map('string')
-          | map('trim')
-          | reject('equalto', '')
-          | list
-          | length
-        ) == (baseline_networkmanager_ipv6_resolved_connections | length)
-    fail_msg: >-
-      baseline_disable_ipv6 is true and NetworkManager IPv6 management is
-      enabled, but no usable Ethernet NetworkManager profiles were resolved.
-      The default auto mode maps Ethernet interfaces to connection names such
-      as "System eth0" and ignores loopback/container interfaces. If your
-      template uses different connection names, set
-      baseline_networkmanager_ipv6_connections explicitly. For a
-      non-NetworkManager host, set baseline_manage_networkmanager_ipv6: false
-      and baseline_manage_ipv6_sysctl: true.
-  when:
-    - baseline_manage_networkmanager_ipv6 | bool
-    - baseline_disable_ipv6 | bool
-
-- name: Show NetworkManager profiles selected for IPv6 policy
-  ansible.builtin.debug:
-    msg: >-
-      Applying IPv6 policy to NetworkManager profile {{ item.conn_name }} on
-      interface {{ item.ifname }}.
-  loop: "{{ baseline_networkmanager_ipv6_resolved_connections | default([]) }}"
-  loop_control:
-    label: "{{ item.conn_name }}"
-  when:
-    - baseline_manage_networkmanager_ipv6 | bool
-    - baseline_disable_ipv6 | bool
-
-- name: Disable IPv6 on NetworkManager Ethernet connections
-  community.general.nmcli:
-    conn_name: "{{ item.conn_name }}"
-    ifname: "{{ item.ifname }}"
-    type: ethernet
-    method6: disabled
-    conn_reload: true
-    state: present
-  loop: "{{ baseline_networkmanager_ipv6_resolved_connections | default([]) }}"
-  loop_control:
-    label: "{{ item.conn_name }}"
-  register: baseline_networkmanager_ipv6_profiles
-  when:
-    - baseline_manage_networkmanager_ipv6 | bool
-    - baseline_disable_ipv6 | bool
-
-- name: Configure fallback baseline network sysctl settings
-  ansible.posix.sysctl:
-    name: "{{ item }}"
-    value: "{{ '1' if baseline_disable_ipv6 | bool else '0' }}"
-    sysctl_file: "{{ baseline_network_sysctl_file }}"
-    state: present
-    sysctl_set: true
-    reload: true
-  loop: >-
-    {{
-      [
-        'net.ipv6.conf.all.disable_ipv6',
-        'net.ipv6.conf.default.disable_ipv6'
-      ]
-      + (
-        ['net.ipv6.conf.' ~ ansible_default_ipv4.interface ~ '.disable_ipv6']
-        if ansible_default_ipv4.interface is defined
-        else []
-      )
-    }}
-  loop_control:
-    label: "{{ item }}"
-  when:
-    - baseline_manage_ipv6_sysctl | bool
-    - baseline_disable_ipv6 | bool
+- name: Configure baseline IPv6 sysctl setting for the default interface
+  ansible.builtin.include_role:
+    name: shared
+    tasks_from: sysctl
+  vars:
+    shared_sysctl_file: "{{ baseline_network_sysctl_file }}"
+    shared_sysctl_settings:
+      - name: "net.ipv6.conf.{{ ansible_default_ipv4.interface }}.disable_ipv6"
+        value: "{{ '1' if baseline_disable_ipv6 | bool else '0' }}"
+  when: ansible_default_ipv4.interface is defined

@@ -1,0 +1,85 @@
+---
+- name: Ensure Squid cache directory exists
+  ansible.builtin.file:
+    path: "{{ cache_squid_cache_dir }}"
+    state: directory
+    owner: "{{ cache_squid_user }}"
+    group: "{{ cache_squid_group }}"
+    mode: "0750"
+
+- name: Install cache filesystem tooling
+  ansible.builtin.include_role:
+    name: shared
+    tasks_from: packages
+  vars:
+    shared_packages:
+      - "{{ cache_squid_data_fstype_package }}"
+    shared_package_update_cache: "{{ cache_package_update_cache }}"
+  when:
+    - cache_squid_data_disk_enabled | bool
+    - cache_squid_data_fstype_package | length > 0
+
+- name: Check whether Squid cache data disk is present
+  ansible.builtin.wait_for:
+    path: "{{ cache_squid_data_device }}"
+    timeout: "{{ cache_squid_data_device_wait_timeout }}"
+  when: cache_squid_data_disk_enabled | bool
+
+- name: Gather mount facts before cache data disk changes
+  ansible.builtin.setup:
+    gather_subset:
+      - hardware
+    filter:
+      - ansible_mounts
+  when: cache_squid_data_disk_enabled | bool
+
+- name: Record Squid cache data mount state
+  ansible.builtin.set_fact:
+    cache_squid_data_mount_active: >-
+      {{
+        ansible_facts.mounts
+        | default([])
+        | selectattr('mount', 'equalto', cache_squid_cache_dir)
+        | list
+        | length > 0
+      }}
+  when: cache_squid_data_disk_enabled | bool
+
+- name: Stop Squid before changing cache data disk state
+  ansible.builtin.service:
+    name: squid
+    state: stopped
+  when:
+    - cache_squid_data_disk_enabled | bool
+    - not cache_squid_data_mount_active | default(false) | bool
+
+- name: Ensure Squid cache data disk has the requested filesystem
+  community.general.filesystem:
+    dev: "{{ cache_squid_data_device }}"
+    fstype: "{{ cache_squid_data_fstype }}"
+  when: cache_squid_data_disk_enabled | bool
+
+- name: Ensure Squid cache data disk is mounted
+  ansible.posix.mount:
+    path: "{{ cache_squid_cache_dir }}"
+    src: "{{ cache_squid_data_device }}"
+    fstype: "{{ cache_squid_data_fstype }}"
+    opts: "{{ cache_squid_data_mount_opts }}"
+    state: mounted
+  register: cache_squid_data_mount
+  when: cache_squid_data_disk_enabled | bool
+
+- name: Grow Squid cache data filesystem when the disk expanded
+  community.general.filesystem:
+    dev: "{{ cache_squid_data_device }}"
+    fstype: "{{ cache_squid_data_fstype }}"
+    resizefs: true
+  when: cache_squid_data_disk_enabled | bool
+
+- name: Ensure Squid owns the mounted cache directory
+  ansible.builtin.file:
+    path: "{{ cache_squid_cache_dir }}"
+    state: directory
+    owner: "{{ cache_squid_user }}"
+    group: "{{ cache_squid_group }}"
+    mode: "0750"

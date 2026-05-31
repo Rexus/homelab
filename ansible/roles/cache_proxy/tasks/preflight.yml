@@ -1,0 +1,28 @@
+---
+- name: Validate cache proxy inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in cache_proxy_supported_os_families
+      - cache_keepalived_vip_cidr is defined
+      - cache_keepalived_vip_cidr | length > 0
+      - cache_squid_http_port is defined
+      - cache_squid_allowed_cidrs | length > 0
+      - groups.get(cache_keepalived_group | default(''), []) | length >= 1
+      - not cache_squid_data_disk_enabled | bool or cache_squid_data_device | length > 0
+      - >-
+        groups.get(cache_keepalived_group | default(''), [])
+        | difference((platform_host_ips | default({})).keys() | list)
+        | length == 0
+    fail_msg: >-
+      The cache proxy role supports {{ cache_proxy_supported_os_families | join(', ') }}
+      guests and requires a keepalived VIP, allowed CIDRs, and static
+      platform_host_ips for every cache host.
+
+- name: Install cache proxy packages
+  ansible.builtin.include_role:
+    name: shared
+    tasks_from: packages
+  vars:
+    shared_packages: "{{ cache_proxy_packages }}"
+    shared_package_state: "{{ cache_squid_package_state }}"
+    shared_package_update_cache: "{{ cache_package_update_cache }}"

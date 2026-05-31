@@ -1,0 +1,7 @@
+---
+- name: Install shared package list
+  ansible.builtin.package:
+    name: "{{ shared_packages }}"
+    state: "{{ shared_package_state | default('present') }}"
+    update_cache: "{{ shared_package_update_cache | default(true) }}"
+  when: shared_packages | default([]) | length > 0

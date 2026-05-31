@@ -58,23 +58,11 @@ baseline_timezone: Europe/Stockholm
 baseline_ntp_enabled: true
 # IPv6 is disabled by default because this repo currently models IPv4-only
 # guests. Set to false only for environments where IPv6 addressing, DNS,
-# routing, and firewall rules are intentionally managed.
+# routing, and firewall rules are intentionally managed. External-facing paths
+# can opt in later from their setup or environment vars.
 baseline_disable_ipv6: true
-# NetworkManager owns network configuration on the default Enterprise
-# Linux/Fedora-style guests, so baseline uses community.general.nmcli for guest
-# network settings. By default, Ethernet interfaces are mapped to connection
-# profiles named "System <ifname>", while loopback and common container
-# interfaces are ignored.
-baseline_manage_networkmanager_ipv6: true
-baseline_networkmanager_ipv6_auto_connections: true
-# If your template uses different profile names, disable auto mode and list
-# the profiles explicitly:
-# baseline_networkmanager_ipv6_auto_connections: false
-# baseline_networkmanager_ipv6_connections:
-#   - conn_name: "Wired connection 1"
-#     ifname: eth0
-# Sysctl is only a fallback for hosts that are not NetworkManager-managed.
-baseline_manage_ipv6_sysctl: false
+# The baseline applies this with sysctl only so the same path works across
+# Red Hat-family, Fedora, Debian, and Ubuntu templates.
 
 # Repository proxy consumed by managed hosts. Uncomment after a cache/proxy
 # exists and managed hosts should use it.

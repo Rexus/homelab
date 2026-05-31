@@ -1,0 +1,7 @@
+---
+- name: Explain shared role fragment usage
+  ansible.builtin.fail:
+    msg: >-
+      The shared role exposes callable task fragments. Use include_role with
+      tasks_from, such as tasks_from: packages, sysctl, keepalived, or
+      keepalived_vip_validation.

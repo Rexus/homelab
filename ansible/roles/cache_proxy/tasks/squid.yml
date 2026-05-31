@@ -1,0 +1,55 @@
+---
+- name: Render Squid configuration
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: "{{ cache_squid_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart squid
+
+- name: Validate Squid configuration
+  ansible.builtin.command:
+    argv:
+      - "{{ cache_squid_binary }}"
+      - -k
+      - parse
+      - -f
+      - "{{ cache_squid_config_path }}"
+  changed_when: false
+
+- name: Initialize Squid cache directory
+  ansible.builtin.command:
+    argv:
+      - "{{ cache_squid_binary }}"
+      - -z
+      - -f
+      - "{{ cache_squid_config_path }}"
+    creates: "{{ cache_squid_cache_dir }}/00"
+  when: cache_squid_initialize_cache | bool
+
+- name: Check SELinux context drift on Squid cache directory
+  ansible.builtin.command:
+    argv:
+      - restorecon
+      - -nRFv
+      - "{{ cache_squid_cache_dir }}"
+  register: cache_squid_selinux_context_check
+  changed_when: false
+  when:
+    - cache_squid_restore_selinux_context | bool
+    - ansible_selinux.status | default('disabled') == 'enabled'
+
+- name: Restore SELinux context on Squid cache directory when needed
+  ansible.builtin.command:
+    argv:
+      - restorecon
+      - -RF
+      - "{{ cache_squid_cache_dir }}"
+  changed_when: true
+  when:
+    - cache_squid_restore_selinux_context | bool
+    - ansible_selinux.status | default('disabled') == 'enabled'
+    - >-
+      cache_squid_selinux_context_check.stdout | default('') | length > 0
+      or cache_squid_selinux_context_check.stderr | default('') | length > 0

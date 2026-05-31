@@ -1,0 +1,18 @@
+---
+- name: Configure shared sysctl settings
+  ansible.posix.sysctl:
+    name: "{{ item.key if item.key is defined else item.name }}"
+    value: "{{ item.value }}"
+    sysctl_file: "{{ shared_sysctl_file | default(omit) }}"
+    state: "{{ shared_sysctl_state | default('present') }}"
+    sysctl_set: "{{ shared_sysctl_set | default(true) }}"
+    reload: "{{ shared_sysctl_reload | default(true) }}"
+  loop: >-
+    {{
+      (shared_sysctl_settings | default({}) | dict2items)
+      if (shared_sysctl_settings | default({})) is mapping
+      else (shared_sysctl_settings | default([]))
+    }}
+  loop_control:
+    label: "{{ item.key if item.key is defined else item.name }}"
+  when: shared_sysctl_settings | default({}) | length > 0

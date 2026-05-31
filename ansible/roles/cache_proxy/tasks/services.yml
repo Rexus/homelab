@@ -1,0 +1,34 @@
+---
+- name: Apply pending cache service handler changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure Squid service is enabled and started
+  ansible.builtin.service:
+    name: squid
+    enabled: "{{ cache_squid_service_enabled }}"
+    state: "{{ cache_squid_service_state }}"
+
+- name: Validate Squid health check for keepalived
+  ansible.builtin.command:
+    argv:
+      - "{{ cache_squid_check_script_path }}"
+  changed_when: false
+  when: cache_keepalived_enabled | bool
+
+- name: Test upstream URL reachability from cache host
+  ansible.builtin.uri:
+    url: "{{ cache_validation_url }}"
+    follow_redirects: all
+    timeout: "{{ cache_validation_timeout | default(20) }}"
+    use_proxy: false
+  changed_when: false
+  when:
+    - cache_validation_enabled | default(true) | bool
+    - cache_validation_url | default('') | length > 0
+
+- name: Ensure keepalived service is enabled and started
+  ansible.builtin.service:
+    name: keepalived
+    enabled: true
+    state: started
+  when: cache_keepalived_enabled | bool

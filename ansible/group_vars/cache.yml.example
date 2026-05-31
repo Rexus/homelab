@@ -19,7 +19,8 @@ repository_proxy_ip: ""
 cache_keepalived_enabled: true
 cache_keepalived_group: cache
 cache_keepalived_interface: "{{ ansible_default_ipv4.interface }}"
-cache_keepalived_virtual_router_id: 31
+# Keep this unique on the L2 segment. The edge example uses 30-32.
+cache_keepalived_virtual_router_id: 40
 # Keepalived needs CIDR form when assigning the VIP to the interface.
 cache_proxy_vip_cidr: "<cache_proxy_vip>/<prefix>"
 cache_proxy_name: cache

@@ -1,0 +1,49 @@
+---
+- name: Validate shared keepalived configuration inputs
+  ansible.builtin.assert:
+    that:
+      - shared_keepalived_config_path | default('') | length > 0
+      - shared_keepalived_group | default('') | length > 0
+      - groups.get(shared_keepalived_group | default(''), []) | length >= 1
+      - shared_keepalived_instances | default([]) | length > 0
+      - >-
+        (
+          shared_keepalived_instances | default([])
+          | selectattr('vip_cidr', 'defined')
+          | list
+          | length
+        ) == (shared_keepalived_instances | default([]) | length)
+      - >-
+        (
+          shared_keepalived_instances | default([])
+          | selectattr('virtual_router_id', 'defined')
+          | list
+          | length
+        ) == (shared_keepalived_instances | default([]) | length)
+      - >-
+        (
+          shared_keepalived_instances | default([])
+          | map(attribute='virtual_router_id')
+          | list
+          | unique
+          | length
+        ) == (shared_keepalived_instances | default([]) | length)
+      - >-
+        groups.get(shared_keepalived_group | default(''), [])
+        | difference((platform_host_ips | default({})).keys() | list)
+        | length == 0
+    fail_msg: >-
+      Shared keepalived configuration requires a config path, host group,
+      at least one VIP instance, and static platform_host_ips for every
+      keepalived host.
+  when: shared_keepalived_enabled | default(true) | bool
+
+- name: Render shared keepalived configuration
+  ansible.builtin.template:
+    src: keepalived.conf.j2
+    dest: "{{ shared_keepalived_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart keepalived
+  when: shared_keepalived_enabled | default(true) | bool
