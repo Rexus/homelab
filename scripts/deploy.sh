@@ -30,7 +30,7 @@ Options:
   --common-var-file PATH
                    Override the shared Terraform variable file.
   --ansible-vars PATH
-                   Add an extra Ansible vars file after automatic vars.
+                   Add a vars file after automatic vars in both tools.
   --plan-only       Run Terraform init and plan, then stop.
   --terraform-only  Run the precheck and Terraform only.
   --ansible-only    Run the precheck and mapped Ansible playbooks only.
@@ -197,8 +197,8 @@ if [[ ! "$deployment_env" =~ ^[A-Za-z0-9-]+$ ]]; then
   exit 1
 fi
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ansible_dir="$repo_root/ansible"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/deployment-context.sh"
+require_owned_setup "$setup_name"
 ansible_group_vars_paths=("$ansible_dir/group_vars/all.yml")
 environment_ansible_vars_path=""
 setup_ansible_vars_base_path=""
@@ -343,6 +343,9 @@ case "$setup_name" in
   hsm)
     terraform_dir="$repo_root/terraform/environments/hsm"
     ansible_playbooks=("hsm.yml" "ingress.yml")
+    if [[ "$repo_root" != "$automation_root" ]]; then
+      ansible_playbooks=("hsm.yml")
+    fi
     setup_ansible_vars_base_path="$ansible_dir/group_vars/hsm.yml"
     setup_ansible_vars_required=true
     required_files=(
@@ -424,6 +427,7 @@ for ansible_vars_path in "${ansible_vars_paths[@]}"; do
   fi
 
   resolved_ansible_vars_paths+=("$ansible_vars_path")
+  ansible_group_vars_paths+=("$ansible_vars_path")
   required_files+=("$ansible_vars_path")
 done
 
@@ -468,7 +472,9 @@ load_env_file() {
     fi
 
     case "$key" in
-      ansible_dir|deployment_env|env_file_path|inventory_path|repo_root|setup_name|terraform_dir|terraform_state_path|terraform_data_dir|var_file_path)
+      ansible_dir|ansible_playbook_dir|automation_root|DEPLOYMENT_REPO_DIR|SHARED_REPO_DIR|\
+      deployment_env|env_file_path|inventory_path|repo_root|setup_name|terraform_dir|\
+      terraform_state_path|terraform_data_dir|var_file_path)
         echo "Environment file uses reserved wrapper variable: $key" >&2
         echo "Rename or remove it from $env_file_path." >&2
         exit 1
@@ -548,7 +554,7 @@ run_control_node_precheck() {
   echo "==> Running deployment control-node precheck"
   (
     cd "$ansible_dir"
-    ansible-playbook -i localhost, playbooks/control-node.yml \
+    ansible-playbook -i localhost, "$ansible_playbook_dir/control-node.yml" \
       -e "control_node_setup=$setup_name"
   )
 }
@@ -652,12 +658,12 @@ run_terraform() {
     done
     terraform_group_vars_arg+="]"
 
-    terraform_args+=("-var=ansible_inventory_path=$inventory_path")
-    terraform_args+=("-var=ansible_group_vars_paths=$terraform_group_vars_arg")
     terraform_args+=("-var-file=$var_file_path")
     if [[ -n "$environment_var_file_path" ]]; then
       terraform_args+=("-var-file=$environment_var_file_path")
     fi
+    terraform_args+=("-var=ansible_inventory_path=$inventory_path")
+    terraform_args+=("-var=ansible_group_vars_paths=$terraform_group_vars_arg")
 
     if [[ "$destroy" == true ]]; then
       terraform plan -destroy "${terraform_args[@]}"
@@ -699,7 +705,7 @@ run_ansible_playbooks() {
     done
 
     for playbook in "${ansible_playbooks[@]}"; do
-      ansible-playbook "${ansible_args[@]}" "playbooks/$playbook"
+      ansible-playbook "${ansible_args[@]}" "$ansible_playbook_dir/$playbook"
     done
   )
 }
@@ -711,6 +717,8 @@ fi
 
 check_required_files
 load_env_file
+export ANSIBLE_CONFIG="$ansible_dir/ansible.cfg"
+export ANSIBLE_ROLES_PATH="$automation_root/ansible/roles${ANSIBLE_ROLES_PATH:+:$ANSIBLE_ROLES_PATH}"
 map_provider_env
 run_control_node_precheck
 

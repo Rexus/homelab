@@ -15,6 +15,13 @@
 
 Use this guide when you want to deploy the USB HSM pattern from this repo.
 
+This is the connected gateway reference for Tier 1. The generated Tier 0 HSM
+setup is custody-local and does not configure an edge backend. See
+[setup ownership](../reference/generated-repository-model.md#setup-ownership)
+before adapting these examples to a generated tier repository. Keep connected
+gateway and edge hosts in the owning Tier 1 inventory; never route this service
+into air-gapped custody.
+
 It stays focused on:
 
 - what you need to configure
@@ -37,15 +44,14 @@ Before you start:
 - this guide only reruns edge load-balancer Ansible to add or refresh HSM
   gateway backends
 
-If not, start with
-[Identity foundation path](../paths/shared-services/identity.md).
+For the load-balancer prerequisite, start with
+[Edge proxy path](../paths/shared-services/edge.md).
 
 ## Default deployment
 
 The default shape in this repo is:
 
-- `2` deployed edge load-balancer VMs, or a larger load-balancer set, from the
-  `foundation` setup
+- the deployed edge load-balancer set from the `edge` setup
 - `2` gateway hosts in the `cryptography` zone
 - `1` local USB HSM or software token per gateway host
 - `0-1` helper or recovery VM in `ceremony`
@@ -212,7 +218,7 @@ Use these repo paths here:
 | [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns edge load-balancer configuration so the deployed edge layer points at the HSM gateways | inventory and edge load-balancer variables |
 | [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm` setup when you are ready to run it |
 
-You do not use foundation Terraform as part of this HSM rollout. It only
+You do not rerun edge Terraform as part of this HSM rollout. It only
 assumes that the deployed edge load-balancer prerequisite already exists.
 
 Use the shared ownership rule from

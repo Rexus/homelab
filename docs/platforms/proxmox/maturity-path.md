@@ -5,7 +5,7 @@
 - [Purpose](#purpose)
 - [Maturity overview](#maturity-overview)
 - [Level 1 - Shared private-domain services](#level-1---shared-private-domain-services)
-- [Level 2 - Vault foundation deployment](#level-2---vault-foundation-deployment)
+- [Level 2 - Secret platform](#level-2---secret-platform)
 - [Level 3 - System control](#level-3---system-control)
 - [Level 4 - Backup foundation](#level-4---backup-foundation)
 - [Level 5 - Higher availability and production use](#level-5---higher-availability-and-production-use)
@@ -21,8 +21,8 @@ keeps the same milestones in Proxmox terms.
 
 | Level | Goal | Success criteria |
 | --- | --- | --- |
-| 1 | Shared private-domain services | First template, foundation hosts, and the identity, DNS, and PKI services Vault depends on are in place or mapped to existing services |
-| 2 | Vault foundation deployment | Vault is deployed as the early secret-platform foundation and ready for initialization |
+| 1 | Shared private-domain services | First template, foundation hosts, and the identity, DNS, and PKI services the secret platform depends on are in place or mapped |
+| 2 | Secret platform | the reference secret platform is deployed and ready for initialization |
 | 3 | System control | telemetry, syslog, metrics, traces, and log/event search have a Proxmox-aware path |
 | 4 | Backup foundation | PBS is deployed, connected, and tested |
 | 5 | Higher availability and production use | Backup, recovery, observability, and platform patterns support more serious use |
@@ -36,8 +36,8 @@ Goal:
 - build or prepare a template
 - provision the first managed foundation hosts when you use the repo reference
   path
-- establish or map the identity, DNS, and certificate or PKI services Vault
-  depends on
+- establish or map the identity, DNS, and certificate or PKI services the
+  secret platform depends on
 - apply the first Ansible baseline run
 - keep Windows or AD support as a later optional path
 
@@ -50,14 +50,14 @@ Read more:
 - [Identity foundation path](../../paths/shared-services/identity.md)
 - [Windows and AD support](../../paths/shared-services/windows-support.md)
 
-## Level 2 - Vault foundation deployment
+## Level 2 - Secret platform
 
 Goal:
 
-- deploy Vault as a dedicated early shared service after the first Proxmox
-  foundation hosts are ready
-- initialize and unseal Vault
-- move shared and long-lived secrets into Vault
+- deploy Vault or another secret platform as a dedicated early shared service
+  after the first Proxmox foundation hosts are ready
+- initialize and unseal it when required
+- move shared and long-lived secrets into the secret platform
 
 Read more:
 

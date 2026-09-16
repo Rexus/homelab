@@ -18,6 +18,31 @@ This file keeps durable context for AI-assisted work across sessions.
 - platform-aware, not platform-locked
 - security-first posture with strong separation of concerns
 - public upstream is curated and not meant for operational changes
+- repository model is a Tier 0, Tier 1, and Tier 2 deployment kit
+- expected downstream repos are `<prefix>-tier-0`, `<prefix>-tier-1`,
+  `<prefix>-tier-2`, `<prefix>-shared`, and `<prefix>-architecture`
+- those repos live inside `<prefix>-iac/`, a collection directory beside the
+  upstream checkout by default; `--root` selects the collection's parent
+- README fast paths start with one real generation command and nearby flag
+  tips; generated repo READMEs stay short and link into architecture for detail
+- shared scripts can be called by relative path from a tier root and use that
+  tier's inputs; tier-local script shortcuts delegate to the same code
+- `scripts/init-tier-repos.sh` generates three tier-owned inventories and
+  Terraform setup roots, shared modules/playbooks/roles/wrappers, and docs
+- both tools consume the owning tier's inventory and ordered group vars;
+  shared code contains no live inventory or state
+- refresh uses `.generated-files.json` and preserves local edits and deletions;
+  Talos and cluster resources remain seed-only skeletons
+- Tier 0 must remain bootstrapable and recoverable without higher-tier services
+- tiering is bottom-up, with Tier 0 as the recovery layer below Tier 1 and
+  Tier 2
+- network exposure is left-to-right, from DMZ and edge paths toward
+  air-gapped custody
+- Tier 0 lives only in air-gapped custody; approved artifact handoffs do not
+  create routed connections into custody
+- use general capability terms in architecture docs, such as source control,
+  identity authority, identity broker, OIDC interface, inventory source of
+  truth, observability dashboard, and cluster management
 
 ## Documentation intent
 
@@ -37,6 +62,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - do not encourage storing secrets in Git
 - do not treat this upstream as the destination for live environment changes
 - prefer private forks, mirrors, or local copies for operational work
+- preserve strict Tier 0 -> Tier 1 -> Tier 2 dependency direction
 - keep Packer, Terraform, and Ansible responsibilities separate
 - preserve a high-security baseline by default
 - use compact numeric citations like `[1]` for non-trivial external claims in

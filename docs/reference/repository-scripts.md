@@ -5,6 +5,7 @@
 - [Purpose](#purpose)
 - [Script overview](#script-overview)
 - [Cheat sheet](#cheat-sheet)
+- [Initialize tier repositories](#initialize-tier-repositories)
 - [Initialize local files](#initialize-local-files)
 - [Run a deployment](#run-a-deployment)
 - [Available setups](#available-setups)
@@ -21,14 +22,15 @@ The scripts do not replace the guides. They keep repeated safety checks,
 environment loading, local state paths, and setup-specific run order in one
 place so each guide can focus on what you are deploying.
 
-Both scripts support `--help`.
+All scripts support `--help`.
 
 ## Script overview
 
 | Script | What it solves | When you use it |
 | --- | --- | --- |
-| `scripts/init-local-files.sh` | creates ignored local files from the tracked examples | once when you set up the repo, and again when you add a new environment |
-| `scripts/deploy.sh` | runs the control-node precheck, Terraform, and mapped Ansible playbooks | whenever you deploy, plan, or destroy a setup |
+| `scripts/init-tier-repos.sh` | generates tier-owned inputs and shared automation | when you want the generated repo set |
+| `scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
+| `scripts/deploy.sh` | runs precheck, Terraform, and Ansible | when you deploy, plan, or destroy a setup |
 
 ## Cheat sheet
 
@@ -37,8 +39,13 @@ Replace `<setup>` with a setup such as `foundation`, `cache`, `vault`, or
 
 | Goal | Command |
 | --- | --- |
+| Show tier-repo generator help | `bash scripts/init-tier-repos.sh --help` |
 | Show init help | `bash scripts/init-local-files.sh --help` |
 | Show deploy help | `bash scripts/deploy.sh --help` |
+| Preview generated tier repositories | `bash scripts/init-tier-repos.sh --dry-run` |
+| Generate the repository collection | `bash scripts/init-tier-repos.sh` |
+| Generate only shared and Tier 0 repositories | `bash scripts/init-tier-repos.sh --repo shared --repo tier-0` |
+| Refresh generated tier-repo files | `bash scripts/init-tier-repos.sh --refresh` |
 | Create all local files | `bash scripts/init-local-files.sh` |
 | Create local files for one setup | `bash scripts/init-local-files.sh --setup <setup>` |
 | Create local files for one environment | `bash scripts/init-local-files.sh --setup <setup> --env <env>` |
@@ -52,6 +59,53 @@ Replace `<setup>` with a setup such as `foundation`, `cache`, `vault`, or
 | Run Terraform only | `bash scripts/deploy.sh <setup> --env <env> --terraform-only` |
 | Destroy an environment | `bash scripts/deploy.sh <setup> --env <env> --destroy` |
 | Reset rebuilt host SSH keys | `bash scripts/deploy.sh <setup> --env <env> --reset-known-hosts` |
+
+## Initialize tier repositories
+
+Create `../homelab-iac/` with the five repositories inside:
+
+```bash
+bash scripts/init-tier-repos.sh
+```
+
+Use `--prefix mylab` to rename the collection and repos, `--root /path/to/parent`
+to choose the collection's parent, and `--dry-run` to preview without writing.
+
+Generate only shared automation and Tier 0:
+
+```bash
+bash scripts/init-tier-repos.sh --repo shared --repo tier-0
+```
+
+Refresh generated files only:
+
+```bash
+bash scripts/init-tier-repos.sh --refresh
+```
+
+Run refresh from the updated upstream checkout with the same custom root and
+prefix flags used at creation. It preserves local edits and recorded deletions.
+
+The generator creates `<prefix>-tier-0`, `<prefix>-tier-1`,
+`<prefix>-tier-2`, `<prefix>-shared`, and `<prefix>-architecture` inside
+`<prefix>-iac/`. Only the child directories are repository homes.
+It populates shared modules, roles, playbooks, and wrappers, plus separate
+inventory examples, group vars, and Terraform setups in each tier. Python and
+PyYAML are required. Refresh uses recorded hashes and preserves locally edited
+files; cluster and bootstrap skeletons are seeded only once.
+
+Read [Generated repository model](generated-repository-model.md) for the
+authoritative ownership, inventory, prerequisite, and refresh contracts.
+From a tier root, call shared automation directly with a relative path:
+
+```bash
+bash ../homelab-shared/scripts/init-local-files.sh --setup foundation --env test
+```
+
+Use your chosen prefix in that path. The tier-local `scripts/` shortcuts used
+below delegate to the same shared code. The same local shortcut commands also
+work in a private single-tree copy of upstream. Omitted `--setup` initializes
+only the setups registered in the current tier.
 
 ## Initialize local files
 
@@ -153,10 +207,13 @@ Useful options:
 | `--reset-known-hosts` | you rebuilt guests and want to remove stale SSH known-host entries for the setup IPs |
 | `--var-file PATH` | you want to replace the setup Terraform tfvars file |
 | `--common-var-file PATH` | you want to replace the shared Terraform tfvars file |
-| `--ansible-vars PATH` | you want one extra Ansible vars file after automatic vars |
+| `--ansible-vars PATH` | you want an extra YAML vars layer consumed by both Terraform and Ansible |
 | `--inventory PATH` | you want another Ansible inventory file |
 
 ## Available setups
+
+This is the upstream capability catalog. Generated tiers enable the subset in
+their `.deployment-setups`; see [setup ownership](generated-repository-model.md#setup-ownership).
 
 | Setup | What it targets | Start with |
 | --- | --- | --- |
@@ -203,8 +260,14 @@ needs different platform values, VM sizes, storage, or placement.
 
 ## Manual equivalent
 
-The wrapper is intentionally boring. This is the same idea when you run it by
-hand for `foundation --env test`.
+For `foundation --env test`, start in the owning tier repository. Set the
+automation location to the sibling shared checkout, adjusting the prefix:
+
+```bash
+automation_root="$(cd ../homelab-shared && pwd)"
+```
+
+For a private single-tree copy, use `automation_root="$PWD"` instead.
 
 1. Prepare local files.
 
@@ -236,7 +299,7 @@ export TF_VAR_proxmox_api_token_secret="${PROXMOX_API_TOKEN_SECRET}"
 
 ```bash
 cd ansible
-ansible-playbook -i localhost, playbooks/control-node.yml \
+ansible-playbook -i localhost, "$automation_root/ansible/playbooks/control-node.yml" \
   -e control_node_setup=foundation
 cd ..
 ```
@@ -252,15 +315,15 @@ terraform init -reconfigure \
 
 terraform plan \
   -var-file=../../common.tfvars \
+  -var-file=terraform.tfvars \
   -var='ansible_inventory_path=../../../ansible/inventory/hosts.yml' \
-  -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]' \
-  -var-file=terraform.tfvars
+  -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]'
 
 terraform apply \
   -var-file=../../common.tfvars \
+  -var-file=terraform.tfvars \
   -var='ansible_inventory_path=../../../ansible/inventory/hosts.yml' \
-  -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]' \
-  -var-file=terraform.tfvars
+  -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]'
 
 cd ../../..
 ```
@@ -275,7 +338,7 @@ ansible-playbook \
   -e @group_vars/foundation.yml \
   -e @group_vars/all.test.yml \
   -e @group_vars/foundation.test.yml \
-  playbooks/foundation.yml
+  "$automation_root/ansible/playbooks/foundation.yml"
 ```
 
 The manual flow is useful for learning and troubleshooting. For normal use,

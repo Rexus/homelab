@@ -48,6 +48,8 @@ all_setups=(
   hsm
 )
 
+source "$(dirname "${BASH_SOURCE[0]}")/lib/deployment-context.sh"
+
 setup_group_vars_stem() {
   case "$1" in
     podman-runner)
@@ -140,7 +142,6 @@ for setup_name in "${selected_setups[@]}"; do
   fi
 done
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 created=0
 updated=0
 last_file_changed=false
@@ -255,7 +256,7 @@ create_from_example \
   "$repo_root/ansible/group_vars/all.yml.example" \
   "$repo_root/ansible/group_vars/all.yml"
 
-if [[ "$full_init" == true ]]; then
+if [[ "$full_init" == true && -f "$repo_root/packer/variables.auto.pkrvars.hcl.example" ]]; then
   create_from_example \
     "$repo_root/packer/variables.auto.pkrvars.hcl.example" \
     "$repo_root/packer/variables.auto.pkrvars.hcl"

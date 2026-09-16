@@ -6,8 +6,8 @@ Use this path for capabilities that host, build, and run applications on top of
 the shared private-cloud foundation.
 
 This is where development services, source control, CI/CD, registries,
-image-based Linux builds, Kubernetes, GitOps, and future application runtime
-patterns belong.
+image-based Linux builds, Kubernetes, GitOps, and additional application
+runtime patterns belong.
 
 ## Current guides
 
@@ -21,7 +21,7 @@ patterns belong.
 
 | Path | Owns | Usually depends on |
 | --- | --- | --- |
-| development | GitLab on a dedicated Podman VM, repositories, and CI/CD coordination | shared identity, PKI, Vault |
+| development | GitLab on a dedicated Podman VM, repositories, and CI/CD coordination | shared identity, PKI, secrets |
 | Podman image runner | runner VM for bootc and container image builds | development path |
 | registry | Harbor and shared OCI artifacts | development path for automated builds |
 | image-based Linux | `immutable-template` setup and bootc template lifecycle | Podman image runner, then shared registry later |
@@ -31,5 +31,5 @@ patterns belong.
 
 Start with GitLab on one VM, then add runners, registry, image-based hosts,
 and cluster guides as those setups are introduced. They should consume shared
-identity, PKI, Vault, cache, edge, and system-control services when those are
-available instead of redeploying their own foundations.
+identity, PKI, secrets, cache, edge, and system-control services when those
+are available instead of redeploying their own foundations.

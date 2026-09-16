@@ -1,148 +1,84 @@
 # Private Cloud IaC Baseline
 
-This repository is a security-first Infrastructure as Code baseline for
-building and operating an enterprise-style private cloud on a homelab or small
-datacenter scale using Packer, Terraform, and Ansible so you can bring up new
-environments quickly, consistently, and without committing secrets into Git.
+A security-first deployment kit for building and operating a private cloud at
+homelab or small-datacenter scale. Packer builds images, Terraform provisions
+infrastructure, and Ansible configures hosts using the same inventory inputs.
+Proxmox is the reference platform.
 
-Proxmox is the current reference foundation for the hypervisor and initial
-infrastructure layer, but the repository is organized around the broader
-private-cloud lifecycle rather than one product.
-Read [docs/architecture/private-cloud.md](docs/architecture/private-cloud.md)
-for how this project uses the term private cloud and where Proxmox, Kubernetes,
-and OpenStack fit.
+The architecture combines functional layers with three ownership tiers:
+Tier 0 for recovery and control, Tier 1 for shared platform services, and
+Tier 2 for workloads. Each tier owns its inventory and state; a shared
+repository holds reusable automation.
 
-This public repository is maintained as a curated upstream reference. Use a
-private fork, private mirror, or local copy for actual deployment work and do
-not push operational changes back to this upstream.
+Use this public upstream for examples and code. Keep operational configuration
+in private generated repositories, a private fork, or a local working copy.
 
 ## Getting started
 
-Use the shared-service fast path below for the shortest first run. Start with a
-disposable `test` deployment, verify the flow, destroy it, and then create a
-production environment when you are ready. The current wrapper setup for this
-path is still named `foundation`. For a fuller walkthrough of the same flow,
-start with
-[docs/paths/shared-services/identity.md](docs/paths/shared-services/identity.md).
-If your local tooling still needs to be prepared, read
-[docs/getting-started/local-setup.md](docs/getting-started/local-setup.md).
-For the command cheat sheet, wrapper behavior, and manual command equivalents,
-read
-[docs/reference/repository-scripts.md](docs/reference/repository-scripts.md).
-The repository scripts also expose short inline help with `--help`.
-If you want the broader documentation map, use [docs/README.md](docs/README.md).
-If you know the outcome you want but not the document order, use
-[docs/paths/README.md](docs/paths/README.md).
-
-Shared-service fast path:
-
-1. Review platform prerequisites:
-   - [Proxmox reference platform](docs/platforms/proxmox/README.md)
-   - [Proxmox API setup](docs/platforms/proxmox/setup-api.md)
-   - repository/update access for managed hosts, through approved egress, mirrors,
-     offline repos, or the [cache path](docs/paths/shared-services/cache.md)
-
-2. Initialize local working files for the foundation setup and the first
-   `test` environment:
+From this cloned repository, generate your IaC collection:
 
 ```bash
-bash scripts/init-local-files.sh --setup foundation --env test
+bash scripts/init-tier-repos.sh
 ```
 
-3. Update the generated local files with your environment values.
+This creates `../homelab-iac/`, beside this checkout. Requires Python 3 with
+PyYAML; see [local tooling](docs/getting-started/local-setup.md).
+Use `--prefix mylab` to rename the collection and repos, `--root /path/to/parent`
+to choose their parent directory, or `--dry-run` to preview without writing.
 
-   For the first run, pay special attention to:
+```text
+homelab-iac/                 # collection directory, not a Git repository
+  homelab-tier-0/
+  homelab-tier-1/
+  homelab-tier-2/
+  homelab-shared/
+  homelab-architecture/
+```
 
-   - `.env.local`
-   - `ansible/group_vars/all.test.yml`
-   - `ansible/group_vars/foundation.test.yml`
-   - `terraform/common.tfvars`
-   - `terraform/environments/foundation/terraform.tfvars`
+Next, open `../homelab-iac/homelab-tier-0/README.md` and follow its getting-started
+commands from that tier's root. They call the shared scripts by relative path
+and use the tier's local inputs. Substitute your prefix and parent path if
+customized. The architecture repo contains the detailed guides and diagrams.
 
-4. Run the repository deployment wrapper for the `test` environment:
+## Update Your Collection
+
+After updating this upstream checkout, run this **from the upstream repo**:
 
 ```bash
-bash scripts/deploy.sh foundation --env test
+bash scripts/init-tier-repos.sh --refresh
 ```
 
-This wrapper runs the local control-node precheck first, then the mapped
-Terraform and Ansible steps for that setup. With `--env test`, it also loads
-the matching ignored Ansible vars files for that environment. Read the detailed
-flow in the [identity foundation path](docs/paths/shared-services/identity.md).
-After you have reviewed the first plan and want a non-interactive run, add
-`--auto-approve` to the same command.
+Reuse your `--prefix` and `--root` flags if customized. Add `--dry-run` to preview.
+Refresh updates unchanged generated guides, examples, and automation. It preserves
+local configuration, development, and recorded deletions. See the
+[refresh contract](docs/reference/generated-repository-model.md#refresh-and-local-ownership).
 
-5. Destroy the test deployment when you are done validating the first run:
+## Find Your Way
 
-```bash
-bash scripts/deploy.sh foundation --env test --destroy
-```
+| Need | Start here |
+| --- | --- |
+| Documentation map | [Documentation](docs/README.md) |
+| System design | [Architecture overview](docs/architecture/overview.md), [tier model](docs/architecture/tier-model.md) |
+| Choose a deployment | [Reader paths](docs/paths/README.md) |
+| Run, plan, or destroy | [Repository scripts](docs/reference/repository-scripts.md) |
+| Find implementation files | [Automation layout](docs/reference/infrastructure-automation-layout.md) |
+| Prepare Proxmox | [Platform guide](docs/platforms/proxmox/README.md) |
+| Handle secrets | [Secret strategy](docs/security/secret-strategy.md) |
 
-6. When you are ready for production, update the base local files and run
-   without `--env`:
+## Repository Structure
 
-```bash
-bash scripts/deploy.sh foundation
-```
+- `docs/`: architecture, reader paths, platform guides, security, and references
+- `packer/`: image-build templates
+- `terraform/`: provisioning setups and reusable modules
+- `ansible/`: inventory examples, playbooks, and roles
+- `scripts/`: repository generation, local initialization, and deployment
+- `tests/`: offline generator and automation checks
+- `.ai/`: assistant context
 
-7. Continue with:
-   - [Vault foundation deployment](docs/paths/shared-services/vault.md)
-   - [Edge proxy path](docs/paths/shared-services/edge.md)
-   - [System control path](docs/paths/system-control/README.md)
-   - [Application platform path](docs/paths/application-platform/README.md)
-   - [Secret strategy](docs/security/secret-strategy.md)
-   - [Private cloud maturity path](docs/paths/private-cloud-maturity.md)
-   - [Documentation index](docs/README.md)
+## AI-Assisted Development
 
-Recommended maturity path:
-
-- start with local example files and the smallest possible first-run secret set
-- deploy the identity and PKI foundation first
-- establish naming, DNS, and the first issuing-CA path needed by early
-  services
-- add Windows or AD support later only if the environment needs it
-- deploy Vault as the early secret-platform foundation
-- move long-lived and shared secrets to Vault before broader deployment
-- add the system-control path before the platform becomes hard to reason about
-- add backup and recovery before the environment becomes important
-- grow into the application-platform path when projects, GitOps, or Kubernetes
-  become the next scaling concern
-
-Read more in:
-
-- [docs/paths/shared-services/vault.md](docs/paths/shared-services/vault.md)
-- [docs/paths/system-control/observability.md](docs/paths/system-control/observability.md)
-- [docs/paths/shared-services/edge.md](docs/paths/shared-services/edge.md)
-- [docs/paths/shared-services/cache.md](docs/paths/shared-services/cache.md)
-- [docs/paths/application-platform/development.md](docs/paths/application-platform/development.md)
-- [docs/paths/private-cloud-maturity.md](docs/paths/private-cloud-maturity.md)
-- [Proxmox backup foundation](docs/platforms/proxmox/backup-foundation.md)
-- [docs/reference/environment-variables.md](docs/reference/environment-variables.md)
-- [docs/reference/infrastructure-automation-layout.md](docs/reference/infrastructure-automation-layout.md)
-- [docs/reference/repository-scripts.md](docs/reference/repository-scripts.md)
-- [docs/paths/README.md](docs/paths/README.md)
-- [docs/security/secret-strategy.md](docs/security/secret-strategy.md)
-- [docs/architecture/private-cloud.md](docs/architecture/private-cloud.md)
-- [docs/architecture/shared-services.md](docs/architecture/shared-services.md)
-- [docs/architecture/overview.md](docs/architecture/overview.md)
-- [docs/README.md](docs/README.md)
-
-## Repository structure
-
-- `docs/` overview, reader paths, getting started, platform guides, security,
-  architecture, reference, and decisions
-- `packer/` image build workflow and example variable files
-- `terraform/` infrastructure provisioning layout and deployment environments
-- `ansible/` configuration management layout, inventory examples, and playbooks
-- `scripts/` repo-local initialization and deployment wrappers that keep the
-  control-node precheck in front of each setup run
-- `.ai/` hidden assistant context and session notes
-
-## AI-assisted development
-
-AI may be used to draft documentation, scaffolding, and implementation support.
-Human review remains required for architecture, security controls, and any
-change that affects secrets, trust boundaries, or production behavior.
+AI may help draft documentation and implementation. Human review remains
+required for architecture, security controls, secrets, and production behavior.
 
 ## License
 

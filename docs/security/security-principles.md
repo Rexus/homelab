@@ -13,7 +13,7 @@
 
 Use this guide as the durable security baseline for the repository. It keeps
 the principles short, while the detailed implementation guidance lives in the
-platform, secret, and Vault-specific documents.
+platform, secret-platform, and Vault-specific documents.
 
 ## Baseline posture
 

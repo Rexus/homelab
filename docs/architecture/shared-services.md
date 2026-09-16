@@ -31,10 +31,10 @@ These services give later projects a common base:
 
 | Shared service | What it gives other paths |
 | --- | --- |
-| DNS and private domain | stable names such as `idm-1.corp.example.com` or `vault-1.internal.example.com` |
+| DNS and private domain | stable names such as `identity-1.corp.example.com` or `secrets-1.internal.example.com` |
 | identity | one user and group authority for operators, services, and automation |
 | PKI | trusted certificates for internal TLS, mTLS, service identity, and device identity |
-| Vault | one controlled place for long-lived secrets, tokens, and service credentials |
+| secret platform | one controlled place for long-lived secrets, tokens, and service credentials |
 | observability and syslog | one place to see health, audit trails, security events, and capacity |
 
 This is not only convenience. It also removes many weak defaults:
@@ -49,20 +49,20 @@ This is not only convenience. It also removes many weak defaults:
 
 The private domain path creates a trust base for the environment.
 
-In the reference implementation, that means:
+In the architecture model, that means:
 
-| Layer | Reference implementation | Role |
-| --- | --- | --- |
-| identity and DNS | `FreeIPA` | shared identity authority, Kerberos, LDAP, DNS, host enrollment |
-| PKI | root CA plus issuing CA | private certificate hierarchy for internal services |
-| user hardware keys | YubiKey or compatible tokens | optional OTP or PIV hardening for privileged users |
-| secrets | `Vault` | secret storage and later dynamic credential paths |
-| telemetry | OpenTelemetry, syslog, metrics, logs, traces | operational control and audit visibility |
-| cryptographic hardening | USB HSM or other HSM path | stronger protection for selected CA or seal keys |
+| Capability | Role |
+| --- | --- |
+| identity authority and DNS | shared users, groups, hosts, directory data, DNS, and host enrollment |
+| PKI | private certificate hierarchy for internal services |
+| user hardware keys | optional OTP, PIV, FIDO2, or similar hardening for privileged users |
+| secret platform | secret storage and later dynamic credential paths |
+| telemetry | operational control, audit visibility, metrics, logs, and traces |
+| cryptographic hardening | stronger protection for selected CA, seal, or signing keys |
 
-The path is still optional. If you already have a domain, DNS, PKI, Vault, or
-telemetry stack, use those systems as prerequisites and configure the later
-paths to consume them instead of deploying duplicates.
+The path is still optional. If you already have a domain, DNS, PKI, secret
+platform, or telemetry stack, use those systems as prerequisites and configure
+the later paths to consume them instead of deploying duplicates.
 
 ## Identity security principles
 
@@ -87,7 +87,7 @@ shared identity
   -> enrolled users, hosts, and groups
   -> Kerberos as the core login protocol
   -> certificates, OTP, PIV, FIDO2, or other token-backed user hardening
-  -> short-lived or scoped credentials from Vault where possible
+  -> short-lived or scoped credentials from the secret platform where possible
 ```
 
 This does not mean passwords disappear from every bootstrap step. It means the
@@ -137,7 +137,7 @@ trust root, this repository prefers local custody:
 
 - root CA material can stay offline in a ceremony path
 - issuing CA keys can be moved toward HSM-backed protection
-- Vault seal or recovery paths can be hardened later
+- secret-platform seal or recovery paths can be hardened later
 - private traffic and internal service identity do not depend on an external
   provider key service
 
@@ -167,27 +167,27 @@ Use this split:
 | identity and DNS | shared | isolated lab, air-gapped project, or separate administrative domain |
 | root CA | shared and offline | separate legal or operational trust boundary |
 | issuing CA | shared per trust boundary | project requires separate certificate policy or key custody |
-| Vault | shared early | project requires separate secret administration or blast-radius boundary |
+| secret platform | shared early | project requires separate secret administration or blast-radius boundary |
 | observability | shared early | project has strict isolation, high-risk data, or separate retention policy |
 | syslog/security archive | shared with clear source tagging | regulated or high-risk project needs independent archive custody |
 | application platform | shared first, then multiplied where needed | teams or projects need source control, CI/CD, GitOps, Kubernetes, or isolated runtime boundaries |
 
 The default private-cloud path is a shared service backbone with isolated
 project resources on top. High-risk or air-gapped projects can still bring
-their own identity, Vault, observability, or network boundaries.
+their own identity, secret platform, observability, or network boundaries.
 
 ## Environment model
 
 Use the same path more than once when you need test, lab, dev, stage, or
 production.
 
-The repository pattern is:
+Within each owning tier, the environment pattern is:
 
 ```text
 same logical inventory
 same Terraform setup vars by default
 separate environment overlays when needed
-separate Terraform state per setup and environment
+separate Terraform state per tier, setup, and environment
 ```
 
 Use shared subnets when your network allows it. Override subnets, VLANs, IPs,
@@ -207,12 +207,12 @@ Examples:
 
 Think of the repository as paths that consume shared services:
 
-| Path type | Uses shared identity/PKI/Vault/telemetry | Can be standalone |
+| Path type | Uses shared identity/PKI/secrets/telemetry | Can be standalone |
 | --- | --- | --- |
 | shared services path | creates or connects to the shared services | yes |
-| HSM and cryptography | consumes PKI/Vault when present | yes |
+| HSM and cryptography | consumes PKI and secret-platform paths when present | yes |
 | system control path | creates shared telemetry services | yes |
-| application platform path | should consume shared identity, PKI, Vault, and telemetry | yes |
+| application platform path | should consume shared identity, PKI, secrets, and telemetry | yes |
 | isolated project lab | may consume shared services or bring its own | yes |
 
 This keeps the repo useful for two cases:

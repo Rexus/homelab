@@ -16,7 +16,7 @@ Use this path only when the environment needs Windows support after the
 primary identity and DNS layer already exists.
 
 This is a secondary layer. It is not part of the default shared-service
-deployment that prepares DNS, PKI, and Vault prerequisites.
+deployment that prepares DNS, PKI, and secret-platform prerequisites.
 
 ## Position in the repo
 
@@ -60,7 +60,7 @@ Use those limitations as the reason this remains an optional path.[2][3][4]
 ## Boundaries
 
 - do not make the default identity foundation path depend on Windows support
-- do not make Vault deployment wait on a Windows-specific layer
+- do not make secret-platform deployment wait on a Windows-specific layer
 - keep Windows support as an optional compatibility and operations layer, not
   the primary repo identity model
 - do not move primary identity ownership into Windows support unless the whole

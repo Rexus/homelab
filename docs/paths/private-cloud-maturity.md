@@ -31,6 +31,12 @@ Use this page in two ways:
   before another setup can run
 - use the capability sections to decide how far to mature each area
 
+Do not confuse the maturity levels in this document with Tier 0, Tier 1, and
+Tier 2. Maturity levels describe how complete one capability is. Tiers describe
+dependency direction, recovery ownership, and where a capability belongs. Read
+[Tier model](../architecture/tier-model.md) before splitting automation across
+generated downstream repositories.
+
 For every capability, choose one of these patterns:
 
 | Pattern | Use it when |
@@ -52,11 +58,11 @@ public cloud.
 | Capability group | Owns | Main path |
 | --- | --- | --- |
 | platform preparation | Proxmox, API access, templates, networking, deployment tooling | [Proxmox reference platform](../platforms/proxmox/README.md) |
-| shared services | identity, DNS, PKI, edge, cache, Vault, hardware-backed user auth, and optional Windows support | [Shared services path](shared-services/README.md) |
+| shared services | identity, DNS, PKI, edge, cache, secrets, hardware-backed auth, and optional Windows support | [Shared services path](shared-services/README.md) |
 | system control | telemetry, syslog, metrics, traces, logs, dashboards, and archive | [System control path](system-control/README.md) |
 | recovery | backup, restore, and disaster recovery readiness | [Backup foundation](../platforms/proxmox/backup-foundation.md) |
 | application platform | development platform, registry, image-based Linux, Kubernetes, and project runtimes | [Application platform path](application-platform/README.md) |
-| security and cryptography | HSM planning, USB HSM topology, Vault hardening, and secret strategy | [Security and hardening](../security/security-principles.md) |
+| security and cryptography | HSM planning, USB HSM topology, secret-platform hardening, and secret strategy | [Security and hardening](../security/security-principles.md) |
 
 ## Dependency order
 
@@ -67,12 +73,12 @@ This is the normal dependency flow for a clean environment:
 | 1 | platform preparation | Terraform, Ansible, API access, networks, and templates must exist first |
 | 2 | shared services: identity and PKI | DNS, identity, and certificates become prerequisites for later services |
 | 3 | shared services: edge | ingress and controlled north-south routing become available early |
-| 4 | shared services: Vault | secrets move out of local bootstrap files after identity and PKI exist |
+| 4 | shared services: secret platform | secrets move out of local bootstrap files after identity and PKI exist |
 | 5 | shared services: cache | restricted systems can get controlled outbound update access when needed |
 | 6 | system control | telemetry and logs become shared before the platform grows too far |
 | 7 | recovery | backups and restore tests protect the environment before it becomes important |
 | 8 | application platform | development, registry, image-based Linux, GitOps, Kubernetes, and projects consume the shared foundation |
-| 9 | security and cryptography | HSM and stronger key custody can harden selected PKI and Vault paths |
+| 9 | security and cryptography | HSM and stronger key custody can harden selected PKI and secret paths |
 
 If a dependency already exists, map the repo to that service instead of
 deploying a duplicate.
@@ -99,8 +105,8 @@ Use the same level meaning inside each capability group:
 
 | Level | Meaning | Read |
 | --- | --- | --- |
-| 0 | existing identity, DNS, PKI, edge, Vault, or cache services are mapped | [Shared services model](../architecture/shared-services.md) |
-| 1 | identity, DNS, issuing CA, edge, and Vault are deployed or connected | [Identity foundation path](shared-services/identity.md), [Edge proxy path](shared-services/edge.md), [Vault foundation deployment](shared-services/vault.md) |
+| 0 | existing identity, DNS, PKI, edge, secret, or cache services are mapped | [Shared services model](../architecture/shared-services.md) |
+| 1 | identity, DNS, issuing CA, edge, and secrets are deployed or connected | [Identity foundation path](shared-services/identity.md), [Edge proxy path](shared-services/edge.md), [Vault foundation deployment](shared-services/vault.md) |
 | 2 | shared services are redundant, hardened, and expanded with hardware-backed auth, cache, or Windows support where needed | [Hardware-backed user authentication](shared-services/hardware-keys.md), [Cache path](shared-services/cache.md), [Windows and AD support](shared-services/windows-support.md), [Secret strategy](../security/secret-strategy.md) |
 
 ## System control
@@ -133,4 +139,4 @@ Use the same level meaning inside each capability group:
 | --- | --- | --- |
 | 0 | secret ownership, key custody, and HSM need are planned | [Secret strategy](../security/secret-strategy.md), [HSM getting started](../security/hsm-planning-and-comparison.md) |
 | 1 | local secret handling is reduced and selected keys have clear custody | [Vault HSM hardening options](../security/vault-hsm-hardening-options.md) |
-| 2 | HSM-backed or ceremony-backed paths protect selected PKI, Vault, or signing workflows | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
+| 2 | HSM-backed or ceremony-backed paths protect selected PKI, secrets, or signing workflows | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |

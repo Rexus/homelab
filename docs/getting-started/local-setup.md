@@ -11,8 +11,11 @@
 
 ## Purpose
 
-This guide covers the minimum local setup needed before using the foundation
-fast path in the root README.
+This guide covers local tooling for repository generation and Linux host
+deployment. Start with the [generated repository model](../reference/generated-repository-model.md)
+for tier ownership and the generator's Python/PyYAML prerequisites.
+Generating repositories needs no platform access; deployment needs the inputs
+below.
 
 ## Platform prerequisites
 
@@ -42,6 +45,7 @@ That machine can be:
 Require these tools there:
 
 - Git
+- Bash (Linux or WSL for deployment)
 - `terraform`
 - `ansible-core`
 - SSH client tools
@@ -104,8 +108,10 @@ Keep the automation VM simple:
 
 ## Local repository files
 
-Use a private working copy of this repository and create the ignored local
-working files from the shipped examples before the first deployment.
+Use the generated repository for the owning tier, or a private single-tree
+copy, and create ignored local working files from its examples before the
+first deployment. Each tier has separate inventory, group vars, and Terraform
+state while using the sibling shared automation.
 
 These ignored files are expected to evolve as the environment matures. Keep
 editing the same local files instead of recreating them for every run.

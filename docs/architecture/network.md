@@ -4,6 +4,7 @@
 
 - [Purpose](#purpose)
 - [Big picture](#big-picture)
+- [Tier overlay](#tier-overlay)
 - [Zone catalog](#zone-catalog)
 - [VLAN ID strategy](#vlan-id-strategy)
 - [Automation mapping](#automation-mapping)
@@ -28,20 +29,24 @@ appears.
 
 ## Big picture
 
-Use this pattern model:
+Use this left-to-right exposure model:
 
 ```mermaid
-flowchart TB
-  Client[client]
-
-  subgraph Edge["Edge-facing layer"]
-    Internet[Internet or WAN]
-    ExternalEdge[external_edge]
-    Internet --> ExternalEdge
+flowchart LR
+  subgraph Outside["Outside"]
+    Internet["Internet, WAN, partner networks"]
+    Client["client"]
   end
 
-  subgraph App["Access, identity, application, and telemetry layer"]
+  subgraph Edge["DMZ and edge band"]
+    ExternalEdge[external_edge]
+  end
+
+  subgraph AccessBand["Access band"]
     Access[access]
+  end
+
+  subgraph Internal["Internal platform band"]
     Identity[identity]
     Application[application]
     TelemetryGateway[telemetry_gateway]
@@ -50,9 +55,8 @@ flowchart TB
     Cryptography[cryptography]
   end
 
-  subgraph Infra["Infrastructure and restricted layer"]
+  subgraph Control["Restricted control band"]
     Mgmt[management]
-    Ceremony[ceremony]
     Storage[storage]
 
     subgraph Fabric["Host and storage-close networks"]
@@ -66,27 +70,35 @@ flowchart TB
     CephPublic --> CephCluster
   end
 
+  subgraph Custody["Air-gapped custody band"]
+    Ceremony[ceremony]
+  end
+
+  Internet --> ExternalEdge
   Client -.-> ExternalEdge
   Client -.-> Access
   ExternalEdge --> Access
-  ExternalEdge --> Application
   Access --> Identity
   Access --> Application
   Identity --> Application
+  Identity --> TelemetryGateway
   Application --> Cryptography
   Application --> TelemetryGateway
-  Identity --> TelemetryGateway
   TelemetryGateway --> Observability
   SecurityTelemetry --> Observability
   Observability --> Storage
   Mgmt --> Identity
   Mgmt --> Observability
-  Mgmt --> Ceremony
-  Ceremony --> Cryptography
+  Mgmt --> Storage
+  Ceremony -. explicit handoff .-> Cryptography
+  Ceremony -. explicit handoff .-> Mgmt
 
+  style Outside fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#1f2937
   style Edge fill:#ecfdf5,stroke:#15803d,stroke-width:2px,color:#1f2937
-  style App fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1f2937
-  style Infra fill:#fff7ed,stroke:#c2410c,stroke-width:2px,color:#1f2937
+  style AccessBand fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1f2937
+  style Internal fill:#eef2ff,stroke:#4f46e5,stroke-width:2px,color:#1f2937
+  style Control fill:#fff7ed,stroke:#c2410c,stroke-width:2px,color:#1f2937
+  style Custody fill:#fff1e6,stroke:#9a3412,stroke-width:2px,color:#1f2937
   style Fabric fill:#fff1e6,stroke:#9a3412,stroke-width:2px,color:#1f2937
 
   classDef edgeNode fill:#dcfce7,stroke:#15803d,color:#1f2937
@@ -110,13 +122,30 @@ flowchart TB
   class CephPublic,CephCluster cephNode
 ```
 
-Figure: the zone catalog follows the same top-down trust model as the
-architecture overview, from public-facing paths at the top to management,
-cluster, storage, and custody networks at the bottom.
+Figure: the zone catalog moves from DMZ-facing paths on the left toward
+restricted control and air-gapped custody on the right.
 
 Use only deployable guest networks in Terraform `network_zones`. Host-only
 platform networks stay in platform operations docs and Proxmox host
 configuration.
+
+## Tier overlay
+
+Tiers and network bands are separate dimensions.
+
+| Network band | Common zones | Tier relationship |
+| --- | --- | --- |
+| DMZ and edge | `external_edge` | Tier 1 or Tier 2 interfaces |
+| Access | `access` | user or administrator entry points |
+| Internal platform | `identity`, `application`, telemetry, cryptography | Tier 1 by default |
+| Restricted control | `management`, `storage`, host-only fabric | controlled interface networks |
+| Air-gapped custody | `ceremony`, offline recovery paths | Tier 0 residency and recovery custody |
+
+Tier 0 systems live in the air-gapped custody band. Custody handoffs transfer
+approved artifacts and trust material; they are not routed network links.
+Online service endpoints belong to connected tiers. Interface networks can
+join connected tier consumers only when their dependency direction, owner,
+policy, and consumers are documented. They never bridge the air gap.
 
 ## Zone catalog
 
@@ -126,14 +155,14 @@ Use these zone meanings:
 | --- | --- | --- | --- |
 | `client` | reference-only client or endpoint network used when you reason about firewall policy | laptops, workstations, user endpoints, branch clients | reference only |
 | `management` | host-management access such as Proxmox UI, API, SSH, IaC runners, bastions, and management endpoints | admins, automation helpers | yes |
-| `access` | access, SSO, and controlled user-entry services | Keycloak, SSO portals, VPN, ZTNA, access gateways | yes |
-| `identity` | identity, domain, DNS, and directory support services | FreeIPA replicas, Samba AD support, DNS, directory support services | yes |
+| `access` | access, SSO, and controlled user-entry services | identity brokers, SSO portals, VPN, ZTNA, access gateways | yes |
+| `identity` | identity, domain, DNS, and directory support services | identity authority replicas, directory support services, DNS | yes |
 | `corosync` | cluster membership, quorum, and node coordination | Proxmox cluster nodes | no |
 | `ceph_public` | Ceph client-facing storage traffic | hypervisors, storage clients, selected guests | usually no |
 | `ceph_cluster` | Ceph replication, recovery, and back-end storage traffic | Ceph nodes only | no |
-| `application` | shared internal application traffic and service consumers | Vault, APIs, apps, internal callers | yes |
-| `observability` | telemetry backends, dashboards, and query endpoints | Netdata parent, VictoriaMetrics, SigNoZ, OpenSearch, telemetry UI | yes |
-| `telemetry_gateway` | telemetry routing and enrichment before backend storage | OpenTelemetry gateways, vmagent, telemetry routers | yes |
+| `application` | shared internal application traffic and service consumers | secret services, APIs, apps, internal callers | yes |
+| `observability` | telemetry backends, dashboards, and query endpoints | metrics, logs, traces, dashboards, and query services | yes |
+| `telemetry_gateway` | telemetry routing and enrichment before backend storage | telemetry gateways, agents, relays, and routers | yes |
 | `security_telemetry` | hardened security log and audit intake | syslog collectors, audit collectors, security event intake | yes |
 | `cryptography` | live cryptography and issuing-CA service plane | HSM gateways, issuing CA services, signing APIs, PKI frontends | yes |
 | `ceremony` | restricted custody, provisioning, recovery, and root-CA path | offline root CA, recovery hosts, provisioning hosts, ceremony helpers | sometimes |
@@ -144,11 +173,11 @@ Practical notes:
 
 - in the current Proxmox pattern, `management` is the host-management network
   used to reach the hypervisor web UI, API, and SSH
-- `access` is where you place `Keycloak`, SSO portals, VPN entry points, or
-  other controlled user-entry services when they deserve their own subnet or
+- `access` is where you place identity brokers, SSO portals, VPN entry points,
+  or other controlled user-entry services when they deserve their own subnet or
   VLAN
 - domain, DNS, and shared identity services usually live on `identity`, such as
-  `FreeIPA` replicas
+  identity authority replicas
 - `application` is the shared internal application network
 - `observability` is where telemetry backends and dashboards live
 - `telemetry_gateway` is where telemetry is received, enriched, sampled, and

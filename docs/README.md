@@ -19,13 +19,16 @@ Use this order when you are new to the repository or returning after time away:
 2. [Local setup](getting-started/local-setup.md)
 3. [Repository scripts](reference/repository-scripts.md)
 4. [Reader paths](paths/README.md)
-5. [Shared services path](paths/shared-services/README.md)
-6. [Private cloud maturity path](paths/private-cloud-maturity.md)
-7. [Architecture overview](architecture/overview.md)
-8. [Private cloud model](architecture/private-cloud.md)
-9. [Platform index](platforms/README.md)
-10. [Secret strategy](security/secret-strategy.md)
-11. [Decision log](decisions/README.md)
+5. [Tier model](architecture/tier-model.md)
+6. [Generated repository model](reference/generated-repository-model.md)
+7. [Tier 0 path](paths/tier-0/README.md)
+8. [Shared services path](paths/shared-services/README.md)
+9. [Private cloud maturity path](paths/private-cloud-maturity.md)
+10. [Architecture overview](architecture/overview.md)
+11. [Private cloud model](architecture/private-cloud.md)
+12. [Platform index](platforms/README.md)
+13. [Secret strategy](security/secret-strategy.md)
+14. [Decision log](decisions/README.md)
 
 ## Start here
 
@@ -35,6 +38,10 @@ Use this order when you are new to the repository or returning after time away:
   the first run when needed
 - [Repository scripts](reference/repository-scripts.md) - what the wrapper
   scripts do and how to run the equivalent Terraform and Ansible steps manually
+- [Tier model](architecture/tier-model.md) - Tier 0, Tier 1, Tier 2, shared,
+  and architecture ownership language for this repository
+- [Generated repository model](reference/generated-repository-model.md) -
+  per-tier inventories and state, shared automation, generation, and refresh
 - [Private cloud maturity path](paths/private-cloud-maturity.md) -
   capability-grouped path from platform preparation to shared services, system
   control, recovery, and application-platform growth
@@ -46,8 +53,10 @@ Use this order when you are new to the repository or returning after time away:
 
 ## Path guides
 
+- [Tier 0 path](paths/tier-0/README.md) - custody-local Linux setups and the
+  separate Talos/Flux bootstrap design
 - [Shared services path](paths/shared-services/README.md) - entry point for
-  identity, DNS, PKI, edge, cache, Vault, and optional Windows support
+  identity, DNS, PKI, edge, cache, secrets, and optional Windows support
 - [Identity foundation path](paths/shared-services/identity.md) - shortest
   path from local setup to the first managed identity and PKI foundation layer
 - [Hardware-backed user authentication](paths/shared-services/hardware-keys.md) -
@@ -62,16 +71,16 @@ Use this order when you are new to the repository or returning after time away:
 - [Cache path](paths/shared-services/cache.md) - optional outbound cache for
   restricted update access
 - [System control path](paths/system-control/README.md) - telemetry backbone,
-  syslog, metrics, traces, and log/event search after Vault
+  syslog, metrics, traces, and log/event search after the secret platform
 - [Application platform path](paths/application-platform/README.md) - source
   control, automation, runners, registry, image-based Linux, Kubernetes, and
   GitOps direction for internal projects
 - [Development platform path](paths/application-platform/development.md) -
-  GitLab on a dedicated Podman VM after identity and PKI exist
+  source control and CI/CD on a dedicated Podman VM after identity and PKI exist
 - [Podman image runner guide](paths/application-platform/podman-runner.md) -
-  Terraform and Ansible shape for the first GitLab-stage bootc build runner
+  Terraform and Ansible shape for the first source-control runner
 - [Container registry path](paths/application-platform/registry.md) - Harbor
-  as the shared OCI artifact registry after GitLab
+  as the shared OCI artifact registry after source control
 - [Image-based Linux path](paths/application-platform/image-based-linux.md) -
   bootc reference builds and the `immutable-template` Proxmox template lifecycle
 
@@ -79,10 +88,12 @@ Use this order when you are new to the repository or returning after time away:
 
 - [Architecture overview](architecture/overview.md) - layered zones, automation
   flow, and trust boundaries
+- [Tier model](architecture/tier-model.md) - dependency direction and ownership
+  boundaries for Tier 0, Tier 1, Tier 2, shared, and architecture repositories
 - [Private cloud model](architecture/private-cloud.md) - what private cloud
   means here and when Proxmox, Kubernetes, or OpenStack fit
 - [Shared services model](architecture/shared-services.md) - why identity, PKI,
-  Vault, and observability form the reusable private-domain backbone
+  secrets, and observability form the reusable private-domain backbone
 - [Network architecture](architecture/network.md) - shared network reference
   for zones, VLAN strategy, bridges, and Terraform guest placement keys
 
@@ -108,7 +119,7 @@ Use this order when you are new to the repository or returning after time away:
 - [Security principles](security/security-principles.md) - durable baseline for
   hardening, identity, and guardrails
 - [Secret strategy](security/secret-strategy.md) - authoritative source for
-  bootstrap secrets, ignored files, and the move to Vault
+  bootstrap secrets, ignored files, and the move to a secret platform
 - [Vault HSM hardening options](security/vault-hsm-hardening-options.md) -
   Vault-focused note for later HSM hardening and PKCS#11 paths
 - [HSM getting started](security/hsm-planning-and-comparison.md) - short guide
@@ -125,8 +136,10 @@ Use this order when you are new to the repository or returning after time away:
   foundation example that complements the env-var conventions
 - [Infrastructure automation layout](reference/infrastructure-automation-layout.md) -
   where the Terraform, Ansible, Packer, and wrapper code lives
+- [Generated repository model](reference/generated-repository-model.md) -
+  private downstream repository set and generated-vs-owned content model
 - [Repository scripts](reference/repository-scripts.md) - wrapper commands,
   environment handling, and manual command equivalents
-- [Ansible Vault bootstrap](reference/ansible-vault-bootstrap.md) - local vault
-  password and encrypted bootstrap vars pattern
+- [Ansible Vault bootstrap](reference/ansible-vault-bootstrap.md) - local
+  Ansible Vault password and encrypted bootstrap vars pattern
 - [Decision log](decisions/README.md) - concise record of architectural choices

@@ -16,6 +16,10 @@ This repository is meant to be shared safely. Treat it as a reusable baseline,
 not as the required home of your live configuration. This public repository is a
 curated upstream reference and is not intended to receive operational changes.
 
+This repository is an upstream deployment kit that can generate or refresh
+private downstream repositories. Those downstream repositories own the actual
+Tier 0, Tier 1, Tier 2, shared, and architecture content for one environment.
+
 ## Recommended usage models
 
 ### Option 1: Private fork
@@ -32,7 +36,8 @@ control while keeping this repository as the public upstream reference.
 Suggested model:
 
 - public upstream repository for examples and reusable automation
-- private mirror for environment-specific non-secret configuration
+- private mirror or generated downstream repository set for environment-specific
+  non-secret configuration
 - external secret storage or runner variables for secrets
 
 ### Option 3: Local-only copy
@@ -81,11 +86,11 @@ Examples:
 
 ## Bootstrap secret strategy
 
-Use a simple model first, then move to Vault quickly.
+Use a simple model first, then move to a secret platform quickly.
 
 Recommended order:
 
-1. external secret manager such as Vault when available
+1. external secret manager or secret platform when available
 2. protected runner variables or local environment variables for bootstrap
 3. ignored local files for structured non-secret configuration
 4. committed example files for defaults and templates only
@@ -98,7 +103,7 @@ Practical guidance:
   sensitive runtime values
 - avoid storing long-lived secrets in plain-text local files when environment
   variables or secret systems are available
-- reduce direct secret handling as soon as Vault is introduced
+- reduce direct secret handling as soon as the secret platform is introduced
 
 ## Example: private mirror in GitLab
 

@@ -9,7 +9,7 @@ This is a path guide, not a deployment guide yet. It gives Kubernetes, GitOps,
 cluster ingress, and worker-cluster isolation a clear home inside the
 application platform capability.
 
-## Target direction
+## Dependency direction
 
 Kubernetes should consume the shared services when they exist:
 
@@ -17,7 +17,7 @@ Kubernetes should consume the shared services when they exist:
 | --- | --- |
 | identity | operator access, groups, SSO, and workload administration |
 | PKI | internal TLS, ingress certificates, and service identity |
-| Vault | secrets, workload credentials, and dynamic secret patterns |
+| secret platform | secrets, workload credentials, and dynamic secret patterns |
 | edge | north-south entry into selected cluster services |
 | cache | controlled outbound repository/update access for restricted clusters |
 | system control | metrics, logs, traces, audit events, and alert routing |
@@ -36,7 +36,7 @@ full private-cloud multi-tenancy:
 | control plane | `k8ctl-1` | control-plane node or small HA control-plane set |
 | worker | `k8node-1` | application worker node |
 | ingress | cluster-native ingress | consumes the shared edge path instead of replacing it |
-| GitOps | controller inside the cluster | consumes the development platform and Vault paths |
+| GitOps | controller inside the cluster | consumes source control and secret-platform paths |
 
 Use separate clusters for stronger project isolation when shared namespaces,
 RBAC, and policy are not enough.

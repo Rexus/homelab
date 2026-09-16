@@ -30,6 +30,11 @@ This is the default authority path for the repository, not a mandatory global
 prerequisite. If you already operate identity, DNS, and PKI, use those as the
 shared services for later paths.
 
+Run from the repository that owns the instance. Generated Tier 0 examples are
+for custody-local identity; connected domain services belong in Tier 1. Guest
+network keys must map to that tier's actual networks. See
+[setup ownership](../../reference/generated-repository-model.md#setup-ownership).
+
 ## Before you start
 
 - local tooling is ready
@@ -106,7 +111,7 @@ Default behavior:
 
 Avoid credential delegation. Services should not collect reusable user
 passwords so they can act as users later. Prefer Kerberos tickets, service
-principals, certificates, Vault-issued credentials, or the access-layer SSO
+principals, certificates, secret-platform-issued credentials, or the access-layer SSO
 path when that exists.
 
 Use [Hardware-backed user authentication](hardware-keys.md) when you are ready
@@ -210,7 +215,7 @@ different authority layout.
   `identity_primary`, `identity_replicas`, `issuing_ca`, and optional
   `root_ca`
 
-For environment separation, keep one stable inventory and separate ignored
+For environment separation within a tier, keep one stable inventory and separate ignored
 local data files and state:
 
 | Environment | Local var file | Wrapper command |
@@ -280,7 +285,7 @@ After the shared-service hosts are ready:
 3. keep the root CA host in `ceremony` offline except during planned CA
    ceremonies
 4. add Windows support later only if the environment needs it
-5. continue with Vault once identity, DNS, and PKI are ready
+5. continue with the secret platform once identity, DNS, and PKI are ready
 
 ## Read more
 

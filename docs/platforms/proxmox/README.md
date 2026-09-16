@@ -55,7 +55,7 @@ Recommended next maturity step:
 - add
   [Windows and AD support](../../paths/shared-services/windows-support.md) only when
   the environment needs Windows support
-- continue with the
+- continue with the secret platform through the
   [Vault foundation deployment](../../paths/shared-services/vault.md)
 - add the [backup foundation](backup-foundation.md) before the environment
   becomes important

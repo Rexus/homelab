@@ -45,3 +45,6 @@ secrets/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Temporary local validation output
+.tmp/

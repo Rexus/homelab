@@ -8,12 +8,21 @@ guides.
 Guides and walkthroughs live under `docs/`. The automation directories stay
 focused on source, examples, modules, roles, and playbooks.
 
+This page locates source files in the upstream kit. The generator copies its
+modules, roles, playbooks, and wrappers into the shared repository and places
+setup roots and inventory examples in the owning tier. Read
+[Generated repository model](generated-repository-model.md) for that split.
+
 For run order, prerequisites, and setup-specific choices, follow the guide
 linked for that deployment instead of this reference.
 
 ## Ownership rule
 
 Keep shared host identity in Ansible and hardware placement in Terraform.
+
+This contract applies independently inside each tier. Here, "shared" inputs
+mean shared by Terraform and Ansible within that tier, not a live inventory in
+the shared-code repository.
 
 | Owner | Defines |
 | --- | --- |
@@ -85,8 +94,8 @@ want source-image tags on that deployed VM.
 
 ## Environment data split
 
-Use the same source code and main inventory for every environment. Split only
-the data that changes:
+Within each tier, use the same source code and main inventory for every
+environment. Split only the data that changes:
 
 | Layer | Test example | Production default |
 | --- | --- | --- |
@@ -108,7 +117,7 @@ state file between environments. Omit `--env` for production.
 
 | Path | Purpose | Read first |
 | --- | --- | --- |
-| `scripts/` | repo-local initialization and deployment wrappers | [Repository scripts](repository-scripts.md) |
+| `scripts/` | tier generation, local initialization, and deployment wrappers | [Repository scripts](repository-scripts.md) |
 | `terraform/` | platform provisioning environments and modules | [Shared services model](../architecture/shared-services.md) |
 | `ansible/` | baseline and service configuration playbooks | [Shared services path](../paths/shared-services/README.md) |
 | `packer/` | optional custom image builds | [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |

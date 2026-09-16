@@ -25,14 +25,16 @@ The shared services are:
 - hardware-backed user authentication when operators are ready for it
 - edge load balancing and controlled north-south proxying
 - cache services for controlled outbound repository/update access
-- Vault for shared secrets and later dynamic credentials
+- Vault as the current reference secret platform for shared secrets and later
+  dynamic credentials
 - Windows or AD-compatible support when the environment needs it
 
 The identity path is the current reference starting point after repository
 access exists, but it is not a hard requirement for every repo user. If you
-already have identity, DNS, PKI, or Vault, treat those systems as prerequisites
-and configure the other paths to consume them. Use the system-control path for
-shared telemetry, syslog, metrics, traces, and log/event search.
+already have identity, DNS, PKI, or a secret platform, treat those systems as
+prerequisites and configure the other paths to consume them. Use the
+system-control path for shared telemetry, syslog, metrics, traces, and
+log/event search.
 
 ## Recommended order
 
@@ -64,10 +66,10 @@ Use this order:
   OTP, and PIV hardening after the identity foundation works
 - [Windows and AD support](windows-support.md) - optional Windows support
   path after the identity foundation exists
-- [Vault foundation deployment](vault.md) - first Vault
-  deployment after the identity and PKI layer exists
+- [Vault foundation deployment](vault.md) - first secret-platform deployment
+  using Vault after the identity and PKI layer exists
 - [System control path](../system-control/README.md) - telemetry backbone,
-  syslog, metrics, traces, and log/event search after Vault
+  syslog, metrics, traces, and log/event search after the secret platform
 
 ## Related docs
 

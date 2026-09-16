@@ -5,6 +5,7 @@
 - [Purpose](#purpose)
 - [Goals](#goals)
 - [Layered model](#layered-model)
+- [Tiered network model](#tiered-network-model)
 - [Automation flow](#automation-flow)
 - [Network references](#network-references)
 - [Boundaries](#boundaries)
@@ -19,6 +20,12 @@ The design is meant to stay stable as the environment grows. The number of
 segments, hosts, and services can change without changing the core model, even
 when the platform starts at homelab or small-datacenter scale.
 
+The architecture uses Tier 0, Tier 1, and Tier 2 ownership. Tiers describe
+dependency direction and recovery ownership: Tier 0 bootstraps and recovers the
+platform, Tier 1 provides shared platform services, and Tier 2 hosts
+application or project workloads. Read [Tier model](tier-model.md) before
+splitting automation across generated downstream repositories.
+
 For the repository definition of private cloud and the boundary between
 Proxmox, Kubernetes, and OpenStack, read
 [Private cloud model](private-cloud.md).
@@ -32,6 +39,7 @@ For the shared identity, PKI, secrets, and telemetry backbone, read
 - controlled remote user and administrator access
 - reusable structure for IaC and multi-cloud thinking
 - clear placement of identity, secrets, and hardware-backed systems
+- clear Tier 0 -> Tier 1 -> Tier 2 dependency direction
 
 ## Layered model
 
@@ -43,8 +51,8 @@ flowchart TB
   end
 
   subgraph App["Application layer"]
-    A1["Access and identity services<br/>Keycloak, FreeIPA, DNS"]
-    A2["Application and cryptography services<br/>Internal apps, APIs, issuing CA, HSM gateways"]
+    A1["Access and identity services<br/>identity authority, broker, DNS"]
+    A2["Application and cryptography services<br/>internal apps, APIs, issuing CA, HSM gateways"]
   end
 
   subgraph Infra["Infrastructure layer"]
@@ -83,6 +91,22 @@ Proxy placement in this architecture:
 - a separate internal cluster proxy can be added later when Kubernetes becomes
   part of the platform
 
+## Tiered network model
+
+Layering and tiering answer different questions.
+
+| Model | Direction | What it answers |
+| --- | --- | --- |
+| architecture layers | edge toward infrastructure | what kind of capability this is |
+| tiers | Tier 0, then Tier 1, then Tier 2 | who can depend on whom |
+| network bands | DMZ toward air-gapped custody | how exposed an interface is |
+
+Tier 0 lives in the air-gapped custody band and transfers approved artifacts
+through explicit handoffs. Tier 1 and Tier 2 occupy access, internal,
+restricted-control, or DMZ-facing bands based on the service they provide.
+Network bands can be unions between tiers only when they are designed as
+interfaces with named owners, policies, and consumers.
+
 ## Automation flow
 
 Each tool has one primary job:
@@ -91,7 +115,7 @@ Each tool has one primary job:
 - Terraform provisions identity foundation hosts first and later shared-service
   hosts
 - Ansible applies baseline configuration first and then service-specific
-  playbooks, such as Vault, on dedicated hosts
+  playbooks, such as a secret platform, on dedicated hosts
 
 ```mermaid
 flowchart LR
@@ -100,23 +124,23 @@ flowchart LR
   C --> D["Ansible baseline"]
   D --> E["Identity and PKI ready"]
   E --> F["Terraform and Ansible service deployment"]
-  F --> G["Vault handoff"]
+  F --> G["Secret platform handoff"]
 
   classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
   classDef buildNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
-  classDef vaultNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
+  classDef secretNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
 
   class A,E mgmtNode
   class B,C,D,F buildNode
-  class G vaultNode
+  class G secretNode
 ```
 
 Figure: image build, identity foundation bring-up, and later shared-service
-deployment stay separate until the first Vault handoff.
+deployment stay separate until the first secret-platform handoff.
 
-Vault is treated as an early shared service that follows the identity
-foundation layer, so the platform can reduce first-run secret
-handling before broader service deployment.
+The secret platform is treated as an early shared service that follows the
+identity foundation layer, so the platform can reduce first-run secret handling
+before broader service deployment.
 
 ## Network references
 

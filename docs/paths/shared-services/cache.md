@@ -11,7 +11,7 @@ sources without building full internal mirrors for every operating system,
 package source, Git remote, or registry endpoint. The same service can later
 expand into broader policy-enforced egress.
 
-Deploy this before identity, Vault, HSM, or system-control hosts when those
+Deploy this before identity, the secret platform, HSM, or system-control hosts when those
 hosts cannot reach approved software repositories directly. If you already
 have direct egress, internal mirrors, Satellite-like services, or offline
 repos, use those as the repository-access prerequisite instead.
@@ -168,7 +168,7 @@ outbound repository/update access. The cache path owns the hosts and base
 service policy; consuming paths should only add their own allow-list or routing
 requirements through documented variables.
 
-Unlike identity or Vault, the cache does not always need one deployment per
+Unlike identity or the secret platform, the cache does not always need one deployment per
 environment. It is valid to run one shared production cache and let other
 environment deployments use it for repository access, as long as policy allows
 those environments to share the same outbound path.

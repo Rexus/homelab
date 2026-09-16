@@ -57,7 +57,7 @@ Use VIP names as policy boundaries, not only as addresses:
 | VIP type | Typical traffic | Why it is separate |
 | --- | --- | --- |
 | `internal_prod` | internal apps, APIs, Kubernetes ingress, GitLab, Keycloak, service UIs | stable application delivery and user/service traffic |
-| `internal_mgmt` | Proxmox, SSH jump paths, Vault admin, PKI admin, Rancher, Kubernetes API | stricter ACLs, MFA, logging, and reduced management-plane blast radius |
+| `internal_mgmt` | Proxmox, SSH jump paths, secret admin, PKI admin, cluster management, Kubernetes API | stricter ACLs, MFA, logging, and reduced management-plane blast radius |
 | `dmz_ingress` | internet-facing or externally reachable services | tighter exposure control and separate firewall/TLS policy |
 
 Larger environments may add VIPs for storage, observability, identity, or CI
@@ -80,8 +80,8 @@ everything when traffic purpose and trust level differ.
 | [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | `external_edge` network mapping, shared storage, template ID, and SSH keys |
 | [`terraform/environments/edge/terraform.tfvars.example`](../../../terraform/environments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
 | [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | `edge_load_balancers` host group |
-| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | edge host IP addresses |
-| [`ansible/group_vars/edge.yml.example`](../../../ansible/group_vars/edge.yml.example) | VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |
+| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | hostname, domain, SSH, and baseline settings |
+| [`ansible/group_vars/edge.yml.example`](../../../ansible/group_vars/edge.yml.example) | edge host IPs, VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |
 
 ## How other paths use it
 

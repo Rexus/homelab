@@ -9,8 +9,8 @@
 ## Purpose
 
 Use a local ignored file such as `.env.local` for bootstrap secrets and
-deployment API values. The repo initializer creates it from
-[`env.local.example`](../../env.local.example).
+deployment API values. The initializer creates it from `env.local.example` in
+the owning tier repository (or the private single-tree working copy).
 
 ## Example
 

@@ -106,7 +106,7 @@ Edit:
 | --- | --- |
 | `ansible/group_vars/podman_runner.yml` | GitLab URL, registration mode, runner tags, and package behavior |
 | `ansible/group_vars/podman_runner.<env>.yml` | environment-specific runner settings when `--env` is used |
-| encrypted extra vars or Vault | real runner authentication tokens and registry credentials |
+| encrypted extra vars or secret platform | real runner authentication tokens and registry credentials |
 
 The role handles:
 
@@ -117,7 +117,7 @@ The role handles:
 | configure runner user | keep builds isolated from normal admin users |
 | register GitLab runner | use a project or group runner authentication token |
 | set runner tags | use tags such as `bootc` and `podman` |
-| protect secrets | keep registry credentials in GitLab CI/CD variables or Vault |
+| protect secrets | keep registry credentials in CI/CD variables or the secret platform |
 
 Use the Shell executor first. It keeps the build simple because Podman runs
 directly on the runner VM. GitLab documents that the Shell executor runs jobs

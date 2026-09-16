@@ -140,7 +140,7 @@ Prefer these patterns:
 | Need | Preferred pattern |
 | --- | --- |
 | Linux login | Kerberos through SSSD, then hardware-backed OTP or PIV for users |
-| service-to-service auth | service principals, keytabs, certificates, or Vault-issued credentials |
+| service-to-service auth | service principals, keytabs, certificates, or secret-platform-issued credentials |
 | web login | OIDC/SAML through the access layer when that path exists |
 | admin access | personal identities, short-lived SSH certificates, hardware-backed auth, sudo policy, and audit logs |
 

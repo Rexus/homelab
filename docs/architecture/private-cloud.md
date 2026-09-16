@@ -182,7 +182,7 @@ base that other paths can consume.
 For this repository, that means:
 
 - identity, DNS, and PKI for a private domain
-- Vault or an existing secret platform for shared secrets
+- a secret platform for shared secrets
 - syslog and observability for operational control
 - HSM hardening paths for selected cryptographic keys
 
@@ -202,8 +202,8 @@ It is a good fit when:
   without a large cloud-control-plane project
 - tenants are mostly projects, services, or teams represented through IaC
   reviews rather than self-service infrastructure administration
-- you want the smallest reliable base for identity, PKI, Vault, edge services,
-  and later Kubernetes
+- you want the smallest reliable base for identity, PKI, secrets, edge
+  services, and later Kubernetes
 
 Proxmox is a virtualization management platform that integrates KVM, LXC,
 software-defined storage, networking, clustering, and a web UI.[2]
@@ -271,7 +271,7 @@ For this repository, the default path is:
 
 1. Proxmox as the reference virtualization foundation.
 2. Terraform and Ansible for repeatable platform provisioning.
-3. Identity, PKI, Vault, backup, and security foundations.
+3. Identity, PKI, secrets, backup, and security foundations.
 4. Kubernetes later for application-platform scale.
 5. OpenStack only if the organization outgrows small-platform administration
    and needs true multi-tenant IaaS self-service.
