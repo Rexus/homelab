@@ -121,6 +121,8 @@ state file between environments. Omit `--env` for production.
 | `terraform/` | platform provisioning environments and modules | [Shared services model](../architecture/shared-services.md) |
 | `ansible/` | baseline and service configuration playbooks | [Shared services path](../paths/shared-services/README.md) |
 | `packer/` | optional custom image builds | [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |
+| `terraform/templates/`, `templates/`, `ci/` | Tier 0 template publication inputs, root, and CD starter | [Template lifecycle](../platforms/proxmox/template-lifecycle.md) |
+| `terraform/modules/proxmox_templates/` | shared offline image import and unbooted template resources | [Talos template](../platforms/proxmox/talos-template.md) |
 
 ## Terraform
 
@@ -189,9 +191,12 @@ state file between environments. Omit `--env` for production.
 
 ## Packer
 
+These files are optional custom-build scaffolds. For automated base-image
+publication, use the [Tier 0 template workflow](../platforms/proxmox/template-lifecycle.md).
+
 | Path | Contains |
 | --- | --- |
 | `packer/variables.auto.pkrvars.hcl.example` | safe example input values |
 | `packer/templates/proxmox/el10.pkr.hcl` | Enterprise Linux VM image scaffold for the current EL10 reference path |
 | `packer/templates/proxmox/debian-12.pkr.hcl` | Debian 12 VM image scaffold |
-| `packer/templates/proxmox/talos-linux.pkr.hcl` | Talos Linux VM image scaffold |
+| `packer/templates/proxmox/talos-linux.pkr.hcl` | incomplete optional ISO-build scaffold; use `terraform/templates/` for NoCloud image publication |

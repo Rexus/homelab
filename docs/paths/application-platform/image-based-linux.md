@@ -57,6 +57,12 @@ compromise impossible.
 
 ## Dependency model
 
+The generated `immutable-template` setup belongs to Tier 0. Its builder must
+consume approved images from a custody-local source, without depending on a
+Tier 1 registry or runner. The connected image-build services described below
+may prepare artifacts for offline approval and transfer; they do not operate
+inside custody. See [Template lifecycle](../../platforms/proxmox/template-lifecycle.md).
+
 Harbor is not required to start with bootc. The first useful internal path can
 run during the GitLab stage by using a dedicated GitLab runner and GitLab's
 built-in registry.
@@ -101,12 +107,13 @@ rollback behavior are tested.
 flowchart LR
   Source[Git repo<br/>Containerfile and policy] --> GitLab[GitLab CI<br/>build bootc image]
   GitLab --> GitLabRegistry[GitLab registry<br/>first internal image source]
-  GitLabRegistry --> Template[bootc template builder<br/>Proxmox template output]
+  GitLabRegistry -. approved offline transfer .-> Custody[Custody-local image source]
+  Custody --> Template[Tier 0 bootc template builder]
   GitLabRegistry --> Updates[bootc update path<br/>early promoted tag]
   GitLabRegistry -. later promote .-> Harbor[Harbor<br/>scan, retain, promote]
   Harbor -. shared registry stage .-> Updates
   Template --> Proxmox[Proxmox templates<br/>rhel-10-immu-tmpl]
-  Proxmox --> VMs[Terraform clones<br/>bootc hosts]
+  Proxmox -. approved offline release .-> VMs[Connected-tier clones<br/>bootc hosts]
   Updates --> VMs
 
   style Source fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#1f2937
@@ -121,7 +128,8 @@ flowchart LR
 
 Figure: GitLab can build and host the first bootc images. Harbor becomes the
 shared registry authority later, when Kubernetes and broader image promotion
-need it. Use the [Podman image runner guide](podman-runner.md) for the
+need it. Dashed transfers cross custody without live registry access; connected
+host updates remain separate. Use the [Podman image runner guide](podman-runner.md) for the
 Terraform and Ansible setup that creates the first bootc build runner.
 
 ## Template conversion flow

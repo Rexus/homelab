@@ -22,6 +22,11 @@ packer_cache/
 !*.example
 *.auto.pkrvars.hcl
 
+# Local template catalog and transferred image artifacts
+templates/proxmox.yml
+templates/artifacts/*
+!templates/artifacts/.gitkeep
+
 # Ansible
 *.retry
 ansible/inventory/*.yml

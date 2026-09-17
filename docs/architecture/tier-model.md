@@ -124,7 +124,7 @@ Example downstream set:
 
 | Repository | Purpose |
 | --- | --- |
-| `homelab-tier-0` | Tier 0 infrastructure, Talos bootstrap, and Tier 0 GitOps |
+| `homelab-tier-0` | template lifecycle and CD jobs, Tier 0 infrastructure, cluster bootstrap, and Tier 0 GitOps |
 | `homelab-tier-1` | shared platform services and higher-level control plane |
 | `homelab-tier-2` | application, project, lab, and workload environments |
 | `homelab-shared` | reusable provisioning modules, Ansible playbooks and roles, scripts, and templates |
@@ -140,6 +140,8 @@ is checked out as a parallel sibling and retained locally for recovery.
 Tier 0 has this shape:
 
 - a small external bootstrap plane exists only to create the first control path
+- Tier 0 owns base-image creation, update jobs, verification, and promotion;
+  reusable implementation stays in shared code
 - Terraform or OpenTofu creates the virtualization resources and first cluster
   machines
 - an immutable cluster bootstrap path creates a dedicated Tier 0 cluster
@@ -152,6 +154,12 @@ Tier 0 services may run on the Tier 0 cluster without becoming bootstrap
 dependencies. An identity broker, inventory source of truth, secret platform,
 or operations UI can be managed by Tier 0 GitOps, but Tier 0 recovery must
 still work when that service is unavailable.
+
+Template jobs run locally before the cluster exists. Dedicated custody-local
+automation may schedule them after bootstrap, but general platform runners
+remain Tier 1. Retain approved image artifacts and publication state outside
+the cluster; transfer release outputs offline to connected consumers. Updating
+a base template is separate from upgrading existing cluster nodes.
 
 ```mermaid
 flowchart TB
@@ -230,7 +238,8 @@ Current content maps into the tier model like this:
 
 | Current area | Tier home | Note |
 | --- | --- | --- |
-| Proxmox API, templates, and networks | Tier 0 or Architecture | runtime control vs local design |
+| Base-image catalog, template creation/update jobs, approval | Tier 0 | includes the immutable cluster OS; consumers receive approved artifacts |
+| Virtualization API and networks | Owning tier; design in Architecture | connected control is not custody infrastructure |
 | Terraform modules under `terraform/modules/` | Shared | reusable between tier repositories |
 | Ansible roles and playbooks | Shared | consume only the owning tier's inputs |
 | Inventory, group vars, and Terraform state | Owning tier | three independent inventories using the same mechanism |

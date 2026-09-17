@@ -113,6 +113,10 @@ Use this order when you are new to the repository or returning after time away:
   architecture's zones and rule matrix into gateway configuration
 - [Enterprise Linux template](platforms/proxmox/enterprise-linux-template.md) -
   guest template creation and refresh reference
+- [Tier 0 template lifecycle](platforms/proxmox/template-lifecycle.md) - image
+  publication, updates, GitLab CD example, local recovery, and ownership migration
+- [Talos template](platforms/proxmox/talos-template.md) - unconfigured NoCloud
+  image publication and its boundary with Tier 0 cluster bootstrap
 - [Proxmox hardening](platforms/proxmox/hardening.md) - later-stage platform
   hardening guidance
 

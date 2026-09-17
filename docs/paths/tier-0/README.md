@@ -33,6 +33,7 @@ from the tier repository root so they use its inventory and state.
 | Need | Guide |
 | --- | --- |
 | Bootstrap, recovery, and Day 2 services | [Tier 0 bootstrap and recovery](bootstrap.md) |
+| AlmaLinux, Rocky Linux, and Talos templates | [Template lifecycle and CD](../../platforms/proxmox/template-lifecycle.md) |
 | Tier boundaries | [Tier model](../../architecture/tier-model.md) |
 | Network design | [Network architecture](../../architecture/network.md) |
 | Inventory and upstream updates | [Generated repository model](../../reference/generated-repository-model.md) |
@@ -42,6 +43,7 @@ from the tier repository root so they use its inventory and state.
 
 - `ansible/`: tier-owned inventory, group vars, and configuration
 - `terraform/`: Linux infrastructure setups and environment inputs
+- `templates/`, `terraform/templates/`, and `ci/`: image catalog, template publication, and CD jobs
 - `bootstrap/`: Talos and infrastructure bootstrap skeletons
 - `clusters/tier0/`: cluster-service skeletons
 - `scripts/`: local entry points to shared automation

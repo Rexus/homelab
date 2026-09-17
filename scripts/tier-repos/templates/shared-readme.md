@@ -3,6 +3,8 @@
 Reusable Terraform modules, Ansible playbooks and roles, Packer templates,
 and deployment scripts for the ${prefix} repositories. Each tier supplies
 its own inventory, variables, credentials, and state.
+Tier 0 owns template publication inputs and CD jobs; this repository provides
+the reusable image-import module and execution scripts.
 
 ## Getting started
 

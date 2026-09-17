@@ -27,10 +27,16 @@ repository.
 ## Automation paths
 
 The generated Tier 0 repo contains Linux VM setups for `foundation`, `vault`,
-and `hsm`, plus a separate Talos and Flux skeleton. Both are owned by Tier 0,
+`hsm`, `template-refresh`, and `immutable-template`, plus a separate Talos and
+Flux skeleton. These are owned by Tier 0,
 but the Linux wrapper does not bootstrap Talos. Choose one lifecycle owner for
 each service; a VM deployment and a cluster placeholder are not two owners of
 the same instance.
+
+Tier 0 also owns the image catalog, Proxmox template creation/update jobs, and
+template publication state. Use the [template lifecycle](../../platforms/proxmox/template-lifecycle.md)
+for AlmaLinux/Rocky and the [Talos template guide](../../platforms/proxmox/talos-template.md)
+before cluster bootstrap. Shared code contains the reusable implementation.
 
 Map Tier 0 networks to isolated custody infrastructure before applying these
 examples. Connected identity, secrets, and HSM services belong in Tier 1.
@@ -67,10 +73,17 @@ homelab-tier-0/
     group_vars/
   terraform/
     common.tfvars.example
+    templates/
     environments/
       foundation/
       vault/
       hsm/
+      template-refresh/
+      immutable-template/
+  templates/
+    proxmox.yml.example
+  ci/
+    gitlab-templates.yml.example
   scripts/
     check-shared.sh
     init-local-files.sh
@@ -117,7 +130,8 @@ are unavailable.
 
 ```mermaid
 flowchart LR
-  Inputs["Local bootstrap inputs"] --> Proxmox["Proxmox resources"]
+  Inputs["Local inputs and approved images"] --> Templates["Tier 0 templates"]
+  Templates --> Proxmox["Proxmox resources"]
   Proxmox --> Talos["Talos machines"]
   Talos --> K8s["Tier 0 Kubernetes"]
   K8s --> Flux["Flux"]
@@ -128,7 +142,7 @@ flowchart LR
   classDef gitops fill:#dcfce7,stroke:#15803d,color:#1f2937
 
   class Inputs bootstrap
-  class Proxmox,Talos,K8s platform
+  class Templates,Proxmox,Talos,K8s platform
   class Flux,Services gitops
 ```
 
@@ -136,6 +150,7 @@ The important split is ownership:
 
 | Layer | Owner after bootstrap | Notes |
 | --- | --- | --- |
+| Base templates and publication jobs | Tier 0 template root and local/CD workflow | works before the cluster and CI service exist |
 | Proxmox resources | Terraform/OpenTofu | still owns VM placement and lifecycle |
 | Talos machine config | Terraform/OpenTofu and Talos config | should be reproducible from Tier 0 repo inputs |
 | Kubernetes add-ons | Flux | applied from `clusters/tier0/` |
@@ -150,7 +165,7 @@ Expected flow:
 
 1. prepare local bootstrap inputs
 2. create or connect Proxmox access
-3. create Talos control-plane and worker VMs
+3. publish and test a Talos template, then create control-plane and worker clones
 4. bootstrap the Talos cluster
 5. install Flux into the Tier 0 cluster
 6. point Flux at the Tier 0 GitOps path
@@ -211,6 +226,7 @@ Tier 0 can include:
 
 - Proxmox bootstrap definitions needed for Tier 0
 - Talos cluster definitions
+- base-image catalog, template publication and update jobs, and approved image recovery copies
 - Flux bootstrap and reconciliation state
 - minimum DNS, ingress, certificate, and storage services needed by Tier 0
 - FreeIPA, Keycloak, NetBox, Headlamp, Vault, or equivalent control services
@@ -233,7 +249,7 @@ Keep these out of the Tier 0 bootstrap dependency chain:
 - NetBox as the only copy of recovery inventory
 - Grafana as the only way to understand Tier 0 health
 - application clusters
-- general CI/CD runners
+- general CI/CD runners (dedicated custody-local template jobs are a separate control function)
 - broad observability, APM, and log search stacks unless they are explicitly
   required for Tier 0 recovery
 - user or project workloads

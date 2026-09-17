@@ -42,10 +42,10 @@ It creates directories and files; it does not initialize Git or create remotes.
 
 | Repository | Owns |
 | --- | --- |
-| `<prefix>-tier-0` | custody inventory, recovery inputs, control-service setups, bootstrap and cluster definitions |
+| `<prefix>-tier-0` | custody inventory, recovery inputs, template catalog and CD jobs, control setups, bootstrap and cluster definitions |
 | `<prefix>-tier-1` | platform inventory, edge and shared-service setups, platform cluster definitions |
 | `<prefix>-tier-2` | workload inventory, lab setups, project and application definitions |
-| `<prefix>-shared` | Terraform modules, Ansible playbooks and roles, Packer templates, deployment scripts |
+| `<prefix>-shared` | Terraform modules, Ansible playbooks and roles, optional Packer build definitions, deployment scripts |
 | `<prefix>-architecture` | copied upstream docs and environment-owned design, decisions, service records, runbooks |
 
 The collection directory groups five sibling repositories and is not itself a
@@ -154,9 +154,16 @@ The generator assigns existing setup examples as follows:
 
 | Tier | Setups | Placement condition |
 | --- | --- | --- |
-| Tier 0 | `foundation`, `vault`, `hsm` | custody-local control instances; map their guest networks to isolated custody infrastructure |
-| Tier 1 | `edge`, `cache`, `development`, `observability`, `podman-runner`, `immutable-template`, `template-refresh` | connected platform services, edge and image builders |
+| Tier 0 | `foundation`, `vault`, `hsm`, `immutable-template`, `template-refresh` | custody-local control and template builders; isolated networks and local artifacts |
+| Tier 1 | `edge`, `cache`, `development`, `observability`, `podman-runner` | connected platform services, edge and general runners |
 | Tier 2 | `lab` | lab and workload instances |
+
+Tier 0 also owns `terraform/templates/`, `templates/proxmox.yml.example`, and
+the seed-only `ci/gitlab-templates.yml.example`. The
+[template publisher](../platforms/proxmox/template-lifecycle.md) is a separate
+Terraform-only workflow for unbooted AlmaLinux, Rocky Linux, and Talos images;
+it is not a Linux guest setup in `.deployment-setups`. Its catalog has no guest
+IPs or credentials. Template-builder VMs retain the normal inventory contract.
 
 The setup name describes a capability; its tier describes the particular
 deployment's ownership. Online identity, issuing, secret, or HSM gateway
@@ -245,7 +252,7 @@ another operating system does not invalidate those hashes or break Bash scripts.
 | Locally edited or unrecognized existing file | preserve and report it |
 | Previously generated file deleted locally | preserve the deletion |
 | Live inventory, local vars, credentials, state | never targeted |
-| Root READMEs, project docs, bootstrap/cluster skeletons, `.deployment-setups` | seed once; preserve thereafter, even when unchanged |
+| Root READMEs, project docs, bootstrap/cluster skeletons, CI starter, `.deployment-setups` | seed once; preserve thereafter, even when unchanged |
 
 Source files retain their syntax and use the manifest for provenance. Launchers
 carry markers and every auto-doc has a visible do-not-edit notice. A marker alone never
@@ -266,6 +273,11 @@ to update local links and review legacy docs.
 For an older flat layout, move the existing child checkouts together into the
 collection directory before refreshing, preserving their manifests, local files,
 and Git histories. The generator does not move or import those repositories.
+
+Older collections placed template builder setups in Tier 1. Refresh adds the
+new Tier 0 roots without moving live inputs/state or editing owned setup lists.
+Follow the [template ownership migration](../platforms/proxmox/template-lifecycle.md#existing-collections)
+before applying them. Old files are preserved for review, not silently retired.
 
 ## Implementation scope
 

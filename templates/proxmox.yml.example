@@ -1,0 +1,42 @@
+# Copy to templates/proxmox.yml using the shared proxmox-templates.sh init command.
+# Reference: docs/platforms/proxmox/template-lifecycle.md
+# Replace every value. Keep only the images being managed by this state.
+# Add a new entry and VMID for every revision; retain previous entries for rollback.
+templates:
+  alma-build-1:
+    family: alma
+    release: REPLACE_WITH_EXACT_RELEASE_AND_BUILD
+    vm_id: 9100
+    name: alma-template-build-1
+    node_name: pve-custody-1
+    datastore_id: local-lvm
+    image_datastore_id: local
+    image_path: /srv/tier0/artifacts/alma-build-1.qcow2
+    sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
+    bridge: custody0
+  rocky-build-1:
+    family: rocky
+    release: REPLACE_WITH_EXACT_RELEASE_AND_BUILD
+    vm_id: 9101
+    name: rocky-template-build-1
+    node_name: pve-custody-1
+    datastore_id: local-lvm
+    image_datastore_id: local
+    image_path: /srv/tier0/artifacts/rocky-build-1.qcow2
+    sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
+    bridge: custody0
+  talos-build-1:
+    family: talos
+    release: REPLACE_WITH_EXACT_TALOS_VERSION
+    schematic_id: REPLACE_WITH_IMAGE_FACTORY_SCHEMATIC_ID
+    vm_id: 9102
+    name: talos-template-build-1
+    node_name: pve-custody-1
+    datastore_id: local-lvm
+    image_datastore_id: local
+    image_path: /srv/tier0/artifacts/nocloud-amd64.raw
+    sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
+    bridge: custody0
+    # Standard non-secure-boot amd64 NoCloud image. No cluster config or secrets.
+    # Enable only when the recorded schematic includes siderolabs/qemu-guest-agent.
+    qemu_agent: false

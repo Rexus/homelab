@@ -7,10 +7,9 @@ packer {
   }
 }
 
-# Minimal Talos Linux template scaffold for Proxmox.
-# Talos often works well as a Terraform-driven VM deployment target too, so use
-# this template only if you want a reusable image workflow rather than a direct
-# provisioning flow.
+# Optional, incomplete custom ISO-build scaffold, not the template publication path.
+# Use Tier 0 terraform/templates/ for verified NoCloud raw-image imports.
+# Reference: docs/platforms/proxmox/talos-template.md
 # Prefer environment variables for sensitive runtime values.
 # See: docs/reference/environment-variables.md
 source "proxmox-iso" "taloslinux" {

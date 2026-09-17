@@ -64,6 +64,7 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 | Find implementation files | [Automation layout](docs/reference/infrastructure-automation-layout.md) |
 | Maintain generated project docs | [Project documentation](docs/reference/project-documentation.md) |
 | Prepare Proxmox | [Platform guide](docs/platforms/proxmox/README.md) |
+| Create or update base templates | [Tier 0 template lifecycle](docs/platforms/proxmox/template-lifecycle.md) |
 | Handle secrets | [Secret strategy](docs/security/secret-strategy.md) |
 
 ## Repository Structure

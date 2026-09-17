@@ -31,6 +31,7 @@ All scripts support `--help`.
 | `scripts/init-tier-repos.sh` | generates tier-owned inputs and shared automation | when you want the generated repo set |
 | `scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `scripts/deploy.sh` | runs precheck, Terraform, and Ansible | when you deploy, plan, or destroy a setup |
+| `scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
 
 ## Cheat sheet
 
@@ -59,6 +60,11 @@ Replace `<setup>` with a setup such as `foundation`, `cache`, `vault`, or
 | Run Terraform only | `bash scripts/deploy.sh <setup> --env <env> --terraform-only` |
 | Destroy an environment | `bash scripts/deploy.sh <setup> --env <env> --destroy` |
 | Reset rebuilt host SSH keys | `bash scripts/deploy.sh <setup> --env <env> --reset-known-hosts` |
+
+Template publication uses the separate
+[Tier 0 template workflow](../platforms/proxmox/template-lifecycle.md#local-workflow),
+not `deploy.sh`. It uses provider-native environment variables, a local image
+catalog, and its own state; it never configures a Talos guest through Ansible.
 
 ## Initialize tier repositories
 

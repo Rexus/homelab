@@ -39,7 +39,8 @@ def cluster_scaffold(writer, tier):
         "proxmox/main.tf": 'terraform {\n  required_version = ">= 1.6.0"\n}\n',
         "proxmox/backend.tf": 'terraform {\n  backend "local" {}\n}\n',
         "proxmox/network.tf": "# Define isolated custody networks here; no routed DMZ connection.\n",
-        "proxmox/tier0-vms.tf": "# Define Talos VMs here. Linux setup roots live under terraform/environments/.\n",
+        "proxmox/tier0-vms.tf": ("# Clone a tested Talos candidate from terraform/templates/ here.\n"
+                                "# Keep machine config out of the template. See the Talos template guide.\n"),
         "talos/cluster.tf": "# Define Talos cluster bootstrap resources here.\n",
         "talos/machines.tf": "# Define Talos machines using tier-owned inventory and recovery inputs.\n",
     }

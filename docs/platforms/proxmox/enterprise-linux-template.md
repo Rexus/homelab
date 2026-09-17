@@ -22,6 +22,11 @@ Use this guide to create the first reusable Enterprise Linux VM template for
 Proxmox in this repository. Keep it cloud-image-based so Terraform and Ansible
 can configure it later.
 
+Tier 0 owns template creation and updates. For automated import of approved
+AlmaLinux/Rocky images and versioned CD publication, start with
+[Template lifecycle](template-lifecycle.md). This guide covers image selection,
+manual preparation, and the existing staged package-refresh path.
+
 Version note:
 
 - this walkthrough is based on Proxmox VE `9.1.1`

@@ -181,7 +181,10 @@ Use [Network placement](network.md) to choose networks and zones, then the
 
 Each tool has one primary job:
 
-- Packer builds reusable images when custom templates are needed
+- Tier 0 owns image creation, update jobs, verification, and release approval;
+  shared code implements the repeatable steps
+- Packer is optional for custom image builds; approved vendor images can be
+  imported directly as unconfigured templates
 - Terraform provisions identity foundation hosts first and later shared-service
   hosts
 - Ansible applies baseline configuration first and then service-specific
@@ -189,7 +192,7 @@ Each tool has one primary job:
 
 ```mermaid
 flowchart LR
-  A["Bootstrap inputs"] --> B["Packer"]
+  A["Approved local images<br/>Optional custom image build"] --> B["Tier 0 template publication"]
   B --> C["Terraform"]
   C --> D["Ansible baseline"]
   D --> E["Identity and PKI ready"]
@@ -207,6 +210,11 @@ flowchart LR
 
 Figure: image build, identity foundation bring-up, and later shared-service
 deployment stay separate until the first secret-platform handoff.
+
+The diagram shows the Linux service path. The dedicated Tier 0 cluster uses
+an immutable OS template and its own machine bootstrap path instead of Ansible
+guest configuration. Publication and recovery must work before that cluster
+or its automation service exists; see the [Tier 0 shape](tier-model.md#tier-0-shape).
 
 The secret platform is treated as an early shared service that follows the
 identity foundation layer, so the platform can reduce first-run secret handling

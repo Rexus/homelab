@@ -32,7 +32,9 @@ Use the Proxmox platform layer for:
 ## Platform guides
 
 - [Planning guidelines](conventions.md)
+- [Tier 0 template lifecycle and CD](template-lifecycle.md)
 - [Enterprise Linux template](enterprise-linux-template.md)
+- [Talos template](talos-template.md)
 - [Using the cache from Proxmox](cache-usage.md)
 - [Backup foundation](backup-foundation.md)
 - [API setup](setup-api.md)

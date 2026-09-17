@@ -22,15 +22,15 @@ from scaffold import cluster_scaffold
 UPSTREAM = Path(__file__).resolve().parents[2]
 TIERS = {
     "tier-0": {
-        "setups": ["foundation", "vault", "hsm"],
-        "groups": ["hypervisors", "foundation", "vault", "hsm_gateways", "crypto_admin"],
+        "setups": ["foundation", "vault", "hsm", "immutable-template", "template-refresh"],
+        "groups": ["hypervisors", "foundation", "vault", "hsm_gateways", "crypto_admin",
+                   "immutable_template_builders", "template_refresh_builders"],
     },
     "tier-1": {
-        "setups": ["edge", "cache", "development", "observability", "podman-runner",
-                   "immutable-template", "template-refresh"],
+        "setups": ["edge", "cache", "development", "observability", "podman-runner"],
         "groups": ["edge_load_balancers", "cache", "development_platform", "telemetry_gateways",
                    "security_telemetry", "observability", "archive", "podman_runner",
-                   "immutable_template_builders", "template_refresh_builders", "identity_providers"],
+                   "identity_providers"],
     },
     "tier-2": {"setups": ["lab"], "groups": ["lab"]},
 }
@@ -119,7 +119,7 @@ def shared_repo(writer, prefix):
         ("packer/templates", ["*.pkr.hcl"]),
     ):
         copy_tree(writer, directory, patterns)
-    for source in ("ansible/requirements.yml", "packer/variables.auto.pkrvars.hcl.example",
+    for source in ("ansible/requirements.yml", "scripts/proxmox-templates.sh",
                    "scripts/deploy.sh", "scripts/init-local-files.sh", "scripts/lib/deployment-context.sh"):
         copy_file(writer, source)
     writer.write("templates/.gitkeep", "", owned=True)
@@ -140,6 +140,17 @@ def tier_repo(writer, tier, prefix):
     note = "# Shared across setups in this tier only. Replace reference network values before use.\n"
     if tier == "tier-0":
         note += "# Tier 0: map guest networks to isolated custody bridges; no routed connection to other tiers.\n"
+        for filename in ("variables.tf", "outputs.tf", ".terraform.lock.hcl"):
+            copy_file(writer, f"terraform/templates/{filename}")
+        # Relocate the known module source, as for the Linux setup roots below.
+        copy_file(writer, "terraform/templates/main.tf", transform=lambda content: content.replace(
+            '"../modules/', f'"../../../{prefix}-shared/terraform/modules/'))
+        copy_file(writer, "templates/proxmox.yml.example")
+        copy_file(writer, "packer/variables.auto.pkrvars.hcl.example")
+        writer.write("ci/gitlab-templates.yml.example",
+                     (UPSTREAM / "ci/gitlab-templates.yml.example").read_text(encoding="utf-8").replace(
+                         "homelab-shared", f"{prefix}-shared"), owned=True)
+        writer.write("templates/artifacts/.gitkeep", "", owned=True)
     copy_file(writer, "terraform/common.tfvars.example", transform=lambda content: note + content)
     config = configparser.ConfigParser()
     config.read(UPSTREAM / "ansible/ansible.cfg")
@@ -170,6 +181,13 @@ def tier_repo(writer, tier, prefix):
         copy_file(writer, f"{directory}/terraform.tfvars.example")
     cluster_scaffold(writer, tier)
     tier_readme(writer, tier, prefix, setups)
+    setup_list = writer.root / ".deployment-setups"
+    registered = set(setup_list.read_text(encoding="utf-8").splitlines()) if setup_list.is_file() else set(setups)
+    template_setups = {"immutable-template", "template-refresh"}
+    if ((tier == "tier-0" and not template_setups.issubset(registered))
+            or (tier == "tier-1" and template_setups.intersection(registered))):
+        print("Template lifecycle belongs to Tier 0. Existing collections: review .deployment-setups, "
+              "inventory and state migration before applying newly added roots; refresh does not move state.")
 
 
 def main():

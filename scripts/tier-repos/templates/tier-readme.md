@@ -43,3 +43,4 @@ ${extra_paths}
 - [Recovery runbook](../${prefix}-architecture/docs/owned/runbooks/recovery.md)
 - [Architecture and tier boundaries](${docs}/architecture/tier-model.md)
 - [Deployment commands](${docs}/reference/repository-scripts.md)
+- [Tier 0 template lifecycle](${docs}/platforms/proxmox/template-lifecycle.md)

@@ -40,6 +40,12 @@ This file keeps durable context for AI-assisted work across sessions.
 - refresh uses `.generated-files.json` and preserves local edits and deletions;
   Talos and cluster resources remain seed-only skeletons
 - Tier 0 must remain bootstrapable and recoverable without higher-tier services
+- Tier 0 owns template catalogs, creation/update CD jobs, publication state,
+  `template-refresh` and `immutable-template` builders; shared owns reusable code
+- AlmaLinux/Rocky/Talos publication uses verified local images; Talos templates
+  contain no machine configuration, and cluster bootstrap remains a separate skeleton
+- dedicated custody-local template CI is optional Day 2 automation; local commands,
+  provider artifacts and state must remain usable without the cluster or CI service
 - draw security layers left-to-right: Edge, Application, Control; distinguish
   the Control layer from the `management` network; infrastructure supports all layers
 - draw tiers top-to-bottom: Tier 2, Tier 1, Tier 0; dependencies point down

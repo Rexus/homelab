@@ -47,6 +47,7 @@ Use separate access paths for different automation jobs:
 | Platform provisioning | yes | Creates, clones, updates, starts, stops, and destroys VMs or containers |
 | Ansible guest configuration | no, normally | Uses SSH to the provisioned guests after they exist |
 | Packer template builds | yes, separate token recommended | Creates temporary build VMs and templates |
+| Tier 0 template publication | yes, dedicated custody token | Uploads approved images and creates stopped templates; see [Template lifecycle](template-lifecycle.md) |
 
 The default role set below is intentionally focused on guest provisioning. It
 does not grant Proxmox user management, permission management, node power,
@@ -61,6 +62,7 @@ Use different endpoint formats depending on the tool:
 | --- | --- | --- |
 | Terraform `bpg/proxmox` provider | `PROXMOX_API_URL` | `https://pve.example.com:8006/` |
 | Packer Proxmox plugin | `PROXMOX_URL` | `https://pve.example.com:8006/api2/json` |
+| Native template publisher | `PROXMOX_VE_ENDPOINT` | `https://pve.example.com:8006/` |
 
 For Terraform in this repo, do not append `/api2/json`. The deployment wrapper
 maps `PROXMOX_API_URL`, `PROXMOX_API_TOKEN_ID`, and

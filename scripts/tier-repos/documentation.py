@@ -16,12 +16,13 @@ def owned_template(writer, template, target, **values):
 
 def tier_readme(writer, tier, prefix, setups):
     descriptions = {
-        "tier-0": "the recoverable control foundation and custody-local infrastructure",
+        "tier-0": "the recoverable control foundation, template lifecycle, and custody-local infrastructure",
         "tier-1": "shared platform services and connected infrastructure",
         "tier-2": "application, project, and lab workloads",
     }
     extra_paths = {
-        "tier-0": "- `bootstrap/` and `clusters/tier0/`: cluster bootstrap and service definitions",
+        "tier-0": ("- `templates/`, `terraform/templates/`, and `ci/`: image catalog, publication, and jobs\n"
+                   "- `bootstrap/` and `clusters/tier0/`: cluster bootstrap and service definitions"),
         "tier-1": "- `clusters/tier1/`: platform cluster definitions",
         "tier-2": "- `environments/` and `workloads/`: project and workload definitions",
     }
@@ -62,7 +63,11 @@ def copy_documentation(writer, prefix, upstream, setup_owners):
             parts = source.parts
             if parts[:2] in (("ansible", "playbooks"), ("ansible", "roles"), ("terraform", "modules")):
                 owner = "shared"
-            elif parts[0] in ("scripts", "packer"):
+            elif parts[:2] == ("terraform", "templates") or parts[0] in ("templates", "ci"):
+                owner = "tier-0"
+            elif parts[0] == "packer":
+                owner = "shared" if parts[1] == "templates" else "tier-0"
+            elif parts[0] == "scripts":
                 owner = "shared"
             elif parts[:2] == ("terraform", "environments"):
                 owner = setup_owners[parts[2]]
@@ -74,7 +79,8 @@ def copy_documentation(writer, prefix, upstream, setup_owners):
             return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
 
         # Preserve Markdown and local doc links; only source-file destinations move between repos.
-        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:ansible|terraform|scripts|packer)/[^)#]+", relocate, content)
+        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:ansible|terraform|scripts|packer|templates|ci)/[^)#]+",
+                         relocate, content)
         project_docs = Path(os.path.relpath(writer.root / "docs/README.md",
                                            (writer.root / target).parent)).as_posix()
         notice = (
