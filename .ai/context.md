@@ -24,7 +24,13 @@ This file keeps durable context for AI-assisted work across sessions.
 - those repos live inside `<prefix>-iac/`, a collection directory beside the
   upstream checkout by default; `--root` selects the collection's parent
 - README fast paths start with one real generation command and nearby flag
-  tips; generated repo READMEs stay short and link into architecture for detail
+  tips; downstream root READMEs are short, developer-owned starter templates
+- all downstream root READMEs link to architecture's `docs/naming-conventions.md`;
+  project templates record chosen names, IDs, networks, design, and recovery
+- `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
+  notices; root READMEs and project templates are seeded once, never refreshed
+- preserve existing README contents when promoting them to owned files;
+  legacy `docs/generated/upstream/` stays untouched for manual link migration
 - shared scripts can be called by relative path from a tier root and use that
   tier's inputs; tier-local script shortcuts delegate to the same code
 - `scripts/init-tier-repos.sh` generates three tier-owned inventories and
@@ -34,10 +40,16 @@ This file keeps durable context for AI-assisted work across sessions.
 - refresh uses `.generated-files.json` and preserves local edits and deletions;
   Talos and cluster resources remain seed-only skeletons
 - Tier 0 must remain bootstrapable and recoverable without higher-tier services
-- tiering is bottom-up, with Tier 0 as the recovery layer below Tier 1 and
-  Tier 2
-- network exposure is left-to-right, from DMZ and edge paths toward
-  air-gapped custody
+- draw security layers left-to-right: Edge, Application, Control; distinguish
+  the Control layer from the `management` network; infrastructure supports all layers
+- draw tiers top-to-bottom: Tier 2, Tier 1, Tier 0; dependencies point down
+  toward providers, while capabilities are provided upward
+- networks belong to tier/layer cells, not a separate band hierarchy;
+  connected firewall zones use `T<tier>-<layer>` and group named subnets
+- `network_zones` remains a logical guest-network input, not a firewall zone;
+  generation does not allocate subnets or configure gateway policy
+- keep network placement in architecture, rule contracts in security, and
+  vendor-specific zone-matrix translation in platform guides
 - Tier 0 lives only in air-gapped custody; approved artifact handoffs do not
   create routed connections into custody
 - use general capability terms in architecture docs, such as source control,
@@ -62,7 +74,8 @@ This file keeps durable context for AI-assisted work across sessions.
 - do not encourage storing secrets in Git
 - do not treat this upstream as the destination for live environment changes
 - prefer private forks, mirrors, or local copies for operational work
-- preserve strict Tier 0 -> Tier 1 -> Tier 2 dependency direction
+- lower tiers must recover without higher tiers; custody supplies offline
+  outputs rather than live dependencies for connected tiers
 - keep Packer, Terraform, and Ansible responsibilities separate
 - preserve a high-security baseline by default
 - use compact numeric citations like `[1]` for non-trivial external claims in

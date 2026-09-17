@@ -53,6 +53,7 @@ class RepositoryWriter:
             self.hashes[relative] = digest
         if owned:
             self.owned_paths.add(relative)
+            self.hashes.pop(relative, None)
 
     def finish(self):
         if not self.dry_run:

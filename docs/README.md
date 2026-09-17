@@ -86,16 +86,16 @@ Use this order when you are new to the repository or returning after time away:
 
 ## Architecture and design
 
-- [Architecture overview](architecture/overview.md) - layered zones, automation
-  flow, and trust boundaries
+- [Architecture overview](architecture/overview.md) - horizontal security layers,
+  vertical tiers, automation flow, and trust boundaries
 - [Tier model](architecture/tier-model.md) - dependency direction and ownership
   boundaries for Tier 0, Tier 1, Tier 2, shared, and architecture repositories
 - [Private cloud model](architecture/private-cloud.md) - what private cloud
   means here and when Proxmox, Kubernetes, or OpenStack fit
 - [Shared services model](architecture/shared-services.md) - why identity, PKI,
   secrets, and observability form the reusable private-domain backbone
-- [Network architecture](architecture/network.md) - shared network reference
-  for zones, VLAN strategy, bridges, and Terraform guest placement keys
+- [Network placement](architecture/network.md) - assign subnets and firewall
+  zones to tier/layer cells, with an example VLAN and address plan
 
 ## Platform guides
 
@@ -109,6 +109,8 @@ Use this order when you are new to the repository or returning after time away:
   recommended recovery baseline before the environment becomes important
 - [Proxmox host networking](platforms/proxmox/network-prerequisites.md) -
   network assumptions and preparation
+- [UniFi zone firewall](platforms/unifi/zone-firewall.md) - translate the
+  architecture's zones and rule matrix into gateway configuration
 - [Enterprise Linux template](platforms/proxmox/enterprise-linux-template.md) -
   guest template creation and refresh reference
 - [Proxmox hardening](platforms/proxmox/hardening.md) - later-stage platform
@@ -118,6 +120,8 @@ Use this order when you are new to the repository or returning after time away:
 
 - [Security principles](security/security-principles.md) - durable baseline for
   hardening, identity, and guardrails
+- [Firewall policy](security/firewall-policy.md) - source/destination matrix,
+  scoped rule contracts, enforcement boundaries, and validation
 - [Secret strategy](security/secret-strategy.md) - authoritative source for
   bootstrap secrets, ignored files, and the move to a secret platform
 - [Vault HSM hardening options](security/vault-hsm-hardening-options.md) -
@@ -136,8 +140,12 @@ Use this order when you are new to the repository or returning after time away:
   foundation example that complements the env-var conventions
 - [Infrastructure automation layout](reference/infrastructure-automation-layout.md) -
   where the Terraform, Ansible, Packer, and wrapper code lives
+- [Network inputs](reference/network-inputs.md) - map tier-owned subnets into
+  Terraform guest attachments without confusing them with firewall zones
 - [Generated repository model](reference/generated-repository-model.md) -
   private downstream repository set and generated-vs-owned content model
+- [Project documentation](reference/project-documentation.md) - developer-owned
+  READMEs, naming and allocation templates, and refreshable auto-docs
 - [Repository scripts](reference/repository-scripts.md) - wrapper commands,
   environment handling, and manual command equivalents
 - [Ansible Vault bootstrap](reference/ansible-vault-bootstrap.md) - local

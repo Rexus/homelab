@@ -5,7 +5,8 @@
 - [Purpose](#purpose)
 - [Goals](#goals)
 - [Layered model](#layered-model)
-- [Tiered network model](#tiered-network-model)
+- [Tiered model](#tiered-model)
+- [Tier and zone view](#tier-and-zone-view)
 - [Automation flow](#automation-flow)
 - [Network references](#network-references)
 - [Boundaries](#boundaries)
@@ -34,54 +35,42 @@ For the shared identity, PKI, secrets, and telemetry backbone, read
 
 ## Goals
 
-- clear separation of edge, application, and infrastructure concerns
+- clear separation of edge, application, and control concerns
 - no implicit trust between zones
 - controlled remote user and administrator access
 - reusable structure for IaC and multi-cloud thinking
 - clear placement of identity, secrets, and hardware-backed systems
-- clear Tier 0 -> Tier 1 -> Tier 2 dependency direction
+- lower tiers can recover without higher-tier services
 
 ## Layered model
 
+Security layers describe a capability's responsibility and the boundaries
+around it. Draw them left to right: **Edge**, **Application**, then
+**Control**.
+
 ```mermaid
-flowchart TB
-  subgraph Edge["Edge layer"]
-    E1["External zone<br/>Internet, WAN, partner networks"]
-    E2["external_edge zone<br/>Ingress, edge load balancing, controlled egress"]
-  end
+flowchart LR
+  Edge["Edge layer<br/>Ingress and controlled egress<br/>external_edge networks"]
+  App["Application layer<br/>Services and workloads<br/>access, identity, application"]
+  Control["Control layer<br/>Administration and recovery<br/>management, storage, custody"]
 
-  subgraph App["Application layer"]
-    A1["Access and identity services<br/>identity authority, broker, DNS"]
-    A2["Application and cryptography services<br/>internal apps, APIs, issuing CA, HSM gateways"]
-  end
+  Edge --- App --- Control
 
-  subgraph Infra["Infrastructure layer"]
-    I1["Host-management zone<br/>Bastion, IaC, ops, hypervisor management"]
-    I2["Restricted zone<br/>Backup, ceremony, offline roots, hardware roots"]
-  end
-
-  Edge --> App --> Infra
-
-  style Edge fill:#ecfdf5,stroke:#15803d,stroke-width:2px,color:#1f2937
-  style App fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1f2937
-  style Infra fill:#fff7ed,stroke:#c2410c,stroke-width:2px,color:#1f2937
-
-  classDef edgeNode fill:#dcfce7,stroke:#15803d,color:#1f2937
-  classDef appNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
-  classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
-  classDef restrictedNode fill:#fff1e6,stroke:#9a3412,color:#1f2937
-
-  class E1,E2 edgeNode
-  class A1,A2 appNode
-  class I1 mgmtNode
-  class I2 restrictedNode
+  style Edge fill:#dcfce7,stroke:#15803d,color:#1f2937
+  style App fill:#dbeafe,stroke:#2563eb,color:#1f2937
+  style Control fill:#fed7aa,stroke:#c2410c,color:#1f2937
 ```
 
-Figure: trust increases as you move from edge-facing systems toward
-host-management and restricted infrastructure services.
+Figure: security layers run from edge-facing functions on the left to
+control on the right. Lines show conceptual order, not allowed
+traffic or a required request path. Moving right never grants implicit trust.
+
+The **Control layer** includes connected administration and separately isolated
+recovery/custody functions. It is a functional boundary, not the `management`
+network or a single tier. Compute, storage, and networking support every layer.
 
 This is a pattern model, not a public-cloud feature match. Proxmox is the
-current foundation layer, but the architecture is broader than a single
+current reference platform, but the architecture is broader than a single
 platform.
 
 Proxy placement in this architecture:
@@ -91,21 +80,102 @@ Proxy placement in this architecture:
 - a separate internal cluster proxy can be added later when Kubernetes becomes
   part of the platform
 
-## Tiered network model
+## Tiered model
 
-Layering and tiering answer different questions.
+Tiers describe ownership, dependency direction, and recovery independence.
+Draw **Tier 2 at the top**, **Tier 1 in the middle**, and **Tier 0 at the bottom**.
 
-| Model | Direction | What it answers |
-| --- | --- | --- |
-| architecture layers | edge toward infrastructure | what kind of capability this is |
-| tiers | Tier 0, then Tier 1, then Tier 2 | who can depend on whom |
-| network bands | DMZ toward air-gapped custody | how exposed an interface is |
+```mermaid
+flowchart TB
+  T2["Tier 2: workloads<br/>Applications, projects, labs"]
+  T1["Tier 1: shared platform<br/>Connected services and platform operations"]
+  T0["Tier 0: recovery and control<br/>Bootstrap, root trust, recovery<br/>Air-gapped custody only"]
 
-Tier 0 lives in the air-gapped custody band and transfers approved artifacts
-through explicit handoffs. Tier 1 and Tier 2 occupy access, internal,
-restricted-control, or DMZ-facing bands based on the service they provide.
-Network bands can be unions between tiers only when they are designed as
-interfaces with named owners, policies, and consumers.
+  T2 -->|may depend on| T1
+  T1 -. uses approved outputs from .-> T0
+
+  classDef tier fill:#f8fafc,stroke:#64748b,color:#1f2937
+  class T2,T1,T0 tier
+```
+
+Figure: dependency arrows point down toward the provider; capabilities are
+provided upward. The dashed link means an offline artifact handoff, not a live
+connection into Tier 0. Tier 2 can also consume approved Tier 0 outputs.
+Lower tiers must recover without higher-tier services.
+
+Tier numbers do not identify network exposure or replace security layers.
+Tier 1 and Tier 2 can each have edge, application, and control functions;
+a control endpoint is not automatically Tier 0. Read the
+[tier model](tier-model.md#dependency-rule) for the dependency and recovery rules.
+
+## Tier and zone view
+
+Place networks directly in the architecture: tiers are rows and security
+layers are columns. A connected firewall zone groups subnets in one tier/layer
+cell. Create only the cells your deployment needs; multiple subnets can share
+a zone without gaining unrestricted access to each other.
+
+```mermaid
+flowchart TB
+  subgraph Tier2["Tier 2: workloads"]
+    direction LR
+    T2E["T2-Edge<br/>Workload ingress<br/>external_edge subnets"]
+    T2A["T2-Application<br/>Apps and labs<br/>application subnets"]
+    T2C["T2-Control<br/>Workload administration<br/>management subnets"]
+    T2E ~~~ T2A ~~~ T2C
+  end
+
+  subgraph Tier1["Tier 1: shared platform"]
+    direction LR
+    T1E["T1-Edge<br/>Shared ingress and egress<br/>external_edge subnets"]
+    T1A["T1-Application<br/>Shared services<br/>identity, application subnets"]
+    T1C["T1-Control<br/>Platform administration<br/>management, storage subnets"]
+    T1E ~~~ T1A ~~~ T1C
+  end
+
+  subgraph Tier0["Tier 0: air-gapped custody"]
+    direction LR
+    T0E["Edge<br/>Not present"]
+    T0A["Application<br/>No connected services"]
+    T0C["T0-Control: offline only<br/>Custody-local subnets<br/>No connected firewall zone"]
+    T0E ~~~ T0A ~~~ T0C
+  end
+
+  Tier2 ~~~ Tier1 ~~~ Tier0
+
+  classDef edge fill:#dcfce7,stroke:#15803d,color:#1f2937
+  classDef app fill:#dbeafe,stroke:#2563eb,color:#1f2937
+  classDef control fill:#fed7aa,stroke:#c2410c,color:#1f2937
+  classDef absent fill:#f8fafc,stroke:#94a3b8,stroke-dasharray:4 4,color:#475569
+  class T2E,T1E edge
+  class T2A,T1A app
+  class T2C,T1C,T0C control
+  class T0E,T0A absent
+  style Tier2 fill:#f8fafc,stroke:#64748b,color:#1f2937
+  style Tier1 fill:#f8fafc,stroke:#64748b,color:#1f2937
+  style Tier0 fill:#f8fafc,stroke:#64748b,color:#1f2937
+```
+
+Figure: one placement view for layers, tiers, firewall zones, and their subnets.
+No traffic is implied. Tier 0's local services support custody and recovery;
+they are not connected Application-zone services. Its air gap is an isolation
+boundary, not a firewall deny rule.
+
+| Term | What it decides |
+| --- | --- |
+| Layer | Edge, Application, or Control responsibility |
+| Tier | ownership and recovery dependencies |
+| Firewall zone | policy group such as `T1-Application` |
+| Network | a specific VLAN/subnet assigned to that zone |
+| Firewall rule | which source may initiate traffic to which destination and listener |
+
+For example, an identity subnet belongs to `T1-Application`; Tier 2 clients
+reach named identity endpoints through rules, not by joining its subnet.
+Shared ingress in `T1-Edge` can publish a Tier 2 application without requiring
+a separate `T2-Edge` network. These are service interfaces, not merged tiers.
+
+Use [Network placement](network.md) to choose networks and zones, then the
+[firewall policy matrix](../security/firewall-policy.md) to define traffic.
 
 ## Automation flow
 
@@ -144,12 +214,11 @@ before broader service deployment.
 
 ## Network references
 
-Use the shared zone catalog in
-[Network architecture](network.md) when you pick subnets, VLANs, Proxmox
-bridges, and guest placement keys. That document is the repository source of
-truth for zone names such as `management`, `access`, `identity`, `application`,
-`observability`, `telemetry_gateway`, `security_telemetry`, `cryptography`,
-`external_edge`, and `ceremony`.
+The [network catalog](network.md#network-catalog) maps logical network names
+such as `management`, `identity`, and `external_edge` into the same tier/layer
+view. [Network inputs](../reference/network-inputs.md) maps that design to
+Terraform and host attachments; [UniFi zone setup](../platforms/unifi/zone-firewall.md)
+is a concrete firewall example. The repository does not apply gateway policy.
 
 ## Boundaries
 

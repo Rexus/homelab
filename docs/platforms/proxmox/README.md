@@ -10,10 +10,9 @@
 
 ## Purpose
 
-Proxmox is the current reference foundation for the hypervisor and initial
-infrastructure layer in this repository. It provides the cluster, storage,
-networking, and API surface used by the first image build, provisioning, and
-configuration workflows.
+Proxmox is the current reference virtualization platform in this repository.
+It provides the cluster, storage, networking, and API surface used by the first
+image build, provisioning, and configuration workflows.
 
 Use [Private cloud model](../../architecture/private-cloud.md) to understand
 where Proxmox fits compared with a later Kubernetes layer or an OpenStack-style

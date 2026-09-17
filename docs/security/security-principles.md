@@ -25,6 +25,10 @@ This repository assumes:
 - rebuild-first or immutable patterns where practical
 - public code with private runtime data
 
+Map networks into the [tier/layer view](../architecture/overview.md#tier-and-zone-view)
+and use the [firewall policy](firewall-policy.md) for scoped access between
+them. A tier or zone label does not grant trust.
+
 ## Identity and access
 
 Preferred access methods, in order:

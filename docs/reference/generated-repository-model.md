@@ -96,6 +96,11 @@ The initializer creates ignored working files from these examples. It creates
 only setups listed in that tier's `.deployment-setups`. Actual credentials,
 inventory, group vars, state, and local overrides are never copied from upstream.
 
+Every root README is a developer-owned starter, not a refresh target. The
+architecture repository includes `docs/naming-conventions.md` and project
+templates alongside `docs/auto-docs/`. Start with
+[Project documentation](project-documentation.md) for that layout and existing-collection upgrades.
+
 ## Inventory contract
 
 There are three independent inventories, one per tier. Within each tier,
@@ -159,6 +164,11 @@ instances serving connected networks belong in Tier 1. The Tier 0 copies are
 custody-local examples, not permission to connect custody to the DMZ. The
 generator preserves reference network values, so operators must replace bridge,
 subnet, gateway, template, and VMID values for the actual environment.
+
+Use the [network plan](../architecture/network.md#example-network-plan) and
+[firewall policy](../security/firewall-policy.md) to prepare those attachments.
+Matching logical network keys across tiers do not imply a shared subnet or
+firewall zone; generation does not create or enforce network isolation.
 
 To deploy a capability in another tier, add its Terraform root and example
 vars there, register it in `.deployment-setups`, and add only that tier's hosts
@@ -231,21 +241,27 @@ another operating system does not invalidate those hashes or break Bash scripts.
 | File condition | Refresh behavior |
 | --- | --- |
 | New upstream file, never generated at that path | create it |
-| Still matches its recorded generated hash | update from the kit |
+| Managed file still matches its recorded generated hash | update from the kit |
 | Locally edited or unrecognized existing file | preserve and report it |
 | Previously generated file deleted locally | preserve the deletion |
 | Live inventory, local vars, credentials, state | never targeted |
-| Bootstrap/cluster skeletons, `.deployment-setups`, `docs/owned/` | seed once; preserve thereafter |
+| Root READMEs, project docs, bootstrap/cluster skeletons, `.deployment-setups` | seed once; preserve thereafter, even when unchanged |
 
-Source files retain their syntax and use the manifest for provenance. Generated
-front doors and launchers also carry visible markers. A marker alone never
+Source files retain their syntax and use the manifest for provenance. Launchers
+carry markers and every auto-doc has a visible do-not-edit notice. A marker alone never
 authorizes overwriting a file. Files produced by the older marker-only
 generator are preserved when their origin cannot be verified by the manifest.
 Refresh does not delete retired files, merge local edits, or commit changes.
 Review reported preserved files and upstream removals before adopting an update.
-Keep local guides and diagrams in `docs/owned/`; upstream guidance updates under
-`docs/generated/upstream/`. A locally edited example or shared module is also
-preserved, so upstream changes to that file require a manual comparison.
+Keep local guides and diagrams in `docs/owned/` and project conventions in
+`docs/naming-conventions.md`; upstream guidance updates under `docs/auto-docs/`.
+A locally edited example or shared module is also
+preserved, so adopting upstream changes to it requires a manual comparison.
+
+Existing READMEs become owned without being rewritten. Earlier
+`docs/generated/upstream/` copies remain untouched; follow the
+[documentation upgrade steps](project-documentation.md#existing-collections)
+to update local links and review legacy docs.
 
 For an older flat layout, move the existing child checkouts together into the
 collection directory before refreshing, preserving their manifests, local files,

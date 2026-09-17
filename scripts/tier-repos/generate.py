@@ -5,7 +5,6 @@ import argparse
 import configparser
 from copy import deepcopy
 import io
-import os
 from pathlib import Path
 import re
 import sys
@@ -17,7 +16,8 @@ except ImportError:
     sys.exit("PyYAML is required: python3 -m pip install -r scripts/tier-repos/requirements.txt")
 
 from generated_files import MARKER, RepositoryWriter
-from scaffold import architecture_scaffold, cluster_scaffold, tier_readme
+from documentation import architecture_scaffold, copy_documentation, shared_readme, tier_readme
+from scaffold import cluster_scaffold
 
 UPSTREAM = Path(__file__).resolve().parents[2]
 TIERS = {
@@ -79,36 +79,6 @@ def tier_inventory(tier):
     return inventory, hosts
 
 
-def copy_documentation(writer, prefix):
-    setup_owners = {setup: tier for tier, config in TIERS.items() for setup in config["setups"]}
-    for path in sorted((UPSTREAM / "docs").rglob("*.md")):
-        content = path.read_text(encoding="utf-8")
-        target = "docs/generated/upstream/" + path.relative_to(UPSTREAM / "docs").as_posix()
-        setup_match = re.search(r"terraform/environments/([a-z-]+)/", content)
-        default_owner = setup_owners.get(setup_match[1]) if setup_match else None
-
-        def relocate(match):
-            source = (path.parent / match[0]).resolve().relative_to(UPSTREAM)
-            parts = source.parts
-            if parts[:2] in (("ansible", "playbooks"), ("ansible", "roles"), ("terraform", "modules")):
-                owner = "shared"
-            elif parts[0] in ("scripts", "packer"):
-                owner = "shared"
-            elif parts[:2] == ("terraform", "environments"):
-                owner = setup_owners[parts[2]]
-            else:
-                owner = default_owner
-            if owner is None:
-                raise ValueError(f"No tier context for documentation source link: {path}: {source}")
-            destination = writer.root.parent / f"{prefix}-{owner}" / source
-            return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
-
-        # Relocate only the kit's simple relative source-file link destinations;
-        # documentation links and Markdown formatting remain unchanged.
-        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:ansible|terraform|scripts|packer)/[^)#]+", relocate, content)
-        writer.write(target, content)
-
-
 def launchers(writer, prefix):
     check = f"""#!/usr/bin/env bash
 # {MARKER}
@@ -153,17 +123,7 @@ def shared_repo(writer, prefix):
                    "scripts/deploy.sh", "scripts/init-local-files.sh", "scripts/lib/deployment-context.sh"):
         copy_file(writer, source)
     writer.write("templates/.gitkeep", "", owned=True)
-    writer.write("README.md", f"""<!-- {MARKER} -->
-
-# {prefix} Shared
-
-Reusable Terraform modules, Ansible playbooks and roles, Packer templates, and
-deployment scripts live here. Run deployment commands from a tier repository.
-
-This repository contains no live inventory, group vars, credentials, or state.
-Each tier supplies its own inputs to the same automation. Keep reviewed copies
-of this repository available offline wherever Tier 0 recovery is performed.
-""")
+    shared_readme(writer, prefix)
 
 
 def tier_repo(writer, tier, prefix):
@@ -243,7 +203,8 @@ def main():
         if name == "shared":
             shared_repo(writer, args.prefix)
         elif name == "architecture":
-            copy_documentation(writer, args.prefix)
+            setup_owners = {setup: tier for tier, config in TIERS.items() for setup in config["setups"]}
+            copy_documentation(writer, args.prefix, UPSTREAM, setup_owners)
             architecture_scaffold(writer, args.prefix)
         else:
             tier_repo(writer, name, args.prefix)

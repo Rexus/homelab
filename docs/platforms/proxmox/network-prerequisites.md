@@ -32,17 +32,19 @@ reach the Proxmox web UI, API, and SSH.
 
 ## Shared network reference
 
-Use [Network architecture](../../architecture/network.md)
+Use [Network placement](../../architecture/network.md)
 as the source of truth for:
 
-- zone names such as `management`, `access`, `identity`, `application`,
+- logical network names such as `management`, `access`, `identity`, `application`,
   `cryptography`, `external_edge`, and `ceremony`
 - the deployable guest `network_zones` keys used in Terraform
 - the SDN VNet ID or non-SDN bridge, optional VLAN tag, and subnet values you
   fill in locally
 
-This page stays Proxmox-specific and explains how those logical zones are
-presented on the hosts.
+This page explains how those networks are presented on hosts. Proxmox SDN
+zones and Terraform `network_zones` are not gateway firewall zones. Use the
+[network input reference](../../reference/network-inputs.md) for guest fields
+and the [firewall policy](../../security/firewall-policy.md) for access rules.
 
 ## What to implement on Proxmox
 
@@ -87,7 +89,7 @@ flowchart LR
       Vmbr1[vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500]
       Corosync2[host-management IPs<br/>Proxmox UI, API, SSH]
       CephPublic[corosync 1]
-      CephCluster[access, identity, application,<br/>external_edge, cryptography, ceremony guests]
+      CephCluster[access, identity, application,<br/>external_edge, cryptography guests]
 
       Bond1 --> Vmbr1
       Vmbr1 --> Corosync2
@@ -116,6 +118,9 @@ Figure: one strong clustered Proxmox pattern is to keep normal platform VLANs
 on a fabric bond and bridge, and keep Ceph plus a second Corosync path on a
 separate storage bond and bridge.
 
+This is a connected-tier host pattern. Tier 0 and `ceremony` require separate
+custody-local hosts and fabric; do not add them to these connected trunks.
+
 ## Bonds and bridges
 
 Use stable host-side components such as these:
@@ -139,7 +144,7 @@ Bonding and bridge notes:
 - keep `vmbr1` VLAN-aware and allow only the needed storage VLANs and the
   second Corosync VLAN on it, for example `20-22`
 - keep `vmbr0` VLAN-aware and carry the remaining allowed VLAN IDs there, for
-  example `10-12 120 220-221 320`
+  example `10-12 120 220 320`
 
 ## Storage fabric OVS/RSTP
 
@@ -209,7 +214,7 @@ only needs the final VM attachment name.
 Short guardrails:
 
 - use SDN for guest/workload networks such as `identity`, `application`,
-  `external_edge`, `cryptography`, `ceremony`, labs, and tenant networks
+  `external_edge`, `cryptography`, labs, and tenant networks
 - do not move host-management, Corosync, `ceph_public`, `ceph_cluster`, or
   other Proxmox/Ceph transport networks into SDN
 - keep `bond0`/`vmbr0` and optional `bond1`/`vmbr1` as the stable underlay
@@ -269,7 +274,7 @@ hosts themselves use.
 | `ceph_cluster` | `vmbr1` | `9000` | keep distinct from `ceph_public` for Ceph replication and recovery; do not move this into SDN |
 
 Guest networks such as `access`, `identity`, `application`, `external_edge`,
-`cryptography`, and `ceremony` can be consumed either through Proxmox SDN VNets
+and `cryptography` can be consumed either through Proxmox SDN VNets
 or through non-SDN bridge-and-VLAN tagging on `vmbr0`.
 
 ## VLAN strategy
@@ -289,7 +294,7 @@ Recommended practice:
 - decide the reserved VLAN ID ranges early because later changes are harder
   across bridges, guests, switches, and firewalls
 - group related VLAN IDs so bridge expressions stay easier to read, for
-  example `10-12 120 220-221 320` on `vmbr0` instead of one long ad hoc list
+  example `10-12 120 220 320` on `vmbr0` instead of one long ad hoc list
 
 ## MTU planning
 

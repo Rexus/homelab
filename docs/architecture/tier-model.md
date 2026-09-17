@@ -5,7 +5,7 @@
 - [Purpose](#purpose)
 - [Tier meanings](#tier-meanings)
 - [Dependency rule](#dependency-rule)
-- [Tier and network bands](#tier-and-network-bands)
+- [Tier and zone placement](#tier-and-zone-placement)
 - [Repository role](#repository-role)
 - [Tier 0 shape](#tier-0-shape)
 - [Day 2 control services](#day-2-control-services)
@@ -25,9 +25,13 @@ expectations, and network exposure boundaries explicit.
 
 Think about the model in two dimensions:
 
-- tiers stack bottom-up from Tier 0 to Tier 2
-- network exposure runs left-to-right from DMZ-facing paths toward
-  air-gapped custody
+- tiers are drawn top to bottom: Tier 2, Tier 1, then Tier 0 as the recovery base
+- security layers run left-to-right: Edge, Application, Control; networks
+  belong to the tier/layer cell whose interfaces they carry
+
+The [architecture figures](overview.md#layered-model) distinguish horizontal
+security layers from the vertical tier stack. Layer names describe functions;
+tier numbers describe ownership and recovery dependencies, not exposure.
 
 ## Tier meanings
 
@@ -45,16 +49,16 @@ recovery and access boundary; functional layers describe its responsibility.
 
 ## Dependency rule
 
-Capabilities are provided upward; the arrows below mean "provides to":
-
-```text
-Tier 0 -> Tier 1 -> Tier 2
-```
+Capabilities are provided upward from Tier 0 through Tier 1 to Tier 2;
+dependencies point downward toward their providers. The
+[tier figure](overview.md#tiered-model) shows this orientation. Neither
+direction implies a routed connection into custody: connected tiers consume
+approved Tier 0 outputs through offline handoffs.
 
 Allowed patterns:
 
-- Tier 1 can consume Tier 0 services.
-- Tier 2 can consume Tier 0 and Tier 1 services.
+- Tier 1 can consume approved Tier 0 outputs.
+- Tier 2 can consume Tier 1 services and approved Tier 0 outputs.
 - Shared code can be reused by any tier.
 - Architecture documentation can describe every tier.
 
@@ -71,38 +75,33 @@ Forbidden patterns:
 Tier 0 may use a source-controlled repository as an input, but its recovery
 path must not depend on a source-control service hosted by Tier 1 or Tier 2.
 
-## Tier and network bands
+## Tier and zone placement
 
 The tier model is vertical. Tier 0 is the bottom recovery layer, Tier 1 is the
 shared platform layer, and Tier 2 is the workload layer.
 
-The network model is horizontal. Exposure decreases as you move from
-DMZ-facing paths on the left toward air-gapped custody on the right.
+The [combined architecture view](overview.md#tier-and-zone-view) places
+firewall zones and their networks in those rows, with Edge, Application, and
+Control as columns. There is no separate network-layer axis. The
+[network catalog](network.md#network-catalog) assigns subnet purposes to cells;
+the [firewall matrix](../security/firewall-policy.md#connected-zone-matrix)
+defines permitted connection types between them.
 
-```text
-DMZ/edge -> access -> internal platform -> restricted control -> air-gapped custody
-```
-
-Use the two dimensions together:
-
-| Tier, bottom-up | DMZ / edge | Access | Internal platform | Restricted control | Air-gapped custody |
-| --- | --- | --- | --- | --- | --- |
-| Tier 2 | workload entry points | workload clients | applications and labs | scoped workload management | - |
-| Tier 1 | shared ingress / egress | connected identity brokers | shared platform services | platform management | - |
-| Tier 0 | - | - | - | - | bootstrap, control, root trust, recovery |
-
-Tier 0 exists only in the air-gapped custody band. Handoffs from custody are
+Tier 0 exists only in air-gapped custody within the Control layer. Handoffs are
 explicit transfers of approved artifacts, trust material, and recovery outputs.
 They are not ordinary routed connections. Connected service interfaces belong
 to the consuming network's owning tier; an online replica or broker must not
 require a live connection into custody to start or recover.
 
-A network can be a union between tiers only when it is deliberately designed as
-an interface network. A valid union has a named owner, explicit firewall
-policy, clear consumers, and no reverse dependency from a lower tier to a
-higher tier. For example, a higher tier can consume an identity or OIDC
-interface published from a lower tier, but that higher tier must not become
-required to recover the lower tier.
+Cross-tier service interfaces have one owning tier and named consumers. Prefer
+routed, filtered access over a shared subnet. If an interface network must have
+cross-tier participants, record its single owner, enforcement, and recovery
+contract; do not merge whole tiers into one zone or broadcast domain.
+
+Packet direction is not recovery dependency direction. Shared ingress may
+connect to a Tier 2 backend, and a monitoring collector may scrape it, without
+making that workload necessary to recover Tier 1. Such flows need explicit
+rules; neither downward dependency nor Control-layer placement grants access.
 
 ## Repository role
 
@@ -222,8 +221,8 @@ source control, broader observability, and cluster management that do not need
 to be part of the recoverable Tier 0 minimum.
 
 Tier 2 is where application, project, lab, user, and tenant workloads belong.
-Tier 2 should consume Tier 0 and Tier 1 services through explicit interfaces
-instead of gaining broad access to lower tiers.
+Tier 2 should consume Tier 1 services through explicit interfaces and approved
+Tier 0 outputs through offline handoffs, without broad access to lower tiers.
 
 ## Mapping from the current repo
 

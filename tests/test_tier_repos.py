@@ -9,34 +9,16 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-import tempfile
 import unittest
 
 import yaml
 
-UPSTREAM = Path(__file__).resolve().parents[1]
-sys.dont_write_bytecode = True
-sys.path.insert(0, str(UPSTREAM / "scripts/tier-repos"))
+from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 from generate import TIERS
 from generated_files import RepositoryWriter
 
 
-class GeneratedRepositories(unittest.TestCase):
-    def setUp(self):
-        temp_root = UPSTREAM / ".tmp"
-        temp_root.mkdir(exist_ok=True)
-        self.temp = tempfile.TemporaryDirectory(prefix="tier-repos-", dir=temp_root)
-        self.addCleanup(self.temp.cleanup)
-        self.parent = Path(self.temp.name) / "workspace with spaces"
-        self.root = self.parent / "verify-iac"
-
-    def generate(self, *args):
-        return subprocess.run(
-            [sys.executable, str(UPSTREAM / "scripts/tier-repos/generate.py"),
-             "--root", str(self.parent), "--prefix", "verify", *args],
-            capture_output=True, text=True, check=True,
-        )
-
+class GeneratedRepositories(TierRepositoryTestCase):
     def test_dry_run_and_repo_selection(self):
         self.generate("--dry-run")
         self.assertFalse(self.parent.exists())
@@ -108,7 +90,7 @@ class GeneratedRepositories(unittest.TestCase):
         for path in deleted:
             path.unlink()
         updates = [(self.root / "verify-tier-1", "ansible/group_vars/edge.yml.example"),
-                   (self.root / "verify-architecture", "docs/generated/upstream/architecture/overview.md")]
+                   (self.root / "verify-architecture", "docs/auto-docs/architecture/overview.md")]
         expected = {}
         for repo, relative in updates:
             file = repo / relative

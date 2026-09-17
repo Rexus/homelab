@@ -35,10 +35,10 @@ homelab-iac/                 # collection directory, not a Git repository
   homelab-architecture/
 ```
 
-Next, open `../homelab-iac/homelab-tier-0/README.md` and follow its getting-started
-commands from that tier's root. They call the shared scripts by relative path
-and use the tier's local inputs. Substitute your prefix and parent path if
-customized. The architecture repo contains the detailed guides and diagrams.
+First, fill in `homelab-architecture/docs/naming-conventions.md` inside the
+collection. Then follow `homelab-tier-0/README.md` from that tier's root; its
+commands call shared scripts by relative path and use local inputs. Substitute
+your prefix if customized. Each README is a developer-owned starter template.
 
 ## Update Your Collection
 
@@ -49,8 +49,8 @@ bash scripts/init-tier-repos.sh --refresh
 ```
 
 Reuse your `--prefix` and `--root` flags if customized. Add `--dry-run` to preview.
-Refresh updates unchanged generated guides, examples, and automation. It preserves
-local configuration, development, and recorded deletions. See the
+Refresh updates unchanged auto-docs, examples, and automation. It preserves
+repository READMEs, project documentation, local work, and recorded deletions. See the
 [refresh contract](docs/reference/generated-repository-model.md#refresh-and-local-ownership).
 
 ## Find Your Way
@@ -62,6 +62,7 @@ local configuration, development, and recorded deletions. See the
 | Choose a deployment | [Reader paths](docs/paths/README.md) |
 | Run, plan, or destroy | [Repository scripts](docs/reference/repository-scripts.md) |
 | Find implementation files | [Automation layout](docs/reference/infrastructure-automation-layout.md) |
+| Maintain generated project docs | [Project documentation](docs/reference/project-documentation.md) |
 | Prepare Proxmox | [Platform guide](docs/platforms/proxmox/README.md) |
 | Handle secrets | [Secret strategy](docs/security/secret-strategy.md) |
 

@@ -92,7 +92,8 @@ The generator creates `<prefix>-tier-0`, `<prefix>-tier-1`,
 It populates shared modules, roles, playbooks, and wrappers, plus separate
 inventory examples, group vars, and Terraform setups in each tier. Python and
 PyYAML are required. Refresh uses recorded hashes and preserves locally edited
-files; cluster and bootstrap skeletons are seeded only once.
+files. Root READMEs, project documentation, and cluster/bootstrap skeletons are
+seeded only once; `docs/auto-docs/` holds refreshable upstream guidance.
 
 Read [Generated repository model](generated-repository-model.md) for the
 authoritative ownership, inventory, prerequisite, and refresh contracts.

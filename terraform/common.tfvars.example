@@ -31,6 +31,8 @@ proxmox_storage_classes = {
 }
 
 # Keep only networks where Terraform may place guests.
+# Keys below name guest networks, not gateway firewall zones or policies.
+# Map each tier's attachments using docs/reference/network-inputs.md.
 # Host-management, Corosync, and Ceph transport networks belong in Proxmox
 # host/network operations, not in this guest network catalog.
 #
