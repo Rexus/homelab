@@ -1,0 +1,143 @@
+# Shared across setups in this tier only. Replace reference network values before use.
+# Copy to: terraform/common.tfvars
+# Replace every value before use.
+# Shared Terraform values used by multiple environment deployments.
+# Reference: docs/reference/infrastructure-automation-layout.md
+
+platform = "proxmox"
+
+# Default automation target node unless a deployment overrides it.
+default_platform_node_name = "pve01-change-me"
+
+proxmox_storage_classes = {
+  # cloud_init_drive uses vm_disk by default. Set it only when your Proxmox
+  # storage design separates the small cloud-init config drive from VM disks,
+  # for example when VM disks use shared or faster storage.
+  local = {
+    vm_disk = "local-lvm-change-me"
+  }
+  shared = {
+    vm_disk = "shared-change-me"
+  }
+  fast = {
+    vm_disk          = "nvme-change-me"
+    cloud_init_drive = "local-lvm-change-me"
+  }
+  # Optional class for rebuildable cache data, such as Squid cache disks.
+  # Prefer local NVMe/local SSD over replicated Ceph for hot cache data unless
+  # policy requires the cache contents to survive a host failure.
+  # local_nvme = {
+  #   vm_disk = "local-nvme-change-me"
+  # }
+}
+
+# Keep only networks where Terraform may place guests.
+# Keys below name guest networks, not gateway firewall zones or policies.
+# Map each tier's attachments using docs/reference/network-inputs.md.
+# Host-management, Corosync, and Ceph transport networks belong in Proxmox
+# host/network operations, not in this guest network catalog.
+#
+# bridge is the VM network attachment target:
+# - SDN: bridge is the short Proxmox VNet ID; vlan_id can be omitted.
+# - Non-SDN: bridge is vmbr0/vmbr1, and vlan_id tags the VM NIC.
+# The examples keep vlan_id = null so switching to non-SDN is a small edit.
+network_zones = {
+  access = {
+    bridge       = "access"
+    vlan_id      = null
+    cidr_ipv4    = "10.10.11.0/24"
+    gateway_ipv4 = "10.10.11.1"
+  }
+  identity = {
+    bridge       = "ident"
+    vlan_id      = null
+    cidr_ipv4    = "10.10.12.0/24"
+    gateway_ipv4 = "10.10.12.1"
+  }
+  application = {
+    bridge       = "app"
+    vlan_id      = null
+    cidr_ipv4    = "10.20.20.0/24"
+    gateway_ipv4 = "10.20.20.1"
+  }
+  observability = {
+    bridge       = "obs"
+    vlan_id      = null
+    cidr_ipv4    = "10.20.30.0/24"
+    gateway_ipv4 = "10.20.30.1"
+  }
+  storage = {
+    bridge       = "stor"
+    vlan_id      = null
+    cidr_ipv4    = "10.20.40.0/24"
+    gateway_ipv4 = "10.20.40.1"
+  }
+  cryptography = {
+    bridge       = "crypto"
+    vlan_id      = null
+    cidr_ipv4    = "10.20.21.0/24"
+    gateway_ipv4 = "10.20.21.1"
+  }
+  ceremony = {
+    bridge       = "cerem"
+    vlan_id      = null
+    cidr_ipv4    = "10.20.22.0/24"
+    gateway_ipv4 = "10.20.22.1"
+  }
+  telemetry_gateway = {
+    bridge       = "tgw"
+    vlan_id      = null
+    cidr_ipv4    = "10.20.31.0/24"
+    gateway_ipv4 = "10.20.31.1"
+  }
+  security_telemetry = {
+    bridge       = "sectel"
+    vlan_id      = null
+    cidr_ipv4    = "10.20.32.0/24"
+    gateway_ipv4 = "10.20.32.1"
+  }
+  external_edge = {
+    bridge       = "vmbr0"
+    vlan_id      = 320
+    cidr_ipv4    = "10.30.30.0/24"
+    gateway_ipv4 = "10.30.30.1"
+  }
+  # Non-SDN bridge+VLAN examples use vmbr0/vmbr1 with vlan_id set. For example:
+  # application = {
+  #   bridge       = "vmbr0"
+  #   vlan_id      = 120
+  #   cidr_ipv4    = "10.20.20.0/24"
+  #   gateway_ipv4 = "10.20.20.1"
+  # }
+}
+
+# Default Linux cloud-init VM template cloned by Terraform.
+# The Enterprise Linux template guide is the recommended first path, but this
+# may point to any Linux template your Ansible roles support.
+default_linux_vm_template_id = 110
+
+# Template catalog keyed by Proxmox template VM ID. Terraform uses the selected
+# template ID to carry source-image tags onto cloned VMs.
+linux_vm_template_catalog = {
+  "110" = {
+    description = "Default AlmaLinux 10 cloud-init template."
+    tags        = ["x86_64", "el10", "cloud-init", "alma10"]
+  }
+  # "111" = {
+  #   description = "Rocky Linux 10 cloud-init template."
+  #   tags        = ["x86_64", "el10", "cloud-init", "rocky10"]
+  # }
+  # Add this after the immutable-template path has created the template.
+  # "120" = {
+  #   description = "RHEL 10 image-based Linux template."
+  #   tags        = ["x86_64", "el10", "cloud-init", "bootc", "rhel10"]
+  # }
+}
+
+# These keys are injected by cloud-init into VMs cloned from the template.
+# Use the deployment machine's public SSH key here so Ansible can connect
+# from that machine after provisioning.
+# Do not bake deployment SSH keys into the reusable template itself.
+ssh_public_keys = [
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGExamplePublicKeyMaterialChangeMe automation@platform"
+]

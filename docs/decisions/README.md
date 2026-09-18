@@ -37,6 +37,8 @@ should record the choice, rationale, consequences, status, and review trigger.
 | D-020 | Assign networks and firewall zones directly to tier/layer cells | Accepted | Makes the architecture translate into subnet ownership and enforceable policy without another network hierarchy | Connected zones use tier/layer names; shared services need scoped rules; Tier 0 is absent from connected gateways; Terraform network keys remain attachment inputs | If ownership, routing, isolation requirements, or firewall capabilities require finer zone splits |
 | D-021 | Tier 0 owns the base-template lifecycle and CD jobs; shared code implements it | Accepted | The first control cluster must recover without higher-tier image services | Approved local artifacts, separate publication state, versioned candidates, and local execution; see [Template lifecycle](../platforms/proxmox/template-lifecycle.md) | If distribution, custody isolation, or cluster bootstrap ownership changes |
 
+| D-022 | Mirror generated ownership in the source tree | Accepted | Tier inputs and reusable automation should be located without reading generator mappings | `tier-0/`, `tier-1/`, `tier-2/`, and `shared/` are the payload sources; generation copies them and adjusts sibling paths | If generated ownership or payload boundaries change |
+
 ## Review triggers
 
 Review relevant decisions when changes affect:

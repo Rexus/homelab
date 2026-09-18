@@ -19,6 +19,10 @@
 Use this path when you want Linux servers to be managed from versioned
 operating-system images instead of ad hoc package changes on each host.
 
+Run deployment commands from the Tier 0 root: `tier-0/` in a private
+source checkout or `<prefix>-tier-0/` after generation. File paths below
+are tier-relative unless marked as shared code.
+
 The repository reference implementation is `bootc` for Fedora and Enterprise
 Linux-like systems: build a bootable OCI image, publish it to a registry,
 deploy or convert hosts to that image, and update the host by moving to a newer
@@ -94,7 +98,7 @@ not the only possible model.
 | Terraform | `terraform/environments/immutable-template/terraform.tfvars` | deploys the temporary template-builder VM |
 | Ansible inventory | `ansible/inventory/hosts.yml` | keeps the stable `immutable_template_builders` host group |
 | Ansible vars | `ansible/group_vars/immutable_template.yml` | controls bootc image, registry auth, CA trust, and cleanup |
-| Ansible role | `ansible/roles/immutable_template/` | installs bootc tooling and prepares the VM for template conversion |
+| Shared Ansible role | `ansible/roles/immutable_template/` | installs bootc tooling and prepares the VM for template conversion |
 
 The default is one builder VM named for the target template,
 `rhel-10-immu-tmpl`. The builder starts as a normal VM so Ansible can configure

@@ -10,7 +10,7 @@
 
 Use a local ignored file such as `.env.local` for bootstrap secrets and
 deployment API values. The initializer creates it from `env.local.example` in
-the owning tier repository (or the private single-tree working copy).
+the owning tier repository (or `tier-N/` inside a private source checkout).
 
 ## Example
 

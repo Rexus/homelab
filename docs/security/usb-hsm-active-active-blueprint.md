@@ -15,10 +15,10 @@
 
 Use this guide when you want to deploy the USB HSM pattern from this repo.
 
-This is the connected gateway reference for Tier 1. The generated Tier 0 HSM
+This is the connected gateway reference for Tier 1. The source and generated Tier 0 HSM
 setup is custody-local and does not configure an edge backend. See
 [setup ownership](../reference/generated-repository-model.md#setup-ownership)
-before adapting these examples to a generated tier repository. Keep connected
+before adapting the Tier 0 host examples into a separate Tier 1 setup. Keep connected
 gateway and edge hosts in the owning Tier 1 inventory; never route this service
 into air-gapped custody.
 
@@ -133,13 +133,15 @@ These existing zones are only references here:
 | `application` | shared internal callers may reach the cryptography hosts if you expose them internally |
 | `identity` | identity or PKI dependencies may still need controlled reachability to issuing services on the cryptography network |
 
-Copy these examples to your local Terraform variable files and edit the shared
-network mappings in `terraform/common.tfvars`:
+The linked source examples belong to Tier 0. For this connected pattern,
+create a separately owned Tier 1 setup with distinct host keys, VMIDs, IPs,
+and state as described in [setup ownership](../reference/generated-repository-model.md#setup-ownership).
+Edit its tier-local Terraform inputs; never connect the Tier 0 instance to the edge:
 
-- [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example)
+- [`terraform/common.tfvars.example`](../../tier-0/terraform/common.tfvars.example)
   for the default platform node, shared storage, deployable guest networks,
   template IDs, and SSH keys
-- [`terraform/environments/hsm/terraform.tfvars.example`](../../terraform/environments/hsm/terraform.tfvars.example)
+- [`terraform/environments/hsm/terraform.tfvars.example`](../../tier-0/terraform/environments/hsm/terraform.tfvars.example)
   for the gateway and helper layer
 
 Set the values your environment needs for `cryptography` and optional
@@ -186,9 +188,9 @@ Edit the `vm_instances` maps to match the shape you want.
 The deployed edge load balancer stays in the shared-service layer. Start here with
 the gateway and helper hosts.
 
-The shared Ansible inventory includes `hsm-1` and `hsm-2` for the default HSM
-shape. If you add or remove HSM hosts, update both the HSM Terraform
-`vm_instances` map and the Ansible IP map.
+The Tier 0 inventory examples include `hsm-1` and `hsm-2` for custody.
+Use distinct logical keys in the connected Tier 1 inventory. If you add or
+remove HSM hosts, update both the Terraform `vm_instances` map and the Ansible IP map.
 
 ### HSM mode
 
@@ -204,22 +206,25 @@ Keep the host layout the same across all three modes.
 
 ## IaC used for this
 
-Use these repo paths here:
+These source paths provide the reusable host pattern. The input examples are
+Tier 0-owned; connected deployments must use their own Tier 1 copies:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
-| [`terraform/environments/hsm/terraform.tfvars.example`](../../terraform/environments/hsm/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm/terraform.tfvars` based on `.example` |
-| [`ansible/inventory/hosts.yml.example`](../../ansible/inventory/hosts.yml.example) | stable HSM host keys and inventory groups | your local `ansible/inventory/hosts.yml` |
-| [`ansible/group_vars/all.yml.example`](../../ansible/group_vars/all.yml.example) | shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
-| [`ansible/group_vars/hsm.yml.example`](../../ansible/group_vars/hsm.yml.example) | HSM and edge host IPs needed by the HSM rollout | your local `ansible/group_vars/hsm.yml` |
-| [`ansible/playbooks/hsm.yml`](../../ansible/playbooks/hsm.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
-| [`ansible/playbooks/ingress.yml`](../../ansible/playbooks/ingress.yml) | reruns edge load-balancer configuration so the deployed edge layer points at the HSM gateways | inventory and edge load-balancer variables |
-| [`scripts/deploy.sh`](../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm` setup when you are ready to run it |
+| [`terraform/common.tfvars.example`](../../tier-0/terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
+| [`terraform/environments/hsm/terraform.tfvars.example`](../../tier-0/terraform/environments/hsm/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm/terraform.tfvars` based on `.example` |
+| [`ansible/inventory/hosts.yml.example`](../../tier-0/ansible/inventory/hosts.yml.example) | stable HSM host keys and inventory groups | your local `ansible/inventory/hosts.yml` |
+| [`ansible/group_vars/all.yml.example`](../../tier-0/ansible/group_vars/all.yml.example) | shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../tier-0/ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
+| [`ansible/group_vars/hsm.yml.example`](../../tier-0/ansible/group_vars/hsm.yml.example) | custody-local HSM host IPs; connected edge IPs stay in Tier 1 | your local `ansible/group_vars/hsm.yml` |
+| [`ansible/playbooks/hsm.yml`](../../shared/ansible/playbooks/hsm.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
+| [`ansible/playbooks/ingress.yml`](../../shared/ansible/playbooks/ingress.yml) | reruns edge load-balancer configuration so the deployed edge layer points at the HSM gateways | inventory and edge load-balancer variables |
+| [`scripts/deploy.sh`](../../tier-0/scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm` setup when you are ready to run it |
 
-You do not rerun edge Terraform as part of this HSM rollout. It only
-assumes that the deployed edge load-balancer prerequisite already exists.
+You do not rerun edge Terraform as part of this HSM rollout. For the connected
+Tier 1 adaptation, run the shared ingress playbook separately
+with that tier's inventory and vars after gateway configuration. The `hsm`
+wrapper runs only the HSM baseline; it never configures edge ingress.
 
 Use the shared ownership rule from
 [Infrastructure automation layout](../reference/infrastructure-automation-layout.md):

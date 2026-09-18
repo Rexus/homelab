@@ -67,6 +67,13 @@ not nest a collection repository around them or move existing checkouts.
 Shared **code** is separate from shared **services**: a platform service still
 has an owning tier, inventory, and state.
 
+The upstream source already has this split: `tier-0/`, `tier-1/`, `tier-2/`,
+and `shared/` map directly to their prefixed repository names. The generator
+copies those payloads and adjusts sibling shared paths; it does not partition
+an aggregate inventory or define setups in Python. Each source tier owns its
+`.deployment-setups`, inventory example, and Terraform roots. See the
+[source layout](infrastructure-automation-layout.md) for maintenance paths.
+
 Each tier has the same operational layout:
 
 ```text
@@ -182,9 +189,8 @@ vars there, register it in `.deployment-setups`, and add only that tier's hosts
 and IPs. Point its modules at the shared repo. Give it distinct resource IDs
 and state; do not transfer ownership by applying a second state to existing VMs.
 
-The generated Tier 0 `hsm` run targets custody hosts only. The single-tree HSM
-wrapper also renders edge snippets, which is intentionally excluded from the
-tier run. Connected HSM gateways and their edge configuration must be owned
+The Tier 0 `hsm` run targets custody hosts only, in both the source checkout and
+generated repositories. Connected HSM gateways and their edge configuration must be owned
 together in Tier 1; an air-gapped custody HSM is not a live edge backend.
 
 ## Run the generated automation
@@ -204,8 +210,11 @@ bash ../homelab-shared/scripts/deploy.sh foundation --env test --plan-only
 
 After reviewing the plan, use the same deployment command without `--plan-only`.
 The existing [script options](repository-scripts.md) apply in every tier.
-For the upstream single-tree workflow, run those wrappers from the upstream
-private working copy instead.
+In a private source checkout, start in `tier-0/` and use
+`bash scripts/init-local-files.sh` or `bash scripts/deploy.sh ...`.
+These same tier-local shortcuts work in generated repositories. Direct shared
+calls use `../shared/scripts/` in the source checkout. The kit root is not a
+deployment context.
 
 ## Shared code and recovery
 
@@ -254,8 +263,8 @@ another operating system does not invalidate those hashes or break Bash scripts.
 | Live inventory, local vars, credentials, state | never targeted |
 | Root READMEs, project docs, bootstrap/cluster skeletons, CI starter, `.deployment-setups` | seed once; preserve thereafter, even when unchanged |
 
-Source files retain their syntax and use the manifest for provenance. Launchers
-carry markers and every auto-doc has a visible do-not-edit notice. A marker alone never
+Source files retain their syntax and use the manifest for provenance. Every
+auto-doc has a visible do-not-edit notice. A marker alone never
 authorizes overwriting a file. Files produced by the older marker-only
 generator are preserved when their origin cannot be verified by the manifest.
 Refresh does not delete retired files, merge local edits, or commit changes.
@@ -278,6 +287,11 @@ Older collections placed template builder setups in Tier 1. Refresh adds the
 new Tier 0 roots without moving live inputs/state or editing owned setup lists.
 Follow the [template ownership migration](../platforms/proxmox/template-lifecycle.md#existing-collections)
 before applying them. Old files are preserved for review, not silently retired.
+
+The upstream source split does not relocate generated inputs or state: their
+tier-relative paths are unchanged. Private copies of the former aggregate
+source tree need a deliberate migration of ignored files and state into the
+owning tier before deployment. Generation never imports or moves that local data.
 
 ## Implementation scope
 

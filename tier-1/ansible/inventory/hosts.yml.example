@@ -1,0 +1,50 @@
+# Tier-owned logical hosts. IPs live in setup group vars.
+all:
+  vars:
+    ansible_host: "{{\n  platform_host_ips.get(inventory_hostname, inventory_hostname)\n  if platform_host_ips\
+      \ is defined\n  else inventory_hostname\n}}"
+  children:
+    edge_load_balancers:
+      hosts:
+        edge-lb-1: {}
+        edge-lb-2: {}
+        edge-lb-3: {}
+    cache:
+      hosts:
+        cache-1: {}
+        cache-2: {}
+    development_platform:
+      hosts:
+        git-1: {}
+    telemetry_gateways:
+      hosts:
+        telemetry-1: {}
+    security_telemetry:
+      hosts:
+        syslog-1: {}
+    observability:
+      hosts:
+        health-1: {}
+        metrics-1: {}
+        apm-1: {}
+        logs-1: {}
+        telemetry-ui-1: {}
+    archive:
+      hosts:
+        archive-1: {}
+    podman_runner:
+      hosts:
+        runner-1: {}
+    identity_providers:
+      hosts: {}
+    guests:
+      children:
+        edge_load_balancers: null
+        cache: null
+        development_platform: null
+        telemetry_gateways: null
+        security_telemetry: null
+        observability: null
+        archive: null
+        podman_runner: null
+        identity_providers: null

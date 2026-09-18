@@ -70,12 +70,18 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 ## Repository Structure
 
 - `docs/`: architecture, reader paths, platform guides, security, and references
-- `packer/`: image-build templates
-- `terraform/`: provisioning setups and reusable modules
-- `ansible/`: inventory examples, playbooks, and roles
-- `scripts/`: repository generation, local initialization, and deployment
+- `tier-0/`: control and custody Terraform roots, Ansible inputs, templates, and bootstrap
+- `tier-1/`: platform Terraform roots, Ansible inputs, and cluster starters
+- `tier-2/`: workload Terraform roots, Ansible inputs, and project starters
+- `shared/`: reusable Terraform modules, Ansible playbooks/roles, Packer builds, and runtime scripts
+- `scripts/`: repository-generation tooling and README/project-doc templates
 - `tests/`: offline generator and automation checks
 - `.ai/`: assistant context
+
+The source split mirrors the generated repositories: `tier-0/` becomes
+`<prefix>-tier-0/`, and `shared/` becomes `<prefix>-shared/`. Each tier keeps the
+same Terraform/Ansible inventory contract. See the
+[source layout](docs/reference/infrastructure-automation-layout.md) before editing automation.
 
 ## AI-Assisted Development
 

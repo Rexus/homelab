@@ -108,10 +108,15 @@ Keep the automation VM simple:
 
 ## Local repository files
 
-Use the generated repository for the owning tier, or a private single-tree
-copy, and create ignored local working files from its examples before the
+Use the generated repository for the owning tier, or enter `tier-0/`,
+`tier-1/`, or `tier-2/` in a private source checkout. Create ignored local
+working files from that tier's examples before the
 first deployment. Each tier has separate inventory, group vars, and Terraform
 state while using the sibling shared automation.
+
+Run `bash scripts/init-local-files.sh` from that tier directory, not the kit
+root. Shared code is in `../shared/` in the source checkout and
+`../<prefix>-shared/` in a generated collection.
 
 These ignored files are expected to evolve as the environment matures. Keep
 editing the same local files instead of recreating them for every run.

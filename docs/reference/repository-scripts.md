@@ -22,21 +22,29 @@ The scripts do not replace the guides. They keep repeated safety checks,
 environment loading, local state paths, and setup-specific run order in one
 place so each guide can focus on what you are deploying.
 
-All scripts support `--help`.
+User-facing scripts support `--help`. Run generation from the kit root and
+operational commands from the owning tier root (`tier-N/` in the source
+checkout, `<prefix>-tier-N/` in a generated collection).
 
 ## Script overview
+
+Paths in this table are relative to the source kit root. The tier-local
+`scripts/init-local-files.sh` and `scripts/deploy.sh` files are shortcuts to
+these shared implementations.
 
 | Script | What it solves | When you use it |
 | --- | --- | --- |
 | `scripts/init-tier-repos.sh` | generates tier-owned inputs and shared automation | when you want the generated repo set |
-| `scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
-| `scripts/deploy.sh` | runs precheck, Terraform, and Ansible | when you deploy, plan, or destroy a setup |
-| `scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
+| `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
+| `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | when you deploy, plan, or destroy a setup |
+| `shared/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
 
 ## Cheat sheet
 
-Replace `<setup>` with a setup such as `foundation`, `cache`, `vault`, or
-`observability`. Omit `--env <env>` for production.
+Commands containing `init-tier-repos.sh` run from the kit root. Other commands
+use tier-local shortcuts from the owning tier root. Replace `<setup>` with a
+registered setup such as `foundation`, `cache`, `vault`, or `observability`.
+Omit `--env <env>` for production.
 
 | Goal | Command |
 | --- | --- |
@@ -111,7 +119,8 @@ bash ../homelab-shared/scripts/init-local-files.sh --setup foundation --env test
 
 Use your chosen prefix in that path. The tier-local `scripts/` shortcuts used
 below delegate to the same shared code. The same local shortcut commands also
-work in a private single-tree copy of upstream. Omitted `--setup` initializes
+work from `tier-0/`, `tier-1/`, or `tier-2/` in a private source checkout,
+where the sibling is named `shared/`. Omitted `--setup` initializes
 only the setups registered in the current tier.
 
 ## Initialize local files
@@ -219,7 +228,7 @@ Useful options:
 
 ## Available setups
 
-This is the upstream capability catalog. Generated tiers enable the subset in
+This is the capability catalog. Source and generated tiers enable the subset in
 their `.deployment-setups`; see [setup ownership](generated-repository-model.md#setup-ownership).
 
 | Setup | What it targets | Start with |
@@ -274,7 +283,8 @@ automation location to the sibling shared checkout, adjusting the prefix:
 automation_root="$(cd ../homelab-shared && pwd)"
 ```
 
-For a private single-tree copy, use `automation_root="$PWD"` instead.
+In a private source checkout, start in `tier-0/` and use
+`automation_root="$(cd ../shared && pwd)"` instead.
 
 1. Prepare local files.
 

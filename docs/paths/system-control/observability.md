@@ -21,6 +21,10 @@ Use this system-control path after identity, PKI, and secret management are
 available from this repo or from an existing environment, and you want central
 control over platform health, logs, traces, audit events, and capacity signals.
 
+Run deployment commands from the Tier 1 root: `tier-1/` in a private
+source checkout or `<prefix>-tier-1/` after generation. File paths below
+are tier-relative unless marked as shared code.
+
 The goal is not to force every signal into one product. The goal is to use one
 clear telemetry backbone and route each signal to the backend that is best at
 that job.

@@ -7,6 +7,10 @@ is the north-south boundary for services that need controlled ingress,
 controlled egress, or load balancing from the edge network into internal
 service networks.
 
+Run deployment commands from the Tier 1 root: `tier-1/` in a private
+source checkout or `<prefix>-tier-1/` after generation. File paths below
+are tier-relative unless marked as shared code.
+
 The reference implementation is `HAProxy` with `keepalived`. The default is a
 3-node edge set with multiple VIPs. Each VIP has a different preferred owner,
 so healthy traffic is spread while every VIP can still fail over.
@@ -77,11 +81,11 @@ everything when traffic purpose and trust level differ.
 
 | Path | What you configure |
 | --- | --- |
-| [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | `external_edge` network mapping, shared storage, template ID, and SSH keys |
-| [`terraform/environments/edge/terraform.tfvars.example`](../../../terraform/environments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
-| [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | `edge_load_balancers` host group |
-| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | hostname, domain, SSH, and baseline settings |
-| [`ansible/group_vars/edge.yml.example`](../../../ansible/group_vars/edge.yml.example) | edge host IPs, VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |
+| [`terraform/common.tfvars.example`](../../../tier-1/terraform/common.tfvars.example) | `external_edge` network mapping, shared storage, template ID, and SSH keys |
+| [`terraform/environments/edge/terraform.tfvars.example`](../../../tier-1/terraform/environments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
+| [`ansible/inventory/hosts.yml.example`](../../../tier-1/ansible/inventory/hosts.yml.example) | `edge_load_balancers` host group |
+| [`ansible/group_vars/all.yml.example`](../../../tier-1/ansible/group_vars/all.yml.example) | hostname, domain, SSH, and baseline settings |
+| [`ansible/group_vars/edge.yml.example`](../../../tier-1/ansible/group_vars/edge.yml.example) | edge host IPs, VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |
 
 ## How other paths use it
 

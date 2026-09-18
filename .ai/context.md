@@ -19,6 +19,10 @@ This file keeps durable context for AI-assisted work across sessions.
 - security-first posture with strong separation of concerns
 - public upstream is curated and not meant for operational changes
 - repository model is a Tier 0, Tier 1, and Tier 2 deployment kit
+- source `tier-0/`, `tier-1/`, `tier-2/`, and `shared/` mirror generated repos;
+  each tier visibly owns Terraform roots, Ansible inputs, and `.deployment-setups`
+- root `scripts/` is generation tooling only; runtime scripts live in
+  `shared/scripts/` with tier-local shortcuts, never an aggregate-root deployment
 - expected downstream repos are `<prefix>-tier-0`, `<prefix>-tier-1`,
   `<prefix>-tier-2`, `<prefix>-shared`, and `<prefix>-architecture`
 - those repos live inside `<prefix>-iac/`, a collection directory beside the

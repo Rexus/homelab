@@ -30,7 +30,8 @@ This is the default authority path for the repository, not a mandatory global
 prerequisite. If you already operate identity, DNS, and PKI, use those as the
 shared services for later paths.
 
-Run from the repository that owns the instance. Generated Tier 0 examples are
+Run from the repository that owns the instance (`tier-0/` in a private source
+checkout or `<prefix>-tier-0/` after generation). Tier 0 examples are
 for custody-local identity; connected domain services belong in Tier 1. Guest
 network keys must map to that tier's actual networks. See
 [setup ownership](../../reference/generated-repository-model.md#setup-ownership).
@@ -149,12 +150,12 @@ Edit these local files before you deploy:
 
 | Path | What you configure |
 | --- | --- |
-| [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | default platform node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
-| [`terraform/environments/foundation/terraform.tfvars.example`](../../../terraform/environments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
-| [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
-| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, SSH user, port, and baseline defaults |
-| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
-| [`ansible/group_vars/foundation.yml.example`](../../../ansible/group_vars/foundation.yml.example) | foundation host IPs, FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
+| [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | default platform node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
+| [`terraform/environments/foundation/terraform.tfvars.example`](../../../tier-0/terraform/environments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
+| [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
+| [`ansible/group_vars/all.yml.example`](../../../tier-0/ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, SSH user, port, and baseline defaults |
+| [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
+| [`ansible/group_vars/foundation.yml.example`](../../../tier-0/ansible/group_vars/foundation.yml.example) | foundation host IPs, FreeIPA domain, realm, DNS behavior, and encrypted FreeIPA passwords |
 
 ## IaC used for this
 
@@ -162,14 +163,14 @@ Use these repo paths here:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
-| [`terraform/environments/foundation/terraform.tfvars.example`](../../../terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity and PKI hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
-| [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | your local `ansible/inventory/hosts.yml` |
-| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../../ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
-| [`ansible/group_vars/foundation.yml.example`](../../../ansible/group_vars/foundation.yml.example) | starting point for foundation IPs, FreeIPA, and service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
-| [`ansible/playbooks/foundation.yml`](../../../ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
-| [`scripts/deploy.sh`](../../../scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `foundation` setup when you are ready to run it |
+| [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
+| [`terraform/environments/foundation/terraform.tfvars.example`](../../../tier-0/terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity and PKI hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
+| [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | your local `ansible/inventory/hosts.yml` |
+| [`ansible/group_vars/all.yml.example`](../../../tier-0/ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
+| [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
+| [`ansible/group_vars/foundation.yml.example`](../../../tier-0/ansible/group_vars/foundation.yml.example) | starting point for foundation IPs, FreeIPA, and service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
+| [`ansible/playbooks/foundation.yml`](../../../shared/ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
+| [`scripts/deploy.sh`](../../../tier-0/scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `foundation` setup when you are ready to run it |
 
 Current boundary:
 

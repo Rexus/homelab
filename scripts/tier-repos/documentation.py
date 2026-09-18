@@ -51,35 +51,19 @@ def architecture_scaffold(writer, prefix):
         owned_template(writer, template, target, prefix=prefix)
 
 
-def copy_documentation(writer, prefix, upstream, setup_owners):
+def copy_documentation(writer, prefix, upstream):
     for path in sorted((upstream / "docs").rglob("*.md")):
         content = path.read_text(encoding="utf-8")
         target = f"{AUTO_DOCS}/" + path.relative_to(upstream / "docs").as_posix()
-        setup_match = re.search(r"terraform/environments/([a-z-]+)/", content)
-        default_owner = setup_owners.get(setup_match[1]) if setup_match else None
 
         def relocate(match):
             source = (path.parent / match[0]).resolve().relative_to(upstream)
             parts = source.parts
-            if parts[:2] in (("ansible", "playbooks"), ("ansible", "roles"), ("terraform", "modules")):
-                owner = "shared"
-            elif parts[:2] == ("terraform", "templates") or parts[0] in ("templates", "ci"):
-                owner = "tier-0"
-            elif parts[0] == "packer":
-                owner = "shared" if parts[1] == "templates" else "tier-0"
-            elif parts[0] == "scripts":
-                owner = "shared"
-            elif parts[:2] == ("terraform", "environments"):
-                owner = setup_owners[parts[2]]
-            else:
-                owner = default_owner
-            if owner is None:
-                raise ValueError(f"No tier context for documentation source link: {path}: {source}")
-            destination = writer.root.parent / f"{prefix}-{owner}" / source
+            destination = writer.root.parent / f"{prefix}-{parts[0]}" / Path(*parts[1:])
             return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
 
         # Preserve Markdown and local doc links; only source-file destinations move between repos.
-        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:ansible|terraform|scripts|packer|templates|ci)/[^)#]+",
+        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012])/[^)#]+",
                          relocate, content)
         project_docs = Path(os.path.relpath(writer.root / "docs/README.md",
                                            (writer.root / target).parent)).as_posix()

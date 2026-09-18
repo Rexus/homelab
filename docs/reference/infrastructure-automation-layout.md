@@ -1,5 +1,15 @@
 # Infrastructure automation layout
 
+## Table of contents
+
+- [Purpose](#purpose)
+- [Source ownership](#source-ownership)
+- [Ownership rule](#ownership-rule)
+- [Environment data split](#environment-data-split)
+- [Terraform setups](#terraform-setups)
+- [Shared automation](#shared-automation)
+- [Maintaining the split](#maintaining-the-split)
+
 ## Purpose
 
 Use this reference only when you need to find the automation code behind the
@@ -8,13 +18,42 @@ guides.
 Guides and walkthroughs live under `docs/`. The automation directories stay
 focused on source, examples, modules, roles, and playbooks.
 
-This page locates source files in the upstream kit. The generator copies its
-modules, roles, playbooks, and wrappers into the shared repository and places
-setup roots and inventory examples in the owning tier. Read
-[Generated repository model](generated-repository-model.md) for that split.
+The source tree mirrors the generated ownership boundaries. Generation copies
+the tier and shared payloads, renames sibling references for the chosen prefix,
+and adds repository front doors. Read [Generated repository model](generated-repository-model.md)
+for downstream ownership and refresh behavior.
 
 For run order, prerequisites, and setup-specific choices, follow the guide
 linked for that deployment instead of this reference.
+
+## Source ownership
+
+| Source directory | Generated destination | Contains |
+| --- | --- | --- |
+| `tier-0/` | `<prefix>-tier-0/` | custody/control inputs, templates, CI starter, bootstrap, cluster starters |
+| `tier-1/` | `<prefix>-tier-1/` | connected platform inputs and cluster starters |
+| `tier-2/` | `<prefix>-tier-2/` | workload inputs and project starters |
+| `shared/` | `<prefix>-shared/` | reusable modules, playbooks, roles, Packer definitions, runtime scripts |
+| `docs/` | `<prefix>-architecture/docs/auto-docs/` | authoritative upstream guidance |
+| `scripts/tier-repos/` | not copied | generation, refresh policy, README/project-doc templates |
+| `tests/` | not copied | offline source and generated-repository checks |
+
+Inside **each tier**, the paths are the same before and after generation:
+
+| Tier-relative path | Responsibility |
+| --- | --- |
+| `.deployment-setups` | registered setup names |
+| `terraform/environments/<setup>/` | provisioning roots and hardware examples |
+| `terraform/common.tfvars.example` | defaults for that tier's setups |
+| `ansible/inventory/hosts.yml.example` | logical hosts and service groups |
+| `ansible/group_vars/` | tier identity, IP maps, and service examples |
+| `ansible/ansible.cfg` | tier inventory plus sibling shared role path |
+| `scripts/` | local entry points delegating to shared runtime code |
+
+Operational paths below are relative to the owning tier. Start there, not at
+the kit root. Direct shared calls use `../shared/` in source and
+`../<prefix>-shared/` after generation. No aggregate inventory or deployment
+context exists at the kit root.
 
 ## Ownership rule
 
@@ -113,90 +152,59 @@ environment. Terraform vars are shared by default and only layered per
 environment when the optional override files exist. Do not share a Terraform
 state file between environments. Omit `--env` for production.
 
-## Main paths
+## Terraform setups
 
-| Path | Purpose | Read first |
+Every setup lives in `<owner>/terraform/environments/<setup>/` with its IP and
+service example at `<owner>/ansible/group_vars/<stem>.yml.example`. The stem
+replaces setup-name dashes with underscores.
+
+| Owner | Setup | Guide |
 | --- | --- | --- |
-| `scripts/` | tier generation, local initialization, and deployment wrappers | [Repository scripts](repository-scripts.md) |
-| `terraform/` | platform provisioning environments and modules | [Shared services model](../architecture/shared-services.md) |
-| `ansible/` | baseline and service configuration playbooks | [Shared services path](../paths/shared-services/README.md) |
-| `packer/` | optional custom image builds | [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |
-| `terraform/templates/`, `templates/`, `ci/` | Tier 0 template publication inputs, root, and CD starter | [Template lifecycle](../platforms/proxmox/template-lifecycle.md) |
-| `terraform/modules/proxmox_templates/` | shared offline image import and unbooted template resources | [Talos template](../platforms/proxmox/talos-template.md) |
+| `tier-0` | `foundation` | [Identity](../paths/shared-services/identity.md) |
+| `tier-0` | `vault` | [Vault](../paths/shared-services/vault.md) |
+| `tier-0` | `hsm` | [HSM scope and connected adaptation](../security/usb-hsm-active-active-blueprint.md) |
+| `tier-0` | `immutable-template` | [Image-based Linux](../paths/application-platform/image-based-linux.md) |
+| `tier-0` | `template-refresh` | [Enterprise Linux templates](../platforms/proxmox/enterprise-linux-template.md) |
+| `tier-1` | `edge` | [Edge](../paths/shared-services/edge.md) |
+| `tier-1` | `cache` | [Cache](../paths/shared-services/cache.md) |
+| `tier-1` | `development` | [Development platform](../paths/application-platform/development.md) |
+| `tier-1` | `observability` | [Observability](../paths/system-control/observability.md) |
+| `tier-1` | `podman-runner` | [Podman runner](../paths/application-platform/podman-runner.md) |
+| `tier-2` | `lab` | [Local setup](../getting-started/local-setup.md) |
 
-## Terraform
+Base-image publication is a separate Tier 0 root at `tier-0/terraform/templates/`.
+Its catalog, approved offline artifacts, and optional CI starter live under
+`tier-0/templates/` and `tier-0/ci/`. See [Template lifecycle](../platforms/proxmox/template-lifecycle.md).
 
-| Path | Contains | Owner guide |
-| --- | --- | --- |
-| `terraform/common.tfvars.example` | default platform node, storage, network, template, and SSH-key inputs | [Local setup](../getting-started/local-setup.md) |
-| `terraform/environments/foundation/` | identity, DNS, PKI, and optional root CA guest layout | [Identity foundation path](../paths/shared-services/identity.md) |
-| `terraform/environments/edge/` | edge load-balancer guest layout | [Edge proxy path](../paths/shared-services/edge.md) |
-| `terraform/environments/cache/` | cache guest layout | [Cache path](../paths/shared-services/cache.md) |
-| `terraform/environments/development/` | GitLab development platform guest layout | [Development platform path](../paths/application-platform/development.md) |
-| `terraform/environments/vault/` | dedicated Vault guest layout | [Vault foundation deployment](../paths/shared-services/vault.md) |
-| `terraform/environments/observability/` | system-control telemetry, syslog, metrics, logs, and archive guest layout | [Observability path](../paths/system-control/observability.md) |
-| `terraform/environments/podman-runner/` | application-platform runner guest layout | [Podman image runner guide](../paths/application-platform/podman-runner.md) |
-| `terraform/environments/immutable-template/` | image-based Linux template builder guest layout | [Image-based Linux path](../paths/application-platform/image-based-linux.md) |
-| `terraform/environments/template-refresh/` | staged mutable Enterprise Linux template refresh layout | [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |
-| `terraform/environments/hsm/` | USB HSM gateway and optional helper guest layout | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
-| `terraform/environments/lab/` | general lab guest layout | [Local setup](../getting-started/local-setup.md) |
-| `terraform/modules/vm/` | reusable Proxmox VM module | this reference |
-| `terraform/modules/lxc/` | reusable Proxmox LXC module | this reference |
-| `terraform/modules/environment_guests/` | shared environment guest schema | this reference |
+## Shared automation
 
-## Ansible
-
-| Path | Contains |
+| Source path | Contains |
 | --- | --- |
-| `ansible/requirements.yml` | Galaxy-compatible reference list of required collections |
-| `ansible/inventory/hosts.yml.example` | stable logical host keys and service groups |
-| `ansible/group_vars/all.yml.example` | shared Ansible defaults and production environment identity |
-| `ansible/group_vars/all.env.yml.example` | environment-specific hostname decoration and domain overlay |
-| `ansible/group_vars/foundation.yml.example` | foundation IP map and FreeIPA settings |
-| `ansible/group_vars/edge.yml.example` | HAProxy and keepalived VIP settings for the edge path |
-| `ansible/group_vars/cache.yml.example` | Squid and keepalived VIP settings for the cache path |
-| `ansible/group_vars/development.yml.example` | GitLab container setup settings |
-| `ansible/group_vars/vault.yml.example` | Vault IP map and service settings |
-| `ansible/group_vars/observability.yml.example` | system-control IP map |
-| `ansible/group_vars/podman_runner.yml.example` | Podman runner package and registration settings |
-| `ansible/group_vars/immutable_template.yml.example` | image-based Linux template conversion settings |
-| `ansible/group_vars/template_refresh.yml.example` | mutable Enterprise Linux template refresh and replacement settings |
-| `ansible/group_vars/lab.yml.example` | lab IP map |
-| `ansible/group_vars/hsm.yml.example` | HSM IP map |
-| `ansible/playbooks/control-node.yml` | setup-aware precheck for Terraform and required Ansible collections |
-| `ansible/playbooks/foundation.yml` | staged FreeIPA identity foundation rollout |
-| `ansible/playbooks/edge.yml` | edge load-balancer baseline plus HAProxy and keepalived |
-| `ansible/playbooks/cache.yml` | cache baseline plus Squid and keepalived |
-| `ansible/playbooks/development.yml` | GitLab development platform setup |
-| `ansible/playbooks/vault.yml` | Vault host baseline and service installation |
-| `ansible/playbooks/lab.yml` | lab host baseline |
-| `ansible/playbooks/observability.yml` | system-control host baseline |
-| `ansible/playbooks/podman-runner.yml` | Podman runner host baseline and runner setup |
-| `ansible/playbooks/immutable-template.yml` | image-based Linux template builder setup |
-| `ansible/playbooks/template-refresh.yml` | staged Enterprise Linux template refresh and optional same-ID replacement |
-| `ansible/playbooks/hsm.yml` | HSM host baseline |
-| `ansible/playbooks/site.yml` | broad baseline entry point for manual use |
-| `ansible/playbooks/ingress.yml` | edge load-balancer backend registration for HSM gateways |
-| `ansible/roles/shared/` | callable task fragments reused with `include_role` and `tasks_from` |
-| `ansible/roles/baseline/` | security-first baseline scaffold |
-| `ansible/roles/edge_load_balancer/` | HAProxy and keepalived edge VIP setup |
-| `ansible/roles/cache_proxy/` | Squid and keepalived cache VIP setup |
-| `ansible/roles/gitlab_container/` | GitLab container host setup role |
-| `ansible/roles/vault/` | Vault service role |
-| `ansible/roles/podman_runner/` | Podman and GitLab Runner setup role |
-| `ansible/roles/immutable_template/` | bootc template conversion preparation role |
-| `ansible/roles/template_refresh/` | mutable Enterprise Linux template refresh role |
-| `ansible/roles/proxmox_template_replace/` | Proxmox same-ID template replacement role |
-| `ansible/roles/hsm_proxy_ingress/` | HSM gateway backend snippet scaffold |
+| `shared/terraform/modules/environment_guests/` | resolves tier inventory, names, and IP maps |
+| `shared/terraform/modules/vm/`, `lxc/` | reusable Proxmox guest resources |
+| `shared/terraform/modules/proxmox_templates/` | offline image import and unbooted template resources |
+| `shared/ansible/playbooks/` | control-node precheck and setup/service entry points |
+| `shared/ansible/roles/` | baseline, shared task fragments, and service configuration |
+| `shared/ansible/requirements.yml` | required Ansible collections |
+| `shared/packer/templates/proxmox/` | optional Enterprise Linux, Debian, and Talos build scaffolds |
+| `shared/scripts/` | deployment, local-input initialization, template publication, tier-context checks |
 
-## Packer
+The shared tree contains no live inventory, credentials, state, or per-tier
+defaults. Packer inputs belong to `tier-0/packer/`; automated base-image
+publication uses Terraform, not the optional Packer scaffolds.
 
-These files are optional custom-build scaffolds. For automated base-image
-publication, use the [Tier 0 template workflow](../platforms/proxmox/template-lifecycle.md).
+## Maintaining the split
 
-| Path | Contains |
-| --- | --- |
-| `packer/variables.auto.pkrvars.hcl.example` | safe example input values |
-| `packer/templates/proxmox/el10.pkr.hcl` | Enterprise Linux VM image scaffold for the current EL10 reference path |
-| `packer/templates/proxmox/debian-12.pkr.hcl` | Debian 12 VM image scaffold |
-| `packer/templates/proxmox/talos-linux.pkr.hcl` | incomplete optional ISO-build scaffold; use `terraform/templates/` for NoCloud image publication |
+- Change a setup's Terraform root and Ansible examples together in its owning tier.
+- Register added setups in that tier's `.deployment-setups`; the generator checks
+  for missing inputs, unregistered roots, and overlapping tier ownership.
+- Change reusable behavior once under `shared/`; do not copy roles into tiers.
+- Keep tier-wide default examples separate: each tier owns its network and
+  identity choices even when starter values match.
+- Edit cluster/bootstrap starter files directly under their owning tier; they
+  are seeded once downstream, not constructed in Python.
+- Update README/project-doc templates under `scripts/tier-repos/templates/`
+  and upstream guidance under `docs/`.
+
+From the kit root, run the [offline checks](generated-repository-model.md#implementation-scope).
+Use [repository scripts](repository-scripts.md) for operational command options.

@@ -20,6 +20,10 @@ This repository is an upstream deployment kit that can generate or refresh
 private downstream repositories. Those downstream repositories own the actual
 Tier 0, Tier 1, Tier 2, shared, and architecture content for one environment.
 
+Source checkouts use the same ownership split under `tier-0/`, `tier-1/`,
+`tier-2/`, and `shared/`. Run local initialization and deployment from the
+owning tier, never the kit root. See the [source layout](reference/infrastructure-automation-layout.md).
+
 ## Recommended usage models
 
 ### Option 1: Private fork
@@ -73,7 +77,8 @@ Use these conventions consistently:
 - `secrets/` = untracked secret material
 - live files should either be ignored or kept in a private operational copy
 
-Examples:
+Examples below are relative to the owning tier; ignore rules also cover the
+nested source directories:
 
 - `packer/variables.auto.pkrvars.hcl.example` committed
 - `packer/variables.auto.pkrvars.hcl` ignored

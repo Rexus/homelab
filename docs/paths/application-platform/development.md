@@ -18,6 +18,10 @@
 Use this path when the private cloud needs source control, CI/CD coordination,
 and a starting point for internal software projects.
 
+Run deployment commands from the Tier 1 root: `tier-1/` in a private
+source checkout or `<prefix>-tier-1/` after generation. File paths below
+are tier-relative unless marked as shared code.
+
 The reference implementation is GitLab on one dedicated Podman VM. This keeps
 the first deployment simple and movable. Dedicated runners, Harbor, bootc image
 builds, and Kubernetes build on top of this path later.
@@ -62,7 +66,7 @@ from the GitLab host.
 | Ansible inventory | `ansible/inventory/hosts.yml` |
 | Ansible environment vars | `ansible/group_vars/all.yml` or `all.<env>.yml` |
 | Ansible setup vars | `ansible/group_vars/development.yml` |
-| Ansible role | `ansible/roles/gitlab_container/` |
+| Shared Ansible role | `ansible/roles/gitlab_container/` |
 
 ## Configure the deployment
 

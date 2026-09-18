@@ -59,7 +59,9 @@ From `homelab-iac/homelab-tier-0`, initialize the local catalog:
 bash ../homelab-shared/scripts/proxmox-templates.sh init
 ```
 
-Use your prefix in the sibling path. Edit `templates/proxmox.yml`; remove
+Use your prefix in the sibling path. In a private source checkout, start in
+`tier-0/` and use `../shared/scripts/proxmox-templates.sh` for the same commands.
+Edit `templates/proxmox.yml`; remove
 unused example entries before the first apply. Record exact releases and the
 unpacked image hashes, and use absolute local artifact paths. The initializer
 does not overwrite an existing catalog.
@@ -170,8 +172,8 @@ See [refresh ownership](../../reference/generated-repository-model.md#refresh-an
 From the upstream checkout, use Terraform 1.7 or later for the native mock tests:
 
 ```bash
-terraform -chdir=terraform/modules/proxmox_templates init -backend=false
-terraform -chdir=terraform/modules/proxmox_templates test
+terraform -chdir=shared/terraform/modules/proxmox_templates init -backend=false
+terraform -chdir=shared/terraform/modules/proxmox_templates test
 ```
 
 These tests inspect plans and validation failures without calling Proxmox.

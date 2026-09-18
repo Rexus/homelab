@@ -240,7 +240,7 @@ Current content maps into the tier model like this:
 | --- | --- | --- |
 | Base-image catalog, template creation/update jobs, approval | Tier 0 | includes the immutable cluster OS; consumers receive approved artifacts |
 | Virtualization API and networks | Owning tier; design in Architecture | connected control is not custody infrastructure |
-| Terraform modules under `terraform/modules/` | Shared | reusable between tier repositories |
+| Terraform modules under source `shared/terraform/modules/` | Shared | reusable between tier repositories |
 | Ansible roles and playbooks | Shared | consume only the owning tier's inputs |
 | Inventory, group vars, and Terraform state | Owning tier | three independent inventories using the same mechanism |
 | `foundation` identity path | Tier 0 or Tier 1 | only Tier 0 if part of recovery minimum |

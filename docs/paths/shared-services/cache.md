@@ -5,6 +5,10 @@
 Use this path to deploy a shared cache pair for systems that need controlled
 outbound repository and update access.
 
+Run deployment commands from the Tier 1 root: `tier-1/` in a private
+source checkout or `<prefix>-tier-1/` after generation. File paths below
+are tier-relative unless marked as shared code.
+
 The reference implementation is `Squid` with `keepalived`. The first use case
 is allowing restricted or air-gapped systems to reach approved software
 sources without building full internal mirrors for every operating system,
@@ -76,11 +80,11 @@ be introduced with an explicit policy, internal CA rollout, and audit model.
 
 | Path | What you configure |
 | --- | --- |
-| [`terraform/common.tfvars.example`](../../../terraform/common.tfvars.example) | `external_edge` network mapping, shared storage, template ID, and SSH keys |
-| [`terraform/environments/cache/terraform.tfvars.example`](../../../terraform/environments/cache/terraform.tfvars.example) | cache VM count, size, OS disk, cache data disk, storage, and tags |
-| [`ansible/inventory/hosts.yml.example`](../../../ansible/inventory/hosts.yml.example) | `cache` host group |
-| [`ansible/group_vars/all.yml.example`](../../../ansible/group_vars/all.yml.example) | shared hostname, domain, SSH, optional repository proxy URL, and baseline defaults |
-| [`ansible/group_vars/cache.yml.example`](../../../ansible/group_vars/cache.yml.example) | cache host IPs, VIP, FQDN, port, keepalived router ID, allowed client CIDRs, allowed software-source domains, and optional upstream proxy |
+| [`terraform/common.tfvars.example`](../../../tier-1/terraform/common.tfvars.example) | `external_edge` network mapping, shared storage, template ID, and SSH keys |
+| [`terraform/environments/cache/terraform.tfvars.example`](../../../tier-1/terraform/environments/cache/terraform.tfvars.example) | cache VM count, size, OS disk, cache data disk, storage, and tags |
+| [`ansible/inventory/hosts.yml.example`](../../../tier-1/ansible/inventory/hosts.yml.example) | `cache` host group |
+| [`ansible/group_vars/all.yml.example`](../../../tier-1/ansible/group_vars/all.yml.example) | shared hostname, domain, SSH, optional repository proxy URL, and baseline defaults |
+| [`ansible/group_vars/cache.yml.example`](../../../tier-1/ansible/group_vars/cache.yml.example) | cache host IPs, VIP, FQDN, port, keepalived router ID, allowed client CIDRs, allowed software-source domains, and optional upstream proxy |
 
 ## Cache storage
 

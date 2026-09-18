@@ -19,6 +19,10 @@
 Use this guide when GitLab exists and you want a dedicated internal runner that
 can build bootc images for your server templates and hosts.
 
+Run deployment commands from the Tier 1 root: `tier-1/` in a private
+source checkout or `<prefix>-tier-1/` after generation. File paths below
+are tier-relative unless marked as shared code.
+
 This is the first image-based Linux implementation path. It does not require
 Kubernetes, Harbor, or Dragonfly. The runner builds with Podman and pushes the
 image to the GitLab built-in registry. When the shared registry path exists,
@@ -33,7 +37,7 @@ This path has dedicated IaC:
 | Terraform | `terraform/environments/podman-runner/terraform.tfvars` | deploys runner VM(s) |
 | Ansible inventory | `ansible/inventory/hosts.yml` | keeps the stable `podman_runner` host group |
 | Ansible vars | `ansible/group_vars/podman_runner.yml` | controls packages, runner tags, and optional registration |
-| Ansible role | `ansible/roles/podman_runner/` | installs Podman, Buildah, Skopeo, Git, and GitLab Runner |
+| Shared Ansible role | `ansible/roles/podman_runner/` | installs Podman, Buildah, Skopeo, Git, and GitLab Runner |
 | GitLab | runner registration token and project settings | runs the bootc image pipeline |
 | GitLab registry | project or group registry | stores the first internal bootc images |
 

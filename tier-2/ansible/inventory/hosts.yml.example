@@ -1,0 +1,13 @@
+# Tier-owned logical hosts. IPs live in setup group vars.
+all:
+  vars:
+    ansible_host: "{{\n  platform_host_ips.get(inventory_hostname, inventory_hostname)\n  if platform_host_ips\
+      \ is defined\n  else inventory_hostname\n}}"
+  children:
+    lab:
+      hosts:
+        lab-1: {}
+        support-1: {}
+    guests:
+      children:
+        lab: null

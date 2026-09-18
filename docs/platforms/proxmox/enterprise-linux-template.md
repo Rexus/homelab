@@ -38,11 +38,15 @@ Use an official Generic Cloud `qcow2` image from AlmaLinux or Rocky Linux.
 These images already support cloud-init and fit Proxmox templates better than a
 full installer ISO.
 
+The template lifecycle runs from the Tier 0 root: `tier-0/` in a private source
+checkout or `<prefix>-tier-0/` after generation. Commands below use tier-local
+inputs and shared automation.
+
 Current repository note:
 
 - this guide is currently based on EL10 releases from AlmaLinux and Rocky Linux
 - the manual Proxmox template flow in this guide works for either distribution
-- the shipped Packer scaffold is currently `packer/templates/proxmox/el10.pkr.hcl`
+- the shipped Packer scaffold is currently `shared/packer/templates/proxmox/el10.pkr.hcl` in the source checkout
 - Terraform uses the neutral variable name `default_linux_vm_template_id`
 - you can point that variable at another Linux cloud-init template, but review
   Ansible service roles when you leave the Enterprise Linux family
