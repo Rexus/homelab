@@ -41,7 +41,9 @@ class SourceLayout(TierRepositoryTestCase):
                 continue
             config = configparser.ConfigParser()
             config.read(source / "ansible/ansible.cfg")
-            self.assertTrue((source / "ansible" / config["defaults"]["roles_path"]).is_dir())
+            role_paths = config["defaults"]["roles_path"].split(":")
+            self.assertEqual(role_paths, ["roles", "../../shared/ansible/roles"])
+            self.assertTrue((source / "ansible" / role_paths[1]).is_dir())
             relative = "ansible/inventory/hosts.yml.example"
             self.assertEqual(yaml.safe_load((source / relative).read_text()),
                              yaml.safe_load((generated / relative).read_text()))
@@ -59,6 +61,9 @@ class SourceLayout(TierRepositoryTestCase):
             "terraform/environments/lab/.terraform.lock.hcl": "# lock\n",
             "terraform/environments/lab/terraform.tfvars.example": "# example\n",
             "ansible/inventory/hosts.yml.example": "all: {}\n",
+            "ansible/playbooks/lab.yml": "- hosts: lab\n",
+            "ansible/roles/local/tasks/main.yml": "[]\n",
+            "packer/templates/proxmox/example.pkr.hcl": "# source\n",
             "ansible/inventory/hosts.yml": "SECRET\n",
             "ansible/group_vars/all.yml": "SECRET\n",
             "ansible/host_vars/host.yml": "SECRET\n",

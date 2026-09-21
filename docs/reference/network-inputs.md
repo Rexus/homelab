@@ -14,13 +14,13 @@ segments and [firewall policy](../security/firewall-policy.md) first.
 Terraform's `network_zones` maps logical guest-network keys to existing
 attachments. It does not create firewall zones, gateways, VLAN trunks, or rules.
 
-Host-management IPs, cluster fabric, and storage transport belong in host/network
-operations. Include a network here only when Terraform should attach a guest
+Host-management IPs, cluster fabric, and storage transport belong in Tier 0
+host/network operations. Include a network here only when Terraform should attach a guest
 to it, such as a deliberately scoped administration guest.
 
 ## Guest attachment
 
-Example Tier 2 values in `terraform/common.tfvars` for the `t2-apps` network
+Example Tier 2 values in `terraform/common.tfvars` for the `lab` network
 from the [example plan](../architecture/network.md#example-network-plan):
 
 ```hcl
@@ -34,7 +34,8 @@ network_zones = {
 }
 ```
 
-On the gateway, that subnet is assigned to `T2-Application`. The firewall-zone
+On the gateway, assign the subnet to `Services` or a separate `Lab` zone when
+its policy differs. The firewall-zone
 name is not a Terraform field. With Proxmox SDN, use the short VNet ID as
 `bridge` and omit `vlan_id` when tagging is handled by the VNet.
 
@@ -75,15 +76,16 @@ maintain a second address list in VM placement variables.
 
 ## Tier-local inputs
 
-Keep keys such as `application` stable across tiers, but give connected tiers
-distinct subnet and attachment values. An identical key is not a shared VLAN.
-Add more logical keys when a tier needs several project networks, and document
-their firewall-zone membership in the owned architecture plan.
+Keep logical keys such as `application` stable, and select actual subnet and
+attachment values from the site plan. An identical key is not automatically
+a shared VLAN. Repos may reference the same network when policy permits;
+separate subnets wherever trust or access requirements differ.
+Document each network's operational owner and zone in the network inventory.
 
 Generated examples retain upstream reference addresses. Review all bridge,
-VLAN, CIDR, gateway, and inventory IP values before applying them. Map Tier 0
-examples to custody-local networks even when their logical keys are named
-`identity`, `application`, or `cryptography`.
+VLAN, CIDR, gateway, and inventory IP values before applying them. Tier 0
+control systems may use connected protected networks. Only assets designated
+for offline custody use the separately isolated fabric.
 
 The current `environment_guests` static-guest check expects `gateway_ipv4`.
 In custody, use only an actual custody-local router with no connected-tier

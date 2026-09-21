@@ -15,7 +15,7 @@ security posture, and tool separation across Packer, Terraform, and Ansible.
 
 - [Proxmox](proxmox/README.md) - current reference implementation
 - [UniFi zone firewall](unifi/zone-firewall.md) - manual network-policy
-  translation for the tier/layer model, not a provisioning provider
+  translation for the network-layer model, not a provisioning provider
 
 Read [Private cloud model](../architecture/private-cloud.md) when you want to
 understand why the current reference path starts with Proxmox and when a

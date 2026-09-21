@@ -2,7 +2,8 @@
 
 Complete and test this runbook before depending on the environment. Record
 where protected material is held, not the credentials or key material itself.
-Use [naming and allocations](../../naming-conventions.md) for resource references.
+Use the [naming conventions](../../naming-conventions.md) to interpret names and
+ID ranges; use inventory and state backups for exact resource assignments.
 
 ## Recovery inputs
 
@@ -18,7 +19,7 @@ Use [naming and allocations](../../naming-conventions.md) for resource reference
 
 | Order | Tier / component | Action or linked procedure | Verification | Owner |
 | --- | --- | --- | --- | --- |
-| 1 | Tier 0 custody and control | TBD | recover without connected services | TBD |
+| 1 | Tier 0 control, plus separately isolated custody | TBD | recover without Tier 1 or Tier 2 services | TBD |
 | 2 | Tier 1 platform | TBD | recover without Tier 2 workloads | TBD |
 | 3 | Tier 2 workloads | TBD | service-specific health and access checks | TBD |
 

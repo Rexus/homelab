@@ -38,20 +38,8 @@ selected_setups=()
 source "$(dirname "${BASH_SOURCE[0]}")/lib/deployment-context.sh"
 
 setup_group_vars_stem() {
-  case "$1" in
-    podman-runner)
-      echo "podman_runner"
-      ;;
-    immutable-template)
-      echo "immutable_template"
-      ;;
-    template-refresh)
-      echo "template_refresh"
-      ;;
-    *)
-      echo "$1"
-      ;;
-  esac
+  local setup_name="$1"
+  echo "${setup_name//-/_}"
 }
 
 normalize_setup_name() {

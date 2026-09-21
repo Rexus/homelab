@@ -118,8 +118,9 @@ Figure: one strong clustered Proxmox pattern is to keep normal platform VLANs
 on a fabric bond and bridge, and keep Ceph plus a second Corosync path on a
 separate storage bond and bridge.
 
-This is a connected-tier host pattern. Tier 0 and `ceremony` require separate
-custody-local hosts and fabric; do not add them to these connected trunks.
+This is a connected-host pattern, including protected Tier 0 control systems.
+Offline `ceremony` and custody assets require separate isolated hosts/fabric;
+do not attach those assets to these connected trunks.
 
 ## Bonds and bridges
 

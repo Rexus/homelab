@@ -15,12 +15,15 @@
 
 Use this guide when you want to deploy the USB HSM pattern from this repo.
 
-This is the connected gateway reference for Tier 1. The source and generated Tier 0 HSM
-setup is custody-local and does not configure an edge backend. See
-[setup ownership](../reference/generated-repository-model.md#setup-ownership)
-before adapting the Tier 0 host examples into a separate Tier 1 setup. Keep connected
-gateway and edge hosts in the owning Tier 1 inventory; never route this service
-into air-gapped custody.
+Classify the service by the authority of its keys: domain-wide signing belongs
+in Tier 0; a narrowly scoped platform service may belong in Tier 1. Connected
+Tier 0 gateways use protected Control networks. Offline root-key custody is a
+separate deployment and must never become a live edge backend. See
+[setup ownership](../reference/generated-repository-model.md#setup-ownership).
+
+The shipped `hsm` setup provisions hosts and applies the OS baseline only.
+Device configuration, gateway software, authorization, and ingress integration
+remain operator work; this is not a complete HSM service deployment.
 
 It stays focused on:
 
@@ -40,9 +43,11 @@ Before you start:
 - the shared-service edge load-balancer set is already deployed in
   `external_edge`
 - the deployment machine already has `ansible-core` and `terraform`
-- the edge load-balancer hosts already exist in `ansible/inventory/hosts.yml`
-- this guide only reruns edge load-balancer Ansible to add or refresh HSM
-  gateway backends
+- the edge load-balancer hosts exist in their owning repo's inventory
+- the edge owner has approved the specific gateway endpoint contract; gateway
+  administration is not exposed through it
+- the ingress example needs integration before it can publish a service; it
+  only renders a backend snippet, not a frontend, validation, or reload
 
 For the load-balancer prerequisite, start with
 [Edge proxy path](../paths/shared-services/edge.md).
@@ -52,7 +57,7 @@ For the load-balancer prerequisite, start with
 The default shape in this repo is:
 
 - the deployed edge load-balancer set from the `edge` setup
-- `2` gateway hosts in the `cryptography` zone
+- `2` gateway hosts on the `cryptography` network in the Control zone
 - `1` local USB HSM or software token per gateway host
 - `0-1` helper or recovery VM in `ceremony`
 - `1` offline backup device or equivalent recovery artifact
@@ -114,29 +119,29 @@ Before you deploy, fill in these inputs.
 
 ### Network zones
 
-Use the shared zone keys from
+These are logical `network_zones` attachment keys, not firewall-zone names. Use
 [Network architecture](../architecture/network.md).
 
-You mainly add these zones here:
+The gateway deployment uses:
 
-| Zone key | Use in this guide |
+| Network key | Use in this guide |
 | --- | --- |
 | `cryptography` | active gateway hosts and optional issuing CA placement |
 | `ceremony` | optional helper, recovery VM, or root-CA path when you want a separate ceremony network |
 
-These existing zones are only references here:
+These existing networks are only references here:
 
-| Zone key | Why it still matters here |
+| Network key | Why it still matters here |
 | --- | --- |
 | `external_edge` | already deployed edge load balancer or load-balancer set reaches the cryptography hosts |
 | `management` | admin access, automation, and metrics reach the HSM hosts |
 | `application` | shared internal callers may reach the cryptography hosts if you expose them internally |
 | `identity` | identity or PKI dependencies may still need controlled reachability to issuing services on the cryptography network |
 
-The linked source examples belong to Tier 0. For this connected pattern,
-create a separately owned Tier 1 setup with distinct host keys, VMIDs, IPs,
-and state as described in [setup ownership](../reference/generated-repository-model.md#setup-ownership).
-Edit its tier-local Terraform inputs; never connect the Tier 0 instance to the edge:
+The linked source examples belong to Tier 0, including connected gateways
+whose keys carry Tier 0 authority. Edit the owning tier's Terraform inputs.
+A separate, lower-impact deployment needs its own host keys, VMIDs, IPs, and
+state; do not move root-trust authority into Tier 1 merely to make it reachable.
 
 - [`terraform/common.tfvars.example`](../../tier-0/terraform/common.tfvars.example)
   for the default platform node, shared storage, deployable guest networks,
@@ -146,21 +151,23 @@ Edit its tier-local Terraform inputs; never connect the Tier 0 instance to the e
 
 Set the values your environment needs for `cryptography` and optional
 `ceremony`, such as bridge, VLAN, subnet, gateway, and addressing conventions.
-Reuse the existing `external_edge`, `management`, `identity`, and
-`application` mappings from your prerequisite deployments.
+Use the site network plan for `external_edge`, `management`, `identity`, and
+`application`. Do not copy another tier's entire inventory or state to publish
+an endpoint.
 
 ### Firewall openings
 
-Use these default openings unless you have intentionally changed the service
-ports:
+Scope these candidate rules to named hosts and approved listeners, not entire
+networks. The keys below identify networks; use their actual zone assignments
+from the site plan. Ports alone do not authorize signing operations.
 
-| Source zone | Destination zone | Default port or protocol | Purpose |
+| Source network / host | Destination network / host | Default port or protocol | Purpose |
 | --- | --- | --- | --- |
 | `external_edge` | `cryptography` | `8443/TCP` | deployed edge load balancer to gateway service |
-| `management` | `cryptography` | `22/TCP` | SSH, Ansible, and troubleshooting |
-| `management` | `ceremony` | `22/TCP` | helper or recovery host administration |
+| approved Tier 0 admin host in `management` | `cryptography` | `22/TCP` | SSH, Ansible, and troubleshooting |
+| custody-local admin host | `ceremony` | `22/TCP` if required | local administration without a connected-network route |
 | `application` | `cryptography` | `8443/TCP` optional | internal callers using the same gateway service endpoint |
-| `ceremony` | `cryptography` | none by default | open only when a helper host needs a direct admin path |
+| offline `ceremony` | connected `cryptography` | none | approved offline transfer only |
 
 Keep these boundaries:
 
@@ -174,7 +181,7 @@ Keep these boundaries:
   configure and need them
 - do not expose raw USB devices or generic PKCS#11 endpoints over the network
 - keep USB or token access host-local on each gateway
-- if you do not deploy a helper host, keep `ceremony` to `cryptography` closed
+- an offline helper does not create a route between `ceremony` and connected networks
 
 ### VM layout
 
@@ -188,9 +195,9 @@ Edit the `vm_instances` maps to match the shape you want.
 The deployed edge load balancer stays in the shared-service layer. Start here with
 the gateway and helper hosts.
 
-The Tier 0 inventory examples include `hsm-1` and `hsm-2` for custody.
-Use distinct logical keys in the connected Tier 1 inventory. If you add or
-remove HSM hosts, update both the Terraform `vm_instances` map and the Ansible IP map.
+The Tier 0 inventory examples include `hsm-1` and `hsm-2`. If you add or
+remove HSM hosts, update both the Terraform `vm_instances` map and the Ansible
+IP map in their owning repo. Use distinct allocations for additional instances.
 
 ### HSM mode
 
@@ -206,8 +213,8 @@ Keep the host layout the same across all three modes.
 
 ## IaC used for this
 
-These source paths provide the reusable host pattern. The input examples are
-Tier 0-owned; connected deployments must use their own Tier 1 copies:
+These source paths provide the reusable host pattern. Inputs are Tier 0-owned
+by default; connectivity does not change that ownership:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
@@ -216,15 +223,17 @@ Tier 0-owned; connected deployments must use their own Tier 1 copies:
 | [`ansible/inventory/hosts.yml.example`](../../tier-0/ansible/inventory/hosts.yml.example) | stable HSM host keys and inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../tier-0/ansible/group_vars/all.yml.example) | shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
 | [`ansible/group_vars/all.env.yml.example`](../../tier-0/ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
-| [`ansible/group_vars/hsm.yml.example`](../../tier-0/ansible/group_vars/hsm.yml.example) | custody-local HSM host IPs; connected edge IPs stay in Tier 1 | your local `ansible/group_vars/hsm.yml` |
-| [`ansible/playbooks/hsm.yml`](../../shared/ansible/playbooks/hsm.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
-| [`ansible/playbooks/ingress.yml`](../../shared/ansible/playbooks/ingress.yml) | reruns edge load-balancer configuration so the deployed edge layer points at the HSM gateways | inventory and edge load-balancer variables |
+| [`ansible/group_vars/hsm.yml.example`](../../tier-0/ansible/group_vars/hsm.yml.example) | Tier 0 HSM host IPs; edge hosts stay in their own repo | your local `ansible/group_vars/hsm.yml` |
+| [`ansible/playbooks/hsm.yml`](../../tier-0/ansible/playbooks/hsm.yml) | reruns baseline OS preparation on the HSM hosts | inventory and host variables |
+| [`ansible/playbooks/ingress.yml`](../../tier-1/ansible/playbooks/ingress.yml) | renders an HAProxy backend snippet from the supplied `hsm_gateways` inventory group | endpoint references and edge configuration in the edge-owning repo |
 | [`scripts/deploy.sh`](../../tier-0/scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `hsm` setup when you are ready to run it |
 
-You do not rerun edge Terraform as part of this HSM rollout. For the connected
-Tier 1 adaptation, run the shared ingress playbook separately
-with that tier's inventory and vars after gateway configuration. The `hsm`
-wrapper runs only the HSM baseline; it never configures edge ingress.
+The `hsm` wrapper runs only the HSM baseline; it never configures edge ingress.
+The Tier 1 ingress example reads `hsm_gateways` from the supplied inventory;
+it does not discover another tier's endpoints or state. The edge owner must
+maintain approved endpoint references and integrate the snippet into HAProxy,
+including listener policy, validation, and reload. Gateway lifecycle and
+credentials remain in the gateway-owning repo.
 
 Use the shared ownership rule from
 [Infrastructure automation layout](../reference/infrastructure-automation-layout.md):
@@ -246,8 +255,8 @@ data only.
 - keep active gateways in `cryptography`
 - enable `ceremony` only when you really want a helper, recovery, or root-CA
   adjacency path
-- keep the inventory aligned with host intent:
-  `edge_load_balancers`, `hsm_gateways`, and optional `crypto_admin`
+- keep lifecycle inventory aligned with ownership: `hsm_gateways` and optional
+  `crypto_admin` in the gateway repo; `edge_load_balancers` in the edge repo
 - keep one local token or software token per gateway host
 - keep the live traffic path and the ceremony path separate even when they use
   the same HSM product family
@@ -325,8 +334,8 @@ Keep at least these checks in your normal maintenance cycle:
 
 ## References
 
-1. [SoftHSM](https://www.softhsm.org/) (accessed 2026-04-19)
-2. [PicoKeys Documentation: Supported features](https://docs.picokeys.com/picohsm/features/) (accessed 2026-04-19)
-3. [PicoKeys Documentation: Backup and restore](https://docs.picokeys.com/picohsm/backup-restore/) (accessed 2026-04-19)
-4. [Yubico: YubiHSM PKCS#11 Module](https://developers.yubico.com/yubihsm-shell/yubihsm-pkcs11.html) (accessed 2026-04-20)
-5. [Yubico: yubihsm-connector](https://developers.yubico.com/yubihsm-connector/) (accessed 2026-04-20)
+1. [SoftHSM](https://www.softhsm.org/) (accessed 2026-09-19)
+2. [PicoKeys Documentation: Capability map](https://docs.picokeys.com/picohsm/features/) (accessed 2026-09-19)
+3. [PicoKeys Documentation: Backup and restore](https://docs.picokeys.com/picohsm/backup-restore/) (accessed 2026-09-19)
+4. [Yubico: YubiHSM PKCS#11 Module](https://developers.yubico.com/yubihsm-shell/yubihsm-pkcs11.html) (accessed 2026-09-19)
+5. [Yubico: yubihsm-connector](https://developers.yubico.com/yubihsm-connector/) (accessed 2026-09-19)

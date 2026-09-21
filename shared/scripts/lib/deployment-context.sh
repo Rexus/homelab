@@ -13,7 +13,7 @@ else
 fi
 repo_root="$(cd "$repo_root" && pwd)"
 ansible_dir="$repo_root/ansible"
-ansible_playbook_dir="$automation_root/ansible/playbooks"
+ansible_playbook_dir="$ansible_dir/playbooks"
 
 if [[ ! -f "$repo_root/.deployment-setups" ]]; then
   echo "Missing tier setup list: $repo_root/.deployment-setups" >&2

@@ -5,10 +5,13 @@ homelab or small-datacenter scale. Packer builds images, Terraform provisions
 infrastructure, and Ansible configures hosts using the same inventory inputs.
 Proxmox is the reference platform.
 
-The architecture combines functional layers with three ownership tiers:
-Tier 0 for recovery and control, Tier 1 for shared platform services, and
-Tier 2 for workloads. Each tier owns its inventory and state; a shared
-repository holds reusable automation.
+The design follows one rule: **it should be easy to do right**. Tiers divide
+repository ownership by potential impact: Tier 0 holds the highest-impact
+control systems, including hardware, network administration, and VM templates;
+Tier 1 holds shared platform services, and Tier 2 workloads.
+Network layers separately protect from the outside inward: Edge, Application,
+Control. Each tier owns its service code, inventory, and state; only cross-tier
+building blocks belong in shared.
 
 Use this public upstream for examples and code. Keep operational configuration
 in private generated repositories, a private fork, or a local working copy.
@@ -37,7 +40,7 @@ homelab-iac/                 # collection directory, not a Git repository
 
 First, fill in `homelab-architecture/docs/naming-conventions.md` inside the
 collection. Then follow `homelab-tier-0/README.md` from that tier's root; its
-commands call shared scripts by relative path and use local inputs. Substitute
+commands use tier-local code and shared helpers with local inputs. Substitute
 your prefix if customized. Each README is a developer-owned starter template.
 
 ## Update Your Collection
@@ -70,10 +73,10 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 ## Repository Structure
 
 - `docs/`: architecture, reader paths, platform guides, security, and references
-- `tier-0/`: control and custody Terraform roots, Ansible inputs, templates, and bootstrap
-- `tier-1/`: platform Terraform roots, Ansible inputs, and cluster starters
-- `tier-2/`: workload Terraform roots, Ansible inputs, and project starters
-- `shared/`: reusable Terraform modules, Ansible playbooks/roles, Packer builds, and runtime scripts
+- `tier-0/`: infrastructure and trust services, VM template code, Packer builds, and bootstrap
+- `tier-1/`: shared-platform service code, Terraform roots, Ansible inputs, and cluster starters
+- `tier-2/`: workload code, Terraform roots, Ansible inputs, and project starters
+- `shared/`: cross-tier guest modules, baseline roles, and generic deployment helpers
 - `scripts/`: repository-generation tooling and README/project-doc templates
 - `tests/`: offline generator and automation checks
 - `.ai/`: assistant context

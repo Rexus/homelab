@@ -17,5 +17,5 @@
   become: true
   run_once: true
   roles:
-    - proxmox_template_replace
-  when: template_refresh_replace_enabled | default(false) | bool
+    - role: proxmox_template_replace
+      when: template_refresh_replace_enabled | default(false) | bool

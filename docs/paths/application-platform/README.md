@@ -24,7 +24,7 @@ runtime patterns belong.
 | development | GitLab on a dedicated Podman VM, repositories, and CI/CD coordination | shared identity, PKI, secrets |
 | Podman image runner | runner VM for bootc and container image builds | development path |
 | registry | Harbor and shared OCI artifacts | development path for automated builds |
-| image-based Linux | Tier 0 `immutable-template` setup and bootc template lifecycle | approved OCI artifacts transferred to a custody-local source |
+| image-based Linux | Tier 0 `immutable-template` setup and bootc template lifecycle | approved OCI artifacts retained in a recoverable Tier 0 source |
 | Kubernetes | application runtime and GitOps direction | shared services, registry, and development paths |
 
 ## How this path grows

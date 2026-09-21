@@ -25,9 +25,11 @@ This repository assumes:
 - rebuild-first or immutable patterns where practical
 - public code with private runtime data
 
-Map networks into the [tier/layer view](../architecture/overview.md#tier-and-zone-view)
+Map networks into the [layered architecture](../architecture/overview.md#tier-and-zone-view)
 and use the [firewall policy](firewall-policy.md) for scoped access between
-them. A tier or zone label does not grant trust.
+them. Tiers classify potential damage and repo ownership; zones classify
+network policy. Neither label grants trust. Tier 0 can be connected; offline
+custody remains separately isolated.
 
 ## Identity and access
 

@@ -1,8 +1,8 @@
 # ${prefix} Project Overview
 
 Replace `TBD` with the environment's actual design and link detailed records
-as they are added. Names, ID ranges, and subnet allocations belong in
-[naming and allocations](../../naming-conventions.md).
+as they are added. Names, tags, VMID ranges, and VLAN conventions belong in
+[naming conventions](../../naming-conventions.md).
 
 ## Scope
 
@@ -16,11 +16,11 @@ as they are added. Names, ID ranges, and subnet allocations belong in
 
 ## Topology and services
 
-Add the actual tier/layer diagram here using the
+Show repository ownership and network protection separately using the
 [reference view](../../auto-docs/architecture/overview.md#tier-and-zone-view).
 Link network policies and deployment records instead of copying guide text.
 
-| Capability | Owning tier / layer | Entry point | Deployment / runbook | Owner |
+| Capability | Owning repo / impact | Network / zone | Entry point | Deployment / runbook |
 | --- | --- | --- | --- | --- |
 | TBD | TBD | TBD | TBD | TBD |
 

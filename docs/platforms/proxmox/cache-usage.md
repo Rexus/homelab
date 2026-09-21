@@ -61,18 +61,18 @@ repository_proxy_fqdn: "cache.{{ platform_domain }}"
 repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
 ```
 
-From the owning tier root, select the sibling shared checkout (use `../shared`
-in a private source checkout; adjust `homelab` for a generated collection):
+From the Tier 0 repository root, or `tier-0/` in a private source checkout:
 
 ```bash
-automation_root="$(cd ../homelab-shared && pwd)"
 cd ansible
+export ANSIBLE_CONFIG="$PWD/ansible.cfg"
 ansible-playbook -i inventory/hosts.yml -e @group_vars/all.yml \
-  "$automation_root/ansible/playbooks/proxmox-hosts.yml"
+  playbooks/proxmox-hosts.yml
 ```
 
-This connected proxy workflow does not grant Tier 0 access to a Tier 1 cache.
-Custody requires a local mirror or approved offline content.
+Connected control hosts may use an explicitly approved proxy path, with local
+artifacts retained for recovery. Offline custody requires its own local mirror
+or transferred content; this workflow does not create a path across the air gap.
 
 ## Test from a Proxmox host
 

@@ -1,0 +1,18 @@
+---
+- name: Check Tier 0 deployment tooling
+  ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
+  vars:
+    control_node_collection_catalog:
+      freeipa.ansible_freeipa:
+        name: freeipa.ansible_freeipa
+        os_packages:
+          RedHat: [ansible-freeipa]
+          Debian: [ansible-freeipa]
+    control_node_setup_collection_names:
+      foundation: [community.general, ansible.posix, freeipa.ansible_freeipa]
+      vault: [community.general, ansible.posix]
+      hsm: [community.general, ansible.posix]
+      immutable-template: [community.general, ansible.posix]
+      template-refresh: []
+      proxmox-hosts: []
+      site: [community.general, ansible.posix]

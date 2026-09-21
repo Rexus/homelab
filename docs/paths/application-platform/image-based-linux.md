@@ -61,11 +61,12 @@ compromise impossible.
 
 ## Dependency model
 
-The generated `immutable-template` setup belongs to Tier 0. Its builder must
-consume approved images from a custody-local source, without depending on a
-Tier 1 registry or runner. The connected image-build services described below
-may prepare artifacts for offline approval and transfer; they do not operate
-inside custody. See [Template lifecycle](../../platforms/proxmox/template-lifecycle.md).
+The `immutable-template` setup belongs to Tier 0 because it creates images
+used by other systems. Its builder consumes approved images with a local
+recovery copy; a live Tier 1 registry or runner must not be required to rebuild
+it. General build services can prepare candidates, but acceptance and privileged
+publication remain protected at Tier 0. Offline custody uses separate transfers.
+See [Template lifecycle](../../platforms/proxmox/template-lifecycle.md).
 
 Harbor is not required to start with bootc. The first useful internal path can
 run during the GitLab stage by using a dedicated GitLab runner and GitLab's
@@ -98,7 +99,7 @@ not the only possible model.
 | Terraform | `terraform/environments/immutable-template/terraform.tfvars` | deploys the temporary template-builder VM |
 | Ansible inventory | `ansible/inventory/hosts.yml` | keeps the stable `immutable_template_builders` host group |
 | Ansible vars | `ansible/group_vars/immutable_template.yml` | controls bootc image, registry auth, CA trust, and cleanup |
-| Shared Ansible role | `ansible/roles/immutable_template/` | installs bootc tooling and prepares the VM for template conversion |
+| Tier 0 Ansible role | `ansible/roles/immutable_template/` | installs bootc tooling and prepares the VM for template conversion |
 
 The default is one builder VM named for the target template,
 `rhel-10-immu-tmpl`. The builder starts as a normal VM so Ansible can configure
@@ -111,13 +112,13 @@ rollback behavior are tested.
 flowchart LR
   Source[Git repo<br/>Containerfile and policy] --> GitLab[GitLab CI<br/>build bootc image]
   GitLab --> GitLabRegistry[GitLab registry<br/>first internal image source]
-  GitLabRegistry -. approved offline transfer .-> Custody[Custody-local image source]
-  Custody --> Template[Tier 0 bootc template builder]
+  GitLabRegistry -. reviewed candidate .-> Approved[Approved image source<br/>local recovery copy]
+  Approved --> Template[Tier 0 bootc template builder]
   GitLabRegistry --> Updates[bootc update path<br/>early promoted tag]
   GitLabRegistry -. later promote .-> Harbor[Harbor<br/>scan, retain, promote]
   Harbor -. shared registry stage .-> Updates
   Template --> Proxmox[Proxmox templates<br/>rhel-10-immu-tmpl]
-  Proxmox -. approved offline release .-> VMs[Connected-tier clones<br/>bootc hosts]
+  Proxmox -. approved release .-> VMs[Workload clones<br/>bootc hosts]
   Updates --> VMs
 
   style Source fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#1f2937
@@ -132,8 +133,8 @@ flowchart LR
 
 Figure: GitLab can build and host the first bootc images. Harbor becomes the
 shared registry authority later, when Kubernetes and broader image promotion
-need it. Dashed transfers cross custody without live registry access; connected
-host updates remain separate. Use the [Podman image runner guide](podman-runner.md) for the
+need it. Dashed lines mark approval boundaries, not implicit live access.
+Use offline transfers when a deployment is in custody; host updates remain separate. Use the [Podman image runner guide](podman-runner.md) for the
 Terraform and Ansible setup that creates the first bootc build runner.
 
 ## Template conversion flow

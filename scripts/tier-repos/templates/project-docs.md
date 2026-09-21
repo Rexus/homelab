@@ -7,7 +7,7 @@ design and tooling. Populate the project records before provisioning.
 
 | Start here | Purpose |
 | --- | --- |
-| [Naming and allocations](naming-conventions.md) | approved VM names, ID ranges, network and platform conventions |
+| [Naming conventions](naming-conventions.md) | VM names, Proxmox tags, VMID ranges, and VLAN conventions |
 | [Project overview](owned/design/overview.md) | actual topology, owners, services, and design decisions |
 | [Recovery runbook](owned/runbooks/recovery.md) | local recovery inputs, steps, and verification |
 

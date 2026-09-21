@@ -14,6 +14,11 @@ Proxmox is the current reference virtualization platform in this repository.
 It provides the cluster, storage, networking, and API surface used by the first
 image build, provisioning, and configuration workflows.
 
+Its hardware-facing administration belongs to Tier 0: hosts, storage, network
+control, and every VM template lifecycle. Tier 1/2 workload definitions remain
+in their own repos; they do not grant their users Proxmox administration.
+See [Infrastructure control](../../architecture/infrastructure-control.md).
+
 Use [Private cloud model](../../architecture/private-cloud.md) to understand
 where Proxmox fits compared with a later Kubernetes layer or an OpenStack-style
 private cloud.
@@ -44,10 +49,11 @@ Use the Proxmox platform layer for:
 ## First deployment order
 
 1. Review the shared Proxmox planning guidelines.
-2. Create the automation API token.
-3. Prepare the first Enterprise Linux template.
-4. Run the first identity foundation Terraform deployment.
-5. Apply the first Ansible baseline.
+2. Prepare hosts, networks, storage, and protected Tier 0 API access.
+3. Publish and test the required Linux or Talos templates using the
+   [Day 0-1 local workflow](template-lifecycle.md#local-workflow).
+4. Create Linux guests or control-cluster VMs from those approved templates.
+5. Apply the guest baseline or follow the separate cluster bootstrap path.
 
 Recommended next maturity step:
 

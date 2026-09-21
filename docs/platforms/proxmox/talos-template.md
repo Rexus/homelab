@@ -1,6 +1,7 @@
 # Talos template on Proxmox
 
-Tier 0 publishes unconfigured Talos templates for its own Kubernetes cluster.
+Tier 0 publishes unconfigured Talos templates for control and workload clusters
+across all tiers. Its own first control cluster needs a tested template on Day 0-1.
 Use the [template lifecycle](template-lifecycle.md) for publication and CD jobs;
 this guide owns Talos-specific image selection and bootstrap boundaries.
 
@@ -20,11 +21,12 @@ raw disk image. Retain the schematic definition/ID and image verification
 material with the recovery bundle. Image Factory separates customization
 (the schematic) from the Talos version. [1]
 
-Download and verify the `nocloud-amd64.raw.xz` artifact outside custody using
-the matching published verification material. Unpack it there, calculate the
-unpacked `.raw` file's SHA256, and transfer the approved image and records into
-custody. Record the unpacked hash in `templates/proxmox.yml`; a compressed
-artifact checksum cannot verify the unpacked bytes.
+Download and verify `nocloud-amd64.raw.xz` using the matching published
+verification material. Unpack it, calculate the `.raw` file's SHA256, and make
+the approved image and records available to the Tier 0 execution host. For an
+offline custody deployment, use the approved transfer procedure across the air
+gap. Record the unpacked hash in `templates/proxmox.yml`; a compressed artifact
+checksum cannot verify the unpacked bytes.
 
 The shipped template module uses SeaBIOS, a SCSI boot disk, a serial device,
 and no initialization media. Secure Boot/UEFI images require a separately
@@ -39,8 +41,8 @@ provide an SSH or Ansible configuration path. [2]
 ## Publish and verify
 
 Populate the Talos entry in the Tier 0 catalog with the exact version,
-schematic ID, local raw-image path, checksum, unused VMID, and custody placement.
-Use the shared publisher's `plan` and `apply` commands from the
+schematic ID, local raw-image path, checksum, unused VMID, and protected network placement.
+Use the Tier 0 publisher's `plan` and `apply` commands from the
 [local workflow](template-lifecycle.md#local-workflow).
 
 The template must remain unbooted and contain **no** machine configuration,
@@ -49,7 +51,7 @@ Test only disposable full clones. Reject a template captured from an existing
 cluster node; rebuilding from approved image bytes is the intended path.
 
 Before promotion, verify a clone can boot, receive its own machine config,
-reach only custody-local services, and complete a disposable cluster bootstrap
+reach only approved services, and complete a disposable cluster bootstrap
 and recovery test. Record results alongside the project's allocations and
 recovery runbook. Template publication alone is not a successful cluster test.
 
@@ -77,9 +79,10 @@ or `immutable_template_builders`. [3]
 Keep cluster secrets and machine configuration in ignored secret storage with
 an offline recovery copy, not the template catalog or CI artifacts. Prepare
 the required installer/container images, cluster networking, DNS/time, and
-bootstrap tools inside custody before bringing up nodes. An image factory,
-registry, hosted source control, or inventory UI outside custody cannot be a
-live dependency of the Tier 0 cluster.
+bootstrap tools before bringing up nodes. Retain local recovery copies so an
+image factory, registry, hosted source control, or inventory UI is not required
+to restore Tier 0. For an offline cluster, all required artifacts and services
+must remain available inside custody without a connected path.
 
 ## Updates and recovery
 

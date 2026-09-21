@@ -61,6 +61,13 @@ For example, `foundation` needs `community.general`, `ansible.posix`, and
 `freeipa.ansible_freeipa`, while `cache` needs `community.general` and
 `ansible.posix`.
 
+Run the tier's `ansible/playbooks/control-node.yml`, which imports shared checks
+with tier-owned requirements. For offline use, pre-stage collections from
+`shared/ansible/requirements.yml` (the prefixed shared repo after generation)
+and any owning-tier `ansible/requirements.yml`. Tier 0 adds the identity
+collection there; Tier 1 and Tier 2 use only the common requirements.
+Keep collection artifacts on the recovery host so the precheck needs no network.
+
 The repository deployment wrapper runs that precheck before Terraform or host
 playbooks. Follow the root README or the setup-specific guide for the actual
 run commands.

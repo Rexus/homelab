@@ -9,15 +9,16 @@ SHARED_TREES = {
     "terraform/modules": ("*.tf",),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2"),
     "ansible/playbooks": ("*.yml",),
-    "packer/templates": ("*.pkr.hcl",),
     "scripts": ("*.sh",),
     "templates": (".gitkeep",),
 }
 TIER_TREES = {
     "terraform": ("*.tf", "*.example", ".terraform.lock.hcl"),
     "ansible": ("ansible.cfg", "*.example"),
+    "ansible/playbooks": ("*.yml", "*.yaml"),
+    "ansible/roles": ("*.yml", "*.yaml", "*.j2", ".gitkeep"),
     "scripts": ("*.sh",),
-    "packer": ("*.example",),
+    "packer": ("*.example", "*.pkr.hcl"),
     "templates": ("*.example", ".gitkeep"),
     "ci": ("*.example",),
     "bootstrap": ("*.tf", "*.yaml", ".gitkeep"),
@@ -44,6 +45,7 @@ def tier_setups(upstream, tier):
             raise ValueError(f"Invalid setup name in {tier}: {setup!r}")
         for relative in (f"terraform/environments/{setup}/main.tf",
                          f"terraform/environments/{setup}/terraform.tfvars.example",
+                         f"ansible/playbooks/{setup}.yml",
                          f"ansible/group_vars/{setup.replace('-', '_')}.yml.example"):
             if not (root / relative).is_file():
                 raise ValueError(f"Missing setup source: {tier}/{relative}")
@@ -103,3 +105,22 @@ def copy_payload(writer, upstream, name, prefix):
     for relative in (("ansible/requirements.yml",) if name == "shared"
                      else (".deployment-setups", "env.local.example")):
         copy(root / relative)
+    if name != "shared" and (root / "ansible/requirements.yml").is_file():
+        copy(root / "ansible/requirements.yml")
+
+
+def report_legacy_shared(writer, upstream):
+    candidates = {"scripts/proxmox-templates.sh", "terraform/modules/proxmox_templates", "packer/templates"}
+    for tier in TIERS:
+        root = upstream / tier
+        for tree in ("ansible/playbooks", "ansible/roles"):
+            for path in (root / tree).rglob("*"):
+                if path.is_file():
+                    relative = path.relative_to(root).as_posix()
+                    if not (upstream / "shared" / relative).exists():
+                        candidates.add(relative)
+    retained = sorted(path for path in candidates if (writer.root / path).exists())
+    if retained:
+        print("Legacy tier-owned automation preserved in shared. Refresh all repos, review local edits "
+              "and owned CI paths before deployment; see docs/reference/generated-repository-model.md"
+              "#automation-ownership-upgrade.")

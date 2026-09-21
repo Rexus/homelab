@@ -1,101 +1,86 @@
-# ${prefix} Naming and Allocations
+# ${prefix} Naming Conventions
 
-Fill in `TBD` with this project's approved values. This is the quick reference
-for conventions and reservations, not a second live inventory. Keep host IPs
-and deployment values in the owning tier's inputs and record changes here.
+Our quick reference for names, tags, VMIDs, and VLANs. Replace `TBD` with the
+chosen convention; the examples are suggestions, not assigned resources.
+Keep individual hosts, IPs, and VMIDs in inventory and Terraform.
+
+**Tier = owning repo and potential impact. Zone = network protection.**
+Do not encode both into names or numbers. Record service ownership in the
+[project overview](owned/design/overview.md).
 
 ## Contents
 
-- [Project](#project)
 - [VM and DNS names](#vm-and-dns-names)
-- [Resource IDs](#resource-ids)
-- [Networks](#networks)
-- [Platform resources](#platform-resources)
-
-## Project
-
-| Setting | Project value |
-| --- | --- |
-| Collection prefix | `${prefix}` |
-| Owner / change approver | TBD |
-| Sites and platform clusters | TBD |
-| Internal DNS domain | TBD |
-| Environment names | TBD |
-| Tier 0 / Tier 1 / Tier 2 owners | TBD |
-
-Reference: [tier ownership](auto-docs/architecture/tier-model.md).
+- [Proxmox tags](#proxmox-tags)
+- [VMID ranges](#vmid-ranges)
+- [Networks and VLANs](#networks-and-vlans)
 
 ## VM and DNS names
 
-| Convention | Approved pattern / example |
-| --- | --- |
-| Stable inventory key, such as `<role>-<n>` | TBD |
-| Role abbreviations | TBD |
-| Production hostname pattern | TBD |
-| Non-production hostname pattern | TBD |
-| `platform_hostname_prefix` / `platform_hostname_suffix` by environment | TBD |
-| `platform_domain` and FQDN pattern | TBD |
-| Template name pattern and variants | TBD |
-| Workload tags: owner, service, lifecycle, priority | TBD |
+| Choice | Example | Your choice |
+| --- | --- | --- |
+| Internal domain | `corp.example.com` | TBD |
+| Name-part order | `<env>-<role>-<n>`; omit env for production | TBD |
+| Production / test name | `idm-1` / `test-idm-1` | TBD |
+| Role abbreviations | `idm`, `idp`, `ca`, `edge-lb`, `db`, `k8node` | TBD |
+| Number format | `1`, `2`, `3`; always present | TBD |
+| FQDN | `idm-1.corp.example.com` | TBD |
+| Template name | `<os>-<release>-tmpl`; add a build suffix for versioned candidates | TBD |
 
-Reference: [VM and template naming](auto-docs/platforms/proxmox/conventions.md)
-and [inventory inputs](auto-docs/reference/infrastructure-automation-layout.md#ownership-rule).
-Keep inventory keys stable; environment prefixes/suffixes shape deployed names.
+Keep the inventory key stable, such as `idm-1`. Environment decoration comes
+from `platform_hostname_prefix` or `platform_hostname_suffix`; use one style.
+Keep tier, VLAN, IP, and product names out of the hostname.
+[Name patterns and alternatives](auto-docs/platforms/proxmox/conventions.md#vm-names).
 
-## Resource IDs
+## Proxmox tags
 
-| Platform / cluster | Owner and purpose | Reserved VM/LXC ID range | Template IDs |
-| --- | --- | --- | --- |
-| TBD | Tier 0 custody | TBD | TBD |
-| TBD | Tier 1 platform | TBD | TBD |
-| TBD | Tier 2 workloads | TBD | TBD |
+| Tag category | Example values | Your choice |
+| --- | --- | --- |
+| Service / product | `freeipa`, `keycloak`, `vault`, `haproxy` | TBD |
+| Priority | `critical`, `high`, `standard`, `low` | TBD |
+| Exposure | `public`, `internal`, `restricted`, `isolated` | TBD |
+| Lifecycle | `always-on`, `scheduled`, `ephemeral`, `maintenance` | TBD |
+| Owner | `platform`, `security`, `apps` | TBD |
+| Image tags, inherited from the template catalog | `x86_64`, `el10`, `alma10`, `cloud-init` | TBD |
 
-Reserve non-overlapping IDs wherever tiers or environments share a platform's
-ID namespace. Record individual assignments in Terraform, not in a second
-host list here. Reference: [ID planning](auto-docs/platforms/proxmox/conventions.md#vm-and-template-id-ranges).
+Example VM tags: `freeipa, critical, restricted, always-on, platform`.
+Tags describe the VM; they do not grant access. Use product tags so names can
+stay stable. [Tag details](auto-docs/platforms/proxmox/conventions.md#vm-tags).
 
-## Networks
+## VMID ranges
 
-Fill in only the cells you use; add rows for additional subnets or projects.
-`network_zones` keys identify guest attachments, not gateway firewall zones.
+| Purpose | Reference range | Our range / cluster |
+| --- | --- | --- |
+| Base templates and staged Linux builders | `100-199` | TBD |
+| Infrastructure | `200-299` | TBD |
+| Shared services | `300-399` | TBD |
+| Databases | `400-499` | TBD |
+| Application and lab VMs | `500-999` | TBD |
+| Versioned template candidates | `9000-9999` | TBD |
 
-| Tier / layer | Firewall zone | Network name / key | VLAN | IPv4 / IPv6 CIDR |
-| --- | --- | --- | --- | --- |
-| Tier 2 / Edge | `T2-Edge` | TBD | TBD | TBD |
-| Tier 2 / Application | `T2-Application` | TBD | TBD | TBD |
-| Tier 2 / Control | `T2-Control` | TBD | TBD | TBD |
-| Tier 1 / Edge | `T1-Edge` | TBD | TBD | TBD |
-| Tier 1 / Application | `T1-Application` | TBD | TBD | TBD |
-| Tier 1 / Control | `T1-Control` | TBD | TBD | TBD |
-| Tier 0 / Control | no connected zone | custody-local: TBD | isolated fabric: TBD | TBD |
+The range says **what the resource is**, not its tier, zone, or VLAN.
+For example, `200` is an infrastructure allocation, not "Tier 2".
+Reserve IDs across all repos using the same cluster; keep exact assignments in
+Terraform. [ID guidance](auto-docs/platforms/proxmox/conventions.md#vm-and-template-id-ranges).
 
-| Network name / key | Gateway or no gateway | Bridge / VNet | DHCP / static ranges | DNS / time services |
-| --- | --- | --- | --- | --- |
-| TBD | TBD | TBD | TBD | TBD |
+## Networks and VLANs
 
-| Policy convention | Project choice |
-| --- | --- |
-| Firewall rule IDs and address/port object names | TBD |
-| IPv6 policy | TBD |
-| User and administrator entry networks | TBD |
-| Custody isolation and offline transfer procedure | TBD |
-| Detailed policy record and validation evidence | TBD |
+| Convention | Example | Your choice |
+| --- | --- | --- |
+| Network name | purpose first: `management`, `identity`, `apps`, `edge`, `lab` | TBD |
+| VLAN ranges | `2-99` platform; `100-199` services; `200-299` specialist; `300-399` edge; `400+` projects | TBD |
+| Firewall zones | `DMZ`, `Services`, `Control`; split further only for different policy | TBD |
+| Bridge / VNet naming | `vmbr0` with VLAN tags, or short purpose-based VNet IDs | TBD |
 
-References: [network plan](auto-docs/architecture/network.md),
-[attachment fields](auto-docs/reference/network-inputs.md), and
-[firewall rules](auto-docs/security/firewall-policy.md). Allocate distinct
-connected-tier subnets. Tier 0 must not share the connected fabric.
+| Network purpose | Example VLAN / zone | Our VLAN / zone |
+| --- | --- | --- |
+| Administration | `10 / Control` | TBD |
+| Identity authority | `12 / Control` | TBD |
+| Internal applications | `120 / Services` | TBD |
+| Public-facing edge | `320 / DMZ` | TBD |
+| Lab / project | `420 / Services`, or a separate `Lab` zone | TBD |
 
-## Platform resources
-
-| Resource | Naming convention / local mapping |
-| --- | --- |
-| Platform nodes and clusters | TBD |
-| Bridges, VNets and uplinks | TBD |
-| Storage classes and datastore names | TBD |
-| Image/template catalog and VMIDs | TBD |
-| Source repositories, branches and deployment environments | TBD |
-| Shared automation revision used by deployments | TBD |
-
-References: [platform conventions](auto-docs/platforms/proxmox/conventions.md)
-and [shared-code recovery](auto-docs/reference/generated-repository-model.md#shared-code-and-recovery).
+VLAN IDs are allocations, not tier numbers or firewall rules. Offline custody
+uses a separate isolated fabric, not a connected zone. Keep complete subnet,
+gateway, and address assignments in the network inventory; record conventions here.
+[Network and VLAN guide](auto-docs/architecture/network.md#vlan-id-strategy).

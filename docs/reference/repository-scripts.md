@@ -37,7 +37,7 @@ these shared implementations.
 | `scripts/init-tier-repos.sh` | generates tier-owned inputs and shared automation | when you want the generated repo set |
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | when you deploy, plan, or destroy a setup |
-| `shared/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
+| `tier-0/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
 
 ## Cheat sheet
 
@@ -103,7 +103,7 @@ prefix flags used at creation. It preserves local edits and recorded deletions.
 The generator creates `<prefix>-tier-0`, `<prefix>-tier-1`,
 `<prefix>-tier-2`, `<prefix>-shared`, and `<prefix>-architecture` inside
 `<prefix>-iac/`. Only the child directories are repository homes.
-It populates shared modules, roles, playbooks, and wrappers, plus separate
+It populates tier-owned service code and common modules/helpers, plus separate
 inventory examples, group vars, and Terraform setups in each tier. Python and
 PyYAML are required. Refresh uses recorded hashes and preserves locally edited
 files. Root READMEs, project documentation, and cluster/bootstrap skeletons are
@@ -276,15 +276,9 @@ needs different platform values, VM sizes, storage, or placement.
 
 ## Manual equivalent
 
-For `foundation --env test`, start in the owning tier repository. Set the
-automation location to the sibling shared checkout, adjusting the prefix:
-
-```bash
-automation_root="$(cd ../homelab-shared && pwd)"
-```
-
-In a private source checkout, start in `tier-0/` and use
-`automation_root="$(cd ../shared && pwd)"` instead.
+For `foundation --env test`, start in the Tier 0 repository root, or `tier-0/`
+in a private source checkout. Its Ansible config resolves local service roles
+and shared baseline roles without setting an extra path variable.
 
 1. Prepare local files.
 
@@ -316,7 +310,8 @@ export TF_VAR_proxmox_api_token_secret="${PROXMOX_API_TOKEN_SECRET}"
 
 ```bash
 cd ansible
-ansible-playbook -i localhost, "$automation_root/ansible/playbooks/control-node.yml" \
+export ANSIBLE_CONFIG="$PWD/ansible.cfg"
+ansible-playbook -i localhost, playbooks/control-node.yml \
   -e control_node_setup=foundation
 cd ..
 ```
@@ -355,7 +350,7 @@ ansible-playbook \
   -e @group_vars/foundation.yml \
   -e @group_vars/all.test.yml \
   -e @group_vars/foundation.test.yml \
-  "$automation_root/ansible/playbooks/foundation.yml"
+  playbooks/foundation.yml
 ```
 
 The manual flow is useful for learning and troubleshooting. For normal use,

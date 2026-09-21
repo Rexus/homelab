@@ -18,6 +18,6 @@ provider "proxmox" {
 }
 
 module "templates" {
-  source = "../../../shared/terraform/modules/proxmox_templates"
+  source = "../modules/proxmox_templates"
   images = yamldecode(file(var.catalog_file)).templates
 }

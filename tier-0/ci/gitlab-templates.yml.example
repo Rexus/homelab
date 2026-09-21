@@ -1,4 +1,5 @@
 # Tier 0-owned starter. Copy to .gitlab-ci.yml after configuring the protected runner.
+# Optional Day 2 scheduling; initial Day 0-1 publication uses the local template commands.
 # Reference: docs/platforms/proxmox/template-lifecycle.md#gitlab-ci-example
 stages: [plan, publish]
 
@@ -7,9 +8,6 @@ default:
   before_script:
     - test -n "$TEMPLATE_STATE_PATH"
     - test -n "$TEMPLATE_CATALOG_FILE"
-    - test -n "$TIER0_SHARED_COMMIT"
-    - test "$(git -C ../shared rev-parse HEAD)" = "$TIER0_SHARED_COMMIT"
-    - test -z "$(git -C ../shared status --porcelain)"
 
 workflow:
   rules:
@@ -20,7 +18,7 @@ template-plan:
   stage: plan
   resource_group: tier0-proxmox-templates
   script:
-    - bash ../shared/scripts/proxmox-templates.sh plan
+    - bash scripts/proxmox-templates.sh plan
   artifacts:
     access: maintainer
     expire_in: 1 day
@@ -37,4 +35,4 @@ template-publish:
   environment:
     name: tier0-templates
   script:
-    - bash ../shared/scripts/proxmox-templates.sh apply
+    - bash scripts/proxmox-templates.sh apply

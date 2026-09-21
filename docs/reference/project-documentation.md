@@ -23,19 +23,21 @@ in the project documents. Do not populate local values into auto-docs.
 ## Start with project values
 
 Every root README links to the architecture repository's
-`docs/naming-conventions.md`. Fill in its tables before provisioning:
+`docs/naming-conventions.md`. It combines the network guide and Proxmox
+conventions into a short worksheet with **Example** and **Your choice** columns:
 
 | Record | Detailed upstream guidance |
 | --- | --- |
-| VM, template, and DNS naming; environment prefixes/suffixes | [Platform conventions](../platforms/proxmox/conventions.md) and [inventory inputs](infrastructure-automation-layout.md#ownership-rule) |
-| VM/LXC and template ID reservations | [ID planning](../platforms/proxmox/conventions.md#vm-and-template-id-ranges) |
-| Tier/layer zones, VLANs, subnets, gateways, and attachments | [Network plan](../architecture/network.md) and [network fields](network-inputs.md) |
-| Firewall object names and local policy records | [Firewall policy](../security/firewall-policy.md) |
-| Platform hosts, storage mappings, and shared-code revision | [Automation layout](infrastructure-automation-layout.md) and [recovery inputs](generated-repository-model.md#shared-code-and-recovery) |
+| VM name-part order, role abbreviations, template names, and domain | [Platform conventions](../platforms/proxmox/conventions.md) and [inventory inputs](infrastructure-automation-layout.md#ownership-rule) |
+| Proxmox tag categories | [VM tags](../platforms/proxmox/conventions.md#vm-tags) |
+| VM/LXC and template ID range meanings | [ID planning](../platforms/proxmox/conventions.md#vm-and-template-id-ranges) |
+| Network names, VLAN ranges, and a few purpose-to-zone mappings | [Network plan](../architecture/network.md) |
 
-This is a compact conventions and allocation record, not a duplicate of the
-live inventory. Individual host IPs and resource assignments remain in the
-owning tier's Ansible and Terraform inputs.
+This records conventions, not another inventory. Keep individual host IPs,
+VMIDs, full subnet/gateway assignments, and attachments in the tier inputs and
+network inventory. Put detailed firewall rules in `docs/owned/network/` and
+service/repository ownership in the project overview. Tiers do not become
+zone names or numbering schemes.
 
 Next, fill in the project overview and recovery runbook. They link back to
 auto-docs for design and operational detail, so local records can stay concise.
@@ -47,7 +49,7 @@ auto-docs for design and operational detail, so local records can stay concise.
   README.md                         # developer-owned repository front door
   docs/
     README.md                       # project documentation index
-    naming-conventions.md           # names, IDs, network and platform choices
+    naming-conventions.md           # VM names, tags, VMID ranges, VLAN conventions
     owned/
       design/overview.md            # actual environment, owners, and decisions
       runbooks/recovery.md          # recovery inputs, procedures, test records
@@ -97,6 +99,12 @@ bash scripts/init-tier-repos.sh --refresh
 Reuse the original `--prefix` and `--root` flags when customized; add `--dry-run`
 to preview. No repositories are moved, committed, or deployed.
 
+An existing `docs/naming-conventions.md` is project-owned and **will not be
+replaced by refresh**, even when the upstream worksheet becomes simpler. To
+adopt the new format, generate a comparison collection under another parent
+with `--root`, review its worksheet, and migrate your choices deliberately.
+Do not delete the ownership manifest to force an update.
+
 Existing root READMEs are promoted to owned without rewriting their content.
 Refresh adds the new project templates and `docs/auto-docs/`. Earlier
 `docs/generated/upstream/` copies remain in place but are no longer refreshed.
@@ -104,7 +112,7 @@ The generator reports that legacy path when present.
 
 Update the owned READMEs deliberately:
 
-| README location | Link target for naming and allocations |
+| README location | Link target for naming conventions |
 | --- | --- |
 | tier or shared root | `../<prefix>-architecture/docs/naming-conventions.md` |
 | architecture root | `docs/naming-conventions.md` |

@@ -19,10 +19,15 @@
 
 Use this path for the recoverable control foundation of the private cloud.
 
-Tier 0 is where the environment keeps the systems and procedures needed to
-bootstrap, repair, and recover the rest of the platform. Its inventory and
-state belong to its own repository, with reusable automation in the shared
+Tier 0 holds systems whose compromise can control the foundation or trust of
+the environment, plus their bootstrap and recovery procedures. Its inventory and
+state and service code belong to its own repository; only common helpers use the shared
 repository.
+
+That includes Proxmox, physical network and storage administration, and every
+VM template lifecycle, even when the resulting VMs belong to Tier 1 or Tier 2.
+See [Infrastructure control](../../architecture/infrastructure-control.md) for
+workload ownership versus execution authority.
 
 ## Automation paths
 
@@ -36,18 +41,20 @@ the same instance.
 Tier 0 also owns the image catalog, Proxmox template creation/update jobs, and
 template publication state. Use the [template lifecycle](../../platforms/proxmox/template-lifecycle.md)
 for AlmaLinux/Rocky and the [Talos template guide](../../platforms/proxmox/talos-template.md)
-before cluster bootstrap. Shared code contains the reusable implementation.
+before cluster bootstrap. Tier 0 contains the full template implementation,
+including its module, publication command, Packer definitions, and builder roles.
 
-Map Tier 0 networks to isolated custody infrastructure before applying these
-examples. Connected identity, secrets, and HSM services belong in Tier 1.
+Place connected control services on protected networks and restrict their
+administration to Tier 0 operators and automation. Offline keys, custody, and
+selected recovery assets use a separate isolated fabric.
 See [Generated repository model](../../reference/generated-repository-model.md)
-for setup placement, the per-tier inventory contract, and shared playbooks.
+for setup placement, the per-tier inventory contract, and code ownership.
 
 ## Recovery rule
 
 Tier 0 must remain recoverable without higher-tier services.
 
-Do not make Tier 0 depend on:
+Restoring Tier 0 must not require any of these services to be running first:
 
 - a hosted source-control service
 - FreeIPA
@@ -59,6 +66,9 @@ Do not make Tier 0 depend on:
 - Tier 1 or Tier 2 GitOps
 - application workloads
 
+Normal operation may use connected Tier 0 identity and other control services.
+Keep the break-glass path usable when those services are unavailable.
+
 An external bootstrap plane can exist for Day 0 and Day 1, but it should be
 small, documented, and replaceable.
 
@@ -69,11 +79,15 @@ The generated Tier 0 repository starts with this shape:
 ```text
 homelab-tier-0/
   ansible/
+    playbooks/
+    roles/
+    requirements.yml
     inventory/hosts.yml.example
     group_vars/
   terraform/
     common.tfvars.example
     templates/
+    modules/proxmox_templates/
     environments/
       foundation/
       vault/
@@ -82,9 +96,12 @@ homelab-tier-0/
       immutable-template/
   templates/
     proxmox.yml.example
+  packer/
+    templates/proxmox/
   ci/
     gitlab-templates.yml.example
   scripts/
+    proxmox-templates.sh
     check-shared.sh
     init-local-files.sh
     deploy.sh
@@ -120,29 +137,29 @@ homelab-tier-0/
 `homelab` is only the default prefix. The generator allows another prefix and
 produces the same tier structure with that name.
 
-Services listed under `clusters/tier0/applications/` are managed by Tier 0
-GitOps after the cluster exists. They are not allowed to become prerequisites
-for rebuilding the Tier 0 cluster itself. For example, Keycloak, NetBox, and
-Vault can be Tier 0 applications only if Tier 0 remains recoverable when they
-are unavailable.
+The application directories are starter locations, not deployed services or
+mandatory placement. Keep the Tier 0-authority instances here and place general
+platform tools in Tier 1 when appropriate. Services managed by Tier 0 GitOps
+must not become prerequisites for rebuilding that cluster. Tier 0 remains
+recoverable when its identity, inventory UI, or secret service is unavailable.
 
 ## Bootstrap phases
 
 ```mermaid
 flowchart LR
-  Inputs["Local inputs and approved images"] --> Templates["Tier 0 templates"]
-  Templates --> Proxmox["Proxmox resources"]
-  Proxmox --> Talos["Talos machines"]
-  Talos --> K8s["Tier 0 Kubernetes"]
-  K8s --> Flux["Flux"]
-  Flux --> Services["Tier 0 services"]
+  Inputs["Day 0: hosts, networks, storage<br/>Local tools and images"]
+  Inputs --> Templates["Day 0-1: publish and test templates"]
+  Templates --> Guests["Day 1: VM clones"]
+  Guests --> K8s["Tier 0 control cluster"]
+  K8s --> Flux["Tier 0 GitOps"]
+  Flux --> Services["Day 2: optional services"]
 
   classDef bootstrap fill:#fff7ed,stroke:#c2410c,color:#1f2937
   classDef platform fill:#dbeafe,stroke:#2563eb,color:#1f2937
   classDef gitops fill:#dcfce7,stroke:#15803d,color:#1f2937
 
   class Inputs bootstrap
-  class Templates,Proxmox,Talos,K8s platform
+  class Templates,Guests,K8s platform
   class Flux,Services gitops
 ```
 
@@ -151,7 +168,8 @@ The important split is ownership:
 | Layer | Owner after bootstrap | Notes |
 | --- | --- | --- |
 | Base templates and publication jobs | Tier 0 template root and local/CD workflow | works before the cluster and CI service exist |
-| Proxmox resources | Terraform/OpenTofu | still owns VM placement and lifecycle |
+| Host, network, storage, and template control | Tier 0 operators and automation | authority applies to infrastructure serving every tier |
+| Guest VM resources | existing tier-local Terraform roots | workload definitions stay tier-local; privileged execution is controlled by Tier 0 |
 | Talos machine config | Terraform/OpenTofu and Talos config | should be reproducible from Tier 0 repo inputs |
 | Kubernetes add-ons | Flux | applied from `clusters/tier0/` |
 | Tier 0 apps | Flux | must not require Tier 1 to start |
@@ -159,21 +177,26 @@ The important split is ownership:
 
 ## Day 0 and Day 1
 
-Day 0 and Day 1 create the minimum viable control path.
+Day 0 and Day 1 create the minimum viable control path, including templates
+before the first managed VM. These operations are automated locally; hosted
+scheduling is not required.
 
 Expected flow:
 
-1. prepare local bootstrap inputs
-2. create or connect Proxmox access
-3. publish and test a Talos template, then create control-plane and worker clones
-4. bootstrap the Talos cluster
-5. install Flux into the Tier 0 cluster
-6. point Flux at the Tier 0 GitOps path
+1. prepare hosts, networking, storage, and protected local administrative access
+2. retain local tools, approved images, provider artifacts, credentials, and recovery inputs
+3. run the Tier 0 [local template workflow](../../platforms/proxmox/template-lifecycle.md#local-workflow)
+   to publish and test the required Linux and Talos templates
+4. create the first Linux guests or Talos control-plane and worker clones from approved templates
+5. bootstrap the Talos cluster when using the cluster path
+6. install Flux and point it at the Tier 0 GitOps definitions
 7. validate that Tier 0 can be restored from its own repository and recovery
    material
 
-During this phase, it is acceptable to use a local workstation, a temporary
-runner, or another small external bootstrap plane.
+During this phase, use a protected Tier 0 workstation or equivalent external
+execution host. It must not need a VM template, workload runner, or hosted
+service that this process is about to create. The image-import publisher has
+no builder-VM dependency; later template-refresh builders do.
 
 ## Day 2 onward
 
@@ -187,58 +210,60 @@ Day 2 changes should follow this rule:
 
 | Change type | Normal owner |
 | --- | --- |
-| VM count, CPU, memory, disks, networks | Terraform/OpenTofu |
+| VM count, CPU, memory, disks, guest attachments | tier-local definitions; Tier 0-controlled infrastructure execution |
+| Physical hosts, host networks, storage, and template lifecycle | Tier 0 operators and automation |
 | Talos machine config and cluster bootstrap inputs | Tier 0 bootstrap code |
 | CNI, ingress, cert-manager, external-secrets, storage | Tier 0 GitOps |
 | FreeIPA, Keycloak, Vault, Headlamp, NetBox, Tier 0 databases | Tier 0 GitOps |
 | local recovery credentials and break-glass material | documented operator custody |
 
+Tier 0 GitOps may later enable a provisioning service for Tier 2 VM creation and
+update requests. Keep controller configuration, authorization, and execution
+under Tier 0 ownership; retain tier-local workload definitions and state roots.
+This is a future capability, not supplied by the current Flux skeleton. The
+[request contract](../../architecture/infrastructure-control.md#delegated-provisioning)
+defines the boundary and independence from Tier 2.
+
 ## Day 2 service sequence
 
-Use this example order for early Tier 0 service deployment:
+Use this example order after bootstrap; each service stays in its owning tier:
 
 ```text
-FreeIPA
-  -> Keycloak
-  -> OIDC
-  -> Headlamp
-  -> NetBox
-  -> Git/source control
-  -> Grafana
-  -> Rancher/Fleet where appropriate
+FreeIPA -> Keycloak -> OIDC -> service clients
 ```
 
-The order is about dependency hygiene, not about making every service a Tier 0
-bootstrap dependency.
+Clients include Headlamp, NetBox, source control, Grafana, and Rancher/Fleet
+where appropriate. They need the identity path, not each other in that order.
+This sequence does not make them Tier 0 bootstrap dependencies.
 
 NetBox or another inventory source of truth belongs early because it documents
 networks, hosts, addresses, service ownership, racks, and recovery references.
 It is still a Day 2 service. Keep enough inventory and recovery material in the
 Tier 0 repository and operator custody to rebuild when NetBox is unavailable.
 
-Source control, Grafana, Rancher, and Fleet may belong in Tier 1 in many
-deployments. If they are represented in Tier 0, they are managed after
-bootstrap and must not be required to recover the Tier 0 control path.
+Source control, Grafana, Rancher, and Fleet may belong in Tier 1 when limited
+to general platform scope. Any component with Tier 0 administrative authority
+needs Tier 0 protection. Deploy it after bootstrap and keep a recovery path
+that does not require it to be running.
 
 ## What belongs in Tier 0
 
 Tier 0 can include:
 
-- Proxmox bootstrap definitions needed for Tier 0
+- Proxmox, host, network, and storage control for the whole environment
 - Talos cluster definitions
 - base-image catalog, template publication and update jobs, and approved image recovery copies
 - Flux bootstrap and reconciliation state
+- infrastructure execution services and their request policy, when implemented
 - minimum DNS, ingress, certificate, and storage services needed by Tier 0
-- FreeIPA, Keycloak, NetBox, Headlamp, Vault, or equivalent control services
-  after bootstrap when their absence does not block recovery
-- NetBox or another inventory source of truth as an early Day 2 documentation
-  and operations service
-- Vault or another secret path when it is part of recovery
+- identity authorities, administrative brokers, privileged secrets, and cluster
+  control UIs, deployed after bootstrap with independent recovery inputs
 - key ceremony, HSM, and break-glass procedures
 - small local observability for Tier 0 health
 
-Keep each inclusion honest: if a component is not needed to recover the
-platform, it may belong in Tier 1 instead.
+Classify each inclusion by its privileges and potential damage, not simply
+whether it helps recovery. A system that can administer Tier 0 remains
+Tier 0 even when it is optional for bootstrap.
 
 ## What stays out of Tier 0
 
@@ -249,17 +274,18 @@ Keep these out of the Tier 0 bootstrap dependency chain:
 - NetBox as the only copy of recovery inventory
 - Grafana as the only way to understand Tier 0 health
 - application clusters
-- general CI/CD runners (dedicated custody-local template jobs are a separate control function)
+- general CI/CD runners (dedicated Tier 0 template jobs have their own privileged change path)
 - broad observability, APM, and log search stacks unless they are explicitly
   required for Tier 0 recovery
 - user or project workloads
 
-These can still exist in Tier 1 or Tier 2.
+General platform and project instances can still exist in Tier 1 or Tier 2;
+Tier 0-privileged instances stay Tier 0 without becoming recovery prerequisites.
 
 ## Implementation scope
 
-The generator supplies split inventory examples, Linux Terraform roots, shared
-playbooks and roles, tier launchers, and refresh tracking. Live local files are
+The generator supplies split inventory examples, Linux Terraform roots, tier-owned
+playbooks and roles, common helpers, launchers, and refresh tracking. Live local files are
 created by the tier initializer.
 
 The Talos bootstrap and Flux component directories remain editable skeletons.

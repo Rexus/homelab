@@ -15,249 +15,176 @@
 
 ## Purpose
 
-Use this document as the shared architecture language for Tier 0, Tier 1, and
-Tier 2 in this repository.
+Tiers divide the repositories by **potential impact**. Ask: if this system or
+its deployment credentials were compromised, what else could it control?
+The lower the tier number, the greater the potential damage.
 
-The repository is an upstream deployment kit. It can generate or refresh a
-private set of downstream repositories for one homelab, small datacenter, or
-smaller company. The tier model makes dependency direction, recovery
-expectations, and network exposure boundaries explicit.
-
-Think about the model in two dimensions:
-
-- tiers are drawn top to bottom: Tier 2, Tier 1, then Tier 0 as the recovery base
-- security layers run left-to-right: Edge, Application, Control; networks
-  belong to the tier/layer cell whose interfaces they carry
-
-The [architecture figures](overview.md#layered-model) distinguish horizontal
-security layers from the vertical tier stack. Layer names describe functions;
-tier numbers describe ownership and recovery dependencies, not exposure.
+Use [network layers](overview.md#layered-model) for outside-to-inside protection.
+Do not turn a tier into a zone, VLAN range, or hostname prefix.
 
 ## Tier meanings
 
-| Tier | Meaning |
-| --- | --- |
-| Tier 0 | Bootstrap, recovery, and control systems. Must recover without Tier 1 or Tier 2. |
-| Tier 1 | Shared platform services. May depend on Tier 0, never on Tier 2. |
-| Tier 2 | Application, user, project, and lab workloads. May depend on Tier 0 and Tier 1. |
-| Shared | Reusable code, modules, roles, templates, and generated helpers. |
-| Architecture | Environment documentation, decisions, diagrams, generated guidance, and runbooks. |
+| Tier | Impact and responsibility | Typical examples |
+| --- | --- | --- |
+| Tier 0 | can control the foundation or trust of the whole environment | identity authority, privileged secrets, hypervisors, network administration, template publication |
+| Tier 1 | can affect shared platform services and their consumers | source control, workload delivery, registries, shared ingress, platform observability |
+| Tier 2 | affects a project, application, or lab | application VMs, project data, experiments |
 
-Setup names such as `foundation`, `edge`, `vault`, and `observability` identify
-deployment capabilities. Tier ownership identifies the particular instance's
-recovery and access boundary; functional layers describe its responsibility.
+Classify the instance and its privileges, not the product:
+
+- an identity broker controlling administrator access belongs in Tier 0;
+  an application-only broker may belong in Tier 1
+- a runner with Tier 0 API credentials is Tier 0 automation, even if it only
+  runs a small job
+- a workload-local secret service is not automatically Tier 0
+- a dashboard does not become Tier 0 merely because operators use it; its
+  credentials and ability to change systems matter
+
+Shared code and architecture documentation are support repositories, not
+additional security tiers.
+
+Tier 0 owns the hardware-facing control plane across all tiers: virtualization,
+physical networking, storage administration, and all VM template lifecycles.
+Workload definitions remain tier-local. See [Infrastructure control](infrastructure-control.md)
+for the split between workload ownership and privileged execution.
 
 ## Dependency rule
 
-Capabilities are provided upward from Tier 0 through Tier 1 to Tier 2;
-dependencies point downward toward their providers. The
-[tier figure](overview.md#tiered-model) shows this orientation. Neither
-direction implies a routed connection into custody: connected tiers consume
-approved Tier 0 outputs through offline handoffs.
+Keep recovery independent of higher-numbered tiers:
 
-Allowed patterns:
+- Tier 0 must recover without Tier 1 or Tier 2 services.
+- Tier 1 must recover without Tier 2 workloads.
+- Tier 2 may consume the shared platform and approved control-service interfaces.
 
-- Tier 1 can consume approved Tier 0 outputs.
-- Tier 2 can consume Tier 1 services and approved Tier 0 outputs.
-- Shared code can be reused by any tier.
-- Architecture documentation can describe every tier.
+Normal operation may use connected DNS, identity, secrets, or APIs from a
+lower-numbered tier. That is a service dependency, not permission to administer
+the provider. Keep client access separate from privileged administration.
 
-Forbidden patterns:
+Retain local code, reviewed artifacts, state, credentials, and recovery
+instructions. A hosted source-control service, inventory app, dashboard, or
+cluster UI must not be the only way to restore the systems underneath it.
 
-- Tier 0 must not require a hosted source-control service, identity authority,
-  identity broker, inventory application, cluster-management platform,
-  observability dashboard, or higher-tier cluster to recover.
-- Tier 0 must not require Tier 1 or Tier 2 GitOps to rebuild core control
-  services.
-- Tier 1 must not require Tier 2 workloads to start or recover.
-- Shared modules must not hide live environment state that belongs to a tier.
-
-Tier 0 may use a source-controlled repository as an input, but its recovery
-path must not depend on a source-control service hosted by Tier 1 or Tier 2.
+Protect the full privileged change path at the target tier: runner, credentials,
+approval, and accepted code. An ordinary Tier 1 or Tier 2 job must not be able
+to alter Tier 0 simply by reaching its API.
 
 ## Tier and zone placement
 
-The tier model is vertical. Tier 0 is the bottom recovery layer, Tier 1 is the
-shared platform layer, and Tier 2 is the workload layer.
+A tier answers **who owns it and how much damage it can do**. A zone answers
+**which network policy protects this interface**. The
+[architecture examples](overview.md#tier-and-zone-view) show the two separately.
 
-The [combined architecture view](overview.md#tier-and-zone-view) places
-firewall zones and their networks in those rows, with Edge, Application, and
-Control as columns. There is no separate network-layer axis. The
-[network catalog](network.md#network-catalog) assigns subnet purposes to cells;
-the [firewall matrix](../security/firewall-policy.md#connected-zone-matrix)
-defines permitted connection types between them.
+Use plain network-zone names such as `DMZ`, `Services`, and `Control`.
+Several tiers may have interfaces in the same zone; that does not join their
+subnets, credentials, or permissions. Create additional subnets or zones when
+policy differs, not merely because another repository exists.
 
-Tier 0 exists only in air-gapped custody within the Control layer. Handoffs are
-explicit transfers of approved artifacts, trust material, and recovery outputs.
-They are not ordinary routed connections. Connected service interfaces belong
-to the consuming network's owning tier; an online replica or broker must not
-require a live connection into custody to start or recover.
+Tier 0 includes connected control systems. **Offline custody is a separate
+boundary** for selected root keys, recovery copies, and ceremonies. No routed
+connection, dual-homed host, VPN, or temporary allow rule may bridge an air gap.
+Transfer approved material through the recorded custody procedure.
 
-Cross-tier service interfaces have one owning tier and named consumers. Prefer
-routed, filtered access over a shared subnet. If an interface network must have
-cross-tier participants, record its single owner, enforcement, and recovery
-contract; do not merge whole tiers into one zone or broadcast domain.
-
-Packet direction is not recovery dependency direction. Shared ingress may
-connect to a Tier 2 backend, and a monitoring collector may scrape it, without
-making that workload necessary to recover Tier 1. Such flows need explicit
-rules; neither downward dependency nor Control-layer placement grants access.
+An online identity authority can therefore be Tier 0 in `Control`, while an
+offline root key is also Tier 0 but has no connected firewall zone.
 
 ## Repository role
 
-This upstream repository is a deployment kit and reference baseline.
+Each tier owns its workload definitions, inventory, configuration, and separate
+state roots. This does not grant workload users infrastructure administration;
+Tier 0 owns the privileged execution authority and protects state access.
+Terraform and Ansible use the same inventory inputs within that tier.
 
-The expected operating model is:
-
-1. download, fork, or mirror this repository
-2. generate a private downstream repository set
-3. edit owned downstream configuration and documentation there
-4. pull upstream improvements from this repository
-5. refresh generated content without overwriting local owned decisions
-
-Downstream repository names use a configurable prefix. The default collection
-is `homelab-iac/`, beside the upstream checkout. It contains the five repositories
-below and has no Git history of its own. Changing the prefix renames both the
-collection and its child repository names.
-
-Example downstream set:
-
-| Repository | Purpose |
+| Source / generated suffix | Owns |
 | --- | --- |
-| `homelab-tier-0` | template lifecycle and CD jobs, Tier 0 infrastructure, cluster bootstrap, and Tier 0 GitOps |
-| `homelab-tier-1` | shared platform services and higher-level control plane |
-| `homelab-tier-2` | application, project, lab, and workload environments |
-| `homelab-shared` | reusable provisioning modules, Ansible playbooks and roles, scripts, and templates |
-| `homelab-architecture` | generated and owned documentation site for the actual environment |
+| `tier-0` | high-impact control systems, template lifecycle, recovery, and custody assets |
+| `tier-1` | shared platform instances |
+| `tier-2` | application, project, and lab instances |
+| `shared` | cross-tier guest modules, baseline roles, and generic helpers; no live inventory |
+| `architecture` | local conventions, design, service records, and runbooks |
 
-Every tier owns its inventory, configuration, and infrastructure state. Both
-provisioning and configuration automation consume that tier's host identity
-inputs. Shared code contains no live inventory or state. The shared repository
-is checked out as a parallel sibling and retained locally for recovery.
+See [Generated repository model](../reference/generated-repository-model.md)
+for collection names, initialization, and refresh. Source folders mirror the
+same ownership.
 
 ## Tier 0 shape
 
-Tier 0 has this shape:
-
-- a small external bootstrap plane exists only to create the first control path
-- Tier 0 owns base-image creation, update jobs, verification, and promotion;
-  reusable implementation stays in shared code
-- Terraform or OpenTofu creates the virtualization resources and first cluster
-  machines
-- an immutable cluster bootstrap path creates a dedicated Tier 0 cluster
-- a GitOps reconciler is installed into the Tier 0 cluster
-- GitOps manages Tier 0 cluster services after bootstrap
-- Terraform or OpenTofu continues to own the infrastructure underneath the
-  cluster
-
-Tier 0 services may run on the Tier 0 cluster without becoming bootstrap
-dependencies. An identity broker, inventory source of truth, secret platform,
-or operations UI can be managed by Tier 0 GitOps, but Tier 0 recovery must
-still work when that service is unavailable.
-
-Template jobs run locally before the cluster exists. Dedicated custody-local
-automation may schedule them after bootstrap, but general platform runners
-remain Tier 1. Retain approved image artifacts and publication state outside
-the cluster; transfer release outputs offline to connected consumers. Updating
-a base template is separate from upgrading existing cluster nodes.
+Tier 0 can include a dedicated control cluster, but its own recovery cannot
+depend on that cluster being healthy.
 
 ```mermaid
-flowchart TB
-  Bootstrap["External bootstrap plane<br/>source repository, local runner, or admin workstation"]
-  Tofu["Terraform or OpenTofu"]
-  Virtualization["Virtualization API"]
-  ClusterBootstrap["Immutable cluster bootstrap"]
-  K8s["Tier 0 cluster"]
-  GitOps["Tier 0 GitOps"]
-
-  subgraph Services["Tier 0 cluster services"]
-    CNI["CNI"]
-    Ingress["Ingress and DNS"]
-    CertManager["certificate management"]
-    ExternalSecrets["external secret sync"]
-    Storage["storage"]
-    Database["database operator"]
-    Inventory["inventory source of truth"]
-    IdentityAuthority["identity authority"]
-    IdentityBroker["identity broker"]
-    SecretPlatform["secret platform"]
-    K8sUi["Kubernetes UI"]
-  end
-
-  Bootstrap --> Tofu
-  Tofu --> Virtualization
-  Virtualization --> ClusterBootstrap
-  ClusterBootstrap --> K8s
-  K8s --> GitOps
-  GitOps --> Services
-  Tofu -. continues to own .-> Virtualization
+flowchart LR
+  Local["Local recovery inputs"] --> Bootstrap["Infrastructure and cluster bootstrap"]
+  Bootstrap --> Control["Tier 0 control services"]
+  Control --> Operations["Day 2 reconciliation and operations"]
 ```
 
-Day 0 and Day 1 are allowed to use an external bootstrap plane. Day 2 onward,
-the Tier 0 cluster should be managed through its Tier 0 GitOps path while the
-underlying virtualization resources remain managed by Terraform or OpenTofu.
+Template publication is Day 0-1 work and runs locally before managed VMs, the
+cluster, or a CI service exists. Day 2 can add hosted scheduling, not the first
+ability to create templates.
+Infrastructure automation continues to own the resources beneath the cluster;
+cluster reconciliation owns the services above it. Keep approved images and
+publication state recoverable outside the cluster.
 
-The current reference implementation uses Proxmox, Talos, Flux, and Kubernetes
-for those roles, but the architecture names the responsibilities first.
+See [Tier 0 bootstrap](../paths/tier-0/bootstrap.md) for implementation choices,
+deployment scope, and the currently unfinished cluster skeletons.
 
 ## Day 2 control services
 
-Day 2 control services improve operations after the Tier 0 control path exists.
-They are important early, but they must not become bootstrap prerequisites.
+Deploy useful operational services early, without making them prerequisites
+for restoring their own platform.
 
-Use this capability order:
-
-```text
-identity authority
-  -> identity broker
-  -> OIDC interface
-  -> Kubernetes UI, inventory source of truth, source control,
-     observability dashboard, and cluster management where appropriate
+```mermaid
+flowchart LR
+  Authority["Identity authority"] --> Broker["Identity broker"]
+  Broker --> OIDC["OIDC"]
+  OIDC --> Clients["Operations UIs and service clients"]
 ```
 
-The inventory source of truth belongs early because it documents addresses,
-networks, racks, hosts, service ownership, and recovery facts. It is still a
-Day 2 service: recovery must work from Tier 0 repository inputs and
-operator-held material even when the inventory application is unavailable.
+The inventory source of truth documents networks, hosts, ownership, and
+recovery facts. It is a Day 2 consumer of repository inputs, not their only
+source. An inventory app being unavailable must not prevent recovery.
 
 ## Tier 1 and Tier 2 direction
 
-Tier 1 is where broader shared platform services grow after Tier 0 is
-recoverable. This can include a more capable application platform, shared
-identity integration, application ingress, registry services, CI/CD runners,
-source control, broader observability, and cluster management that do not need
-to be part of the recoverable Tier 0 minimum.
+Tier 1 provides shared delivery and operating services. Tier 2 holds the
+workloads using them. A shared ingress proxy can publish a Tier 2 application;
+a shared collector can monitor it. Packet direction does not change repo
+ownership or make that workload a prerequisite for platform recovery.
 
-Tier 2 is where application, project, lab, user, and tenant workloads belong.
-Tier 2 should consume Tier 1 services through explicit interfaces and approved
-Tier 0 outputs through offline handoffs, without broad access to lower tiers.
+Separate privileged control from general workloads even when both use the
+same hypervisor cluster. Review scope whenever a service gains credentials
+or permissions affecting a lower-numbered tier.
+
+The intended self-service path lets Tier 2 users request VM creation and updates
+through automation enabled by Tier 0 GitOps. Tier 0 validates and executes those
+requests without depending on Tier 2 to operate or recover. This is a
+[design contract](infrastructure-control.md#delegated-provisioning), not an
+implemented controller or permission to execute arbitrary workload code.
 
 ## Mapping from the current repo
 
-Current content maps into the tier model like this:
+These are the shipped setup owners, not automatic classification by product.
 
-| Current area | Tier home | Note |
+| Setup or resource | Default home | Placement note |
 | --- | --- | --- |
-| Base-image catalog, template creation/update jobs, approval | Tier 0 | includes the immutable cluster OS; consumers receive approved artifacts |
-| Virtualization API and networks | Owning tier; design in Architecture | connected control is not custody infrastructure |
-| Terraform modules under source `shared/terraform/modules/` | Shared | reusable between tier repositories |
-| Ansible roles and playbooks | Shared | consume only the owning tier's inputs |
-| Inventory, group vars, and Terraform state | Owning tier | three independent inventories using the same mechanism |
-| `foundation` identity path | Tier 0 or Tier 1 | only Tier 0 if part of recovery minimum |
-| `edge` path | Tier 1 | DMZ-facing edge does not belong in custody |
-| `cache` path | Tier 1 by default | any custody-local artifact store is a separate instance |
-| `vault` path | Tier 0 and possibly Tier 1 | recovery secret platform vs workload secret platform |
-| `observability` path | Tier 1 by default | Tier 0 can keep a smaller control view |
-| source control, registry, runners, app Kubernetes | Tier 1 or Tier 2 | not Tier 0 bootstrap prerequisites |
-| HSM and ceremony material | Tier 0 for custody; Tier 1 for connected gateways | no live edge backend inside custody |
-| path and reference docs | Architecture | copied or linked into the docs site |
+| `foundation`, `vault`, `hsm` | Tier 0 | connected authority/control endpoints; isolate offline custody separately |
+| template publication, `template-refresh`, `immutable-template` | Tier 0 | privileged image supply chain; approved local artifacts and scoped jobs |
+| hypervisor and network administration | Tier 0 | can affect all guests or network boundaries |
+| `edge`, `cache` | Tier 1 | Edge layer; no implied access to control administration |
+| `development`, `podman-runner`, `observability` | Tier 1 | general platform scope; not privileged Tier 0 execution |
+| `lab` and project workloads | Tier 2 | workload scope |
+| template code and control-service playbooks/roles | Tier 0 | implementation stays with its owner |
+| cross-tier guest modules and baseline helpers | Shared | common implementation, not deployment authority |
+
+A different privilege scope may justify another owner. Document that decision
+and migrate state deliberately; moving a folder does not change privileges
+or network access.
 
 ## Design guardrails
 
-- Keep Tier 0 small enough to recover.
-- Prefer explicit handoff files and documented interfaces between tiers.
-- Keep generated files visibly marked so local owned edits are not overwritten.
-- Keep local environment values out of this upstream repository.
-- Keep tier-specific live state in the owning tier repository.
-- Keep reusable modules, playbooks, and roles in the shared repository.
-- Keep local decisions, diagrams, and runbooks in the architecture repository.
+- Keep Tier 0 small, strongly protected, and independently recoverable.
+- Choose repository ownership by impact and network placement by exposure.
+- Keep live state and credentials with one owner.
+- Reuse shared code without sharing live inventories.
+- Use plain names; put detailed assignments in inventory and policy.
+- Preserve project-owned documentation when refreshing upstream guidance.

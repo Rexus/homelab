@@ -32,17 +32,26 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
         self.assertEqual({entry["family"] for entry in catalog.values()}, {"alma", "rocky", "talos"})
         self.assertFalse((tier0 / "templates/proxmox.yml").exists())
         self.assertTrue((tier0 / "terraform/templates/.terraform.lock.hcl").exists())
+        refresh = yaml.safe_load((tier0 / "ansible/playbooks/template-refresh.yml").read_text())
+        replacement = refresh[1]["roles"][0]
+        self.assertEqual(replacement["role"], "proxmox_template_replace")
+        self.assertEqual(replacement["when"], "template_refresh_replace_enabled | default(false) | bool")
         groups = yaml.safe_load((tier0 / "ansible/inventory/hosts.yml.example").read_text())["all"]["children"]
         self.assertIn("immutable_template_builders", groups)
         self.assertIn("template_refresh_builders", groups)
         self.assertTrue((tier0 / "packer/variables.auto.pkrvars.hcl.example").exists())
         shared = self.root / "verify-shared"
         self.assertFalse((shared / "packer/variables.auto.pkrvars.hcl.example").exists())
-        self.assertTrue((shared / "terraform/modules/proxmox_templates/main.tf").exists())
-        self.assertTrue((shared / "scripts/proxmox-templates.sh").exists())
+        self.assertTrue((tier0 / "terraform/modules/proxmox_templates/main.tf").is_file())
+        self.assertTrue((tier0 / "scripts/proxmox-templates.sh").is_file())
+        self.assertTrue((tier0 / "packer/templates/proxmox/talos-linux.pkr.hcl").is_file())
+        self.assertFalse((shared / "terraform/modules/proxmox_templates").exists())
+        self.assertFalse((shared / "scripts/proxmox-templates.sh").exists())
+        self.assertFalse((shared / "packer").exists())
         pipeline_path = "ci/gitlab-templates.yml.example"
         pipeline = yaml.safe_load((tier0 / pipeline_path).read_text())
-        self.assertIn("../verify-shared/", str(pipeline))
+        self.assertNotIn("shared", str(pipeline))
+        self.assertEqual(pipeline["template-plan"]["script"], ["bash scripts/proxmox-templates.sh plan"])
         self.assertEqual(pipeline["template-publish"]["when"], "manual")
         self.assertEqual(pipeline["template-plan"]["resource_group"],
                          pipeline["template-publish"]["resource_group"])
@@ -92,9 +101,10 @@ if 'plan' in sys.argv:
             env.pop(name, None)
 
         def run(action, cwd=repo, **overrides):
-            return subprocess.run(["bash", "../verify-shared/scripts/proxmox-templates.sh", action],
+            return subprocess.run(["bash", str(repo / "scripts/proxmox-templates.sh"), action],
                                   cwd=cwd, env=dict(env, **overrides), capture_output=True, text=True)
 
+        (self.root / "verify-shared").rename(self.root / "unavailable-shared")
         self.assertEqual(run("init").returncode, 0)
         catalog = repo / "templates/proxmox.yml"
         catalog.write_text("# Owned catalog\n")

@@ -31,8 +31,8 @@ prerequisite. If you already operate identity, DNS, and PKI, use those as the
 shared services for later paths.
 
 Run from the repository that owns the instance (`tier-0/` in a private source
-checkout or `<prefix>-tier-0/` after generation). Tier 0 examples are
-for custody-local identity; connected domain services belong in Tier 1. Guest
+checkout or `<prefix>-tier-0/` after generation). A connected authority with
+domain-wide control is Tier 0; offline root-key custody is separate. Guest
 network keys must map to that tier's actual networks. See
 [setup ownership](../../reference/generated-repository-model.md#setup-ownership).
 
@@ -169,7 +169,7 @@ Use these repo paths here:
 | [`ansible/group_vars/all.yml.example`](../../../tier-0/ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
 | [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
 | [`ansible/group_vars/foundation.yml.example`](../../../tier-0/ansible/group_vars/foundation.yml.example) | starting point for foundation IPs, FreeIPA, and service inputs | your local encrypted `ansible/group_vars/foundation.yml` |
-| [`ansible/playbooks/foundation.yml`](../../../shared/ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
+| [`ansible/playbooks/foundation.yml`](../../../tier-0/ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
 | [`scripts/deploy.sh`](../../../tier-0/scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `foundation` setup when you are ready to run it |
 
 Current boundary:

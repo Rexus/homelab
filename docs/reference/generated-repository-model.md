@@ -9,6 +9,7 @@
 - [Run the generated automation](#run-the-generated-automation)
 - [Shared code and recovery](#shared-code-and-recovery)
 - [Refresh and local ownership](#refresh-and-local-ownership)
+- [Automation ownership upgrade](#automation-ownership-upgrade)
 - [Implementation scope](#implementation-scope)
 - [References](#references)
 
@@ -42,10 +43,10 @@ It creates directories and files; it does not initialize Git or create remotes.
 
 | Repository | Owns |
 | --- | --- |
-| `<prefix>-tier-0` | custody inventory, recovery inputs, template catalog and CD jobs, control setups, bootstrap and cluster definitions |
-| `<prefix>-tier-1` | platform inventory, edge and shared-service setups, platform cluster definitions |
-| `<prefix>-tier-2` | workload inventory, lab setups, project and application definitions |
-| `<prefix>-shared` | Terraform modules, Ansible playbooks and roles, optional Packer build definitions, deployment scripts |
+| `<prefix>-tier-0` | control service code and inputs, host administration, complete template workflows, bootstrap |
+| `<prefix>-tier-1` | platform service playbooks and roles, inventory, Terraform roots, cluster definitions |
+| `<prefix>-tier-2` | workload playbooks, inventory, Terraform roots, project and application definitions |
+| `<prefix>-shared` | cross-tier guest modules, baseline roles, common precheck and deployment helpers |
 | `<prefix>-architecture` | copied upstream docs and environment-owned design, decisions, service records, runbooks |
 
 The collection directory groups five sibling repositories and is not itself a
@@ -67,6 +68,13 @@ not nest a collection repository around them or move existing checkouts.
 Shared **code** is separate from shared **services**: a platform service still
 has an owning tier, inventory, and state.
 
+Tier 0 owns hardware-facing administration and all VM template lifecycles.
+Tier-local workload definitions and state roots remain in place; they are not
+a grant of infrastructure privileges to repository users. Current deployment
+commands are operator-run. Future Tier 0-controlled execution accepts bounded
+workload requests, not arbitrary code; see
+[Infrastructure control](../architecture/infrastructure-control.md).
+
 The upstream source already has this split: `tier-0/`, `tier-1/`, `tier-2/`,
 and `shared/` map directly to their prefixed repository names. The generator
 copies those payloads and adjusts sibling shared paths; it does not partition
@@ -83,6 +91,9 @@ Each tier has the same operational layout:
   env.local.example
   ansible/
     ansible.cfg
+    playbooks/control-node.yml
+    playbooks/<setup>.yml
+    roles/                         # service-specific roles where needed
     inventory/hosts.yml.example
     group_vars/all.yml.example
     group_vars/all.env.yml.example
@@ -119,8 +130,9 @@ flowchart LR
   Inputs["Owning tier: inventory and group vars"] --> TF["Terraform guest resolution"]
   Inputs --> Ansible["Ansible configuration"]
   Hardware["Owning tier: hardware and network tfvars"] --> TF
-  Shared["Shared: modules, playbooks, roles"] --> TF
+  Shared["Shared: guest modules and baseline helpers"] --> TF
   Shared --> Ansible
+  Services["Owning tier: service playbooks and roles"] --> Ansible
 ```
 
 | File in the owning tier | Responsibility |
@@ -161,48 +173,56 @@ The generator assigns existing setup examples as follows:
 
 | Tier | Setups | Placement condition |
 | --- | --- | --- |
-| Tier 0 | `foundation`, `vault`, `hsm`, `immutable-template`, `template-refresh` | custody-local control and template builders; isolated networks and local artifacts |
+| Tier 0 | `foundation`, `vault`, `hsm`, `immutable-template`, `template-refresh` | high-impact control and template builders; protected networks and recoverable local artifacts |
 | Tier 1 | `edge`, `cache`, `development`, `observability`, `podman-runner` | connected platform services, edge and general runners |
 | Tier 2 | `lab` | lab and workload instances |
 
-Tier 0 also owns `terraform/templates/`, `templates/proxmox.yml.example`, and
-the seed-only `ci/gitlab-templates.yml.example`. The
+Tier 0 also owns the template module, publication script, Packer definitions,
+`terraform/templates/`, `templates/proxmox.yml.example`, and the seed-only
+`ci/gitlab-templates.yml.example`. The
 [template publisher](../platforms/proxmox/template-lifecycle.md) is a separate
 Terraform-only workflow for unbooted AlmaLinux, Rocky Linux, and Talos images;
 it is not a Linux guest setup in `.deployment-setups`. Its catalog has no guest
 IPs or credentials. Template-builder VMs retain the normal inventory contract.
 
-The setup name describes a capability; its tier describes the particular
-deployment's ownership. Online identity, issuing, secret, or HSM gateway
-instances serving connected networks belong in Tier 1. The Tier 0 copies are
-custody-local examples, not permission to connect custody to the DMZ. The
-generator preserves reference network values, so operators must replace bridge,
-subnet, gateway, template, and VMID values for the actual environment.
+The setup name describes a capability; its tier describes the instance's
+potential impact and ownership. Connected identity authorities, privileged
+secret systems, signing services, and hypervisor administration can belong in
+Tier 0. Application-scoped variants may belong in another tier. Isolate offline
+root keys and custody separately; being online does not make a system Tier 1.
+
+The generator preserves reference network values. Review bridge, subnet,
+gateway, template, and VMID values against the actual environment.
 
 Use the [network plan](../architecture/network.md#example-network-plan) and
 [firewall policy](../security/firewall-policy.md) to prepare those attachments.
-Matching logical network keys across tiers do not imply a shared subnet or
-firewall zone; generation does not create or enforce network isolation.
+Tier numbers do not determine zones or subnets. Matching logical network keys
+also do not imply a shared network; generation does not configure isolation.
 
 To deploy a capability in another tier, add its Terraform root and example
-vars there, register it in `.deployment-setups`, and add only that tier's hosts
-and IPs. Point its modules at the shared repo. Give it distinct resource IDs
+vars there, register it in `.deployment-setups`, and add its playbook and precheck
+mapping. Add only that tier's hosts and IPs. Extract common roles only when
+multiple tiers need them; guest modules already live in shared. Give it distinct resource IDs
 and state; do not transfer ownership by applying a second state to existing VMs.
 
-The Tier 0 `hsm` run targets custody hosts only, in both the source checkout and
-generated repositories. Connected HSM gateways and their edge configuration must be owned
-together in Tier 1; an air-gapped custody HSM is not a live edge backend.
+The Tier 0 `hsm` run targets HSM hosts only and never runs edge ingress.
+Connected service endpoints and any independently owned proxy need an explicit
+interface policy. An offline custody HSM must never become a live edge backend.
 
 ## Run the generated automation
 
-From `homelab-iac/homelab-tier-0`, initialize local working files:
+First complete Tier 0's [Day 0-1 template publication](../platforms/proxmox/template-lifecycle.md#local-workflow)
+and verify the template IDs in the consuming tier's mappings. Hosted CI and the
+control cluster are not prerequisites for that local workflow.
+
+From `homelab-iac/homelab-tier-0`, initialize local working files for the Linux setup:
 
 ```bash
 bash ../homelab-shared/scripts/init-local-files.sh --setup foundation --env test
 ```
 
 Replace `homelab` if you used another prefix. Edit the initialized local files
-and confirm custody placement, then review a plan from that same directory:
+and confirm network placement and permissions, then review a plan from that directory:
 
 ```bash
 bash ../homelab-shared/scripts/deploy.sh foundation --env test --plan-only
@@ -222,8 +242,13 @@ Shared scripts detect the tier root from the current working directory and
 check the shared code before running. The tier's `scripts/` entry points remain
 shortcuts to that same implementation and also work from other directories.
 Run direct shared-script commands from the tier root. Ansible
-uses shared playbooks and roles while its config, inventory, and vars stay in
-the tier. The generated config uses Ansible's native role path. [1]
+uses tier-local service playbooks and roles, with shared baseline roles as a
+fallback. Each tier's precheck imports the common checks with its own collection
+requirements. The generated config uses Ansible's native role path. [1]
+
+Tier 0's `scripts/proxmox-templates.sh` is a separate local command with a local
+Terraform module; image publication needs no shared checkout. Run it from the
+Tier 0 root in both source and generated layouts.
 
 Terraform roots use literal relative module sources such as
 `../../../../<prefix>-shared/terraform/modules/environment_guests`. Terraform
@@ -232,7 +257,8 @@ resolves local module paths relative to the calling module. [2]
 Keep the sibling names stable. Arbitrary `SHARED_REPO_DIR` overrides are not
 supported because both tools must resolve the same code checkout. Record a
 reviewed shared revision in environment decisions and retain that checkout,
-required providers, collections, images, and recovery inputs inside custody.
+required providers, collections, images, and recovery inputs outside the systems
+being recovered. Keep an offline copy where the recovery design requires it.
 An available local copy is required; a running source-control service is not.
 Repository separation scopes automation inputs, but does not enforce permissions
 or network policy by itself.
@@ -293,6 +319,31 @@ tier-relative paths are unchanged. Private copies of the former aggregate
 source tree need a deliberate migration of ignored files and state into the
 owning tier before deployment. Generation never imports or moves that local data.
 
+## Automation ownership upgrade
+
+Older collections kept all service roles, playbooks, Packer definitions, and
+template publication code in shared. Refresh creates these at their owning-tier
+paths but preserves the old shared files, even when unchanged. It reports them
+for review; it does not merge customizations into the new locations.
+
+Before deploying after this update:
+
+1. Refresh all five repositories together and review preserved-file reports.
+2. Compare old shared files with the new tier files and port local changes.
+   Check locally edited `ansible.cfg`, wrappers, and prechecks: service playbooks
+   now live in the tier, with local roles searched before shared baseline roles.
+3. Update developer-owned READMEs and CI jobs. Template jobs run
+   `bash scripts/proxmox-templates.sh` from Tier 0 and no longer need a shared
+   checkout or `TIER0_SHARED_COMMIT`. The CI starter is not overwritten.
+4. Discard old saved plans and replan from the owning tier using existing state.
+   Moving the template module source does not change its resource addresses.
+   No inventory, credentials, or state is moved by this code-only update.
+5. After checking all consumers, retire old shared copies manually. Do not leave
+   competing old and new jobs active against the same infrastructure.
+
+If template-builder inputs and state still belong to Tier 1, also complete the
+separate [template ownership migration](../platforms/proxmox/template-lifecycle.md#existing-collections).
+
 ## Implementation scope
 
 Generation includes the existing Linux Terraform/Ansible setups, split inventory
@@ -306,6 +357,10 @@ Offline checks run with:
 ```bash
 python3 -B -m unittest discover -s tests -p 'test_tier*.py' -v
 ```
+
+Native Ansible syntax checks require the common and Tier 0 collections from
+the [local tooling prerequisites](../getting-started/local-setup.md#deployment-machine).
+Tests do not install packages or connect to hosts; Windows skips native tool checks.
 
 ## References
 

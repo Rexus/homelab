@@ -111,7 +111,7 @@ Use these repo paths for the Vault foundation deployment:
 | [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | starting point for the `vault` inventory group | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
 | [`ansible/group_vars/vault.yml.example`](../../../tier-0/ansible/group_vars/vault.yml.example) | starting point for Vault IPs, listener, TLS, and node settings | your local `ansible/group_vars/vault.yml` |
-| [`ansible/playbooks/vault.yml`](../../../shared/ansible/playbooks/vault.yml) | baseline host preparation and Vault installation on hosts in the `vault` group | inventory and Vault group variables |
+| [`ansible/playbooks/vault.yml`](../../../tier-0/ansible/playbooks/vault.yml) | baseline host preparation and Vault installation on hosts in the `vault` group | inventory and Vault group variables |
 | [`scripts/deploy.sh`](../../../tier-0/scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `vault` setup when you are ready to run it |
 
 This deployment flow installs Vault and prepares the first node. Operator

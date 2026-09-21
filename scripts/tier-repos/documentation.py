@@ -16,20 +16,39 @@ def owned_template(writer, template, target, **values):
 
 def tier_readme(writer, tier, prefix, setups):
     descriptions = {
-        "tier-0": "the recoverable control foundation, template lifecycle, and custody-local infrastructure",
+        "tier-0": "hardware-facing infrastructure control, all VM template lifecycles, trust systems, and recovery",
         "tier-1": "shared platform services and connected infrastructure",
         "tier-2": "application, project, and lab workloads",
     }
     extra_paths = {
         "tier-0": ("- `templates/`, `terraform/templates/`, and `ci/`: image catalog, publication, and jobs\n"
+                   "- `terraform/modules/` and `packer/`: Tier 0 template implementations and builds\n"
                    "- `bootstrap/` and `clusters/tier0/`: cluster bootstrap and service definitions"),
         "tier-1": "- `clusters/tier1/`: platform cluster definitions",
         "tier-2": "- `environments/` and `workloads/`: project and workload definitions",
     }
+    docs = f"../{prefix}-architecture/{AUTO_DOCS}"
+    prerequisites = (
+        "Tier 0 supplies approved VM templates and networks. The commands below are\n"
+        "operator-run workflows, not a self-service interface for workload users.\n"
+    )
+    if tier == "tier-0":
+        prerequisites = (
+            "**Day 0-1: templates before VMs.** From this repository's root, initialize\n"
+            "the local image catalog:\n\n"
+            "```bash\n"
+            "bash scripts/proxmox-templates.sh init\n"
+            "```\n\n"
+            "Set local images, placement, checksums, and protected API access, then follow\n"
+            f"the [template lifecycle]({docs}/platforms/proxmox/template-lifecycle.md#local-workflow)\n"
+            "to plan, publish, and test templates before deploying guests. No hosted CI\n"
+            "or control cluster is required. If approved templates already exist, verify\n"
+            "their IDs and recovery copies before continuing.\n"
+        )
     owned_template(writer, "tier-readme.md", "README.md", prefix=prefix,
                    tier_title=tier.replace("-", " ").title(), purpose=descriptions[tier],
                    example=setups[0], extra_paths=extra_paths[tier],
-                   docs=f"../{prefix}-architecture/{AUTO_DOCS}")
+                   prerequisites=prerequisites, docs=docs)
 
 
 def shared_readme(writer, prefix):

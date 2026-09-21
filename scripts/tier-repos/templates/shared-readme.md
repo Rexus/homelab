@@ -1,14 +1,13 @@
 # ${prefix} Shared
 
-Reusable Terraform modules, Ansible playbooks and roles, Packer templates,
-and deployment scripts for the ${prefix} repositories. Each tier supplies
-its own inventory, variables, credentials, and state.
-Tier 0 owns template publication inputs and CD jobs; this repository provides
-the reusable image-import module and execution scripts.
+Cross-tier Terraform guest modules, Ansible baseline tasks, and deployment
+helpers for the ${prefix} repositories. Each tier owns its service playbooks,
+roles, inventory, variables, credentials, and state. Tier 0 contains all VM
+template implementations, Packer builds, publication scripts, and CD jobs.
 
 ## Getting started
 
-Review the project's [naming and allocations](../${prefix}-architecture/docs/naming-conventions.md),
+Review the project's [naming conventions](../${prefix}-architecture/docs/naming-conventions.md),
 then start from the owning deployment repository:
 
 - [Tier 0: recovery and control](../${prefix}-tier-0/README.md)
@@ -20,9 +19,8 @@ repository and its dependencies available locally for recovery.
 
 ## Repository structure
 
-- `terraform/modules/`: reusable guest and platform modules
-- `ansible/playbooks/` and `ansible/roles/`: shared host configuration
-- `packer/`: reusable image builds
+- `terraform/modules/`: guest inventory resolution and VM/LXC resources used across tiers
+- `ansible/playbooks/` and `ansible/roles/`: common precheck, baseline, and task fragments
 - `scripts/`: initialization and deployment entry points
 - `templates/`: project-specific reusable templates
 

@@ -1,0 +1,4 @@
+---
+# Tier 0 additions to shared/ansible/requirements.yml.
+collections:
+  - name: freeipa.ansible_freeipa

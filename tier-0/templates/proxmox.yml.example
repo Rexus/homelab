@@ -1,6 +1,8 @@
 # Copy to templates/proxmox.yml using the shared proxmox-templates.sh init command.
+# Day 0-1: publish templates locally before creating managed VMs or the control cluster.
 # Reference: docs/platforms/proxmox/template-lifecycle.md
 # Replace every value. Keep only the images being managed by this state.
+# These host/bridge names illustrate offline custody; connected Tier 0 uses protected control networks.
 # Add a new entry and VMID for every revision; retain previous entries for rollback.
 templates:
   alma-build-1:

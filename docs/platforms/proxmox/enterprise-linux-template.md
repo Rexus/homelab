@@ -46,7 +46,7 @@ Current repository note:
 
 - this guide is currently based on EL10 releases from AlmaLinux and Rocky Linux
 - the manual Proxmox template flow in this guide works for either distribution
-- the shipped Packer scaffold is currently `shared/packer/templates/proxmox/el10.pkr.hcl` in the source checkout
+- the shipped Packer scaffold is currently `tier-0/packer/templates/proxmox/el10.pkr.hcl` in the source checkout
 - Terraform uses the neutral variable name `default_linux_vm_template_id`
 - you can point that variable at another Linux cloud-init template, but review
   Ansible service roles when you leave the Enterprise Linux family

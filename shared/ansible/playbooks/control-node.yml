@@ -5,7 +5,7 @@
   gather_facts: false
   vars:
     control_node_selected_setup: "{{ control_node_setup | default('site') }}"
-    control_node_collection_catalog:
+    control_node_base_collection_catalog:
       community.general:
         name: community.general
         os_packages:
@@ -20,50 +20,6 @@
             - ansible-collection-ansible-posix
           Debian:
             - ansible-collection-ansible-posix
-      freeipa.ansible_freeipa:
-        name: freeipa.ansible_freeipa
-        os_packages:
-          RedHat:
-            - ansible-freeipa
-          Debian:
-            - ansible-freeipa
-    control_node_setup_collection_names:
-      foundation:
-        - community.general
-        - ansible.posix
-        - freeipa.ansible_freeipa
-      cache:
-        - community.general
-        - ansible.posix
-      edge:
-        - community.general
-        - ansible.posix
-      development:
-        - community.general
-        - ansible.posix
-      observability:
-        - community.general
-        - ansible.posix
-      podman-runner:
-        - community.general
-        - ansible.posix
-      immutable-template:
-        - community.general
-        - ansible.posix
-      template-refresh: []
-      lab:
-        - community.general
-        - ansible.posix
-      vault:
-        - community.general
-        - ansible.posix
-      hsm:
-        - community.general
-        - ansible.posix
-      site:
-        - community.general
-        - ansible.posix
-      ingress: []
 
   tasks:
     - name: Gather deployment control-node facts
@@ -74,11 +30,12 @@
     - name: Validate selected setup precheck mapping
       ansible.builtin.assert:
         that:
+          - control_node_setup_collection_names is defined
           - control_node_selected_setup in control_node_setup_collection_names
         fail_msg: >-
-          No control-node precheck mapping exists for setup
-          {{ control_node_selected_setup }}. Add it to
-          control_node_setup_collection_names.
+          Run the owning tier's ansible/playbooks/control-node.yml entry point.
+          Its control_node_setup_collection_names must include
+          {{ control_node_selected_setup }}.
 
     - name: Resolve required collections for selected setup
       ansible.builtin.set_fact:
@@ -86,7 +43,8 @@
           {{
             control_node_setup_collection_names[control_node_selected_setup]
             | unique
-            | map('extract', control_node_collection_catalog)
+            | map('extract', control_node_base_collection_catalog
+              | combine(control_node_collection_catalog | default({})))
             | list
           }}
 

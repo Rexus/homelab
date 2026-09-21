@@ -1,5 +1,5 @@
 # Shared across setups in this tier only. Replace reference network values before use.
-# Tier 0: map guest networks to isolated custody bridges; no routed connection to other tiers.
+# Tier 0: protect control networks; keep offline custody on a separate isolated fabric.
 # Copy to: terraform/common.tfvars
 # Replace every value before use.
 # Shared Terraform values used by multiple environment deployments.

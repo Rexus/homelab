@@ -3,7 +3,7 @@
 # Guide: docs/security/usb-hsm-active-active-blueprint.md
 
 platform_host_ips:
-  # Custody hosts only; connected edge configuration belongs to Tier 1.
+  # Tier 0 HSM hosts only; edge configuration has its own owner and access policy.
   hsm-1: 10.20.21.20
   hsm-2: 10.20.21.21
   # crypto-admin-1: 10.20.22.20

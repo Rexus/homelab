@@ -15,20 +15,13 @@
 
 Use this order when you are new to the repository or returning after time away:
 
-1. [Safe repository usage](usage-model.md)
-2. [Local setup](getting-started/local-setup.md)
-3. [Repository scripts](reference/repository-scripts.md)
-4. [Reader paths](paths/README.md)
-5. [Tier model](architecture/tier-model.md)
-6. [Generated repository model](reference/generated-repository-model.md)
-7. [Tier 0 path](paths/tier-0/README.md)
-8. [Shared services path](paths/shared-services/README.md)
-9. [Private cloud maturity path](paths/private-cloud-maturity.md)
-10. [Architecture overview](architecture/overview.md)
-11. [Private cloud model](architecture/private-cloud.md)
-12. [Platform index](platforms/README.md)
-13. [Secret strategy](security/secret-strategy.md)
-14. [Decision log](decisions/README.md)
+1. [Architecture overview](architecture/overview.md): distinguish tier ownership from network protection.
+2. [Generated repositories](reference/generated-repository-model.md): create the collection and understand ownership.
+3. [Project documentation](reference/project-documentation.md): record names, tags, VMID ranges, and VLAN conventions.
+4. [Reader paths](paths/README.md): choose the deployment you need and follow its prerequisites.
+
+For the first command, use the [generation quick start](reference/generated-repository-model.md#purpose-and-prerequisites).
+Use the sections below as a reference map, not a required reading list.
 
 ## Start here
 
@@ -53,7 +46,7 @@ Use this order when you are new to the repository or returning after time away:
 
 ## Path guides
 
-- [Tier 0 path](paths/tier-0/README.md) - custody-local Linux setups and the
+- [Tier 0 path](paths/tier-0/README.md) - high-impact control setups and the
   separate Talos/Flux bootstrap design
 - [Shared services path](paths/shared-services/README.md) - entry point for
   identity, DNS, PKI, edge, cache, secrets, and optional Windows support
@@ -88,14 +81,16 @@ Use this order when you are new to the repository or returning after time away:
 
 - [Architecture overview](architecture/overview.md) - horizontal security layers,
   vertical tiers, automation flow, and trust boundaries
-- [Tier model](architecture/tier-model.md) - dependency direction and ownership
+- [Tier model](architecture/tier-model.md) - potential impact, recovery, and ownership
   boundaries for Tier 0, Tier 1, Tier 2, shared, and architecture repositories
+- [Infrastructure control](architecture/infrastructure-control.md) - Tier 0 hardware authority,
+  Day 0-1 templates, and the future contract for Tier 2 VM requests
 - [Private cloud model](architecture/private-cloud.md) - what private cloud
   means here and when Proxmox, Kubernetes, or OpenStack fit
 - [Shared services model](architecture/shared-services.md) - why identity, PKI,
   secrets, and observability form the reusable private-domain backbone
-- [Network placement](architecture/network.md) - assign subnets and firewall
-  zones to tier/layer cells, with an example VLAN and address plan
+- [Network placement](architecture/network.md) - simple purpose-based zones,
+  subnet placement, and VLAN conventions, independent of repo tiers
 
 ## Platform guides
 
@@ -144,12 +139,12 @@ Use this order when you are new to the repository or returning after time away:
   foundation example that complements the env-var conventions
 - [Infrastructure automation layout](reference/infrastructure-automation-layout.md) -
   where the Terraform, Ansible, Packer, and wrapper code lives
-- [Network inputs](reference/network-inputs.md) - map tier-owned subnets into
+- [Network inputs](reference/network-inputs.md) - map each tier's guests into
   Terraform guest attachments without confusing them with firewall zones
 - [Generated repository model](reference/generated-repository-model.md) -
   private downstream repository set and generated-vs-owned content model
 - [Project documentation](reference/project-documentation.md) - developer-owned
-  READMEs, naming and allocation templates, and refreshable auto-docs
+  READMEs, a short naming/tag/VMID/VLAN worksheet, and refreshable auto-docs
 - [Repository scripts](reference/repository-scripts.md) - wrapper commands,
   environment handling, and manual command equivalents
 - [Ansible Vault bootstrap](reference/ansible-vault-bootstrap.md) - local

@@ -12,7 +12,11 @@ if [[ $# != 1 || ! "$1" =~ ^(init|plan|apply)$ ]]; then
   exit 1
 fi
 action="$1"
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/deployment-context.sh"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ "$(pwd -P)" != "$repo_root" ]]; then
+  echo "Run this command from the Tier 0 repository root." >&2
+  exit 1
+fi
 terraform_dir="$repo_root/terraform/templates"
 if [[ ! -f "$terraform_dir/main.tf" || ! -f "$repo_root/templates/proxmox.yml.example" ]]; then
   echo "Template publication requires the Tier 0 template root and catalog example." >&2

@@ -58,8 +58,9 @@ class GeneratedRepositories(TierRepositoryTestCase):
         self.assertIn("edge-lb-1", inventories["tier-1"])
         self.assertIn("lab-1", inventories["tier-2"])
         shared = self.root / "verify-shared"
-        self.assertTrue((shared / "ansible/playbooks/foundation.yml").is_file())
-        self.assertTrue((shared / "ansible/roles/cache_proxy/templates/squid.conf.j2").is_file())
+        self.assertTrue((self.root / "verify-tier-0/ansible/playbooks/foundation.yml").is_file())
+        self.assertTrue((self.root / "verify-tier-1/ansible/roles/cache_proxy/templates/squid.conf.j2").is_file())
+        self.assertTrue((shared / "ansible/roles/baseline/tasks/main.yml").is_file())
         self.assertFalse((shared / "ansible/inventory").exists())
         self.assertFalse((shared / "ansible/group_vars").exists())
         for repo in self.root.iterdir():
@@ -85,7 +86,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
         custom = self.root / "verify-tier-0/terraform/environments/custom/main.tf"
         custom.parent.mkdir()
         custom.write_text("# User-developed infrastructure\n", encoding="utf-8")
-        deleted = [shared / "ansible/playbooks/lab.yml",
+        deleted = [self.root / "verify-tier-2/ansible/playbooks/lab.yml",
                    self.root / "verify-tier-0/bootstrap/talos/machines.tf"]
         for path in deleted:
             path.unlink()
@@ -134,7 +135,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
             self.assertEqual((self.root / "untracked.tf").read_text(), "# owned\n")
 
     @unittest.skipIf(os.name == "nt", "Bash wrapper checks run under Linux/WSL")
-    def test_wrappers_use_tier_inputs_and_shared_playbooks(self):
+    def test_wrappers_use_tier_inputs_playbooks_and_shared_helpers(self):
         self.generate()
         commands = self.root / "commands"
         commands.mkdir()
@@ -193,10 +194,11 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
                              + [str(repo / "extra.yml")])
             play = next(call for call in calls if call["tool"] == "ansible-playbook"
                         and call["args"][-1].endswith(f"/{setup}.yml"))
-            self.assertTrue(play["args"][-1].startswith(str(self.root / "verify-shared")))
+            self.assertEqual(play["args"][-1], str(repo / f"ansible/playbooks/{setup}.yml"))
             self.assertEqual([arg[1:] for arg in play["args"] if arg.startswith("@")], variables)
             self.assertEqual(play["config"], str(repo / "ansible/ansible.cfg"))
-            self.assertTrue(play["roles"].startswith(str(self.root / "verify-shared/ansible/roles")))
+            self.assertEqual(play["roles"].split(":")[:2],
+                             [str(repo / "ansible/roles"), str(self.root / "verify-shared/ansible/roles")])
         self.assertFalse(any("ingress.yml" in str(call["args"]) for call in calls))
         (self.root / "verify-shared/scripts/deploy.sh").unlink()
         result = subprocess.run(["bash", str(self.root / "verify-tier-0/scripts/deploy.sh"), "hsm"],

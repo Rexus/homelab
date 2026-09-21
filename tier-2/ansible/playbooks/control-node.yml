@@ -1,0 +1,7 @@
+---
+- name: Check Tier 2 deployment tooling
+  ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
+  vars:
+    control_node_setup_collection_names:
+      lab: [community.general, ansible.posix]
+      site: [community.general, ansible.posix]

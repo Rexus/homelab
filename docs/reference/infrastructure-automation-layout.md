@@ -8,6 +8,7 @@
 - [Environment data split](#environment-data-split)
 - [Terraform setups](#terraform-setups)
 - [Shared automation](#shared-automation)
+- [Tier-owned automation](#tier-owned-automation)
 - [Maintaining the split](#maintaining-the-split)
 
 ## Purpose
@@ -30,10 +31,10 @@ linked for that deployment instead of this reference.
 
 | Source directory | Generated destination | Contains |
 | --- | --- | --- |
-| `tier-0/` | `<prefix>-tier-0/` | custody/control inputs, templates, CI starter, bootstrap, cluster starters |
-| `tier-1/` | `<prefix>-tier-1/` | connected platform inputs and cluster starters |
-| `tier-2/` | `<prefix>-tier-2/` | workload inputs and project starters |
-| `shared/` | `<prefix>-shared/` | reusable modules, playbooks, roles, Packer definitions, runtime scripts |
+| `tier-0/` | `<prefix>-tier-0/` | control services, host administration, complete template workflows, bootstrap |
+| `tier-1/` | `<prefix>-tier-1/` | platform service code, inputs, and cluster starters |
+| `tier-2/` | `<prefix>-tier-2/` | workload code, inputs, and project starters |
+| `shared/` | `<prefix>-shared/` | cross-tier guest modules, baseline roles, generic runtime helpers |
 | `docs/` | `<prefix>-architecture/docs/auto-docs/` | authoritative upstream guidance |
 | `scripts/tier-repos/` | not copied | generation, refresh policy, README/project-doc templates |
 | `tests/` | not copied | offline source and generated-repository checks |
@@ -47,8 +48,10 @@ Inside **each tier**, the paths are the same before and after generation:
 | `terraform/common.tfvars.example` | defaults for that tier's setups |
 | `ansible/inventory/hosts.yml.example` | logical hosts and service groups |
 | `ansible/group_vars/` | tier identity, IP maps, and service examples |
-| `ansible/ansible.cfg` | tier inventory plus sibling shared role path |
-| `scripts/` | local entry points delegating to shared runtime code |
+| `ansible/playbooks/` | tier service entry points and control-node requirements |
+| `ansible/roles/` | service-specific roles, where needed |
+| `ansible/ansible.cfg` | tier inventory; local roles first, then shared roles |
+| `scripts/` | tier commands and entry points to shared runtime helpers |
 
 Operational paths below are relative to the owning tier. Start there, not at
 the kit root. Direct shared calls use `../shared/` in source and
@@ -172,9 +175,14 @@ replaces setup-name dashes with underscores.
 | `tier-1` | `podman-runner` | [Podman runner](../paths/application-platform/podman-runner.md) |
 | `tier-2` | `lab` | [Local setup](../getting-started/local-setup.md) |
 
-Base-image publication is a separate Tier 0 root at `tier-0/terraform/templates/`.
+Base-image publication is a Day 0-1 Tier 0 root at `tier-0/terraform/templates/`.
 Its catalog, approved offline artifacts, and optional CI starter live under
 `tier-0/templates/` and `tier-0/ci/`. See [Template lifecycle](../platforms/proxmox/template-lifecycle.md).
+
+Tier-local VM roots remain workload definitions with separate state. Tier 0 owns
+hardware-facing control and the future delegated execution service; no state
+is moved by generation. Current wrappers are operator tools, not a workload-user
+API. See [Infrastructure control](../architecture/infrastructure-control.md).
 
 ## Shared automation
 
@@ -182,23 +190,41 @@ Its catalog, approved offline artifacts, and optional CI starter live under
 | --- | --- |
 | `shared/terraform/modules/environment_guests/` | resolves tier inventory, names, and IP maps |
 | `shared/terraform/modules/vm/`, `lxc/` | reusable Proxmox guest resources |
-| `shared/terraform/modules/proxmox_templates/` | offline image import and unbooted template resources |
-| `shared/ansible/playbooks/` | control-node precheck and setup/service entry points |
-| `shared/ansible/roles/` | baseline, shared task fragments, and service configuration |
-| `shared/ansible/requirements.yml` | required Ansible collections |
-| `shared/packer/templates/proxmox/` | optional Enterprise Linux, Debian, and Talos build scaffolds |
-| `shared/scripts/` | deployment, local-input initialization, template publication, tier-context checks |
+| `shared/ansible/playbooks/` | common control-node checks and baseline site play |
+| `shared/ansible/roles/` | baseline and shared task fragments |
+| `shared/ansible/requirements.yml` | common Ansible collections |
+| `shared/scripts/` | deployment, local-input initialization, tier-context checks |
 
 The shared tree contains no live inventory, credentials, state, or per-tier
-defaults. Packer inputs belong to `tier-0/packer/`; automated base-image
-publication uses Terraform, not the optional Packer scaffolds.
+defaults. Guest modules remain here because all tiers consume the same guest
+and inventory contract. They do not grant callers infrastructure privileges.
+
+## Tier-owned automation
+
+| Owner | Implementation |
+| --- | --- |
+| Tier 0 | `terraform/modules/proxmox_templates/`, `scripts/proxmox-templates.sh`, `packer/`, template catalog and CI starter |
+| Tier 0 | identity, secrets, HSM, Proxmox host, and Linux template-builder playbooks and roles |
+| Tier 1 | edge, cache, development, observability, runner, and ingress playbooks and service roles |
+| Tier 2 | lab playbook and workload definitions |
+
+Each tier's `ansible/playbooks/control-node.yml` declares its setup-to-collection
+mapping and imports the common precheck. Tier-specific collections also have a
+local requirements file: Tier 0 adds the identity collection. Shared does not
+register tier services. See [local tooling](../getting-started/local-setup.md).
+
+Template image publication is entirely local to Tier 0 and needs no shared
+checkout. Linux builder configuration still consumes the common baseline roles.
+Packer definitions are optional custom-build scaffolds, not the automated
+base-image publication path.
 
 ## Maintaining the split
 
-- Change a setup's Terraform root and Ansible examples together in its owning tier.
+- Change a setup's Terraform root, playbook, roles, and examples in its owning tier.
 - Register added setups in that tier's `.deployment-setups`; the generator checks
   for missing inputs, unregistered roots, and overlapping tier ownership.
-- Change reusable behavior once under `shared/`; do not copy roles into tiers.
+- Keep single-tier behavior with its owner. Extract to `shared/` only when
+  multiple tiers genuinely consume the same behavior.
 - Keep tier-wide default examples separate: each tier owns its network and
   identity choices even when starter values match.
 - Edit cluster/bootstrap starter files directly under their owning tier; they

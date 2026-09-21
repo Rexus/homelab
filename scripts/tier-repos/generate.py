@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate tier-owned inputs and a shared copy of the deployment automation."""
+"""Generate tier-owned automation and inputs plus genuinely shared building blocks."""
 
 import argparse
 from pathlib import Path
@@ -14,7 +14,7 @@ except ImportError:
 
 from generated_files import MARKER, RepositoryWriter
 from documentation import architecture_scaffold, copy_documentation, shared_readme, tier_readme
-from payload import TIERS, copy_payload, read_file, tier_setups, validate_layout
+from payload import TIERS, copy_payload, read_file, report_legacy_shared, tier_setups, validate_layout
 
 UPSTREAM = Path(__file__).resolve().parents[2]
 REPOSITORIES = ["shared", *TIERS, "architecture"]
@@ -63,6 +63,7 @@ def main():
             writer.write("LICENSE", read_file(UPSTREAM / "LICENSE"))
         if name == "shared":
             copy_payload(writer, UPSTREAM, name, args.prefix)
+            report_legacy_shared(writer, UPSTREAM)
             shared_readme(writer, args.prefix)
         elif name == "architecture":
             copy_documentation(writer, args.prefix, UPSTREAM)

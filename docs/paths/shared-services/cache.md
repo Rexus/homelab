@@ -10,7 +10,7 @@ source checkout or `<prefix>-tier-1/` after generation. File paths below
 are tier-relative unless marked as shared code.
 
 The reference implementation is `Squid` with `keepalived`. The first use case
-is allowing restricted or air-gapped systems to reach approved software
+is allowing connected, restricted systems to reach approved software
 sources without building full internal mirrors for every operating system,
 package source, Git remote, or registry endpoint. The same service can later
 expand into broader policy-enforced egress.
@@ -289,7 +289,7 @@ Keep this boundary:
 - the cache setup owns the cache hosts
 - software sources and allow-lists should be explicit
 - restricted systems should use the cache VIP as their repository proxy
-- air-gapped systems should use the cache only when policy allows it
+- air-gapped systems need a custody-local cache with transferred content, never a route across the air gap
 - more cache nodes are added by extending `vm_instances`, inventory, and IP map
 
 For Linux package managers managed by this repo, cache use is persistent

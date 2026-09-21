@@ -8,7 +8,7 @@
   when: baseline_manage_shell_proxy | bool
 
 - name: Ensure timezone is configured when enabled
-  ansible.builtin.timezone:
+  community.general.timezone:
     name: "{{ baseline_timezone }}"
   when: baseline_manage_timezone
 

@@ -1,9 +1,14 @@
 # Proxmox template lifecycle
 
 Tier 0 owns base template creation, updates, candidate testing, and release
-approval. Shared code implements the workflow; consuming tiers own their VMs
+approval, including all implementation code. Consuming tiers own their VMs
 and select approved template versions. AlmaLinux, Rocky Linux, and Talos use
 the same local-image import path. Talos cluster bootstrap remains separate.
+
+**Initial template publication is Day 0-1 work.** Run it from a protected local
+execution host before creating managed VMs, including the first control-cluster
+nodes. Hosted CI or GitOps scheduling is an optional Day 2 addition to the same
+Tier 0-owned automation, not a prerequisite for creating templates.
 
 ## Table of contents
 
@@ -18,18 +23,20 @@ the same local-image import path. Talos cluster bootstrap remains separate.
 
 ## Prerequisites
 
-- An isolated custody Proxmox host, API access, and locally trusted TLS certificate.
-- Proxmox VE 9 with `Import` content enabled on the image datastore. The shared
+- A Proxmox host with protected Tier 0 administration, API access, and trusted TLS.
+- Proxmox VE 9 with `Import` content enabled on the image datastore. The Tier 0
   module uses API-backed image upload and disk import. [1][2]
 - Linux or WSL with Terraform; retain the provider lock file and a local
   provider mirror for recovery. The root constrains the supported provider.
 - Approved, unpacked images on the execution host, exact releases, SHA256
-  values, unused VMIDs, and custody-local bridge/storage allocations.
-- A local checkout of the Tier 0 and shared repositories, with reviewed revisions.
+  values, unused VMIDs, and approved bridge/storage allocations.
+- A local Tier 0 checkout at a reviewed revision; this publisher does not need shared.
 
-Acquire images outside custody and verify vendor provenance before controlled
-transfer. Matching a locally supplied checksum detects changed bytes; it is
-not, by itself, proof of vendor authenticity. No job downloads from the Internet.
+Verify vendor provenance before approving images for Tier 0. For an offline
+custody deployment, acquire and verify outside the air gap, then transfer through
+the approved custody procedure. Matching a locally supplied checksum detects
+changed bytes; it is not, by itself, proof of vendor authenticity. No job
+downloads from the Internet.
 See the [Enterprise Linux image guide](enterprise-linux-template.md) or
 [Talos image guide](talos-template.md) for source selection.
 
@@ -42,25 +49,31 @@ See the [Enterprise Linux image guide](enterprise-linux-template.md) or
 | `ci/gitlab-templates.yml.example` | Tier 0: developer-owned optional CD pipeline starter |
 | `terraform/environments/template-refresh/` | Tier 0: staged mutable Linux package refresh |
 | `terraform/environments/immutable-template/` | Tier 0: optional image-based Linux builder |
-| shared `terraform/modules/proxmox_templates/` | reusable file import and unbooted template resources |
-| shared Ansible playbooks and roles | reusable Linux builder configuration, never Talos guest configuration |
+| `terraform/modules/proxmox_templates/` | Tier 0: file import and unbooted template resources |
+| `scripts/proxmox-templates.sh` | Tier 0: local publication entry point |
+| `packer/` | Tier 0: optional custom-image build definitions and inputs |
+| Tier 0 Ansible playbooks and roles | Linux builder configuration using shared baseline helpers, never Talos guest configuration |
 | consuming tier's template mappings | approved versions for that tier's new guests |
 
 Templates are stopped image artifacts, not managed guest hosts. Their catalog
 does not replace the shared Terraform/Ansible host inventory within each tier.
-Builder VMs still use Tier 0 inventory and group vars. Packer definitions remain
-optional custom-build scaffolds in shared; build inputs belong to Tier 0.
+Builder VMs still use Tier 0 inventory and group vars.
+
+The image-import publisher does not require a builder VM or an existing clone
+template. `template-refresh` and `immutable-template` are later builder paths
+that need an existing Linux template; do not use them as the only first-image
+or recovery path. All Proxmox VM template automation remains Tier 0-owned,
+regardless of which tier will consume the resulting image.
 
 ## Local workflow
 
 From `homelab-iac/homelab-tier-0`, initialize the local catalog:
 
 ```bash
-bash ../homelab-shared/scripts/proxmox-templates.sh init
+bash scripts/proxmox-templates.sh init
 ```
 
-Use your prefix in the sibling path. In a private source checkout, start in
-`tier-0/` and use `../shared/scripts/proxmox-templates.sh` for the same commands.
+In a private source checkout, start in `tier-0/` and use the same commands.
 Edit `templates/proxmox.yml`; remove
 unused example entries before the first apply. Record exact releases and the
 unpacked image hashes, and use absolute local artifact paths. The initializer
@@ -72,13 +85,13 @@ This native-provider workflow does not load `.env.local` or the Linux wrapper's
 `TF_VAR_proxmox_*` aliases. TLS verification stays enabled. [3]
 
 ```bash
-bash ../homelab-shared/scripts/proxmox-templates.sh plan
+bash scripts/proxmox-templates.sh plan
 ```
 
 Review the plan, then publish exactly that saved plan:
 
 ```bash
-bash ../homelab-shared/scripts/proxmox-templates.sh apply
+bash scripts/proxmox-templates.sh apply
 ```
 
 The default state is `.terraform/state/proxmox-templates/terraform.tfstate`;
@@ -96,7 +109,7 @@ guards remain in configuration. Do not remove those guards during normal updates
 
 1. Add a new versioned catalog entry with a new VMID and image checksum.
 2. Plan and publish it; retain existing entries and artifacts for rollback.
-3. Boot disposable clones on custody-local networks and test the OS-specific
+3. Boot disposable clones on approved test networks and test the OS-specific
    first-boot, shutdown, and provisioning path. Never boot the template itself.
 4. Record approval in project documentation. Update the consuming tier's
    template mapping only after its destination-side checks pass.
@@ -107,27 +120,28 @@ For AlmaLinux/Rocky package maintenance, the existing `template-refresh`
 workflow remains available from Tier 0. Its same-ID replacement is explicitly
 opt-in and is not invoked by this publisher. Do not give two Terraform roots
 ownership of the same template VMID. For bootc, transfer approved OCI images
-into a custody-local source; a Tier 1 registry is not a Tier 0 prerequisite.
+into a recoverable Tier 0 image source; a live Tier 1 registry must not be the
+only recovery source. Use offline transfer when crossing a custody air gap.
 
 For Talos, publish a fresh raw image for each release/schematic revision;
 do not run package updates, SSH provisioners, or Linux cleanup roles on it.
 Updating the template does not upgrade running cluster nodes. Follow the
 [Talos guide](talos-template.md) for the separate machine lifecycle.
 
-Tier 1 and Tier 2 receive approved image artifacts and release metadata by
-offline handoff. VMIDs are local to a Proxmox cluster: import into the destination
-under one designated owner and record the destination ID. This kit does not
-automate cross-cluster transfer or open a route into custody.
+Tier 1 and Tier 2 consume approved templates or transferred image artifacts.
+Use controlled distribution for connected platforms and offline handoff across
+custody boundaries. VMIDs are local to a Proxmox cluster: import into another
+cluster under one designated owner and record its destination ID. The kit does
+not automate cross-cluster transfer or open a route into offline custody.
 
 ## GitLab CI example
 
 The generated Tier 0 `ci/gitlab-templates.yml.example` is seeded once and owned
 by that project's developers. Enable it as `.gitlab-ci.yml` only after preparing:
 
-- a custody-local GitLab service and one protected shell runner tagged
+- a Tier 0-protected GitLab job/approval path and dedicated shell runner tagged
   `tier0-templates`, with durable storage outside disposable job checkouts;
-- the shared checkout beside `CI_PROJECT_DIR`, at the full commit in `TIER0_SHARED_COMMIT`,
-  identical and unmodified for plan and publish;
+- the same reviewed Tier 0 commit and unmodified code for plan and publish;
 - protected `TEMPLATE_STATE_PATH` and `TEMPLATE_CATALOG_FILE` values pointing
   to absolute paths available at the same locations in both jobs;
 - local images and a provider mirror, plus masked/protected provider credentials;
@@ -145,10 +159,14 @@ publish; a stale plan must be regenerated. Test the YAML in your instance's
 CI Lint before enabling it. The example publishes new image revisions, not
 unattended same-ID replacements or live Talos upgrades.
 
-A connected Tier 1 runner must not administer custody. Until custody-local CI
-exists, or whenever it is unavailable, run the local commands from an isolated
-workstation with the same recovery state and artifacts. A CI server hosted on
-the Tier 0 cluster is a Day 2 convenience, never its bootstrap dependency.
+A general Tier 1 runner must not hold Tier 0 administration credentials. The
+code acceptance, approval, runner, and credentials for these jobs need Tier 0
+protection; a branch name or runner tag alone is not a boundary. For offline
+custody, the execution path must also remain inside the air gap.
+
+Until that path exists, or whenever it is unavailable, use local commands from
+an approved Tier 0 workstation with the same state and artifacts. Hosted CI
+is a Day 2 convenience, never a bootstrap or recovery prerequisite.
 
 ## Existing collections
 
@@ -157,7 +175,7 @@ Existing `.deployment-setups`, root READMEs, jobs, and local inventories remain
 owned. Before switching `template-refresh` or `immutable-template` from Tier 1:
 
 1. Stop the old jobs and back up their state and live inputs.
-2. Review physical custody placement; repo movement does not isolate a host.
+2. Review control-network placement and privileges; repo movement does not secure a host.
 3. Transfer the authoritative state and matching inputs under a reviewed
    migration, with the same resource identities. Do not apply an empty new
    Tier 0 state against VMs still owned by Tier 1.
@@ -166,14 +184,17 @@ owned. Before switching `template-refresh` or `immutable-template` from Tier 1:
 5. Verify a no-change plan from the new owner before enabling its jobs.
 
 See [refresh ownership](../../reference/generated-repository-model.md#refresh-and-local-ownership).
+For collections that already keep inputs in Tier 0 but use shared template
+code, follow the [automation ownership upgrade](../../reference/generated-repository-model.md#automation-ownership-upgrade).
+That code-path change does not move state.
 
 ## Offline validation
 
 From the upstream checkout, use Terraform 1.7 or later for the native mock tests:
 
 ```bash
-terraform -chdir=shared/terraform/modules/proxmox_templates init -backend=false
-terraform -chdir=shared/terraform/modules/proxmox_templates test
+terraform -chdir=tier-0/terraform/modules/proxmox_templates init -backend=false
+terraform -chdir=tier-0/terraform/modules/proxmox_templates test
 ```
 
 These tests inspect plans and validation failures without calling Proxmox.

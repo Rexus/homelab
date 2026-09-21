@@ -1,0 +1,12 @@
+---
+- name: Check Tier 1 deployment tooling
+  ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
+  vars:
+    control_node_setup_collection_names:
+      edge: [community.general, ansible.posix]
+      cache: [community.general, ansible.posix]
+      development: [community.general, ansible.posix]
+      observability: [community.general, ansible.posix]
+      podman-runner: [community.general, ansible.posix]
+      ingress: []
+      site: [community.general, ansible.posix]

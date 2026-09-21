@@ -47,7 +47,7 @@ Use separate access paths for different automation jobs:
 | Platform provisioning | yes | Creates, clones, updates, starts, stops, and destroys VMs or containers |
 | Ansible guest configuration | no, normally | Uses SSH to the provisioned guests after they exist |
 | Packer template builds | yes, separate token recommended | Creates temporary build VMs and templates |
-| Tier 0 template publication | yes, dedicated custody token | Uploads approved images and creates stopped templates; see [Template lifecycle](template-lifecycle.md) |
+| Tier 0 template publication | yes, dedicated Tier 0 token | Uploads approved images and creates stopped templates; see [Template lifecycle](template-lifecycle.md) |
 
 The default role set below is intentionally focused on guest provisioning. It
 does not grant Proxmox user management, permission management, node power,

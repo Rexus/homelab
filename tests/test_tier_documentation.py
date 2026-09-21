@@ -42,9 +42,47 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertTrue((architecture / relative).is_file(), relative)
             self.assertIn(relative, manifest["owned"])
             self.assertNotIn(relative, manifest["files"])
-        for heading in ("VM and DNS names", "Resource IDs", "Networks", "Platform resources"):
+        for heading in ("VM and DNS names", "Proxmox tags", "VMID ranges", "Networks and VLANs"):
             self.assertIn(f"## {heading}", naming.read_text())
         self.assertFalse((architecture / "docs/generated").exists())
+
+    def test_tier_zero_frontdoor_starts_with_local_template_publication(self):
+        self.generate()
+        tier0 = (self.root / "verify-tier-0/README.md").read_text(encoding="utf-8")
+        publisher = "bash scripts/proxmox-templates.sh init"
+        setup = "bash ../verify-shared/scripts/init-local-files.sh"
+        self.assertIn("Day 0-1: templates before VMs", tier0)
+        self.assertLess(tier0.index(publisher), tier0.index(setup))
+        self.assertIn("template-lifecycle.md#local-workflow", tier0)
+        self.assertNotIn("${", tier0)
+        for tier in ("tier-1", "tier-2"):
+            readme = (self.root / f"verify-{tier}/README.md").read_text(encoding="utf-8")
+            self.assertNotIn(publisher, readme)
+            self.assertIn("operator-run workflows", readme)
+            self.assertIn("infrastructure-control.md", readme)
+            self.assertNotIn("${", readme)
+
+    def test_naming_worksheet_keeps_conventions_separate_from_inventory(self):
+        self.generate("--repo", "architecture")
+        architecture = self.root / "verify-architecture"
+        naming = architecture / "docs/naming-conventions.md"
+        content = naming.read_text(encoding="utf-8")
+        self.assertTrue(content.startswith("# verify Naming Conventions"))
+        self.assertNotIn("${", content)
+        self.assertIn("Your choice", content)
+        self.assertIn("TBD", content)
+        self.assertIn("<env>-<role>-<n>", content)
+        for example in ("test-idm-1", "critical", "restricted", "100-199", "9000-9999",
+                        "10 / Control", "120 / Services", "320 / DMZ"):
+            self.assertIn(example, content)
+        self.assertIn("Tier = owning repo and potential impact", content)
+        self.assertIn("Zone = network protection", content)
+        self.assertNotRegex(content, r"T[012]-(?:Edge|Application|Control)")
+        for column in ("Tier / layer", "CIDR", "Gateway"):
+            self.assertNotIn(column, content)
+        for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", content):
+            relative = target.split("#")[0]
+            self.assertTrue((naming.parent / relative if relative else naming).is_file(), target)
 
     def test_auto_docs_have_notice_and_project_link_at_every_depth(self):
         self.generate("--repo", "architecture")

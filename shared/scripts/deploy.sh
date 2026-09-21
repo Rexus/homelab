@@ -236,126 +236,12 @@ elif [[ -n "$common_var_file_path" && "$explicit_env" == true \
   environment_common_var_file_path="$repo_root/terraform/common.$deployment_env.tfvars"
 fi
 
-case "$setup_name" in
-  foundation)
-    terraform_dir="$repo_root/terraform/environments/foundation"
-    ansible_playbooks=("foundation.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/foundation.yml"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  edge)
-    terraform_dir="$repo_root/terraform/environments/edge"
-    ansible_playbooks=("edge.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/edge.yml"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  cache)
-    terraform_dir="$repo_root/terraform/environments/cache"
-    ansible_playbooks=("cache.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/cache.yml"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  development)
-    terraform_dir="$repo_root/terraform/environments/development"
-    ansible_playbooks=("development.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/development.yml"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  observability)
-    terraform_dir="$repo_root/terraform/environments/observability"
-    ansible_playbooks=("observability.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/observability.yml"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  podman-runner)
-    terraform_dir="$repo_root/terraform/environments/podman-runner"
-    ansible_playbooks=("podman-runner.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/podman_runner.yml"
-    setup_ansible_vars_env_stem="podman_runner"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  immutable-template)
-    terraform_dir="$repo_root/terraform/environments/immutable-template"
-    ansible_playbooks=("immutable-template.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/immutable_template.yml"
-    setup_ansible_vars_env_stem="immutable_template"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  template-refresh)
-    terraform_dir="$repo_root/terraform/environments/template-refresh"
-    ansible_playbooks=("template-refresh.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/template_refresh.yml"
-    setup_ansible_vars_env_stem="template_refresh"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  lab)
-    terraform_dir="$repo_root/terraform/environments/lab"
-    ansible_playbooks=("lab.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/lab.yml"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  vault)
-    terraform_dir="$repo_root/terraform/environments/vault"
-    ansible_playbooks=("vault.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/vault.yml"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  hsm)
-    terraform_dir="$repo_root/terraform/environments/hsm"
-    ansible_playbooks=("hsm.yml")
-    setup_ansible_vars_base_path="$ansible_dir/group_vars/hsm.yml"
-    setup_ansible_vars_required=true
-    required_files=(
-      "$inventory_path"
-      "$ansible_dir/group_vars/all.yml"
-    )
-    ;;
-  *)
-    echo "Unknown setup: $setup_name" >&2
-    usage
-    exit 1
-    ;;
-esac
+terraform_dir="$repo_root/terraform/environments/$setup_name"
+ansible_playbooks=("$setup_name.yml")
+setup_ansible_vars_env_stem="${setup_name//-/_}"
+setup_ansible_vars_base_path="$ansible_dir/group_vars/$setup_ansible_vars_env_stem.yml"
+setup_ansible_vars_required=true
+required_files=("$inventory_path" "$ansible_dir/group_vars/all.yml")
 
 if [[ -z "$var_file_path" ]]; then
   var_file_path="$terraform_dir/terraform.tfvars"
@@ -376,7 +262,10 @@ if [[ "$explicit_env" == true ]]; then
   fi
 fi
 
-required_files=("$var_file_path" "${required_files[@]}")
+required_files=("$var_file_path" "$ansible_playbook_dir/control-node.yml" "${required_files[@]}")
+for playbook in "${ansible_playbooks[@]}"; do
+  required_files+=("$ansible_playbook_dir/$playbook")
+done
 if [[ "$setup_ansible_vars_required" == true ]]; then
   required_files=("$setup_ansible_vars_base_path" "${required_files[@]}")
 fi
@@ -715,7 +604,7 @@ fi
 check_required_files
 load_env_file
 export ANSIBLE_CONFIG="$ansible_dir/ansible.cfg"
-export ANSIBLE_ROLES_PATH="$automation_root/ansible/roles${ANSIBLE_ROLES_PATH:+:$ANSIBLE_ROLES_PATH}"
+export ANSIBLE_ROLES_PATH="$ansible_dir/roles:$automation_root/ansible/roles${ANSIBLE_ROLES_PATH:+:$ANSIBLE_ROLES_PATH}"
 map_provider_env
 run_control_node_precheck
 

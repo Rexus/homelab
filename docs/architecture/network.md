@@ -13,160 +13,149 @@
 
 ## Purpose
 
-Networks implement the [tier-and-layer architecture](overview.md#tier-and-zone-view).
-This document maps subnets into that view; it does not introduce another
-network hierarchy. Use the [firewall policy](../security/firewall-policy.md)
-for traffic between those networks.
+Protect services from outside inward: **Edge -> Application -> Control**.
+The [architecture view](overview.md#layered-model) shows these layers with
+their network zones. Tiers separately decide repository ownership and impact.
 
-Before deploying, choose the owning tier, security layer, subnet, VLAN or
-equivalent segment, gateway, and enforcement point for every interface.
-Switching, routing, and gateway policy are operator-managed prerequisites,
-not resources created by this repository.
+Start with a network's purpose and required traffic, then choose its subnet,
+VLAN, zone, and enforcement point. Do not create a network for every tier/layer
+combination. Routing, switching, and firewall policy are operator-managed
+prerequisites, not resources created by this kit.
+
+Tier 0 owns that network control plane across all zones. Other tiers select
+approved guest attachments; they do not own the switches, gateways, or policy
+because their VMs use a network. See [Infrastructure control](infrastructure-control.md).
 
 ## Zone assignment
 
-Use `T<tier>-<layer>` for connected firewall zones. Create only zones with
-actual networks, and group networks only when their baseline policy is alike.
+Use three plain zone names as the starting example. Add a zone only when it
+needs a different policy.
 
-| Architecture cell | Firewall zone | Networks it groups |
+| Layer | Example zone | What belongs here |
 | --- | --- | --- |
-| Tier 2 / Edge | `T2-Edge` | dedicated workload ingress or egress, when shared edge is insufficient |
-| Tier 2 / Application | `T2-Application` | project, application, tenant, and lab subnets |
-| Tier 2 / Control | `T2-Control` | workload administration and tier-scoped automation |
-| Tier 1 / Edge | `T1-Edge` | shared ingress, outbound proxies, and caches |
-| Tier 1 / Application | `T1-Application` | connected identity, access services, apps, telemetry, and cryptography |
-| Tier 1 / Control | `T1-Control` | platform administration, recovery storage, and control endpoints |
-| Tier 0 / Control | none on the connected gateway | physically isolated custody-local networks |
+| Edge | `DMZ` | public entry points, reverse proxies, controlled outbound proxies |
+| Application | `Services` | shared services, internal applications, workload backends |
+| Control | `Control` | administration, identity authority, privileged secrets and signing endpoints |
+| Separate offline custody | no connected zone | offline root keys, recovery material, ceremonies |
 
-Internet/WAN, user endpoints, remote-access clients, and the gateway itself
-are boundary peers, not extra architecture layers. Keep their policy groups
-separate from the server zones. A client VPN is not automatically a trusted
-Control-zone source.
+Tier numbers do not appear in zone names. For example, a Tier 1 platform
+service and a Tier 2 application can both use `Services`, while a Tier 0
+identity authority uses `Control`.
 
-Each routed subnet has one owning tier and one firewall zone. Cross-tier
-consumers use rules to reach endpoints; they do not make a subnet a member of
-two zones. Separate projects into different subnets and, where policy differs,
-more specific zones such as `T2-Application-Lab`. Keep that zone in the same
-architecture cell and adapt the matrix to it.
+One subnet belongs to one firewall zone. Group subnets only when their baseline
+policy is alike; use names such as `Lab` or `Storage` when a separate policy
+is useful. Separate hostile labs, tenants, or administrative scopes rather
+than putting them into a shared broadcast domain.
 
-Do not treat a shared zone as an allow-all group. Filter routed traffic between
-its member subnets; enforce same-subnet isolation at hosts, switches, or the
-workload platform. See [enforcement boundaries](../security/firewall-policy.md#enforcement-boundaries).
+A common zone is not an allow-all group. Filter between its routed subnets and
+use host, switch, or workload controls for same-subnet isolation. See
+[firewall policy](../security/firewall-policy.md).
+
+WAN, user devices, VPN clients, and the gateway itself are boundary peers, not
+additional server layers. VPN membership alone does not grant Control access.
 
 ## Network catalog
 
-The existing `network_zones` keys are **logical guest-network names**, not
-firewall-zone identifiers. `management` names a network purpose; **Control**
-names the architectural layer. Defaults below describe connected instances.
+Terraform's `network_zones` keys are **logical guest-network names**, not
+firewall-zone names. `management` is one network purpose inside Control,
+not another name for the whole layer.
 
-| Network key | Layer / usual tier | Purpose | Guest attachment |
-| --- | --- | --- | --- |
-| `external_edge` | Edge / Tier 1 or 2 | public entry points, ingress, controlled egress | yes |
-| `access` | Application / Tier 1 | identity brokers, SSO and access-service interfaces | yes |
-| `identity` | Application / Tier 1 | connected identity authorities, directory, DNS | yes |
-| `application` | Application / Tier 1 or 2 | internal APIs, shared apps, project and lab services | yes |
-| `observability` | Application / Tier 1 | telemetry backends, dashboards, queries | yes |
-| `telemetry_gateway` | Application / Tier 1 | dedicated telemetry intake and routing | yes |
-| `security_telemetry` | Application / Tier 1 | separate hardened audit/log intake; no general peer access | yes |
-| `cryptography` | Application / Tier 1 | online issuing CA, signing APIs, HSM gateways | yes |
-| `management` | Control / owning connected tier | bastions, IaC runners, hypervisor and system admin interfaces | selected admin guests only |
-| `storage` | Control / owning connected tier | archive, backup, and recovery storage interfaces | selected storage guests |
-| `corosync` | Control / platform owner | host cluster membership and quorum | host-only |
-| `ceph_public` | Control / platform owner | storage client transport, despite the name not Internet-facing | usually host-only |
-| `ceph_cluster` | Control / platform owner | storage replication and recovery transport | host-only |
-| `ceremony` | Control / Tier 0 | offline root trust, provisioning, recovery and custody | custody-local only |
-| `client` | boundary peer | operator/user endpoints, not a server layer | reference only |
+| Network key | Usual zone / placement | Purpose |
+| --- | --- | --- |
+| `external_edge` | DMZ | ingress and controlled egress |
+| `application` | Services | internal services and project workloads |
+| `access` | Services, or Control for privileged access | identity-broker and access-service interfaces |
+| `identity` | Control | identity authority, directory, authoritative DNS |
+| `cryptography` | Control | issuing CA, signing services, HSM gateways |
+| `management` | Control | bastions, privileged runners, hypervisor/admin interfaces |
+| `observability`, `telemetry_gateway` | Services | telemetry intake, backends, dashboards |
+| `security_telemetry` | restricted service subnet | hardened audit/log intake; scope its receiver permissions |
+| `storage` | Control, or separate Storage policy | backup/archive receivers; separate administration |
+| `corosync`, `ceph_public`, `ceph_cluster` | non-routed host fabric | quorum and storage transport; not Internet-facing |
+| `ceremony` | separate offline custody | root trust and recovery operations |
+| `client` | endpoint boundary | user/operator devices, not a server layer |
 
-Tier 0 may reuse keys such as `identity` or `application` for services inside
-custody. Their instances remain Tier 0 Control functions: map them to separate
-custody-local attachments, not connected Tier 1 networks. An online replica is
-a distinct Tier 1 instance. An access service's public listener belongs at the
-Edge boundary; its protected backend can remain in `access`.
+Choose placement per interface. An identity service's public front end belongs
+at the edge; its authority and administration stay protected. Do not expose
+admin listeners just because clients need DNS or authentication.
 
-For hosts with several interfaces, document and filter each one. Do not bridge
-zones through a guest or turn a management NIC into a transit path. Host-only
-storage/cluster networks need local enforcement; their Control placement does
-not require exposing them through the gateway.
+Hosts with multiple interfaces must not bridge zones or make the management
+NIC a transit path. Host-only fabrics need local enforcement; routing them
+through a gateway is not required merely to assign a policy name.
 
 ## VLAN ID strategy
 
-Keep one site allocation plan and avoid reusing VLAN IDs on a shared trunk.
-Numbers are identifiers, not security controls and not tier numbers. Keep the
-existing reference ranges when useful; allocate distinct networks when the
-same logical key is used in multiple connected tiers.
+Use numbers as allocations, not as security labels. Keep one site plan, avoid
+duplicate IDs on shared trunks, and leave room for growth. The existing examples
+use these ranges; choose different ranges when they better fit your site.
 
-| VLAN ID range | Reference use |
+| VLAN range | Reference use |
 | --- | --- |
-| `2-99` | control, access, identity, host clustering and storage transport |
-| `100-199` | internal application, observability and archive networks |
-| `200-299` | cryptography, telemetry and separately isolated custody examples |
-| `300-399` | shared edge-facing networks |
-| `400+` | local extensions, including distinct Tier 2 networks |
+| `2-99` | platform, administration, identity, clustering, and storage transport |
+| `100-199` | internal services, applications, observability, and archive |
+| `200-299` | specialist cryptographic and telemetry networks |
+| `300-399` | edge-facing networks |
+| `400+` | projects, labs, and local extensions |
 
-Tier 0 needs physically isolated custody infrastructure. A dedicated VLAN on
-the connected fabric, a missing route, or a deny-all rule does not satisfy
-the air-gap requirement. Its switches, hosts, and operator access must not
-provide a concurrent path into connected tiers.
+A VLAN in the `200` range does not mean Tier 2. A number also does not select
+a firewall zone; the configured network-to-zone mapping does.
+
+Record your chosen ranges and a few purpose-to-zone examples in the generated
+architecture repo's `docs/naming-conventions.md`. Keep the complete subnet,
+gateway, DHCP, and address assignments in network inventory.
 
 ## Example network plan
 
-These values illustrate the mapping; they are not an automatically allocated
-plan. Replace them before deployment. The `.1` address can be the gateway on
-each connected example subnet if that matches the local routing design.
+These are examples, not an automatically allocated plan. Existing addresses
+are retained so adopting the simpler naming model does not imply renumbering.
 
-| Network name | Key / purpose | VLAN | IPv4 subnet | Firewall zone |
+| Network name | Logical key | VLAN | IPv4 subnet | Zone |
 | --- | --- | --- | --- | --- |
-| `t2-edge` | `external_edge` | `432` | `10.42.32.0/24` | `T2-Edge` |
-| `t2-apps` | `application` | `420` | `10.42.20.0/24` | `T2-Application` |
-| `t2-admin` | `management` | `410` | `10.42.10.0/24` | `T2-Control` |
-| `t1-edge` | `external_edge` | `320` | `10.30.30.0/24` | `T1-Edge` |
-| `t1-access` | `access` | `11` | `10.10.11.0/24` | `T1-Application` |
-| `t1-identity` | `identity` | `12` | `10.10.12.0/24` | `T1-Application` |
-| `t1-apps` | `application` | `120` | `10.20.20.0/24` | `T1-Application` |
-| `t1-crypto` | `cryptography` | `220` | `10.20.21.0/24` | `T1-Application` |
-| `t1-admin` | `management` | `10` | `10.10.10.0/24` | `T1-Control` |
-| `t1-archive` | `storage` | `140` | `10.20.40.0/24` | `T1-Control` |
-| `t0-ceremony` | `ceremony` | `221`, isolated fabric only | `10.20.22.0/24` | none on connected gateway |
+| `edge` | `external_edge` | `320` | `10.30.30.0/24` | DMZ |
+| `apps` | `application` | `120` | `10.20.20.0/24` | Services |
+| `lab` | `application` in the lab repo | `420` | `10.42.20.0/24` | Services, or separate Lab policy |
+| `access` | `access` | `11` | `10.10.11.0/24` | Services for application-only access |
+| `identity` | `identity` | `12` | `10.10.12.0/24` | Control |
+| `management` | `management` | `10` | `10.10.10.0/24` | Control |
+| `crypto` | `cryptography` | `220` | `10.20.21.0/24` | Control |
+| `archive` | `storage` | `140` | `10.20.40.0/24` | Control, with dedicated receiver rules |
 
-Optional reference allocations remain `observability` = VLAN `130`,
-`telemetry_gateway` = `230`, `security_telemetry` = `231`, and host-only
-`corosync` / `ceph_public` / `ceph_cluster` = `20` / `21` / `22`.
-Keep host-only fabric un-routed unless a documented requirement demands
-otherwise. Local custody routing, if needed, stays entirely within custody.
+Additional examples are observability `130`, telemetry intake `230`,
+security telemetry `231`, and host-only fabrics `20`, `21`, `22`.
+They are not mandatory networks.
 
-For each actual network, also record IPv6 policy, DHCP or static reservations,
-DNS/time endpoints, zone membership, owner, and rule IDs in the architecture
-repository's owned documentation. The inventory app can mirror that plan
-after Day 2; it must not be required to rebuild it.
+Offline `ceremony` may use VLAN `221` and `10.20.22.0/24` on its own
+isolated fabric. It has no zone or route on the connected gateway. A VLAN,
+missing route, or deny rule on a connected fabric is not an air gap. No
+dual-homed host or operator connection may bridge the custody boundary.
 
 ## Deployment order
 
-1. Map existing or planned networks into the combined architecture view.
-2. Establish the custody boundary separately; do not add it to the connected gateway.
-3. Prepare connected control access with a tested local recovery path.
-4. Create only the needed service and edge subnets, VLANs, trunks, and gateways.
-5. Apply and test the [firewall matrix](../security/firewall-policy.md) before adding workloads.
-6. Add Tier 2 subnets as projects appear; use Tier 1 services through scoped rules.
+1. Record naming and VLAN choices in the short conventions worksheet.
+2. Create the required networks by purpose; reuse suitable existing services.
+3. Preserve a tested local recovery and administrative access path.
+4. Map connected networks to zones and apply [scoped rules](../security/firewall-policy.md).
+5. Test allowed and denied traffic before adding workloads.
+6. Establish offline custody separately where required.
 
-No dedicated Tier 2 edge is needed when shared Tier 1 ingress can publish
-the workload. Existing identity, DNS, storage, and gateway services are valid
-prerequisites; document their placement and policies instead of redeploying them.
+An application does not need its own DMZ when a shared proxy can publish it.
+Add networks as actual trust or traffic requirements appear, not once per repo.
 
 ## Automation mapping
 
-The generator copies reference network values into each tier's examples. It
-does **not** allocate unique subnets, create firewall zones, or enforce isolation.
-Replace each tier's values using this plan. Terraform maps guests into those
-networks; Ansible configures hosts using that tier's matching inventory IPs.
+Each tier owns its guest attachment inputs. Identical logical keys do not
+automatically mean the same VLAN; choose actual attachments from the site plan.
+A network may serve interfaces owned by several repos if policy permits.
+Its definition still needs one recorded operational owner.
 
+The generator copies examples; it does not allocate unique IDs/subnets, create
+zones, or install firewall rules. Review values before applying them.
 Use [Network inputs](../reference/network-inputs.md) for exact fields and
-attachment examples, and [Proxmox networking](../platforms/proxmox/network-prerequisites.md)
-for host bridges and fabric. Keep real addresses, rules, and credentials in
-the environment-owned repositories.
+[Proxmox networking](../platforms/proxmox/network-prerequisites.md) for the fabric.
 
 ## Continue reading
 
-- [Architecture view](overview.md#tier-and-zone-view)
+- [Ownership and network placement](overview.md#tier-and-zone-view)
 - [Firewall policy and validation](../security/firewall-policy.md)
 - [UniFi zone setup](../platforms/unifi/zone-firewall.md)
-- [USB HSM deployment](../security/usb-hsm-active-active-blueprint.md)
+- [Project conventions worksheet](../reference/project-documentation.md#start-with-project-values)

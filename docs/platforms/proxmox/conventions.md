@@ -20,8 +20,12 @@
 Use this as the current source of truth for the Proxmox planning guidelines
 used across this repository.
 
-These are recommended patterns, not hard requirements. You can adapt them to
-your environment, but decide your ranges and naming model early.
+These are recommended patterns, not hard requirements. Record your selections
+in the generated architecture repo's short `docs/naming-conventions.md`
+worksheet. Keep the complete host list in inventory, not in that document.
+
+Names describe roles, tags add detail, and VMID ranges group resource types.
+None of them encode a tier or grant network access.
 
 ## Why decide this early
 
@@ -53,11 +57,18 @@ before broad provisioning starts and keep it consistent.
 
 | Range | Purpose |
 | --- | --- |
-| `100-199` | Templates |
+| `100-199` | Base templates and staged Linux template builders |
 | `200-299` | Infrastructure |
-| `300-399` | Docker and services |
+| `300-399` | Shared services |
 | `400-499` | Databases |
-| `500-999` | User and app VMs |
+| `500-999` | Application and lab VMs |
+| `9000-9999` | Versioned template candidates in the publication catalog |
+
+VMID `200` means an infrastructure allocation, not Tier 2, VLAN 200, or an
+address. Reserve non-overlapping IDs across all repos and environments using
+the same Proxmox cluster. The publication catalog uses example candidates
+`9100-9102`; legacy base templates and staged refresh builders use `100-199`.
+These are conventions, not a request to renumber deployed resources.
 
 Terraform examples should set `vm_id` explicitly for repo-managed guests so
 deployments are predictable and do not depend on Proxmox auto-allocation.
@@ -93,6 +104,10 @@ Examples:
 - `rhel-10-immu-tmpl`
 - `alma-10-immu-tmpl`
 - `fedora-42-immu-tmpl`
+
+For versioned publication candidates, add a build suffix, such as
+`<os>-<release>-tmpl-<build>`, and record the exact release in the catalog.
+Existing catalog names are placeholders to replace with your chosen pattern.
 
 Keep environment-specific names, hostnames, and workload labels out of reusable
 templates.
@@ -132,14 +147,18 @@ Use short, predictable VM names for deployed guests. The stable inventory key is
 <role>-<n>
 ```
 
-Add an environment marker as a prefix, as a suffix before the number, or leave
-it blank for the production/default deployment:
+Choose one order. The simplest default is `<env>-<role>-<n>`, with the
+environment omitted for production. The automation also supports a suffix
+before the number when that is your established convention:
 
 ```text
 <env>-<role>-<n>
 <role>-<env>-<n>
 <role>-<n>
 ```
+
+Do not add tier, zone, VLAN, IP, or VMID to the hostname. Those belong in
+ownership, inventory, or network records and can change independently.
 
 Name parts:
 
@@ -191,7 +210,9 @@ Recommended practice:
   `openbao`, `haproxy`, or `traefik`
 - change tags when the service implementation changes
 
-Suggested tag categories:
+These category names organize the convention; the actual tags are the short
+values shown below, not a required `category:value` syntax. Tag order has no
+security meaning.
 
 | Category | Purpose | Current examples |
 | --- | --- | --- |
