@@ -125,7 +125,7 @@ Recommended practice:
   capabilities
 - avoid service or workload tags on templates because those belong on deployed
   VMs
-- register template tags in `linux_vm_template_catalog` so Terraform-created
+- register reusable image tags once in the [shared template catalog](template-catalog.md) so Terraform-created
   guests can carry source-image tags based on the selected template VM ID
 
 Suggested tag categories:
@@ -193,7 +193,7 @@ Use tags for the exact service or implementation when that detail may change
 over time while the VM name and DNS stay stable.
 
 Terraform-created guests receive source-image tags from
-`linux_vm_template_catalog` in `terraform/common.tfvars` before their workload
+`proxmox_template_catalog` in shared `templates/proxmox-catalog.tfvars` before their workload
 tags are added. Terraform looks up the tags by the selected template VM ID,
 including per-VM `template_vm_id` overrides. Treat `vm_instances.<key>.tags` as
 workload-specific tags and use `vm_instances.<key>.template_tags` only as an

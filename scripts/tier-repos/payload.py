@@ -10,7 +10,7 @@ SHARED_TREES = {
     "ansible/roles": ("*.yml", "*.yaml", "*.j2"),
     "ansible/playbooks": ("*.yml",),
     "scripts": ("*.sh",),
-    "templates": (".gitkeep",),
+    "templates": (".gitkeep", "proxmox-catalog.tfvars"),
 }
 TIER_TREES = {
     "terraform": ("*.tf", "*.example", ".terraform.lock.hcl"),
@@ -86,6 +86,7 @@ def copy_payload(writer, upstream, name, prefix):
         content = re.sub(r"(?<=\.\./)shared(?=[/\"'\s]|$)", f"{prefix}-shared", content)
         content = content.replace("check out shared beside", f"check out {prefix}-shared beside")
         owned = (relative.parts[0] in OWNED_TREES
+                 or relative.as_posix() == "templates/proxmox-catalog.tfvars"
                  or relative.name in (".deployment-setups", ".gitkeep"))
         writer.write(relative.as_posix(), content, executable=path.suffix == ".sh", owned=owned)
 

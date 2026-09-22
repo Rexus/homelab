@@ -99,7 +99,7 @@ Terraform and Ansible use the same inventory inputs within that tier.
 | `tier-0` | high-impact control systems, template lifecycle, recovery, and custody assets |
 | `tier-1` | shared platform instances |
 | `tier-2` | application, project, and lab instances |
-| `shared` | cross-tier guest modules, baseline roles, and generic helpers; no live inventory |
+| `shared` | cross-tier guest modules, baseline roles, generic helpers, and approved template references; no guest inventory or state |
 | `architecture` | local conventions, design, service records, and runbooks |
 
 See [Generated repository model](../reference/generated-repository-model.md)

@@ -24,6 +24,12 @@ class InventoryToolContract(unittest.TestCase):
                             "--root", str(root), "--prefix", "verify"],
                            check=True, capture_output=True, text=True)
             root = root / "verify-iac"
+            catalog = root / "verify-shared/templates/proxmox-catalog.tfvars"
+            catalog.write_text('''default_linux_vm_template_id = 110
+proxmox_template_catalog = {
+  "110" = { title = "Approved Linux", family = "alma", node_name = "template-host", tags = ["alma"] }
+}
+''')
             for tier, setup, host in (("tier-0", "foundation", "idm-1"),
                                       ("tier-1", "edge", "edge-lb-1"), ("tier-2", "lab", "lab-1")):
                 with self.subTest(tier=tier):
@@ -43,22 +49,28 @@ class InventoryToolContract(unittest.TestCase):
                         "ansible_inventory_path": str(repo / "ansible/inventory/hosts.yml"),
                         "ansible_group_vars_paths": [str(path) for path in vars_paths],
                         "default_platform_node_name": "test-platform",
-                        "default_vm_template_id": 110,
+                        "default_vm_template_id": "${var.default_linux_vm_template_id}",
+                        "proxmox_template_catalog": "${var.proxmox_template_catalog}",
                         "network_zones": {"application": {"bridge": "isolated-test",
                                           "cidr_ipv4": "192.0.2.0/24", "gateway_ipv4": "192.0.2.1"}},
                         "vm_instances": {host: {"disk_size_gb": 30}},
                     }
-                    config = {"module": {"inventory": module},
+                    config = {"variable": {"default_linux_vm_template_id": {"type": "number"},
+                                           "proxmox_template_catalog": {"type": "any"}},
+                              "module": {"inventory": module},
                               "output": {"resolved": {"value": "${module.inventory.vm_instances}"}}}
                     (fixture / "main.tf.json").write_text(json.dumps(config))
                     for args in (("init", "-backend=false", "-input=false"),
-                                 ("apply", "-auto-approve", "-input=false")):
+                                 ("apply", "-auto-approve", "-input=false", f"-var-file={catalog}")):
                         result = subprocess.run(["terraform", f"-chdir={fixture}", *args],
                                                 capture_output=True, text=True)
                         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                     output = subprocess.check_output(
                         ["terraform", f"-chdir={fixture}", "output", "-json", "resolved"], text=True)
                     resolved = json.loads(output)[host]
+                    self.assertEqual(resolved["template_title"], "Approved Linux")
+                    self.assertEqual(resolved["template_node_name"], "template-host")
+                    self.assertEqual(resolved["tags"], ["alma"])
                     self.assertEqual(resolved["ipv4_address"], merged["platform_host_ips"][host] + "/24")
                     expected = str(fixture / "expected.json")
                     Path(expected).write_text(json.dumps({"expected_name": resolved["name"],

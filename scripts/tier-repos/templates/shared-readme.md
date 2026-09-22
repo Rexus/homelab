@@ -4,8 +4,13 @@ Cross-tier Terraform guest modules, Ansible baseline tasks, and deployment
 helpers for the ${prefix} repositories. Each tier owns its service playbooks,
 roles, inventory, variables, credentials, and state. Tier 0 contains all VM
 template implementations, Packer builds, publication scripts, and CD jobs.
+This repo exposes their approved IDs and titles in one
+[consumer catalog](templates/proxmox-catalog.tfvars), maintained through Tier 0 review.
 
 ## Getting started
+
+This repository deploys no services by itself. Follow the
+[shared automation checklist](${docs}/paths/shared/README.md) to prepare it.
 
 Review the project's [naming conventions](../${prefix}-architecture/docs/naming-conventions.md),
 then start from the owning deployment repository:
@@ -22,11 +27,12 @@ repository and its dependencies available locally for recovery.
 - `terraform/modules/`: guest inventory resolution and VM/LXC resources used across tiers
 - `ansible/playbooks/` and `ansible/roles/`: common precheck, baseline, and task fragments
 - `scripts/`: initialization and deployment entry points
-- `templates/`: project-specific reusable templates
+- `templates/proxmox-catalog.tfvars`: project-owned template references, read by all tiers
 
 ## Documentation
 
 - [Project documentation](../${prefix}-architecture/docs/README.md)
 - [Automation layout](${docs}/reference/infrastructure-automation-layout.md)
+- [Template references and promotion](${docs}/platforms/proxmox/template-catalog.md)
 - [Script reference](${docs}/reference/repository-scripts.md)
 - [Upstream refresh contract](${docs}/reference/generated-repository-model.md#refresh-and-local-ownership)

@@ -8,10 +8,13 @@ the upstream reference guides.
 
 1. Complete [naming conventions](docs/naming-conventions.md).
 2. Describe the deployed environment in the [project overview](docs/owned/design/overview.md).
-3. Complete and test the [recovery runbook](docs/owned/runbooks/recovery.md).
+3. Follow the [owning repo's deployment checklist](docs/auto-docs/paths/README.md#choose-your-repository).
+4. Record the results and test the [recovery runbook](docs/owned/runbooks/recovery.md).
 
 Use the [project documentation index](docs/README.md) to find local records
 and the [upstream guides](docs/auto-docs/README.md) for detailed reference.
+This repository deploys no infrastructure; see the
+[documentation operating order](docs/auto-docs/reference/project-documentation.md#operating-order).
 
 ## Repository structure
 

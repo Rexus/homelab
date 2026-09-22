@@ -9,13 +9,33 @@ Paths are navigation routes. They point you through the right topic documents
 without copying the authoritative docs from `platforms`, `security`,
 `architecture`, and `reference`.
 
+## Choose your repository
+
+Start with one checklist. Follow its steps and open detailed guides only when
+needed. Shared code and architecture records do not deploy infrastructure.
+
+| Repository | Start here | Deployment responsibility |
+| --- | --- | --- |
+| Tier 0 | [Control foundation](tier-0/README.md) | Proxmox, optional HA/SDN, templates, Talos control cluster, trust services |
+| Tier 1 | [Shared platform](tier-1/README.md) | Access services, optional platform cluster, development services, telemetry |
+| Tier 2 | [Workloads](tier-2/README.md) | Project/lab definitions and application delivery |
+| Shared | [Use common automation](shared/README.md) | No standalone deployment; run helpers from an owning tier |
+| Architecture | [Maintain project records](../reference/project-documentation.md#operating-order) | Chosen conventions, actual environment, recovery records, and upstream references |
+
+## Table of contents
+
+- [Choose your repository](#choose-your-repository)
+- [Capability groups](#capability-groups)
+- [Paths](#paths)
+- [How to use paths](#how-to-use-paths)
+
 ## Capability groups
 
 Use the same group names when reading the docs or browsing the repository:
 
 | Capability group | Folder or source | What belongs there |
 | --- | --- | --- |
-| tiered deployment | `docs/architecture/tier-model.md`, `docs/paths/tier-0/` | tier dependency direction and Tier 0 bootstrap/recovery path |
+| tiered deployment | `docs/paths/tier-0/`, `tier-1/`, `tier-2/`, `shared/` | per-repository deployment order and readiness checks |
 | platform preparation | `docs/platforms/` | Proxmox, templates, API setup, networking, backup, and host operations |
 | shared services | `docs/paths/shared-services/` | identity, DNS, PKI, edge, cache, secrets, and Windows support |
 | system control | `docs/paths/system-control/` | telemetry, syslog, metrics, traces, logs, dashboards, and archive |

@@ -53,7 +53,8 @@ See the [Enterprise Linux image guide](enterprise-linux-template.md) or
 | `scripts/proxmox-templates.sh` | Tier 0: local publication entry point |
 | `packer/` | Tier 0: optional custom-image build definitions and inputs |
 | Tier 0 Ansible playbooks and roles | Linux builder configuration using shared baseline helpers, never Talos guest configuration |
-| consuming tier's template mappings | approved versions for that tier's new guests |
+| shared `templates/proxmox-catalog.tfvars` | one approved consumer catalog, maintained through Tier 0 review |
+| consuming tier's template selection | approved VMID for that tier's new guests, not another template recipe |
 
 Templates are stopped image artifacts, not managed guest hosts. Their catalog
 does not replace the shared Terraform/Ansible host inventory within each tier.
@@ -111,8 +112,8 @@ guards remain in configuration. Do not remove those guards during normal updates
 2. Plan and publish it; retain existing entries and artifacts for rollback.
 3. Boot disposable clones on approved test networks and test the OS-specific
    first-boot, shutdown, and provisioning path. Never boot the template itself.
-4. Record approval in project documentation. Update the consuming tier's
-   template mapping only after its destination-side checks pass.
+4. Record approval in project documentation. Promote references into the
+   [shared consumer catalog](template-catalog.md) after destination-side checks pass.
 5. Retire old artifacts only through a separate reviewed state/resource change,
    after confirming no clones or recovery procedures still require them.
 

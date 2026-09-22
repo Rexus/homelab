@@ -75,29 +75,6 @@ locals {
       ].gateway_ipv4, null) == null
     ],
   ))
-  resolved_vm_template_ids = {
-    for key, vm in var.vm_instances : key => coalesce(
-      try(vm.template_vm_id, null),
-      var.default_vm_template_id,
-    )
-  }
-  resolved_vm_template_catalog_ids = {
-    for key, vm in var.vm_instances : key => coalesce(
-      try(vm.template_catalog_id, null),
-      local.resolved_vm_template_ids[key],
-    )
-  }
-  resolved_vm_template_tags = {
-    for key, vm in var.vm_instances : key => (
-      try(vm.template_tags, null) == null
-      ? try(
-        var.linux_vm_template_catalog[tostring(local.resolved_vm_template_catalog_ids[key])].tags,
-        [],
-      )
-      : vm.template_tags
-    )
-  }
-
   resolved_vm_instances = {
     for key, vm in var.vm_instances : key => {
       name           = local.platform_hostnames[key]
@@ -108,6 +85,11 @@ locals {
       )
       vm_id          = try(vm.vm_id, null)
       template_vm_id = local.resolved_vm_template_ids[key]
+      template_title = try(var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].title, null)
+      template_node_name = try(
+        local.template_metadata[tostring(local.resolved_vm_template_ids[key])].node_name,
+        null,
+      )
       size           = coalesce(try(vm.size, null), "small")
       cores          = try(vm.cores, null)
       memory         = try(vm.memory, null)

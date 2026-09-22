@@ -1,17 +1,37 @@
 # Tier 0
 
-Tier 0 owns the hardware-facing control plane, all VM templates, trust systems,
-and their recovery. Proxmox hosts, storage and network administration belong
-here, including infrastructure serving other tiers. Its
-repository holds service code, inventory, infrastructure definitions, and recovery inputs.
-Common baseline helpers live in the sibling shared repo; the architecture repo
-holds the detailed design, diagrams, and guides. Connected control systems are
-valid Tier 0 systems; offline custody is protected separately.
+Tier 0 owns Proxmox, physical network and storage control, every VM template,
+and the trust/control services with authority over the environment. Start here
+for a new installation; consume existing infrastructure when it meets the same
+readiness checks. Tier 0 must recover without Tier 1 or Tier 2.
+
+## Table of contents
+
+- [Deployment order](#deployment-order)
+- [Getting started](#getting-started)
+- [Find your way](#find-your-way)
+- [Repository structure](#repository-structure)
+
+## Deployment order
+
+| Step | What to do | Ready to continue when |
+| --- | --- | --- |
+| 1. Record choices | Generate the collection; fill in [project conventions](../../reference/project-documentation.md#start-with-project-values) and prepare [local tools](../../getting-started/local-setup.md) | Names, IDs, networks, operator access, and recovery locations are recorded |
+| 2. Prepare hosts | Follow [Proxmox preparation](../../platforms/proxmox/README.md#first-deployment-order), including optional [cluster/HA](../../platforms/proxmox/cluster-ha.md) and [SDN](../../platforms/proxmox/network-prerequisites.md#optional-sdn-for-guest-networks) now | Hosts, storage, networks, backups, and API access are tested |
+| 3. Publish templates | Run the [local template workflow](../../platforms/proxmox/template-lifecycle.md#local-workflow); use the [Talos image guide](../../platforms/proxmox/talos-template.md) for cluster nodes | Approved Linux/Talos clones boot on their intended hosts |
+| 4. Build the control cluster | Follow the shared [Talos bootstrap procedure](../../platforms/talos/bootstrap.md), then install GitOps | Nodes and API are healthy; recovery inputs exist outside the cluster |
+| 5. Add authority services | Use the [identity foundation](../shared-services/identity.md), then [Vault](../shared-services/vault.md) and optional [HSM](../../security/usb-hsm-active-active-blueprint.md) guides | Each selected service passes its checks and has an independent recovery path |
+| 6. Add Day 2 clients | Follow the [service sequence](bootstrap.md#day-2-service-sequence), including early inventory documentation | SSO and local break-glass access both work |
+
+Step 4 is the Talos control-cluster route. Linux authority VMs are a separate
+route and can be deployed after step 3; they do not require Kubernetes. Do not
+deploy a second identity or secret service simply because a cluster placeholder
+exists. Choose one lifecycle owner per service.
 
 ## Getting started
 
-First [generate the collection](../../reference/generated-repository-model.md).
-**Day 0-1: templates before VMs.** From `homelab-iac/homelab-tier-0`, initialize
+After preparing hosts, **Day 0-1: templates before VMs.** From
+`homelab-iac/homelab-tier-0`, initialize
 the template catalog:
 
 ```bash
@@ -22,28 +42,15 @@ Follow the
 [local template workflow](../../platforms/proxmox/template-lifecycle.md#local-workflow)
 to set image paths, checksums, placement, and protected API access; then plan,
 publish, and test the required AlmaLinux, Rocky Linux, or Talos templates.
+Approve their references in the [shared consumer catalog](../../platforms/proxmox/template-catalog.md)
+before any tier selects them. Do not copy the catalog into each tier.
 This works before any managed VM, control cluster, or hosted CI exists.
 Existing approved templates are valid when their IDs and recovery copies are verified.
 
-Once a Linux template is ready, initialize the identity example from the same directory:
-
-```bash
-bash ../homelab-shared/scripts/init-local-files.sh --setup foundation --env test
-```
-
-Replace `homelab` if you chose another prefix. Use `--setup vault` or `--setup hsm`
-for those capabilities; omit `--env test` for production.
-
-Edit the initialized local files using the
-[identity guide](../shared-services/identity.md), including protected network placement
-and administrative access, then review a plan:
-
-```bash
-bash ../homelab-shared/scripts/deploy.sh foundation --env test --plan-only
-```
-
-Remove `--plan-only` to deploy after reviewing the plan. Run all shared commands
-from the tier repository root so they use its inventory and state.
+Next choose [Talos bootstrap](../../platforms/talos/bootstrap.md) or the
+[Linux identity VM guide](../shared-services/identity.md). Run shared commands
+from the tier repository root so they use its inventory and state. Replace
+`homelab` in paths if you chose another prefix.
 
 ## Find your way
 
@@ -67,5 +74,6 @@ from the tier repository root so they use its inventory and state.
 - `clusters/tier0/`: cluster-service skeletons
 - `scripts/`: local template publisher and entry points to shared deployment helpers
 
-The Linux setup command above does not bootstrap Talos or deploy the cluster
-services. Follow the [bootstrap guide](bootstrap.md) for that separate path.
+The Linux setup scripts do not bootstrap Talos or deploy the cluster services.
+The [bootstrap and recovery reference](bootstrap.md) distinguishes working
+automation from skeletons and records the recovery boundary.

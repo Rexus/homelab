@@ -4,6 +4,7 @@
 
 - [Purpose](#purpose)
 - [Start with project values](#start-with-project-values)
+- [Operating order](#operating-order)
 - [Architecture repository layout](#architecture-repository-layout)
 - [Ownership and refresh](#ownership-and-refresh)
 - [Existing collections](#existing-collections)
@@ -41,6 +42,18 @@ zone names or numbering schemes.
 
 Next, fill in the project overview and recovery runbook. They link back to
 auto-docs for design and operational detail, so local records can stay concise.
+
+## Operating order
+
+The architecture repository deploys no infrastructure. Use it alongside each
+deployment to record actual choices rather than copying upstream instructions.
+
+| Step | Update | Then |
+| --- | --- | --- |
+| 1. Choose conventions | `docs/naming-conventions.md` and `docs/owned/design/overview.md` | Follow the [owning repo's deployment checklist](../paths/README.md#choose-your-repository) |
+| 2. Record the result | Service ownership, actual network design, and decisions under `docs/owned/` | Keep detailed resource assignments in tier inventory |
+| 3. Verify recovery | `docs/owned/runbooks/recovery.md`, with protected material referenced rather than embedded | Test without the service being recovered |
+| 4. Adopt upstream improvements | Refresh `docs/auto-docs/` from the upstream checkout | Review owned README links and project decisions manually |
 
 ## Architecture repository layout
 
@@ -111,6 +124,10 @@ Refresh adds the new project templates and `docs/auto-docs/`. Earlier
 The generator reports that legacy path when present.
 
 Update the owned READMEs deliberately:
+
+New starters link to per-repository checklists under `docs/auto-docs/paths/`.
+Existing READMEs remain unchanged; add the matching `tier-0/`, `tier-1/`,
+`tier-2/`, or `shared/README.md` link when adopting the new navigation.
 
 | README location | Link target for naming conventions |
 | --- | --- |

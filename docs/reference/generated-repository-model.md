@@ -265,6 +265,12 @@ or network policy by itself.
 
 ## Refresh and local ownership
 
+The shared `templates/proxmox-catalog.tfvars` is seeded once as project-owned,
+like root READMEs. It holds approved consumer references, not template recipes
+or guest inventory. Tier 0 controls promotion; all tiers consume the same file.
+Refresh preserves its contents and recorded deletions. See the
+[catalog contract](../platforms/proxmox/template-catalog.md).
+
 After updating the upstream kit, run this from its checkout:
 
 ```bash

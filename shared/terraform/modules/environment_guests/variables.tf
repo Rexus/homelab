@@ -9,19 +9,32 @@ variable "network_zones" {
 }
 
 variable "default_platform_node_name" {
-  description = "Default platform node used when a guest does not override placement."
+  description = "Default initial VM placement or LXC target node when a guest does not override it."
   type        = string
 }
 
 variable "default_vm_template_id" {
-  description = "Default Linux cloud-init template VM ID."
+  description = "Approved Linux template ID supplied by the shared catalog or a tier override."
   type        = number
+  default     = null
+}
+
+variable "proxmox_template_catalog" {
+  description = "Shared approved template references. Tier 0 owns promotion; this module resolves consumer metadata."
+  type = map(object({
+    title     = string
+    node_name = optional(string)
+    family    = string
+    tags      = optional(list(string), [])
+  }))
+  default = {}
 }
 
 variable "linux_vm_template_catalog" {
-  description = "Template metadata catalog keyed by Proxmox template VM ID."
+  description = "Legacy tier-local metadata overrides. Migrate common entries to the shared proxmox_template_catalog."
   type = map(object({
     description = optional(string)
+    node_name   = optional(string)
     tags        = list(string)
   }))
   default = {}

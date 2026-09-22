@@ -183,6 +183,9 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
         self.assertEqual(len(plans), 3)
         for plan in plans:
             repo = Path(plan["cwd"]).parents[2]
+            catalog_arg = f"-var-file={self.root}/verify-shared/templates/proxmox-catalog.tfvars"
+            common_arg = f"-var-file={repo}/terraform/common.tfvars"
+            self.assertLess(plan["args"].index(catalog_arg), plan["args"].index(common_arg))
             self.assertTrue(plan["data"].startswith(str(repo / ".terraform/data")))
             self.assertIn(f"-var=ansible_inventory_path={repo}/ansible/inventory/hosts.yml", plan["args"])
             arg = next(arg for arg in plan["args"] if arg.startswith("-var=ansible_group_vars_paths="))

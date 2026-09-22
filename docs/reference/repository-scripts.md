@@ -222,7 +222,7 @@ Useful options:
 | `--auto-approve` | you want Terraform apply or destroy to run without an interactive approval |
 | `--reset-known-hosts` | you rebuilt guests and want to remove stale SSH known-host entries for the setup IPs |
 | `--var-file PATH` | you want to replace the setup Terraform tfvars file |
-| `--common-var-file PATH` | you want to replace the shared Terraform tfvars file |
+| `--common-var-file PATH` | you want to replace the tier-wide Terraform tfvars file, not the shared template catalog |
 | `--ansible-vars PATH` | you want an extra YAML vars layer consumed by both Terraform and Ansible |
 | `--inventory PATH` | you want another Ansible inventory file |
 
@@ -318,6 +318,10 @@ cd ..
 
 4. Run Terraform with the same state and var layering.
 
+The shared [template catalog](../platforms/proxmox/template-catalog.md) is loaded
+first. In these commands, `homelab-shared` is the generated sibling; substitute
+your prefix, or use `shared` in the source layout.
+
 ```bash
 cd terraform/environments/foundation
 export TF_DATA_DIR="../../../.terraform/data/foundation/test"
@@ -326,12 +330,14 @@ terraform init -reconfigure \
   -backend-config="path=../../../.terraform/state/foundation/test/terraform.tfstate"
 
 terraform plan \
+  -var-file=../../../../homelab-shared/templates/proxmox-catalog.tfvars \
   -var-file=../../common.tfvars \
   -var-file=terraform.tfvars \
   -var='ansible_inventory_path=../../../ansible/inventory/hosts.yml' \
   -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]'
 
 terraform apply \
+  -var-file=../../../../homelab-shared/templates/proxmox-catalog.tfvars \
   -var-file=../../common.tfvars \
   -var-file=terraform.tfvars \
   -var='ansible_inventory_path=../../../ansible/inventory/hosts.yml' \

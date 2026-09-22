@@ -34,6 +34,8 @@ def tier_readme(writer, tier, prefix, setups):
     )
     if tier == "tier-0":
         prerequisites = (
+            f"Prepare [Proxmox hosts]({docs}/platforms/proxmox/README.md#first-deployment-order)\n"
+            "first, including optional cluster HA and SDN before important guests.\n\n"
             "**Day 0-1: templates before VMs.** From this repository's root, initialize\n"
             "the local image catalog:\n\n"
             "```bash\n"
@@ -43,12 +45,15 @@ def tier_readme(writer, tier, prefix, setups):
             f"the [template lifecycle]({docs}/platforms/proxmox/template-lifecycle.md#local-workflow)\n"
             "to plan, publish, and test templates before deploying guests. No hosted CI\n"
             "or control cluster is required. If approved templates already exist, verify\n"
-            "their IDs and recovery copies before continuing.\n"
+            "their IDs and recovery copies before continuing.\n\n"
+            f"Next use [Talos bootstrap]({docs}/platforms/talos/bootstrap.md) for the control\n"
+            "cluster, or the Linux setup below for authority VMs. These are separate paths;\n"
+            "the Linux helper does not create Kubernetes.\n"
         )
     owned_template(writer, "tier-readme.md", "README.md", prefix=prefix,
                    tier_title=tier.replace("-", " ").title(), purpose=descriptions[tier],
                    example=setups[0], extra_paths=extra_paths[tier],
-                   prerequisites=prerequisites, docs=docs)
+                   prerequisites=prerequisites, docs=docs, tier=tier)
 
 
 def shared_readme(writer, prefix):
@@ -78,6 +83,8 @@ def copy_documentation(writer, prefix, upstream):
         def relocate(match):
             source = (path.parent / match[0]).resolve().relative_to(upstream)
             parts = source.parts
+            if parts[0] not in ("shared", "tier-0", "tier-1", "tier-2"):
+                return match[0]
             destination = writer.root.parent / f"{prefix}-{parts[0]}" / Path(*parts[1:])
             return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
 

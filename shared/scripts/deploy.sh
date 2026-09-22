@@ -28,7 +28,7 @@ Options:
                    By default, .env.local is used when it exists.
   --var-file PATH   Override the base setup Terraform variable file.
   --common-var-file PATH
-                   Override the shared Terraform variable file.
+                   Override the tier-wide Terraform variable file.
   --ansible-vars PATH
                    Add a vars file after automatic vars in both tools.
   --plan-only       Run Terraform init and plan, then stop.
@@ -528,6 +528,15 @@ run_terraform() {
     terraform init -reconfigure -backend-config="path=$terraform_state_path"
 
     terraform_args=()
+    # One reviewed consumer catalog for all tiers; local overrides follow it.
+    # Recipes and publication state remain Tier 0-owned. See the template-catalog guide.
+    template_catalog_path="$automation_root/templates/proxmox-catalog.tfvars"
+    if [[ -f "$template_catalog_path" ]]; then
+      echo "==> Shared template references $template_catalog_path"
+      terraform_args+=("-var-file=$template_catalog_path")
+    else
+      echo "Shared template catalog missing; using legacy tier-local inputs. Refresh shared to migrate." >&2
+    fi
     if [[ -n "$common_var_file_path" ]]; then
       terraform_args+=("-var-file=$common_var_file_path")
     fi

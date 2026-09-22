@@ -58,11 +58,12 @@ recovery runbook. Template publication alone is not a successful cluster test.
 ## Cluster bootstrap
 
 The generated `bootstrap/proxmox/` and `bootstrap/talos/` directories are
-developer-owned skeletons, not an implemented cluster deployment. Wire them to
-an approved candidate VMID and complete the sequence in the
-[Tier 0 bootstrap guide](../../paths/tier-0/bootstrap.md).
+developer-owned skeletons, not an implemented cluster deployment. Use the
+[shared Talos bootstrap procedure](../talos/bootstrap.md) to create and verify
+the cluster now, then automate the verified workflow in the owning tier.
+The same procedure applies to Tier 1 with different inputs and a separate state owner.
 
-| Responsibility | Owner |
+| Responsibility | Tier 0 control-cluster owner |
 | --- | --- |
 | Base Talos template and publication state | Tier 0 `terraform/templates/` |
 | Control-plane/worker clones and network attachments | Tier 0 `bootstrap/proxmox/` |

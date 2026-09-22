@@ -84,6 +84,42 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             relative = target.split("#")[0]
             self.assertTrue((naming.parent / relative if relative else naming).is_file(), target)
 
+    def test_repo_checklists_and_shared_cluster_procedure_are_reachable(self):
+        self.generate()
+        architecture = self.root / "verify-architecture/docs/auto-docs"
+        for tier in ("tier-0", "tier-1", "tier-2", "shared"):
+            readme = (self.root / f"verify-{tier}/README.md").read_text()
+            self.assertIn(f"/paths/{tier}/README.md", readme)
+            self.assertTrue((architecture / f"paths/{tier}/README.md").is_file())
+        for tier in ("tier-0", "tier-1"):
+            path = (architecture / f"paths/{tier}/README.md").read_text()
+            self.assertIn("../../platforms/talos/bootstrap.md", path)
+        tier0 = (architecture / "paths/tier-0/README.md").read_text()
+        self.assertLess(tier0.index("cluster-ha.md"), tier0.index("template-lifecycle.md"))
+        self.assertLess(tier0.index("optional-sdn-for-guest-networks"), tier0.index("template-lifecycle.md"))
+        self.assertLess(tier0.index("template-lifecycle.md"), tier0.index("talos/bootstrap.md"))
+        self.assertIn("operator-run bootstrap", (architecture / "platforms/talos/bootstrap.md").read_text())
+
+    def test_source_and_generated_documentation_links_resolve(self):
+        self.generate()
+        source_docs = [UPSTREAM / "README.md", *(UPSTREAM / "docs").rglob("*.md")]
+        generated_docs = list((self.root / "verify-architecture").rglob("*.md"))
+        generated_docs.extend(self.root.glob("verify-*/README.md"))
+        for document in [*source_docs, *generated_docs]:
+            content = document.read_text(encoding="utf-8")
+            for link in re.findall(r"\[[^\]]*\]\(([^)]+)\)", content):
+                if re.match(r"[a-z]+:", link):
+                    continue
+                relative, _, anchor = link.partition("#")
+                target = (document.parent / relative).resolve() if relative else document
+                self.assertTrue(target.exists(), f"{document}: {link}")
+                if anchor and target.suffix == ".md":
+                    # These docs use plain GitHub heading anchors, without raw HTML IDs.
+                    headings = re.findall(r"^#{1,6} (.+)$", target.read_text(encoding="utf-8"), re.MULTILINE)
+                    anchors = [re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-")
+                               for heading in headings]
+                    self.assertIn(anchor, anchors, f"{document}: {link}")
+
     def test_auto_docs_have_notice_and_project_link_at_every_depth(self):
         self.generate("--repo", "architecture")
         architecture = self.root / "verify-architecture"

@@ -14,6 +14,7 @@ security posture, and tool separation across Packer, Terraform, and Ansible.
 ## Current platforms
 
 - [Proxmox](proxmox/README.md) - current reference implementation
+- [Talos Kubernetes bootstrap](talos/bootstrap.md) - shared Tier 0/Tier 1 operator procedure
 - [UniFi zone firewall](unifi/zone-firewall.md) - manual network-policy
   translation for the network-layer model, not a provisioning provider
 

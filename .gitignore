@@ -6,6 +6,8 @@ crash.log
 crash.*.log
 *.tfvars
 *.tfvars.json
+# Reviewed, non-secret template references are a shared project contract.
+!**/templates/proxmox-catalog.tfvars
 override.tf
 override.tf.json
 *_override.tf

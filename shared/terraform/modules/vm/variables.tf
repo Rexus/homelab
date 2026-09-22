@@ -4,7 +4,7 @@ variable "name" {
 }
 
 variable "node_name" {
-  description = "Proxmox node name."
+  description = "Initial Proxmox node. Later placement is managed by Proxmox, not Terraform."
   type        = string
 }
 
@@ -18,6 +18,12 @@ variable "vm_id" {
 variable "template_vm_id" {
   description = "Source template VM ID."
   type        = number
+}
+
+variable "template_node_name" {
+  description = "Source template node for cross-node cloning. Null uses the initial target node."
+  type        = string
+  default     = null
 }
 
 variable "storage_class" {

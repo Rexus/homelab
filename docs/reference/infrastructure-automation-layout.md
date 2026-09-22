@@ -72,7 +72,8 @@ the shared-code repository.
 | Ansible `all` group vars | hostname prefix or suffix, domain, and baseline inputs |
 | Ansible setup group vars | guest IP map, service settings, and host configuration inputs |
 | Terraform environment tfvars | Proxmox VMID, tags, size, storage class, disk size, network zone, and optional Proxmox node override |
-| Terraform common tfvars | default platform node, shared storage mappings, guest network attachments, template IDs, and cloud-init SSH keys |
+| Shared template catalog | approved image IDs, titles, source nodes, family, image tags, and the default Linux selection |
+| Tier Terraform common tfvars | default platform node, storage mappings, guest network attachments, optional template selection, and cloud-init SSH keys |
 
 Terraform guest maps are keyed by the matching Ansible inventory host key, for
 example `idm-1`. Keep that key stable across environments.
@@ -109,30 +110,28 @@ the matching setup vars file when that setup has one. For example,
 `--env test` with `foundation` loads `all.test.yml` and
 `foundation.test.yml`.
 
-Use `default_platform_node_name` for the normal platform placement target.
+Use `default_platform_node_name` for initial VM placement or the LXC target node.
 Only set `proxmox_node_name` on an individual guest when you intentionally
 override that default for a clustered Proxmox placement.
+After VM creation, Proxmox owns node moves; changing this input does not migrate
+an existing VM. This does not cover external LXC migration. See the
+[cluster placement contract](../platforms/proxmox/cluster-ha.md#terraform-against-the-cluster).
 The older `default_proxmox_node_name` key is still accepted as a compatibility
 fallback, but new local files should use the platform-generic name.
 
-Use `default_linux_vm_template_id` in `terraform/common.tfvars` for the shared
-Linux cloud-init template. Override it in `terraform.tfvars` or
+The shared `templates/proxmox-catalog.tfvars` supplies the approved
+`default_linux_vm_template_id`. Override it in tier common inputs, `terraform.tfvars`, or
 `terraform.<env>.tfvars` when one deployment tests another supported distro or
 template. Use `vm_instances.<key>.template_vm_id` only when one guest should
 differ from the deployment default.
 
-Use `linux_vm_template_catalog` in `terraform/common.tfvars` for the OS,
-distro, architecture, and image-capability tags that should carry from source
-templates onto cloned VMs. Terraform looks up catalog tags by the selected
-template VM ID, so a per-VM `template_vm_id` override also changes the image
-tags when that ID exists in the catalog. Terraform combines catalog tags with
-`vm_instances.<key>.tags`, where the latter should stay focused on workload
-identity. Template-producing setups can set
-`vm_instances.<key>.template_catalog_id` when a builder VM should receive tags
-for the target template ID instead of the source clone template ID. Set
-`vm_instances.<key>.template_tags` only as an escape hatch for a source image
-that is not in the catalog, or set it to `[]` when you intentionally do not
-want source-image tags on that deployed VM.
+Maintain image metadata once in shared `proxmox_template_catalog`; keep only
+guest-specific tags and selections in the tiers. The shared helper loads that
+file first and all roots pass it to the shared inventory resolver. See
+[template references](../platforms/proxmox/template-catalog.md) for the contract,
+source-node selection, builder output tags, and migration of legacy
+`linux_vm_template_catalog` overrides. Template recipes and publication remain
+entirely Tier 0-owned.
 
 ## Environment data split
 
@@ -144,6 +143,7 @@ environment. Split only the data that changes:
 | Terraform setup vars | `terraform/environments/foundation/terraform.tfvars` | `terraform/environments/foundation/terraform.tfvars` |
 | Optional Terraform setup overlay | `terraform/environments/foundation/terraform.test.tfvars` | not used by default |
 | Shared Terraform vars | `terraform/common.tfvars` or `--common-var-file` override | `terraform/common.tfvars` or `--common-var-file` override |
+| Shared consumer catalog | sibling shared `templates/proxmox-catalog.tfvars` | same reviewed catalog; tier selection overrides are optional |
 | Optional shared Terraform overlay | `terraform/common.test.tfvars` | not used by default |
 | Ansible inventory | `ansible/inventory/hosts.yml` | `ansible/inventory/hosts.yml` |
 | Ansible environment vars | `ansible/group_vars/all.test.yml` from `all.env.yml.example` | `ansible/group_vars/all.yml` |
@@ -188,7 +188,8 @@ API. See [Infrastructure control](../architecture/infrastructure-control.md).
 
 | Source path | Contains |
 | --- | --- |
-| `shared/terraform/modules/environment_guests/` | resolves tier inventory, names, and IP maps |
+| `shared/terraform/modules/environment_guests/` | resolves tier inventory, names, IPs, and shared template metadata |
+| `shared/templates/proxmox-catalog.tfvars` | one project-owned consumer catalog; approved through Tier 0 review |
 | `shared/terraform/modules/vm/`, `lxc/` | reusable Proxmox guest resources |
 | `shared/ansible/playbooks/` | common control-node checks and baseline site play |
 | `shared/ansible/roles/` | baseline and shared task fragments |

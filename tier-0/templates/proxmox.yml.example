@@ -1,4 +1,4 @@
-# Copy to templates/proxmox.yml using the shared proxmox-templates.sh init command.
+# Copy to templates/proxmox.yml using Tier 0's scripts/proxmox-templates.sh init command.
 # Day 0-1: publish templates locally before creating managed VMs or the control cluster.
 # Reference: docs/platforms/proxmox/template-lifecycle.md
 # Replace every value. Keep only the images being managed by this state.

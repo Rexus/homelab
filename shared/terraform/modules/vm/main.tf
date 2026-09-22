@@ -92,8 +92,14 @@ resource "proxmox_virtual_environment_vm" "this" {
   stop_on_destroy = var.stop_on_destroy
 
   clone {
-    vm_id = var.template_vm_id
-    full  = true
+    vm_id     = var.template_vm_id
+    node_name = var.template_node_name
+    full      = true
+  }
+
+  # Placement after creation belongs to Proxmox, including HA failover and maintenance.
+  lifecycle {
+    ignore_changes = [node_name]
   }
 
   cpu {

@@ -55,17 +55,21 @@ variable "proxmox_storage_classes" {
 }
 
 variable "default_linux_vm_template_id" {
-  description = "Default Linux cloud-init template VM ID."
+  description = "Approved Linux template ID from the shared catalog; tier-local values override it."
   type        = number
+  default     = null
+}
+
+variable "proxmox_template_catalog" {
+  description = "Shared template references, type-checked once by the shared environment_guests module."
+  type        = any
+  default     = {}
 }
 
 variable "linux_vm_template_catalog" {
-  description = "Template metadata catalog keyed by Proxmox template VM ID."
-  type = map(object({
-    description = optional(string)
-    tags        = list(string)
-  }))
-  default = {}
+  description = "Legacy metadata override; move common references into the shared template catalog."
+  type        = any
+  default     = {}
 }
 
 variable "ssh_public_keys" {
@@ -85,7 +89,7 @@ variable "network_zones" {
 }
 
 variable "default_platform_node_name" {
-  description = "Default platform node used when a guest does not override placement."
+  description = "Default initial VM placement or LXC target node when a guest does not override it."
   type        = string
   default     = null
   nullable    = true

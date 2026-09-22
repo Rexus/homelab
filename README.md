@@ -43,6 +43,10 @@ collection. Then follow `homelab-tier-0/README.md` from that tier's root; its
 commands use tier-local code and shared helpers with local inputs. Substitute
 your prefix if customized. Each README is a developer-owned starter template.
 
+Use the [per-repository deployment checklists](docs/paths/README.md#choose-your-repository):
+prepare Proxmox (optional HA and SDN), publish templates, then bootstrap Talos
+or deploy Linux services. Each step links to its detailed procedure.
+
 ## Update Your Collection
 
 After updating this upstream checkout, run this **from the upstream repo**:
@@ -85,6 +89,10 @@ The source split mirrors the generated repositories: `tier-0/` becomes
 `<prefix>-tier-0/`, and `shared/` becomes `<prefix>-shared/`. Each tier keeps the
 same Terraform/Ansible inventory contract. See the
 [source layout](docs/reference/infrastructure-automation-layout.md) before editing automation.
+
+Template recipes and publication stay in Tier 0. Approved IDs, titles, source
+nodes, and image tags live once in the [shared consumer catalog](shared/templates/proxmox-catalog.tfvars),
+loaded by the shared deploy helper for all tiers. See [catalog ownership](docs/platforms/proxmox/template-catalog.md).
 
 ## AI-Assisted Development
 

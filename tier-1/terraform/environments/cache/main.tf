@@ -29,12 +29,15 @@ locals {
   )
 }
 
+# Shared resolves inventory and approved template references; this root owns inputs and state.
+# The shared deploy helper loads templates/proxmox-catalog.tfvars before tier overrides.
 module "environment" {
   source = "../../../../shared/terraform/modules/environment_guests"
 
   network_zones                = var.network_zones
   default_platform_node_name   = local.effective_default_platform_node_name
   default_vm_template_id       = var.default_linux_vm_template_id
+  proxmox_template_catalog     = var.proxmox_template_catalog
   linux_vm_template_catalog    = var.linux_vm_template_catalog
   default_vm_network_zone_key  = var.default_vm_network_zone_key
   default_lxc_network_zone_key = var.default_lxc_network_zone_key
@@ -52,6 +55,7 @@ module "vms" {
   node_name                = each.value.node_name
   vm_id                    = each.value.vm_id
   template_vm_id            = each.value.template_vm_id
+  template_node_name        = each.value.template_node_name
   storage_class            = each.value.storage_class
   storage_class_datastores = var.proxmox_storage_classes
   bridge                   = each.value.bridge

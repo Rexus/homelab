@@ -5,13 +5,18 @@
 Use this path when the private cloud needs an application runtime layer above
 the Proxmox VM foundation.
 
-This is a path guide, not a deployment guide yet. It gives Kubernetes, GitOps,
-cluster ingress, and worker-cluster isolation a clear home inside the
-application platform capability.
+For installation, follow the shared [Talos bootstrap procedure](../../platforms/talos/bootstrap.md).
+Use the [Tier 1 checklist](../tier-1/README.md) for platform services or the
+[Tier 0 checklist](../tier-0/README.md) for the independent control cluster.
+This page explains application-platform choices; the supplied cluster code is
+still a skeleton rather than a complete installer.
 
 ## Dependency direction
 
 Kubernetes should consume the shared services when they exist:
+
+These integrations are not prerequisites for creating the first control cluster.
+Keep Tier 0 bootstrap and recovery independent of higher-tier services.
 
 | Shared service | How Kubernetes uses it |
 | --- | --- |

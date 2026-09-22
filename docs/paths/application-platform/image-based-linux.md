@@ -157,7 +157,7 @@ Use this flow:
 9. Convert the result into a dedicated image-based template such as
    `rhel-10-immu-tmpl`.
 10. Add the finished template ID and source-image tags to
-    `linux_vm_template_catalog` in `terraform/common.tfvars`, then point the
+    the [shared template catalog](../../platforms/proxmox/template-catalog.md), then point the
     builder VM at that catalog entry with `template_catalog_id`.
 11. Point Terraform deployments at the bootc template only after the update and
     rollback workflow has been tested.

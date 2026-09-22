@@ -6,7 +6,7 @@
 
 platform = "proxmox"
 
-# Default automation target node unless a deployment overrides it.
+# Initial VM placement or LXC target node unless a deployment overrides it.
 default_platform_node_name = "pve01-change-me"
 
 proxmox_storage_classes = {
@@ -111,28 +111,14 @@ network_zones = {
   # }
 }
 
-# Default Linux cloud-init VM template cloned by Terraform.
-# The Enterprise Linux template guide is the recommended first path, but this
-# may point to any Linux template your Ansible roles support.
-default_linux_vm_template_id = 110
-
-# Template catalog keyed by Proxmox template VM ID. Terraform uses the selected
-# template ID to carry source-image tags onto cloned VMs.
-linux_vm_template_catalog = {
-  "110" = {
-    description = "Default AlmaLinux 10 cloud-init template."
-    tags        = ["x86_64", "el10", "cloud-init", "alma10"]
-  }
-  # "111" = {
-  #   description = "Rocky Linux 10 cloud-init template."
-  #   tags        = ["x86_64", "el10", "cloud-init", "rocky10"]
-  # }
-  # Add this after the immutable-template path has created the template.
-  # "120" = {
-  #   description = "RHEL 10 image-based Linux template."
-  #   tags        = ["x86_64", "el10", "cloud-init", "bootc", "rhel10"]
-  # }
-}
+# Approved template IDs, titles, source nodes, and image tags live once in shared:
+# ../shared/templates/proxmox-catalog.tfvars
+# shared/scripts/deploy.sh loads that catalog before these tier-local inputs.
+# This repo consumes templates; only Tier 0 publishes and maintains them.
+# Optional tier/setup selection override (choose an approved catalog ID):
+# default_linux_vm_template_id = 9100
+# VM placement is initial-only; later node moves belong to Proxmox.
+# Reference: docs/platforms/proxmox/template-catalog.md
 
 # These keys are injected by cloud-init into VMs cloned from the template.
 # Use the deployment machine's public SSH key here so Ansible can connect

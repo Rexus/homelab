@@ -3,6 +3,7 @@ output "catalog" {
   value = {
     for key, image in var.images : key => {
       vm_id        = proxmox_virtual_environment_vm.template[key].vm_id
+      title        = image.name
       node_name    = image.node_name
       family       = image.family
       release      = image.release

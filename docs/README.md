@@ -15,10 +15,16 @@
 
 Use this order when you are new to the repository or returning after time away:
 
-1. [Architecture overview](architecture/overview.md): distinguish tier ownership from network protection.
-2. [Generated repositories](reference/generated-repository-model.md): create the collection and understand ownership.
-3. [Project documentation](reference/project-documentation.md): record names, tags, VMID ranges, and VLAN conventions.
-4. [Reader paths](paths/README.md): choose the deployment you need and follow its prerequisites.
+1. [Generate the collection](reference/generated-repository-model.md#purpose-and-prerequisites).
+2. [Record project choices](reference/project-documentation.md#start-with-project-values).
+3. Follow your repo's deployment checklist: [Tier 0](paths/tier-0/README.md),
+   [Tier 1](paths/tier-1/README.md), [Tier 2](paths/tier-2/README.md), or
+   [shared automation](paths/shared/README.md).
+
+For a new environment, the Tier 0 checklist takes you through **Proxmox ->
+optional HA/SDN -> templates -> Talos or Linux services -> Day 2 services**.
+Read the [architecture overview](architecture/overview.md) when you need the
+ownership and network design behind those steps.
 
 For the first command, use the [generation quick start](reference/generated-repository-model.md#purpose-and-prerequisites).
 Use the sections below as a reference map, not a required reading list.
@@ -46,8 +52,10 @@ Use the sections below as a reference map, not a required reading list.
 
 ## Path guides
 
-- [Tier 0 path](paths/tier-0/README.md) - high-impact control setups and the
-  separate Talos/Flux bootstrap design
+- [Tier 0 path](paths/tier-0/README.md) - hosts, templates, control cluster, and trust services
+- [Tier 1 path](paths/tier-1/README.md) - shared platform capabilities and optional Kubernetes
+- [Tier 2 path](paths/tier-2/README.md) - project and lab workloads
+- [Shared automation](paths/shared/README.md) - common code, not a standalone deployment
 - [Shared services path](paths/shared-services/README.md) - entry point for
   identity, DNS, PKI, edge, cache, secrets, and optional Windows support
 - [Identity foundation path](paths/shared-services/identity.md) - shortest
@@ -104,12 +112,18 @@ Use the sections below as a reference map, not a required reading list.
   recommended recovery baseline before the environment becomes important
 - [Proxmox host networking](platforms/proxmox/network-prerequisites.md) -
   network assumptions and preparation
+- [Proxmox cluster and HA](platforms/proxmox/cluster-ha.md) - optional early cluster,
+  failover, movable guests, and Terraform placement
+- [Talos cluster bootstrap](platforms/talos/bootstrap.md) - one operator procedure
+  shared by Tier 0 and Tier 1
 - [UniFi zone firewall](platforms/unifi/zone-firewall.md) - translate the
   architecture's zones and rule matrix into gateway configuration
 - [Enterprise Linux template](platforms/proxmox/enterprise-linux-template.md) -
   guest template creation and refresh reference
 - [Tier 0 template lifecycle](platforms/proxmox/template-lifecycle.md) - image
   publication, updates, GitLab CD example, local recovery, and ownership migration
+- [Shared template references](platforms/proxmox/template-catalog.md) - one consumer
+  catalog for approved IDs/titles and image metadata; recipes stay in Tier 0
 - [Talos template](platforms/proxmox/talos-template.md) - unconfigured NoCloud
   image publication and its boundary with Tier 0 cluster bootstrap
 - [Proxmox hardening](platforms/proxmox/hardening.md) - later-stage platform

@@ -212,6 +212,11 @@ ovs-appctl rstp/show
 Use SDN as a Proxmox-side convenience for VM-facing networks. This repository
 only needs the final VM attachment name.
 
+Choose this during [early host preparation](README.md#first-deployment-order),
+before publishing templates and attaching guests. For a cluster, validate the
+underlay and resulting VNets on **every eligible migration/HA destination**;
+see [cluster readiness](cluster-ha.md#make-guests-movable).
+
 Short guardrails:
 
 - use SDN for guest/workload networks such as `identity`, `application`,
@@ -237,7 +242,7 @@ for exact UI fields. For this repo, a VLAN-backed SDN setup usually looks like:
 4. Set the VNet VLAN tag to the real VLAN carried by the underlay trunk. Use
    the Proxmox Alias or description fields for longer human-readable names.
 5. Apply the SDN configuration from the main SDN panel and verify that the VNet
-   exists on the intended nodes before Terraform attaches guests to it.
+   exists on every intended creation and failover node before attaching guests.
 6. Skip Proxmox SDN subnets unless you intentionally use Proxmox IPAM, DHCP, or
    routed SDN features. This repo still provides static guest IPs through
    Terraform cloud-init values in `network_zones`.

@@ -7,6 +7,7 @@
 - [Platform guides](#platform-guides)
 - [First deployment order](#first-deployment-order)
 - [Related references](#related-references)
+- [References](#references)
 
 ## Purpose
 
@@ -38,34 +39,39 @@ Use the Proxmox platform layer for:
 
 - [Planning guidelines](conventions.md)
 - [Tier 0 template lifecycle and CD](template-lifecycle.md)
+- [Shared template references](template-catalog.md)
 - [Enterprise Linux template](enterprise-linux-template.md)
 - [Talos template](talos-template.md)
 - [Using the cache from Proxmox](cache-usage.md)
 - [Backup foundation](backup-foundation.md)
 - [API setup](setup-api.md)
 - [Host networking](network-prerequisites.md)
+- [Cluster, HA, and Terraform placement](cluster-ha.md)
+- [Talos Kubernetes bootstrap](../talos/bootstrap.md)
 - [Hardening baseline](hardening.md)
 
 ## First deployment order
 
-1. Review the shared Proxmox planning guidelines.
-2. Prepare hosts, networks, storage, and protected Tier 0 API access.
-3. Publish and test the required Linux or Talos templates using the
-   [Day 0-1 local workflow](template-lifecycle.md#local-workflow).
-4. Create Linux guests or control-cluster VMs from those approved templates.
-5. Apply the guest baseline or follow the separate cluster bootstrap path.
+Run these Tier 0 preparation steps before the first managed guest. A single
+host is a valid pilot; cluster membership, HA, and SDN are explicit choices.
 
-Recommended next maturity step:
+| Step | Action and detailed guide | Completion check |
+| --- | --- | --- |
+| 1. Plan | Record [names, IDs, and tags](conventions.md) in the project worksheet | No conflicting allocations |
+| 2. Install hosts | Use the official [Proxmox installer procedure][1] with final node names, addresses, DNS, and time | Protected UI/console access works on every host |
+| 3. Prepare networking | Follow [host networking](network-prerequisites.md) and approved gateway/firewall policy | Management, cluster/storage links, and intended guest paths are tested |
+| 4. Optional cluster/HA | Follow [cluster and HA](cluster-ha.md), including shared storage and failure-domain planning | Quorum is healthy; guest mobility prerequisites are met |
+| 5. Optional SDN | Configure [guest VNets](network-prerequisites.md#optional-sdn-for-guest-networks) on eligible nodes | VNet/bridge IDs and VLAN policy match the tier inputs |
+| 6. Protect access and data | Configure [API access](setup-api.md), [backups](backup-foundation.md), and the [hardening baseline](hardening.md) | Scoped credentials, recovery access, and restore checks work |
+| 7. Publish templates | Run the [Day 0-1 local workflow](template-lifecycle.md#local-workflow) | Disposable clones boot with the correct disks and networks |
+| 8. Deploy guests | Continue with [Talos bootstrap](../talos/bootstrap.md) or [Linux identity VMs](../../paths/shared-services/identity.md) | Chosen service/cluster checks pass; selected HA guests pass failover tests |
 
-- continue with the
-  [Identity foundation path](../../paths/shared-services/identity.md)
-- add
-  [Windows and AD support](../../paths/shared-services/windows-support.md) only when
-  the environment needs Windows support
-- continue with the secret platform through the
-  [Vault foundation deployment](../../paths/shared-services/vault.md)
-- add the [backup foundation](backup-foundation.md) before the environment
-  becomes important
+The installer writes the selected disks; back up existing contents before
+installation. [1] [Cluster joining](cluster-ha.md#prepare-and-join-hosts) also needs
+empty/prepared nodes, so decide on the cluster before populating hosts with
+templates and important VMs.
+
+Return to the [Tier 0 checklist](../../paths/tier-0/README.md) after preparation.
 
 ## Related references
 
@@ -74,3 +80,10 @@ Recommended next maturity step:
 - [Safe repository usage](../../usage-model.md)
 - [Secret strategy](../../security/secret-strategy.md)
 - [Security principles](../../security/security-principles.md)
+
+## References
+
+1. [Proxmox installation guide](https://github.com/proxmox/pve-docs/blob/master/pve-installation.adoc),
+   checked 2026-09-21. Use documentation matching the installed release.
+
+[1]: https://github.com/proxmox/pve-docs/blob/master/pve-installation.adoc

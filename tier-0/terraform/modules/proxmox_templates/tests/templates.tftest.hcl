@@ -46,6 +46,14 @@ run "publish_unconfigured_templates" {
     condition     = output.catalog["talos"].schematic_id == sha256("test schematic")
     error_message = "The candidate catalog must retain Talos provenance."
   }
+
+  assert {
+    condition = alltrue([
+      for key, image in var.images :
+      output.catalog[key].vm_id == image.vm_id && output.catalog[key].title == image.name
+    ])
+    error_message = "Candidate references must report the actual Proxmox VMID and title."
+  }
 }
 
 run "reject_wrong_checksum" {
