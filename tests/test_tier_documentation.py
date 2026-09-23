@@ -51,7 +51,10 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         tier0 = (self.root / "verify-tier-0/README.md").read_text(encoding="utf-8")
         publisher = "bash scripts/proxmox-templates.sh init"
         setup = "bash ../verify-shared/scripts/init-local-files.sh"
-        self.assertIn("Day 0-1: templates before VMs", tier0)
+        self.assertIn("Day 0: templates before VMs", tier0)
+        self.assertIn("Day 0-3 checklist", tier0)
+        self.assertIn("FreeIPA runs on two dedicated VMs", tier0)
+        self.assertIn("cluster hosting Keycloak", tier0)
         self.assertLess(tier0.index(publisher), tier0.index(setup))
         self.assertIn("template-lifecycle.md#local-workflow", tier0)
         self.assertNotIn("${", tier0)
@@ -99,6 +102,18 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertLess(tier0.index("optional-sdn-for-guest-networks"), tier0.index("template-lifecycle.md"))
         self.assertLess(tier0.index("template-lifecycle.md"), tier0.index("talos/bootstrap.md"))
         self.assertIn("operator-run bootstrap", (architecture / "platforms/talos/bootstrap.md").read_text())
+        for day in range(4):
+            self.assertIn(f"**Day {day}:", tier0)
+        self.assertIn("kubernetes.md#cluster-foundation", tier0)
+        bootstrap = (architecture / "paths/tier-0/bootstrap.md").read_text()
+        for heading in ("Day 0 bootstrap dependencies", "Day 1 cluster foundation",
+                        "Day 2 service sequence", "Day 3 operational handover"):
+            self.assertIn(f"## {heading}", bootstrap)
+        self.assertIn("Terraform / OpenTofu", bootstrap)
+        self.assertIn("Current wrappers call `terraform`", bootstrap)
+        foundation = (architecture / "paths/application-platform/kubernetes.md").read_text()
+        for component in ("CNI", "Flux", "SOPS", "Storage", "cert-manager", "ingress", "CloudNativePG"):
+            self.assertIn(component, foundation)
 
     def test_source_and_generated_documentation_links_resolve(self):
         self.generate()

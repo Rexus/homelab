@@ -21,8 +21,11 @@ Use this order when you are new to the repository or returning after time away:
    [Tier 1](paths/tier-1/README.md), [Tier 2](paths/tier-2/README.md), or
    [shared automation](paths/shared/README.md).
 
-For a new environment, the Tier 0 checklist takes you through **Proxmox ->
-optional HA/SDN -> templates -> Talos or Linux services -> Day 2 services**.
+For a new environment, the Tier 0 checklist takes you through **Day 0/1:
+Proxmox, templates, and cluster foundation -> Day 2: identity and control
+services -> Day 3: access handover and recovery testing**. Optional HA and SDN
+are early host choices; FreeIPA runs on two dedicated VMs and Keycloak in the
+Tier 0 Talos cluster.
 Read the [architecture overview](architecture/overview.md) when you need the
 ownership and network design behind those steps.
 
@@ -116,6 +119,8 @@ Use the sections below as a reference map, not a required reading list.
   failover, movable guests, and Terraform placement
 - [Talos cluster bootstrap](platforms/talos/bootstrap.md) - one operator procedure
   shared by Tier 0 and Tier 1
+- [Cluster foundation](paths/application-platform/kubernetes.md#cluster-foundation) -
+  shared CNI, Flux, SOPS, storage, TLS, ingress, and database readiness checks
 - [UniFi zone firewall](platforms/unifi/zone-firewall.md) - translate the
   architecture's zones and rule matrix into gateway configuration
 - [Enterprise Linux template](platforms/proxmox/enterprise-linux-template.md) -

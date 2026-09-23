@@ -14,23 +14,29 @@ readiness checks. Tier 0 must recover without Tier 1 or Tier 2.
 
 ## Deployment order
 
-| Step | What to do | Ready to continue when |
-| --- | --- | --- |
-| 1. Record choices | Generate the collection; fill in [project conventions](../../reference/project-documentation.md#start-with-project-values) and prepare [local tools](../../getting-started/local-setup.md) | Names, IDs, networks, operator access, and recovery locations are recorded |
-| 2. Prepare hosts | Follow [Proxmox preparation](../../platforms/proxmox/README.md#first-deployment-order), including optional [cluster/HA](../../platforms/proxmox/cluster-ha.md) and [SDN](../../platforms/proxmox/network-prerequisites.md#optional-sdn-for-guest-networks) now | Hosts, storage, networks, backups, and API access are tested |
-| 3. Publish templates | Run the [local template workflow](../../platforms/proxmox/template-lifecycle.md#local-workflow); use the [Talos image guide](../../platforms/proxmox/talos-template.md) for cluster nodes | Approved Linux/Talos clones boot on their intended hosts |
-| 4. Build the control cluster | Follow the shared [Talos bootstrap procedure](../../platforms/talos/bootstrap.md), then install GitOps | Nodes and API are healthy; recovery inputs exist outside the cluster |
-| 5. Add authority services | Use the [identity foundation](../shared-services/identity.md), then [Vault](../shared-services/vault.md) and optional [HSM](../../security/usb-hsm-active-active-blueprint.md) guides | Each selected service passes its checks and has an independent recovery path |
-| 6. Add Day 2 clients | Follow the [service sequence](bootstrap.md#day-2-service-sequence), including early inventory documentation | SSO and local break-glass access both work |
+Before Day 0, record [project conventions](../../reference/project-documentation.md#start-with-project-values)
+and prepare [local tools](../../getting-started/local-setup.md).
+Days are readiness phases, not calendar days or repository tiers.
 
-Step 4 is the Talos control-cluster route. Linux authority VMs are a separate
-route and can be deployed after step 3; they do not require Kubernetes. Do not
-deploy a second identity or secret service simply because a cluster placeholder
-exists. Choose one lifecycle owner per service.
+| Phase | Deploy or prepare | Ready to continue when |
+| --- | --- | --- |
+| **Day 0: foundation** | [Proxmox](../../platforms/proxmox/README.md#first-deployment-order), optional [HA](../../platforms/proxmox/cluster-ha.md) and [SDN](../../platforms/proxmox/network-prerequisites.md#optional-sdn-for-guest-networks), [VM templates](../../platforms/proxmox/template-lifecycle.md#local-workflow); network/storage, source control (Git), OCI registry access, CI/bootstrap runner, Terraform state | Tested templates and [bootstrap dependencies](bootstrap.md#day-0-bootstrap-dependencies) work without the new cluster |
+| **Day 1: cluster foundation** | [Talos and CNI](../../platforms/talos/bootstrap.md), Flux, storage, cert-manager, ingress, CloudNativePG (CNPG), SOPS/bootstrap secrets; follow the [shared cluster foundation](../application-platform/kubernetes.md#cluster-foundation) | Cluster, reconciliation, storage, TLS, database, and secret-decryption checks pass |
+| **Day 2: control services** | FreeIPA on two dedicated VMs; Keycloak in Talos; Vault, NetBox, Headlamp, and monitoring; follow the [service sequence](bootstrap.md#day-2-service-sequence) | Services work, identity integration is tested, backups run, and local recovery remains available |
+| **Day 3: operational handover** | Harden RBAC, switch supported normal logins to OIDC, disable or restrict bootstrap credentials, test backup/restore; use the [handover checks](bootstrap.md#day-3-operational-handover) | Scoped access and recovery are proven without relying on the services being restored |
+
+Day 0/1 follows the [platform flow](bootstrap.md#bootstrap-phases); Day 2 follows
+**FreeIPA -> Keycloak -> OIDC -> clients**. The FreeIPA pair is deployed through
+the Linux `foundation` setup and does not require Kubernetes. Keycloak belongs
+in the Tier 0 Talos cluster. Choose one lifecycle owner per service; do not
+duplicate FreeIPA in Kubernetes. General platform instances remain in Tier 1.
+
+Restrict access, protect secrets, and retain backups from the start. Day 3 is
+the tested handover to normal operation, not the first security work.
 
 ## Getting started
 
-After preparing hosts, **Day 0-1: templates before VMs.** From
+After preparing hosts, **Day 0: templates before VMs.** From
 `homelab-iac/homelab-tier-0`, initialize
 the template catalog:
 
@@ -47,8 +53,9 @@ before any tier selects them. Do not copy the catalog into each tier.
 This works before any managed VM, control cluster, or hosted CI exists.
 Existing approved templates are valid when their IDs and recovery copies are verified.
 
-Next choose [Talos bootstrap](../../platforms/talos/bootstrap.md) or the
-[Linux identity VM guide](../shared-services/identity.md). Run shared commands
+Next use [Talos bootstrap](../../platforms/talos/bootstrap.md) for the control
+cluster and the [Linux identity VM guide](../shared-services/identity.md) for
+the dedicated FreeIPA pair. Run shared commands
 from the tier repository root so they use its inventory and state. Replace
 `homelab` in paths if you chose another prefix.
 
@@ -56,7 +63,7 @@ from the tier repository root so they use its inventory and state. Replace
 
 | Need | Guide |
 | --- | --- |
-| Bootstrap, recovery, and Day 2 services | [Tier 0 bootstrap and recovery](bootstrap.md) |
+| Phase dependencies, recovery, and handover | [Tier 0 bootstrap and recovery](bootstrap.md) |
 | AlmaLinux, Rocky Linux, and Talos templates | [Template lifecycle and CD](../../platforms/proxmox/template-lifecycle.md) |
 | Tier boundaries | [Tier model](../../architecture/tier-model.md) |
 | Hardware ownership and future workload requests | [Infrastructure control](../../architecture/infrastructure-control.md) |

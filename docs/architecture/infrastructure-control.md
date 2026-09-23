@@ -42,12 +42,11 @@ serialize writes for each existing root; never create a second state owner.
 The first template must be publishable before any managed VM, control cluster,
 hosted source-control service, or CI runner exists.
 
-| Phase | Result |
-| --- | --- |
-| Day 0 | hosts, network/storage foundations, protected operator access, and local tools/artifacts |
-| Day 0-1 | tested, approved VM templates and recoverable publication state |
-| Day 1 | VM clones, the control cluster, and its initial reconciliation configuration |
-| Day 2 | optional scheduled jobs, reconciliation services, and delegated workload requests |
+The [Tier 0 deployment path](../paths/tier-0/README.md#deployment-order) owns the
+Day 0-3 checklist: prepare infrastructure and independent bootstrap access,
+build the cluster foundation, add control services, then prove access handover
+and recovery. Source control, artifacts, execution, and state must be usable
+before the services that later provide normal identity and secret integration.
 
 Use a protected local execution host for the first publication. Later scheduled
 jobs reuse the same Tier 0-owned lifecycle and state. A template-builder VM can

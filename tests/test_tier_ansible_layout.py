@@ -13,6 +13,19 @@ from payload import TIERS
 
 
 class AnsibleOwnership(TierRepositoryTestCase):
+    def test_identity_authority_is_a_vm_pair_and_broker_is_in_talos(self):
+        self.generate()
+        for repo in (UPSTREAM / "tier-0", self.root / "verify-tier-0"):
+            groups = yaml.safe_load((repo / "ansible/inventory/hosts.yml.example").read_text())["all"]["children"]
+            self.assertEqual(set(groups["identity_primary"]["hosts"]), {"idm-1"})
+            self.assertEqual(set(groups["identity_replicas"]["hosts"]), {"idm-2"})
+            apps = repo / "clusters/tier0/applications"
+            resources = yaml.safe_load((apps / "kustomization.yaml").read_text())["resources"]
+            self.assertIn("keycloak", resources)
+            self.assertNotIn("freeipa", resources)
+            self.assertFalse((apps / "freeipa/kustomization.yaml").exists())
+            self.assertTrue((apps / "keycloak/kustomization.yaml").is_file())
+
     def test_only_common_code_is_shared(self):
         self.generate()
         shared = self.root / "verify-shared"

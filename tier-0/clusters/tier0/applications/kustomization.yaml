@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- freeipa
+# FreeIPA stays on the Tier 0 foundation VMs; its identity broker runs here.
 - keycloak
 - vault
 - headlamp

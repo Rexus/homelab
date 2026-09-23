@@ -44,8 +44,9 @@ commands use tier-local code and shared helpers with local inputs. Substitute
 your prefix if customized. Each README is a developer-owned starter template.
 
 Use the [per-repository deployment checklists](docs/paths/README.md#choose-your-repository):
-prepare Proxmox (optional HA and SDN), publish templates, then bootstrap Talos
-or deploy Linux services. Each step links to its detailed procedure.
+prepare Proxmox (optional HA and SDN), publish templates, then build the control
+cluster and dedicated authority VMs. The Tier 0 Day 0-3 checklist links each
+phase to its detailed procedure, through identity integration and recovery testing.
 
 ## Update Your Collection
 

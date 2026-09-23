@@ -11,6 +11,7 @@ all:
         identity: null
         issuing_ca: null
         root_ca: null
+    # Dedicated FreeIPA VMs, outside Talos; Keycloak belongs to clusters/tier0/.
     identity:
       children:
         identity_primary: null

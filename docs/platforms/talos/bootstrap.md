@@ -170,9 +170,9 @@ credentials, and controller permissions before running it. The starter
 Kustomizations do not install Flux or the named services. Keep reviewed local
 controller manifests and images for Tier 0 recovery without hosted source control.
 
-Add storage, ingress, certificates, and secret integration only after their
-dependencies exist. Continue with the [Tier 0 service sequence](../../paths/tier-0/bootstrap.md#day-2-service-sequence)
-or [Tier 1 deployment path](../../paths/tier-1/README.md).
+Continue with the shared [cluster foundation checklist](../../paths/application-platform/kubernetes.md#cluster-foundation)
+for SOPS/bootstrap secrets, storage, cert-manager, ingress, and CloudNativePG
+before adding the owning tier's service clients.
 
 ## Recovery
 

@@ -22,9 +22,14 @@ identity and PKI layer after the Proxmox and network prerequisites exist.
 
 The current reference shape is:
 
-- `2` `FreeIPA` replicas with DNS in `identity`
+- `2` dedicated FreeIPA VMs with DNS in `identity`: `idm-1` and `idm-2`
 - `1` issuing CA in `cryptography`
 - `0-1` offline root CA host in `ceremony`
+
+FreeIPA runs outside Kubernetes. Keycloak runs inside the Tier 0 Talos cluster
+and connects to this pair for the [Day 2 identity path](../tier-0/bootstrap.md#day-2-service-sequence).
+The `foundation` setup owns the FreeIPA VMs; it does not install Keycloak.
+Bootstrap access must work without either service being available.
 
 This is the default authority path for the repository, not a mandatory global
 prerequisite. If you already operate identity, DNS, and PKI, use those as the

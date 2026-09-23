@@ -125,8 +125,10 @@ Infrastructure automation continues to own the resources beneath the cluster;
 cluster reconciliation owns the services above it. Keep approved images and
 publication state recoverable outside the cluster.
 
-See [Tier 0 bootstrap](../paths/tier-0/bootstrap.md) for implementation choices,
+See the [Day 0-3 deployment path](../paths/tier-0/README.md#deployment-order) and
+[Tier 0 bootstrap](../paths/tier-0/bootstrap.md) for implementation choices,
 deployment scope, and the currently unfinished cluster skeletons.
+Deployment phases describe readiness, not another ownership hierarchy.
 
 ## Day 2 control services
 
@@ -135,7 +137,8 @@ for restoring their own platform.
 
 ```mermaid
 flowchart LR
-  Authority["Identity authority"] --> Broker["Identity broker"]
+  Authority["Identity authority<br/>Two dedicated Tier 0 VMs"]
+  Authority --> Broker["Identity broker<br/>Tier 0 control cluster"]
   Broker --> OIDC["OIDC"]
   OIDC --> Clients["Operations UIs and service clients"]
 ```

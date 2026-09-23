@@ -14,6 +14,7 @@
 vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
   # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
+  # Dedicated FreeIPA pair, separate from the Talos cluster hosting Keycloak.
   "idm-1" = {
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 111
