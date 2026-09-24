@@ -117,7 +117,9 @@ Use the sections below as a reference map, not a required reading list.
   network assumptions and preparation
 - [Proxmox cluster and HA](platforms/proxmox/cluster-ha.md) - optional early cluster,
   failover, movable guests, and Terraform placement
-- [Talos cluster bootstrap](platforms/talos/bootstrap.md) - one operator procedure
+- [Tier 0 Talos Terraform](platforms/talos/terraform.md) - tier-owned VMs, inventory,
+  machine configuration, bootstrap, and state
+- [Talos cluster bootstrap](platforms/talos/bootstrap.md) - one manual operator procedure
   shared by Tier 0 and Tier 1
 - [Cluster foundation](paths/application-platform/kubernetes.md#cluster-foundation) -
   shared CNI, Flux, SOPS, storage, TLS, ingress, and database readiness checks

@@ -1,0 +1,4 @@
+platform_host_ips:
+  k8ctl-1: 192.0.2.10
+  k8ctl-2: 192.0.2.10
+  k8ctl-3: dhcp

@@ -24,7 +24,8 @@ This applies across all tiers, not only to the machines hosting Tier 0 itself.
 | Shared platform definitions and service configuration | Tier 1 |
 | Project VM requirements, application configuration, and workload lifecycle intent | Tier 2 |
 | Template modules, publication commands, and image-build implementations | Tier 0 |
-| Cross-tier guest modules, baseline roles, and generic deployment helpers | Shared code |
+| Guest Terraform resources, inventory, and deployment state | Each owning tier |
+| Baseline roles, generic deployment helpers, sizes, and image references | Shared code; no inventory or Terraform resources |
 
 A workload VM does not become Tier 0 just because it runs on a hypervisor.
 Conversely, a provisioning controller remains Tier 0 even when every VM it
@@ -127,10 +128,10 @@ edit the privileged controller, acceptance policy, or shared execution revision.
 
 ## Implementation boundary
 
-Today, the kit provides Tier 0 template publication and operator-run, per-tier
-Terraform/Ansible workflows. Those workflows are not a safe self-service API.
-Host/network management and the control cluster still include manual work and
-bootstrap skeletons. No provisioning controller is enabled by generation.
+Today, the kit provides Tier 0 template publication, control-cluster bootstrap,
+and operator-run, per-tier Terraform/Ansible workflows. Those workflows are not
+a safe self-service API. Host/network administration still includes manual work;
+cluster-service directories remain starters. No provisioning controller is enabled by generation.
 
 Retain these roots while developing delegation; do not relocate live inputs or
 state as part of a documentation or generator refresh. Before enabling a

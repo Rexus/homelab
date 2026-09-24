@@ -29,10 +29,10 @@ locals {
   )
 }
 
-# Shared resolves inventory and approved template references; this root owns inputs and state.
+# Tier-local modules own inventory resolution and resources; shared supplies image references.
 # The shared deploy helper loads templates/proxmox-catalog.tfvars before tier overrides.
 module "environment" {
-  source = "../../../../shared/terraform/modules/environment_guests"
+  source = "../../modules/environment_guests"
 
   network_zones                = var.network_zones
   default_platform_node_name   = local.effective_default_platform_node_name
@@ -49,7 +49,7 @@ module "environment" {
 
 module "vms" {
   for_each = module.environment.vm_instances
-  source   = "../../../../shared/terraform/modules/vm"
+  source   = "../../modules/vm"
 
   name                      = each.value.name
   node_name                 = each.value.node_name
@@ -75,7 +75,7 @@ module "vms" {
 
 module "lxcs" {
   for_each = module.environment.lxc_instances
-  source   = "../../../../shared/terraform/modules/lxc"
+  source   = "../../modules/lxc"
 
   name                     = each.value.name
   node_name                = each.value.node_name

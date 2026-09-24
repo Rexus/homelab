@@ -57,17 +57,16 @@ recovery runbook. Template publication alone is not a successful cluster test.
 
 ## Cluster bootstrap
 
-The generated `bootstrap/proxmox/` and `bootstrap/talos/` directories are
-developer-owned skeletons, not an implemented cluster deployment. Use the
-[shared Talos bootstrap procedure](../talos/bootstrap.md) to create and verify
-the cluster now, then automate the verified workflow in the owning tier.
+Use [Tier 0 Talos Terraform](../talos/terraform.md) for the control-cluster VMs,
+machine configuration, and bootstrap. The [manual Talos procedure](../talos/bootstrap.md)
+remains available for Tier 1 or operator-run installation.
 The same procedure applies to Tier 1 with different inputs and a separate state owner.
 
 | Responsibility | Tier 0 control-cluster owner |
 | --- | --- |
 | Base Talos template and publication state | Tier 0 `terraform/templates/` |
-| Control-plane/worker clones and network attachments | Tier 0 `bootstrap/proxmox/` |
-| Per-node config, secrets, bootstrap, Talos API lifecycle | Tier 0 `bootstrap/talos/` and offline recovery inputs |
+| Control-plane/worker clones and network attachments | Tier 0 `terraform/talos/` and local inventory |
+| Per-node config, secrets, bootstrap, Talos API lifecycle | Tier 0 `terraform/talos/` and protected recovery inputs |
 | Add-ons and Day 2 services after cluster readiness | Tier 0 `clusters/tier0/` |
 
 NoCloud can consume Talos machine configuration through cloud-init-compatible

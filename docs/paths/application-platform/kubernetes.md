@@ -17,8 +17,9 @@ the Proxmox VM foundation.
 For installation, follow the shared [Talos bootstrap procedure](../../platforms/talos/bootstrap.md).
 Use the [Tier 1 checklist](../tier-1/README.md) for platform services or the
 [Tier 0 checklist](../tier-0/README.md) for the independent control cluster.
-This page explains application-platform choices; the supplied cluster code is
-still a skeleton rather than a complete installer.
+This page explains application-platform choices. Tier 0 has a
+[Talos Terraform root](../../platforms/talos/terraform.md); Flux and cluster-service
+directories remain starters rather than a complete platform installer.
 
 ## Dependency direction
 

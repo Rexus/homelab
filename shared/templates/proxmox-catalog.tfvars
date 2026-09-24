@@ -2,7 +2,7 @@
 # Tier 0 approves these references after clone testing; every tier reads them.
 # Build inputs, checksums, credentials, and publication state stay in Tier 0.
 # Loaded by shared/scripts/deploy.sh before tier-local Terraform inputs.
-# Resolved by shared/terraform/modules/environment_guests, not by each tier.
+# Resolved by each tier's Terraform; shared owns no Terraform resources or host inventory.
 # Reference: docs/platforms/proxmox/template-catalog.md
 
 # Set this to an approved Linux entry below. Null deliberately selects no image.

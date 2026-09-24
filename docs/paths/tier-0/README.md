@@ -21,7 +21,7 @@ Days are readiness phases, not calendar days or repository tiers.
 | Phase | Deploy or prepare | Ready to continue when |
 | --- | --- | --- |
 | **Day 0: foundation** | [Proxmox](../../platforms/proxmox/README.md#first-deployment-order), optional [HA](../../platforms/proxmox/cluster-ha.md) and [SDN](../../platforms/proxmox/network-prerequisites.md#optional-sdn-for-guest-networks), [VM templates](../../platforms/proxmox/template-lifecycle.md#local-workflow); network/storage, source control (Git), OCI registry access, CI/bootstrap runner, Terraform state | Tested templates and [bootstrap dependencies](bootstrap.md#day-0-bootstrap-dependencies) work without the new cluster |
-| **Day 1: cluster foundation** | [Talos and CNI](../../platforms/talos/bootstrap.md), Flux, storage, cert-manager, ingress, CloudNativePG (CNPG), SOPS/bootstrap secrets; follow the [shared cluster foundation](../application-platform/kubernetes.md#cluster-foundation) | Cluster, reconciliation, storage, TLS, database, and secret-decryption checks pass |
+| **Day 1: cluster foundation** | [Talos Terraform](../../platforms/talos/terraform.md) or [manual bootstrap](../../platforms/talos/bootstrap.md); CNI, Flux, storage, cert-manager, ingress, CloudNativePG (CNPG), SOPS/bootstrap secrets; follow the [shared cluster foundation](../application-platform/kubernetes.md#cluster-foundation) | Cluster, reconciliation, storage, TLS, database, and secret-decryption checks pass |
 | **Day 2: control services** | FreeIPA on two dedicated VMs; Keycloak in Talos; Vault, NetBox, Headlamp, and monitoring; follow the [service sequence](bootstrap.md#day-2-service-sequence) | Services work, identity integration is tested, backups run, and local recovery remains available |
 | **Day 3: operational handover** | Harden RBAC, switch supported normal logins to OIDC, disable or restrict bootstrap credentials, test backup/restore; use the [handover checks](bootstrap.md#day-3-operational-handover) | Scoped access and recovery are proven without relying on the services being restored |
 
@@ -53,8 +53,14 @@ before any tier selects them. Do not copy the catalog into each tier.
 This works before any managed VM, control cluster, or hosted CI exists.
 Existing approved templates are valid when their IDs and recovery copies are verified.
 
-Next use [Talos bootstrap](../../platforms/talos/bootstrap.md) for the control
-cluster and the [Linux identity VM guide](../shared-services/identity.md) for
+Next initialize the control cluster's Tier 0 inputs:
+
+```bash
+bash scripts/talos-cluster.sh init
+```
+
+Follow [Talos Terraform](../../platforms/talos/terraform.md) to configure, plan,
+and deploy the cluster, and the [Linux identity VM guide](../shared-services/identity.md) for
 the dedicated FreeIPA pair. Run shared commands
 from the tier repository root so they use its inventory and state. Replace
 `homelab` in paths if you chose another prefix.
@@ -74,12 +80,12 @@ from the tier repository root so they use its inventory and state. Replace
 ## Repository structure
 
 - `ansible/`: tier service playbooks and roles, inventory, group vars, and configuration
-- `terraform/`: Linux infrastructure setups and environment inputs
+- `terraform/environments/`: Linux infrastructure setups and environment inputs
+- `terraform/talos/`: control-cluster VMs, Talos configuration, and bootstrap
 - `templates/`, `terraform/templates/`, and `ci/`: image catalog, template publication, and CD jobs
-- `terraform/modules/` and `packer/`: template implementations and custom-build scaffolds
-- `bootstrap/`: Talos and infrastructure bootstrap skeletons
+- `terraform/modules/` and `packer/`: tier-owned guest/template modules and custom-build scaffolds
 - `clusters/tier0/`: cluster-service skeletons
-- `scripts/`: local template publisher and entry points to shared deployment helpers
+- `scripts/`: template and Talos commands, plus entry points to shared Linux helpers
 
 The Linux setup scripts do not bootstrap Talos or deploy the cluster services.
 The [bootstrap and recovery reference](bootstrap.md) distinguishes working

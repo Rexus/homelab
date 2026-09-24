@@ -44,6 +44,19 @@ all:
     template_refresh_builders:
       hosts:
         alma-10-tmpl-stage: {}
+    # Talos inventory is consumed by Tier 0 Terraform, never by the Linux guest baseline.
+    talos:
+      children:
+        talos_control_plane: null
+        talos_workers: null
+    talos_control_plane:
+      hosts:
+        k8ctl-1: {}
+        k8ctl-2: {}
+        k8ctl-3: {}
+    talos_workers:
+      hosts:
+        k8node-1: {}
     guests:
       children:
         foundation: null

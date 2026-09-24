@@ -46,7 +46,7 @@ It creates directories and files; it does not initialize Git or create remotes.
 | `<prefix>-tier-0` | control service code and inputs, host administration, complete template workflows, bootstrap |
 | `<prefix>-tier-1` | platform service playbooks and roles, inventory, Terraform roots, cluster definitions |
 | `<prefix>-tier-2` | workload playbooks, inventory, Terraform roots, project and application definitions |
-| `<prefix>-shared` | cross-tier guest modules, baseline roles, common precheck and deployment helpers |
+| `<prefix>-shared` | baseline roles, common precheck/deployment helpers, stateless sizes and image references |
 | `<prefix>-architecture` | copied upstream docs and environment-owned design, decisions, service records, runbooks |
 
 The collection directory groups five sibling repositories and is not itself a
@@ -99,6 +99,7 @@ Each tier has the same operational layout:
     group_vars/all.env.yml.example
     group_vars/<setup>.yml.example
   terraform/
+    modules/                       # tier-owned inventory resolver and VM/LXC resources
     common.tfvars.example
     environments/<setup>/
       main.tf
@@ -130,7 +131,7 @@ flowchart LR
   Inputs["Owning tier: inventory and group vars"] --> TF["Terraform guest resolution"]
   Inputs --> Ansible["Ansible configuration"]
   Hardware["Owning tier: hardware and network tfvars"] --> TF
-  Shared["Shared: guest modules and baseline helpers"] --> TF
+  Shared["Shared: stateless sizes, image references, baseline helpers"] --> TF
   Shared --> Ansible
   Services["Owning tier: service playbooks and roles"] --> Ansible
 ```
@@ -143,7 +144,7 @@ flowchart LR
 | `terraform/common.tfvars` | platform placement, guest networks, template and storage mappings |
 | `terraform/environments/<setup>/terraform.tfvars` | VM/LXC definitions keyed by those inventory host keys |
 
-The shared `environment_guests` module reads the tier's YAML to resolve names
+The tier-local `environment_guests` module reads its YAML to resolve names
 and IPs. The wrapper supplies the same ordered vars files to both tools:
 
 1. `all.yml`
@@ -161,6 +162,11 @@ State and Terraform working data stay under each tier's
 `.terraform/state/<setup>/<environment>/` and
 `.terraform/data/<setup>/<environment>/`. `--env test` and production therefore
 remain separate within each of the three repositories.
+
+Shared never owns an inventory, deployment inputs, Terraform resources, or state.
+Talos also uses Tier 0 inventory, but not Ansible guest configuration. Its
+[separate root and command](../platforms/talos/terraform.md) consume Talos groups
+and IP reservations, with state at `.terraform/state/talos/terraform.tfstate`.
 
 NetBox or another inventory application is an early Day 2 documentation service.
 Recovery uses local tier inputs and operator-held material without querying it.
@@ -202,7 +208,7 @@ also do not imply a shared network; generation does not configure isolation.
 To deploy a capability in another tier, add its Terraform root and example
 vars there, register it in `.deployment-setups`, and add its playbook and precheck
 mapping. Add only that tier's hosts and IPs. Extract common roles only when
-multiple tiers need them; guest modules already live in shared. Give it distinct resource IDs
+multiple tiers need them; Terraform resource modules stay in each tier. Give it distinct resource IDs
 and state; do not transfer ownership by applying a second state to existing VMs.
 
 The Tier 0 `hsm` run targets HSM hosts only and never runs edge ingress.
@@ -250,9 +256,10 @@ Tier 0's `scripts/proxmox-templates.sh` is a separate local command with a local
 Terraform module; image publication needs no shared checkout. Run it from the
 Tier 0 root in both source and generated layouts.
 
-Terraform roots use literal relative module sources such as
-`../../../../<prefix>-shared/terraform/modules/environment_guests`. Terraform
-resolves local module paths relative to the calling module. [2]
+Linux Terraform roots use tier-local sources such as `../../modules/environment_guests`.
+Terraform resolves local module paths relative to the calling module. [2]
+The VM/LXC modules read shared `config/guest-sizes.json`; the wrappers load the
+shared template catalog. Shared contains data and helpers, not Terraform modules.
 
 Keep the sibling names stable. Arbitrary `SHARED_REPO_DIR` overrides are not
 supported because both tools must resolve the same code checkout. Record a
@@ -303,7 +310,7 @@ Refresh does not delete retired files, merge local edits, or commit changes.
 Review reported preserved files and upstream removals before adopting an update.
 Keep local guides and diagrams in `docs/owned/` and project conventions in
 `docs/naming-conventions.md`; upstream guidance updates under `docs/auto-docs/`.
-A locally edited example or shared module is also
+A locally edited example or tier module is also
 preserved, so adopting upstream changes to it requires a manual comparison.
 
 Existing READMEs become owned without being rewritten. Earlier
@@ -328,7 +335,8 @@ owning tier before deployment. Generation never imports or moves that local data
 ## Automation ownership upgrade
 
 Older collections kept all service roles, playbooks, Packer definitions, and
-template publication code in shared. Refresh creates these at their owning-tier
+template publication code in shared; later versions retained guest Terraform
+modules there. Refresh creates these at their owning-tier
 paths but preserves the old shared files, even when unchanged. It reports them
 for review; it does not merge customizations into the new locations.
 
@@ -338,11 +346,15 @@ Before deploying after this update:
 2. Compare old shared files with the new tier files and port local changes.
    Check locally edited `ansible.cfg`, wrappers, and prechecks: service playbooks
    now live in the tier, with local roles searched before shared baseline roles.
+   Check edited Terraform callers too: guest modules now use `../../modules/`
+   within the tier, and size profiles come from shared `config/guest-sizes.json`.
 3. Update developer-owned READMEs and CI jobs. Template jobs run
    `bash scripts/proxmox-templates.sh` from Tier 0 and no longer need a shared
    checkout or `TIER0_SHARED_COMMIT`. The CI starter is not overwritten.
-4. Discard old saved plans and replan from the owning tier using existing state.
-   Moving the template module source does not change its resource addresses.
+4. Discard old saved plans, reinitialize module sources, and replan from the owning
+   tier using existing state. Moving guest/template module sources does not change
+   module/resource addresses; no `state mv` is needed for this code-only move.
+   Require a no-change plan for existing resources; stop on unexpected replacements.
    No inventory, credentials, or state is moved by this code-only update.
 5. After checking all consumers, retire old shared copies manually. Do not leave
    competing old and new jobs active against the same infrastructure.
@@ -350,11 +362,19 @@ Before deploying after this update:
 If template-builder inputs and state still belong to Tier 1, also complete the
 separate [template ownership migration](../platforms/proxmox/template-lifecycle.md#existing-collections).
 
+Existing inventories and owned READMEs are never merged. For the new Talos root,
+follow [initialization](../platforms/talos/terraform.md#configure) and add its groups
+to Tier 0's existing inventory. Empty legacy `bootstrap/proxmox/` and
+`bootstrap/talos/` starters remain preserved; retire them after review. Customized
+roots with live resources require explicit state/resource adoption, not a second
+apply from an empty state. Shared legacy inventories must be migrated deliberately
+to their owning tiers before retiring the old copies.
+
 ## Implementation scope
 
-Generation includes the existing Linux Terraform/Ansible setups, split inventory
-examples, shared automation, and upstream documentation. The Talos bootstrap,
-Flux reconciliation, cluster applications, and documentation website remain
+Generation includes Linux Terraform/Ansible setups, Tier 0 Talos bootstrap, split
+inventory examples, stateless shared automation/data, and upstream documentation.
+Flux reconciliation, cluster applications, and the documentation website remain
 skeletons. Kustomization resource lists group files; they do not enforce the
 Day 2 deployment sequence. See the [Tier 0 path](../paths/tier-0/README.md).
 

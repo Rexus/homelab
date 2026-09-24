@@ -7,33 +7,8 @@ terraform {
 }
 
 locals {
-  size_profiles = {
-    tiny = {
-      cores  = 1
-      memory = 512
-      swap   = 512
-    }
-    small = {
-      cores  = 1
-      memory = 1024
-      swap   = 512
-    }
-    medium = {
-      cores  = 2
-      memory = 2048
-      swap   = 1024
-    }
-    large = {
-      cores  = 4
-      memory = 4096
-      swap   = 1024
-    }
-    xl = {
-      cores  = 8
-      memory = 8192
-      swap   = 2048
-    }
-  }
+  # Shared contains sizing data only; resources and state belong to this tier.
+  size_profiles = jsondecode(file("${path.module}/../../../../shared/config/guest-sizes.json")).lxc
 
   selected_size = local.size_profiles[var.size]
   selected_storage = var.storage_class_datastores[var.storage_class]

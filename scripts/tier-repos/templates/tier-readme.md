@@ -14,8 +14,9 @@ available locally.
 Approved image IDs and titles come from the sibling shared repository's
 [template catalog](../${prefix}-shared/templates/proxmox-catalog.tfvars).
 The [shared deploy helper](../${prefix}-shared/scripts/deploy.sh) loads it;
-the [inventory resolver](../${prefix}-shared/terraform/modules/environment_guests/)
-and [VM module](../${prefix}-shared/terraform/modules/vm/) hold the implementation.
+the tier-local [inventory resolver](terraform/modules/environment_guests/)
+and [VM module](terraform/modules/vm/) own the resources. Shared supplies only
+[size profiles](../${prefix}-shared/config/guest-sizes.json) and image references.
 Set workload tags here, not template recipes. Only Tier 0 publishes templates
 and approves catalog changes.
 
@@ -50,7 +51,7 @@ repository's inputs and state; run these commands from this root.
 ## Repository structure
 
 - `ansible/`: tier playbooks, service roles, inventory, group vars, and configuration
-- `terraform/`: infrastructure setups and environment inputs
+- `terraform/`: tier-owned resource modules, infrastructure setups, and environment inputs
 ${extra_paths}
 - `scripts/`: tier commands and entry points to shared deployment helpers
 - `.deployment-setups`: deployments maintained by this tier

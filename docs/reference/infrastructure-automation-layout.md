@@ -34,7 +34,7 @@ linked for that deployment instead of this reference.
 | `tier-0/` | `<prefix>-tier-0/` | control services, host administration, complete template workflows, bootstrap |
 | `tier-1/` | `<prefix>-tier-1/` | platform service code, inputs, and cluster starters |
 | `tier-2/` | `<prefix>-tier-2/` | workload code, inputs, and project starters |
-| `shared/` | `<prefix>-shared/` | cross-tier guest modules, baseline roles, generic runtime helpers |
+| `shared/` | `<prefix>-shared/` | baseline roles, generic runtime helpers, stateless sizes and image references |
 | `docs/` | `<prefix>-architecture/docs/auto-docs/` | authoritative upstream guidance |
 | `scripts/tier-repos/` | not copied | generation, refresh policy, README/project-doc templates |
 | `tests/` | not copied | offline source and generated-repository checks |
@@ -45,6 +45,7 @@ Inside **each tier**, the paths are the same before and after generation:
 | --- | --- |
 | `.deployment-setups` | registered setup names |
 | `terraform/environments/<setup>/` | provisioning roots and hardware examples |
+| `terraform/modules/` | tier-owned inventory resolution and VM/LXC resources |
 | `terraform/common.tfvars.example` | defaults for that tier's setups |
 | `ansible/inventory/hosts.yml.example` | logical hosts and service groups |
 | `ansible/group_vars/` | tier identity, IP maps, and service examples |
@@ -127,7 +128,7 @@ differ from the deployment default.
 
 Maintain image metadata once in shared `proxmox_template_catalog`; keep only
 guest-specific tags and selections in the tiers. The shared helper loads that
-file first and all roots pass it to the shared inventory resolver. See
+file first and Linux roots pass it to their tier-local inventory resolver. See
 [template references](../platforms/proxmox/template-catalog.md) for the contract,
 source-node selection, builder output tags, and migration of legacy
 `linux_vm_template_catalog` overrides. Template recipes and publication remain
@@ -179,6 +180,10 @@ Base-image publication is a Day 0-1 Tier 0 root at `tier-0/terraform/templates/`
 Its catalog, approved offline artifacts, and optional CI starter live under
 `tier-0/templates/` and `tier-0/ci/`. See [Template lifecycle](../platforms/proxmox/template-lifecycle.md).
 
+The control cluster has its own Tier 0 root at `terraform/talos/`, local Talos
+inventory groups/IPs, and `scripts/talos-cluster.sh`. It is not a Linux setup:
+see [Talos Terraform](../platforms/talos/terraform.md) for its inputs and state.
+
 Tier-local VM roots remain workload definitions with separate state. Tier 0 owns
 hardware-facing control and the future delegated execution service; no state
 is moved by generation. Current wrappers are operator tools, not a workload-user
@@ -188,22 +193,22 @@ API. See [Infrastructure control](../architecture/infrastructure-control.md).
 
 | Source path | Contains |
 | --- | --- |
-| `shared/terraform/modules/environment_guests/` | resolves tier inventory, names, IPs, and shared template metadata |
 | `shared/templates/proxmox-catalog.tfvars` | one project-owned consumer catalog; approved through Tier 0 review |
-| `shared/terraform/modules/vm/`, `lxc/` | reusable Proxmox guest resources |
+| `shared/config/guest-sizes.json` | stateless VM/LXC size profiles read by tier-local Terraform |
 | `shared/ansible/playbooks/` | common control-node checks and baseline site play |
 | `shared/ansible/roles/` | baseline and shared task fragments |
 | `shared/ansible/requirements.yml` | common Ansible collections |
 | `shared/scripts/` | deployment, local-input initialization, tier-context checks |
 
-The shared tree contains no live inventory, credentials, state, or per-tier
-defaults. Guest modules remain here because all tiers consume the same guest
-and inventory contract. They do not grant callers infrastructure privileges.
+Shared never owns inventory, Terraform resources, credentials, state, or deployment
+inputs. It provides reusable execution code, roles, and stateless data only.
 
 ## Tier-owned automation
 
 | Owner | Implementation |
 | --- | --- |
+| Each tier | `terraform/modules/environment_guests/`, `vm/`, and `lxc/`; inventory resolution and resource lifecycle |
+| Tier 0 | `terraform/talos/`, `scripts/talos-cluster.sh`, Talos inventory groups and IPs |
 | Tier 0 | `terraform/modules/proxmox_templates/`, `scripts/proxmox-templates.sh`, `packer/`, template catalog and CI starter |
 | Tier 0 | identity, secrets, HSM, Proxmox host, and Linux template-builder playbooks and roles |
 | Tier 1 | edge, cache, development, observability, runner, and ingress playbooks and service roles |
@@ -213,6 +218,11 @@ Each tier's `ansible/playbooks/control-node.yml` declares its setup-to-collectio
 mapping and imports the common precheck. Tier-specific collections also have a
 local requirements file: Tier 0 adds the identity collection. Shared does not
 register tier services. See [local tooling](../getting-started/local-setup.md).
+
+Guest module copies intentionally give each tier control of its resource lifecycle.
+They start from the same contract but are not routed through shared Terraform.
+Common sizes and image references remain single-source shared data; reviewed
+upstream fixes can be adopted per tier without transferring resource or state ownership.
 
 Template image publication is entirely local to Tier 0 and needs no shared
 checkout. Linux builder configuration still consumes the common baseline roles.
@@ -225,7 +235,7 @@ base-image publication path.
 - Register added setups in that tier's `.deployment-setups`; the generator checks
   for missing inputs, unregistered roots, and overlapping tier ownership.
 - Keep single-tier behavior with its owner. Extract to `shared/` only when
-  multiple tiers genuinely consume the same behavior.
+  multiple tiers consume the same stateless behavior; keep Terraform and all inventory tier-local.
 - Keep tier-wide default examples separate: each tier owns its network and
   identity choices even when starter values match.
 - Edit cluster/bootstrap starter files directly under their owning tier; they

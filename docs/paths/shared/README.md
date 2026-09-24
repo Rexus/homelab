@@ -1,7 +1,7 @@
 # Shared automation
 
-This repository deploys no services by itself. It provides cross-tier guest
-modules, baseline Ansible roles, and local execution helpers. Every deployment
+This repository deploys no services by itself. It provides stateless size data,
+baseline Ansible roles, and local execution helpers. Every deployment
 still belongs to a tier and uses that tier's inventory, credentials, and state.
 
 ## Getting started
@@ -13,7 +13,8 @@ still belongs to a tier and uses that tier's inventory, credentials, and state.
    [Tier 0](../tier-0/README.md), [Tier 1](../tier-1/README.md), or [Tier 2](../tier-2/README.md).
 4. Test shared changes against every consuming tier before adopting them.
 
-Do not run deployment commands from the shared root or add live inventory here.
+Never place inventory, Terraform resources, deployment inputs, or state in shared.
+Run its commands from the owning tier root, not the shared root.
 Tier 0 owns template creation and updates; shared code does not publish images.
 It exposes [one consumer catalog](../../platforms/proxmox/template-catalog.md) for
 approved IDs, titles, source nodes, and image tags. That project-owned file is

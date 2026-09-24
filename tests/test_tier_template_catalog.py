@@ -20,9 +20,10 @@ class SharedTemplateCatalog(TierRepositoryTestCase):
             self.assertIn("../verify-shared/templates/proxmox-catalog.tfvars", common)
             self.assertIn("../verify-shared/templates/proxmox-catalog.tfvars", (repo / "README.md").read_text())
             self.assertFalse((repo / "templates/proxmox-catalog.tfvars").exists())
-        shared_vars = (self.root / "verify-shared/terraform/modules/environment_guests/variables.tf").read_text()
-        for field in ("title", "family", "node_name", "tags"):
-            self.assertRegex(shared_vars, rf"{field}\s*=")
+        for tier in ("tier-0", "tier-1", "tier-2"):
+            variables = (self.root / f"verify-{tier}/terraform/modules/environment_guests/variables.tf").read_text()
+            for field in ("title", "family", "node_name", "tags"):
+                self.assertRegex(variables, rf"{field}\s*=")
         self.assertNotRegex(catalog.read_text(), r"(?m)^\s*(image_path|sha256|datastore_id|api_token)\s*=")
 
     def test_refresh_never_replaces_or_recreates_the_owned_catalog(self):

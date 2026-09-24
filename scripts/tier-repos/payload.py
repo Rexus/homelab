@@ -6,7 +6,7 @@ import yaml
 
 TIERS = ("tier-0", "tier-1", "tier-2")
 SHARED_TREES = {
-    "terraform/modules": ("*.tf",),
+    "config": ("*.json",),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2"),
     "ansible/playbooks": ("*.yml",),
     "scripts": ("*.sh",),
@@ -57,6 +57,10 @@ def tier_setups(upstream, tier):
 
 def validate_layout(upstream):
     """Check ownership where maintainers edit it, before writing any output."""
+    shared = upstream / "shared"
+    for directory in ("ansible/inventory", "ansible/group_vars", "ansible/host_vars", "terraform"):
+        if any(path.is_file() for path in (shared / directory).rglob("*")):
+            raise ValueError(f"Shared must not own inventory, deployment inputs, or Terraform: shared/{directory}")
     registered, known_hosts = set(), set()
     for tier in TIERS:
         setups = set(tier_setups(upstream, tier))
@@ -111,7 +115,8 @@ def copy_payload(writer, upstream, name, prefix):
 
 
 def report_legacy_shared(writer, upstream):
-    candidates = {"scripts/proxmox-templates.sh", "terraform/modules/proxmox_templates", "packer/templates"}
+    candidates = {"scripts/proxmox-templates.sh", "terraform/modules", "packer/templates",
+                  "ansible/inventory", "ansible/group_vars", "ansible/host_vars"}
     for tier in TIERS:
         root = upstream / tier
         for tree in ("ansible/playbooks", "ansible/roles"):

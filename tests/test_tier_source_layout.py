@@ -109,6 +109,19 @@ class SourceLayout(TierRepositoryTestCase):
         with self.assertRaisesRegex(ValueError, "Host IPs outside"):
             validate_layout(self.root)
 
+    def test_shared_cannot_own_inventory_or_terraform(self):
+        self.generate()
+        for name in ("shared", *TIERS):
+            (self.root / f"verify-{name}").rename(self.root / name)
+        for relative in ("ansible/inventory/hosts.yml.example", "ansible/group_vars/all.yml",
+                         "ansible/host_vars/host.yml", "terraform/main.tf"):
+            path = self.root / "shared" / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("# Forbidden shared ownership\n")
+            with self.assertRaisesRegex(ValueError, "Shared must not own"):
+                validate_layout(self.root)
+            path.unlink()
+
     @unittest.skipIf(os.name == "nt", "Source Bash commands run under Linux/WSL")
     def test_source_shortcuts_initialize_only_the_owning_tier(self):
         self.generate()

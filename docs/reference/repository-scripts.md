@@ -38,6 +38,7 @@ these shared implementations.
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | when you deploy, plan, or destroy a setup |
 | `tier-0/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
+| `tier-0/scripts/talos-cluster.sh` | initializes inputs, plans, bootstraps, and exports credentials | [Tier 0 Talos deployment](../platforms/talos/terraform.md) |
 
 ## Cheat sheet
 
@@ -73,6 +74,10 @@ Template publication uses the separate
 [Tier 0 template workflow](../platforms/proxmox/template-lifecycle.md#local-workflow),
 not `deploy.sh`. It uses provider-native environment variables, a local image
 catalog, and its own state; it never configures a Talos guest through Ansible.
+
+The control cluster uses [Tier 0 Talos Terraform](../platforms/talos/terraform.md)
+and `bash scripts/talos-cluster.sh init` from Tier 0. It owns a separate state
+root, uses tier-local inventory, and does not use the Linux setup/environment wrapper.
 
 ## Initialize tier repositories
 

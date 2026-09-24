@@ -32,8 +32,12 @@ class AnsibleOwnership(TierRepositoryTestCase):
         self.assertEqual({p.name for p in (shared / "ansible/roles").iterdir()}, {"baseline", "shared"})
         self.assertEqual({p.name for p in (shared / "ansible/playbooks").iterdir()},
                          {"control-node.yml", "site.yml"})
-        self.assertEqual({p.name for p in (shared / "terraform/modules").iterdir()},
-                         {"environment_guests", "vm", "lxc"})
+        self.assertFalse((shared / "terraform").exists())
+        self.assertTrue((shared / "config/guest-sizes.json").is_file())
+        for tier in TIERS:
+            modules = self.root / f"verify-{tier}/terraform/modules"
+            self.assertTrue(all((modules / name / "main.tf").is_file()
+                                for name in ("environment_guests", "vm", "lxc")))
         common = yaml.safe_load((shared / "ansible/playbooks/control-node.yml").read_text())[0]
         catalog = common["vars"]["control_node_base_collection_catalog"]
         expected_roles = {
@@ -63,6 +67,8 @@ class AnsibleOwnership(TierRepositoryTestCase):
         retained = {
             "verify-shared/ansible/playbooks/foundation.yml": "# Local foundation changes\n",
             "verify-shared/scripts/proxmox-templates.sh": "# Previous publisher\n",
+            "verify-shared/terraform/modules/vm/main.tf": "# Local legacy VM changes\n",
+            "verify-shared/ansible/inventory/hosts.yml": "# Legacy live inventory\n",
             "verify-tier-0/ansible/roles/vault/tasks/main.yml": "# Local role changes\n",
         }
         for relative, content in retained.items():
@@ -121,6 +127,16 @@ class AnsibleOwnership(TierRepositoryTestCase):
                         cwd=repo, env=env, capture_output=True, text=True,
                     )
                     self.assertEqual(result.returncode, 0, f"{playbook}\n{result.stdout}{result.stderr}")
+                if tier == "tier-0":
+                    baseline = collection / f"{prefix}shared/ansible/playbooks/site.yml"
+                    result = subprocess.run(
+                        ["ansible-playbook", "--list-hosts", "-i", str(inventory), str(baseline)],
+                        cwd=repo, env=env, capture_output=True, text=True,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn("idm-1", result.stdout)
+                    self.assertNotIn("k8ctl-", result.stdout)
+                    self.assertNotIn("k8node-", result.stdout)
 
 
 if __name__ == "__main__":

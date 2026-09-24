@@ -89,7 +89,7 @@ offline root key is also Tier 0 but has no connected firewall zone.
 
 ## Repository role
 
-Each tier owns its workload definitions, inventory, configuration, and separate
+Each tier owns its Terraform resources, workload definitions, inventory, configuration, and separate
 state roots. This does not grant workload users infrastructure administration;
 Tier 0 owns the privileged execution authority and protects state access.
 Terraform and Ansible use the same inventory inputs within that tier.
@@ -99,7 +99,7 @@ Terraform and Ansible use the same inventory inputs within that tier.
 | `tier-0` | high-impact control systems, template lifecycle, recovery, and custody assets |
 | `tier-1` | shared platform instances |
 | `tier-2` | application, project, and lab instances |
-| `shared` | cross-tier guest modules, baseline roles, generic helpers, and approved template references; no guest inventory or state |
+| `shared` | baseline roles, generic helpers, stateless sizes, and approved template references; never inventory, Terraform resources, or state |
 | `architecture` | local conventions, design, service records, and runbooks |
 
 See [Generated repository model](../reference/generated-repository-model.md)
@@ -127,7 +127,7 @@ publication state recoverable outside the cluster.
 
 See the [Day 0-3 deployment path](../paths/tier-0/README.md#deployment-order) and
 [Tier 0 bootstrap](../paths/tier-0/bootstrap.md) for implementation choices,
-deployment scope, and the currently unfinished cluster skeletons.
+deployment scope, and the remaining cluster-service starters.
 Deployment phases describe readiness, not another ownership hierarchy.
 
 ## Day 2 control services

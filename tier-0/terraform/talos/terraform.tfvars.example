@@ -1,0 +1,36 @@
+# Cluster-owned hardware/configuration. This root does not load Linux common.tfvars.
+# IP reservations are in ansible/group_vars/talos.yml, hosts in ansible/inventory/hosts.yml.
+# Set the image ID from the shared approved catalog, and pin matching releases/schematic.
+template_vm_id = 9102
+cluster = {
+  name               = "control"
+  endpoint           = "https://kubernetes.control.example.com:6443"
+  bootstrap_node     = "k8ctl-1"
+  talos_version      = "REPLACE_WITH_EXACT_VERSION_WITH_v"
+  kubernetes_version = "REPLACE_WITH_COMPATIBLE_VERSION_WITHOUT_v"
+  installer_image    = "REPLACE_WITH_INSTALLER_MATCHING_TEMPLATE_SCHEMATIC_AND_VERSION"
+  pod_cidr           = "10.244.0.0/16"
+  service_cidr       = "10.96.0.0/12"
+}
+
+# Reserve each MAC/IP in DHCP before applying. The endpoint needs an external
+# TCP load balancer for these control planes; it cannot use in-cluster ingress.
+# Keep host placement, storage, bridges, and image source in the same Proxmox cluster.
+nodes = {
+  k8ctl-1 = {
+    vm_id = 300, node_name = "pve01", mac_address = "02:00:00:00:03:00"
+    datastore_id = "shared", bridge = "control", size = "medium"
+  }
+  k8ctl-2 = {
+    vm_id = 301, node_name = "pve02", mac_address = "02:00:00:00:03:01"
+    datastore_id = "shared", bridge = "control", size = "medium"
+  }
+  k8ctl-3 = {
+    vm_id = 302, node_name = "pve03", mac_address = "02:00:00:00:03:02"
+    datastore_id = "shared", bridge = "control", size = "medium"
+  }
+  k8node-1 = {
+    vm_id = 310, node_name = "pve01", mac_address = "02:00:00:00:03:10"
+    datastore_id = "shared", bridge = "control", size = "large", disk_size_gb = 80
+  }
+}

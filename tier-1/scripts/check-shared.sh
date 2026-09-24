@@ -2,8 +2,7 @@
 set -euo pipefail
 tier_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 shared_dir="$tier_dir/../shared"
-for required in terraform/modules/environment_guests/main.tf terraform/modules/vm/main.tf \
-  terraform/modules/lxc/main.tf ansible/playbooks/control-node.yml ansible/requirements.yml \
+for required in config/guest-sizes.json ansible/playbooks/control-node.yml ansible/requirements.yml \
   scripts/deploy.sh scripts/init-local-files.sh scripts/lib/deployment-context.sh; do
   if [[ ! -f "$shared_dir/$required" ]]; then
     echo "Missing shared automation: $shared_dir/$required" >&2

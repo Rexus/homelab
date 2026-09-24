@@ -2,8 +2,10 @@
 
 Use this procedure for a Tier 0 control cluster or a Tier 1 platform cluster.
 Only the owning repo, allocations, credentials, API endpoint, and GitOps path
-change. **This is an operator-run bootstrap:** the supplied Talos Terraform
-and Flux directories are skeletons, not a working cluster installer.
+change. **This is an operator-run bootstrap.** For automated Tier 0 VM creation
+and Talos configuration, start with [Talos Terraform](terraform.md) instead;
+both routes use the verification and handover steps below. Flux service
+directories are starters, not installed services.
 
 ## Table of contents
 
@@ -23,7 +25,7 @@ checkout and the required tools available outside the cluster being built.
 | Choice | Tier 0 | Tier 1 |
 | --- | --- | --- |
 | Repository root | `<prefix>-tier-0` | `<prefix>-tier-1` |
-| Future automation | Complete `bootstrap/proxmox/` and `bootstrap/talos/` | Add tier-owned VM and Talos roots when automating |
+| Automation alternative | [Tier 0 Terraform](terraform.md) in `terraform/talos/` | Add tier-owned VM and Talos roots when automating |
 | GitOps path | `clusters/tier0/` | `clusters/tier1/` |
 | Recovery | Independent of higher-tier services | Approved foundation services plus local break-glass inputs |
 
@@ -157,8 +159,9 @@ images, and node state; do not simply run bootstrap again. In a new shell, set
 
 Continue only when expected nodes are Ready, system pods are healthy, and the
 stable API endpoint works from the intended operator network. Save the actual
-node allocations and recovery references in project documentation. This manual
-procedure does not generate Terraform state or Ansible inventory.
+node allocations and recovery references in project documentation. The manual
+route does not generate Terraform state or Ansible inventory; the Terraform
+route uses Tier 0's existing inventory and retains its own state.
 
 For HA, perform the [Proxmox failure checks](../proxmox/cluster-ha.md#prove-failover)
 and verify Kubernetes quorum/API availability separately. A VM restart alone

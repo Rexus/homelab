@@ -45,7 +45,7 @@ proxmox_template_catalog = {
                     fixture = root / f"resolve-{tier}"
                     fixture.mkdir()
                     module = {
-                        "source": str(root / "verify-shared/terraform/modules/environment_guests"),
+                        "source": str(repo / "terraform/modules/environment_guests"),
                         "ansible_inventory_path": str(repo / "ansible/inventory/hosts.yml"),
                         "ansible_group_vars_paths": [str(path) for path in vars_paths],
                         "default_platform_node_name": "test-platform",

@@ -10,8 +10,8 @@ repository ownership by potential impact: Tier 0 holds the highest-impact
 control systems, including hardware, network administration, and VM templates;
 Tier 1 holds shared platform services, and Tier 2 workloads.
 Network layers separately protect from the outside inward: Edge, Application,
-Control. Each tier owns its service code, inventory, and state; only cross-tier
-building blocks belong in shared.
+Control. Each tier owns its Terraform resources, service code, inventory, and
+state. Shared contains reusable scripts, Ansible roles, and stateless data only.
 
 Use this public upstream for examples and code. Keep operational configuration
 in private generated repositories, a private fork, or a local working copy.
@@ -81,7 +81,7 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 - `tier-0/`: infrastructure and trust services, VM template code, Packer builds, and bootstrap
 - `tier-1/`: shared-platform service code, Terraform roots, Ansible inputs, and cluster starters
 - `tier-2/`: workload code, Terraform roots, Ansible inputs, and project starters
-- `shared/`: cross-tier guest modules, baseline roles, and generic deployment helpers
+- `shared/`: baseline roles, generic deployment helpers, sizing data, and approved image references
 - `scripts/`: repository-generation tooling and README/project-doc templates
 - `tests/`: offline generator and automation checks
 - `.ai/`: assistant context

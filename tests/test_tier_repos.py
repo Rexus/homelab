@@ -87,7 +87,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
         custom.parent.mkdir()
         custom.write_text("# User-developed infrastructure\n", encoding="utf-8")
         deleted = [self.root / "verify-tier-2/ansible/playbooks/lab.yml",
-                   self.root / "verify-tier-0/bootstrap/talos/machines.tf"]
+                   self.root / "verify-tier-0/clusters/tier0/infrastructure/cni/kustomization.yaml"]
         for path in deleted:
             path.unlink()
         updates = [(self.root / "verify-tier-1", "ansible/group_vars/edge.yml.example"),

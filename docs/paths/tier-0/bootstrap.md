@@ -2,7 +2,8 @@
 
 For the deployment checklist, start with the [Tier 0 path](README.md).
 This reference owns phase dependencies, recovery boundaries, and operational
-handover. The shared [Talos procedure](../../platforms/talos/bootstrap.md) and
+handover. [Tier 0 Talos Terraform](../../platforms/talos/terraform.md), the
+shared [manual Talos procedure](../../platforms/talos/bootstrap.md), and
 [cluster foundation](../application-platform/kubernetes.md#cluster-foundation)
 own the reusable cluster installation steps.
 
@@ -47,7 +48,7 @@ are not two implementations to run against the same service instance.
 | All base templates and publication jobs | Tier 0 `terraform/templates/` and [local/CD workflow](../../platforms/proxmox/template-lifecycle.md) |
 | Linux authority VMs | Tier 0 `foundation`, `vault`, and `hsm` setups through shared helpers |
 | Builder VMs after initial publication | Tier 0 `template-refresh` and `immutable-template` setups |
-| Talos VMs and machine configuration | Operator [bootstrap procedure](../../platforms/talos/bootstrap.md); complete tier-owned skeletons before automating |
+| Talos VMs and machine configuration | Tier 0 `terraform/talos/` and [Talos command](../../platforms/talos/terraform.md); local inventory and state |
 | Cluster add-ons and service definitions | Intended GitOps path `clusters/tier0/`; starter directories currently contain no deployments |
 | Workload VM definitions and state | Existing tier-local roots; privileged execution remains under Tier 0 authority |
 | VM relocation after creation | Proxmox operators/HA; [placement contract](../../platforms/proxmox/cluster-ha.md#terraform-against-the-cluster) |
@@ -72,8 +73,8 @@ flowchart TB
 
 This is the intended Day 0/1 automation flow, not a shipped end-to-end installer.
 Current wrappers call `terraform`; OpenTofu is a design option, not a validated
-drop-in command here. The Talos resources are still skeletons; use the
-[operator-run procedure](../../platforms/talos/bootstrap.md) until they are implemented.
+drop-in command here. Tier 0 has [Talos Terraform](../../platforms/talos/terraform.md)
+for VMs through Kubernetes bootstrap; Flux and service installation follow separately.
 CNI must work before Flux can reconcile ordinary cluster services.
 
 FreeIPA's dedicated VMs can start after the template gate without Kubernetes.
@@ -108,7 +109,8 @@ an operator choice, not something the generator provisions.
 
 ## Day 1 cluster foundation
 
-Follow [Talos bootstrap](../../platforms/talos/bootstrap.md), then the shared
+Follow [Talos Terraform](../../platforms/talos/terraform.md) or the
+[manual procedure](../../platforms/talos/bootstrap.md), then the shared
 [cluster foundation checklist](../application-platform/kubernetes.md#cluster-foundation).
 That checklist owns CNI, Flux, SOPS, storage, certificates, ingress, and CNPG
 ordering for both Tier 0 and Tier 1.
@@ -177,14 +179,14 @@ Tighten and prove the controls established during bootstrap:
 
 ## Implementation scope
 
-The generator provides working template-publication entry points, Linux Terraform
-roots, tier-owned playbooks/roles, common helpers, and split inventory examples.
+The generator provides template-publication and Talos bootstrap entry points,
+tier-local Terraform resources, playbooks/roles, common helpers, and split inventory examples.
 Local initialization creates the operational input files; generation deploys nothing.
 
-`bootstrap/proxmox/`, `bootstrap/talos/`, and the Flux component directories are
-editable **skeletons**. They do not provision a cluster, install Flux, or deploy
-the listed services. Use the operator guide now; automate only after defining
-resource ownership, state adoption, offline artifacts, and recovery checks.
+The Flux component directories remain editable **skeletons**. Talos Terraform
+does not install Flux or the listed services. Older generated collections may
+retain empty `bootstrap/proxmox/` and `bootstrap/talos/` starters; review them
+before retiring them. Never run competing roots against the same resources.
 
 FreeIPA is owned only by the VM `foundation` setup, not cluster reconciliation.
 Refresh preserves project-owned cluster files: older collections may still have

@@ -89,7 +89,7 @@ cluster you are rebuilding. The provider does not select healthy target nodes. [
 | `proxmox_storage_classes` | Real datastore IDs available to the selected nodes |
 | `network_zones.<key>.bridge` | Consistent Linux bridge or SDN VNet attachment |
 
-The shared **VM** module ignores later `node_name` drift. Proxmox owns relocation,
+Each tier's **VM** module ignores later `node_name` drift. Proxmox owns relocation,
 HA, and maintenance moves; changing the configured initial node no longer moves
 an existing VM. Other hardware changes remain managed. Resource addresses and
 tier-local state paths are unchanged. Templates retain their own fixed publication

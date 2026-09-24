@@ -22,8 +22,8 @@ def tier_readme(writer, tier, prefix, setups):
     }
     extra_paths = {
         "tier-0": ("- `templates/`, `terraform/templates/`, and `ci/`: image catalog, publication, and jobs\n"
-                   "- `terraform/modules/` and `packer/`: Tier 0 template implementations and builds\n"
-                   "- `bootstrap/` and `clusters/tier0/`: cluster bootstrap and service definitions"),
+                   "- `terraform/talos/`: control-cluster VMs, Talos configuration, and bootstrap\n"
+                   "- `packer/` and `clusters/tier0/`: custom image builds and cluster-service starters"),
         "tier-1": "- `clusters/tier1/`: platform cluster definitions",
         "tier-2": "- `environments/` and `workloads/`: project and workload definitions",
     }
@@ -49,8 +49,14 @@ def tier_readme(writer, tier, prefix, setups):
             "to plan, publish, and test templates before deploying guests. No hosted CI\n"
             "or control cluster is required. If approved templates already exist, verify\n"
             "their IDs and recovery copies before continuing.\n\n"
-            f"Use [Talos bootstrap]({docs}/platforms/talos/bootstrap.md) for the control\n"
-            "cluster hosting Keycloak. FreeIPA runs on two dedicated VMs through\n"
+            "**Day 1: control cluster.** Initialize its Tier 0 inputs:\n\n"
+            "```bash\n"
+            "bash scripts/talos-cluster.sh init\n"
+            "```\n\n"
+            f"Follow [Talos Terraform]({docs}/platforms/talos/terraform.md) to review\n"
+            "inventory, hardware, and cluster settings, then plan and apply.\n"
+            "Keycloak is a later service in this cluster.\n"
+            "FreeIPA runs on two dedicated VMs through\n"
             "the Linux `foundation` setup below, outside Kubernetes. The Linux\n"
             "helper does not create the cluster or install Keycloak.\n"
         )

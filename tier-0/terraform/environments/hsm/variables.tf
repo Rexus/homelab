@@ -72,7 +72,7 @@ variable "default_linux_vm_template_id" {
 }
 
 variable "proxmox_template_catalog" {
-  description = "Shared template references, type-checked once by the shared environment_guests module."
+  description = "Shared template references, type-checked by this tier's environment_guests module."
   type        = any
   default     = {}
 }

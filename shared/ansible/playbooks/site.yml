@@ -1,6 +1,7 @@
 ---
 - name: Apply baseline configuration
-  hosts: all
+  # Talos has no SSH guest baseline; its owning tier configures it through the Talos API.
+  hosts: all:!talos
   become: true
   roles:
     - baseline

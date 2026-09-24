@@ -26,11 +26,12 @@ class ClusterPlacement(TierRepositoryTestCase):
                 self.assertRegex(main, r"proxmox_template_catalog\s*=\s*var.proxmox_template_catalog")
                 count += 1
         self.assertEqual(count, 11)
-        vm = (self.root / "verify-shared/terraform/modules/vm/main.tf").read_text()
-        self.assertIn("ignore_changes = [node_name]", vm)
-        self.assertIn("node_name = var.template_node_name", vm)
-        lxc = (self.root / "verify-shared/terraform/modules/lxc/main.tf").read_text()
-        self.assertNotIn("ignore_changes", lxc)
+        for tier in ("tier-0", "tier-1", "tier-2"):
+            vm = (self.root / f"verify-{tier}/terraform/modules/vm/main.tf").read_text()
+            self.assertIn("ignore_changes = [node_name]", vm)
+            self.assertIn("node_name = var.template_node_name", vm)
+            lxc = (self.root / f"verify-{tier}/terraform/modules/lxc/main.tf").read_text()
+            self.assertNotIn("ignore_changes", lxc)
 
     @unittest.skipUnless(os.name != "nt" and shutil.which("terraform"), "Requires Terraform on Linux/WSL")
     def test_template_source_resolution_is_independent_of_target_and_output_tags(self):
@@ -42,7 +43,7 @@ class ClusterPlacement(TierRepositoryTestCase):
         inventory.write_text(yaml.safe_dump({"all": {"children": {"guests": {"hosts": {"vm-1": {}}}}}}))
         group_vars.write_text(yaml.safe_dump({"platform_host_ips": {"vm-1": "dhcp"}}))
         module = {
-            "source": str(self.root / "verify-shared/terraform/modules/environment_guests"),
+            "source": str(self.root / "verify-tier-0/terraform/modules/environment_guests"),
             "ansible_inventory_path": str(inventory),
             "ansible_group_vars_paths": [str(group_vars)],
             "default_platform_node_name": "pve02",

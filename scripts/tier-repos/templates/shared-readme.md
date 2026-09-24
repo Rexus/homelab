@@ -1,11 +1,12 @@
 # ${prefix} Shared
 
-Cross-tier Terraform guest modules, Ansible baseline tasks, and deployment
+Reusable scripts, Ansible baseline tasks, stateless size profiles, and deployment
 helpers for the ${prefix} repositories. Each tier owns its service playbooks,
 roles, inventory, variables, credentials, and state. Tier 0 contains all VM
 template implementations, Packer builds, publication scripts, and CD jobs.
 This repo exposes their approved IDs and titles in one
 [consumer catalog](templates/proxmox-catalog.tfvars), maintained through Tier 0 review.
+It never owns inventory, Terraform resources, deployment inputs, or state.
 
 ## Getting started
 
@@ -24,7 +25,7 @@ repository and its dependencies available locally for recovery.
 
 ## Repository structure
 
-- `terraform/modules/`: guest inventory resolution and VM/LXC resources used across tiers
+- `config/guest-sizes.json`: common VM/LXC size profiles, without deployment ownership
 - `ansible/playbooks/` and `ansible/roles/`: common precheck, baseline, and task fragments
 - `scripts/`: initialization and deployment entry points
 - `templates/proxmox-catalog.tfvars`: project-owned template references, read by all tiers
