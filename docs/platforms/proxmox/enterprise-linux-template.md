@@ -306,7 +306,7 @@ What the automation uses:
 
 | File | What you edit |
 | --- | --- |
-| `terraform/environments/template-refresh/terraform.tfvars` | staged template VM ID, source template, size, storage, and tags |
+| `terraform/deployments/template-refresh/terraform.tfvars` | staged template VM ID, source template, size, storage, and tags |
 | `ansible/group_vars/template_refresh.yml` | package refresh, cleanup, and same-ID replacement settings |
 | `ansible/inventory/hosts.yml` | `template_refresh_builders` and the Proxmox host used for replacement |
 | `ansible/group_vars/template_refresh.yml` or `template_refresh.<env>.yml` | staged template IP address |
@@ -320,7 +320,7 @@ Refresh flow:
 3. Set `template_refresh_prepare_for_template: true` and rerun Ansible to clean
    cloud-init state, SSH host keys, and package cache.
 4. Set the staged VM to `template = true` and `started = false` in
-   `terraform/environments/template-refresh/terraform.tfvars`.
+   `terraform/deployments/template-refresh/terraform.tfvars`.
 5. Run Terraform only to convert the staged VM into a staged Proxmox template.
 6. Enable `template_refresh_replace_enabled: true`, set
    `template_refresh_prepare_builders: false`, and run Ansible only.

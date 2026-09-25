@@ -62,7 +62,7 @@ from the GitLab host.
 
 | Layer | File |
 | --- | --- |
-| Terraform setup | `terraform/environments/development/terraform.tfvars` |
+| Terraform setup | `terraform/deployments/development/terraform.tfvars` |
 | Ansible inventory | `ansible/inventory/hosts.yml` |
 | Ansible environment vars | `ansible/group_vars/all.yml` or `all.<env>.yml` |
 | Ansible setup vars | `ansible/group_vars/development.yml` |
@@ -70,7 +70,7 @@ from the GitLab host.
 
 ## Configure the deployment
 
-Edit `terraform/environments/development/terraform.tfvars`:
+Edit `terraform/deployments/development/terraform.tfvars`:
 
 | Value | What to choose |
 | --- | --- |

@@ -60,11 +60,11 @@ Use different endpoint formats depending on the tool:
 
 | Tool | Variable | Format |
 | --- | --- | --- |
-| Terraform `bpg/proxmox` provider | `PROXMOX_API_URL` | `https://pve.example.com:8006/` |
+| Linux VM/LXC deployment wrapper | `PROXMOX_API_URL` | `https://pve.example.com:8006/` |
 | Packer Proxmox plugin | `PROXMOX_URL` | `https://pve.example.com:8006/api2/json` |
-| Native template publisher | `PROXMOX_VE_ENDPOINT` | `https://pve.example.com:8006/` |
+| Native template publisher and Talos | `PROXMOX_VE_ENDPOINT` | `https://pve.example.com:8006/` |
 
-For Terraform in this repo, do not append `/api2/json`. The deployment wrapper
+For Terraform in this repo, do not append `/api2/json`. The Linux deployment wrapper
 maps `PROXMOX_API_URL`, `PROXMOX_API_TOKEN_ID`, and
 `PROXMOX_API_TOKEN_SECRET` into the Terraform provider variables.[3][4]
 
@@ -248,8 +248,8 @@ addition to the group ACLs.
 
 ## Use the token
 
-Store the token in your ignored `.env.local` file or provide the same values
-through your runner.
+For Linux deployments, store the token in your ignored `.env.local` file or
+provide the same values through your runner.
 
 ```dotenv
 PROXMOX_API_URL=https://pve.example.com:8006/
@@ -257,12 +257,16 @@ PROXMOX_API_TOKEN_ID=automation@pve!provision
 PROXMOX_API_TOKEN_SECRET=replace-with-the-token-secret
 ```
 
-For this repository, keep the token ID and token secret separate. The
-deployment wrapper combines them for the Terraform provider.
+The Linux deployment wrapper combines the separate ID and secret for the
+Terraform provider. Tier 0's native [template publisher](template-lifecycle.md)
+and [Kubernetes command](../talos/terraform.md#configure) instead consume exported
+`PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` (`user@realm!token=secret`);
+they do not load `.env.local` or map the Linux wrapper's aliases.
 
 ## Validate access
 
-Before the first real apply, run a plan from the deployment machine:
+After initializing and editing the foundation inputs, run a plan from the
+Tier 0 repository root on the deployment machine:
 
 ```bash
 bash scripts/deploy.sh foundation --plan-only

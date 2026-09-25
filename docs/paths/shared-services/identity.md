@@ -26,7 +26,7 @@ The current reference shape is:
 - `1` issuing CA in `cryptography`
 - `0-1` offline root CA host in `ceremony`
 
-FreeIPA runs outside Kubernetes. Keycloak runs inside the Tier 0 Talos cluster
+FreeIPA runs outside Kubernetes. Keycloak runs inside the Tier 0 Kubernetes cluster
 and connects to this pair for the [Day 2 identity path](../tier-0/bootstrap.md#day-2-service-sequence).
 The `foundation` setup owns the FreeIPA VMs; it does not install Keycloak.
 Bootstrap access must work without either service being available.
@@ -72,7 +72,7 @@ Use a private internal subdomain for the platform domain, such as
 the public website, such as `example.com`, for the internal identity and PKI
 domain.
 
-| Component | Terraform default | Inventory entry | Zone | Purpose |
+| Component | Terraform default | Inventory entry | Network key | Purpose |
 | --- | --- | --- | --- | --- |
 | identity hosts | `idm-1`, `idm-2` active | `idm-1`, `idm-2` present by default | `identity` | `FreeIPA`, DNS, and the first identity authority |
 | issuing CA host | `ca-1` active | `ca-1` present by default | `cryptography` | online issuing CA for the platform |
@@ -86,7 +86,7 @@ Both CA layers can later be hardened with HSM-backed keys, but the default
 identity path does not require HSM on day one.
 
 The Terraform example for this path lives in
-`terraform/environments/foundation/terraform.tfvars.example`. Commented
+`terraform/deployments/foundation/terraform.tfvars.example`. Commented
 `vm_instances` are default `0` and should stay commented until you also enable
 the matching Ansible inventory group and IP entry.
 
@@ -156,7 +156,7 @@ Edit these local files before you deploy:
 | Path | What you configure |
 | --- | --- |
 | [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | default platform node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
-| [`terraform/environments/foundation/terraform.tfvars.example`](../../../tier-0/terraform/environments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
+| [`terraform/deployments/foundation/terraform.tfvars.example`](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
 | [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
 | [`ansible/group_vars/all.yml.example`](../../../tier-0/ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, SSH user, port, and baseline defaults |
 | [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
@@ -168,8 +168,8 @@ Use these repo paths here:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
-| [`terraform/environments/foundation/terraform.tfvars.example`](../../../tier-0/terraform/environments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity and PKI hosts | `terraform/environments/foundation/terraform.tfvars` based on `.example` |
+| [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | tier-wide Terraform inputs, including the default platform node | your local `terraform/common.tfvars` |
+| [`terraform/deployments/foundation/terraform.tfvars.example`](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity and PKI hosts | `terraform/deployments/foundation/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../../tier-0/ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
 | [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
@@ -226,9 +226,9 @@ local data files and state:
 
 | Environment | Local var file | Wrapper command |
 | --- | --- | --- |
-| first validation run | `terraform/environments/foundation/terraform.tfvars` plus `ansible/group_vars/all.test.yml` and `foundation.test.yml` | `bash scripts/deploy.sh foundation --env test` |
-| lab, dev, or staging | `terraform/environments/foundation/terraform.tfvars` plus matching Ansible env and setup vars | `bash scripts/deploy.sh foundation --env lab1` |
-| production | `terraform/environments/foundation/terraform.tfvars` | `bash scripts/deploy.sh foundation` |
+| first validation run | `terraform/deployments/foundation/terraform.tfvars` plus `ansible/group_vars/all.test.yml` and `foundation.test.yml` | `bash scripts/deploy.sh foundation --env test` |
+| lab, dev, or staging | `terraform/deployments/foundation/terraform.tfvars` plus matching Ansible env and setup vars | `bash scripts/deploy.sh foundation --env lab1` |
+| production | `terraform/deployments/foundation/terraform.tfvars` | `bash scripts/deploy.sh foundation` |
 
 The wrapper stores local Terraform state separately per setup and environment,
 for example `.terraform/state/foundation/test/terraform.tfstate`.
@@ -236,7 +236,7 @@ for example `.terraform/state/foundation/test/terraform.tfstate`.
 Terraform uses the base `terraform/common.tfvars` and foundation
 `terraform.tfvars` for every environment by default. Add
 `terraform/common.<env>.tfvars` or
-`terraform/environments/foundation/terraform.<env>.tfvars` only when that
+`terraform/deployments/foundation/terraform.<env>.tfvars` only when that
 environment intentionally needs different platform values, VM sizes, or
 placement.
 
@@ -250,7 +250,7 @@ deployment. If you prefer suffix-style names, clear the prefix and set
 `platform_hostname_suffix` instead.
 
 No `--env` means production and uses the base local files:
-`terraform/common.tfvars`, `terraform/environments/foundation/terraform.tfvars`,
+`terraform/common.tfvars`, `terraform/deployments/foundation/terraform.tfvars`,
 `ansible/group_vars/all.yml`, and `ansible/group_vars/foundation.yml`.
 
 With `--env`, the wrapper automatically loads both environment-wide vars and

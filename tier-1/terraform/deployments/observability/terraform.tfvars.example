@@ -1,0 +1,111 @@
+# Copy to: terraform/deployments/observability/terraform.tfvars
+# Replace every value before use.
+# Setup guide: docs/paths/system-control/observability.md
+# Shared values live in ../../common.tfvars.
+
+# Optional: override the shared default Linux VM template for this setup or
+# environment overlay, for example when testing another supported distro.
+# default_linux_vm_template_id = 111
+
+vm_instances = {
+  # Keys match the stable logical host names in the Ansible inventory.
+  # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
+  "telemetry-1" = {
+    vm_id            = 260
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 40
+    network_zone_key = "telemetry_gateway"
+    tags             = ["otel-collector", "internal", "always-on", "platform"]
+  }
+  # "telemetry-2" = {
+  #   vm_id            = 261
+  #   size             = "small"
+  #   storage_class    = "local"
+  #   disk_size_gb     = 40
+  #   network_zone_key = "telemetry_gateway"
+  #   tags             = ["otel-collector", "internal", "always-on", "platform"]
+  # }
+  "syslog-1" = {
+    vm_id            = 262
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 100
+    network_zone_key = "security_telemetry"
+    tags             = ["syslog", "restricted", "always-on", "security"]
+  }
+  # "syslog-2" = {
+  #   vm_id            = 263
+  #   size             = "small"
+  #   storage_class    = "local"
+  #   disk_size_gb     = 100
+  #   network_zone_key = "security_telemetry"
+  #   tags             = ["syslog", "restricted", "always-on", "security"]
+  # }
+  "health-1" = {
+    vm_id            = 270
+    size             = "medium"
+    storage_class    = "local"
+    disk_size_gb     = 100
+    network_zone_key = "observability"
+    tags             = ["netdata", "internal", "always-on", "platform"]
+  }
+  "metrics-1" = {
+    vm_id            = 400
+    size             = "large"
+    storage_class    = "shared"
+    disk_size_gb     = 500
+    network_zone_key = "observability"
+    tags             = ["victoriametrics", "internal", "always-on", "platform"]
+  }
+  "apm-1" = {
+    vm_id            = 401
+    size             = "large"
+    storage_class    = "shared"
+    disk_size_gb     = 1000
+    network_zone_key = "observability"
+    tags             = ["signoz", "clickhouse", "internal", "always-on", "apps"]
+  }
+  "logs-1" = {
+    vm_id            = 410
+    size             = "large"
+    storage_class    = "shared"
+    disk_size_gb     = 1000
+    network_zone_key = "observability"
+    tags             = ["opensearch", "restricted", "always-on", "security"]
+  }
+  # "logs-2" = {
+  #   vm_id            = 411
+  #   size             = "large"
+  #   storage_class    = "shared"
+  #   disk_size_gb     = 1000
+  #   network_zone_key = "observability"
+  #   tags             = ["opensearch", "restricted", "always-on", "security"]
+  # }
+  # "logs-3" = {
+  #   vm_id            = 412
+  #   size             = "large"
+  #   storage_class    = "shared"
+  #   disk_size_gb     = 1000
+  #   network_zone_key = "observability"
+  #   tags             = ["opensearch", "restricted", "always-on", "security"]
+  # }
+  "telemetry-ui-1" = {
+    vm_id            = 271
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 40
+    network_zone_key = "observability"
+    tags             = ["opensearch-dashboards", "internal", "always-on", "platform"]
+  }
+  "archive-1" = {
+    vm_id            = 272
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 40
+    network_zone_key = "storage"
+    tags             = ["restricted", "always-on", "security"]
+  }
+}
+
+lxc_instances = {}

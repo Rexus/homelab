@@ -146,7 +146,7 @@ state; do not move root-trust authority into Tier 1 merely to make it reachable.
 - [`terraform/common.tfvars.example`](../../tier-0/terraform/common.tfvars.example)
   for the default platform node, shared storage, deployable guest networks,
   template IDs, and SSH keys
-- [`terraform/environments/hsm/terraform.tfvars.example`](../../tier-0/terraform/environments/hsm/terraform.tfvars.example)
+- [`terraform/deployments/hsm/terraform.tfvars.example`](../../tier-0/terraform/deployments/hsm/terraform.tfvars.example)
   for the gateway and helper layer
 
 Set the values your environment needs for `cryptography` and optional
@@ -189,8 +189,8 @@ Edit the `vm_instances` maps to match the shape you want.
 
 | Component | Terraform default | Inventory action | Current example range | Edit here |
 | --- | --- | --- | --- | --- |
-| gateway VMs | `hsm-1`, `hsm-2` active | `hsm-1`, `hsm-2` present by default | `1-8` | `terraform/environments/hsm/terraform.tfvars` |
-| helper VMs | `crypto-admin-1` commented, default `0` | uncomment `crypto-admin-1` when enabled | `0-2+` as needed | `terraform/environments/hsm/terraform.tfvars` |
+| gateway VMs | `hsm-1`, `hsm-2` active | `hsm-1`, `hsm-2` present by default | `1-8` | `terraform/deployments/hsm/terraform.tfvars` |
+| helper VMs | `crypto-admin-1` commented, default `0` | uncomment `crypto-admin-1` when enabled | `0-2+` as needed | `terraform/deployments/hsm/terraform.tfvars` |
 
 The deployed edge load balancer stays in the shared-service layer. Start here with
 the gateway and helper hosts.
@@ -218,8 +218,8 @@ by default; connectivity does not change that ownership:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../tier-0/terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
-| [`terraform/environments/hsm/terraform.tfvars.example`](../../tier-0/terraform/environments/hsm/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/environments/hsm/terraform.tfvars` based on `.example` |
+| [`terraform/common.tfvars.example`](../../tier-0/terraform/common.tfvars.example) | tier-wide Terraform inputs, including the default platform node | your local `terraform/common.tfvars` |
+| [`terraform/deployments/hsm/terraform.tfvars.example`](../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) | deploys the gateway VMs and optional helper VMs | `terraform/deployments/hsm/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../tier-0/ansible/inventory/hosts.yml.example) | stable HSM host keys and inventory groups | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.yml.example`](../../tier-0/ansible/group_vars/all.yml.example) | shared Ansible defaults and the default environment | your local `ansible/group_vars/all.yml` |
 | [`ansible/group_vars/all.env.yml.example`](../../tier-0/ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |

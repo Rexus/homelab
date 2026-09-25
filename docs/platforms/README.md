@@ -7,15 +7,17 @@
 
 ## Purpose
 
-Platform documents contain provider-specific guidance without changing the core
-identity of the repository. The baseline remains centered on reusable workflows,
+Platform documents connect capabilities to their implementation guides. Proxmox
+is the chosen virtualization platform; Kubernetes is the cluster capability,
+with Talos as its current node-OS example. The baseline remains centered on reusable workflows,
 security posture, and tool separation across Packer, Terraform, and Ansible.
 
 ## Current platforms
 
-- [Proxmox](proxmox/README.md) - current reference implementation
-- [Tier 0 Talos Terraform](talos/terraform.md) - tier-owned cluster creation and bootstrap
-- [Talos Kubernetes bootstrap](talos/bootstrap.md) - shared Tier 0/Tier 1 manual procedure
+- [Proxmox](proxmox/README.md) - chosen virtualization platform
+- [Kubernetes clusters](kubernetes/README.md) - implementation choice and shared readiness checks
+- [Kubernetes with Talos](talos/terraform.md) - current Tier 0 Terraform implementation
+- [Manual bootstrap with Talos](talos/bootstrap.md) - Tier 0/Tier 1 implementation procedure
 - [UniFi zone firewall](unifi/zone-firewall.md) - manual network-policy
   translation for the network-layer model, not a provisioning provider
 

@@ -68,7 +68,7 @@ maintain a second address list in VM placement variables.
 | `vm_instances.<key>` / `lxc_instances.<key>` | stable guest key matching inventory |
 | `vm_instances.<key>.tags` | platform tags for filtering and ownership |
 | `network_zones.<key>.bridge` | SDN VNet ID or non-SDN Proxmox bridge |
-| `network_zones.<key>.vlan_id` | optional VM NIC VLAN tag for bridge attachment |
+| `network_zones.<key>.vlan_id` | optional VM or LXC NIC VLAN tag for bridge attachment |
 | `network_zones.<key>.cidr_ipv4` | network prefix for the guest's static address |
 | `network_zones.<key>.gateway_ipv4` | optional in the schema; the static-guest check expects a value; DHCP guests obtain routing from DHCP |
 | `vm_instances.*.network_zone_key` | logical network used by a VM |
@@ -86,6 +86,11 @@ Generated examples retain upstream reference addresses. Review all bridge,
 VLAN, CIDR, gateway, and inventory IP values before applying them. Tier 0
 control systems may use connected protected networks. Only assets designated
 for offline custody use the separately isolated fabric.
+
+VMs and LXC guests consume the same bridge and VLAN selection. When upgrading
+an existing LXC deployment, review its plan: earlier modules ignored `vlan_id`.
+Applying a newly honored tag can change connectivity; verify trunk and firewall
+configuration before applying it. Omit the tag when the SDN VNet owns tagging.
 
 The current `environment_guests` static-guest check expects `gateway_ipv4`.
 In custody, use only an actual custody-local router with no connected-tier

@@ -57,16 +57,16 @@ recovery runbook. Template publication alone is not a successful cluster test.
 
 ## Cluster bootstrap
 
-Use [Tier 0 Talos Terraform](../talos/terraform.md) for the control-cluster VMs,
+Use the [Talos Kubernetes implementation](../talos/terraform.md) for the control-cluster VMs,
 machine configuration, and bootstrap. The [manual Talos procedure](../talos/bootstrap.md)
 remains available for Tier 1 or operator-run installation.
 The same procedure applies to Tier 1 with different inputs and a separate state owner.
 
 | Responsibility | Tier 0 control-cluster owner |
 | --- | --- |
-| Base Talos template and publication state | Tier 0 `terraform/templates/` |
-| Control-plane/worker clones and network attachments | Tier 0 `terraform/talos/` and local inventory |
-| Per-node config, secrets, bootstrap, Talos API lifecycle | Tier 0 `terraform/talos/` and protected recovery inputs |
+| Base Talos template and publication state | Tier 0 `terraform/deployments/templates/` |
+| Control-plane/worker clones and network attachments | Tier 0 `terraform/deployments/kubernetes/` and local inventory |
+| Per-node config, secrets, bootstrap, Talos API lifecycle | Tier 0 `terraform/deployments/kubernetes/` and protected recovery inputs |
 | Add-ons and Day 2 services after cluster readiness | Tier 0 `clusters/tier0/` |
 
 NoCloud can consume Talos machine configuration through cloud-init-compatible

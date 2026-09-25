@@ -17,7 +17,7 @@ if [[ "$(pwd -P)" != "$repo_root" ]]; then
   echo "Run this command from the Tier 0 repository root." >&2
   exit 1
 fi
-terraform_dir="$repo_root/terraform/templates"
+terraform_dir="$repo_root/terraform/deployments/templates"
 if [[ ! -f "$terraform_dir/main.tf" || ! -f "$repo_root/templates/proxmox.yml.example" ]]; then
   echo "Template publication requires the Tier 0 template root and catalog example." >&2
   exit 1
@@ -37,6 +37,15 @@ for path in "$catalog" "$state"; do
   fi
 done
 export TF_DATA_DIR="$repo_root/.terraform/data/proxmox-templates"
+
+for file in "$repo_root/terraform/templates/"*.tf "$repo_root/terraform/templates/"*.tfvars \
+  "$repo_root/terraform/templates/"*.tf.json "$repo_root/terraform/templates/"*.tfvars.json; do
+  [[ -f "$file" ]] || continue
+  echo "Legacy Terraform deployment found: terraform/templates" >&2
+  echo "Migrate to terraform/deployments/templates before continuing." >&2
+  echo "See docs/reference/generated-repository-model.md#terraform-layout-upgrade." >&2
+  exit 1
+done
 
 if [[ "$action" == init ]]; then
   if [[ ! -e "$catalog" ]]; then

@@ -3,7 +3,7 @@
 Tier 0 owns base template creation, updates, candidate testing, and release
 approval, including all implementation code. Consuming tiers own their VMs
 and select approved template versions. AlmaLinux, Rocky Linux, and Talos use
-the same local-image import path. Talos cluster bootstrap remains separate.
+the same local-image import path. Kubernetes cluster bootstrap remains separate.
 
 **Initial template publication is Day 0-1 work.** Run it from a protected local
 execution host before creating managed VMs, including the first control-cluster
@@ -45,10 +45,10 @@ See the [Enterprise Linux image guide](enterprise-linux-template.md) or
 | Location | Owner and purpose |
 | --- | --- |
 | `templates/proxmox.yml` | Tier 0: versioned image catalog, hashes, VMIDs, and placement |
-| `terraform/templates/` | Tier 0: native Terraform template publication root |
+| `terraform/deployments/templates/` | Tier 0: native Terraform template publication root |
 | `ci/gitlab-templates.yml.example` | Tier 0: developer-owned optional CD pipeline starter |
-| `terraform/environments/template-refresh/` | Tier 0: staged mutable Linux package refresh |
-| `terraform/environments/immutable-template/` | Tier 0: optional image-based Linux builder |
+| `terraform/deployments/template-refresh/` | Tier 0: staged mutable Linux package refresh |
+| `terraform/deployments/immutable-template/` | Tier 0: optional image-based Linux builder |
 | `terraform/modules/proxmox_templates/` | Tier 0: file import and unbooted template resources |
 | `scripts/proxmox-templates.sh` | Tier 0: local publication entry point |
 | `packer/` | Tier 0: optional custom-image build definitions and inputs |

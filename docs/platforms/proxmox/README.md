@@ -1,4 +1,4 @@
-# Proxmox reference platform
+# Proxmox platform
 
 ## Table of contents
 
@@ -11,7 +11,7 @@
 
 ## Purpose
 
-Proxmox is the current reference virtualization platform in this repository.
+Proxmox is the chosen virtualization platform in this repository.
 It provides the cluster, storage, networking, and API surface used by the first
 image build, provisioning, and configuration workflows.
 
@@ -47,7 +47,7 @@ Use the Proxmox platform layer for:
 - [API setup](setup-api.md)
 - [Host networking](network-prerequisites.md)
 - [Cluster, HA, and Terraform placement](cluster-ha.md)
-- [Talos Kubernetes bootstrap](../talos/bootstrap.md)
+- [Kubernetes clusters](../kubernetes/README.md)
 - [Hardening baseline](hardening.md)
 
 ## First deployment order
@@ -64,7 +64,7 @@ host is a valid pilot; cluster membership, HA, and SDN are explicit choices.
 | 5. Optional SDN | Configure [guest VNets](network-prerequisites.md#optional-sdn-for-guest-networks) on eligible nodes | VNet/bridge IDs and VLAN policy match the tier inputs |
 | 6. Protect access and data | Configure [API access](setup-api.md), [backups](backup-foundation.md), and the [hardening baseline](hardening.md) | Scoped credentials, recovery access, and restore checks work |
 | 7. Publish templates | Run the [Day 0-1 local workflow](template-lifecycle.md#local-workflow) | Disposable clones boot with the correct disks and networks |
-| 8. Deploy guests | Continue with [Talos bootstrap](../talos/bootstrap.md) or [Linux identity VMs](../../paths/shared-services/identity.md) | Chosen service/cluster checks pass; selected HA guests pass failover tests |
+| 8. Deploy guests | Continue with [Kubernetes](../kubernetes/README.md) or [Linux identity VMs](../../paths/shared-services/identity.md) | Chosen service/cluster checks pass; selected HA guests pass failover tests |
 
 The installer writes the selected disks; back up existing contents before
 installation. [1] [Cluster joining](cluster-ha.md#prepare-and-join-hosts) also needs

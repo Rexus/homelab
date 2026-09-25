@@ -96,7 +96,7 @@ not the only possible model.
 
 | Layer | File | Responsibility |
 | --- | --- | --- |
-| Terraform | `terraform/environments/immutable-template/terraform.tfvars` | deploys the temporary template-builder VM |
+| Terraform | `terraform/deployments/immutable-template/terraform.tfvars` | deploys the temporary template-builder VM |
 | Ansible inventory | `ansible/inventory/hosts.yml` | keeps the stable `immutable_template_builders` host group |
 | Ansible vars | `ansible/group_vars/immutable_template.yml` | controls bootc image, registry auth, CA trust, and cleanup |
 | Tier 0 Ansible role | `ansible/roles/immutable_template/` | installs bootc tooling and prepares the VM for template conversion |
@@ -146,7 +146,7 @@ Use this flow:
 
 1. Create or reuse normal cloud-init templates such as `rhel-10-tmpl`,
    `alma-10-tmpl`, or `rocky-10-tmpl`.
-2. Edit `terraform/environments/immutable-template/terraform.tfvars`.
+2. Edit `terraform/deployments/immutable-template/terraform.tfvars`.
 3. Edit `ansible/group_vars/immutable_template.yml`.
 4. Clone the template into a temporary conversion VM.
 5. Use Ansible to install the bootc tooling required by the selected distro.
@@ -182,7 +182,7 @@ immutable_template_prepare_for_template: true
 ```
 
 Rerun Ansible, then set the builder VM to `template = true` and
-`started = false` in `terraform/environments/immutable-template/terraform.tfvars`.
+`started = false` in `terraform/deployments/immutable-template/terraform.tfvars`.
 Run only Terraform for the final conversion:
 
 ```bash

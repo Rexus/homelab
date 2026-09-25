@@ -22,7 +22,7 @@ its source image or service, not ownership of the template lifecycle.
 | Each tier's Terraform inputs | Select an approved template ID; define guest hardware and workload tags |
 | Each tier's `terraform/modules/environment_guests/` | Resolve that tier's template selections, inventory, placement, and combined guest tags |
 | Each tier's `terraform/modules/vm/` | Create Linux clones; tolerate subsequent Proxmox-managed node moves |
-| Tier 0 `terraform/talos/` | Create Talos clones and configure the control cluster through its API |
+| Tier 0 `terraform/deployments/kubernetes/` | Create Talos clones and configure the control cluster through its API |
 
 The [shared catalog starter](../../../shared/templates/proxmox-catalog.tfvars)
 contains no approved images initially. It is project-owned from generation,
@@ -41,7 +41,7 @@ settings, host inventory, or Terraform state.
    Keep lifecycle tags such as `tier-0` and `template` out of consumer image tags.
 4. Set `default_linux_vm_template_id` to the approved Linux ID when ready for
    consumers to adopt it. Talos references are listed too, but cannot be used by
-   the Linux VM module; use [Tier 0 Talos Terraform](../talos/terraform.md) or the
+   the Linux VM module; use the [Talos Kubernetes implementation](../talos/terraform.md) or the
    [manual procedure](../talos/bootstrap.md).
 5. Review and version the shared change, then review plans in consuming tiers.
    Changing the selected source template may replace VMs; pin existing guests

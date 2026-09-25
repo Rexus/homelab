@@ -5,12 +5,13 @@ import re
 import yaml
 
 TIERS = ("tier-0", "tier-1", "tier-2")
+TERRAFORM_ONLY_DEPLOYMENTS = {"tier-0": {"kubernetes", "templates"}}
 SHARED_TREES = {
     "config": ("*.json",),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2"),
     "ansible/playbooks": ("*.yml",),
     "scripts": ("*.sh",),
-    "templates": (".gitkeep", "proxmox-catalog.tfvars"),
+    "templates": ("proxmox-catalog.tfvars",),
 }
 TIER_TREES = {
     "terraform": ("*.tf", "*.example", ".terraform.lock.hcl"),
@@ -43,16 +44,29 @@ def tier_setups(upstream, tier):
     for setup in setups:
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", setup):
             raise ValueError(f"Invalid setup name in {tier}: {setup!r}")
-        for relative in (f"terraform/environments/{setup}/main.tf",
-                         f"terraform/environments/{setup}/terraform.tfvars.example",
+        for relative in (f"terraform/deployments/{setup}/main.tf",
+                         f"terraform/deployments/{setup}/terraform.tfvars.example",
                          f"ansible/playbooks/{setup}.yml",
                          f"ansible/group_vars/{setup.replace('-', '_')}.yml.example"):
             if not (root / relative).is_file():
                 raise ValueError(f"Missing setup source: {tier}/{relative}")
-    roots = {path.parent.name for path in (root / "terraform/environments").glob("*/main.tf")}
-    if roots != set(setups):
+    roots = {path.parent.name for path in (root / "terraform/deployments").glob("*/main.tf")}
+    if roots != set(setups) | TERRAFORM_ONLY_DEPLOYMENTS.get(tier, set()):
         raise ValueError(f"Terraform roots disagree with {tier}/.deployment-setups: {sorted(roots)}")
     return setups
+
+
+def report_legacy_deployments(writer):
+    legacy = [writer.root / "terraform/environments", writer.root / "terraform/talos",
+              writer.root / "terraform/deployments/talos",
+              writer.root / "terraform/templates"]
+    for directory in legacy:
+        if any(path.is_file() and (path.suffix in (".tf", ".tfvars")
+                                  or path.name.endswith((".tf.json", ".tfvars.json")))
+               for path in directory.glob("*" if directory.name != "environments" else "*/*")):
+            print(f"Legacy Terraform deployment preserved: {directory}. "
+                  "Migrate local inputs and code before running deployment commands; see "
+                  "docs/reference/generated-repository-model.md#terraform-layout-upgrade.")
 
 
 def validate_layout(upstream):

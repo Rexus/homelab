@@ -56,8 +56,11 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("FreeIPA runs on two dedicated VMs", tier0)
         self.assertIn("Keycloak is a later service in this cluster", tier0)
         self.assertIn("platforms/talos/terraform.md", tier0)
-        self.assertLess(tier0.index(publisher), tier0.index("bash scripts/talos-cluster.sh init"))
-        self.assertLess(tier0.index("bash scripts/talos-cluster.sh init"), tier0.index(setup))
+        self.assertIn("platforms/kubernetes/README.md", tier0)
+        self.assertIn("Kubernetes control cluster", tier0)
+        self.assertIn("current [Talos implementation]", tier0)
+        self.assertLess(tier0.index(publisher), tier0.index("bash scripts/kubernetes-cluster.sh init"))
+        self.assertLess(tier0.index("bash scripts/kubernetes-cluster.sh init"), tier0.index(setup))
         self.assertLess(tier0.index(publisher), tier0.index(setup))
         self.assertIn("template-lifecycle.md#local-workflow", tier0)
         self.assertNotIn("${", tier0)
@@ -99,24 +102,29 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertTrue((architecture / f"paths/{tier}/README.md").is_file())
         for tier in ("tier-0", "tier-1"):
             path = (architecture / f"paths/{tier}/README.md").read_text()
-            self.assertIn("../../platforms/talos/bootstrap.md", path)
+            self.assertIn("../../platforms/kubernetes/README.md", path)
         tier0 = (architecture / "paths/tier-0/README.md").read_text()
         self.assertLess(tier0.index("cluster-ha.md"), tier0.index("template-lifecycle.md"))
         self.assertLess(tier0.index("optional-sdn-for-guest-networks"), tier0.index("template-lifecycle.md"))
-        self.assertLess(tier0.index("template-lifecycle.md"), tier0.index("talos/bootstrap.md"))
+        self.assertLess(tier0.index("template-lifecycle.md"), tier0.index("kubernetes/README.md"))
         self.assertIn("operator-run bootstrap", (architecture / "platforms/talos/bootstrap.md").read_text())
         for day in range(4):
             self.assertIn(f"**Day {day}:", tier0)
-        self.assertIn("kubernetes.md#cluster-foundation", tier0)
+        self.assertIn("kubernetes/README.md#cluster-foundation", tier0)
         bootstrap = (architecture / "paths/tier-0/bootstrap.md").read_text()
         for heading in ("Day 0 bootstrap dependencies", "Day 1 cluster foundation",
                         "Day 2 service sequence", "Day 3 operational handover"):
             self.assertIn(f"## {heading}", bootstrap)
         self.assertIn("Terraform / OpenTofu", bootstrap)
         self.assertIn("Current wrappers call `terraform`", bootstrap)
-        foundation = (architecture / "paths/application-platform/kubernetes.md").read_text()
+        foundation = (architecture / "platforms/kubernetes/README.md").read_text()
         for component in ("CNI", "Flux", "SOPS", "Storage", "cert-manager", "ingress", "CloudNativePG"):
             self.assertIn(component, foundation)
+        self.assertIn("Immutable AlmaLinux or another node OS", foundation)
+        self.assertIn("not a multi-OS installer", foundation)
+        application = (architecture / "paths/application-platform/kubernetes.md").read_text()
+        self.assertIn("platforms/kubernetes/README.md#cluster-foundation", application)
+        self.assertNotIn("| 1. Networking |", application)
 
     def test_source_and_generated_documentation_links_resolve(self):
         self.generate()

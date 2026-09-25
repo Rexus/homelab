@@ -193,7 +193,7 @@ fi
 create_setup_files() {
   local setup_name="$1"
   local stem
-  local terraform_env_dir
+  local terraform_deployment_dir
   local terraform_example_path
 
   stem="$(setup_group_vars_stem "$setup_name")"
@@ -201,10 +201,10 @@ create_setup_files() {
     "$repo_root/ansible/group_vars/$stem.yml.example" \
     "$repo_root/ansible/group_vars/$stem.yml"
 
-  terraform_env_dir="$repo_root/terraform/environments/$setup_name"
-  terraform_example_path="$terraform_env_dir/terraform.tfvars.example"
+  terraform_deployment_dir="$repo_root/terraform/deployments/$setup_name"
+  terraform_example_path="$terraform_deployment_dir/terraform.tfvars.example"
   if [[ -f "$terraform_example_path" ]]; then
-    create_from_example "$terraform_example_path" "$terraform_env_dir/terraform.tfvars"
+    create_from_example "$terraform_example_path" "$terraform_deployment_dir/terraform.tfvars"
   fi
 }
 
@@ -217,6 +217,10 @@ create_environment_setup_file() {
     "$repo_root/ansible/group_vars/$stem.yml.example" \
     "$repo_root/ansible/group_vars/$stem.$deployment_env.yml"
 }
+
+for setup_name in "${setups_to_create[@]}"; do
+  require_current_terraform_layout "$setup_name"
+done
 
 echo "==> Initializing repo-local files"
 

@@ -201,7 +201,7 @@ Examples:
 | dev or lab copy | `--env dev` or `--env lab1`, same guest shape unless overridden |
 | production | omit `--env`, use the base local files |
 | different subnet per environment | add `terraform/common.<env>.tfvars` and `all.<env>.yml` |
-| different VM sizes per environment | add `terraform/environments/<setup>/terraform.<env>.tfvars` |
+| different VM sizes per environment | add `terraform/deployments/<setup>/terraform.<env>.tfvars` |
 
 ## Path model
 

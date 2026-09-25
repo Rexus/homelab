@@ -43,7 +43,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
             inventory = yaml.safe_load((repo / "ansible/inventory/hosts.yml.example").read_text())
             inventories[tier] = {host for group in inventory["all"]["children"].values()
                                  for host in (group or {}).get("hosts", {})}
-            for source in (repo / "terraform/environments").rglob("*.tf"):
+            for source in (repo / "terraform/deployments").rglob("*.tf"):
                 for module in re.findall(r'source\s*=\s*"(\.\./[^\"]+)"', source.read_text()):
                     self.assertTrue((source.parent / module).is_dir(), (source, module))
             for values in (repo / "ansible/group_vars").glob("*.example"):
@@ -83,7 +83,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
         owned.write_text("resources: [owned-service]\n", encoding="utf-8")
         live = self.root / "verify-tier-0/ansible/inventory/hosts.yml"
         live.write_text("all: {hosts: {owned-host: {}}}\n", encoding="utf-8")
-        custom = self.root / "verify-tier-0/terraform/environments/custom/main.tf"
+        custom = self.root / "verify-tier-0/terraform/deployments/custom/main.tf"
         custom.parent.mkdir()
         custom.write_text("# User-developed infrastructure\n", encoding="utf-8")
         deleted = [self.root / "verify-tier-2/ansible/playbooks/lab.yml",
@@ -148,11 +148,14 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
                          'config': os.getenv('ANSIBLE_CONFIG'),
                          'roles': os.getenv('ANSIBLE_ROLES_PATH')}) + '\\n')
 """
-        for command in ("ansible-playbook", "terraform"):
+        for command in ("ansible-playbook", "terraform", "ssh-keygen"):
             path = commands / command
             path.write_text(fake)
             path.chmod(0o755)
-        env = dict(os.environ, PATH=f"{commands}:{os.environ['PATH']}", TEST_COMMAND_LOG=str(log))
+        home = self.root / "operator-home"
+        (home / ".ssh").mkdir(parents=True)
+        (home / ".ssh/known_hosts").write_text("# Disposable wrapper fixture\n")
+        env = dict(os.environ, PATH=f"{commands}:{os.environ['PATH']}", TEST_COMMAND_LOG=str(log), HOME=str(home))
         env.pop("DEPLOYMENT_REPO_DIR", None)
         for tier, setup in (("tier-0", "hsm"), ("tier-1", "edge"), ("tier-2", "lab")):
             repo = self.root / f"verify-{tier}"
@@ -165,7 +168,7 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
             extra.write_text("platform_hostname_prefix: check\n")
             result = subprocess.run(
                 ["bash", "../verify-shared/scripts/deploy.sh", setup, "--env", "test",
-                 "--ansible-vars", str(extra), "--auto-approve"],
+                 "--ansible-vars", str(extra), "--auto-approve", "--reset-known-hosts"],
                 cwd=repo, capture_output=True, text=True, env=env,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -202,6 +205,11 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
             self.assertEqual(play["config"], str(repo / "ansible/ansible.cfg"))
             self.assertEqual(play["roles"].split(":")[:2],
                              [str(repo / "ansible/roles"), str(self.root / "verify-shared/ansible/roles")])
+            reset = next(call for call in calls if call["tool"] == "ansible-playbook"
+                         and call["args"][-1].endswith("/reset-known-hosts.yml")
+                         and f"@{repo}/extra.yml" in call["args"])
+            self.assertEqual(reset["args"][-1], str(self.root / "verify-shared/ansible/playbooks/reset-known-hosts.yml"))
+            self.assertEqual([arg[1:] for arg in reset["args"] if arg.startswith("@")], variables)
         self.assertFalse(any("ingress.yml" in str(call["args"]) for call in calls))
         (self.root / "verify-shared/scripts/deploy.sh").unlink()
         result = subprocess.run(["bash", str(self.root / "verify-tier-0/scripts/deploy.sh"), "hsm"],

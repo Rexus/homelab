@@ -1,0 +1,21 @@
+---
+- name: Reset rebuilt guests' static SSH host keys on the deployment machine
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  vars:
+    # Inputs are supplied by the owning tier; later environment files replace the base IP map.
+    static_host_ips: "{{ (platform_host_ips | default({})).values() | reject('equalto', 'dhcp') | unique | sort }}"
+    known_hosts_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.ssh/known_hosts"
+  tasks:
+    - name: Remove selected static addresses and their explicit SSH port entries
+      ansible.builtin.known_hosts:
+        path: "{{ known_hosts_file }}"
+        name: "{{ item }}"
+        state: absent
+      loop: >-
+        {{
+          static_host_ips
+          + (static_host_ips | map('regex_replace', '^(.*)$', '[\1]:22') | list)
+        }}

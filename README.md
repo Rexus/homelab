@@ -3,7 +3,8 @@
 A security-first deployment kit for building and operating a private cloud at
 homelab or small-datacenter scale. Packer builds images, Terraform provisions
 infrastructure, and Ansible configures hosts using the same inventory inputs.
-Proxmox is the reference platform.
+Proxmox is the chosen virtualization platform. Kubernetes is the cluster goal;
+Talos is the current node-OS implementation, not an architecture requirement.
 
 The design follows one rule: **it should be easy to do right**. Tiers divide
 repository ownership by potential impact: Tier 0 holds the highest-impact
@@ -72,6 +73,7 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 | Find implementation files | [Automation layout](docs/reference/infrastructure-automation-layout.md) |
 | Maintain generated project docs | [Project documentation](docs/reference/project-documentation.md) |
 | Prepare Proxmox | [Platform guide](docs/platforms/proxmox/README.md) |
+| Build a Kubernetes cluster | [Cluster guide](docs/platforms/kubernetes/README.md) |
 | Create or update base templates | [Tier 0 template lifecycle](docs/platforms/proxmox/template-lifecycle.md) |
 | Handle secrets | [Secret strategy](docs/security/secret-strategy.md) |
 
@@ -90,6 +92,11 @@ The source split mirrors the generated repositories: `tier-0/` becomes
 `<prefix>-tier-0/`, and `shared/` becomes `<prefix>-shared/`. Each tier keeps the
 same Terraform/Ansible inventory contract. See the
 [source layout](docs/reference/infrastructure-automation-layout.md) before editing automation.
+
+Read Terraform as **inputs -> deployments -> modules -> resources**.
+In every tier, start at `terraform/deployments/<name>/main.tf` and follow its
+module calls into `terraform/modules/`. The [design map](docs/reference/infrastructure-automation-layout.md#terraform-structure)
+explains the files; Ansible inventory remains the common host-data source.
 
 Template recipes and publication stay in Tier 0. Approved IDs, titles, source
 nodes, and image tags live once in the [shared consumer catalog](shared/templates/proxmox-catalog.tfvars),

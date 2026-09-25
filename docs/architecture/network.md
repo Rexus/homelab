@@ -66,7 +66,8 @@ not another name for the whole layer.
 | `application` | Services | internal services and project workloads |
 | `access` | Services, or Control for privileged access | identity-broker and access-service interfaces |
 | `identity` | Control | identity authority, directory, authoritative DNS |
-| `cryptography` | Control | issuing CA, signing services, HSM gateways |
+| `control_cluster` | Control | control-cluster nodes and private cluster API access |
+| `cryptography` | Control | issuing CA, privileged secrets, signing services, HSM gateways |
 | `management` | Control | bastions, privileged runners, hypervisor/admin interfaces |
 | `observability`, `telemetry_gateway` | Services | telemetry intake, backends, dashboards |
 | `security_telemetry` | restricted service subnet | hardened audit/log intake; scope its receiver permissions |
@@ -116,6 +117,7 @@ are retained so adopting the simpler naming model does not imply renumbering.
 | `lab` | `application` in the lab repo | `420` | `10.42.20.0/24` | Services, or separate Lab policy |
 | `access` | `access` | `11` | `10.10.11.0/24` | Services for application-only access |
 | `identity` | `identity` | `12` | `10.10.12.0/24` | Control |
+| `control` | `control_cluster` | `13` | `10.10.13.0/24` | Control |
 | `management` | `management` | `10` | `10.10.10.0/24` | Control |
 | `crypto` | `cryptography` | `220` | `10.20.21.0/24` | Control |
 | `archive` | `storage` | `140` | `10.20.40.0/24` | Control, with dedicated receiver rules |
@@ -123,6 +125,10 @@ are retained so adopting the simpler naming model does not imply renumbering.
 Additional examples are observability `130`, telemetry intake `230`,
 security telemetry `231`, and host-only fabrics `20`, `21`, `22`.
 They are not mandatory networks.
+
+The Kubernetes deployment uses the `control` VNet directly through `nodes[*].bridge`,
+not the Linux `network_zones` map. Configure that VNet for this network, or use
+a VLAN-aware bridge with `nodes[*].vlan_id = 13`; do not tag twice.
 
 Offline `ceremony` may use VLAN `221` and `10.20.22.0/24` on its own
 isolated fabric. It has no zone or route on the connected gateway. A VLAN,

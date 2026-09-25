@@ -38,7 +38,7 @@ these shared implementations.
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | when you deploy, plan, or destroy a setup |
 | `tier-0/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
-| `tier-0/scripts/talos-cluster.sh` | initializes inputs, plans, bootstraps, and exports credentials | [Tier 0 Talos deployment](../platforms/talos/terraform.md) |
+| `tier-0/scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports credentials; currently Talos | [Kubernetes cluster](../platforms/kubernetes/README.md) |
 
 ## Cheat sheet
 
@@ -75,8 +75,8 @@ Template publication uses the separate
 not `deploy.sh`. It uses provider-native environment variables, a local image
 catalog, and its own state; it never configures a Talos guest through Ansible.
 
-The control cluster uses [Tier 0 Talos Terraform](../platforms/talos/terraform.md)
-and `bash scripts/talos-cluster.sh init` from Tier 0. It owns a separate state
+The Kubernetes control cluster currently uses the [Talos implementation](../platforms/talos/terraform.md)
+and `bash scripts/kubernetes-cluster.sh init` from Tier 0. It owns a separate state
 root, uses tier-local inventory, and does not use the Linux setup/environment wrapper.
 
 ## Initialize tier repositories
@@ -202,6 +202,12 @@ for that setup before Ansible runs:
 bash scripts/deploy.sh foundation --env test --reset-known-hosts
 ```
 
+This uses the selected environment's merged `platform_host_ips` through the
+shared `ansible/playbooks/reset-known-hosts.yml` playbook. It removes only
+static IP and `[IP]:22` entries from the operator's `~/.ssh/known_hosts`;
+DHCP names and other environments are untouched. Use it only after a known
+rebuild and verify replacement fingerprints through a trusted channel.
+
 Run production by omitting `--env`:
 
 ```bash
@@ -273,8 +279,8 @@ When `--env test` is used, the wrapper automatically looks for:
 | `ansible/group_vars/foundation.yml` | base foundation setup settings and IP map |
 | `ansible/group_vars/all.test.yml` | environment-wide domain and hostname decoration |
 | `ansible/group_vars/foundation.test.yml` | foundation setup settings and IP map for that environment |
-| `terraform/common.test.tfvars` | optional shared Terraform override |
-| `terraform/environments/foundation/terraform.test.tfvars` | optional setup Terraform override |
+| `terraform/common.test.tfvars` | optional tier-wide Terraform override |
+| `terraform/deployments/foundation/terraform.test.tfvars` | optional setup Terraform override |
 
 Terraform override files are optional. Use them only when that environment
 needs different platform values, VM sizes, storage, or placement.
@@ -290,8 +296,8 @@ and shared baseline roles without setting an extra path variable.
 ```bash
 cp env.local.example .env.local
 cp terraform/common.tfvars.example terraform/common.tfvars
-cp terraform/environments/foundation/terraform.tfvars.example \
-  terraform/environments/foundation/terraform.tfvars
+cp terraform/deployments/foundation/terraform.tfvars.example \
+  terraform/deployments/foundation/terraform.tfvars
 cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
 cp ansible/group_vars/all.yml.example ansible/group_vars/all.yml
 cp ansible/group_vars/foundation.yml.example ansible/group_vars/foundation.yml
@@ -328,7 +334,7 @@ first. In these commands, `homelab-shared` is the generated sibling; substitute
 your prefix, or use `shared` in the source layout.
 
 ```bash
-cd terraform/environments/foundation
+cd terraform/deployments/foundation
 export TF_DATA_DIR="../../../.terraform/data/foundation/test"
 
 terraform init -reconfigure \

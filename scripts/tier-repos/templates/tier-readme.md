@@ -51,10 +51,25 @@ repository's inputs and state; run these commands from this root.
 ## Repository structure
 
 - `ansible/`: tier playbooks, service roles, inventory, group vars, and configuration
-- `terraform/`: tier-owned resource modules, infrastructure setups, and environment inputs
+- `terraform/deployments/`: runnable root modules, one per independently managed deployment
+- `terraform/modules/`: tier-owned infrastructure building blocks used by deployments
+- `terraform/common.tfvars.example`: tier-wide Linux deployment defaults
 ${extra_paths}
 - `scripts/`: tier commands and entry points to shared deployment helpers
-- `.deployment-setups`: deployments maintained by this tier
+- `.deployment-setups`: Linux deployments supported by the shared helper
+
+## Read the code
+
+Start with a deployment's `main.tf`, then follow its module calls into
+`terraform/modules/`. For guest deployments, edit local values beside
+`terraform.tfvars.example`; host names, groups, and IPs come from this tier's
+`ansible/` inputs.
+See the [Terraform design map](${docs}/reference/infrastructure-automation-layout.md#terraform-structure)
+for file responsibilities and the inventory-to-resource flow.
+
+| Deployment | Terraform entry point | Host configuration or images |
+| --- | --- | --- |
+${deployments}
 
 ## Documentation
 

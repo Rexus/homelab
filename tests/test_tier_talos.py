@@ -21,24 +21,25 @@ class TierZeroTalos(TierRepositoryTestCase):
         self.assertEqual(set(yaml.safe_load((repo / "ansible/group_vars/talos.yml.example").read_text())
                              ["platform_host_ips"]), hosts)
         self.assertIn("all:!talos", (self.root / "verify-shared/ansible/playbooks/site.yml").read_text())
-        root = repo / "terraform/talos"
+        root = repo / "terraform/deployments/kubernetes"
         self.assertTrue((root / ".terraform.lock.hcl").is_file())
         self.assertFalse((root / "tests").exists())
         self.assertFalse((repo / "bootstrap").exists())
-        self.assertNotIn("talos", (repo / ".deployment-setups").read_text().splitlines())
+        self.assertNotIn("kubernetes", (repo / ".deployment-setups").read_text().splitlines())
+        self.assertFalse((repo / "terraform/deployments/talos").exists())
         main = (root / "main.tf").read_text()
-        self.assertIn("../../../verify-shared/config/guest-sizes.json", main)
+        self.assertIn("../../../../verify-shared/config/guest-sizes.json", main)
         self.assertNotIn("shared/terraform", main)
         self.assertIn('prevent_destroy = true', (root / "machines.tf").read_text())
-        self.assertTrue((repo / "scripts/talos-cluster.sh").is_file())
+        self.assertTrue((repo / "scripts/kubernetes-cluster.sh").is_file())
         for tier in ("tier-1", "tier-2", "shared"):
-            self.assertFalse((self.root / f"verify-{tier}/terraform/talos").exists())
+            self.assertFalse((self.root / f"verify-{tier}/terraform/deployments/kubernetes").exists())
 
     @unittest.skipIf(os.name == "nt", "Bash wrapper checks run under Linux/WSL")
     def test_wrapper_preserves_inputs_and_requires_reviewed_plan(self):
         self.generate()
         repo = self.root / "verify-tier-0"
-        script = ["bash", "scripts/talos-cluster.sh"]
+        script = ["bash", "scripts/kubernetes-cluster.sh"]
         commands = self.root / "commands"
         commands.mkdir()
         fake = commands / "terraform"
@@ -71,6 +72,10 @@ if "output" in sys.argv:
         inventory.write_text("# Existing project inventory\n")
         self.assertEqual(call("init").returncode, 0)
         self.assertEqual(inventory.read_text(), "# Existing project inventory\n")
+        alias = subprocess.run(["bash", "scripts/talos-cluster.sh", "init"], cwd=repo,
+                               env=env, capture_output=True, text=True)
+        self.assertEqual(alias.returncode, 0, alias.stdout + alias.stderr)
+        self.assertEqual(inventory.read_text(), "# Existing project inventory\n")
         self.assertEqual(call("plan").returncode, 0)
         plan = repo / ".terraform/plans/talos.tfplan"
         self.assertTrue(plan.is_file())
@@ -95,6 +100,7 @@ if "output" in sys.argv:
         calls = [json.loads(line) for line in log.read_text().splitlines()]
         for record in calls:
             self.assertEqual(record["data"], str(repo / ".terraform/data/talos"))
+            self.assertEqual(record["args"][0], f"-chdir={repo}/terraform/deployments/kubernetes")
         planning = next(record["args"] for record in calls if "plan" in record["args"])
         catalog = next(arg.removeprefix("-var-file=") for arg in planning if arg.startswith("-var-file="))
         self.assertEqual(os.path.realpath(catalog),

@@ -10,11 +10,11 @@ locals {
   # Shared contains sizing data only; resources and state belong to this tier.
   size_profiles = jsondecode(file("${path.module}/../../../../shared/config/guest-sizes.json")).lxc
 
-  selected_size = local.size_profiles[var.size]
-  selected_storage = var.storage_class_datastores[var.storage_class]
-  resolved_cores = coalesce(var.cores, local.selected_size.cores)
-  resolved_memory = coalesce(var.memory, local.selected_size.memory)
-  resolved_swap = coalesce(var.swap, local.selected_size.swap)
+  selected_size         = local.size_profiles[var.size]
+  selected_storage      = var.storage_class_datastores[var.storage_class]
+  resolved_cores        = coalesce(var.cores, local.selected_size.cores)
+  resolved_memory       = coalesce(var.memory, local.selected_size.memory)
+  resolved_swap         = coalesce(var.swap, local.selected_size.swap)
   resolved_datastore_id = coalesce(var.datastore_id, local.selected_storage.vm_disk)
 }
 
@@ -46,8 +46,9 @@ resource "proxmox_virtual_environment_container" "this" {
   }
 
   network_interface {
-    name   = "eth0"
-    bridge = var.bridge
+    name    = "eth0"
+    bridge  = var.bridge
+    vlan_id = var.vlan_id
   }
 
   initialization {

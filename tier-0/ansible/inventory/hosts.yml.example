@@ -1,8 +1,13 @@
 # Tier-owned logical hosts. IPs live in setup group vars.
 all:
   vars:
-    ansible_host: "{{\n  platform_host_ips.get(inventory_hostname, inventory_hostname)\n  if platform_host_ips\
-      \ is defined\n  else inventory_hostname\n}}"
+    # DHCP guests need a resolvable environment-specific DNS name before Ansible runs.
+    ansible_host: >-
+      {{
+        platform_fqdn | default(inventory_hostname)
+        if (platform_host_ips | default({})).get(inventory_hostname) == 'dhcp'
+        else (platform_host_ips | default({})).get(inventory_hostname, inventory_hostname)
+      }}
   children:
     hypervisors:
       hosts: {}
@@ -11,7 +16,7 @@ all:
         identity: null
         issuing_ca: null
         root_ca: null
-    # Dedicated FreeIPA VMs, outside Talos; Keycloak belongs to clusters/tier0/.
+    # Dedicated FreeIPA VMs, outside Kubernetes; Keycloak belongs to clusters/tier0/.
     identity:
       children:
         identity_primary: null
@@ -44,7 +49,8 @@ all:
     template_refresh_builders:
       hosts:
         alma-10-tmpl-stage: {}
-    # Talos inventory is consumed by Tier 0 Terraform, never by the Linux guest baseline.
+    # Current Kubernetes implementation: Talos; preserve these OS-specific groups on upgrades.
+    # Tier 0 Terraform consumes them, never the Linux guest baseline.
     talos:
       children:
         talos_control_plane: null

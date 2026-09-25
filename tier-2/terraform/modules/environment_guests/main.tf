@@ -90,12 +90,12 @@ locals {
         local.template_metadata[tostring(local.resolved_vm_template_ids[key])].node_name,
         null,
       )
-      size           = coalesce(try(vm.size, null), "small")
-      cores          = try(vm.cores, null)
-      memory         = try(vm.memory, null)
-      storage_class  = coalesce(try(vm.storage_class, null), "local")
-      disk_size_gb   = vm.disk_size_gb
-      extra_disks    = coalesce(try(vm.extra_disks, null), [])
+      size          = coalesce(try(vm.size, null), "small")
+      cores         = try(vm.cores, null)
+      memory        = try(vm.memory, null)
+      storage_class = coalesce(try(vm.storage_class, null), "local")
+      disk_size_gb  = vm.disk_size_gb
+      extra_disks   = coalesce(try(vm.extra_disks, null), [])
       network_zone_key = coalesce(
         try(vm.network_zone_key, null),
         var.default_vm_network_zone_key,
@@ -152,6 +152,12 @@ locals {
       bridge = var.network_zones[
         coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
       ].bridge
+      vlan_id = try(
+        var.network_zones[
+          coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
+        ].vlan_id,
+        null,
+      )
       ipv4_address = local.platform_host_ips[key] == "dhcp" ? "dhcp" : format(
         "%s/%s",
         local.platform_host_ips[key],

@@ -24,7 +24,7 @@ template-plan:
     expire_in: 1 day
     paths:
       - .terraform/plans/proxmox-templates.tfplan
-      - terraform/templates/.terraform.lock.hcl
+      - terraform/deployments/templates/.terraform.lock.hcl
 
 template-publish:
   stage: publish

@@ -21,13 +21,25 @@ def tier_readme(writer, tier, prefix, setups):
         "tier-2": "application, project, and lab workloads",
     }
     extra_paths = {
-        "tier-0": ("- `templates/`, `terraform/templates/`, and `ci/`: image catalog, publication, and jobs\n"
-                   "- `terraform/talos/`: control-cluster VMs, Talos configuration, and bootstrap\n"
+        "tier-0": ("- `templates/`, `terraform/deployments/templates/`, and `ci/`: image catalog, publication, and jobs\n"
+                   "- `terraform/deployments/kubernetes/`: control-cluster VMs and bootstrap; currently Talos\n"
                    "- `packer/` and `clusters/tier0/`: custom image builds and cluster-service starters"),
         "tier-1": "- `clusters/tier1/`: platform cluster definitions",
         "tier-2": "- `environments/` and `workloads/`: project and workload definitions",
     }
     docs = f"../{prefix}-architecture/{AUTO_DOCS}"
+    deployments = [
+        f"| `{setup}` | [main.tf](terraform/deployments/{setup}/main.tf) "
+        f"| [playbook](ansible/playbooks/{setup}.yml) |"
+        for setup in setups
+    ]
+    if tier == "tier-0":
+        deployments[:0] = [
+            "| `templates` | [main.tf](terraform/deployments/templates/main.tf) "
+            "| [image recipes](templates/proxmox.yml.example) |",
+            "| `kubernetes` | [main.tf](terraform/deployments/kubernetes/main.tf) "
+            "| [machine configuration](terraform/deployments/kubernetes/machines.tf) |",
+        ]
     prerequisites = (
         "Tier 0 supplies approved VM templates and networks. The commands below are\n"
         "operator-run workflows, not a self-service interface for workload users.\n"
@@ -49,12 +61,14 @@ def tier_readme(writer, tier, prefix, setups):
             "to plan, publish, and test templates before deploying guests. No hosted CI\n"
             "or control cluster is required. If approved templates already exist, verify\n"
             "their IDs and recovery copies before continuing.\n\n"
-            "**Day 1: control cluster.** Initialize its Tier 0 inputs:\n\n"
+            "**Day 1: Kubernetes control cluster.** Initialize its Tier 0 inputs:\n\n"
             "```bash\n"
-            "bash scripts/talos-cluster.sh init\n"
+            "bash scripts/kubernetes-cluster.sh init\n"
             "```\n\n"
-            f"Follow [Talos Terraform]({docs}/platforms/talos/terraform.md) to review\n"
-            "inventory, hardware, and cluster settings, then plan and apply.\n"
+            f"Follow the [Kubernetes guide]({docs}/platforms/kubernetes/README.md) and its\n"
+            f"current [Talos implementation]({docs}/platforms/talos/terraform.md) to review\n"
+            "inventory, hardware, and cluster settings, then plan and apply. The node OS\n"
+            "is an implementation choice; other OS installers are not included.\n"
             "Keycloak is a later service in this cluster.\n"
             "FreeIPA runs on two dedicated VMs through\n"
             "the Linux `foundation` setup below, outside Kubernetes. The Linux\n"
@@ -63,7 +77,8 @@ def tier_readme(writer, tier, prefix, setups):
     owned_template(writer, "tier-readme.md", "README.md", prefix=prefix,
                    tier_title=tier.replace("-", " ").title(), purpose=descriptions[tier],
                    example=setups[0], extra_paths=extra_paths[tier],
-                   prerequisites=prerequisites, docs=docs, tier=tier)
+                   prerequisites=prerequisites, docs=docs, tier=tier,
+                   deployments="\n".join(deployments))
 
 
 def shared_readme(writer, prefix):

@@ -18,12 +18,13 @@ class ClusterPlacement(TierRepositoryTestCase):
         for tier in ("tier-0", "tier-1", "tier-2"):
             repo = self.root / f"verify-{tier}"
             for setup in (repo / ".deployment-setups").read_text().splitlines():
-                root = repo / "terraform/environments" / setup
+                root = repo / "terraform/deployments" / setup
                 main = (root / "main.tf").read_text()
                 variables = (root / "variables.tf").read_text()
                 self.assertRegex(main, r"template_node_name\s*=\s*each.value.template_node_name")
                 self.assertIn('variable "proxmox_template_catalog"', variables)
                 self.assertRegex(main, r"proxmox_template_catalog\s*=\s*var.proxmox_template_catalog")
+                self.assertRegex(main.split('module "lxcs"')[1], r"vlan_id\s*=\s*each.value.vlan_id")
                 count += 1
         self.assertEqual(count, 11)
         for tier in ("tier-0", "tier-1", "tier-2"):

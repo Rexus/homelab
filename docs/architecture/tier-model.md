@@ -111,6 +111,10 @@ same ownership.
 Tier 0 can include a dedicated control cluster, but its own recovery cannot
 depend on that cluster being healthy.
 
+The cluster goal is Kubernetes. Its node OS and bootstrap implementation do
+not define tier ownership; use the [cluster guide](../platforms/kubernetes/README.md)
+for concrete deployment choices.
+
 ```mermaid
 flowchart LR
   Local["Local recovery inputs"] --> Bootstrap["Infrastructure and cluster bootstrap"]
@@ -177,7 +181,8 @@ These are the shipped setup owners, not automatic classification by product.
 | `development`, `podman-runner`, `observability` | Tier 1 | general platform scope; not privileged Tier 0 execution |
 | `lab` and project workloads | Tier 2 | workload scope |
 | template code and control-service playbooks/roles | Tier 0 | implementation stays with its owner |
-| cross-tier guest modules and baseline helpers | Shared | common implementation, not deployment authority |
+| guest resource modules and inventory resolution | Each owning tier | resources and lifecycle remain tier-local |
+| baseline helpers, size profiles, and approved image references | Shared | reusable execution and stateless data only |
 
 A different privilege scope may justify another owner. Document that decision
 and migrate state deliberately; moving a folder does not change privileges

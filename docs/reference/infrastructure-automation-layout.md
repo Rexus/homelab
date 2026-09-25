@@ -4,12 +4,14 @@
 
 - [Purpose](#purpose)
 - [Source ownership](#source-ownership)
+- [Terraform structure](#terraform-structure)
 - [Ownership rule](#ownership-rule)
 - [Environment data split](#environment-data-split)
 - [Terraform setups](#terraform-setups)
 - [Shared automation](#shared-automation)
 - [Tier-owned automation](#tier-owned-automation)
 - [Maintaining the split](#maintaining-the-split)
+- [References](#references)
 
 ## Purpose
 
@@ -43,8 +45,8 @@ Inside **each tier**, the paths are the same before and after generation:
 
 | Tier-relative path | Responsibility |
 | --- | --- |
-| `.deployment-setups` | registered setup names |
-| `terraform/environments/<setup>/` | provisioning roots and hardware examples |
+| `.deployment-setups` | Linux setup names supported by the shared helper |
+| `terraform/deployments/<setup>/` | provisioning roots and hardware examples |
 | `terraform/modules/` | tier-owned inventory resolution and VM/LXC resources |
 | `terraform/common.tfvars.example` | defaults for that tier's setups |
 | `ansible/inventory/hosts.yml.example` | logical hosts and service groups |
@@ -59,6 +61,48 @@ the kit root. Direct shared calls use `../shared/` in source and
 `../<prefix>-shared/` after generation. No aggregate inventory or deployment
 context exists at the kit root.
 
+## Terraform structure
+
+Read the design as **inputs -> deployments -> modules -> resources**.
+Every tier uses `terraform/deployments/<name>/` for runnable **root modules**
+and `terraform/modules/<building-block>/` for **child modules**. `foundation`,
+`kubernetes`, and `templates` are deployment names, not different layout patterns.
+
+A root module describes a deployment and connects its building blocks, roughly
+like an Ansible playbook connects roles. A child module implements a focused
+piece of infrastructure. This is module composition, not a new wrapper language. [1]
+The directory name `deployments/` is this repository's convention, not a Terraform keyword.
+
+| Read or edit | Location | Responsibility |
+| --- | --- | --- |
+| Host identity | `ansible/inventory/`, `ansible/group_vars/` | names, groups, and IPs consumed by both tools |
+| Guest deployment values | `deployments/<name>/terraform.tfvars.example` | hardware and deployment choices; initialize a local `.tfvars` file |
+| Deployment design | `deployments/<name>/main.tf` | connect inputs and modules; follow sibling resource files where needed |
+| Building blocks | `modules/<name>/main.tf` | resource implementation and internal relationships |
+| Input contract | `variables.tf` in a root or child module | accepted values, types, defaults, and validation |
+| External connections | root `providers.tf` | provider configuration and authentication inputs |
+| Tooling and state backend | root `versions.tf` | Terraform/provider requirements and backend declaration |
+| Exported results | `outputs.tf`, where needed | values exposed to callers or operators |
+
+Paths in this table after the first row are relative to the tier's `terraform/`
+directory. Terraform evaluates the `.tf` files in a directory together; file
+names aid navigation, not execution order. `main.tf`, `variables.tf`, and
+`outputs.tf` follow the standard module convention. [2][3]
+Template publication takes image recipes from `templates/proxmox.yml` at the
+tier root instead of guest `.tfvars`; it does not consume guest inventory.
+
+Start with [foundation's composition](../../tier-0/terraform/deployments/foundation/main.tf):
+`module.environment` resolves inventory plus hardware inputs, then feeds
+`module.vms` and `module.lxcs`. Shared contributes stateless sizes and approved
+image references, not Terraform modules or inventory. Talos keeps its cluster-specific
+resources in its root's `machines.tf`; a one-off resource does not need a child
+module just to fit the layout.
+
+Each deployment has an independent lifecycle and state. An **environment** such
+as `test` or `prod` is a choice of values and state within a Linux deployment,
+not another source-code hierarchy. Keep the existing commands and separate
+template, cluster, and service states; do not apply the entire tier as one root.
+
 ## Ownership rule
 
 Keep shared host identity in Ansible and hardware placement in Terraform.
@@ -72,7 +116,7 @@ the shared-code repository.
 | Ansible inventory | stable logical host keys and service groups |
 | Ansible `all` group vars | hostname prefix or suffix, domain, and baseline inputs |
 | Ansible setup group vars | guest IP map, service settings, and host configuration inputs |
-| Terraform environment tfvars | Proxmox VMID, tags, size, storage class, disk size, network zone, and optional Proxmox node override |
+| Terraform deployment tfvars | Proxmox VMID, tags, size, storage class, disk size, network zone, and optional Proxmox node override |
 | Shared template catalog | approved image IDs, titles, source nodes, family, image tags, and the default Linux selection |
 | Tier Terraform common tfvars | default platform node, storage mappings, guest network attachments, optional template selection, and cloud-init SSH keys |
 
@@ -99,6 +143,11 @@ Terraform reads the same setup group vars for the guest IP map and generated
 Proxmox name, so IPs and names are not maintained in both tools.
 Every Terraform guest key should have a matching `platform_host_ips` entry, or
 the value `dhcp` when that guest is intentionally dynamic.
+For DHCP guests, Ansible connects to `platform_fqdn`; provide a working DNS
+record from the deployment host before configuration. The kit does not discover
+leases or create DNS records. Static entries continue to use their mapped IP.
+Existing collections keep their live inventory on refresh; compare its
+`ansible_host` expression with the updated example to adopt this DHCP behavior.
 Static guest addressing uses the CIDR prefix and gateway in Terraform
 `network_zones`. Keep each zone focused on deployable guest networks:
 `bridge`, optional `vlan_id`, `cidr_ipv4`, and optional `gateway_ipv4`.
@@ -141,11 +190,11 @@ environment. Split only the data that changes:
 
 | Layer | Test example | Production default |
 | --- | --- | --- |
-| Terraform setup vars | `terraform/environments/foundation/terraform.tfvars` | `terraform/environments/foundation/terraform.tfvars` |
-| Optional Terraform setup overlay | `terraform/environments/foundation/terraform.test.tfvars` | not used by default |
+| Terraform setup vars | `terraform/deployments/foundation/terraform.tfvars` | `terraform/deployments/foundation/terraform.tfvars` |
+| Optional Terraform setup overlay | `terraform/deployments/foundation/terraform.test.tfvars` | not used by default |
 | Shared Terraform vars | `terraform/common.tfvars` or `--common-var-file` override | `terraform/common.tfvars` or `--common-var-file` override |
 | Shared consumer catalog | sibling shared `templates/proxmox-catalog.tfvars` | same reviewed catalog; tier selection overrides are optional |
-| Optional shared Terraform overlay | `terraform/common.test.tfvars` | not used by default |
+| Optional tier-wide Terraform overlay | `terraform/common.test.tfvars` | not used by default |
 | Ansible inventory | `ansible/inventory/hosts.yml` | `ansible/inventory/hosts.yml` |
 | Ansible environment vars | `ansible/group_vars/all.test.yml` from `all.env.yml.example` | `ansible/group_vars/all.yml` |
 | Ansible setup vars | `ansible/group_vars/foundation.yml` plus `foundation.test.yml` | `ansible/group_vars/foundation.yml` |
@@ -158,7 +207,7 @@ state file between environments. Omit `--env` for production.
 
 ## Terraform setups
 
-Every setup lives in `<owner>/terraform/environments/<setup>/` with its IP and
+Every Linux setup lives in `<owner>/terraform/deployments/<setup>/` with its IP and
 service example at `<owner>/ansible/group_vars/<stem>.yml.example`. The stem
 replaces setup-name dashes with underscores.
 
@@ -176,13 +225,15 @@ replaces setup-name dashes with underscores.
 | `tier-1` | `podman-runner` | [Podman runner](../paths/application-platform/podman-runner.md) |
 | `tier-2` | `lab` | [Local setup](../getting-started/local-setup.md) |
 
-Base-image publication is a Day 0-1 Tier 0 root at `tier-0/terraform/templates/`.
+Base-image publication is a Day 0-1 Tier 0 root at `tier-0/terraform/deployments/templates/`.
 Its catalog, approved offline artifacts, and optional CI starter live under
 `tier-0/templates/` and `tier-0/ci/`. See [Template lifecycle](../platforms/proxmox/template-lifecycle.md).
 
-The control cluster has its own Tier 0 root at `terraform/talos/`, local Talos
-inventory groups/IPs, and `scripts/talos-cluster.sh`. It is not a Linux setup:
-see [Talos Terraform](../platforms/talos/terraform.md) for its inputs and state.
+The Kubernetes control cluster has its own Tier 0 root at `terraform/deployments/kubernetes/`
+and `scripts/kubernetes-cluster.sh`. It currently uses Talos inventory groups/IPs
+and native configuration rather than the Linux setup helper. Start with the
+[cluster guide](../platforms/kubernetes/README.md); use the
+[Talos implementation](../platforms/talos/terraform.md) for exact inputs and state.
 
 Tier-local VM roots remain workload definitions with separate state. Tier 0 owns
 hardware-facing control and the future delegated execution service; no state
@@ -195,7 +246,7 @@ API. See [Infrastructure control](../architecture/infrastructure-control.md).
 | --- | --- |
 | `shared/templates/proxmox-catalog.tfvars` | one project-owned consumer catalog; approved through Tier 0 review |
 | `shared/config/guest-sizes.json` | stateless VM/LXC size profiles read by tier-local Terraform |
-| `shared/ansible/playbooks/` | common control-node checks and baseline site play |
+| `shared/ansible/playbooks/` | control-node checks, baseline site play, and local SSH-key cleanup |
 | `shared/ansible/roles/` | baseline and shared task fragments |
 | `shared/ansible/requirements.yml` | common Ansible collections |
 | `shared/scripts/` | deployment, local-input initialization, tier-context checks |
@@ -208,7 +259,7 @@ inputs. It provides reusable execution code, roles, and stateless data only.
 | Owner | Implementation |
 | --- | --- |
 | Each tier | `terraform/modules/environment_guests/`, `vm/`, and `lxc/`; inventory resolution and resource lifecycle |
-| Tier 0 | `terraform/talos/`, `scripts/talos-cluster.sh`, Talos inventory groups and IPs |
+| Tier 0 | `terraform/deployments/kubernetes/`, `scripts/kubernetes-cluster.sh`, Talos inventory groups and IPs |
 | Tier 0 | `terraform/modules/proxmox_templates/`, `scripts/proxmox-templates.sh`, `packer/`, template catalog and CI starter |
 | Tier 0 | identity, secrets, HSM, Proxmox host, and Linux template-builder playbooks and roles |
 | Tier 1 | edge, cache, development, observability, runner, and ingress playbooks and service roles |
@@ -233,7 +284,8 @@ base-image publication path.
 
 - Change a setup's Terraform root, playbook, roles, and examples in its owning tier.
 - Register added setups in that tier's `.deployment-setups`; the generator checks
-  for missing inputs, unregistered roots, and overlapping tier ownership.
+  for missing inputs, unregistered roots, and overlapping tier ownership. Terraform-only
+  roots have dedicated commands; Tier 0's `kubernetes` and `templates` are explicitly validated separately.
 - Keep single-tier behavior with its owner. Extract to `shared/` only when
   multiple tiers consume the same stateless behavior; keep Terraform and all inventory tier-local.
 - Keep tier-wide default examples separate: each tier owns its network and
@@ -245,3 +297,9 @@ base-image publication path.
 
 From the kit root, run the [offline checks](generated-repository-model.md#implementation-scope).
 Use [repository scripts](repository-scripts.md) for operational command options.
+
+## References
+
+1. [Terraform module composition](https://developer.hashicorp.com/terraform/language/modules/develop/composition).
+2. [Terraform files and configuration structure](https://developer.hashicorp.com/terraform/language/files).
+3. [Terraform standard module structure](https://developer.hashicorp.com/terraform/language/modules/develop/structure).

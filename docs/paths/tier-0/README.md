@@ -21,14 +21,14 @@ Days are readiness phases, not calendar days or repository tiers.
 | Phase | Deploy or prepare | Ready to continue when |
 | --- | --- | --- |
 | **Day 0: foundation** | [Proxmox](../../platforms/proxmox/README.md#first-deployment-order), optional [HA](../../platforms/proxmox/cluster-ha.md) and [SDN](../../platforms/proxmox/network-prerequisites.md#optional-sdn-for-guest-networks), [VM templates](../../platforms/proxmox/template-lifecycle.md#local-workflow); network/storage, source control (Git), OCI registry access, CI/bootstrap runner, Terraform state | Tested templates and [bootstrap dependencies](bootstrap.md#day-0-bootstrap-dependencies) work without the new cluster |
-| **Day 1: cluster foundation** | [Talos Terraform](../../platforms/talos/terraform.md) or [manual bootstrap](../../platforms/talos/bootstrap.md); CNI, Flux, storage, cert-manager, ingress, CloudNativePG (CNPG), SOPS/bootstrap secrets; follow the [shared cluster foundation](../application-platform/kubernetes.md#cluster-foundation) | Cluster, reconciliation, storage, TLS, database, and secret-decryption checks pass |
-| **Day 2: control services** | FreeIPA on two dedicated VMs; Keycloak in Talos; Vault, NetBox, Headlamp, and monitoring; follow the [service sequence](bootstrap.md#day-2-service-sequence) | Services work, identity integration is tested, backups run, and local recovery remains available |
+| **Day 1: cluster foundation** | Deploy the [Kubernetes control cluster](../../platforms/kubernetes/README.md); add networking, GitOps, storage, certificates, ingress, databases, and bootstrap secrets using the [shared foundation checklist](../../platforms/kubernetes/README.md#cluster-foundation) | Cluster, reconciliation, storage, TLS, database, and secret-decryption checks pass |
+| **Day 2: control services** | FreeIPA on two dedicated VMs; Keycloak in Kubernetes; Vault, NetBox, Headlamp, and monitoring; follow the [service sequence](bootstrap.md#day-2-service-sequence) | Services work, identity integration is tested, backups run, and local recovery remains available |
 | **Day 3: operational handover** | Harden RBAC, switch supported normal logins to OIDC, disable or restrict bootstrap credentials, test backup/restore; use the [handover checks](bootstrap.md#day-3-operational-handover) | Scoped access and recovery are proven without relying on the services being restored |
 
 Day 0/1 follows the [platform flow](bootstrap.md#bootstrap-phases); Day 2 follows
 **FreeIPA -> Keycloak -> OIDC -> clients**. The FreeIPA pair is deployed through
 the Linux `foundation` setup and does not require Kubernetes. Keycloak belongs
-in the Tier 0 Talos cluster. Choose one lifecycle owner per service; do not
+in the Tier 0 Kubernetes cluster. Choose one lifecycle owner per service; do not
 duplicate FreeIPA in Kubernetes. General platform instances remain in Tier 1.
 
 Restrict access, protect secrets, and retain backups from the start. Day 3 is
@@ -53,13 +53,15 @@ before any tier selects them. Do not copy the catalog into each tier.
 This works before any managed VM, control cluster, or hosted CI exists.
 Existing approved templates are valid when their IDs and recovery copies are verified.
 
-Next initialize the control cluster's Tier 0 inputs:
+Next initialize the Kubernetes control cluster's Tier 0 inputs. The current
+implementation uses Talos; [other node OS choices](../../platforms/kubernetes/README.md#implementation-choice)
+do not change the goal or ownership.
 
 ```bash
-bash scripts/talos-cluster.sh init
+bash scripts/kubernetes-cluster.sh init
 ```
 
-Follow [Talos Terraform](../../platforms/talos/terraform.md) to configure, plan,
+Follow the [current Talos implementation](../../platforms/talos/terraform.md) to configure, plan,
 and deploy the cluster, and the [Linux identity VM guide](../shared-services/identity.md) for
 the dedicated FreeIPA pair. Run shared commands
 from the tier repository root so they use its inventory and state. Replace
@@ -70,7 +72,8 @@ from the tier repository root so they use its inventory and state. Replace
 | Need | Guide |
 | --- | --- |
 | Phase dependencies, recovery, and handover | [Tier 0 bootstrap and recovery](bootstrap.md) |
-| AlmaLinux, Rocky Linux, and Talos templates | [Template lifecycle and CD](../../platforms/proxmox/template-lifecycle.md) |
+| Approved node and guest images | [Template lifecycle and CD](../../platforms/proxmox/template-lifecycle.md) |
+| Kubernetes installation and shared foundation | [Cluster guide](../../platforms/kubernetes/README.md) |
 | Tier boundaries | [Tier model](../../architecture/tier-model.md) |
 | Hardware ownership and future workload requests | [Infrastructure control](../../architecture/infrastructure-control.md) |
 | Network design | [Network architecture](../../architecture/network.md) |
@@ -80,13 +83,13 @@ from the tier repository root so they use its inventory and state. Replace
 ## Repository structure
 
 - `ansible/`: tier service playbooks and roles, inventory, group vars, and configuration
-- `terraform/environments/`: Linux infrastructure setups and environment inputs
-- `terraform/talos/`: control-cluster VMs, Talos configuration, and bootstrap
-- `templates/`, `terraform/templates/`, and `ci/`: image catalog, template publication, and CD jobs
+- `terraform/deployments/`: infrastructure deployments and their inputs
+- `terraform/deployments/kubernetes/`: control-cluster VMs and bootstrap; currently Talos
+- `templates/`, `terraform/deployments/templates/`, and `ci/`: image catalog, template publication, and CD jobs
 - `terraform/modules/` and `packer/`: tier-owned guest/template modules and custom-build scaffolds
 - `clusters/tier0/`: cluster-service skeletons
-- `scripts/`: template and Talos commands, plus entry points to shared Linux helpers
+- `scripts/`: template and Kubernetes commands, plus entry points to shared Linux helpers
 
-The Linux setup scripts do not bootstrap Talos or deploy the cluster services.
+The Linux setup scripts do not bootstrap Kubernetes or deploy the cluster services.
 The [bootstrap and recovery reference](bootstrap.md) distinguishes working
 automation from skeletons and records the recovery boundary.

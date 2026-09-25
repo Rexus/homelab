@@ -62,7 +62,7 @@ Edit these local files before you run the Vault foundation deployment:
 | Path | What you configure |
 | --- | --- |
 | [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | default platform node, shared storage mappings, deployable guest networks, template IDs, and cloud-init SSH keys |
-| [`terraform/environments/vault/terraform.tfvars.example`](../../../tier-0/terraform/environments/vault/terraform.tfvars.example) | Vault VM definitions in `vm_instances` |
+| [`terraform/deployments/vault/terraform.tfvars.example`](../../../tier-0/terraform/deployments/vault/terraform.tfvars.example) | Vault VM definitions in `vm_instances` |
 | [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | stable Vault host key and inventory group |
 | [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain when using `--env` |
 | [`ansible/group_vars/vault.yml.example`](../../../tier-0/ansible/group_vars/vault.yml.example) | Vault host IPs, `vault_api_addr`, `vault_cluster_addr`, `vault_node_id`, TLS source paths, and listener settings |
@@ -74,17 +74,22 @@ The Vault environment can deploy one or more Vault nodes through
 
 Use this default matrix:
 
-| Component | Terraform default | Inventory action | Zone | Purpose |
+| Component | Terraform default | Inventory action | Network / zone | Purpose |
 | --- | --- | --- | --- | --- |
-| Vault host | `vault-1` active | `vault-1` present by default | `application` | first dedicated Vault node |
-| additional Vault hosts | not present, default `0` | add matching inventory and IP entries when added | `application` | optional multi-node Raft expansion |
+| Vault host | `vault-1` active | `vault-1` present by default | `cryptography` / Control | first dedicated Vault node |
+| additional Vault hosts | not present, default `0` | add matching inventory and IP entries when added | `cryptography` / Control | optional multi-node Raft expansion |
 | LXC helpers | `lxc_instances = {}` | not used | n/a | no helper containers by default |
 
 The Terraform example for this path lives in
-`terraform/environments/vault/terraform.tfvars.example`. The shared Ansible
+`terraform/deployments/vault/terraform.tfvars.example`. The Tier 0 Ansible
 inventory includes `vault-1` because it matches the active Terraform default.
 The foundation run does not touch it because the foundation playbook targets
 only the foundation groups.
+
+The starter places privileged secrets at `10.20.21.21` on the cryptography
+network, not on the application subnet. Existing deployments keep their local
+inputs during refresh; moving a live Vault service requires a separate reviewed
+network, DNS, TLS, firewall, and recovery plan.
 
 Use this rule:
 
@@ -106,8 +111,8 @@ Use these repo paths for the Vault foundation deployment:
 
 | IaC path | Used for here | You edit |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | shared Terraform inputs used across environments, including the default platform node | your local `terraform/common.tfvars` |
-| [`terraform/environments/vault/terraform.tfvars.example`](../../../tier-0/terraform/environments/vault/terraform.tfvars.example) | provisions one or more dedicated Vault VMs | `terraform/environments/vault/terraform.tfvars` based on `.example` |
+| [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | tier-wide Terraform inputs, including the default platform node | your local `terraform/common.tfvars` |
+| [`terraform/deployments/vault/terraform.tfvars.example`](../../../tier-0/terraform/deployments/vault/terraform.tfvars.example) | provisions one or more dedicated Vault VMs | `terraform/deployments/vault/terraform.tfvars` based on `.example` |
 | [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | starting point for the `vault` inventory group | your local `ansible/inventory/hosts.yml` |
 | [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | your local `ansible/group_vars/all.<env>.yml` |
 | [`ansible/group_vars/vault.yml.example`](../../../tier-0/ansible/group_vars/vault.yml.example) | starting point for Vault IPs, listener, TLS, and node settings | your local `ansible/group_vars/vault.yml` |

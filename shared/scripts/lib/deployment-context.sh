@@ -35,3 +35,16 @@ require_owned_setup() {
   echo "Available setups: ${all_setups[*]}" >&2
   exit 1
 }
+
+# Refresh preserves legacy code and inputs; never seed defaults over an unmigrated deployment.
+require_current_terraform_layout() {
+  local legacy="$repo_root/terraform/environments/$1"
+  local file
+  for file in "$legacy/"*.tf "$legacy/"*.tfvars "$legacy/"*.tf.json "$legacy/"*.tfvars.json; do
+    [[ -f "$file" ]] || continue
+    echo "Legacy Terraform deployment found: $legacy" >&2
+    echo "Migrate to terraform/deployments/$1 before continuing." >&2
+    echo "See docs/reference/generated-repository-model.md#terraform-layout-upgrade." >&2
+    exit 1
+  done
+}

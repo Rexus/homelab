@@ -16,7 +16,7 @@ needed. Shared code and architecture records do not deploy infrastructure.
 
 | Repository | Start here | Deployment responsibility |
 | --- | --- | --- |
-| Tier 0 | [Control foundation](tier-0/README.md) | Proxmox, optional HA/SDN, templates, Talos control cluster, trust services |
+| Tier 0 | [Control foundation](tier-0/README.md) | Proxmox, optional HA/SDN, templates, Kubernetes control cluster, trust services |
 | Tier 1 | [Shared platform](tier-1/README.md) | Access services, optional platform cluster, development services, telemetry |
 | Tier 2 | [Workloads](tier-2/README.md) | Project/lab definitions and application delivery |
 | Shared | [Use common automation](shared/README.md) | No standalone deployment; run helpers from an owning tier |

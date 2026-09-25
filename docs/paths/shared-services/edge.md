@@ -17,7 +17,7 @@ so healthy traffic is spread while every VIP can still fail over.
 
 ## Default deployment
 
-| Component | Terraform default | Inventory entry | Zone | Purpose |
+| Component | Terraform default | Inventory entry | Network key | Purpose |
 | --- | --- | --- | --- | --- |
 | edge load balancers | `edge-lb-1`, `edge-lb-2`, `edge-lb-3` active | present by default | `external_edge` | ingress, egress, and load balancing |
 | extra edge nodes | add matching inventory and IP entries | not present by default | `external_edge` | more capacity, site spread, or policy separation |
@@ -82,7 +82,7 @@ everything when traffic purpose and trust level differ.
 | Path | What you configure |
 | --- | --- |
 | [`terraform/common.tfvars.example`](../../../tier-1/terraform/common.tfvars.example) | `external_edge` network mapping, shared storage, template ID, and SSH keys |
-| [`terraform/environments/edge/terraform.tfvars.example`](../../../tier-1/terraform/environments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
+| [`terraform/deployments/edge/terraform.tfvars.example`](../../../tier-1/terraform/deployments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
 | [`ansible/inventory/hosts.yml.example`](../../../tier-1/ansible/inventory/hosts.yml.example) | `edge_load_balancers` host group |
 | [`ansible/group_vars/all.yml.example`](../../../tier-1/ansible/group_vars/all.yml.example) | hostname, domain, SSH, and baseline settings |
 | [`ansible/group_vars/edge.yml.example`](../../../tier-1/ansible/group_vars/edge.yml.example) | edge host IPs, VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |

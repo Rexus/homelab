@@ -12,6 +12,7 @@ as they are added. Names, tags, VMID ranges, and VLAN conventions belong in
 | Sites, hardware and platform boundaries | TBD |
 | Existing services consumed rather than deployed here | TBD |
 | Tier ownership and support contacts | TBD |
+| Kubernetes cluster purpose, node OS, and bootstrap implementation | TBD |
 | Administrative entry and custody boundary | TBD |
 
 ## Topology and services

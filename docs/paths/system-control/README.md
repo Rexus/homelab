@@ -12,8 +12,9 @@ The first concrete guide is:
 
 ## Default capability
 
-The default `observability` setup deploys a useful starting point instead of an
-empty path:
+The `observability` setup provisions the following hosts with a Linux baseline.
+Service installation and integration remain project-owned; see the
+[implementation scope](observability.md#iac-defaults).
 
 | Capability | Default host or hosts |
 | --- | --- |

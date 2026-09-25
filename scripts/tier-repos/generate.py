@@ -14,7 +14,8 @@ except ImportError:
 
 from generated_files import MARKER, RepositoryWriter
 from documentation import architecture_scaffold, copy_documentation, shared_readme, tier_readme
-from payload import TIERS, copy_payload, read_file, report_legacy_shared, tier_setups, validate_layout
+from payload import (TIERS, copy_payload, read_file, report_legacy_deployments,
+                     report_legacy_shared, tier_setups, validate_layout)
 
 UPSTREAM = Path(__file__).resolve().parents[2]
 REPOSITORIES = ["shared", *TIERS, "architecture"]
@@ -23,6 +24,7 @@ REPOSITORIES = ["shared", *TIERS, "architecture"]
 def tier_repo(writer, tier, prefix):
     setups = tier_setups(UPSTREAM, tier)
     copy_payload(writer, UPSTREAM, tier, prefix)
+    report_legacy_deployments(writer)
     tier_readme(writer, tier, prefix, setups)
     setup_list = writer.root / ".deployment-setups"
     registered = set(setup_list.read_text(encoding="utf-8").splitlines()) if setup_list.is_file() else set(setups)

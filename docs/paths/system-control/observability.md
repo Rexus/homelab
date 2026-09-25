@@ -17,6 +17,10 @@
 
 ## Purpose
 
+The supplied `observability` setup provisions hosts and applies the Linux
+baseline only. This guide describes the target telemetry design; installing
+and configuring its services remains project-owned work.
+
 Use this system-control path after identity, PKI, and secret management are
 available from this repo or from an existing environment, and you want central
 control over platform health, logs, traces, audit events, and capacity signals.
@@ -61,15 +65,15 @@ flowchart TB
     Apps[Applications]
   end
 
-  subgraph Gateway["Telemetry gateway zone"]
+  subgraph Gateway["Telemetry gateway network"]
     OTel[telemetry-1/2<br/>OTel Collector gateways]
   end
 
-  subgraph SecGateway["Security telemetry zone"]
+  subgraph SecGateway["Security telemetry network"]
     Syslog[syslog-1/2<br/>syslog and log collectors]
   end
 
-  subgraph Obs["Observability zone"]
+  subgraph Obs["Observability network"]
     Health[health-1<br/>Netdata parent]
     Metrics[metrics-1<br/>VictoriaMetrics]
     APM[apm-1<br/>SigNoZ]
@@ -125,9 +129,10 @@ gateways, not directly from every source.
 
 ## Network placement
 
-Use these zones:
+Use these logical networks. Map them to firewall zones using the
+[network catalog](../../architecture/network.md#network-catalog).
 
-| Zone | Hosts | Purpose |
+| Network key | Hosts | Purpose |
 | --- | --- | --- |
 | `telemetry_gateway` | `telemetry-1`, `telemetry-2` | OpenTelemetry gateway collectors and routing |
 | `security_telemetry` | `syslog-1`, `syslog-2` | hardened syslog, audit, and security event collectors |
@@ -174,7 +179,7 @@ path guide.
 
 Start with one of each role when you are proving the path:
 
-| Host | Zone | Role |
+| Host | Network key | Role |
 | --- | --- | --- |
 | `telemetry-1` | `telemetry_gateway` | OpenTelemetry gateway |
 | `syslog-1` | `security_telemetry` | syslog and security collector |
@@ -190,13 +195,16 @@ when you need high availability, larger buffers, or real log retention.
 
 ## IaC defaults
 
-The `observability` setup deploys the first useful system-control stack by
-default. High-availability expansion is represented as commented Terraform
-instances and matching commented inventory/IP examples.
+`terraform/deployments/observability/` creates the VM foundations;
+`ansible/playbooks/observability.yml` applies the shared `baseline` role.
+Neither installs collectors, backends, dashboards, or their integrations.
+Add service automation in Tier 1 before treating the stack as operational.
+High-availability expansion is represented as commented Terraform instances
+and matching commented inventory/IP examples.
 
 Use this matrix for the default Terraform shape:
 
-| Component | Terraform default | Inventory action | Zone |
+| Component | Terraform default | Inventory action | Network key |
 | --- | --- | --- | --- |
 | telemetry gateway | `telemetry-1` active, `telemetry-2` commented | `telemetry-1` present by default | `telemetry_gateway` |
 | syslog collector | `syslog-1` active, `syslog-2` commented | `syslog-1` present by default | `security_telemetry` |

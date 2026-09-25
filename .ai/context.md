@@ -14,8 +14,15 @@ This file keeps durable context for AI-assisted work across sessions.
 ## Repository intent
 
 - public homelab and small datacenter IaC baseline
-- current reference platform is Proxmox
-- platform-aware, not platform-locked
+- chosen virtualization platform is Proxmox; other hypervisors are not selectable implementations
+- name capabilities by the goal, keeping implementation products explicit only where relevant
+- Kubernetes is the cluster goal; Talos is the current node-OS implementation example,
+  not an architecture requirement. Immutable AlmaLinux or other OS support needs future lifecycle code
+- public cluster entry points are `terraform/deployments/kubernetes/` and
+  `scripts/kubernetes-cluster.sh`; retain existing Talos state, inventory, provider,
+  and credential contracts. The old script delegates; old roots require deliberate migration
+- `docs/platforms/kubernetes/README.md` owns cluster choices and common readiness;
+  `docs/platforms/talos/` owns the current implementation procedures
 - security-first posture with strong separation of concerns
 - public upstream is curated and not meant for operational changes
 - repository model is a Tier 0, Tier 1, and Tier 2 deployment kit
@@ -39,23 +46,28 @@ This file keeps durable context for AI-assisted work across sessions.
 - shared scripts can be called by relative path from a tier root and use that
   tier's inputs; tier-local script shortcuts delegate to the same code
 - `scripts/init-tier-repos.sh` generates three tier-owned inventories and
-  Terraform setup roots, tier service code, common modules/helpers, and docs
+  Terraform deployment roots, tier service code/modules, shared helpers, and docs
+- runnable Terraform roots live in `terraform/deployments/<name>/`; child modules
+  stay in `terraform/modules/`; state remains independent per deployment
 - both tools consume the owning tier's inventory and ordered group vars;
-  shared code contains no live inventory or state
+  shared code contains no inventory, Terraform resources, deployment inputs, or state
 - refresh uses `.generated-files.json` and preserves local edits and deletions;
-  Talos and cluster resources remain seed-only skeletons
+  Kubernetes Terraform currently uses Talos in tier-owned automation; `clusters/` service starters
+  remain project-owned skeletons, not installed services
 - code ownership upgrades preserve retired shared files for manual review and
   do not port local edits into new tier paths, alter owned CI jobs, or move state
 - Tier 0 must remain bootstrapable and recoverable without higher-tier services
-- Tier 0 owns template catalogs, creation/update CD jobs, publication state,
+- Tier 0 owns publication catalogs, creation/update CD jobs, publication state,
   `template-refresh` and `immutable-template` builders, all template modules,
-  Packer definitions, and the local publication script; shared is cross-tier only
+  Packer definitions, and the local publication script; shared holds only approved
+  consumer references, not image recipes or lifecycle ownership
 - Tier 0 owns all hardware-facing control, including hypervisors, physical networks,
   storage administration, and every VM template lifecycle across all consuming tiers
 - initial template publication is Day 0-1 local automation, before managed VMs
   or hosted tooling; generated Tier 0 fast paths start with the template catalog
 - AlmaLinux/Rocky/Talos publication uses verified local images; Talos templates
-  contain no machine configuration, and cluster bootstrap remains a separate skeleton
+  contain no machine configuration; Tier 0's separate Talos deployment creates
+  VMs, machine configuration, and the cluster without Ansible guest configuration
 - dedicated Tier 0 template CI is optional Day 2 automation; local commands,
   provider artifacts and state must remain usable without the cluster or CI service
 - retain Tier 1/2 workload definitions, inventories, and separate state roots;

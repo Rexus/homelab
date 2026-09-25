@@ -60,7 +60,7 @@ Vault arrives on Day 2 for the long-term secret-platform role. SOPS can remain
 the small encrypted bootstrap/recovery channel; it is not replaced merely
 because Vault exists. Enable external-secret consumers only after their backend
 and authentication path work. The kit does not configure SOPS or these
-integrations automatically; see the [cluster foundation checklist](../paths/application-platform/kubernetes.md#cluster-foundation).
+integrations automatically; see the [cluster foundation checklist](../platforms/kubernetes/README.md#cluster-foundation).
 
 ## Secret-platform deployment milestone
 

@@ -319,7 +319,7 @@ Recommended practice:
 - a second Corosync VLAN can still stay at `1500` even when the storage bridge
   itself is `9000`
 - keep VM MTU decisions aligned with the Proxmox-side network design; this
-  repository does not carry MTU in the shared Terraform guest network catalog
+  repository does not carry MTU in the tier-local Terraform guest network inputs
 
 ## Single-trunk fallback
 

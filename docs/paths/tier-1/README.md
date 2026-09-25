@@ -15,7 +15,7 @@ prerequisites; this is not a requirement to deploy every example.
 | --- | --- | --- |
 | 1. Confirm foundations | Read project conventions and obtain Tier 0-approved templates, networks, storage, and scoped operator access | Inputs are recorded locally; any identity/DNS/PKI prerequisites in the selected service guide exist |
 | 2. Add access services | Deploy [edge](../shared-services/edge.md) and optional [cache](../shared-services/cache.md) | Intended traffic works and forbidden traffic is rejected |
-| 3. Create a platform cluster, if needed | Use the same [Talos bootstrap procedure](../../platforms/talos/bootstrap.md) as Tier 0, with Tier 1 inputs | Nodes/API are healthy and recovery is tested |
+| 3. Create a platform cluster, if needed | Follow the shared [Kubernetes guide](../../platforms/kubernetes/README.md) with Tier 1 inputs; Talos is the current installation example | Nodes/API are healthy and recovery is tested |
 | 4. Add development services | Follow [source control](../application-platform/development.md), [runners](../application-platform/podman-runner.md), and [registry](../application-platform/registry.md) guides | Selected services have identity, certificates, backups, and restricted credentials |
 | 5. Add telemetry | Follow [system control](../system-control/README.md) | Hosts and services report health; alerts and recovery checks work |
 

@@ -130,7 +130,8 @@ rule. Neither connection grants administrative access to the provider.
 Each tool has one primary job:
 
 - Tier 0 owns template creation, testing, and approval because images affect many guests.
-- Shared code implements image publication, provisioning, and configuration.
+- Each tier owns its Terraform resources and service-specific configuration.
+- Shared supplies deployment helpers, baseline roles, sizes, and approved image references.
 - Terraform creates resources from the owning tier's inputs.
 - Ansible configures supported Linux guests from the same inventory.
 - Cluster bootstrap and reconciliation have their own lifecycle.
@@ -142,9 +143,11 @@ flowchart LR
   Provision --> Configure["Linux guests: Ansible"]
 ```
 
-Packer remains optional for custom builds. Talos uses machine bootstrap rather
-than Ansible guest configuration. Local tools, artifacts, credentials, and
-state must allow recovery before hosted automation exists. See the
+Proxmox is the chosen virtualization platform. Kubernetes is the cluster
+capability; node operating systems and bootstrap tools are implementation choices.
+Use the [cluster guide](../platforms/kubernetes/README.md) for the current example
+and its boundaries. Packer remains optional for custom builds. Local tools,
+artifacts, credentials, and state must allow recovery before hosted automation exists. See the
 [Tier 0 path](../paths/tier-0/README.md).
 
 ## Network references

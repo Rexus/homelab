@@ -1,5 +1,5 @@
 # Talos uses its API, not SSH/Ansible guest configuration.
-# These addresses must match DHCP reservations for the MACs in terraform/talos/terraform.tfvars.
+# These addresses must match DHCP reservations for the MACs in terraform/deployments/kubernetes/terraform.tfvars.
 # Keep DNS/time/image access available without the cluster, FreeIPA, or Vault.
 platform_host_ips:
   k8ctl-1: 10.10.13.10

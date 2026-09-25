@@ -18,7 +18,7 @@
 ## Purpose
 
 Use this document to understand what this repository means by private cloud and
-why the current reference path starts with Proxmox instead of OpenStack.
+why Proxmox is the chosen virtualization platform instead of OpenStack.
 
 This is a scope guide, not a deployment guide.
 

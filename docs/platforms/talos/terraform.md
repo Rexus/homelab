@@ -1,5 +1,6 @@
-# Deploy the Tier 0 Talos cluster
+# Deploy Kubernetes with Talos: Terraform
 
+This is the current Talos implementation of the [Kubernetes cluster goal](../kubernetes/README.md).
 Tier 0 owns the control-cluster VMs, inventory, Talos configuration, bootstrap,
 credentials, and state. Shared supplies only approved template references and
 size profiles. This workflow creates a **new cluster**, not an adoption or restore.
@@ -18,7 +19,7 @@ For manual installation or Tier 1, use the [operator procedure](bootstrap.md).
 
 Work from the Tier 0 repository root in Bash on Linux or WSL, using an independent
 Tier 0 execution host. Install Terraform, matching `talosctl`, and compatible
-`kubectl`. Provider constraints and checksums live in `terraform/talos/`.
+`kubectl`. Provider constraints and checksums live in `terraform/deployments/kubernetes/`.
 
 - Complete [Proxmox preparation](../proxmox/README.md#first-deployment-order),
   optional [HA](../proxmox/cluster-ha.md), and [Talos template publication](../proxmox/talos-template.md).
@@ -41,7 +42,7 @@ tier's root before deployment. Enable the guest agent only if the image includes
 ## Configure
 
 ```bash
-bash scripts/talos-cluster.sh init
+bash scripts/kubernetes-cluster.sh init
 ```
 
 Initialization copies missing examples only. Existing files are never overwritten
@@ -51,7 +52,7 @@ or merged; add the Talos groups from the inventory example when upgrading.
 | --- | --- |
 | `ansible/inventory/hosts.yml` | Logical hosts in `talos_control_plane` and `talos_workers`, both under `talos` |
 | `ansible/group_vars/talos.yml` | `platform_host_ips`, matching the external DHCP reservations |
-| `terraform/talos/terraform.tfvars` | Cluster endpoint, pinned releases/installer, template selection, VMIDs, MACs, placement, disks, and size selections |
+| `terraform/deployments/kubernetes/terraform.tfvars` | Cluster endpoint, pinned releases/installer, template selection, VMIDs, MACs, placement, disks, and size selections |
 | Sibling shared `config/guest-sizes.json` | Common sizing data, read directly by Tier 0 Terraform |
 | Sibling shared `templates/proxmox-catalog.tfvars` | Approved image metadata, loaded by the command |
 
@@ -59,6 +60,10 @@ Every Talos inventory host must have one hardware entry and one fixed IPv4
 reservation. The example has three control-plane VMs and one worker; review
 capacity and failure domains for your services. Talos names are these inventory
 keys; Linux hostname prefix/suffix settings are not applied.
+
+The starter's `control` bridge and `10.10.13.0/24` reservations correspond to
+the [Control cluster network example](../../architecture/network.md#example-network-plan).
+Create that attachment on every eligible Proxmox node before planning.
 
 Supply `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` through your protected
 shell/runner environment. Use a trusted Proxmox TLS certificate. This command
@@ -68,7 +73,7 @@ Talos never runs through the Linux `deploy.sh`/Ansible workflow.
 ## Plan and deploy
 
 ```bash
-bash scripts/talos-cluster.sh plan
+bash scripts/kubernetes-cluster.sh plan
 ```
 
 Review every VMID, source template, initial host, disk, MAC, endpoint, and secret
@@ -76,8 +81,8 @@ resource before continuing. A failed re-plan removes the saved plan so an older
 plan cannot be applied accidentally.
 
 ```bash
-bash scripts/talos-cluster.sh apply
-bash scripts/talos-cluster.sh credentials
+bash scripts/kubernetes-cluster.sh apply
+bash scripts/kubernetes-cluster.sh credentials
 ```
 
 `apply` requires the saved plan. Terraform clones the VMs, generates cluster
@@ -118,6 +123,13 @@ FreeIPA remains on the two dedicated Linux VMs; Keycloak is a later cluster serv
 | Authoritative bootstrap state | `.terraform/state/talos/terraform.tfstate` |
 | Provider/module working data | `.terraform/data/talos/` |
 | Client credentials and per-node recovery configs | `secrets/talos/` |
+
+The public command and root use Kubernetes names. The `talos` state, plan,
+working-data, inventory-group, and credential names are retained for compatibility
+with the existing implementation; the rename does not move state or replace
+resources. `scripts/talos-cluster.sh` delegates to the new command. Existing
+collections must follow the [layout upgrade](../../reference/generated-repository-model.md#terraform-layout-upgrade)
+before using either command.
 
 State and saved plans contain private keys and machine secrets; marking outputs
 sensitive does **not** encrypt these files. [3] Restrict filesystem access and

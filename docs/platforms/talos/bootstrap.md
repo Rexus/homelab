@@ -1,5 +1,6 @@
-# Bootstrap a Talos Kubernetes cluster
+# Bootstrap Kubernetes with Talos
 
+This is the manual Talos implementation of the [Kubernetes cluster goal](../kubernetes/README.md).
 Use this procedure for a Tier 0 control cluster or a Tier 1 platform cluster.
 Only the owning repo, allocations, credentials, API endpoint, and GitOps path
 change. **This is an operator-run bootstrap.** For automated Tier 0 VM creation
@@ -25,7 +26,7 @@ checkout and the required tools available outside the cluster being built.
 | Choice | Tier 0 | Tier 1 |
 | --- | --- | --- |
 | Repository root | `<prefix>-tier-0` | `<prefix>-tier-1` |
-| Automation alternative | [Tier 0 Terraform](terraform.md) in `terraform/talos/` | Add tier-owned VM and Talos roots when automating |
+| Automation alternative | [Tier 0 Terraform](terraform.md) in `terraform/deployments/kubernetes/` | Add tier-owned VM and Talos roots when automating |
 | GitOps path | `clusters/tier0/` | `clusters/tier1/` |
 | Recovery | Independent of higher-tier services | Approved foundation services plus local break-glass inputs |
 
@@ -173,7 +174,7 @@ credentials, and controller permissions before running it. The starter
 Kustomizations do not install Flux or the named services. Keep reviewed local
 controller manifests and images for Tier 0 recovery without hosted source control.
 
-Continue with the shared [cluster foundation checklist](../../paths/application-platform/kubernetes.md#cluster-foundation)
+Continue with the shared [cluster foundation checklist](../kubernetes/README.md#cluster-foundation)
 for SOPS/bootstrap secrets, storage, cert-manager, ingress, and CloudNativePG
 before adding the owning tier's service clients.
 

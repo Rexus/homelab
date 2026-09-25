@@ -51,14 +51,18 @@ proxmox_template_catalog = {
                         "default_platform_node_name": "test-platform",
                         "default_vm_template_id": "${var.default_linux_vm_template_id}",
                         "proxmox_template_catalog": "${var.proxmox_template_catalog}",
-                        "network_zones": {"application": {"bridge": "isolated-test",
+                        "network_zones": {"application": {"bridge": "isolated-test", "vlan_id": 420,
                                           "cidr_ipv4": "192.0.2.0/24", "gateway_ipv4": "192.0.2.1"}},
                         "vm_instances": {host: {"disk_size_gb": 30}},
                     }
+                    # Resolve the same inventory as either guest type without creating resources.
+                    lxc_module = dict(module, vm_instances={}, lxc_instances={
+                        host: {"disk_size_gb": 8, "template_file_id": "local:vztmpl/test.tar.zst"}})
                     config = {"variable": {"default_linux_vm_template_id": {"type": "number"},
                                            "proxmox_template_catalog": {"type": "any"}},
-                              "module": {"inventory": module},
-                              "output": {"resolved": {"value": "${module.inventory.vm_instances}"}}}
+                              "module": {"inventory": module, "lxc_inventory": lxc_module},
+                              "output": {"resolved": {"value": "${module.inventory.vm_instances}"},
+                                         "resolved_lxc": {"value": "${module.lxc_inventory.lxc_instances}"}}}
                     (fixture / "main.tf.json").write_text(json.dumps(config))
                     for args in (("init", "-backend=false", "-input=false"),
                                  ("apply", "-auto-approve", "-input=false", f"-var-file={catalog}")):
@@ -68,6 +72,12 @@ proxmox_template_catalog = {
                     output = subprocess.check_output(
                         ["terraform", f"-chdir={fixture}", "output", "-json", "resolved"], text=True)
                     resolved = json.loads(output)[host]
+                    lxc_output = subprocess.check_output(
+                        ["terraform", f"-chdir={fixture}", "output", "-json", "resolved_lxc"], text=True)
+                    resolved_lxc = json.loads(lxc_output)[host]
+                    for field in ("name", "bridge", "vlan_id", "ipv4_address", "ipv4_gateway"):
+                        self.assertEqual(resolved_lxc[field], resolved[field], field)
+                    self.assertEqual(resolved_lxc["vlan_id"], 420)
                     self.assertEqual(resolved["template_title"], "Approved Linux")
                     self.assertEqual(resolved["template_node_name"], "template-host")
                     self.assertEqual(resolved["tags"], ["alma"])

@@ -39,7 +39,7 @@ variable "storage_class" {
   default     = "local"
 
   validation {
-    condition = contains(["local", "shared", "fast"], var.storage_class)
+    condition     = contains(["local", "shared", "fast"], var.storage_class)
     error_message = "storage_class must be one of: local, shared, fast."
   }
 }
@@ -64,13 +64,19 @@ variable "bridge" {
   type        = string
 }
 
+variable "vlan_id" {
+  description = "Optional NIC VLAN tag; omit when the selected SDN VNet owns tagging."
+  type        = number
+  default     = null
+}
+
 variable "size" {
   description = "Logical container size such as tiny, small, medium, large, or xl."
   type        = string
   default     = "small"
 
   validation {
-    condition = contains(["tiny", "small", "medium", "large", "xl"], var.size)
+    condition     = contains(["tiny", "small", "medium", "large", "xl"], var.size)
     error_message = "size must be one of: tiny, small, medium, large, xl."
   }
 }

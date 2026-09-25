@@ -34,7 +34,7 @@ This path has dedicated IaC:
 
 | Layer | File | Responsibility |
 | --- | --- |
-| Terraform | `terraform/environments/podman-runner/terraform.tfvars` | deploys runner VM(s) |
+| Terraform | `terraform/deployments/podman-runner/terraform.tfvars` | deploys runner VM(s) |
 | Ansible inventory | `ansible/inventory/hosts.yml` | keeps the stable `podman_runner` host group |
 | Ansible vars | `ansible/group_vars/podman_runner.yml` | controls packages, runner tags, and optional registration |
 | Shared Ansible role | `ansible/roles/podman_runner/` | installs Podman, Buildah, Skopeo, Git, and GitLab Runner |
@@ -68,7 +68,7 @@ Edit:
 
 | File | What you change |
 | --- | --- |
-| `terraform/environments/podman-runner/terraform.tfvars` | runner count, size, storage, network zone, and tags |
+| `terraform/deployments/podman-runner/terraform.tfvars` | runner count, size, storage, network zone, and tags |
 | `ansible/inventory/hosts.yml` | `podman_runner` hosts when you add or remove runners |
 | `ansible/group_vars/podman_runner.yml` | `platform_host_ips` for each runner |
 | `ansible/group_vars/podman_runner.<env>.yml` | environment-specific runner IPs when `--env` is used |

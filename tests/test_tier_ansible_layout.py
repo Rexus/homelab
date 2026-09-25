@@ -13,7 +13,7 @@ from payload import TIERS
 
 
 class AnsibleOwnership(TierRepositoryTestCase):
-    def test_identity_authority_is_a_vm_pair_and_broker_is_in_talos(self):
+    def test_identity_authority_is_a_vm_pair_and_broker_is_in_kubernetes(self):
         self.generate()
         for repo in (UPSTREAM / "tier-0", self.root / "verify-tier-0"):
             groups = yaml.safe_load((repo / "ansible/inventory/hosts.yml.example").read_text())["all"]["children"]
@@ -31,7 +31,7 @@ class AnsibleOwnership(TierRepositoryTestCase):
         shared = self.root / "verify-shared"
         self.assertEqual({p.name for p in (shared / "ansible/roles").iterdir()}, {"baseline", "shared"})
         self.assertEqual({p.name for p in (shared / "ansible/playbooks").iterdir()},
-                         {"control-node.yml", "site.yml"})
+                         {"control-node.yml", "site.yml", "reset-known-hosts.yml"})
         self.assertFalse((shared / "terraform").exists())
         self.assertTrue((shared / "config/guest-sizes.json").is_file())
         for tier in TIERS:

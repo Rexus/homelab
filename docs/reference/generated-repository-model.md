@@ -10,6 +10,7 @@
 - [Shared code and recovery](#shared-code-and-recovery)
 - [Refresh and local ownership](#refresh-and-local-ownership)
 - [Automation ownership upgrade](#automation-ownership-upgrade)
+- [Terraform layout upgrade](#terraform-layout-upgrade)
 - [Implementation scope](#implementation-scope)
 - [References](#references)
 
@@ -101,8 +102,10 @@ Each tier has the same operational layout:
   terraform/
     modules/                       # tier-owned inventory resolver and VM/LXC resources
     common.tfvars.example
-    environments/<setup>/
+    deployments/<setup>/           # runnable root modules
       main.tf
+      providers.tf
+      versions.tf
       variables.tf
       terraform.tfvars.example
   scripts/
@@ -142,7 +145,7 @@ flowchart LR
 | `ansible/group_vars/all.yml` | hostname decoration, domain, connection and baseline settings |
 | `ansible/group_vars/<setup>.yml` | `platform_host_ips` and service settings |
 | `terraform/common.tfvars` | platform placement, guest networks, template and storage mappings |
-| `terraform/environments/<setup>/terraform.tfvars` | VM/LXC definitions keyed by those inventory host keys |
+| `terraform/deployments/<setup>/terraform.tfvars` | VM/LXC definitions keyed by those inventory host keys |
 
 The tier-local `environment_guests` module reads its YAML to resolve names
 and IPs. The wrapper supplies the same ordered vars files to both tools:
@@ -164,7 +167,8 @@ State and Terraform working data stay under each tier's
 remain separate within each of the three repositories.
 
 Shared never owns an inventory, deployment inputs, Terraform resources, or state.
-Talos also uses Tier 0 inventory, but not Ansible guest configuration. Its
+The Kubernetes implementation currently uses Talos and Tier 0 inventory, but
+not Ansible guest configuration. Its
 [separate root and command](../platforms/talos/terraform.md) consume Talos groups
 and IP reservations, with state at `.terraform/state/talos/terraform.tfstate`.
 
@@ -184,7 +188,7 @@ The generator assigns existing setup examples as follows:
 | Tier 2 | `lab` | lab and workload instances |
 
 Tier 0 also owns the template module, publication script, Packer definitions,
-`terraform/templates/`, `templates/proxmox.yml.example`, and the seed-only
+`terraform/deployments/templates/`, `templates/proxmox.yml.example`, and the seed-only
 `ci/gitlab-templates.yml.example`. The
 [template publisher](../platforms/proxmox/template-lifecycle.md) is a separate
 Terraform-only workflow for unbooted AlmaLinux, Rocky Linux, and Talos images;
@@ -327,10 +331,10 @@ new Tier 0 roots without moving live inputs/state or editing owned setup lists.
 Follow the [template ownership migration](../platforms/proxmox/template-lifecycle.md#existing-collections)
 before applying them. Old files are preserved for review, not silently retired.
 
-The upstream source split does not relocate generated inputs or state: their
-tier-relative paths are unchanged. Private copies of the former aggregate
-source tree need a deliberate migration of ignored files and state into the
-owning tier before deployment. Generation never imports or moves that local data.
+Generation never imports or moves local data. Private copies of the former
+aggregate source tree need a deliberate migration of ignored files and state
+into the owning tier. For earlier tier-local Terraform layouts, follow the
+[layout upgrade](#terraform-layout-upgrade) before deployment.
 
 ## Automation ownership upgrade
 
@@ -370,10 +374,61 @@ roots with live resources require explicit state/resource adoption, not a second
 apply from an empty state. Shared legacy inventories must be migrated deliberately
 to their owning tiers before retiring the old copies.
 
+## Terraform layout upgrade
+
+All runnable Terraform roots now live under `terraform/deployments/`; modules
+remain under `terraform/modules/`. Fresh collections already use this layout.
+For an existing collection, refresh creates the new roots but **preserves the
+old code and operational inputs**. It reports legacy roots; updated commands
+stop while old root configuration or `.tfvars` files remain, before seeding or
+using new inputs. Review locally modified commands too: refresh preserves them.
+
+| Previous tier-relative root | Current root |
+| --- | --- |
+| `terraform/environments/<setup>/` | `terraform/deployments/<setup>/` |
+| Tier 0 `terraform/talos/` | `terraform/deployments/kubernetes/` |
+| Tier 0 `terraform/deployments/talos/` | `terraform/deployments/kubernetes/` |
+| Tier 0 `terraform/templates/` | `terraform/deployments/templates/` |
+
+1. Pause jobs and back up existing state and local inputs. Refresh all repositories;
+   do not apply or initialize new example values as a migration.
+2. Compare the old and new roots. Port your local `.tfvars`, environment overlays,
+   overrides, lock-file choices, backend customizations, and code edits. Provider
+   configuration is now in `providers.tf`; version/backend declarations are in
+   `versions.tf`. Do not copy an old `main.tf` over these new files wholesale.
+3. Adjust custom relative paths: Linux roots keep their depth. Moving the old
+   `terraform/talos/` or `terraform/templates/` roots adds one level; renaming
+   `terraform/deployments/talos/` to `kubernetes/` keeps the same depth.
+   Inventory and catalogs stay where they were.
+   Update owned READMEs, CI jobs, and cached lock-file paths.
+4. Archive the old roots outside the active `terraform/` directory after comparing
+   inputs and code. Remove saved plans and reinitialize using the **existing backend
+   and state**, not an empty state. Do not copy old `.terraform/` caches into new roots.
+5. Replan and require no unexpected resource changes before resuming jobs. Check
+   that resource counts and backend identity match the previous deployment.
+
+The supplied wrappers retain `.terraform/state/<setup>/<env>/terraform.tfstate`,
+`.terraform/state/talos/terraform.tfstate`, and
+`.terraform/state/proxmox-templates/terraform.tfstate`. `TEMPLATE_STATE_PATH`
+still overrides the template state path. Module/resource addresses are unchanged;
+the directory move alone requires no `state mv`. Custom backends and direct CLI
+state locations must be carried forward explicitly. Never run old and new jobs
+against the same infrastructure at the same time.
+
+The cluster's public command is now `scripts/kubernetes-cluster.sh`;
+`scripts/talos-cluster.sh` remains a compatibility delegate. Both commands stop
+if either old cluster root contains configuration or inputs. Refresh preserves
+those roots and creates the new one; port local changes before archiving the old
+root. Existing Talos inventory groups, `ansible/group_vars/talos.yml`, saved-plan
+paths, working-data paths, credentials, provider types, and resource addresses
+are unchanged. Discard old saved plans and replan against the existing state.
+This rename does not switch node OS or install a second cluster.
+
 ## Implementation scope
 
-Generation includes Linux Terraform/Ansible setups, Tier 0 Talos bootstrap, split
-inventory examples, stateless shared automation/data, and upstream documentation.
+Generation includes Linux Terraform/Ansible setups, Tier 0 Kubernetes bootstrap
+(currently Talos), split inventory examples, stateless shared automation/data,
+and upstream documentation.
 Flux reconciliation, cluster applications, and the documentation website remain
 skeletons. Kustomization resource lists group files; they do not enforce the
 Day 2 deployment sequence. See the [Tier 0 path](../paths/tier-0/README.md).

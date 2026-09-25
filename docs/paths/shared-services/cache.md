@@ -28,7 +28,7 @@ upstream.
 
 ## Default deployment
 
-| Component | Terraform default | Inventory entry | Zone | Purpose |
+| Component | Terraform default | Inventory entry | Network / storage | Purpose |
 | --- | --- | --- | --- | --- |
 | caches | `cache-1`, `cache-2` active | present by default | `external_edge` | controlled outbound web access |
 | cache data disks | one `scsi1` data disk per cache VM | mounted by Ansible | VM local/shared storage | Squid cache data |
@@ -81,7 +81,7 @@ be introduced with an explicit policy, internal CA rollout, and audit model.
 | Path | What you configure |
 | --- | --- |
 | [`terraform/common.tfvars.example`](../../../tier-1/terraform/common.tfvars.example) | `external_edge` network mapping, shared storage, template ID, and SSH keys |
-| [`terraform/environments/cache/terraform.tfvars.example`](../../../tier-1/terraform/environments/cache/terraform.tfvars.example) | cache VM count, size, OS disk, cache data disk, storage, and tags |
+| [`terraform/deployments/cache/terraform.tfvars.example`](../../../tier-1/terraform/deployments/cache/terraform.tfvars.example) | cache VM count, size, OS disk, cache data disk, storage, and tags |
 | [`ansible/inventory/hosts.yml.example`](../../../tier-1/ansible/inventory/hosts.yml.example) | `cache` host group |
 | [`ansible/group_vars/all.yml.example`](../../../tier-1/ansible/group_vars/all.yml.example) | shared hostname, domain, SSH, optional repository proxy URL, and baseline defaults |
 | [`ansible/group_vars/cache.yml.example`](../../../tier-1/ansible/group_vars/cache.yml.example) | cache host IPs, VIP, FQDN, port, keepalived router ID, allowed client CIDRs, allowed software-source domains, and optional upstream proxy |

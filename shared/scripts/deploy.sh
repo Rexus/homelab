@@ -199,6 +199,7 @@ fi
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib/deployment-context.sh"
 require_owned_setup "$setup_name"
+require_current_terraform_layout "$setup_name"
 ansible_group_vars_paths=("$ansible_dir/group_vars/all.yml")
 environment_ansible_vars_path=""
 setup_ansible_vars_base_path=""
@@ -236,7 +237,7 @@ elif [[ -n "$common_var_file_path" && "$explicit_env" == true \
   environment_common_var_file_path="$repo_root/terraform/common.$deployment_env.tfvars"
 fi
 
-terraform_dir="$repo_root/terraform/environments/$setup_name"
+terraform_dir="$repo_root/terraform/deployments/$setup_name"
 ansible_playbooks=("$setup_name.yml")
 setup_ansible_vars_env_stem="${setup_name//-/_}"
 setup_ansible_vars_base_path="$ansible_dir/group_vars/$setup_ansible_vars_env_stem.yml"
@@ -445,40 +446,10 @@ run_control_node_precheck() {
   )
 }
 
-collect_static_host_ips() {
-  local vars_file
-
-  for vars_file in "${resolved_ansible_vars_paths[@]}"; do
-    if [[ ! -f "$vars_file" ]]; then
-      continue
-    fi
-
-    awk '
-      /^[[:space:]]*platform_host_ips:[[:space:]]*$/ {
-        in_map = 1
-        next
-      }
-      in_map && /^[^[:space:]#]/ {
-        in_map = 0
-      }
-      in_map && /^[[:space:]]+[A-Za-z0-9_.-]+:[[:space:]]*[^#[:space:]]+/ {
-        line = $0
-        sub(/#.*/, "", line)
-        sub(/^[[:space:]]+[A-Za-z0-9_.-]+:[[:space:]]*/, "", line)
-        gsub(/["\047]/, "", line)
-        gsub(/[[:space:]]+$/, "", line)
-        if (line != "" && line != "dhcp") {
-          print line
-        }
-      }
-    ' "$vars_file"
-  done | sort -u
-}
-
 reset_known_host_entries() {
   local known_hosts_file="${HOME}/.ssh/known_hosts"
-  local target
-  local removed=0
+  local vars_file
+  local reset_args=("-i" "localhost,")
 
   if [[ "$reset_known_hosts" == false ]]; then
     return
@@ -496,18 +467,11 @@ reset_known_host_entries() {
 
   echo "==> Removing SSH known_hosts entries for $setup_name ($deployment_env)"
 
-  while IFS= read -r target; do
-    if [[ -z "$target" ]]; then
-      continue
-    fi
-
-    ssh-keygen -R "$target" -f "$known_hosts_file" >/dev/null 2>&1 || true
-    ssh-keygen -R "[$target]:22" -f "$known_hosts_file" >/dev/null 2>&1 || true
-    echo "removed known_hosts entries for $target"
-    removed=$((removed + 1))
-  done < <(collect_static_host_ips)
-
-  echo "Removed known_hosts entries for $removed static host target(s)."
+  # Use the same YAML loading and environment precedence as guest configuration.
+  for vars_file in "${resolved_ansible_vars_paths[@]}"; do
+    reset_args+=("-e" "@$vars_file")
+  done
+  ansible-playbook "${reset_args[@]}" "$automation_root/ansible/playbooks/reset-known-hosts.yml"
 }
 
 run_terraform() {

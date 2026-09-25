@@ -2,10 +2,9 @@
 
 For the deployment checklist, start with the [Tier 0 path](README.md).
 This reference owns phase dependencies, recovery boundaries, and operational
-handover. [Tier 0 Talos Terraform](../../platforms/talos/terraform.md), the
-shared [manual Talos procedure](../../platforms/talos/bootstrap.md), and
-[cluster foundation](../application-platform/kubernetes.md#cluster-foundation)
-own the reusable cluster installation steps.
+handover. The shared [Kubernetes guide](../../platforms/kubernetes/README.md)
+owns implementation selection and the common cluster foundation. Its current
+installation example uses Talos, through Terraform or an operator-run procedure.
 
 ## Table of contents
 
@@ -45,10 +44,10 @@ are not two implementations to run against the same service instance.
 | Resource or change | Owner and current entry point |
 | --- | --- |
 | Hosts, physical networks, storage, HA, and SDN | Tier 0 operators; [Proxmox preparation](../../platforms/proxmox/README.md#first-deployment-order) |
-| All base templates and publication jobs | Tier 0 `terraform/templates/` and [local/CD workflow](../../platforms/proxmox/template-lifecycle.md) |
+| All base templates and publication jobs | Tier 0 `terraform/deployments/templates/` and [local/CD workflow](../../platforms/proxmox/template-lifecycle.md) |
 | Linux authority VMs | Tier 0 `foundation`, `vault`, and `hsm` setups through shared helpers |
 | Builder VMs after initial publication | Tier 0 `template-refresh` and `immutable-template` setups |
-| Talos VMs and machine configuration | Tier 0 `terraform/talos/` and [Talos command](../../platforms/talos/terraform.md); local inventory and state |
+| Kubernetes nodes and bootstrap | Tier 0 `terraform/deployments/kubernetes/` and [cluster command](../../platforms/kubernetes/README.md#deploy-the-cluster); currently Talos, with local inventory and state |
 | Cluster add-ons and service definitions | Intended GitOps path `clusters/tier0/`; starter directories currently contain no deployments |
 | Workload VM definitions and state | Existing tier-local roots; privileged execution remains under Tier 0 authority |
 | VM relocation after creation | Proxmox operators/HA; [placement contract](../../platforms/proxmox/cluster-ha.md#terraform-against-the-cluster) |
@@ -65,17 +64,18 @@ Day 3 completes access handover and recovery testing.**
 flowchart TB
   Proxmox["Proxmox: hosts, networks, storage, templates"]
   Proxmox --> IaC["Terraform / OpenTofu"]
-  IaC --> Talos["Talos"]
-  Talos --> Kubernetes["Kubernetes"]
-  Kubernetes --> Flux["Flux"]
-  Flux --> Basic["Basic platform services"]
+  IaC --> Nodes["Cluster nodes and OS bootstrap"]
+  Nodes --> Kubernetes["Kubernetes"]
+  Kubernetes --> GitOps["GitOps reconciliation"]
+  GitOps --> Basic["Basic platform services"]
 ```
 
 This is the intended Day 0/1 automation flow, not a shipped end-to-end installer.
 Current wrappers call `terraform`; OpenTofu is a design option, not a validated
-drop-in command here. Tier 0 has [Talos Terraform](../../platforms/talos/terraform.md)
-for VMs through Kubernetes bootstrap; Flux and service installation follow separately.
-CNI must work before Flux can reconcile ordinary cluster services.
+drop-in command here. Tier 0's [Kubernetes deployment](../../platforms/talos/terraform.md)
+currently uses Talos for node configuration and bootstrap. GitOps and service
+installation follow separately; the examples use Flux. CNI must work before
+reconciliation controllers can run ordinary cluster services.
 
 FreeIPA's dedicated VMs can start after the template gate without Kubernetes.
 Initial publication runs locally, without builder VMs or hosted CI; later CD
@@ -88,7 +88,7 @@ host these dependencies inside the cluster they must create or restore.
 
 | Dependency | Bootstrap requirement |
 | --- | --- |
-| Proxmox, networks, storage, templates | Complete the [host checklist](../../platforms/proxmox/README.md#first-deployment-order) and [template publication](../../platforms/proxmox/template-lifecycle.md#local-workflow), including Talos images |
+| Proxmox, networks, storage, templates | Complete the [host checklist](../../platforms/proxmox/README.md#first-deployment-order) and [template publication](../../platforms/proxmox/template-lifecycle.md#local-workflow), including images for the selected cluster-node OS |
 | DNS, time, and TLS trust | Available before FreeIPA, cert-manager, or Vault; record temporary and permanent owners |
 | Source control (Git) | A reachable repository for Flux plus an external recovery checkout; initial access must not require Day 2 SSO |
 | OCI registry | Reachable approved image/chart sources or prepared mirrors; independent pull access and retained recovery artifacts |
@@ -109,11 +109,10 @@ an operator choice, not something the generator provisions.
 
 ## Day 1 cluster foundation
 
-Follow [Talos Terraform](../../platforms/talos/terraform.md) or the
-[manual procedure](../../platforms/talos/bootstrap.md), then the shared
-[cluster foundation checklist](../application-platform/kubernetes.md#cluster-foundation).
-That checklist owns CNI, Flux, SOPS, storage, certificates, ingress, and CNPG
-ordering for both Tier 0 and Tier 1.
+Follow the [Kubernetes installation path](../../platforms/kubernetes/README.md#deploy-the-cluster),
+then its [cluster foundation checklist](../../platforms/kubernetes/README.md#cluster-foundation).
+That checklist owns networking, GitOps, secrets, storage, certificates, ingress,
+and database readiness for both Tier 0 and Tier 1, independently of node OS.
 
 Do not wait for Vault to decrypt the manifests that will deploy Vault. Keep the
 initial SOPS key and source credentials recoverable outside the cluster; see
@@ -127,7 +126,7 @@ instance stays in its owning tier, whether it runs on a VM or in Kubernetes.
 | Service | Dependency and check |
 | --- | --- |
 | FreeIPA | Two dedicated Tier 0 VMs, `idm-1` and `idm-2`, via the [identity foundation](../shared-services/identity.md); verify replication, DNS, and PKI before changing bootstrap dependencies |
-| Keycloak | Inside the Tier 0 Talos cluster; connect to the FreeIPA pair, prepare its database/TLS, and test OIDC clients and group mappings |
+| Keycloak | Inside the Tier 0 Kubernetes cluster; connect to the FreeIPA pair, prepare its database/TLS, and test OIDC clients and group mappings |
 | Vault | Follow the [Vault guide](../shared-services/vault.md); verify initialization, recovery access, audit, and backups before clients depend on it |
 | NetBox | Add inventory documentation early, after its database, cache, storage, and access path are ready; retain recovery exports outside it |
 | Headlamp | Verify control-cluster access with scoped permissions and test OIDC without removing emergency access |
@@ -136,7 +135,7 @@ instance stays in its owning tier, whether it runs on a VM or in Kubernetes.
 ```mermaid
 flowchart TB
   FreeIPA["FreeIPA<br/>Two dedicated Tier 0 VMs"]
-  FreeIPA --> Keycloak["Keycloak<br/>Tier 0 Talos cluster"]
+  FreeIPA --> Keycloak["Keycloak<br/>Tier 0 Kubernetes cluster"]
   Keycloak --> OIDC
   OIDC --> Headlamp
   OIDC --> NetBox
@@ -179,12 +178,12 @@ Tighten and prove the controls established during bootstrap:
 
 ## Implementation scope
 
-The generator provides template-publication and Talos bootstrap entry points,
+The generator provides template-publication and Kubernetes bootstrap entry points,
 tier-local Terraform resources, playbooks/roles, common helpers, and split inventory examples.
 Local initialization creates the operational input files; generation deploys nothing.
 
-The Flux component directories remain editable **skeletons**. Talos Terraform
-does not install Flux or the listed services. Older generated collections may
+The Flux component directories remain editable **skeletons**. The current Talos-based
+cluster implementation does not install Flux or the listed services. Older collections may
 retain empty `bootstrap/proxmox/` and `bootstrap/talos/` starters; review them
 before retiring them. Never run competing roots against the same resources.
 

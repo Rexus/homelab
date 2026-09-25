@@ -18,20 +18,22 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
         tier0 = self.root / "verify-tier-0"
         for setup in ("template-refresh", "immutable-template"):
             self.assertIn(setup, (tier0 / ".deployment-setups").read_text())
-            self.assertTrue((tier0 / f"terraform/environments/{setup}/main.tf").exists())
+            self.assertTrue((tier0 / f"terraform/deployments/{setup}/main.tf").exists())
             for tier in ("tier-1", "tier-2"):
                 repo = self.root / f"verify-{tier}"
                 self.assertNotIn(setup, (repo / ".deployment-setups").read_text())
-                self.assertFalse((repo / f"terraform/environments/{setup}").exists())
-                self.assertFalse((repo / "terraform/templates").exists())
+                self.assertFalse((repo / f"terraform/deployments/{setup}").exists())
+                self.assertFalse((repo / "terraform/deployments/templates").exists())
                 self.assertFalse((repo / "ci").exists())
-        for source in (tier0 / "terraform/templates").glob("*.tf"):
+        for source in (tier0 / "terraform/deployments/templates").glob("*.tf"):
             for module in re.findall(r'source\s*=\s*"(\.\./[^\"]+)"', source.read_text()):
                 self.assertTrue((source.parent / module).is_dir(), (source, module))
         catalog = yaml.safe_load((tier0 / "templates/proxmox.yml.example").read_text())["templates"]
         self.assertEqual({entry["family"] for entry in catalog.values()}, {"alma", "rocky", "talos"})
+        self.assertTrue(all(entry["node_name"] == "pve01" and entry["bridge"] == "control"
+                            for entry in catalog.values()))
         self.assertFalse((tier0 / "templates/proxmox.yml").exists())
-        self.assertTrue((tier0 / "terraform/templates/.terraform.lock.hcl").exists())
+        self.assertTrue((tier0 / "terraform/deployments/templates/.terraform.lock.hcl").exists())
         refresh = yaml.safe_load((tier0 / "ansible/playbooks/template-refresh.yml").read_text())
         replacement = refresh[1]["roles"][0]
         self.assertEqual(replacement["role"], "proxmox_template_replace")
@@ -63,7 +65,7 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
             "verify-tier-0/.deployment-setups": "foundation\nvault\nhsm\n",
             "verify-tier-1/.deployment-setups": "edge\ntemplate-refresh\nimmutable-template\n",
             "verify-tier-1/.terraform/state/template-refresh/prod/terraform.tfstate": '{"serial": 7}\n',
-            "verify-tier-1/terraform/environments/template-refresh/main.tf": "# Existing owner\n",
+            "verify-tier-1/terraform/deployments/template-refresh/main.tf": "# Existing owner\n",
             "verify-tier-0/templates/proxmox.yml": "templates: {local: {vm_id: 9500}}\n",
             "verify-tier-0/ci/gitlab-templates.yml.example": "# Owned CI starter\n",
         }

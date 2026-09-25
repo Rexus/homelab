@@ -57,9 +57,9 @@ class SourceLayout(TierRepositoryTestCase):
         files = {
             ".deployment-setups": "lab\n",
             "env.local.example": "# example\n",
-            "terraform/environments/lab/main.tf": "# source\n",
-            "terraform/environments/lab/.terraform.lock.hcl": "# lock\n",
-            "terraform/environments/lab/terraform.tfvars.example": "# example\n",
+            "terraform/deployments/lab/main.tf": "# source\n",
+            "terraform/deployments/lab/.terraform.lock.hcl": "# lock\n",
+            "terraform/deployments/lab/terraform.tfvars.example": "# example\n",
             "ansible/inventory/hosts.yml.example": "all: {}\n",
             "ansible/playbooks/lab.yml": "- hosts: lab\n",
             "ansible/roles/local/tasks/main.yml": "[]\n",
@@ -68,10 +68,10 @@ class SourceLayout(TierRepositoryTestCase):
             "ansible/group_vars/all.yml": "SECRET\n",
             "ansible/host_vars/host.yml": "SECRET\n",
             "terraform/common.tfvars": "SECRET\n",
-            "terraform/environments/lab/override.tf": "SECRET\n",
-            "terraform/environments/lab/local_override.tf": "SECRET\n",
-            "terraform/environments/lab/terraform.tfstate": "SECRET\n",
-            "terraform/environments/lab/.terraform/main.tf": "SECRET\n",
+            "terraform/deployments/lab/override.tf": "SECRET\n",
+            "terraform/deployments/lab/local_override.tf": "SECRET\n",
+            "terraform/deployments/lab/terraform.tfstate": "SECRET\n",
+            "terraform/deployments/lab/.terraform/main.tf": "SECRET\n",
             "terraform/modules/sample/tests/main.tf": "SECRET\n",
             "templates/proxmox.yml": "SECRET\n",
             "templates/artifacts/image.qcow2": "SECRET\n",
@@ -98,7 +98,7 @@ class SourceLayout(TierRepositoryTestCase):
         with self.assertRaisesRegex(ValueError, "Missing setup source"):
             validate_layout(self.root)
         setup_list.write_text("lab\n")
-        extra = self.root / "tier-2/terraform/environments/unregistered/main.tf"
+        extra = self.root / "tier-2/terraform/deployments/unregistered/main.tf"
         extra.parent.mkdir()
         extra.write_text("# unregistered\n")
         with self.assertRaisesRegex(ValueError, "Terraform roots disagree"):
@@ -137,7 +137,7 @@ class SourceLayout(TierRepositoryTestCase):
                                     cwd=root, env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             setups = (root / ".deployment-setups").read_text().splitlines()
-            local = list((root / "terraform/environments").glob("*/terraform.tfvars"))
+            local = list((root / "terraform/deployments").glob("*/terraform.tfvars"))
             self.assertEqual({path.parent.name for path in local}, set(setups))
             self.assertTrue((root / "ansible/inventory/hosts.yml").is_file())
             self.assertTrue((root / "ansible/group_vars/all.test.yml").is_file())

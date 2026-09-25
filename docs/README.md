@@ -25,7 +25,8 @@ For a new environment, the Tier 0 checklist takes you through **Day 0/1:
 Proxmox, templates, and cluster foundation -> Day 2: identity and control
 services -> Day 3: access handover and recovery testing**. Optional HA and SDN
 are early host choices; FreeIPA runs on two dedicated VMs and Keycloak in the
-Tier 0 Talos cluster.
+Tier 0 Kubernetes cluster. Talos is the current implementation example;
+the [cluster guide](platforms/kubernetes/README.md) separates that choice from the goal.
 Read the [architecture overview](architecture/overview.md) when you need the
 ownership and network design behind those steps.
 
@@ -34,6 +35,8 @@ Use the sections below as a reference map, not a required reading list.
 
 ## Start here
 
+- [Read the Terraform design](reference/infrastructure-automation-layout.md#terraform-structure)
+  for inputs, runnable deployments, building blocks, and state boundaries
 - [Safe repository usage](usage-model.md) - how to use this public upstream
   without publishing live configuration
 - [Local setup](getting-started/local-setup.md) - prepare local tooling before
@@ -117,12 +120,12 @@ Use the sections below as a reference map, not a required reading list.
   network assumptions and preparation
 - [Proxmox cluster and HA](platforms/proxmox/cluster-ha.md) - optional early cluster,
   failover, movable guests, and Terraform placement
-- [Tier 0 Talos Terraform](platforms/talos/terraform.md) - tier-owned VMs, inventory,
-  machine configuration, bootstrap, and state
-- [Talos cluster bootstrap](platforms/talos/bootstrap.md) - one manual operator procedure
-  shared by Tier 0 and Tier 1
-- [Cluster foundation](paths/application-platform/kubernetes.md#cluster-foundation) -
-  shared CNI, Flux, SOPS, storage, TLS, ingress, and database readiness checks
+- [Kubernetes clusters](platforms/kubernetes/README.md) - implementation choice,
+  installation path, and shared cluster-foundation checks
+- [Kubernetes with Talos: Terraform](platforms/talos/terraform.md) - the current
+  Tier 0 implementation, its inventory, bootstrap, and state
+- [Kubernetes with Talos: manual bootstrap](platforms/talos/bootstrap.md) -
+  the current operator procedure for Tier 0 and Tier 1
 - [UniFi zone firewall](platforms/unifi/zone-firewall.md) - translate the
   architecture's zones and rule matrix into gateway configuration
 - [Enterprise Linux template](platforms/proxmox/enterprise-linux-template.md) -
