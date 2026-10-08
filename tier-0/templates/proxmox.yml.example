@@ -1,6 +1,6 @@
 # Copy to templates/proxmox.yml using Tier 0's scripts/proxmox-templates.sh init command.
-# Day 0-1: publish templates locally before creating managed VMs or the control cluster.
-# Reference: docs/platforms/proxmox/template-lifecycle.md
+# Compute foundation: publish templates locally before creating managed VMs or the control cluster.
+# Reference: docs/administration/compute/template-lifecycle.md
 # Replace every value. Keep only the images being managed by this state.
 # Connected Tier 0 uses a protected control network; offline custody needs a separate isolated fabric.
 # Add a new entry and VMID for every revision; retain previous entries for rollback.

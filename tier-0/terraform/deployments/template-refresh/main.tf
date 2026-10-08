@@ -5,12 +5,13 @@ locals {
   )
 }
 
-# Tier-local modules own inventory resolution and resources; shared supplies image references.
-# The shared deploy helper loads templates/proxmox-catalog.tfvars before tier overrides.
+# Tier-local modules own inventory and resources; shared supplies platform/image references.
+# The deploy helper loads shared/config/platform.tfvars; local network entries replace shared ones.
+# Input ownership and precedence: docs/reference/platform-inputs.md
 module "environment" {
   source = "../../modules/environment_guests"
 
-  network_zones                = var.network_zones
+  network_zones                = merge(var.shared_network_zones, var.network_zones)
   default_platform_node_name   = local.effective_default_platform_node_name
   default_vm_template_id       = var.default_linux_vm_template_id
   proxmox_template_catalog     = var.proxmox_template_catalog
@@ -46,6 +47,7 @@ module "vms" {
   ipv4_address             = each.value.ipv4_address
   ipv4_gateway             = each.value.ipv4_gateway
   ssh_public_keys          = var.ssh_public_keys
+  ssh_public_key_files     = var.ssh_public_key_files
   tags                     = each.value.tags
 }
 

@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/cache.yml
 # Replace every value before use.
-# Guide: docs/paths/shared-services/cache.md
+# Guide: docs/deployment/stage-1-foundation/step-3b-outbound-cache.md
 
 platform_host_ips:
   cache-1: 10.30.30.20

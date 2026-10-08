@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/hsm.yml
 # Replace every value before use.
-# Guide: docs/security/usb-hsm-active-active-blueprint.md
+# Guide: docs/deployment/stage-2-trust/step-1b-usb-hsm.md
 
 platform_host_ips:
   # Tier 0 HSM hosts only; edge configuration has its own owner and access policy.

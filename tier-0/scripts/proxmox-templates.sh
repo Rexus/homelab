@@ -8,7 +8,7 @@ if [[ $# == 1 && ( "$1" == --help || "$1" == -h ) ]]; then
 fi
 if [[ $# != 1 || ! "$1" =~ ^(init|plan|apply)$ ]]; then
   echo "Usage: bash ${BASH_SOURCE[0]} {init|plan|apply}" >&2
-  echo "Run from Tier 0. Reference: docs/platforms/proxmox/template-lifecycle.md" >&2
+  echo "Run from Tier 0. Reference: docs/administration/compute/template-lifecycle.md" >&2
   exit 1
 fi
 action="$1"
@@ -43,7 +43,7 @@ for file in "$repo_root/terraform/templates/"*.tf "$repo_root/terraform/template
   [[ -f "$file" ]] || continue
   echo "Legacy Terraform deployment found: terraform/templates" >&2
   echo "Migrate to terraform/deployments/templates before continuing." >&2
-  echo "See docs/reference/generated-repository-model.md#terraform-layout-upgrade." >&2
+  echo "See docs/development/generated-repositories.md#terraform-layout-upgrade." >&2
   exit 1
 done
 

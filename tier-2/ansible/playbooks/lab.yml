@@ -1,6 +1,4 @@
 ---
-- name: Apply lab host baseline
-  hosts: lab
-  become: true
-  roles:
-    - baseline
+# Compatibility entry point; compose the deployment recipe without duplicating tasks.
+- name: "Workloads: Step 6, lab VM baseline"
+  ansible.builtin.import_playbook: deployment/lab-vms.yml

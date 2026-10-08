@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Resolve reusable automation separately from the repository that owns inputs.
-# Reference: docs/reference/generated-repository-model.md
+# Reference: docs/development/generated-repositories.md
 automation_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 if [[ -n "${DEPLOYMENT_REPO_DIR:-}" ]]; then
   repo_root="$DEPLOYMENT_REPO_DIR"
@@ -44,7 +44,7 @@ require_current_terraform_layout() {
     [[ -f "$file" ]] || continue
     echo "Legacy Terraform deployment found: $legacy" >&2
     echo "Migrate to terraform/deployments/$1 before continuing." >&2
-    echo "See docs/reference/generated-repository-model.md#terraform-layout-upgrade." >&2
+    echo "See docs/development/generated-repositories.md#terraform-layout-upgrade." >&2
     exit 1
   done
 }

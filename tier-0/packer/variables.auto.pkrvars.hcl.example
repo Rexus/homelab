@@ -1,6 +1,6 @@
 # Copy to: packer/variables.auto.pkrvars.hcl
 # Replace every value before use.
-# Reference: docs/reference/infrastructure-automation-layout.md
+# Reference: docs/development/code-layout.md
 
 platform = "proxmox"
 image_name = "debian-12-cis-base-change-me"

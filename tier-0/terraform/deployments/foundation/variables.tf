@@ -72,20 +72,40 @@ variable "linux_vm_template_catalog" {
   default     = {}
 }
 
+variable "ssh_public_key_files" {
+  description = "Local public-key file paths, supplied through TF_VAR_ssh_public_key_files; never private keys."
+  type        = list(string)
+  default     = []
+}
+
 variable "ssh_public_keys" {
   description = "SSH public keys injected into the foundation VMs."
   type        = list(string)
   default     = []
 }
 
-variable "network_zones" {
-  description = "Shared guest network catalog keyed by the repository reference names."
+variable "shared_network_zones" {
+  description = "Common guest-network references from shared/config/platform.tfvars; no inventory or resources."
   type = map(object({
     bridge       = string
     vlan_id      = optional(number)
     cidr_ipv4    = string
     gateway_ipv4 = optional(string)
   }))
+  default  = {}
+  nullable = false
+}
+
+variable "network_zones" {
+  description = "Tier-specific guest networks and complete per-network overrides of shared_network_zones."
+  type = map(object({
+    bridge       = string
+    vlan_id      = optional(number)
+    cidr_ipv4    = string
+    gateway_ipv4 = optional(string)
+  }))
+  default  = {}
+  nullable = false
 }
 
 variable "default_platform_node_name" {
@@ -117,18 +137,18 @@ variable "default_lxc_network_zone_key" {
 variable "vm_instances" {
   description = "VM hardware definitions keyed by logical Ansible inventory hostname."
   type = map(object({
-    proxmox_node_name = optional(string)
-    vm_id             = optional(number)
-    template_vm_id   = optional(number)
+    proxmox_node_name   = optional(string)
+    vm_id               = optional(number)
+    template_vm_id      = optional(number)
     template_catalog_id = optional(number)
     template_tags       = optional(list(string))
-    size             = optional(string)
-    cores            = optional(number)
-    memory           = optional(number)
-    storage_class    = optional(string)
-    disk_size_gb     = number
-    network_zone_key = optional(string)
-    tags             = optional(list(string))
+    size                = optional(string)
+    cores               = optional(number)
+    memory              = optional(number)
+    storage_class       = optional(string)
+    disk_size_gb        = number
+    network_zone_key    = optional(string)
+    tags                = optional(list(string))
   }))
   default = {}
 }
@@ -138,12 +158,12 @@ variable "lxc_instances" {
   type = map(object({
     proxmox_node_name = optional(string)
     vm_id             = optional(number)
-    template_file_id = string
-    size             = optional(string)
-    storage_class    = optional(string)
-    disk_size_gb     = number
-    network_zone_key = optional(string)
-    tags             = optional(list(string))
+    template_file_id  = string
+    size              = optional(string)
+    storage_class     = optional(string)
+    disk_size_gb      = number
+    network_zone_key  = optional(string)
+    tags              = optional(list(string))
   }))
   default = {}
 }

@@ -1,12 +1,4 @@
 ---
-- name: Apply Vault host baseline
-  hosts: vault
-  become: true
-  roles:
-    - baseline
-
-- name: Install Vault on designated hosts
-  hosts: vault
-  become: true
-  roles:
-    - vault
+# Compatibility entry point; compose the deployment recipe without duplicating tasks.
+- name: "Secrets: Step 4, dedicated Vault VM alternative"
+  ansible.builtin.import_playbook: deployment/vault-vm.yml

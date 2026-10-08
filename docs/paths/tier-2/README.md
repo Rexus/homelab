@@ -3,7 +3,7 @@
 Tier 2 owns application, project, and lab workloads. Keep workload definitions,
 inventory, service code, and state here. Consume approved infrastructure and
 platform services without moving their administrative authority into this repo.
-Use the [shared template catalog](../../platforms/proxmox/template-catalog.md) for
+Use the [shared template catalog](../../reference/template-catalog.md) for
 approved image IDs and titles; keep only workload selections and service tags here.
 
 ## Deployment order
@@ -17,7 +17,7 @@ approved image IDs and titles; keep only workload selections and service tags he
 
 The kit supplies the lab VM baseline, not a complete application deployment.
 Future self-service requests are controlled by Tier 0; that controller is
-[not implemented yet](../../architecture/infrastructure-control.md#delegated-provisioning).
+[not implemented yet](../../architecture/compute/provisioning.md#delegated-provisioning).
 Do not give workload users infrastructure-wide credentials to fill that gap.
 
 ## Getting started
@@ -28,7 +28,7 @@ From `homelab-iac/homelab-tier-2`:
 bash ../homelab-shared/scripts/init-local-files.sh --setup lab --env test
 ```
 
-Replace `homelab` with your prefix; omit `--env test` for production. Edit the
+Replace `homelab` with the prefix; omit `--env test` for production. Edit the
 initialized inputs using the [script guide](../../reference/repository-scripts.md),
 then have the authorized operator review:
 
@@ -39,9 +39,12 @@ bash ../homelab-shared/scripts/deploy.sh lab --env test --plan-only
 Remove `--plan-only` only after review. Terraform and Ansible use this repo's
 same inventory; no separate shared inventory is required.
 
-## Find your way
+<a id="find-your-way"></a>
 
-- [Inventory and automation layout](../../reference/infrastructure-automation-layout.md)
-- [VM placement and Proxmox HA](../../platforms/proxmox/cluster-ha.md#terraform-against-the-cluster)
-- [Application platform capabilities](../application-platform/README.md)
-- [Project conventions and recovery records](../../reference/project-documentation.md)
+## Navigation
+
+- [Inventory and automation layout](../../development/code-layout.md)
+- [Workload provisioning stage](../../deployment/stage-6-workloads/README.md)
+- [VM placement and Proxmox HA](../../deployment/stage-1-foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
+- [Delivery stage](../../deployment/stage-5-delivery/README.md#step-2-enable-protected-execution)
+- [Project conventions and recovery records](../../development/project-documentation.md)

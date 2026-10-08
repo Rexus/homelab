@@ -2,7 +2,7 @@
 # Replace every value before use.
 # This is the production/default settings file. It is used when you run without
 # --env, and it also owns shared derived values used by environment overlays.
-# Reference: docs/reference/infrastructure-automation-layout.md
+# Reference: docs/development/code-layout.md
 
 # SSH user created by cloud-init on the cloned guests.
 ansible_user: automation

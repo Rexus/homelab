@@ -1,7 +1,4 @@
 ---
-- name: Apply edge load-balancer host baseline
-  hosts: edge_load_balancers
-  become: true
-  roles:
-    - baseline
-    - edge_load_balancer
+# Compatibility entry point; compose the deployment recipe without duplicating tasks.
+- name: "Access: shared edge proxy"
+  ansible.builtin.import_playbook: deployment/edge-proxy.yml

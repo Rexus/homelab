@@ -35,18 +35,18 @@ organization boundary rather than the public internet as a shared utility.[1]
 
 ## Why own the baseline
 
-You should own and protect your data. Do not be naive about what that means:
+Data ownership includes responsibility for protecting that data:
 control is not only where the VM runs. It is also who controls identity, private
 keys, backups, logs, recovery paths, and the exit plan.
 
-Owning the baseline gives you:
+Owning the baseline provides:
 
 - local custody for the private domain, identity, PKI, and selected keys
 - a known place where long-lived data and secrets live
 - the ability to run when a cloud account, provider region, or internet link is
   unavailable
 - a clean way to move workloads into or out of public cloud because the trust
-  base stays yours
+  base remains under local ownership
 
 This also adds responsibility. If the platform owns the data, the platform must
 own backup, restore, encryption, access control, and lifecycle decisions. CISA
@@ -174,7 +174,7 @@ It does not try to be a full self-service cloud portal on day one. The current
 model assumes a small number of trusted platform administrators who own the
 Proxmox cluster and control what is deployed.
 
-The [infrastructure-control model](infrastructure-control.md) keeps that authority
+The [infrastructure-control model](compute/provisioning.md) keeps that authority
 in Tier 0 while allowing future, bounded VM creation and update requests from
 Tier 2 users. It does not require giving those users infrastructure administration.
 
@@ -191,12 +191,12 @@ For this repository, that means:
 - HSM hardening paths for selected cryptographic keys
 
 These services can be deployed by the repo or supplied by an existing
-environment. Read [Shared services model](shared-services.md) for the reusable
+environment. Read [Shared services model](service-boundaries.md) for the reusable
 service boundary and key-custody model.
 
 ## When Proxmox is the right layer
 
-Use Proxmox when you need a strong virtualization foundation with low
+Use Proxmox for a strong virtualization foundation with low
 operational overhead.
 
 It is a good fit when:
@@ -206,7 +206,7 @@ It is a good fit when:
   without a large cloud-control-plane project
 - tenants are mostly projects, services, or teams represented through IaC
   reviews rather than self-service infrastructure administration
-- you want the smallest reliable base for identity, PKI, secrets, edge
+- the goal is the smallest reliable base for identity, PKI, secrets, edge
   services, and later Kubernetes
 
 Proxmox is a virtualization management platform that integrates KVM, LXC,
@@ -271,14 +271,11 @@ OpenStack is the user-facing private cloud.
 | teams need VM/network/storage self-service | OpenStack | tenant/project model is part of the cloud control plane |
 | users must be their own infrastructure admins | OpenStack | delegated cloud administration is a first-class design goal |
 
-For this repository, the default path is:
-
-1. Proxmox as the reference virtualization foundation.
-2. Terraform and Ansible for repeatable platform provisioning.
-3. Identity, PKI, secrets, backup, and security foundations.
-4. Kubernetes later for application-platform scale.
-5. OpenStack only if the organization outgrows small-platform administration
-   and needs true multi-tenant IaaS self-service.
+This repository chooses Proxmox with tier-owned IaC and Kubernetes where a cluster
+runtime is needed. OpenStack is a comparison and a review trigger for a different
+multi-tenant IaaS product, not a selectable installer in this kit.
+[Deployment](../deployment/README.md) owns the rollout and readiness records
+for the selected platform.
 
 ## References
 

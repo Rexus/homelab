@@ -13,7 +13,9 @@ except ImportError:
     sys.exit("PyYAML is required: python3 -m pip install -r scripts/tier-repos/requirements.txt")
 
 from generated_files import MARKER, RepositoryWriter
-from documentation import architecture_scaffold, copy_documentation, shared_readme, tier_readme
+from documentation import copy_documentation, shared_readme, tier_readme
+from project_docs import architecture_scaffold
+from licensing import copy_attribution
 from payload import (TIERS, copy_payload, read_file, report_legacy_deployments,
                      report_legacy_shared, tier_setups, validate_layout)
 
@@ -61,8 +63,7 @@ def main():
         writer = RepositoryWriter(destination, args.refresh, args.dry_run)
         writer.write(".gitattributes", f"# {MARKER}\n* text=auto eol=lf\n")
         writer.write(".gitignore", f"# {MARKER}\n" + read_file(UPSTREAM / ".gitignore"))
-        if (UPSTREAM / "LICENSE").is_file():
-            writer.write("LICENSE", read_file(UPSTREAM / "LICENSE"))
+        copy_attribution(writer, UPSTREAM, name)
         if name == "shared":
             copy_payload(writer, UPSTREAM, name, args.prefix)
             report_legacy_shared(writer, UPSTREAM)

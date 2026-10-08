@@ -1,6 +1,6 @@
 # One consumer resolver for every tier. The deploy helper loads shared template
 # references first; tier inputs select an ID and may retain legacy overrides.
-# Reference: docs/platforms/proxmox/template-catalog.md
+# Reference: docs/reference/template-catalog.md
 locals {
   template_metadata = merge(var.proxmox_template_catalog, var.linux_vm_template_catalog)
 

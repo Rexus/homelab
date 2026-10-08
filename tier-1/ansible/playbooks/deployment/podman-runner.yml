@@ -1,0 +1,9 @@
+---
+# Delivery: general Podman runner.
+# Recipe mapping: docs/administration/ansible-recipes.md
+- name: Configure Podman image runners
+  hosts: podman_runner
+  become: true
+  roles:
+    - baseline
+    - podman_runner

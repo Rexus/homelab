@@ -1,0 +1,28 @@
+---
+# Read-only identity health checks, also used after initial deployment.
+- name: Sanity-check all FreeIPA identity hosts
+  hosts: identity
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  serial: 1
+  tasks:
+    - name: Verify FreeIPA services on each identity host
+      ansible.builtin.command:
+        argv:
+          - ipactl
+          - status
+      changed_when: false
+      when: foundation_freeipa_enabled | default(false) | bool
+
+    - name: Wait for FreeIPA API health on each identity host
+      ansible.builtin.command:
+        argv:
+          - ipa
+          - ping
+      register: foundation_identity_ipa_ping
+      changed_when: false
+      until: foundation_identity_ipa_ping.rc == 0
+      retries: 12
+      delay: 10
+      when: foundation_freeipa_enabled | default(false) | bool

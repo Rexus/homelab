@@ -1,7 +1,4 @@
 ---
-- name: Prepare image-based Linux template builders
-  hosts: immutable_template_builders
-  become: true
-  roles:
-    - baseline
-    - immutable_template
+# Compatibility entry point; compose the deployment recipe without duplicating tasks.
+- name: "Compute: optional image-based Linux builder"
+  ansible.builtin.import_playbook: deployment/immutable-template.yml

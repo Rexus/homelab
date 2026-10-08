@@ -1,6 +1,6 @@
 # Tier 0-owned starter. Copy to .gitlab-ci.yml after configuring the protected runner.
-# Optional Day 2 scheduling; initial Day 0-1 publication uses the local template commands.
-# Reference: docs/platforms/proxmox/template-lifecycle.md#gitlab-ci-example
+# Optional hosted scheduling after protected-runner handover; initial publication runs locally.
+# Reference: docs/administration/compute/template-lifecycle.md#gitlab-ci-example
 stages: [plan, publish]
 
 default:

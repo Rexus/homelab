@@ -7,13 +7,13 @@ terraform {
 }
 
 locals {
-  # Shared contains sizing data only; resources and state belong to this tier.
+  # Shared supplies size profiles; resources and state belong to this tier.
   size_profiles = jsondecode(file("${path.module}/../../../../shared/config/guest-sizes.json")).vm
 
-  selected_size = local.size_profiles[var.size]
-  selected_storage = var.storage_class_datastores[var.storage_class]
-  resolved_cores = coalesce(var.cores, local.selected_size.cores)
-  resolved_memory = coalesce(var.memory, local.selected_size.memory)
+  selected_size         = local.size_profiles[var.size]
+  selected_storage      = var.storage_class_datastores[var.storage_class]
+  resolved_cores        = coalesce(var.cores, local.selected_size.cores)
+  resolved_memory       = coalesce(var.memory, local.selected_size.memory)
   resolved_disk_size_gb = var.disk_size_gb
   resolved_datastore_id = coalesce(var.datastore_id, local.selected_storage.vm_disk)
   resolved_initialization_datastore_id = coalesce(
@@ -109,7 +109,9 @@ resource "proxmox_virtual_environment_vm" "this" {
 
     user_account {
       username = var.ci_username
-      keys     = var.ssh_public_keys
+      keys = distinct(concat(var.ssh_public_keys, [
+        for path in var.ssh_public_key_files : trimspace(file(pathexpand(path)))
+      ]))
       password = var.ci_password
     }
 

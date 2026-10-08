@@ -20,7 +20,7 @@ Minimal example:
 PROXMOX_API_URL=https://proxmox.example.internal:8006/
 PROXMOX_API_TOKEN_ID=automation@pve!provision
 PROXMOX_API_TOKEN_SECRET=ChangeMe-Proxmox-Token-12345
-ANSIBLE_VAULT_PASSWORD_FILE=secrets/ansible-vault-password.txt
+ANSIBLE_VAULT_PASSWORD_FILE=/home/operator/.config/homelab/ansible-vault-password.txt
 ```
 
 The deployment wrapper maps the `PROXMOX_API_*` values to the Terraform
@@ -28,7 +28,7 @@ The deployment wrapper maps the `PROXMOX_API_*` values to the Terraform
 automatically when that file exists.
 
 `PROXMOX_API_URL` is for the Terraform `bpg/proxmox` provider and should not
-include `/api2/json`. If you later run the HashiCorp Packer Proxmox plugin,
+include `/api2/json`. When running the HashiCorp Packer Proxmox plugin,
 use its own `PROXMOX_URL` value with the full `/api2/json` path.
 
 ## Read more
@@ -36,4 +36,4 @@ use its own `PROXMOX_URL` value with the full `/api2/json` path.
 Read more in:
 
 - [Environment variable conventions](environment-variables.md)
-- [Secret strategy](../security/secret-strategy.md)
+- [Secret strategy](../administration/secret-handling/strategy.md)

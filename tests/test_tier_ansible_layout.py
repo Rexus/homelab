@@ -13,6 +13,32 @@ from payload import TIERS
 
 
 class AnsibleOwnership(TierRepositoryTestCase):
+    def test_recipes_use_native_imports_and_reuse_existing_roles(self):
+        for tier in TIERS:
+            repo = UPSTREAM / tier
+            playbooks = repo / "ansible/playbooks"
+            for setup in (repo / ".deployment-setups").read_text().splitlines():
+                legacy = yaml.safe_load((playbooks / f"{setup}.yml").read_text())
+                self.assertEqual(len(legacy), 1)
+                deployment = legacy[0]["ansible.builtin.import_playbook"]
+                self.assertTrue(deployment.startswith("deployment/"))
+                self.assertTrue((playbooks / deployment).is_file())
+                self.assertTrue((playbooks / "maintenance" / f"{setup}.yml").is_file())
+            for path in playbooks.rglob("*.yml"):
+                for play in yaml.safe_load(path.read_text()):
+                    target = play.get("ansible.builtin.import_playbook")
+                    if target:
+                        self.assertTrue((path.parent / target).is_file(), (path, target))
+        health = yaml.safe_load((UPSTREAM / "tier-0/ansible/playbooks/maintenance/foundation.yml").read_text())
+        for play in health:
+            self.assertNotIn("roles", play)
+            for task in play["tasks"]:
+                self.assertFalse(task["changed_when"])
+                self.assertIn(task["ansible.builtin.command"]["argv"], [["ipactl", "status"], ["ipa", "ping"]])
+        cache = yaml.safe_load((UPSTREAM / "tier-1/ansible/playbooks/maintenance/cache.yml").read_text())
+        self.assertEqual(cache[0]["roles"], ["cache_proxy"])
+        self.assertNotIn("tasks", cache[0])
+
     def test_identity_authority_is_a_vm_pair_and_broker_is_in_kubernetes(self):
         self.generate()
         for repo in (UPSTREAM / "tier-0", self.root / "verify-tier-0"):
@@ -121,7 +147,7 @@ class AnsibleOwnership(TierRepositoryTestCase):
                 env.pop("ANSIBLE_ROLES_PATH", None)
                 inventory = self.root / f"{prefix}{tier}-inventory.yml"
                 shutil.copyfile(repo / "ansible/inventory/hosts.yml.example", inventory)
-                for playbook in (repo / "ansible/playbooks").glob("*.yml"):
+                for playbook in (repo / "ansible/playbooks").rglob("*.yml"):
                     result = subprocess.run(
                         ["ansible-playbook", "--syntax-check", "-i", str(inventory), str(playbook)],
                         cwd=repo, env=env, capture_output=True, text=True,

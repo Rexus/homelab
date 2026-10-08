@@ -9,13 +9,17 @@ import unittest
 from unittest.mock import patch
 
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
-from documentation import owned_template
+from project_docs import owned_template
 from generate import REPOSITORIES
 from generated_files import MARKER, RepositoryWriter
 
 PROJECT_DOCS = (
-    "docs/README.md", "docs/naming-conventions.md", "docs/owned/design/overview.md",
-    "docs/owned/runbooks/recovery.md",
+    "docs/README.md", "docs/naming-conventions.md", "docs/architecture/README.md",
+    "docs/architecture/networking/README.md", "docs/architecture/compute/README.md",
+    "docs/architecture/identity/README.md", "docs/architecture/cryptography/README.md",
+    "docs/architecture/delivery/README.md", "docs/architecture/operations/README.md",
+    "docs/administration/recovery.md",
+    "docs/deployment/README.md", "docs/development/README.md", "docs/administration/README.md",
 )
 
 
@@ -37,12 +41,22 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             manifest = json.loads((repo / ".generated-files.json").read_text())
             self.assertIn("README.md", manifest["owned"])
             self.assertNotIn("README.md", manifest["files"])
+            if name != "architecture":
+                for relative in ("docs/architecture/README.md", "docs/README.md",
+                                 "docs/deployment/README.md", "docs/development/README.md",
+                                 "docs/administration/README.md"):
+                    self.assertIn(relative, manifest["owned"])
+                    self.assertNotIn(relative, manifest["files"])
+                    self.assertNotIn("${", (repo / relative).read_text())
+                guides = (repo / "docs/README.md").read_text()
+                for intent in ("Deployment", "Development", "Administration"):
+                    self.assertIn(f"| {intent} |", guides)
         manifest = json.loads((architecture / ".generated-files.json").read_text())
         for relative in PROJECT_DOCS:
             self.assertTrue((architecture / relative).is_file(), relative)
             self.assertIn(relative, manifest["owned"])
             self.assertNotIn(relative, manifest["files"])
-        for heading in ("VM and DNS names", "Proxmox tags", "VMID ranges", "Networks and VLANs"):
+        for heading in ("VM and DNS names", "Role abbreviations", "Proxmox tags", "VMID ranges", "Networks and VLANs"):
             self.assertIn(f"## {heading}", naming.read_text())
         self.assertFalse((architecture / "docs/generated").exists())
 
@@ -51,12 +65,14 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         tier0 = (self.root / "verify-tier-0/README.md").read_text(encoding="utf-8")
         publisher = "bash scripts/proxmox-templates.sh init"
         setup = "bash ../verify-shared/scripts/init-local-files.sh"
-        self.assertIn("Day 0: templates before VMs", tier0)
-        self.assertIn("Day 0-3 checklist", tier0)
+        self.assertIn("Templates before VMs", tier0)
+        self.assertIn("six-capability deployment checklist", tier0)
+        self.assertIn("deployment/stage-1-foundation/README.md", tier0)
+        self.assertIn("deployment/stage-2-trust/README.md", tier0)
         self.assertIn("FreeIPA runs on two dedicated VMs", tier0)
         self.assertIn("Keycloak is a later service in this cluster", tier0)
-        self.assertIn("platforms/talos/terraform.md", tier0)
-        self.assertIn("platforms/kubernetes/README.md", tier0)
+        self.assertIn("deployment/stage-3-identity-runtime/procedures/talos-terraform.md", tier0)
+        self.assertIn("deployment/stage-3-identity-runtime/procedures/kubernetes.md", tier0)
         self.assertIn("Kubernetes control cluster", tier0)
         self.assertIn("current [Talos implementation]", tier0)
         self.assertLess(tier0.index(publisher), tier0.index("bash scripts/kubernetes-cluster.sh init"))
@@ -68,7 +84,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             readme = (self.root / f"verify-{tier}/README.md").read_text(encoding="utf-8")
             self.assertNotIn(publisher, readme)
             self.assertIn("operator-run workflows", readme)
-            self.assertIn("infrastructure-control.md", readme)
+            self.assertIn("compute/provisioning.md", readme)
             self.assertNotIn("${", readme)
 
     def test_naming_worksheet_keeps_conventions_separate_from_inventory(self):
@@ -78,10 +94,24 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         content = naming.read_text(encoding="utf-8")
         self.assertTrue(content.startswith("# verify Naming Conventions"))
         self.assertNotIn("${", content)
-        self.assertIn("Your choice", content)
-        self.assertIn("TBD", content)
+        self.assertIn("| Type | Standard | Comments |", content)
+        self.assertIn("editable reference placeholders", content)
+        self.assertNotIn("TBD", content)
+        self.assertNotIn("Production / test name", content)
+        self.assertNotIn("| FQDN |", content)
+        self.assertIn("| Abbreviation | Full name | Comments |", content)
+        self.assertIn("[role abbreviations](#role-abbreviations)", content)
+        self.assertIn("| External domain | `example.com` |", content)
+        self.assertIn("<role>.<env>.<internal-domain>", content)
+        self.assertIn("<role>.<env>.<external-domain>", content)
+        self.assertIn("require separate configuration", content)
+        rows = content.splitlines()
+        headers = [rows[index - 1] for index, row in enumerate(rows) if row.startswith("| ---")]
+        for header in headers:
+            self.assertNotRegex(header.lower(), r"example|choice|our")
+            self.assertTrue(header.endswith("| Comments |"), header)
         self.assertIn("<env>-<role>-<n>", content)
-        for example in ("test-idm-1", "critical", "restricted", "100-199", "9000-9999",
+        for example in ("idp.prod.corp.example.com", "critical", "restricted", "100-199", "9000-9999",
                         "10 / Control", "120 / Services", "320 / DMZ"):
             self.assertIn(example, content)
         self.assertIn("Tier = owning repo and potential impact", content)
@@ -93,6 +123,19 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             relative = target.split("#")[0]
             self.assertTrue((naming.parent / relative if relative else naming).is_file(), target)
 
+    def test_documentation_uses_formal_project_language(self):
+        self.generate()
+        documents = [UPSTREAM / "README.md", *(UPSTREAM / "docs").rglob("*.md"),
+                     *(UPSTREAM / "scripts/tier-repos/templates").rglob("*.md"),
+                     *self.root.rglob("*.md")]
+        for document in documents:
+            content = document.read_text(encoding="utf-8")
+            # Link destinations and executable examples are not prose.
+            prose = re.sub(r"```.*?```", "", content, flags=re.DOTALL)
+            prose = re.sub(r"\]\([^)]+\)", "]", prose)
+            prose = re.sub(r'<a id="[^"]+"></a>', "", prose)
+            self.assertNotRegex(prose.lower(), r"\b(you|your|yours|yourself|our|ours|we)\b", str(document))
+
     def test_repo_checklists_and_shared_cluster_procedure_are_reachable(self):
         self.generate()
         architecture = self.root / "verify-architecture/docs/auto-docs"
@@ -102,35 +145,79 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertTrue((architecture / f"paths/{tier}/README.md").is_file())
         for tier in ("tier-0", "tier-1"):
             path = (architecture / f"paths/{tier}/README.md").read_text()
-            self.assertIn("../../platforms/kubernetes/README.md", path)
+            self.assertIn("../../deployment/stage-3-identity-runtime/procedures/kubernetes.md", path)
         tier0 = (architecture / "paths/tier-0/README.md").read_text()
         self.assertLess(tier0.index("cluster-ha.md"), tier0.index("template-lifecycle.md"))
-        self.assertLess(tier0.index("optional-sdn-for-guest-networks"), tier0.index("template-lifecycle.md"))
-        self.assertLess(tier0.index("template-lifecycle.md"), tier0.index("kubernetes/README.md"))
-        self.assertIn("operator-run bootstrap", (architecture / "platforms/talos/bootstrap.md").read_text())
-        for day in range(4):
-            self.assertIn(f"**Day {day}:", tier0)
-        self.assertIn("kubernetes/README.md#cluster-foundation", tier0)
-        bootstrap = (architecture / "paths/tier-0/bootstrap.md").read_text()
-        for heading in ("Day 0 bootstrap dependencies", "Day 1 cluster foundation",
-                        "Day 2 service sequence", "Day 3 operational handover"):
-            self.assertIn(f"## {heading}", bootstrap)
+        self.assertLess(tier0.index("step-1c-sdn.md"), tier0.index("template-lifecycle.md"))
+        self.assertLess(tier0.index("template-lifecycle.md"), tier0.index("kubernetes.md"))
+        self.assertIn("operator-run bootstrap", (architecture / "deployment/stage-3-identity-runtime/step-2b-manual-cluster.md").read_text())
+        for step in range(1, 7):
+            self.assertIn(f"**{step}:", tier0)
+        bootstrap = (architecture / "deployment/README.md").read_text()
+        self.assertIn("stage-1-foundation/README.md", bootstrap)
         self.assertIn("Terraform / OpenTofu", bootstrap)
         self.assertIn("Current wrappers call `terraform`", bootstrap)
-        foundation = (architecture / "platforms/kubernetes/README.md").read_text()
+        foundation = (architecture / "deployment/stage-3-identity-runtime/procedures/kubernetes.md").read_text()
         for component in ("CNI", "Flux", "SOPS", "Storage", "cert-manager", "ingress", "CloudNativePG"):
             self.assertIn(component, foundation)
         self.assertIn("Immutable AlmaLinux or another node OS", foundation)
         self.assertIn("not a multi-OS installer", foundation)
-        application = (architecture / "paths/application-platform/kubernetes.md").read_text()
-        self.assertIn("platforms/kubernetes/README.md#cluster-foundation", application)
+        application = (architecture / "deployment/stage-5-delivery/procedures/platform-cluster.md").read_text()
+        self.assertIn("kubernetes.md#cluster-foundation", application)
         self.assertNotIn("| 1. Networking |", application)
+
+    def test_six_capabilities_have_numbered_main_paths_and_adjacent_options(self):
+        self.generate("--repo", "architecture")
+        docs = self.root / "verify-architecture/docs/auto-docs"
+        stages = sorted((docs / "deployment").glob("stage-*/README.md"))
+        self.assertEqual(len(stages), 6)
+        index = (docs / "deployment/README.md").read_text()
+        project = (self.root / "verify-architecture/docs/deployment/README.md").read_text()
+        for number, stage in enumerate(stages, 1):
+            content = stage.read_text(encoding="utf-8")
+            self.assertTrue(content.startswith(f"# Stage {number}: "), stage)
+            self.assertIn(f"{stage.parent.name}/README.md", index)
+            self.assertIn(f"{stage.parent.name}/README.md", project)
+            steps = re.findall(r"(?m)^## Step (\d+): ", content)
+            self.assertGreaterEqual(len(steps), 2)
+            self.assertEqual(steps, [str(n) for n in range(1, len(steps) + 1)])
+            for expected in ("## Main path", "```mermaid", "**Result:**",
+                             "## Capability available", "architecture/", "**Prerequisites:**"):
+                self.assertIn(expected, content, stage)
+            for option in stage.parent.glob("step-*.md"):
+                text = option.read_text(encoding="utf-8")
+                step, variant = re.match(r"step-(\d+)([a-z])-", option.name).groups()
+                self.assertIn(step, steps, option)
+                self.assertTrue(text.startswith(f"# Step {step}{variant}:"), option)
+                self.assertRegex(text, rf"\*\*Branch from:\*\* \[Step {step}\]\(README\.md#step-{step}-")
+                self.assertIn("**Change:**", text, option)
+                self.assertIn("Return", text, option)
+                self.assertIn(f"({option.name})", content, option)
+        foundation, trust, runtime, control, delivery, workloads = (
+            stage.read_text(encoding="utf-8") for stage in stages
+        )
+        self.assertIn("not itself a reachable Flux source", " ".join(foundation.split()))
+        self.assertIn("Hardware protection", trust)
+        self.assertIn("FreeIPA stays outside Kubernetes", runtime)
+        self.assertIn("kubernetes.md#cluster-foundation", runtime)
+        self.assertIn("not complete application installers", control)
+        self.assertIn("not sufficient authorization", delivery)
+        self.assertIn("not a shipped controller", workloads)
+        hardware = (stages[1].parent / "step-1b-usb-hsm.md").read_text()
+        self.assertIn("OS baseline", hardware)
+        self.assertIn("not a native HSM cluster", hardware)
+        self.assertEqual(hardware.count("```mermaid"), 1)
+        self.assertIn("step-1b-usb-hsm.md", project)
+        self.assertIn("protected execution handover", project)
+        design = (docs / "architecture/reference-platform.md").read_text()
+        self.assertIn("not a claim that every service is automated", design)
+        self.assertIn("no network route", design)
+        self.assertIn("independent recovery/unseal material", design)
 
     def test_source_and_generated_documentation_links_resolve(self):
         self.generate()
         source_docs = [UPSTREAM / "README.md", *(UPSTREAM / "docs").rglob("*.md")]
-        generated_docs = list((self.root / "verify-architecture").rglob("*.md"))
-        generated_docs.extend(self.root.glob("verify-*/README.md"))
+        generated_docs = list(self.root.rglob("*.md"))
         for document in [*source_docs, *generated_docs]:
             content = document.read_text(encoding="utf-8")
             for link in re.findall(r"\[[^\]]*\]\(([^)]+)\)", content):
@@ -140,11 +227,31 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                 target = (document.parent / relative).resolve() if relative else document
                 self.assertTrue(target.exists(), f"{document}: {link}")
                 if anchor and target.suffix == ".md":
-                    # These docs use plain GitHub heading anchors, without raw HTML IDs.
-                    headings = re.findall(r"^#{1,6} (.+)$", target.read_text(encoding="utf-8"), re.MULTILINE)
+                    target_content = target.read_text(encoding="utf-8")
+                    headings = re.findall(r"^#{1,6} (.+)$", target_content, re.MULTILINE)
                     anchors = [re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-")
                                for heading in headings]
+                    anchors.extend(re.findall(r'<a id="([^"]+)"></a>', target_content))
                     self.assertIn(anchor, anchors, f"{document}: {link}")
+
+    def test_refresh_keeps_legacy_section_links_in_owned_readmes_valid(self):
+        self.generate()
+        readme = self.root / "verify-tier-0/README.md"
+        documents = {
+            "paths/README.md": "choose-your-repository",
+            "deployment/stage-3-identity-runtime/procedures/freeipa.md": "what-you-configure",
+            "deployment/README.md": "day-2-service-sequence",
+        }
+        content = "# Project deployment guide\n" + "\n".join(
+            f"[Guide](../verify-architecture/docs/auto-docs/{path}#{anchor})"
+            for path, anchor in documents.items()
+        )
+        readme.write_text(content)
+        self.generate("--refresh")
+        self.assertEqual(readme.read_text(), content)
+        for path, anchor in documents.items():
+            target = self.root / "verify-architecture/docs/auto-docs" / path
+            self.assertIn(f'<a id="{anchor}"></a>', target.read_text())
 
     def test_auto_docs_have_notice_and_project_link_at_every_depth(self):
         self.generate("--repo", "architecture")
@@ -166,11 +273,14 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.generate()
         architecture = self.root / "verify-architecture"
         targets = [(self.root / f"verify-{name}", "README.md") for name in REPOSITORIES]
+        targets += [(self.root / f"verify-{name}", relative)
+                    for name in REPOSITORIES if name != "architecture"
+                    for relative in ("docs/architecture/README.md", "docs/README.md")]
         targets += [(architecture, relative) for relative in PROJECT_DOCS]
         templates = self.root / "test-templates"
         templates.mkdir()
         (templates / "changed.md").write_text("# New upstream starter\n")
-        with patch("documentation.TEMPLATES", templates), contextlib.redirect_stdout(io.StringIO()):
+        with patch("project_docs.TEMPLATES", templates), contextlib.redirect_stdout(io.StringIO()):
             for repo, relative in targets:
                 expected = (repo / relative).read_bytes()
                 writer = RepositoryWriter(repo, refresh=True)
@@ -182,10 +292,14 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.generate()
         architecture = self.root / "verify-architecture"
         edited = [self.root / f"verify-{name}/README.md" for name in REPOSITORIES]
+        edited += [self.root / f"verify-{name}" / relative
+                   for name in REPOSITORIES if name != "architecture"
+                   for relative in ("docs/architecture/README.md", "docs/README.md")]
         edited += [architecture / relative for relative in PROJECT_DOCS]
-        edited += [architecture / "docs/auto-docs/architecture/overview.md"]
-        deleted = [edited.pop(0), edited.pop(0), architecture / "docs/owned/runbooks/recovery.md",
-                   architecture / "docs/auto-docs/security/secret-strategy.md"]
+        edited += [architecture / "docs/auto-docs/architecture/README.md"]
+        deleted = [edited.pop(0), edited.pop(0), architecture / "docs/administration/recovery.md",
+                   self.root / "verify-tier-2/docs/architecture/README.md",
+                   architecture / "docs/auto-docs/administration/secret-handling/strategy.md"]
         for path in edited:
             path.write_text("# Project-owned changes\n", encoding="utf-8")
         for path in deleted:

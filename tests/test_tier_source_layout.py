@@ -19,6 +19,22 @@ from payload import TIERS, copy_payload, validate_layout
 
 
 class SourceLayout(TierRepositoryTestCase):
+    def test_source_comment_documentation_references_resolve(self):
+        for name in ("shared", *TIERS):
+            for path in (UPSTREAM / name).rglob("*"):
+                if not path.is_file() or any(part.startswith(".") for part in path.relative_to(UPSTREAM).parts):
+                    continue
+                if path.suffix not in (".tf", ".sh", ".hcl", ".j2", ".example", ".tfvars", ".yml"):
+                    continue
+                if path.suffix == ".tfvars" and name != "shared":
+                    continue
+                if path.suffix == ".yml" and ("inventory" in path.parts or "group_vars" in path.parts):
+                    continue
+                for line in path.read_text(encoding="utf-8").splitlines():
+                    if line.lstrip().startswith("#"):
+                        for target in re.findall(r"docs/[\w/.-]+\.md", line):
+                            self.assertTrue((UPSTREAM / target).is_file(), (path, target))
+
     def test_source_payloads_match_generated_paths_and_inputs(self):
         validate_layout(UPSTREAM)
         self.generate()
@@ -27,7 +43,10 @@ class SourceLayout(TierRepositoryTestCase):
             generated = self.root / f"verify-{name}"
             manifest = json.loads((generated / ".generated-files.json").read_text())
             for relative in set(manifest["files"]) | set(manifest["owned"]):
-                if relative in ("README.md", ".gitignore", ".gitattributes", "LICENSE"):
+                if relative in ("README.md", "docs/README.md", "docs/architecture/README.md",
+                                "docs/deployment/README.md", "docs/development/README.md",
+                                "docs/administration/README.md",
+                                ".gitignore", ".gitattributes", "UPSTREAM-NOTICE", "LICENSE"):
                     continue
                 expected = (source / relative).read_text(encoding="utf-8")
                 expected = re.sub(r"(?<=\.\./)shared(?=[/\"'\s]|$)", "verify-shared", expected)

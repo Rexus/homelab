@@ -1,15 +1,14 @@
 # Copy to: terraform/deployments/foundation/terraform.tfvars
 # Optionally copy to terraform.<env>.tfvars only for environment overrides.
 # Replace every value before use.
-# Setup guide: docs/paths/shared-services/identity.md
-# Shared values live in ../../common.tfvars.
+# Setup guide: docs/deployment/stage-3-identity-runtime/procedures/freeipa.md
+# Tier network inputs live in ../../common.tfvars; the shared helper loads platform/image references.
 
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
-# Source-image tags are read from linux_vm_template_catalog in common.tfvars
-# by template ID. Use template_catalog_id only when a builder VM should use
+# Source-image tags are read by template ID from the shared proxmox_template_catalog. Use template_catalog_id only when a builder VM should use
 # tags for a target template ID instead of the source clone template ID.
-# default_linux_vm_template_id = 111
+# default_linux_vm_template_id = 9100
 
 vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
@@ -17,7 +16,7 @@ vm_instances = {
   # Dedicated FreeIPA pair, separate from the Kubernetes cluster hosting Keycloak.
   "idm-1" = {
     # Optional per-guest template override when one VM uses another template.
-    # template_vm_id = 111
+    # template_vm_id = 9100
     vm_id             = 200
     size              = "small"
     storage_class     = "local"

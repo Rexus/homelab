@@ -1,0 +1,8 @@
+---
+# Cryptography: Trust Step 1b, gateway host baseline only.
+# Recipe mapping: docs/administration/ansible-recipes.md
+- name: Apply HSM host baseline
+  hosts: hsm_gateways:crypto_admin
+  become: true
+  roles:
+    - baseline

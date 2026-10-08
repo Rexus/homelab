@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/vault.yml
 # Replace every value before use.
-# Reference guide: docs/paths/shared-services/vault.md
+# Reference guide: docs/deployment/stage-4-control-services/step-2b-vault-vm.md
 
 platform_host_ips:
   vault-1: 10.20.21.21
@@ -10,10 +10,10 @@ vault_cluster_addr: "https://vault01.example.internal:8201"
 vault_node_id: "vault01"
 
 # These paths are read from the Ansible control machine and should stay local
-# and untracked.
-vault_tls_cert_src: "{{ playbook_dir }}/../../secrets/vault/vault01-fullchain.pem"
-vault_tls_key_src: "{{ playbook_dir }}/../../secrets/vault/vault01.key"
-vault_tls_ca_src: "{{ playbook_dir }}/../../secrets/vault/internal-ca.pem"
+# and untracked. Resolve from the tier's ansible.cfg, independent of recipe depth.
+vault_tls_cert_src: "{{ ansible_config_file | dirname }}/../secrets/vault/vault01-fullchain.pem"
+vault_tls_key_src: "{{ ansible_config_file | dirname }}/../secrets/vault/vault01.key"
+vault_tls_ca_src: "{{ ansible_config_file | dirname }}/../secrets/vault/internal-ca.pem"
 
 vault_listener_address: "0.0.0.0:8200"
 vault_ui_enabled: true

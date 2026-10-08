@@ -1,0 +1,4 @@
+---
+# The existing image lifecycle already defines its gates; reuse that recipe.
+- name: Run the approved template-refresh lifecycle
+  ansible.builtin.import_playbook: ../deployment/template-refresh.yml

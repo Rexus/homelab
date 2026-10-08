@@ -1,0 +1,9 @@
+---
+# Access: shared edge proxy.
+# Recipe mapping: docs/administration/ansible-recipes.md
+- name: Apply edge load-balancer host baseline
+  hosts: edge_load_balancers
+  become: true
+  roles:
+    - baseline
+    - edge_load_balancer

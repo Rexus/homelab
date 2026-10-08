@@ -1,7 +1,4 @@
 ---
-- name: Configure development platform hosts
-  hosts: development_platform
-  become: true
-  roles:
-    - baseline
-    - gitlab_container
+# Compatibility entry point; compose the deployment recipe without duplicating tasks.
+- name: "Delivery: Step 5, source-control VM alternative"
+  ansible.builtin.import_playbook: deployment/source-control-vm.yml

@@ -1,6 +1,6 @@
 # Copy to: terraform/deployments/lab/terraform.tfvars
 # Replace every value before use.
-# Reference: docs/reference/infrastructure-automation-layout.md
+# Reference: docs/development/code-layout.md
 # Shared values live in ../../common.tfvars.
 
 # Optional: override the shared default Linux VM template for this setup or

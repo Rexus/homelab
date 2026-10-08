@@ -1,95 +1,81 @@
 # Tier 0
 
-Tier 0 owns Proxmox, physical network and storage control, every VM template,
-and the trust/control services with authority over the environment. Start here
-for a new installation; consume existing infrastructure when it meets the same
-readiness checks. Tier 0 must recover without Tier 1 or Tier 2.
+Tier 0 owns Proxmox, network and storage control, all VM templates, and the
+trust services beneath the platform. It must remain recoverable without
+Tier 1 or Tier 2. Start here for a new installation.
 
 ## Table of contents
 
 - [Deployment order](#deployment-order)
 - [Getting started](#getting-started)
-- [Find your way](#find-your-way)
+- [Navigation](#navigation)
 - [Repository structure](#repository-structure)
 
 ## Deployment order
 
-Before Day 0, record [project conventions](../../reference/project-documentation.md#start-with-project-values)
-and prepare [local tools](../../getting-started/local-setup.md).
-Days are readiness phases, not calendar days or repository tiers.
+Record [project conventions](../../development/project-documentation.md#start-with-project-values)
+and prepare [local tools](../../development/local-setup.md) first.
+Follow the [six capability stages](../../deployment/README.md).
+Each stage's README explains its numbered steps with diagrams and acceptance checks;
+options branch from the relevant decision and return to the main path.
 
-| Phase | Deploy or prepare | Ready to continue when |
+| Stage | Tier 0 responsibility | Walkthrough |
 | --- | --- | --- |
-| **Day 0: foundation** | [Proxmox](../../platforms/proxmox/README.md#first-deployment-order), optional [HA](../../platforms/proxmox/cluster-ha.md) and [SDN](../../platforms/proxmox/network-prerequisites.md#optional-sdn-for-guest-networks), [VM templates](../../platforms/proxmox/template-lifecycle.md#local-workflow); network/storage, source control (Git), OCI registry access, CI/bootstrap runner, Terraform state | Tested templates and [bootstrap dependencies](bootstrap.md#day-0-bootstrap-dependencies) work without the new cluster |
-| **Day 1: cluster foundation** | Deploy the [Kubernetes control cluster](../../platforms/kubernetes/README.md); add networking, GitOps, storage, certificates, ingress, databases, and bootstrap secrets using the [shared foundation checklist](../../platforms/kubernetes/README.md#cluster-foundation) | Cluster, reconciliation, storage, TLS, database, and secret-decryption checks pass |
-| **Day 2: control services** | FreeIPA on two dedicated VMs; Keycloak in Kubernetes; Vault, NetBox, Headlamp, and monitoring; follow the [service sequence](bootstrap.md#day-2-service-sequence) | Services work, identity integration is tested, backups run, and local recovery remains available |
-| **Day 3: operational handover** | Harden RBAC, switch supported normal logins to OIDC, disable or restrict bootstrap credentials, test backup/restore; use the [handover checks](bootstrap.md#day-3-operational-handover) | Scoped access and recovery are proven without relying on the services being restored |
+| **1: Compute foundation** | Proxmox, networks, templates and independent tools/state | [Foundation](../../deployment/stage-1-foundation/README.md) |
+| **2: Cryptographic trust** | Offline root and online issuer; optional hardware protection | [Trust](../../deployment/stage-2-trust/README.md) |
+| **3: Identity and Kubernetes** | Dedicated FreeIPA pair and control cluster | [Identity and Kubernetes](../../deployment/stage-3-identity-runtime/README.md) |
+| **4: Control services** | Keycloak, Vault, NetBox, Headlamp and monitoring | [Control services](../../deployment/stage-4-control-services/README.md) |
+| **5: Delivery and handover** | Protected Tier 0 runner; Tier 1 owns delivery services | [Delivery and handover](../../deployment/stage-5-delivery/README.md) |
+| **6: Workload provisioning** | Approve and execute infrastructure requests | [Workload provisioning](../../deployment/stage-6-workloads/README.md) |
 
-Day 0/1 follows the [platform flow](bootstrap.md#bootstrap-phases); Day 2 follows
-**FreeIPA -> Keycloak -> OIDC -> clients**. The FreeIPA pair is deployed through
-the Linux `foundation` setup and does not require Kubernetes. Keycloak belongs
-in the Tier 0 Kubernetes cluster. Choose one lifecycle owner per service; do not
-duplicate FreeIPA in Kubernetes. General platform instances remain in Tier 1.
-
-Restrict access, protect secrets, and retain backups from the start. Day 3 is
-the tested handover to normal operation, not the first security work.
+Select optional [HA](../../deployment/stage-1-foundation/step-1b-cluster-ha.md) and
+[SDN](../../deployment/stage-1-foundation/step-1c-sdn.md) before important guests.
+Protect access and backups from the first step; the
+[support map](../../reference/implementation-support.md) identifies automation and remaining integration.
 
 ## Getting started
 
-After preparing hosts, **Day 0: templates before VMs.** From
-`homelab-iac/homelab-tier-0`, initialize
-the template catalog:
+**Templates before VMs.** From `homelab-iac/homelab-tier-0`:
 
 ```bash
 bash scripts/proxmox-templates.sh init
 ```
 
-Follow the
-[local template workflow](../../platforms/proxmox/template-lifecycle.md#local-workflow)
-to set image paths, checksums, placement, and protected API access; then plan,
-publish, and test the required AlmaLinux, Rocky Linux, or Talos templates.
-Approve their references in the [shared consumer catalog](../../platforms/proxmox/template-catalog.md)
-before any tier selects them. Do not copy the catalog into each tier.
-This works before any managed VM, control cluster, or hosted CI exists.
-Existing approved templates are valid when their IDs and recovery copies are verified.
+Follow the [local template workflow](../../administration/compute/template-lifecycle.md#local-workflow)
+to configure, plan, publish, and test images. Tier 0 approves references in the
+[shared catalog](../../reference/template-catalog.md); other tiers consume them.
+Verified existing templates are valid. No hosted CI or cluster is required.
 
-Next initialize the Kubernetes control cluster's Tier 0 inputs. The current
-implementation uses Talos; [other node OS choices](../../platforms/kubernetes/README.md#implementation-choice)
-do not change the goal or ownership.
+After the trust stage, initialize the Kubernetes control cluster:
 
 ```bash
 bash scripts/kubernetes-cluster.sh init
 ```
 
-Follow the [current Talos implementation](../../platforms/talos/terraform.md) to configure, plan,
-and deploy the cluster, and the [Linux identity VM guide](../shared-services/identity.md) for
-the dedicated FreeIPA pair. Run shared commands
-from the tier repository root so they use its inventory and state. Replace
-`homelab` in paths if you chose another prefix.
+Follow the [common Kubernetes procedure](../../deployment/stage-3-identity-runtime/procedures/kubernetes.md)
+and [current Talos implementation](../../deployment/stage-3-identity-runtime/procedures/talos-terraform.md)
+to configure, plan, and deploy. The [identity VM guide](../../deployment/stage-3-identity-runtime/procedures/freeipa.md)
+covers the separate FreeIPA pair. Linux setup commands use tier-local inventory
+and state; they do not bootstrap Kubernetes or install cluster services.
+Replace `homelab` in paths if another prefix was selected.
 
-## Find your way
+<a id="find-your-way"></a>
+
+## Navigation
 
 | Need | Guide |
 | --- | --- |
-| Phase dependencies, recovery, and handover | [Tier 0 bootstrap and recovery](bootstrap.md) |
-| Approved node and guest images | [Template lifecycle and CD](../../platforms/proxmox/template-lifecycle.md) |
-| Kubernetes installation and shared foundation | [Cluster guide](../../platforms/kubernetes/README.md) |
-| Tier boundaries | [Tier model](../../architecture/tier-model.md) |
-| Hardware ownership and future workload requests | [Infrastructure control](../../architecture/infrastructure-control.md) |
-| Network design | [Network architecture](../../architecture/network.md) |
-| Inventory and upstream updates | [Generated repository model](../../reference/generated-repository-model.md) |
-| Command reference | [Repository scripts](../../reference/repository-scripts.md) |
+| Dependencies, readiness checks, recovery | [Deployment stages](../../deployment/README.md) |
+| Target placement and certificate trust | [Control platform design](../../architecture/reference-platform.md) |
+| Network/VLAN choices and policy | [Network map](../../architecture/networking/README.md) |
+| File locations and commands | [Code map](../../development/code-layout.md), [scripts](../../reference/repository-scripts.md) |
+| Ownership and future workload requests | [Infrastructure control](../../architecture/compute/provisioning.md) |
 
 ## Repository structure
 
-- `ansible/`: tier service playbooks and roles, inventory, group vars, and configuration
-- `terraform/deployments/`: infrastructure deployments and their inputs
-- `terraform/deployments/kubernetes/`: control-cluster VMs and bootstrap; currently Talos
-- `templates/`, `terraform/deployments/templates/`, and `ci/`: image catalog, template publication, and CD jobs
-- `terraform/modules/` and `packer/`: tier-owned guest/template modules and custom-build scaffolds
+- `terraform/deployments/`: runnable deployments and local inputs
+- `terraform/modules/`: infrastructure building blocks owned by this tier
+- `ansible/`: inventory, group vars, playbooks, and service roles
+- `templates/`, `packer/`, `ci/`: image recipes, optional builds, publication jobs
 - `clusters/tier0/`: cluster-service skeletons
-- `scripts/`: template and Kubernetes commands, plus entry points to shared Linux helpers
-
-The Linux setup scripts do not bootstrap Kubernetes or deploy the cluster services.
-The [bootstrap and recovery reference](bootstrap.md) distinguishes working
-automation from skeletons and records the recovery boundary.
+- `scripts/`: template/cluster commands and entry points to shared Linux helpers

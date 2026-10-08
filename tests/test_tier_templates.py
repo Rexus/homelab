@@ -34,7 +34,9 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
                             for entry in catalog.values()))
         self.assertFalse((tier0 / "templates/proxmox.yml").exists())
         self.assertTrue((tier0 / "terraform/deployments/templates/.terraform.lock.hcl").exists())
-        refresh = yaml.safe_load((tier0 / "ansible/playbooks/template-refresh.yml").read_text())
+        entry = tier0 / "ansible/playbooks/template-refresh.yml"
+        recipe = yaml.safe_load(entry.read_text())[0]["ansible.builtin.import_playbook"]
+        refresh = yaml.safe_load((entry.parent / recipe).read_text())
         replacement = refresh[1]["roles"][0]
         self.assertEqual(replacement["role"], "proxmox_template_replace")
         self.assertEqual(replacement["when"], "template_refresh_replace_enabled | default(false) | bool")

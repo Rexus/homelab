@@ -91,7 +91,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
         for path in deleted:
             path.unlink()
         updates = [(self.root / "verify-tier-1", "ansible/group_vars/edge.yml.example"),
-                   (self.root / "verify-architecture", "docs/auto-docs/architecture/overview.md")]
+                   (self.root / "verify-architecture", "docs/auto-docs/architecture/README.md")]
         expected = {}
         for repo, relative in updates:
             file = repo / relative
@@ -157,6 +157,11 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
         (home / ".ssh/known_hosts").write_text("# Disposable wrapper fixture\n")
         env = dict(os.environ, PATH=f"{commands}:{os.environ['PATH']}", TEST_COMMAND_LOG=str(log), HOME=str(home))
         env.pop("DEPLOYMENT_REPO_DIR", None)
+        help_result = subprocess.run(
+            ["bash", str(self.root / "verify-shared/scripts/deploy.sh"), "--help"],
+            cwd=self.root, capture_output=True, text=True, env=env)
+        self.assertEqual(help_result.returncode, 0, help_result.stdout + help_result.stderr)
+        self.assertIn("Usage:", help_result.stdout)
         for tier, setup in (("tier-0", "hsm"), ("tier-1", "edge"), ("tier-2", "lab")):
             repo = self.root / f"verify-{tier}"
             init = ["bash", "../verify-shared/scripts/init-local-files.sh"]
@@ -187,7 +192,9 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
         for plan in plans:
             repo = Path(plan["cwd"]).parents[2]
             catalog_arg = f"-var-file={self.root}/verify-shared/templates/proxmox-catalog.tfvars"
+            profile_arg = f"-var-file={self.root}/verify-shared/config/platform.tfvars"
             common_arg = f"-var-file={repo}/terraform/common.tfvars"
+            self.assertLess(plan["args"].index(profile_arg), plan["args"].index(catalog_arg))
             self.assertLess(plan["args"].index(catalog_arg), plan["args"].index(common_arg))
             self.assertTrue(plan["data"].startswith(str(repo / ".terraform/data")))
             self.assertIn(f"-var=ansible_inventory_path={repo}/ansible/inventory/hosts.yml", plan["args"])
@@ -211,6 +218,26 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
             self.assertEqual(reset["args"][-1], str(self.root / "verify-shared/ansible/playbooks/reset-known-hosts.yml"))
             self.assertEqual([arg[1:] for arg in reset["args"] if arg.startswith("@")], variables)
         self.assertFalse(any("ingress.yml" in str(call["args"]) for call in calls))
+        repo = self.root / "verify-tier-2"
+        (repo / "terraform/deployments/lab/terraform.tfvars").unlink()
+        log.write_text("")
+        command = ["bash", "scripts/deploy.sh", "lab", "--recipe", "maintenance", "--env", "test"]
+        result = subprocess.run(command, cwd=repo, capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        maintenance_calls = [json.loads(line) for line in log.read_text().splitlines()]
+        self.assertTrue(maintenance_calls)
+        self.assertTrue(all(call["tool"] == "ansible-playbook" for call in maintenance_calls))
+        self.assertIn("control_node_require_terraform=false", maintenance_calls[0]["args"])
+        self.assertEqual(maintenance_calls[-1]["args"][-1],
+                         str(repo / "ansible/playbooks/maintenance/lab.yml"))
+        self.assertIn(f"@{repo}/ansible/group_vars/lab.test.yml", maintenance_calls[-1]["args"])
+        for flag in ("--plan-only", "--terraform-only", "--destroy"):
+            result = subprocess.run([*command, flag], cwd=repo, capture_output=True, text=True, env=env)
+            self.assertNotEqual(result.returncode, 0, flag)
+        (repo / ".env.local").write_text("ansible_only=false\n")
+        result = subprocess.run(command, cwd=repo, capture_output=True, text=True, env=env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("reserved wrapper variable", result.stderr)
         (self.root / "verify-shared/scripts/deploy.sh").unlink()
         result = subprocess.run(["bash", str(self.root / "verify-tier-0/scripts/deploy.sh"), "hsm"],
                                 capture_output=True, text=True, env=env)

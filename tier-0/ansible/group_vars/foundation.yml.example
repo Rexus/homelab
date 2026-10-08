@@ -1,6 +1,7 @@
 # Copy to: ansible/group_vars/foundation.yml
 # Replace every value before use.
-# Keep secrets encrypted with Ansible Vault for real deployments.
+# Keep this file plain YAML: Terraform also reads the host IPs.
+# Secret inputs: docs/administration/secret-handling/ansible-vault.md
 
 platform_host_ips:
   idm-1: 10.10.12.10
@@ -23,9 +24,10 @@ foundation_connection_wait_delay: 3
 foundation_freeipa_domain: "{{ platform_domain }}"
 foundation_freeipa_realm: "{{ platform_domain | upper }}"
 
-# Use strong local values and encrypt this file with Ansible Vault.
-foundation_freeipa_dm_password: change-me
-foundation_freeipa_admin_password: change-me
+# Inject secrets on the controller; never encrypt this shared inventory input.
+# An encrypted secret-only override is supported during --ansible-only execution.
+foundation_freeipa_dm_password: "{{ lookup('ansible.builtin.env', 'FREEIPA_DM_PASSWORD') | default('change-me', true) }}"
+foundation_freeipa_admin_password: "{{ lookup('ansible.builtin.env', 'FREEIPA_ADMIN_PASSWORD') | default('change-me', true) }}"
 
 # Keep DNS enabled for the default identity foundation. Set explicit forwarders
 # only when you do not want FreeIPA to discover them automatically.

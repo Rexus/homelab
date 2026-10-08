@@ -7,7 +7,7 @@ usage() {
 Usage:
   ./scripts/deploy.sh <setup> [options]
 
-Setups:
+Kit setups (only those owned by the current tier are available):
   foundation
   edge
   cache
@@ -31,9 +31,12 @@ Options:
                    Override the tier-wide Terraform variable file.
   --ansible-vars PATH
                    Add a vars file after automatic vars in both tools.
+                   Encrypted secret-only files require --ansible-only or maintenance.
   --plan-only       Run Terraform init and plan, then stop.
   --terraform-only  Run the precheck and Terraform only.
   --ansible-only    Run the precheck and mapped Ansible playbooks only.
+  --recipe NAME     deployment (default) or maintenance. Maintenance runs
+                   Ansible only, using existing inventory and service vars.
   --destroy         Destroy the Terraform resources for this setup.
   --auto-approve    Pass -auto-approve to terraform apply.
   --reset-known-hosts
@@ -69,6 +72,11 @@ fi
 setup_name="$1"
 shift
 
+if [[ "$setup_name" == -h || "$setup_name" == --help ]]; then
+  usage
+  exit 0
+fi
+
 if [[ "$setup_name" == "image-template" ]]; then
   echo "==> setup image-template is deprecated; use immutable-template"
   setup_name="immutable-template"
@@ -80,6 +88,7 @@ ansible_only=false
 auto_approve=false
 destroy=false
 reset_known_hosts=false
+recipe=deployment
 deployment_env="prod"
 explicit_env=false
 env_file_path=""
@@ -92,6 +101,14 @@ ansible_vars_paths=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --recipe)
+      if [[ $# -lt 2 || ! "$2" =~ ^(deployment|maintenance)$ ]]; then
+        echo "--recipe requires deployment or maintenance." >&2
+        exit 1
+      fi
+      recipe="$2"
+      shift 2
+      ;;
     --env)
       if [[ $# -lt 2 ]]; then
         echo "Missing value for --env" >&2
@@ -177,6 +194,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ "$recipe" == maintenance ]]; then
+  ansible_only=true
+fi
+
 if [[ "$plan_only" == true && "$ansible_only" == true ]]; then
   echo "--plan-only and --ansible-only cannot be used together." >&2
   exit 1
@@ -239,6 +260,9 @@ fi
 
 terraform_dir="$repo_root/terraform/deployments/$setup_name"
 ansible_playbooks=("$setup_name.yml")
+if [[ "$recipe" == maintenance ]]; then
+  ansible_playbooks=("maintenance/$setup_name.yml")
+fi
 setup_ansible_vars_env_stem="${setup_name//-/_}"
 setup_ansible_vars_base_path="$ansible_dir/group_vars/$setup_ansible_vars_env_stem.yml"
 setup_ansible_vars_required=true
@@ -263,7 +287,10 @@ if [[ "$explicit_env" == true ]]; then
   fi
 fi
 
-required_files=("$var_file_path" "$ansible_playbook_dir/control-node.yml" "${required_files[@]}")
+required_files=("$ansible_playbook_dir/control-node.yml" "${required_files[@]}")
+if [[ "$ansible_only" == false ]]; then
+  required_files+=("$var_file_path")
+fi
 for playbook in "${ansible_playbooks[@]}"; do
   required_files+=("$ansible_playbook_dir/$playbook")
 done
@@ -361,7 +388,8 @@ load_env_file() {
     case "$key" in
       ansible_dir|ansible_playbook_dir|automation_root|DEPLOYMENT_REPO_DIR|SHARED_REPO_DIR|\
       deployment_env|env_file_path|inventory_path|repo_root|setup_name|terraform_dir|\
-      terraform_state_path|terraform_data_dir|var_file_path)
+      terraform_state_path|terraform_data_dir|var_file_path|recipe|ansible_only|\
+      terraform_only|plan_only|destroy|auto_approve|ansible_playbooks)
         echo "Environment file uses reserved wrapper variable: $key" >&2
         echo "Rename or remove it from $env_file_path." >&2
         exit 1
@@ -438,11 +466,16 @@ check_required_files() {
 }
 
 run_control_node_precheck() {
+  local require_terraform=true
+  if [[ "$ansible_only" == true ]]; then
+    require_terraform=false
+  fi
   echo "==> Running deployment control-node precheck"
   (
     cd "$ansible_dir"
     ansible-playbook -i localhost, "$ansible_playbook_dir/control-node.yml" \
-      -e "control_node_setup=$setup_name"
+      -e "control_node_setup=$setup_name" \
+      -e "control_node_require_terraform=$require_terraform"
   )
 }
 
@@ -492,6 +525,13 @@ run_terraform() {
     terraform init -reconfigure -backend-config="path=$terraform_state_path"
 
     terraform_args=()
+    # Later files replace variable values; roots merge shared/tier network maps by name.
+    platform_profile_path="$automation_root/config/platform.tfvars"
+    if [[ -f "$platform_profile_path" ]]; then
+      terraform_args+=("-var-file=$platform_profile_path")
+    else
+      echo "Shared platform profile missing; using legacy tier-local defaults." >&2
+    fi
     # One reviewed consumer catalog for all tiers; local overrides follow it.
     # Recipes and publication state remain Tier 0-owned. See the template-catalog guide.
     template_catalog_path="$automation_root/templates/proxmox-catalog.tfvars"

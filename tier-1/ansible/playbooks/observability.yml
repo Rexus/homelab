@@ -1,6 +1,4 @@
 ---
-- name: Apply system control host baseline
-  hosts: telemetry_gateways:security_telemetry:observability:archive
-  become: true
-  roles:
-    - baseline
+# Compatibility entry point; compose the deployment recipe without duplicating tasks.
+- name: "Operations: telemetry host baseline only"
+  ansible.builtin.import_playbook: deployment/telemetry-hosts.yml

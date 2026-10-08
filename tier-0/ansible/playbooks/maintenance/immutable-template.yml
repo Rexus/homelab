@@ -1,0 +1,4 @@
+---
+# The existing image lifecycle already defines its gates; reuse that recipe.
+- name: Run the approved immutable-template lifecycle
+  ansible.builtin.import_playbook: ../deployment/immutable-template.yml

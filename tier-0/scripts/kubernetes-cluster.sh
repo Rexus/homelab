@@ -7,13 +7,13 @@ umask 077
 
 if [[ $# == 1 && "$1" == --help ]]; then
   echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials}"
-  echo "Current implementation: Talos. Reference: docs/platforms/kubernetes/README.md"
+  echo "Current implementation: Talos. Reference: docs/deployment/stage-3-identity-runtime/procedures/kubernetes.md"
   exit 0
 fi
 
 if [[ $# != 1 || ! "$1" =~ ^(init|plan|apply|credentials)$ ]]; then
   echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials}" >&2
-  echo "Current implementation: Talos. Reference: docs/platforms/kubernetes/README.md" >&2
+  echo "Current implementation: Talos. Reference: docs/deployment/stage-3-identity-runtime/procedures/kubernetes.md" >&2
   exit 1
 fi
 action="$1"
@@ -38,7 +38,7 @@ for legacy in terraform/talos terraform/deployments/talos; do
     [[ -f "$file" ]] || continue
     echo "Legacy Terraform deployment found: $legacy" >&2
     echo "Migrate to terraform/deployments/kubernetes before continuing." >&2
-    echo "See docs/reference/generated-repository-model.md#terraform-layout-upgrade." >&2
+    echo "See docs/development/generated-repositories.md#terraform-layout-upgrade." >&2
     exit 1
   done
 done

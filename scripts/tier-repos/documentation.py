@@ -3,17 +3,10 @@
 import os
 from pathlib import Path
 import re
-from string import Template
+from documentation_migration import redirect_moved_docs
+from project_docs import owned_template, repository_guides
 
 AUTO_DOCS = "docs/auto-docs"
-TEMPLATES = Path(__file__).parent / "templates"
-
-
-def owned_template(writer, template, target, **values):
-    content = Template((TEMPLATES / template).read_text(encoding="utf-8")).substitute(values)
-    writer.write(target, content, owned=True)
-
-
 def tier_readme(writer, tier, prefix, setups):
     descriptions = {
         "tier-0": "hardware-facing infrastructure control, all VM template lifecycles, trust systems, and recovery",
@@ -46,27 +39,28 @@ def tier_readme(writer, tier, prefix, setups):
     )
     if tier == "tier-0":
         prerequisites = (
-            f"Use the [Day 0-3 checklist]({docs}/paths/tier-0/README.md#deployment-order):\n"
-            "Day 0/1 builds the platform; Day 2 adds identity and service clients;\n"
-            "Day 3 proves access handover and recovery.\n\n"
-            f"Prepare [Proxmox hosts]({docs}/platforms/proxmox/README.md#first-deployment-order)\n"
+            f"Follow the [six-capability deployment checklist]({docs}/paths/tier-0/README.md#deployment-order).\n"
+            "Each stage links to an illustrated guide and readiness checks.\n\n"
+            f"Prepare [Proxmox hosts]({docs}/deployment/stage-1-foundation/procedures/proxmox.md#first-deployment-order)\n"
             "first, including optional cluster HA and SDN before important guests.\n\n"
-            "**Day 0: templates before VMs.** From this repository's root, initialize\n"
+            "**Templates before VMs.** From this repository's root, initialize\n"
             "the local image catalog:\n\n"
             "```bash\n"
             "bash scripts/proxmox-templates.sh init\n"
             "```\n\n"
             "Set local images, placement, checksums, and protected API access, then follow\n"
-            f"the [template lifecycle]({docs}/platforms/proxmox/template-lifecycle.md#local-workflow)\n"
+            f"the [template lifecycle]({docs}/administration/compute/template-lifecycle.md#local-workflow)\n"
             "to plan, publish, and test templates before deploying guests. No hosted CI\n"
             "or control cluster is required. If approved templates already exist, verify\n"
             "their IDs and recovery copies before continuing.\n\n"
-            "**Day 1: Kubernetes control cluster.** Initialize its Tier 0 inputs:\n\n"
+            f"Complete [foundation]({docs}/deployment/stage-1-foundation/README.md) and "
+            f"[trust]({docs}/deployment/stage-2-trust/README.md) first.\n"
+            "**Kubernetes control cluster.** Initialize its Tier 0 inputs:\n\n"
             "```bash\n"
             "bash scripts/kubernetes-cluster.sh init\n"
             "```\n\n"
-            f"Follow the [Kubernetes guide]({docs}/platforms/kubernetes/README.md) and its\n"
-            f"current [Talos implementation]({docs}/platforms/talos/terraform.md) to review\n"
+            f"Follow the [Kubernetes guide]({docs}/deployment/stage-3-identity-runtime/procedures/kubernetes.md) and its\n"
+            f"current [Talos implementation]({docs}/deployment/stage-3-identity-runtime/procedures/talos-terraform.md) to review\n"
             "inventory, hardware, and cluster settings, then plan and apply. The node OS\n"
             "is an implementation choice; other OS installers are not included.\n"
             "Keycloak is a later service in this cluster.\n"
@@ -74,33 +68,22 @@ def tier_readme(writer, tier, prefix, setups):
             "the Linux `foundation` setup below, outside Kubernetes. The Linux\n"
             "helper does not create the cluster or install Keycloak.\n"
         )
-    owned_template(writer, "tier-readme.md", "README.md", prefix=prefix,
+    owned_template(writer, "readmes/tier.md", "README.md", prefix=prefix,
                    tier_title=tier.replace("-", " ").title(), purpose=descriptions[tier],
                    example=setups[0], extra_paths=extra_paths[tier],
                    prerequisites=prerequisites, docs=docs, tier=tier,
                    deployments="\n".join(deployments))
+    repository_guides(writer, tier, prefix, descriptions[tier])
 
 
 def shared_readme(writer, prefix):
-    owned_template(writer, "shared-readme.md", "README.md", prefix=prefix,
+    owned_template(writer, "readmes/shared.md", "README.md", prefix=prefix,
                    docs=f"../{prefix}-architecture/{AUTO_DOCS}")
-
-
-def architecture_scaffold(writer, prefix):
-    for area in ("design", "decisions", "runbooks", "services", "tiers", "network"):
-        writer.write(f"docs/owned/{area}/.gitkeep", "", owned=True)
-    writer.write("site/.gitkeep", "", owned=True)
-    for template, target in (
-        ("architecture-readme.md", "README.md"),
-        ("project-docs.md", "docs/README.md"),
-        ("naming-conventions.md", "docs/naming-conventions.md"),
-        ("project-overview.md", "docs/owned/design/overview.md"),
-        ("recovery.md", "docs/owned/runbooks/recovery.md"),
-    ):
-        owned_template(writer, template, target, prefix=prefix)
+    repository_guides(writer, "shared", prefix, "reusable automation and common platform references")
 
 
 def copy_documentation(writer, prefix, upstream):
+    previous_paths = set(writer.hashes)
     for path in sorted((upstream / "docs").rglob("*.md")):
         content = path.read_text(encoding="utf-8")
         target = f"{AUTO_DOCS}/" + path.relative_to(upstream / "docs").as_posix()
@@ -131,6 +114,8 @@ def copy_documentation(writer, prefix, upstream):
         else:
             content = notice + "\n" + content
         writer.write(target, content)
+
+    redirect_moved_docs(writer, previous_paths)
 
     legacy = writer.root / "docs/generated/upstream"
     if legacy.exists():

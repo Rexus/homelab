@@ -1,7 +1,4 @@
 ---
-- name: Configure Podman image runners
-  hosts: podman_runner
-  become: true
-  roles:
-    - baseline
-    - podman_runner
+# Compatibility entry point; compose the deployment recipe without duplicating tasks.
+- name: "Delivery: general Podman runner"
+  ansible.builtin.import_playbook: deployment/podman-runner.yml

@@ -64,6 +64,7 @@
           - terraform
           - version
       changed_when: false
+      when: control_node_require_terraform | default(true) | bool
 
     - name: Check required Ansible collections
       ansible.builtin.command:

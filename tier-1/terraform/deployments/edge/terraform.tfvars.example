@@ -1,6 +1,6 @@
 # Copy to: terraform/deployments/edge/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/paths/shared-services/edge.md
+# Setup guide: docs/deployment/stage-5-delivery/procedures/edge-proxy.md
 # Shared values live in ../../common.tfvars.
 
 # Optional: override the shared default Linux VM template for this setup or

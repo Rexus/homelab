@@ -1,6 +1,6 @@
 # Copy to: terraform/deployments/hsm/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/security/usb-hsm-active-active-blueprint.md
+# Setup guide: docs/deployment/stage-2-trust/step-1b-usb-hsm.md
 # Shared values live in ../../common.tfvars.
 
 hsm_variant = "hardware"
@@ -14,7 +14,7 @@ hsm_variant = "hardware"
 # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
 # The repository reference shape is the shared edge load-balancer set from edge
 # plus two gateway hosts here, each with its own local USB HSM.
-# The shared Ansible inventory and hsm.yml include the matching hsm-1 and
+# The Tier 0 Ansible inventory and hsm.yml include the matching hsm-1 and
 # hsm-2 entries.
 vm_instances = {
   "hsm-1" = {

@@ -1,0 +1,30 @@
+# Implementation support
+
+Design options describe valid arrangements, not automatic installer coverage.
+[Six capability stages](../deployment/README.md) combine the selected procedures.
+
+| Stage | Capability | Repository support |
+| --- | --- | --- |
+| 1 | Proxmox, physical network, optional HA/SDN, firewall | Operator procedures; no complete host/network installer |
+| 1 | Approved VM templates | Tier 0 publication root and local/CD commands; shared consumer references |
+| 1 | Optional software-supply cache | Tier 1 cache VMs, Squid/keepalived automation; independent bootstrap supply required |
+| 2 | Root/issuer trust and custody A/B | Operator integration and product procedures; no complete CA or token installer |
+| 2 | C: USB gateway pair | Tier 0 hsm host provisioning and baseline only; device, key and signing-service integration remain manual |
+| 2 | D: Network HSM | Vendor appliance/client integration guide; no appliance installer or generic HA role |
+| 3 | Directory authority | Tier 0 foundation VM pair and FreeIPA deployment recipe |
+| 3 | Control-cluster nodes/bootstrap | Tier 0 Kubernetes Terraform root, currently Talos; other node OS installers are not supplied |
+| 3/4 | Cluster add-ons and control services | Tier-owned cluster starters; application manifests and service integration remain project work |
+| 4 | Dedicated secret-service VM | Tier 0 Vault root/role; Shamir reference; no automatic Transit/PKCS#11 migration |
+| 4 | Telemetry VM pattern | Tier 1 observability hosts/baseline; collectors/backends need service automation |
+| 5 | Source control, general runners and edge | Tier 1 setups and deployment recipes; registry variants need project integration |
+| 5 | Image lifecycle | Tier 0 image builders/publication; Tier 1 general build runner where selected |
+| 5/6 | Protected infrastructure runner and bounded request controller | [Design contract](../architecture/compute/provisioning.md), not supplied as a complete controller |
+
+Existing services can satisfy the same interface contract. A successful Terraform
+apply proves resource provisioning, not the acceptance of every service drawn in
+the architecture. Ansible maintenance reuses only supported operations.
+
+<a id="purpose"></a>
+<a id="recommended-order"></a>
+<a id="path-guides"></a>
+<a id="related-docs"></a>

@@ -32,7 +32,7 @@ variable "storage_class" {
   default     = "local"
 
   validation {
-    condition = contains(["local", "shared", "fast"], var.storage_class)
+    condition     = contains(["local", "shared", "fast"], var.storage_class)
     error_message = "storage_class must be one of: local, shared, fast."
   }
 }
@@ -180,6 +180,22 @@ variable "ci_password" {
   default     = null
   nullable    = true
   sensitive   = true
+}
+
+variable "ssh_public_key_files" {
+  description = "Local public-key files; read at plan time without copying key material into repository inputs."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for path in var.ssh_public_key_files : can(regex(
+        "^(ssh-|ecdsa-|sk-)[^ ]+ [A-Za-z0-9+/]+=*( [^\\r\\n]*)?$",
+        trimspace(file(pathexpand(path))),
+      ))
+    ])
+    error_message = "Every SSH public-key path must name a readable, single-line OpenSSH public key. Private keys are forbidden."
+  }
 }
 
 variable "ssh_public_keys" {

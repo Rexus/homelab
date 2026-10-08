@@ -1,6 +1,6 @@
 # Resolve this tier's inputs here; machines.tf owns VM and cluster resources.
 # Current implementation: Talos on Proxmox. Replacing the OS requires a separate lifecycle design.
-# Reference: docs/reference/infrastructure-automation-layout.md#terraform-structure
+# Reference: docs/development/code-layout.md#terraform-structure
 locals {
   inventory      = yamldecode(file(var.inventory_path)).all.children
   control_planes = toset(keys(try(local.inventory.talos_control_plane.hosts, {})))

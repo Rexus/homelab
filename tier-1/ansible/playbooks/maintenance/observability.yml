@@ -1,0 +1,9 @@
+---
+# Reconcile supported configuration only; not a generic upgrade or recovery procedure.
+# Inventory and vars remain tier-local. See docs/administration/ansible-recipes.md.
+- name: Reconcile observability configuration
+  hosts: telemetry_gateways:security_telemetry:observability:archive
+  become: true
+  serial: 1
+  roles:
+    - baseline

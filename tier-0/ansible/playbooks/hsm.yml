@@ -1,6 +1,4 @@
 ---
-- name: Apply HSM host baseline
-  hosts: hsm_gateways:crypto_admin
-  become: true
-  roles:
-    - baseline
+# Compatibility entry point; compose the deployment recipe without duplicating tasks.
+- name: "Cryptography: Trust Step 1b, gateway host baseline only"
+  ansible.builtin.import_playbook: deployment/hsm-gateways.yml

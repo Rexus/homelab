@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/edge.yml
 # Replace every value before use.
-# Guide: docs/paths/shared-services/edge.md
+# Guide: docs/deployment/stage-5-delivery/procedures/edge-proxy.md
 
 platform_host_ips:
   edge-lb-1: 10.30.30.10

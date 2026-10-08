@@ -69,16 +69,16 @@ variable "vm_instances" {
   type = map(object({
     proxmox_node_name = optional(string)
     vm_id             = optional(number)
-    template_vm_id   = optional(number)
+    template_vm_id    = optional(number)
     # Uses catalog tags from another template ID, useful while building templates.
     template_catalog_id = optional(number)
     # Overrides catalog tags when a VM uses a source image not in the catalog.
-    template_tags      = optional(list(string))
-    size             = optional(string)
-    cores            = optional(number)
-    memory           = optional(number)
-    storage_class    = optional(string)
-    disk_size_gb     = number
+    template_tags = optional(list(string))
+    size          = optional(string)
+    cores         = optional(number)
+    memory        = optional(number)
+    storage_class = optional(string)
+    disk_size_gb  = number
     extra_disks = optional(list(object({
       interface     = string
       size_gb       = number
@@ -102,12 +102,12 @@ variable "lxc_instances" {
   type = map(object({
     proxmox_node_name = optional(string)
     vm_id             = optional(number)
-    template_file_id = string
-    size             = optional(string)
-    storage_class    = optional(string)
-    disk_size_gb     = number
-    network_zone_key = optional(string)
-    tags             = optional(list(string))
+    template_file_id  = string
+    size              = optional(string)
+    storage_class     = optional(string)
+    disk_size_gb      = number
+    network_zone_key  = optional(string)
+    tags              = optional(list(string))
   }))
   default = {}
 }

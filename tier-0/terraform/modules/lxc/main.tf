@@ -7,7 +7,7 @@ terraform {
 }
 
 locals {
-  # Shared contains sizing data only; resources and state belong to this tier.
+  # Shared supplies size profiles; resources and state belong to this tier.
   size_profiles = jsondecode(file("${path.module}/../../../../shared/config/guest-sizes.json")).lxc
 
   selected_size         = local.size_profiles[var.size]

@@ -21,8 +21,8 @@ This file keeps durable context for AI-assisted work across sessions.
 - public cluster entry points are `terraform/deployments/kubernetes/` and
   `scripts/kubernetes-cluster.sh`; retain existing Talos state, inventory, provider,
   and credential contracts. The old script delegates; old roots require deliberate migration
-- `docs/platforms/kubernetes/README.md` owns cluster choices and common readiness;
-  `docs/platforms/talos/` owns the current implementation procedures
+- `docs/deployment/stage-3-identity-runtime/procedures/kubernetes.md` owns cluster choices and common readiness;
+  its `talos-terraform.md` sibling and stage's `step-2b-manual-cluster.md` own implementation procedures
 - security-first posture with strong separation of concerns
 - public upstream is curated and not meant for operational changes
 - repository model is a Tier 0, Tier 1, and Tier 2 deployment kit
@@ -50,7 +50,10 @@ This file keeps durable context for AI-assisted work across sessions.
 - runnable Terraform roots live in `terraform/deployments/<name>/`; child modules
   stay in `terraform/modules/`; state remains independent per deployment
 - both tools consume the owning tier's inventory and ordered group vars;
-  shared code contains no inventory, Terraform resources, deployment inputs, or state
+  shared code contains no inventory, Terraform resources, guest assignments, credentials, or state;
+  shared/config/platform.tfvars holds project-owned storage/placement and common network references
+- common network references use shared_network_zones; tier-local network_zones holds only
+  tier-specific entries and complete per-network overrides; roots merge the two maps by name
 - refresh uses `.generated-files.json` and preserves local edits and deletions;
   Kubernetes Terraform currently uses Talos in tier-owned automation; `clusters/` service starters
   remain project-owned skeletons, not installed services
@@ -63,12 +66,12 @@ This file keeps durable context for AI-assisted work across sessions.
   consumer references, not image recipes or lifecycle ownership
 - Tier 0 owns all hardware-facing control, including hypervisors, physical networks,
   storage administration, and every VM template lifecycle across all consuming tiers
-- initial template publication is Day 0-1 local automation, before managed VMs
+- initial template publication is Stage 1 local automation, before managed VMs
   or hosted tooling; generated Tier 0 fast paths start with the template catalog
 - AlmaLinux/Rocky/Talos publication uses verified local images; Talos templates
   contain no machine configuration; Tier 0's separate Talos deployment creates
   VMs, machine configuration, and the cluster without Ansible guest configuration
-- dedicated Tier 0 template CI is optional Day 2 automation; local commands,
+- dedicated Tier 0 template CI is optional hosted automation; local commands,
   provider artifacts and state must remain usable without the cluster or CI service
 - retain Tier 1/2 workload definitions, inventories, and separate state roots;
   future privileged infrastructure execution is controlled by Tier 0
@@ -77,7 +80,15 @@ This file keeps durable context for AI-assisted work across sessions.
 - Tier 0 operates and recovers without Tier 2; request-source loss pauses new
   requests, not control operations, and must not trigger workload deletion
 - delegated provisioning is a design goal, not an implemented controller or API;
-  its authoritative contract is docs/architecture/infrastructure-control.md
+  its authoritative contract is docs/architecture/compute/provisioning.md
+- docs/deployment/README.md indexes six capability stages: compute foundation, cryptographic trust,
+  identity and Kubernetes, control services, delivery and handover, and workload provisioning
+- each stage has a main README with numbered local steps, diagrams, a capability result,
+  and links to the static architecture; only the initial compute foundation is bootstrap
+- optional step-Nb/step-Nc guides sit beside the main README, identify their branch
+  and return point; detailed configuration lives in that stage's procedures/ folder
+- Trust Step 1b hardware protection is optional; the USB hsm setup provides VMs and OS baseline,
+  not gateway software, key ceremonies, issuer integration, or edge configuration
 - draw security layers left-to-right: Edge, Application, Control; distinguish
   the Control layer from the `management` network; infrastructure supports all layers
 - draw tiers top-to-bottom: Tier 2, Tier 1, Tier 0; potential impact and required
@@ -88,8 +99,8 @@ This file keeps durable context for AI-assisted work across sessions.
   shared zones do not imply shared subnets or unrestricted access
 - `network_zones` remains a logical guest-network input, not a firewall zone;
   generation does not allocate subnets or configure gateway policy
-- keep network placement in architecture, rule contracts in security, and
-  vendor-specific zone-matrix translation in platform guides
+- keep network placement and firewall contracts in architecture/networking/, and
+  vendor-specific zone-matrix translation in deployment/stage-1-foundation/procedures/
 - Tier 0 includes connected high-impact control systems; only selected custody
   and recovery assets are air-gapped; artifact handoffs do not create routed access
 - protect the acceptance path, jobs, runners, and credentials for privileged
@@ -100,6 +111,24 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Documentation intent
 
+- docs/architecture/README.md owns the whole-platform view and technical-domain navigation
+- networking/, compute/, identity/, cryptography/, delivery/ and operations/ own domain designs
+- architecture is the static intended design: context, components, interfaces, variants and constraints
+- docs/deployment/readiness.md owns capability progress and acceptance; the deployment index owns stages
+- use direct IT-domain directories, not intermediate system-design/subsystem-design indexes
+- design records contain required guarantees, never stage-based states or current readiness
+- readiness is independent per capability, and option letters are not a ranking or CLI flags
+- cryptography supports software, single USB, replicated USB and network-HSM designs;
+  service seals are separate choices; do not imply every option has an installer
+- deployment/, development/, and administration/ separate installation, code and operations;
+  paths/ contains only short repository checklists; reference/ contains exact contracts
+- every generated repo has seed-owned docs/architecture/, deployment/, development/, and
+  administration/ records; auto-docs mirror the upstream tree as reference material
+- refresh retains existing project records and links them from new starters; unchanged
+  moved auto-docs become compatibility pointers only in existing collections
+- Ansible deployment/ and maintenance/ recipes compose existing roles; legacy setup plays import
+  deployment recipes, while --recipe maintenance is Ansible-only
+- SSH key files stay outside Git; TF_VAR_ssh_public_key_files supplies local public-key paths
 - keep the root `README.md` short, stable, and durable
 - treat the root `README.md` as the repo fast path for developers
 - keep practical IaC getting-started steps and command snippets in the root

@@ -1,0 +1,153 @@
+# Local setup
+
+## Table of contents
+
+- [Purpose](#purpose)
+- [Platform prerequisites](#platform-prerequisites)
+- [Deployment machine](#deployment-machine)
+- [Automation VM example](#automation-vm-example)
+- [Local repository files](#local-repository-files)
+- [Read more](#read-more)
+
+## Purpose
+
+This guide covers local tooling for repository generation and Linux host
+deployment. Start with the [generated repository model](generated-repositories.md)
+for tier ownership and the generator's Python/PyYAML prerequisites.
+Generating repositories needs no platform access; deployment needs the inputs
+below.
+
+## Platform prerequisites
+
+Have these ready before running automation:
+
+- access to the current platform, such as Proxmox
+- an automation API token
+- prepared guest network attachment values for `network_zones`, such as bridge
+  or SDN VNet ID, optional VLAN tag, subnet, and gateway
+- a prepared VM template or image source for managed instances
+- an LXC template file if container provisioning will be used
+
+For Proxmox token setup, read
+[Proxmox API setup](../deployment/stage-1-foundation/procedures/api-access.md).
+For the shared zone names and IaC mapping, read
+[Network architecture](../architecture/networking/README.md).
+
+## Deployment machine
+
+Run this repository from one deployment machine.
+
+That machine can be:
+
+- the local workstation
+- a dedicated automation VM after the first template exists
+
+Require these tools there:
+
+- Git
+- Bash (Linux or WSL for deployment)
+- `terraform`
+- `ansible-core`
+- SSH client tools
+
+`Packer` is only needed when building templates from the same machine.
+
+Each deployment run starts with a local Ansible precheck on that deployment
+machine. That precheck is setup-aware: it verifies only the Ansible collections
+needed by the selected setup, tries to install missing collections from the OS
+package manager first, and falls back to `ansible-galaxy` only when the OS
+package path does not provide them.
+For example, `foundation` needs `community.general`, `ansible.posix`, and
+`freeipa.ansible_freeipa`, while `cache` needs `community.general` and
+`ansible.posix`.
+
+Run the tier's `ansible/playbooks/control-node.yml`, which imports shared checks
+with tier-owned requirements. For offline use, pre-stage collections from
+`shared/ansible/requirements.yml` (the prefixed shared repo after generation)
+and any owning-tier `ansible/requirements.yml`. Tier 0 adds the identity
+collection there; Tier 1 and Tier 2 use only the common requirements.
+Keep collection artifacts on the recovery host so the precheck needs no network.
+
+The repository deployment wrapper runs that precheck before Terraform or host
+playbooks. Follow the root README or the setup-specific guide for the actual
+run commands.
+
+For provider credentials, use one of these paths:
+
+| Source | How to use it |
+| --- | --- |
+| existing shell or runner variables | useful for runners and pipeline jobs |
+| local ignored env file | useful for a dedicated automation VM |
+| another env file path | useful when the deployment machine handles several contexts |
+
+Ansible is configured for bootstrap-friendly SSH. New host keys are accepted
+automatically with OpenSSH `StrictHostKeyChecking=accept-new`, while changed
+host keys still stop the run. When destroying and recreating test guests with the
+same IPs, use the deployment wrapper's `--reset-known-hosts` option for that
+setup.
+
+## Automation VM example
+
+After the first template exists, a small dedicated automation VM is often
+easier to keep stable than using a personal workstation.
+
+For a RHEL, CentOS Stream, AlmaLinux, or Rocky Linux automation VM, one current
+example is:
+
+```bash
+sudo dnf install -y epel-release
+sudo dnf install -y ansible-core
+sudo dnf install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+sudo dnf install -y terraform
+```
+
+For other distributions, follow the current official install guides for
+[Terraform](https://developer.hashicorp.com/terraform/install) and
+[ansible-core](https://docs.ansible.com/ansible/latest/installation_guide/installation_distros.html).
+
+Keep the automation VM simple:
+
+- store a private working copy of the repository there
+- keep the local Terraform vars, inventory, and group vars there
+- give it access to the Proxmox API, Git remotes, and the package or collection
+  sources it needs
+
+## Local repository files
+
+Use the generated repository for the owning tier, or enter `tier-0/`,
+`tier-1/`, or `tier-2/` in a private source checkout. Create ignored local
+working files from that tier's examples before the
+first deployment. Each tier has separate inventory, group vars, and Terraform
+state while using the sibling shared automation.
+
+Run `bash scripts/init-local-files.sh` from that tier directory, not the kit
+root. Shared code is in `../shared/` in the source checkout and
+`../<prefix>-shared/` in a generated collection.
+
+These ignored files are expected to evolve as the environment matures. Keep
+editing the same local files instead of recreating them for every run.
+The deployment wrapper loads the shared platform profile and image catalog,
+then `terraform/common.tfvars` before the selected setup `terraform.tfvars`.
+Configure common storage, initial placement and network references once in the shared
+profile. Keep tier-specific networks and network overrides per tier, and public-key
+paths in ignored local environment inputs.
+See [platform inputs](../reference/platform-inputs.md) for precedence and SSH access.
+Use `scripts/init-local-files.sh --setup <name>` to create only
+the local files for one deployment path plus the shared defaults.
+
+When the repo examples change later, refresh local files carefully and review
+any backups before deployment. The repository does not try to merge YAML, HCL,
+and dotenv content automatically.
+
+Keep live secrets out of Git.
+
+## Read more
+
+- [Environment variable conventions](../reference/environment-variables.md)
+- [Repository scripts](../reference/repository-scripts.md)
+- [Secret strategy](../administration/secret-handling/strategy.md)
+- [Identity foundation path](../deployment/stage-3-identity-runtime/procedures/freeipa.md)
+- [Windows and AD support](../architecture/identity/windows-integration.md)
+- [Deployment readiness](../deployment/readiness.md)
+- [Proxmox reference platform](../deployment/stage-1-foundation/procedures/proxmox.md)

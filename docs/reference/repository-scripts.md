@@ -15,12 +15,12 @@
 
 ## Purpose
 
-Use this reference when you want to understand the repository wrapper scripts or
-when you want to run the same Terraform and Ansible flow manually.
+Use this reference to understand the repository wrapper scripts or
+to run the same Terraform and Ansible flow manually.
 
 The scripts do not replace the guides. They keep repeated safety checks,
 environment loading, local state paths, and setup-specific run order in one
-place so each guide can focus on what you are deploying.
+place so each guide can focus on the deployment.
 
 User-facing scripts support `--help`. Run generation from the kit root and
 operational commands from the owning tier root (`tier-N/` in the source
@@ -32,13 +32,13 @@ Paths in this table are relative to the source kit root. The tier-local
 `scripts/init-local-files.sh` and `scripts/deploy.sh` files are shortcuts to
 these shared implementations.
 
-| Script | What it solves | When you use it |
+| Script | What it solves | Use case |
 | --- | --- | --- |
-| `scripts/init-tier-repos.sh` | generates tier-owned inputs and shared automation | when you want the generated repo set |
+| `scripts/init-tier-repos.sh` | generates tier-owned inputs and shared automation | to generate the repo set |
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
-| `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | when you deploy, plan, or destroy a setup |
+| `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
 | `tier-0/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
-| `tier-0/scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports credentials; currently Talos | [Kubernetes cluster](../platforms/kubernetes/README.md) |
+| `tier-0/scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports credentials; currently Talos | [Kubernetes cluster](../deployment/stage-3-identity-runtime/procedures/kubernetes.md) |
 
 ## Cheat sheet
 
@@ -66,16 +66,17 @@ Omit `--env <env>` for production.
 | Deploy production | `bash scripts/deploy.sh <setup>` |
 | Deploy without Terraform prompt | `bash scripts/deploy.sh <setup> --env <env> --auto-approve` |
 | Rerun Ansible only | `bash scripts/deploy.sh <setup> --env <env> --ansible-only` |
+| Run a supported maintenance recipe | `bash scripts/deploy.sh <setup> --env <env> --recipe maintenance` |
 | Run Terraform only | `bash scripts/deploy.sh <setup> --env <env> --terraform-only` |
 | Destroy an environment | `bash scripts/deploy.sh <setup> --env <env> --destroy` |
 | Reset rebuilt host SSH keys | `bash scripts/deploy.sh <setup> --env <env> --reset-known-hosts` |
 
 Template publication uses the separate
-[Tier 0 template workflow](../platforms/proxmox/template-lifecycle.md#local-workflow),
+[Tier 0 template workflow](../administration/compute/template-lifecycle.md#local-workflow),
 not `deploy.sh`. It uses provider-native environment variables, a local image
 catalog, and its own state; it never configures a Talos guest through Ansible.
 
-The Kubernetes control cluster currently uses the [Talos implementation](../platforms/talos/terraform.md)
+The Kubernetes control cluster currently uses the [Talos implementation](../deployment/stage-3-identity-runtime/procedures/talos-terraform.md)
 and `bash scripts/kubernetes-cluster.sh init` from Tier 0. It owns a separate state
 root, uses tier-local inventory, and does not use the Linux setup/environment wrapper.
 
@@ -114,7 +115,7 @@ PyYAML are required. Refresh uses recorded hashes and preserves locally edited
 files. Root READMEs, project documentation, and cluster/bootstrap skeletons are
 seeded only once; `docs/auto-docs/` holds refreshable upstream guidance.
 
-Read [Generated repository model](generated-repository-model.md) for the
+Read [Generated repository model](../development/generated-repositories.md) for the
 authoritative ownership, inventory, prerequisite, and refresh contracts.
 From a tier root, call shared automation directly with a relative path:
 
@@ -122,7 +123,7 @@ From a tier root, call shared automation directly with a relative path:
 bash ../homelab-shared/scripts/init-local-files.sh --setup foundation --env test
 ```
 
-Use your chosen prefix in that path. The tier-local `scripts/` shortcuts used
+Use the selected prefix in that path. The tier-local `scripts/` shortcuts used
 below delegate to the same shared code. The same local shortcut commands also
 work from `tier-0/`, `tier-1/`, or `tier-2/` in a private source checkout,
 where the sibling is named `shared/`. Omitted `--setup` initializes
@@ -160,13 +161,13 @@ Remove timestamped backups created by `--overwrite`:
 bash scripts/init-local-files.sh --clean-backups
 ```
 
-Use `--setup <name>` when you only want local files for one path. Repeat it
-when you want several setups. Omit `--setup` to create every setup.
+Use `--setup <name>` to create local files for one path. Repeat it
+to select several setups. Omit `--setup` to create every setup.
 
-Use `--env <name>` for any environment name you want, such as `test`, `lab1`,
+Use `--env <name>` for any supported environment name, such as `test`, `lab1`,
 `dev`, or `stage`. Omit `--env` for production.
 
-The initializer copies examples only. You still edit the generated local files
+The initializer copies examples only. The generated local files still require configuration
 before deployment.
 
 ## Run a deployment
@@ -183,7 +184,7 @@ Deploy the same environment:
 bash scripts/deploy.sh foundation --env test
 ```
 
-Use a non-interactive Terraform apply after you have reviewed the plan:
+Use a non-interactive Terraform apply after reviewing the plan:
 
 ```bash
 bash scripts/deploy.sh foundation --env test --auto-approve
@@ -195,7 +196,7 @@ Destroy a disposable environment:
 bash scripts/deploy.sh foundation --env test --destroy
 ```
 
-If you destroy and recreate VMs with the same IPs, clear stale SSH host keys
+When destroying and recreating VMs with the same IPs, clear stale SSH host keys
 for that setup before Ansible runs:
 
 ```bash
@@ -222,39 +223,40 @@ bash scripts/deploy.sh foundation --env test --env-file secrets/proxmox-test.env
 
 Useful options:
 
-| Option | Use it when |
+| Option | Purpose |
 | --- | --- |
-| `--env NAME` | you want separate Ansible environment vars and separate local Terraform state |
-| `--env-file PATH` | you want to load provider credentials from another dotenv file |
-| `--plan-only` | you want Terraform init and plan only |
-| `--terraform-only` | you want provisioning only, without mapped host playbooks |
-| `--ansible-only` | you want to rerun mapped host playbooks without Terraform |
-| `--destroy` | you want Terraform to destroy the selected setup and environment |
-| `--auto-approve` | you want Terraform apply or destroy to run without an interactive approval |
-| `--reset-known-hosts` | you rebuilt guests and want to remove stale SSH known-host entries for the setup IPs |
-| `--var-file PATH` | you want to replace the setup Terraform tfvars file |
-| `--common-var-file PATH` | you want to replace the tier-wide Terraform tfvars file, not the shared template catalog |
-| `--ansible-vars PATH` | you want an extra YAML vars layer consumed by both Terraform and Ansible |
-| `--inventory PATH` | you want another Ansible inventory file |
+| `--env NAME` | separate Ansible environment vars and separate local Terraform state |
+| `--env-file PATH` | load provider credentials from another dotenv file |
+| `--plan-only` | run Terraform init and plan only |
+| `--terraform-only` | provisioning only, without mapped host playbooks |
+| `--ansible-only` | rerun mapped host playbooks without Terraform |
+| `--recipe deployment\|maintenance` | default deployment; maintenance implies Ansible-only and rejects Terraform plan/apply/destroy modes |
+| `--destroy` | destroy the selected setup and environment |
+| `--auto-approve` | run Terraform apply or destroy without an interactive approval |
+| `--reset-known-hosts` | after rebuilding guests, remove stale SSH known-host entries for the setup IPs |
+| `--var-file PATH` | replace the setup Terraform tfvars file |
+| `--common-var-file PATH` | replace the tier-wide Terraform tfvars file, not the shared template catalog |
+| `--ansible-vars PATH` | add a plain YAML layer consumed by both tools; encrypted secret-only files require `--ansible-only` or maintenance |
+| `--inventory PATH` | select another Ansible inventory file |
 
 ## Available setups
 
 This is the capability catalog. Source and generated tiers enable the subset in
-their `.deployment-setups`; see [setup ownership](generated-repository-model.md#setup-ownership).
+their `.deployment-setups`; see [setup ownership](../development/generated-repositories.md#setup-ownership).
 
 | Setup | What it targets | Start with |
 | --- | --- | --- |
-| `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../paths/shared-services/identity.md) |
-| `edge` | shared edge load-balancer set with rotated VIP ownership | [Edge proxy path](../paths/shared-services/edge.md) |
-| `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../paths/shared-services/cache.md) |
-| `development` | GitLab on a dedicated Podman VM | [Development platform path](../paths/application-platform/development.md) |
-| `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../paths/shared-services/vault.md) |
-| `observability` | system-control telemetry, syslog, metrics, logs, and archive hosts | [Observability path](../paths/system-control/observability.md) |
-| `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../paths/application-platform/podman-runner.md) |
-| `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../paths/application-platform/image-based-linux.md) |
-| `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../platforms/proxmox/enterprise-linux-template.md) |
-| `hsm` | USB or software HSM gateway deployment pattern | [USB HSM active-active blueprint](../security/usb-hsm-active-active-blueprint.md) |
-| `lab` | general-purpose lab guests | this reference and your local inventory |
+| `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../deployment/stage-3-identity-runtime/procedures/freeipa.md) |
+| `edge` | shared edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
+| `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../deployment/stage-1-foundation/step-3b-outbound-cache.md) |
+| `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-5-delivery/step-1b-source-control-vm.md) |
+| `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-4-control-services/step-2b-vault-vm.md) |
+| `observability` | system-control telemetry, syslog, metrics, logs, and archive hosts | [Observability path](../deployment/stage-4-control-services/step-2d-telemetry-vm.md) |
+| `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../deployment/stage-5-delivery/step-1c-podman-runner.md) |
+| `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../deployment/stage-5-delivery/step-1d-image-based-linux.md) |
+| `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/stage-1-foundation/procedures/enterprise-linux-template.md) |
+| `hsm` | USB or software HSM gateway deployment pattern | [USB HSM active-active blueprint](../deployment/stage-2-trust/step-1b-usb-hsm.md) |
+| `lab` | general-purpose lab guests | this reference and the local inventory |
 
 ## What the deployment wrapper does
 
@@ -266,11 +268,16 @@ For each setup, `scripts/deploy.sh`:
 4. runs the setup-aware local Ansible control-node precheck, preferring OS
    packages for missing collections before falling back to Galaxy
 5. runs Terraform with setup-specific local state under `.terraform/state/`
-6. layers `terraform/common.tfvars`, optional environment overlays, and setup
-   tfvars in a predictable order
+6. loads the shared platform profile and image catalog, then tier common inputs,
+   optional environment overlays, and setup tfvars in a predictable order
 7. passes the Ansible inventory and group-vars paths into Terraform so guest
    names and IPs stay owned once
 8. runs the mapped Ansible playbook or playbooks for the selected setup
+
+Maintenance skips provisioning and uses `ansible/playbooks/maintenance/<setup>.yml`.
+See [recipe scope](../administration/ansible-recipes.md) before running it; reconciliation can
+restart services. [Platform inputs](platform-inputs.md) owns the complete
+precedence and local SSH-key contract.
 
 When `--env test` is used, the wrapper automatically looks for:
 
@@ -329,9 +336,10 @@ cd ..
 
 4. Run Terraform with the same state and var layering.
 
-The shared [template catalog](../platforms/proxmox/template-catalog.md) is loaded
-first. In these commands, `homelab-shared` is the generated sibling; substitute
-your prefix, or use `shared` in the source layout.
+The shared [platform profile](platform-inputs.md) and
+[template catalog](template-catalog.md) load before tier inputs.
+In these commands, `homelab-shared` is the generated sibling; substitute
+the prefix, or use `shared` in the source layout.
 
 ```bash
 cd terraform/deployments/foundation
@@ -341,6 +349,7 @@ terraform init -reconfigure \
   -backend-config="path=../../../.terraform/state/foundation/test/terraform.tfstate"
 
 terraform plan \
+  -var-file=../../../../homelab-shared/config/platform.tfvars \
   -var-file=../../../../homelab-shared/templates/proxmox-catalog.tfvars \
   -var-file=../../common.tfvars \
   -var-file=terraform.tfvars \
@@ -348,6 +357,7 @@ terraform plan \
   -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]'
 
 terraform apply \
+  -var-file=../../../../homelab-shared/config/platform.tfvars \
   -var-file=../../../../homelab-shared/templates/proxmox-catalog.tfvars \
   -var-file=../../common.tfvars \
   -var-file=terraform.tfvars \
@@ -376,7 +386,7 @@ consistent.
 
 ## Read more
 
-- [Local setup](../getting-started/local-setup.md)
-- [Infrastructure automation layout](infrastructure-automation-layout.md)
+- [Local setup](../development/local-setup.md)
+- [Infrastructure automation layout](../development/code-layout.md)
 - [Environment variable conventions](environment-variables.md)
-- [Identity foundation path](../paths/shared-services/identity.md)
+- [Identity foundation path](../deployment/stage-3-identity-runtime/procedures/freeipa.md)

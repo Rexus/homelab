@@ -7,7 +7,7 @@ import yaml
 TIERS = ("tier-0", "tier-1", "tier-2")
 TERRAFORM_ONLY_DEPLOYMENTS = {"tier-0": {"kubernetes", "templates"}}
 SHARED_TREES = {
-    "config": ("*.json",),
+    "config": ("*.json", "platform.tfvars"),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2"),
     "ansible/playbooks": ("*.yml",),
     "scripts": ("*.sh",),
@@ -66,7 +66,7 @@ def report_legacy_deployments(writer):
                for path in directory.glob("*" if directory.name != "environments" else "*/*")):
             print(f"Legacy Terraform deployment preserved: {directory}. "
                   "Migrate local inputs and code before running deployment commands; see "
-                  "docs/reference/generated-repository-model.md#terraform-layout-upgrade.")
+                  "docs/development/generated-repositories.md#terraform-layout-upgrade.")
 
 
 def validate_layout(upstream):
@@ -105,6 +105,7 @@ def copy_payload(writer, upstream, name, prefix):
         content = content.replace("check out shared beside", f"check out {prefix}-shared beside")
         owned = (relative.parts[0] in OWNED_TREES
                  or relative.as_posix() == "templates/proxmox-catalog.tfvars"
+                 or relative.as_posix() == "config/platform.tfvars"
                  or relative.name in (".deployment-setups", ".gitkeep"))
         writer.write(relative.as_posix(), content, executable=path.suffix == ".sh", owned=owned)
 
@@ -142,5 +143,5 @@ def report_legacy_shared(writer, upstream):
     retained = sorted(path for path in candidates if (writer.root / path).exists())
     if retained:
         print("Legacy tier-owned automation preserved in shared. Refresh all repos, review local edits "
-              "and owned CI paths before deployment; see docs/reference/generated-repository-model.md"
+              "and owned CI paths before deployment; see docs/development/generated-repositories.md"
               "#automation-ownership-upgrade.")

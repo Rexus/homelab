@@ -1,0 +1,9 @@
+---
+# Delivery: Stage 5, source-control VM alternative.
+# Recipe mapping: docs/administration/ansible-recipes.md
+- name: Configure development platform hosts
+  hosts: development_platform
+  become: true
+  roles:
+    - baseline
+    - gitlab_container

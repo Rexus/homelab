@@ -1,0 +1,9 @@
+---
+# Compute: optional image-based Linux builder.
+# Recipe mapping: docs/administration/ansible-recipes.md
+- name: Prepare image-based Linux template builders
+  hosts: immutable_template_builders
+  become: true
+  roles:
+    - baseline
+    - immutable_template

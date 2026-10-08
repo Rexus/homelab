@@ -8,6 +8,8 @@ crash.*.log
 *.tfvars.json
 # Reviewed, non-secret template references are a shared project contract.
 !**/templates/proxmox-catalog.tfvars
+# Project-owned, non-secret references to existing infrastructure.
+!**/config/platform.tfvars
 override.tf
 override.tf.json
 *_override.tf
@@ -45,6 +47,12 @@ secrets/
 .env.*
 *.pem
 *.key
+*.pub
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+.ssh/
 *.vault
 kubeconfig*
 talosconfig*

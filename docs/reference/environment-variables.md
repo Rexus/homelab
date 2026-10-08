@@ -11,7 +11,7 @@
 
 This document defines the preferred environment variable patterns for bootstrap
 secrets and runtime-sensitive values. Use it together with the
-[secret strategy](../security/secret-strategy.md).
+[secret strategy](../administration/secret-handling/strategy.md).
 
 ## When to use environment variables
 
@@ -27,7 +27,7 @@ web/API root, such as `https://pve.example.com:8006/`. Do not append
 `/api2/json`; that full path is used by the HashiCorp Packer Proxmox plugin
 through its own `PROXMOX_URL` variable.
 
-The separate [template publisher](../platforms/proxmox/template-lifecycle.md#local-workflow)
+The separate [template publisher](../administration/compute/template-lifecycle.md#local-workflow)
 uses the provider-native `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`
 environment variables. It does not load `.env.local` or map the Linux wrapper's aliases.
 
@@ -43,11 +43,14 @@ These are conventions, not hard requirements:
 | platform token secret | `PROXMOX_API_TOKEN_SECRET` |
 | Packer Proxmox endpoint | `PROXMOX_URL` |
 | Terraform secret input | `TF_VAR_proxmox_api_token_secret` |
+| Local SSH public-key file paths | `TF_VAR_ssh_public_key_files` (JSON array; never private keys) |
 | Ansible vault password source | `ANSIBLE_VAULT_PASSWORD_FILE` |
+| FreeIPA bootstrap credentials | `FREEIPA_DM_PASSWORD`, `FREEIPA_ADMIN_PASSWORD` |
 | Vault address | `VAULT_ADDR` |
 | Vault token for bootstrap only | `VAULT_TOKEN` |
 
 ## Related references
 
 - [Environment file example](environment-file-example.md)
-- [Ansible Vault bootstrap](ansible-vault-bootstrap.md)
+- [Platform inputs and local SSH access](platform-inputs.md#local-ssh-access)
+- [Ansible Vault bootstrap](../administration/secret-handling/ansible-vault.md)

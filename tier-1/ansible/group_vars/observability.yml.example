@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/observability.yml
 # Replace every value before use.
-# Setup guide: docs/paths/system-control/observability.md
+# Setup guide: docs/deployment/stage-4-control-services/step-2d-telemetry-vm.md
 
 platform_host_ips:
   health-1: 10.20.30.10
