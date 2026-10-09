@@ -3,10 +3,10 @@
 **Design:** [cluster runtime variants](../../../architecture/compute/README.md).
 
 This is the current Talos implementation of the [Kubernetes cluster goal](kubernetes.md).
-Tier 0 owns the control-cluster VMs, inventory, Talos configuration, bootstrap,
-credentials, and state. Shared supplies only approved template references and
-size profiles. This workflow creates a **new cluster**, not an adoption or restore.
-For manual installation or Tier 1, use the [operator procedure](../step-2b-manual-cluster.md).
+Each tier owns its cluster VMs, inventory, Talos configuration, bootstrap,
+credentials, and state. Shared supplies the stateless command, approved template
+references and size profiles. This workflow creates a **new cluster**, not an adoption or restore.
+For manual installation, use the [operator procedure](../step-2b-manual-cluster.md).
 
 ## Table of contents
 
@@ -15,13 +15,15 @@ For manual installation or Tier 1, use the [operator procedure](../step-2b-manua
 - [Plan and deploy](#plan-and-deploy)
 - [Verify and hand over](#verify-and-hand-over)
 - [State and lifecycle](#state-and-lifecycle)
+- [Worker capacity](#worker-capacity)
 - [References](#references)
 
 ## Prerequisites
 
-Work from the Tier 0 repository root in Bash on Linux or WSL, using an independent
-Tier 0 execution host. Install Terraform, matching `talosctl`, and compatible
-`kubectl`. Provider constraints and checksums live in `terraform/deployments/kubernetes/`.
+Work from the owning tier's repository root in Bash on Linux or WSL, using an
+independent authorized execution host. Tier 0 recovery must not depend on Tier 1/2.
+Install Terraform, matching `talosctl`, and compatible `kubectl`. Provider constraints
+and checksums live in `terraform/deployments/kubernetes/`.
 
 - Complete [Proxmox preparation](../../stage-1-foundation/procedures/proxmox.md#first-deployment-order),
   optional [HA](../../stage-1-foundation/step-1b-cluster-ha.md), and [Talos template publication](../../stage-1-foundation/procedures/talos-template.md).
@@ -50,22 +52,28 @@ bash scripts/kubernetes-cluster.sh init
 Initialization copies missing examples only. Existing files are never overwritten
 or merged; add the Talos groups from the inventory example when upgrading.
 
-| File, relative to Tier 0 | Edit or purpose |
+| File, relative to the owning tier | Edit or purpose |
 | --- | --- |
 | `ansible/inventory/hosts.yml` | Logical hosts in `talos_control_plane` and `talos_workers`, both under `talos` |
 | `ansible/group_vars/talos.yml` | `platform_host_ips`, matching the external DHCP reservations |
 | `terraform/deployments/kubernetes/terraform.tfvars` | Cluster endpoint, pinned releases/installer, template selection, VMIDs, MACs, placement, disks, and size selections |
-| Sibling shared `config/guest-sizes.json` | Common sizing data, read directly by Tier 0 Terraform |
+| Sibling shared `config/guest-sizes.json` | Common sizing data, read directly by tier-local Terraform |
 | Sibling shared `templates/proxmox-catalog.tfvars` | Approved image metadata, loaded by the command |
 
 Every Talos inventory host must have one hardware entry and one fixed IPv4
-reservation. The example has three control-plane VMs and one worker; review
-capacity and failure domains for the services. Talos names are these inventory
-keys; Linux hostname prefix/suffix settings are not applied.
+reservation. Each new-cluster example starts with three schedulable control-plane
+VMs and no workers; review capacity and failure domains for the services.
+Existing clusters retain their local worker definitions and scheduling settings.
+Talos names are these inventory keys; Linux hostname prefix/suffix settings are not applied.
 
-The starter's `control` bridge and `10.10.13.0/24` reservations correspond to
-the [Control cluster network example](../../../architecture/networking/README.md#example-network-plan).
-Create that attachment on every eligible Proxmox node before planning.
+| Tier | Starter attachment | IP reservations | Manifest path |
+| --- | --- | --- | --- |
+| 0 | `control` VNet | `10.10.13.10-12` | `clusters/tier0/` |
+| 1 | `app` VNet | `10.20.20.110-112` | `clusters/tier1/` |
+| 2 | `vmbr0`, VLAN 420 | `10.42.20.10-12` | `clusters/tier2/` |
+
+These are reviewed example allocations from the [network map](../../../architecture/networking/README.md#example-network-plan).
+Create the selected attachment on every eligible Proxmox node before planning.
 
 Supply `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` through the protected
 shell/runner environment. Use a trusted Proxmox TLS certificate. This command
@@ -113,10 +121,11 @@ Stop on unhealthy nodes or system pods. Confirm the independent API endpoint,
 CNI, and [failover checks](../../stage-1-foundation/step-1b-cluster-ha.md#prove-failover) before services
 depend on this cluster. Terraform completion alone does not prove readiness.
 
-Continue at [Verify and hand over](../step-2b-manual-cluster.md#verify-and-hand-over) for Flux
-bootstrap against `clusters/tier0/`, then the shared cluster-foundation checklist.
-The supplied Flux/service directories remain placeholders, not installed add-ons.
-FreeIPA remains on the two dedicated Linux VMs; Keycloak is a later cluster service.
+Continue with the [cluster-foundation checklist](kubernetes.md#cluster-foundation).
+Tier 0 uses Flux against `clusters/tier0/`. Tier 1 selects Argo CD or Spinnaker
+separately; Tier 2 consumes scoped application delivery or a local controller.
+The supplied manifest directories remain placeholders, not installed add-ons.
+FreeIPA remains on the two dedicated Tier 0 Linux VMs; Keycloak is a later Tier 0 service.
 
 ## State and lifecycle
 
@@ -129,7 +138,7 @@ FreeIPA remains on the two dedicated Linux VMs; Keycloak is a later cluster serv
 The public command and root use Kubernetes names. The `talos` state, plan,
 working-data, inventory-group, and credential names are retained for compatibility
 with the existing implementation; the rename does not move state or replace
-resources. `scripts/talos-cluster.sh` delegates to the new command. Existing
+resources. Tier 0's `scripts/talos-cluster.sh` delegates to the current command. Existing
 collections must follow the [layout upgrade](../../../development/generated-repositories.md#terraform-layout-upgrade)
 before using either command.
 
@@ -154,6 +163,16 @@ Never initialize replacement state or regenerate secrets for an existing cluster
 Restore its state and recovery material. Existing manually built clusters need
 an explicit resource/secret adoption plan before using this root; see
 [Recovery](../step-2b-manual-cluster.md#recovery) and the [repository upgrade notes](../../../development/generated-repositories.md#automation-ownership-upgrade).
+
+## Worker capacity
+
+Add workers explicitly to the owning tier's inventory, IP map and `nodes` map.
+Optional `pool = "compute"` emits `node-pool=compute`; Tier 1 may use infrastructure,
+stateful or compute pools, and Tier 2 development, testing or lab pools. No nodes
+are automatically scaled. Use the [pool operations](../../../administration/compute/kubernetes-pools.md)
+for selectors, taints and transition checks. Do not remove existing workers simply
+to match a newer example. `allow_scheduling_on_control_planes` defaults to false
+for existing input objects; new compact examples explicitly set it to true.
 
 ## References
 

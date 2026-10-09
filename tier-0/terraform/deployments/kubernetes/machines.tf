@@ -65,10 +65,12 @@ data "talos_machine_configuration" "node" {
   kubernetes_version = var.cluster.kubernetes_version
   config_patches = [yamlencode({
     machine = {
-      install = { disk = "/dev/sda", image = var.cluster.installer_image }
-      network = { hostname = each.key }
+      install    = { disk = "/dev/sda", image = var.cluster.installer_image }
+      network    = { hostname = each.key }
+      nodeLabels = each.value.pool == null ? {} : { "node-pool" = each.value.pool }
     }
     cluster = {
+      allowSchedulingOnControlPlanes = var.cluster.allow_scheduling_on_control_planes
       network = {
         podSubnets     = [var.cluster.pod_cidr]
         serviceSubnets = [var.cluster.service_cidr]

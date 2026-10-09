@@ -1,22 +1,29 @@
 # ${prefix} Documentation
 
-Project records describe this environment; auto-docs explain the reusable
-design and tooling. Populate the project records before provisioning.
+Start with the complete platform, follow a function into its domain, then inspect
+the detailed design and selected variant. Project records join this environment's
+choices into one design; auto-docs explain reusable patterns and tooling.
+Populate the project records before provisioning and keep acceptance evidence in
+deployment.
 
 ## Project records
 
 | Start here | Purpose |
 | --- | --- |
+| [Platform architecture](architecture/README.md) | complete intended environment, functions, relationships and boundaries |
+| [Runtime relationships](architecture/README.md#runtime-relationships) | how the selected functions cooperate across domains |
+| [Technical domains](architecture/README.md#technical-domains) | expanded internal designs and links to detailed records |
+| [Selected variants](architecture/README.md#selected-variants) | chosen implementations, required contracts and local alternatives |
 | [Naming conventions](naming-conventions.md) | VM names, Proxmox tags, VMID ranges, and VLAN conventions |
-| [Platform architecture](architecture/README.md) | topology, ownership and shared constraints |
-| [Technical domains](architecture/README.md#technical-domains) | selected components, interfaces and alternatives |
 | [Deployment](deployment/README.md) | selected stages and cross-repository readiness |
 | [Development](development/README.md) | review, testing and upstream adoption |
 | [Administration](administration/README.md) | operating procedures and recovery evidence |
 | [Recovery runbook](administration/recovery.md) | local recovery inputs, steps, and verification |
 
 Keep selected domain designs, decisions and network policy under
-`architecture/`. Put execution procedures in their matching workflow folder.
+`architecture/`. Each detailed design links to its parent view and the procedure
+that establishes it. Put execution procedures in their matching workflow folder;
+their stage diagrams explain the path toward the completed architecture.
 
 ## Repository guides
 
@@ -37,7 +44,10 @@ service-specific instructions stay beside the owning code.
 there; refresh preserves local edits but cannot update those edited files.
 
 - [Guide index](auto-docs/README.md)
-- [Architecture and zone view](auto-docs/architecture/README.md)
+- [Whole-platform reference](auto-docs/architecture/README.md)
+- [Integrated reference design](auto-docs/architecture/reference-platform.md)
+- [Runtime flows](auto-docs/architecture/runtime-flows.md)
+- [Variant contracts](auto-docs/architecture/variants.md)
 - [Network placement](auto-docs/architecture/networking/README.md)
 - [Firewall policy](auto-docs/architecture/networking/firewall-policy.md)
 - [Deployment commands](auto-docs/reference/repository-scripts.md)

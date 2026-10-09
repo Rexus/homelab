@@ -3,13 +3,45 @@
 Delivery supplies approved service endpoints, software sources, code and
 artifacts. General delivery services normally belong to Tier 1. Privileged
 infrastructure execution and image publication remain Tier 0 responsibilities.
+These interfaces connect software producers and consumers in the
+[platform architecture](../README.md).
 
 ## Table of contents
 
+- [Completed design](#completed-design)
 - [Components and interfaces](#components-and-interfaces)
 - [Design choices](#design-choices)
 - [Design constraints](#design-constraints)
+- [Detailed views](#detailed-views)
 - [Realization](#realization)
+
+## Completed design
+
+Code, artifact delivery and published application access coexist in the completed
+platform. General builds supply candidate artifacts; the selected promotion policy
+controls approved versions. Infrastructure proposals cross a separate Tier 0
+authorization boundary.
+
+```mermaid
+flowchart TB
+  Source["Source control"] -->|Build definitions| Build["General build runners"]
+  Supply["Approved packages and image supply"] -->|Build inputs| Build
+  Build -->|Publish under artifact policy| Registry["Registry authority"]
+  Source -->|Approved revisions| Delivery["Selected application delivery controller"]
+  Registry -->|Approved images| Runtime["Cluster and host runtimes"]
+  Registry -->|Optional acceleration| Distribution["Distribution layer"]
+  Distribution -->|Approved image pulls| Runtime
+  Delivery -->|Scoped application changes| Apps["Application services"]
+  Runtime -->|Run| Apps
+  Clients["Service clients"] -->|Named HTTPS listeners| Edge["Edge proxy or ingress"]
+  Edge -->|Approved service endpoints| Apps
+  Source -->|Infrastructure proposals| Gate["Tier 0 authorization and execution"]
+```
+
+Registry interfaces also supply approved OS images and template inputs to host
+consumers. Tier 0 retains independent recovery copies and controls trusted template
+publication. Named application listeners follow the network policy of the selected
+service instance.
 
 ## Components and interfaces
 
@@ -21,6 +53,15 @@ infrastructure execution and image publication remain Tier 0 responsibilities.
 | Registry | Own approved artifact versions and consumer access |
 | Distribution layer | Accelerate artifact delivery without becoming the artifact authority |
 | Build runners | Produce candidate artifacts; privileged execution has a separate approval and credential boundary |
+
+| Boundary | Interface and connected function |
+| --- | --- |
+| Supplied to runtimes | Approved Git revisions, scoped artifact pulls and retained software inputs |
+| Supplied to clients | Named application endpoints through the selected edge or ingress service |
+| Supplied to infrastructure control | Proposed changes and candidate artifacts subject to Tier 0 authorization |
+| Consumed from compute | Service runtime, build capacity, persistent storage and approved template references |
+| Consumed from identity and cryptography | Supported OIDC integration, service roles, TLS and scoped service credentials |
+| Consumed from networking and operations | Approved egress/publication routes, visibility and independent recovery targets |
 
 ## Design choices
 
@@ -37,6 +78,10 @@ The cache reference is a pair with one active VIP, not active-active balancing.
 Bootstrap software supply is independent of hosted delivery services.
 Recovery retains approved artifacts outside the platform that consumes them.
 
+[Delivery controller patterns](controllers.md) separates Tier 0 Flux from the
+unselected Tier 1 choice of Argo CD or Spinnaker. Tier 1 can deliver into Tier 2
+only within an approved application scope; it does not control Tier 0.
+
 <a id="maturity"></a>
 
 ## Design constraints
@@ -50,6 +95,14 @@ Recovery retains approved artifacts outside the platform that consumes them.
 
 An integrated registry can remain the final choice. Distribution acceleration
 is justified by capacity requirements, not by an assumed product progression.
+
+## Detailed views
+
+- [Controller patterns](controllers.md) compares GitOps reconciliation and release-pipeline orchestration.
+- [Artifact supply](artifact-supply.md) expands integrated, independent and accelerated registry designs.
+- [Infrastructure execution](../compute/provisioning.md) details the Tier 0 acceptance, credential and state boundary.
+- [Network policy](../networking/firewall-policy.md) defines permitted publication and software-supply routes.
+- [Runtime flows](../runtime-flows.md) follows changes from their source to running workloads.
 
 ## Realization
 

@@ -1,4 +1,4 @@
-"""Talos resources, inputs, and state belong to Tier 0, not shared automation."""
+"""Each tier owns cluster resources and inputs; shared executes a stateless workflow."""
 
 import json
 import os
@@ -10,13 +10,19 @@ import yaml
 from tier_repo_test_support import TierRepositoryTestCase
 
 
-class TierZeroTalos(TierRepositoryTestCase):
+class TierClusters(TierRepositoryTestCase):
     def test_cluster_and_inventory_are_tier_owned(self):
         self.generate()
-        repo = self.root / "verify-tier-0"
+        for tier in ("tier-0", "tier-1", "tier-2"):
+            with self.subTest(tier=tier):
+                self.check_cluster_ownership(self.root / f"verify-{tier}")
+        self.assertFalse((self.root / "verify-shared/terraform").exists())
+
+    def check_cluster_ownership(self, repo):
         groups = yaml.safe_load((repo / "ansible/inventory/hosts.yml.example").read_text())["all"]["children"]
         hosts = set(groups["talos_control_plane"]["hosts"]) | set(groups["talos_workers"]["hosts"])
         self.assertEqual(len(groups["talos_control_plane"]["hosts"]), 3)
+        self.assertEqual(groups["talos_workers"]["hosts"], {})
         self.assertNotIn("talos", groups["guests"]["children"])
         self.assertEqual(set(yaml.safe_load((repo / "ansible/group_vars/talos.yml.example").read_text())
                              ["platform_host_ips"]), hosts)
@@ -32,15 +38,34 @@ class TierZeroTalos(TierRepositoryTestCase):
         self.assertNotIn("shared/terraform", main)
         self.assertIn('prevent_destroy = true', (root / "machines.tf").read_text())
         self.assertTrue((repo / "scripts/kubernetes-cluster.sh").is_file())
-        for tier in ("tier-1", "tier-2", "shared"):
-            self.assertFalse((self.root / f"verify-{tier}/terraform/deployments/kubernetes").exists())
+        self.assertIn('allow_scheduling_on_control_planes = true',
+                      (root / "terraform.tfvars.example").read_text())
+        tier = repo.name.removeprefix("verify-")
+        self.assertIn(f'"{tier}", "talos", each.value.role', (root / "machines.tf").read_text())
+        self.assertIn("../verify-shared/scripts/kubernetes-cluster.sh",
+                      (repo / "scripts/kubernetes-cluster.sh").read_text())
+
+    def test_delivery_selection_is_independent_of_cluster_provisioning(self):
+        self.generate()
+        tier1 = self.root / "verify-tier-1"
+        record = (tier1 / "docs/architecture/README.md").read_text()
+        self.assertIn("Unselected: Argo CD", record)
+        self.assertIn("Spinnaker release pipelines", record)
+        self.assertIn("Tier 1 does not inherit Tier 0 Flux automatically", (tier1 / "README.md").read_text())
+        script = (self.root / "verify-shared/scripts/kubernetes-cluster.sh").read_text()
+        for installer in ("flux bootstrap", "argocd cluster add", "spin pipeline"):
+            self.assertNotIn(installer, script)
 
     @unittest.skipIf(os.name == "nt", "Bash wrapper checks run under Linux/WSL")
     def test_wrapper_preserves_inputs_and_requires_reviewed_plan(self):
         self.generate()
-        repo = self.root / "verify-tier-0"
+        for tier in ("tier-0", "tier-1", "tier-2"):
+            with self.subTest(tier=tier):
+                self.check_wrapper(self.root / f"verify-{tier}")
+
+    def check_wrapper(self, repo):
         script = ["bash", "scripts/kubernetes-cluster.sh"]
-        commands = self.root / "commands"
+        commands = self.root / f"commands-{repo.name}"
         commands.mkdir()
         fake = commands / "terraform"
         fake.write_text('''#!/usr/bin/env python3
@@ -58,7 +83,7 @@ if "output" in sys.argv:
     print('{"k8ctl-1": "test machine configuration"}' if "-json" in sys.argv else "test credential")
 ''')
         fake.chmod(0o755)
-        log = self.root / "calls.jsonl"
+        log = self.root / f"calls-{repo.name}.jsonl"
         env = dict(os.environ, PATH=f"{commands}:{os.environ['PATH']}", CALLS=str(log))
 
         def call(action, environment=env):
@@ -72,13 +97,21 @@ if "output" in sys.argv:
         inventory.write_text("# Existing project inventory\n")
         self.assertEqual(call("init").returncode, 0)
         self.assertEqual(inventory.read_text(), "# Existing project inventory\n")
-        alias = subprocess.run(["bash", "scripts/talos-cluster.sh", "init"], cwd=repo,
-                               env=env, capture_output=True, text=True)
-        self.assertEqual(alias.returncode, 0, alias.stdout + alias.stderr)
+        if (repo / "scripts/talos-cluster.sh").exists():
+            alias = subprocess.run(["bash", "scripts/talos-cluster.sh", "init"], cwd=repo,
+                                   env=env, capture_output=True, text=True)
+            self.assertEqual(alias.returncode, 0, alias.stdout + alias.stderr)
         self.assertEqual(inventory.read_text(), "# Existing project inventory\n")
         self.assertEqual(call("plan").returncode, 0)
         plan = repo / ".terraform/plans/talos.tfplan"
         self.assertTrue(plan.is_file())
+        requirement = self.root / "verify-shared/ansible/requirements.yml"
+        original = requirement.read_bytes()
+        requirement.unlink()
+        self.assertNotEqual(call("plan").returncode, 0)
+        self.assertFalse(plan.exists())
+        requirement.write_bytes(original)
+        self.assertEqual(call("plan").returncode, 0)
         self.assertNotEqual(call("plan", dict(env, FAIL_PLAN="1")).returncode, 0)
         self.assertFalse(plan.exists())
         self.assertNotEqual(call("apply").returncode, 0)

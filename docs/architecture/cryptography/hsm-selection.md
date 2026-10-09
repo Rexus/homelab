@@ -3,10 +3,13 @@
 The choice is the key-custody boundary, not a compulsory sequence of products.
 Software providers, USB devices and network HSMs can expose cryptographic functions
 to an issuer or signing service, but provide different isolation and recovery properties.
+The parent [cryptography design](README.md) defines the supplied services;
+the [variant map](../variants.md) relates this choice to other independent decisions.
 
 ## Table of contents
 
 - [Options A-D](#options-a-d)
+- [Completed designs](#completed-designs)
 - [Selection criteria](#selection-criteria)
 - [Assurance requirements](#assurance-requirements)
 - [Interfaces and limits](#interfaces-and-limits)
@@ -32,6 +35,102 @@ mechanisms and consumer. [2][3]
 
 [USB gateway design](usb-hsm.md) details C. [Network HSM design](network-hsm.md)
 details D. An existing approved provider can satisfy any applicable option.
+
+## Completed designs
+
+Each view places a selected online-key provider behind the same consumer-facing
+issuer or signing interface. Offline root custody remains a separate choice under
+the [certificate hierarchy](../reference-platform.md#certificate-trust). Dashed
+connections represent separately authorized recovery transfers, not normal network
+dependencies. Application-state backups accompany the selected key-recovery method.
+
+### A: Software
+
+```mermaid
+flowchart TB
+  Consumers["Authorized consumers"] -->|Certificate or signing requests| Service
+  subgraph Host["Authorized online host"]
+    Service["Issuer or signing service"] -->|Supported provider interface| Provider["Software key store or provider"]
+  end
+  subgraph Custody["Separate recovery custody"]
+    Recovery["Protected key backups and recovery material"]
+  end
+  Recovery -. "Authorized restore" .-> Provider
+```
+
+Key custody shares the host's compromise boundary. This arrangement has one
+application/provider path; recovery from host loss uses independently retained
+key and application backups. Software interface rehearsal does not establish
+hardware isolation. [1]
+
+### B: Single USB
+
+```mermaid
+flowchart TB
+  Consumers["Authorized consumers"] -->|Certificate or signing requests| Service
+  subgraph Host["Authorized online host"]
+    Service["Issuer or signing service"] -->|Local provider integration| Client["Device client"]
+  end
+  Client -->|Host-local USB| Token["Single hardware token"]
+  subgraph Custody["Separate recovery custody"]
+    Recovery["Permitted device backup and recovery material"]
+  end
+  Recovery -. "Supported authorized restore" .-> Token
+```
+
+The local token supplies the key-custody boundary; the host still owns application
+state and permitted requests. Host or device loss interrupts this single path.
+Recovery depends on the selected device's supported backup policy and retained
+application state, not on the presence of a replacement device alone. [2][3]
+
+### C: Replicated USB gateways
+
+```mermaid
+flowchart TB
+  Consumers["Authorized consumers"] -->|Certificate or signing requests| Service["Issuer or signing service"]
+  Service -->|Validated application routing| GatewayA
+  Service -->|Validated application routing| GatewayB
+  subgraph HostA["Independent host A"]
+    GatewayA["Gateway service A"] -->|Host-local USB| TokenA["Local hardware token A"]
+  end
+  subgraph HostB["Independent host B"]
+    GatewayB["Gateway service B"] -->|Host-local USB| TokenB["Local hardware token B"]
+  end
+  subgraph Custody["Separate recovery custody"]
+    Recovery["Approved key backups and wrapping material"]
+  end
+  Recovery -. "Authorized recovery transfer" .-> TokenA
+  Recovery -. "Authorized recovery transfer" .-> TokenB
+```
+
+The service routes operations through a supported application integration; each
+gateway accesses only its local token. Service-level failover depends on validated
+routing, compatible key material and surviving capacity. Key replication is
+separately governed: the tokens provide no native cluster or automatic key-state
+synchronization. Recovery custody remains independent of both active hosts.
+The [gateway detail](usb-hsm.md) also shows the published endpoint variant.
+
+### D: Network HSM
+
+```mermaid
+flowchart TB
+  Consumers["Authorized consumers"] -->|Certificate or signing requests| Service["Issuer or signing service"]
+  Service -->|Supported provider integration| Client["Authorized vendor client"]
+  Client -->|Partition access| PartitionA["Appliance A: selected partition"]
+  Client -->|Optional vendor-supported HA| PartitionB["Appliance B: compatible partition"]
+  subgraph Custody["Separate custody administration and recovery"]
+    Recovery["Approved backups and wrapping or domain material"]
+  end
+  Recovery -. "Vendor-supported restore" .-> PartitionA
+  Recovery -. "Vendor-supported restore" .-> PartitionB
+```
+
+Custody resides in the selected appliance partitions, with client authorization
+and management permissions separated. A second member is optional; replication
+and failover follow the selected product's supported HA model. Independent backup
+and recovery material remain necessary for loss beyond the active members. [4]
+The [network HSM detail](network-hsm.md) defines the client, partition and failure
+contracts.
 
 <a id="start-with-the-right-problem"></a>
 <a id="certification-and-reality"></a>
@@ -77,7 +176,7 @@ Certificate signing and secret-service unseal are separate integrations:
 
 ## References
 
-Sources checked 2026-10-08.
+Sources checked 2026-10-09.
 
 1. [SoftHSM project](https://www.softhsm.org/)
 2. [Pico HSM capability map](https://docs.picokeys.com/picohsm/features/)

@@ -2,14 +2,41 @@
 
 Cryptography establishes trust, protects key custody and delivers credentials.
 Root custody, online issuance, signing and secret storage are separate functions;
-one product need not implement all of them.
+one product need not implement all of them. Together they provide the certificate
+trust and secret interfaces of the [platform architecture](../README.md).
 
 ## Table of contents
 
+- [Completed design](#completed-design)
 - [Components and interfaces](#components-and-interfaces)
 - [Independent choices](#independent-choices)
 - [Design constraints](#design-constraints)
+- [Detailed views](#detailed-views)
 - [Realization](#realization)
+
+## Completed design
+
+Routine consumers depend on the online issuer and secret service. Root custody
+remains separately controlled, and signing and secret-service startup protection
+retain independent provider choices.
+
+```mermaid
+flowchart TB
+  subgraph Offline["Separate offline custody"]
+    Root["Root CA and authorized ceremony"]
+  end
+  Root -. "Signed intermediate transfer; no network route" .-> Issuer
+  Certificates["Certificate consumers and cert-manager"] -->|Issue and renew| Issuer["Online intermediate issuer"]
+  Issuer -->|Supported signing integration| Signing["Selected key provider"]
+  Clients["Authorized secret consumers"] -->|Scoped secret API| Secrets["Secret service"]
+  Secrets -->|Selected seal and recovery mechanism| Seal["Protected startup material"]
+```
+
+This view separates functions; a selected product can implement more than one.
+The reference allocation separates online issuance from offline root custody
+and uses Vault as the secret service.
+Root and online keys can use different custody providers, while the secret-service
+seal remains a separate integration.
 
 ## Components and interfaces
 
@@ -24,6 +51,14 @@ one product need not implement all of them.
 The [certificate design](../reference-platform.md#certificate-trust) shows
 consumer-to-issuer relationships. A gateway cannot become a signing backend merely
 by being reachable; the application needs supported provider integration.
+
+| Boundary | Interface and connected function |
+| --- | --- |
+| Supplied to identity and services | Public trust material and policy-scoped certificate issuance, renewal and revocation |
+| Supplied to authorized clients | Scoped secret retrieval or delivery with audit and independent recovery |
+| Consumed from compute | Issuer and secret-service runtime, persistent storage and approved network access |
+| Consumed from access policy | Authorized service identities, consumer roles and separately controlled custodian authority |
+| Consumed from recovery arrangements | Protected backups, recovery credentials and startup material independent of the affected service |
 
 ## Independent choices
 
@@ -51,6 +86,14 @@ introduced later without changing its purpose.
 
 Software custody can satisfy an accepted threat model. Hardware presence alone
 does not establish the required isolation, recovery or compliance properties.
+
+## Detailed views
+
+- [Runtime flows](../runtime-flows.md#certificate-and-secret-consumption) connects certificate and secret consumers across domains.
+- [Certificate hierarchy](../reference-platform.md#certificate-trust) connects issuing services to tier-local consumers.
+- [Key-protection options A-D](hsm-selection.md) compares custody boundaries and supported interfaces.
+- [Replicated USB gateways](usb-hsm.md) and [network HSMs](network-hsm.md) expand the selected hardware arrangement.
+- [Secret-service seal patterns](vault-seal.md) details startup protection independently of signing.
 
 ## Realization
 

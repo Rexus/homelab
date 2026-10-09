@@ -12,10 +12,11 @@ Design options describe valid arrangements, not automatic installer coverage.
 | 2 | C: USB gateway pair | Tier 0 hsm host provisioning and baseline only; device, key and signing-service integration remain manual |
 | 2 | D: Network HSM | Vendor appliance/client integration guide; no appliance installer or generic HA role |
 | 3 | Directory authority | Tier 0 foundation VM pair and FreeIPA deployment recipe |
-| 3 | Control-cluster nodes/bootstrap | Tier 0 Kubernetes Terraform root, currently Talos; other node OS installers are not supplied |
+| 3/5/6 | Independent cluster nodes/bootstrap | Each tier owns a Kubernetes Terraform root, currently Talos; compact three-control-plane examples and optional pool labels; no autoscaler |
 | 3/4 | Cluster add-ons and control services | Tier-owned cluster starters; application manifests and service integration remain project work |
 | 4 | Dedicated secret-service VM | Tier 0 Vault root/role; Shamir reference; no automatic Transit/PKCS#11 migration |
 | 4 | Telemetry VM pattern | Tier 1 observability hosts/baseline; collectors/backends need service automation |
+| 5 | Delivery controller | Tier 0 uses Flux; Tier 1 Argo CD/Spinnaker are unselected design options, not supplied installers |
 | 5 | Source control, general runners and edge | Tier 1 setups and deployment recipes; registry variants need project integration |
 | 5 | Image lifecycle | Tier 0 image builders/publication; Tier 1 general build runner where selected |
 | 5/6 | Protected infrastructure runner and bounded request controller | [Design contract](../architecture/compute/provisioning.md), not supplied as a complete controller |

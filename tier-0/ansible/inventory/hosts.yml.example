@@ -61,8 +61,7 @@ all:
         k8ctl-2: {}
         k8ctl-3: {}
     talos_workers:
-      hosts:
-        k8node-1: {}
+      hosts: {}
     guests:
       children:
         foundation: null

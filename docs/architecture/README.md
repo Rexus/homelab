@@ -1,15 +1,22 @@
 # Platform architecture
 
-A private cloud built from Proxmox, purpose-based networks, and repeatable
-automation. The system separates workload access from platform authority, and
-retains independent recovery of the infrastructure and trust services.
+The private cloud provides shared services and isolated project runtimes on a
+locally controlled infrastructure and trust foundation. Users consume published
+applications; teams deliver reviewed changes; platform operators retain control
+of infrastructure, identity, keys and recovery.
 
-This is the intended design. Deployment stages and readiness are recorded
-separately in [deployment](../deployment/README.md).
+This page shows the completed intended system. The
+[integrated reference design](reference-platform.md) assigns its functions to
+components and hosting boundaries. Each [technical domain](#technical-domains)
+then expands part of the same system into detailed designs and alternatives.
+Selected site designs belong in project-owned architecture records; actual
+deployment and acceptance evidence belong in [deployment](../deployment/README.md).
 
 ## Table of contents
 
+- [Read from overview to detail](#read-from-overview-to-detail)
 - [Functional structure](#functional-structure)
+- [How the platform works together](#how-the-platform-works-together)
 - [Technical domains](#technical-domains)
 - [Layered model](#layered-model)
 - [Tiered model](#tiered-model)
@@ -17,49 +24,96 @@ separately in [deployment](../deployment/README.md).
 - [Automation responsibilities](#automation-responsibilities)
 - [Continue reading](#continue-reading)
 
+## Read from overview to detail
+
+| View | Question answered | Design |
+| --- | --- | --- |
+| Whole platform | What does the environment provide, and how do its major functions connect? | This page |
+| Integrated reference | What components coexist in one complete realization, and where do they run? | [Reference platform](reference-platform.md) |
+| System interactions | How do access, changes, certificates, data and recovery cross domain boundaries? | [Runtime relationships](runtime-flows.md) |
+| Domain | What is inside one platform function, and what does it consume and provide? | [Technical domains](#technical-domains) |
+| Detailed design | How does a component or alternative fulfill that domain's contract? | Detail pages linked from each domain |
+| Selected instance | Which alternatives are combined for a particular site or environment? | [Variant selection](variants.md) and project-owned designs |
+
+Depth follows composition rather than installation order. A child diagram expands
+a named part of its parent and keeps the same outward interfaces. Networking,
+ownership and runtime placement are complementary views of those components.
+Only designs with meaningful internal differences need another page or diagram.
+
 <a id="purpose"></a>
 <a id="goals"></a>
 <a id="system-design"></a>
 
 ## Functional structure
 
-The platform connects compute, networking, identity, cryptography, delivery and
-operations. Network layers describe exposure; tiers identify the owner of each
-component according to its privileges.
+The diagram shows supplied capabilities in the completed platform. The trust
+function expands into identity and cryptography; the foundation expands into
+compute and networking. Operations covers all hosted capabilities. Edge publication
+and software delivery are two interfaces of the delivery domain.
 
 ```mermaid
-flowchart LR
-  subgraph Edge["Edge: approved entry points"]
+flowchart TB
+  Users["Users and workload teams"]
+  Operators["Platform operators"]
+  subgraph Platform["Private cloud"]
     direction TB
-    Entry["Traffic entry<br/>external_edge"]
+    Entry["Published service access"]
+    subgraph Hosted["Hosted capabilities"]
+      Workloads["Applications and project runtimes"]
+      Delivery["Source, artifacts and delivery"]
+      Trust["Identity, certificates and secrets"]
+    end
+    Foundation["Compute, networks and persistent storage"]
+    Operations["Inventory, visibility and recovery"]
   end
-  subgraph Application["Application: services and consumers"]
-    direction TB
-    Workloads["User workloads<br/>application / project networks"]
-    Delivery["Source control and artifacts<br/>application"]
-  end
-  subgraph Control["Control: platform authority"]
-    direction TB
-    Identity["Identity and access<br/>identity / control_cluster"]
-    Trust["Certificates and secrets<br/>cryptography / control_cluster"]
-    Compute["Compute and cluster lifecycle<br/>management / control_cluster"]
-    Operations["Inventory, monitoring and audit<br/>control_cluster"]
-    Identity ~~~ Trust ~~~ Compute ~~~ Operations
-  end
-  Delivery -->|Approved artifacts| Workloads
-  Edge -->|Published endpoints| Application
-  Application -->|Scoped service access| Control
+  Custody["Separate offline trust and recovery custody"]
+  Users -->|Use named endpoints| Entry
+  Entry -->|Application traffic| Workloads
+  Users -->|Propose changes| Delivery
+  Delivery -->|Approved revisions and artifacts| Workloads
+  Trust -->|Scoped identity and trust interfaces| Workloads
+  Trust -->|Scoped identity and trust interfaces| Delivery
+  Foundation -->|Runtime, connectivity and data| Hosted
+  Hosted -->|Signals and protected backup outputs| Operations
+  Operators -->|Authorized infrastructure lifecycle| Foundation
+  Operations -->|Inventory, alerts and recovery evidence| Operators
+  Custody -.->|Authorized custody transfers| Trust
 ```
 
-Arrows identify relationships, not firewall rules or a complete dependency graph.
-Offline root custody is outside the routed platform. The
-[network map](networking/README.md) defines attachments and zones; the
-[firewall policy](networking/firewall-policy.md) defines permitted flows.
+Solid arrows name functional relationships, not blanket network permissions.
+The custody arrow is an authorized transfer, not a network route. The
+[interaction views](runtime-flows.md) expand the consequential connections;
+the [firewall policy](networking/firewall-policy.md) owns allowed listeners.
+Recovery copies and external failure detection remain available beyond the
+hosted services they protect.
 
-For example, FreeIPA supplies the directory component of **identity and access**;
-an identity broker and service authorization complete the authentication path.
-The [reference platform](reference-platform.md) shows one target allocation
-of those components to VMs, clusters, and offline custody.
+| Function | Result available to consumers | Place in the complete system |
+| --- | --- | --- |
+| Workload execution | Project applications, development environments and experiments | Tier 2 consumes approved runtime and shared service interfaces |
+| Networking | Named entry points and purpose-based, enforced connectivity | Connects clients, services and infrastructure without granting administrative authority |
+| Compute and data | VM/cluster capacity, approved images, persistent storage and controlled lifecycle | Supports every hosted capability; hardware authority remains Tier 0 |
+| Identity and access | Directory, DNS, authentication federation and scoped service authorization | Supplies identity to applications, delivery and operators |
+| Cryptography and secrets | Certificate trust, online issuance and controlled credential delivery | Keeps routine service access separate from root-key custody |
+| Delivery | Published endpoints, reviewed source, approved artifacts and application delivery | Connects teams and software supply to services and workloads |
+| Operations | Inventory documentation, health/audit visibility and independent recovery | Covers each function according to its owner, sensitivity and recovery needs |
+
+External peers are clients, approved software sources, existing contracted
+services, and optional offsite recovery targets. Existing identity, PKI or other
+services can fulfill a function through explicit ownership and recovery
+contracts. Their placement changes; the consumed interface remains visible.
+
+## How the platform works together
+
+| Relationship | Completed behavior | Expanded view |
+| --- | --- | --- |
+| Service access | Clients reach named endpoints; a broker uses the directory; each service applies its own authorization | [Access](runtime-flows.md#service-access) |
+| Application delivery | General builds produce candidates; approved source and artifacts are delivered into the owning runtime | [Application delivery](runtime-flows.md#application-delivery) |
+| Infrastructure change | Proposed resource changes pass Tier 0 acceptance before protected execution; inventory and state remain tier-owned | [Infrastructure changes](runtime-flows.md#infrastructure-changes) |
+| Certificate trust | An offline root authorizes intermediates; online issuers serve routine certificate consumers | [Trust](reference-platform.md#certificate-trust) |
+| Data and recovery | Each stateful service owns its data and restoration contract; recovery inputs and failure detection survive hosted-service loss | [Data and recovery](runtime-flows.md#data-visibility-and-recovery) |
+
+These relationships coexist after deployment. A deployment stage may contribute
+to several functions, and one function may be realized across several stages.
 
 <a id="subsystem-design"></a>
 <a id="compute-and-cluster-platform"></a>
@@ -72,22 +126,24 @@ of those components to VMs, clusters, and offline custody.
 
 ## Technical domains
 
-Each domain describes its purpose, components, interfaces, design choices and
-constraints. A domain is a reading topic, not another repository or ownership boundary.
+Each domain opens with its completed design and boundary interfaces, then links
+to internal components and variants. A domain is a reading topic, not another
+repository or ownership boundary.
 
-| Domain | Design responsibility |
+| Domain view | Detail available below it |
 | --- | --- |
-| [Networking](networking/README.md) | Attachments, zones and permitted traffic |
-| [Compute](compute/README.md) | Hypervisors, images, cluster runtime and protected provisioning |
-| [Identity](identity/README.md) | Directory authority, authentication and service authorization |
-| [Cryptography](cryptography/README.md) | Trust anchors, key custody, certificate issuance and secrets |
-| [Delivery](delivery/README.md) | Published endpoints, software supply, source control and artifacts |
-| [Operations](operations/README.md) | Visibility, inventory documentation, recovery and workload governance |
+| [Networking](networking/README.md) | Attachments, network catalog and [permitted traffic](networking/firewall-policy.md) |
+| [Compute](compute/README.md) | [VM/cluster placement](compute/runtime.md), [three-cluster topology](compute/kubernetes.md) and [protected provisioning](compute/provisioning.md) |
+| [Identity](identity/README.md) | Directory/broker/authorization relationships and [Windows integration](identity/windows-integration.md) |
+| [Cryptography](cryptography/README.md) | [Key custody](cryptography/hsm-selection.md), [USB gateways](cryptography/usb-hsm.md), [network HSM](cryptography/network-hsm.md) and [service seals](cryptography/vault-seal.md) |
+| [Delivery](delivery/README.md) | Endpoints, [controller choices](delivery/controllers.md), [artifact authority and distribution](delivery/artifact-supply.md) |
+| [Operations](operations/README.md) | Inventory/recovery relationships and [telemetry composition](operations/telemetry.md) |
 
 [Principles](principles.md), [tier ownership](tier-ownership.md) and
 [service boundaries](service-boundaries.md) apply across these domains.
-Option labels identify alternatives within a decision, not deployment stages
-or generator flags. Procedures realize the selected design; they do not redefine it.
+The [variant contract](variants.md) explains which local substitutions preserve
+the parent design and which changes require review of that design. Procedures
+realize the selected design; they do not redefine it.
 
 ## Layered model
 
@@ -152,7 +208,7 @@ hypervisor credentials do not have the same owner.
 | Terraform / OpenTofu design | Provision resources from tier-owned definitions and inputs |
 | Ansible | Configure supported Linux hosts from the same tier-local inventory |
 | Kubernetes bootstrap | Create the cluster; Talos is the current OS implementation |
-| GitOps | Reconcile services inside a running cluster |
+| Application delivery | Tier 0 uses Flux; Tier 1 selects GitOps or release-pipeline orchestration separately |
 
 The current wrappers execute Terraform. A protected workstation and protected
 runner are alternative execution contexts within Tier 0's authority. Source
@@ -167,8 +223,9 @@ control coordinates changes; Tier 0 retains authorization and independent recove
 | --- | --- |
 | Which networks, VLANs, and firewall rules? | [Network map](networking/README.md), [firewall policy](networking/firewall-policy.md) |
 | What belongs in each repo? | [Tier ownership](tier-ownership.md) |
-| Which implementation choices are available? | [Technical domains](#technical-domains) |
-| What does the complete control platform look like? | [Control platform design](reference-platform.md) |
+| Which implementation choices are available? | [Technical domains](#technical-domains), [variant selection](variants.md) |
+| What does the complete platform look like? | [Integrated reference design](reference-platform.md) |
+| How do its parts cooperate? | [Runtime relationships](runtime-flows.md) |
 | What is deployed first? | [Deployment checklist](../paths/tier-0/README.md) |
 | How are privileged changes accepted? | [Infrastructure control](compute/provisioning.md) |
 | What is the wider platform scope? | [Private cloud](private-cloud.md), [shared services](service-boundaries.md) |

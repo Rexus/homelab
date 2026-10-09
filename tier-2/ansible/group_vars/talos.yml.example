@@ -1,0 +1,6 @@
+# Talos API inputs, not SSH configuration. Reserve these IPs for the MACs in
+# terraform/deployments/kubernetes/terraform.tfvars before creating the VMs.
+platform_host_ips:
+  workload-k8ctl-1: 10.42.20.10
+  workload-k8ctl-2: 10.42.20.11
+  workload-k8ctl-3: 10.42.20.12

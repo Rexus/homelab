@@ -201,7 +201,7 @@ remain separate within each of the three repositories.
 
 Shared never owns inventory, guest network assignments, Terraform resources, or state.
 Common non-secret infrastructure references follow the [platform input contract](../reference/platform-inputs.md).
-The Kubernetes implementation currently uses Talos and Tier 0 inventory, but
+The Kubernetes implementation currently uses Talos and each owning tier's inventory, but
 not Ansible guest configuration. Its
 [separate root and command](../deployment/stage-3-identity-runtime/procedures/talos-terraform.md) consume Talos groups
 and IP reservations, with state at `.terraform/state/talos/terraform.tfstate`.
@@ -472,7 +472,7 @@ This rename does not switch node OS or install a second cluster.
 Generation includes Linux Terraform/Ansible setups, Tier 0 Kubernetes bootstrap
 (currently Talos), split inventory examples, stateless shared automation/data,
 and upstream documentation.
-Flux reconciliation, cluster applications, and the documentation website remain
+Delivery-controller installation, cluster applications, and the documentation website remain
 skeletons. Kustomization resource lists group files; they do not enforce the
 control-service deployment sequence. See the [Tier 0 path](../paths/tier-0/README.md).
 

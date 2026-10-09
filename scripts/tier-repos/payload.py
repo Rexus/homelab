@@ -5,7 +5,11 @@ import re
 import yaml
 
 TIERS = ("tier-0", "tier-1", "tier-2")
-TERRAFORM_ONLY_DEPLOYMENTS = {"tier-0": {"kubernetes", "templates"}}
+TERRAFORM_ONLY_DEPLOYMENTS = {
+    "tier-0": {"kubernetes", "templates"},
+    "tier-1": {"kubernetes"},
+    "tier-2": {"kubernetes"},
+}
 SHARED_TREES = {
     "config": ("*.json", "platform.tfvars"),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2"),

@@ -7,6 +7,7 @@
 - [Purpose](#purpose)
 - [Dependency direction](#dependency-direction)
 - [Starting shape](#starting-shape)
+- [Delivery selection](#delivery-selection)
 - [Cluster foundation](#cluster-foundation)
 - [Read more](#read-more)
 
@@ -19,7 +20,7 @@ For installation and node-OS choices, follow the shared
 [Kubernetes cluster guide](../../stage-3-identity-runtime/procedures/kubernetes.md).
 Use the [Tier 1 checklist](../../../paths/tier-1/README.md) for platform services or the
 [Tier 0 checklist](../../../paths/tier-0/README.md) for the independent control cluster.
-This page explains application-platform choices. Tier 0 has a
+This page explains application-platform choices. Every tier has its own
 [Kubernetes Terraform root](../../stage-3-identity-runtime/procedures/talos-terraform.md), currently implemented
 with Talos; GitOps and cluster-service
 directories remain starters rather than a complete platform installer.
@@ -46,24 +47,36 @@ application scaling become the main need.
 
 ## Starting shape
 
-Start with a small worker cluster when the goal is application deployment, not
-full private-cloud multi-tenancy:
+Use the independent [Tier 1 cluster topology](../../../architecture/compute/kubernetes.md).
+The compact start runs trusted workloads on three control planes; add workers
+before reserving control planes for Kubernetes components:
 
 | Role | Example name | Notes |
 | --- | --- | --- |
-| control plane | `k8ctl-1` | control-plane node or small HA control-plane set |
-| worker | `k8node-1` | application worker node |
+| control plane | `platform-k8ctl-1` to `platform-k8ctl-3` | Three nodes, scheduling configurable |
+| worker | Project-defined nodes | Optional infrastructure/stateful/compute pools |
 | ingress | cluster-native ingress | consumes the shared edge path instead of replacing it |
-| GitOps | controller inside the cluster | consumes independent source access and bootstrap secrets; later secret-platform integration is optional |
+| Delivery | Argo CD or Spinnaker; unselected | Application GitOps or release orchestration; scoped credentials and independent recovery |
 
 Use separate clusters for stronger project isolation when shared namespaces,
 RBAC, and policy are not enough.
+
+## Delivery selection
+
+Record [A: Argo CD or B: Spinnaker](../../../architecture/delivery/controllers.md) in the
+project architecture before installation. Follow the selected product's official
+installation procedure with pinned manifests/images, then configure sources,
+scoped destinations/accounts, RBAC/OIDC and secret handling. No controller installer
+is supplied. Do not bootstrap Tier 1 Flux simply because Tier 0 uses it.
+
+Test approved delivery, rejected targets, health gates, rollback and recovery
+without the normal delivery service. Never register Tier 0 as a Tier 1 delivery target.
 
 ## Cluster foundation
 
 Follow the common [cluster foundation checklist](../../stage-3-identity-runtime/procedures/kubernetes.md#cluster-foundation)
 for networking, reconciliation, secrets, persistence, TLS, and databases.
-It applies to both tiers independently of node OS and owns the readiness gates.
+It applies to all tiers independently of node OS and owns the readiness gates.
 Then continue with the [Tier 1 service checklist](../../../paths/tier-1/README.md).
 
 ## Read more

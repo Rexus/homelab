@@ -3,13 +3,39 @@
 Operations supplies independent visibility, inventory documentation, recovery and
 workload governance. Every stateful resource has a recovery owner, regardless
 of whether its monitoring is local or supplied by shared operational services.
+These capabilities cover the whole [platform architecture](../README.md).
 
 ## Table of contents
 
+- [Completed design](#completed-design)
 - [Components and interfaces](#components-and-interfaces)
 - [Design choices](#design-choices)
 - [Design constraints](#design-constraints)
+- [Detailed views](#detailed-views)
 - [Realization](#realization)
+
+## Completed design
+
+Operational visibility combines service telemetry with failure detection outside
+the observed cluster. Recovery copies remain available independently of the
+services and dashboards that normally manage them.
+
+```mermaid
+flowchart TB
+  Runtime["Hosts, clusters and applications"] -->|Approved signals| Collectors["Telemetry and security collectors"]
+  Collectors -->|Route by signal and policy| Stores["Metrics, traces, logs and audit stores"]
+  Operators["Authorized operators"] -->|Scoped queries| Stores
+  Stores -->|Archive and recovery copies| Recovery["Independent recovery targets"]
+  Runtime -->|Service backups| Recovery
+  External["Independent failure detection"] -->|Health checks| Runtime
+  External -->|Failure alerts| Alerts["External alert delivery"]
+  Stores -->|Owned alert rules| Alerts
+```
+
+NetBox documents approved inventory; Headlamp supplies scoped cluster operations.
+Their interfaces complement telemetry without replacing tier-local bootstrap inputs
+or independent recovery records. General telemetry can be Tier 1-owned; Tier 0
+control visibility has an independently recoverable path.
 
 ## Components and interfaces
 
@@ -21,6 +47,15 @@ of whether its monitoring is local or supplied by shared operational services.
 | Signal backends | Store metrics, traces, logs and audit records according to purpose and retention |
 | Recovery storage | Retain backups and restore evidence outside the service being recovered |
 | Workload governance | Isolate consumers and authorize changes without transferring Tier 0 control |
+
+| Boundary | Interface and connected function |
+| --- | --- |
+| Supplied to producers | Approved telemetry and security-event ingestion endpoints |
+| Supplied to operators | Scoped inventory, cluster operations, signal queries and owned alert delivery |
+| Supplied to recovery owners | Retained backups, archives and restoration evidence outside the protected service |
+| Consumed from tier owners | Infrastructure records, workload scope, retention requirements and recovery responsibilities |
+| Consumed from runtime and access services | Signals, backup streams, cluster APIs, authentication and service-local authorization |
+| Consumed from independent arrangements | Recovery storage and failure detection outside the affected service or cluster |
 
 ## Design choices
 
@@ -48,6 +83,14 @@ for creating the infrastructure on which they run.
 
 Hardware custody and application-state recovery remain separate responsibilities.
 A central dashboard alone is insufficient for independent failure detection.
+
+## Detailed views
+
+- [Runtime flows](../runtime-flows.md#data-visibility-and-recovery) connects service data, visibility and recovery across domains.
+- [Telemetry design](telemetry.md) expands collection, signal backends, retention and placement alternatives.
+- [Service boundaries](../service-boundaries.md) defines shared and isolated operational services.
+- [Workload request contract](../compute/provisioning.md) connects governance to privileged execution.
+- [Component allocation](../reference-platform.md#service-placement) locates inventory, cluster interfaces and supporting services.
 
 ## Realization
 

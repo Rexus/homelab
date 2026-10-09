@@ -47,7 +47,7 @@ class ConfigurationConsistency(unittest.TestCase):
                         json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_mapping)
 
     def test_cluster_starters_only_reference_existing_local_resources(self):
-        for tier in ("tier-0", "tier-1"):
+        for tier in ("tier-0", "tier-1", "tier-2"):
             root = UPSTREAM / tier / "clusters"
             for path in root.rglob("kustomization.yaml"):
                 config = yaml.safe_load(path.read_text())

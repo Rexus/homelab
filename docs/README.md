@@ -1,11 +1,13 @@
 # Documentation
 
-Architecture describes the whole platform and its technical domains. Deployment
-builds that design in stages; development and administration maintain it.
+Architecture describes the completed intended platform from overview to detail:
+its functions, integrated component placement, runtime relationships, domain
+designs and local alternatives. Deployment builds that design in stages;
+development and administration maintain it.
 
 | Intent | Start here | Contains |
 | --- | --- | --- |
-| Understand the design | [Architecture](architecture/README.md) | Platform relationships, technical domains, variants and constraints |
+| Understand the design | [Architecture](architecture/README.md) | Whole platform, integrated reference, domain diagrams and detailed variants |
 | Build the platform | [Deployment](deployment/README.md) | Six capability stages, numbered steps, adjacent options and detailed procedures |
 | Change the code | [Development](development/README.md) | Local tooling, IaC structure, repository generation and review |
 | Operate the platform | [Administration](administration/README.md) | Maintenance, backups, recovery and secret handling |
@@ -15,10 +17,14 @@ builds that design in stages; development and administration maintain it.
 
 ## Start here
 
-1. Read the [platform view](architecture/README.md).
-2. Select [domain patterns](architecture/README.md#technical-domains).
-3. Record project choices in the generated repositories' architecture records.
-4. Follow the [deployment stages](deployment/README.md), using verified
+1. Read the [platform overview](architecture/README.md) and its connected functions.
+2. Expand the [integrated reference](architecture/reference-platform.md) and
+   [runtime relationships](architecture/runtime-flows.md).
+3. Drill into [domain designs](architecture/README.md#technical-domains) and
+   [select compatible variants](architecture/variants.md).
+4. Record the selected composition in the generated repositories' project-owned
+   architecture records.
+5. Follow the [deployment stages](deployment/README.md), using verified
    existing services wherever they satisfy the prerequisites.
 
 Generated repositories use the same architecture, deployment, development and

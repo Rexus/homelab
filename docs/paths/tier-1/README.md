@@ -21,7 +21,7 @@ prerequisites; this is not a requirement to deploy every example.
 | --- | --- | --- |
 | 1. Confirm foundations | Read project conventions and obtain Tier 0-approved templates, networks, storage, and scoped operator access | Inputs are recorded locally; any identity/DNS/PKI prerequisites in the selected service guide exist |
 | 2. Add access services | Deploy [edge](../../deployment/stage-5-delivery/procedures/edge-proxy.md) and optional [cache](../../deployment/stage-1-foundation/step-3b-outbound-cache.md) | Intended traffic works and forbidden traffic is rejected |
-| 3. Create a platform cluster, if needed | Follow the shared [Kubernetes guide](../../deployment/stage-3-identity-runtime/procedures/kubernetes.md) with Tier 1 inputs; Talos is the current installation example | Nodes/API are healthy and recovery is tested |
+| 3. Create a platform cluster, if needed | Run `bash scripts/kubernetes-cluster.sh init` from Tier 1; follow the [Kubernetes guide](../../deployment/stage-3-identity-runtime/procedures/kubernetes.md) and select [Argo CD or Spinnaker](../../architecture/delivery/controllers.md) separately | Nodes/API and selected delivery are verified; recovery is tested |
 | 4. Add development services | Follow [source control](../../deployment/stage-5-delivery/step-1b-source-control-vm.md), [runners](../../deployment/stage-5-delivery/step-1c-podman-runner.md), and [registry](../../deployment/stage-5-delivery/procedures/registry.md) guides | Selected services have identity, certificates, backups, and restricted credentials |
 | 5. Add telemetry | Follow the [telemetry procedure](../../deployment/stage-4-control-services/step-2d-telemetry-vm.md) | Hosts and services report health; alerts and recovery checks work |
 

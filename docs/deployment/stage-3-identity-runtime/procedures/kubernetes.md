@@ -4,8 +4,8 @@
 
 The goal is an independently recoverable Kubernetes cluster on Proxmox.
 Tier 0 uses it for control services; Tier 1 can use a separate cluster for
-shared platform services. The node operating system is an implementation
-choice, not the name or purpose of the platform.
+shared platform services; Tier 2 has its own workload cluster. The node operating
+system is an implementation choice, not the name or purpose of the platform.
 
 ## Table of contents
 
@@ -31,14 +31,14 @@ against existing resources as an adoption procedure.
 
 | Choice | Role in this repository | Detailed procedure |
 | --- | --- | --- |
-| Talos | Current working node-OS example; the starting path for Kubernetes bootstrap | [Tier 0 Terraform](talos-terraform.md) or [manual Tier 0/Tier 1 bootstrap](../step-2b-manual-cluster.md) |
+| Talos | Current working node-OS example; the starting path for Kubernetes bootstrap | [Tier-local Terraform](talos-terraform.md) or [manual bootstrap](../step-2b-manual-cluster.md) |
 | Immutable AlmaLinux or another node OS | Possible later implementation; cluster installation, upgrades, and recovery are not supplied for it | Record the choice in project documentation and implement its lifecycle in the owning tier |
 
 Talos is the starting implementation because it provides a focused Kubernetes
 node and bootstrap workflow. It is not an architectural requirement. Proxmox,
 by contrast, is the chosen virtualization platform for this kit.
 
-The public Tier 0 entry points are `terraform/deployments/kubernetes/` and
+Each tier's public entry points are `terraform/deployments/kubernetes/` and
 `scripts/kubernetes-cluster.sh`. They currently use the Talos provider and
 Talos inventory groups. This is **not a multi-OS installer**: changing a template
 ID or OS label does not switch the implementation. A different node OS needs
@@ -53,7 +53,7 @@ state owner for the same cluster.
 4. Follow the implementation's installation procedure and readiness checks.
 5. Continue with the common foundation below; retain OS-specific recovery inputs.
 
-For the supplied Tier 0 implementation, run from its repository root:
+For the supplied implementation in any tier, run from that tier's repository root:
 
 ```bash
 bash scripts/kubernetes-cluster.sh init
@@ -61,13 +61,13 @@ bash scripts/kubernetes-cluster.sh init
 
 Then use the [Talos implementation guide](talos-terraform.md#configure) to
 edit inputs, review a plan, and deploy. Initialization alone creates no cluster.
-Tier 1 currently uses the manual procedure or project-owned automation.
+The same command operates on only the current tier's root, inventory and state.
 
 ## Cluster foundation
 
 Use this checklist after Kubernetes bootstrap, regardless of node OS. Select
-the owning repo's `clusters/tier0/` or `clusters/tier1/` path. **The directories
-are empty starters, not installed components.** Choose and pin implementations
+the owning repo's `clusters/tier0/`, `clusters/tier1/` or `clusters/tier2/` path.
+**The directories are empty starters, not installed components.** Choose and pin implementations
 before enabling reconciliation; the products below are concrete examples.
 
 These are dependency gates, not merely YAML list order:
@@ -75,8 +75,8 @@ These are dependency gates, not merely YAML list order:
 | Gate | Capability and example | Verify before consumers |
 | --- | --- | --- |
 | 1. Networking | CNI, cluster DNS, approved image access | Nodes Ready, cross-node pod traffic, DNS, and image pulls work |
-| 2. Reconciliation | GitOps controller; Flux with independent source credentials and the owning repo/path [1] | A reviewed change reconciles; source access does not require the future identity broker |
-| 3. Bootstrap secrets | Manifest decryption; SOPS with protected external recovery keys, following the [secret strategy](../../../administration/secret-handling/strategy.md#gitops-bootstrap-secrets) | An encrypted test Secret reconciles before workloads use it |
+| 2. Delivery | Tier 0 Flux [1]; Tier 1 Argo CD or Spinnaker, selected separately | Approved revisions reach only authorized targets; recovery does not require normal identity login |
+| 3. Bootstrap secrets | Tier 0 Flux/SOPS; selected Tier 1/2 delivery needs its own secret/decryption integration and external recovery keys | A protected test Secret is available before workloads use it; controller installation alone does not provide secret handling |
 | 4. Persistence | Storage driver/classes and backup destination | A disposable claim binds, survives pod recreation, and has a tested recovery path |
 | 5. TLS and entry points | Certificate automation and ingress; cert-manager with an available issuer | Controller/webhook readiness, certificate issuance, and intended network access pass [2] |
 | 6. Database | PostgreSQL operator; CloudNativePG, database instances, and backups | Required CRDs/operator, claims, database connections, and backup access work before applications [3] |
@@ -92,16 +92,18 @@ explicit dependencies, not a universal certificate-controller-before-ingress
 ordering. [5] The PostgreSQL operator does not supply every application's data
 dependency; deploy required caches, object stores, or other databases separately.
 
-With Flux, use `dependsOn` with readiness/health checks for controllers, custom
-resources, and consumers. A Kustomize `resources` list does not enforce readiness
-or deployment phases. [4]
+Tier 0 uses Flux `dependsOn` with readiness/health checks for controllers, custom
+resources, and consumers. Tier 1 uses the selected tool's dependency and health gates.
+A Kustomize `resources` list does not enforce readiness or deployment phases. [4]
 
 Continue with [Tier 0 control services](../../stage-4-control-services/README.md)
-or the [Tier 1 checklist](../../../paths/tier-1/README.md). Shared procedures do not
-justify copying Tier 0 credentials or privileges into a Tier 1 cluster.
+or the [Tier 1](../../../paths/tier-1/README.md) / [Tier 2 checklist](../../../paths/tier-2/README.md).
+Shared procedures do not justify copying Tier 0 credentials or privileges into another tier.
 
 ## Continue reading
 
+- [Cluster topology](../../../architecture/compute/kubernetes.md)
+- [Delivery controller choices](../../../architecture/delivery/controllers.md)
 - [Application-platform choices](../../stage-5-delivery/procedures/platform-cluster.md)
 - [Tier ownership and recovery](../../../architecture/tier-ownership.md)
 - [Cluster implementation and state](talos-terraform.md#state-and-lifecycle)

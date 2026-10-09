@@ -49,9 +49,11 @@ def repository_guides(writer, repo, prefix, scope):
         ),
         "tier-1": (
             "| Traffic | Select edge and outbound cache requirements | Edge/cache roots and deployment recipes |\n"
-            "| Delivery | Select VM or cluster source control, registry and runner variants | Record selected roots or cluster manifests and service checks |"
+            "| Compute | Draft: independent three-control-plane cluster; optional worker pools | Kubernetes root and tier-local inventory |\n"
+            "| Delivery | Unselected: Argo CD application GitOps or Spinnaker release pipelines | Select sources, targets, RBAC, secrets and recovery before installation |"
         ),
-        "tier-2": "| Workloads | Select Linux VMs or application clusters | Lab root or project manifests; record acceptance checks |",
+        "tier-2": ("| Compute | Draft: independent workload cluster; development, testing and lab pools when needed | Kubernetes root and tier-local inventory |\n"
+                   "| Workloads | Select Linux VMs or application delivery targets | Lab root or cluster manifests; record acceptance checks |"),
         "shared": "| Common automation | Review platform references, sizes and image catalog | Scripts and baseline roles; no inventory or state |",
     }
     docs = f"../../{prefix}-architecture/docs/auto-docs"

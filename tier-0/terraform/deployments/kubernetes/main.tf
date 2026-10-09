@@ -27,10 +27,11 @@ resource "terraform_data" "configuration" {
       condition = (
         setunion(local.control_planes, local.workers) == toset(keys(var.nodes)) &&
         length(setintersection(local.control_planes, local.workers)) == 0 &&
-        contains([1, 3, 5], length(local.control_planes)) && length(local.workers) > 0 &&
+        contains([1, 3, 5], length(local.control_planes)) &&
+        (length(local.workers) > 0 || var.cluster.allow_scheduling_on_control_planes) &&
         contains(local.control_planes, var.cluster.bootstrap_node)
       )
-      error_message = "Talos inventory must match nodes exactly, with 1/3/5 control planes, workers, and a control-plane bootstrap_node."
+      error_message = "Inventory must match nodes exactly, with 1/3/5 control planes, a control-plane bootstrap_node, and workers unless control-plane scheduling is enabled."
     }
     precondition {
       condition = (

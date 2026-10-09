@@ -13,6 +13,18 @@ all:
       hosts:
         lab-1: {}
         support-1: {}
+    # Kubernetes hosts share this tier's inventory, but never the Linux baseline.
+    talos:
+      children:
+        talos_control_plane: null
+        talos_workers: null
+    talos_control_plane:
+      hosts:
+        workload-k8ctl-1: {}
+        workload-k8ctl-2: {}
+        workload-k8ctl-3: {}
+    talos_workers:
+      hosts: {}
     guests:
       children:
         lab: null

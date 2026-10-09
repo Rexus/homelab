@@ -1,12 +1,20 @@
 # Network zones and IaC mapping
 
-Use one stable network map for architecture, Proxmox, Terraform, and firewall
-policy. Names describe purpose: `management`, `identity`, `application`,
-`cryptography`, and so on. Not every network is needed at the first deployment.
+Networking connects the platform's services through approved entry points,
+scoped service interfaces and protected administration. A stable network map
+connects that design to Proxmox, Terraform and firewall policy. Names describe
+purpose: `management`, `identity`, `application`, `cryptography`, and so on.
+
+This domain expands networking in the [platform overview](../README.md#technical-domains).
+The [reference platform](../reference-platform.md) supplies service placement;
+the [firewall policy](firewall-policy.md) supplies the detailed traffic contract.
 
 ## Table of contents
 
+- [Completed connectivity](#completed-connectivity)
+- [Supplied and consumed interfaces](#supplied-and-consumed-interfaces)
 - [Zone assignment](#zone-assignment)
+- [Design choices](#design-choices)
 - [Network catalog](#network-catalog)
 - [VLAN ID strategy](#vlan-id-strategy)
 - [Automation mapping](#automation-mapping)
@@ -14,6 +22,67 @@ policy. Names describe purpose: `management`, `identity`, `application`,
 - [Continue reading](#continue-reading)
 
 <a id="purpose"></a>
+
+## Completed connectivity
+
+The connected platform distinguishes published application traffic, service
+dependencies, controlled egress and privileged administration. Each connection
+below represents a named endpoint contract, not access to an entire zone.
+
+```mermaid
+flowchart LR
+  Internet["Internet"]
+  Clients["Client devices"]
+  AdminEntry["Approved administration entry"]
+  subgraph Edge["Edge / DMZ"]
+    Gateways["Published ingress<br/>Controlled egress"]
+  end
+  subgraph Application["Application / Services"]
+    Services["Shared services and workloads"]
+  end
+  subgraph Control["Control"]
+    Endpoints["Identity, trust and operations endpoints"]
+    Administration["Privileged administration"]
+  end
+  Internet -->|Published listeners| Gateways
+  Gateways -->|Named backend listeners| Services
+  Clients -->|Approved application listeners| Services
+  Services -->|Scoped service access| Endpoints
+  Services -->|Proxy or cache access| Gateways
+  Gateways -->|Approved upstreams| Internet
+  AdminEntry -->|Target-specific access| Administration
+```
+
+Ingress and egress are distinct functions, not necessarily one gateway service.
+Application entry and administrative entry have separate policy and credentials.
+The diagram shows the main service relationships; exact listeners, same-zone
+dependencies, telemetry, backup and return traffic are defined by the
+[firewall rule contracts](firewall-policy.md#rule-contracts). The
+[runtime flows](../runtime-flows.md) explain the service interactions behind them.
+
+Infrastructure also has attachments outside this routed service view:
+
+| Attachment | Completed role | Boundary |
+| --- | --- | --- |
+| Guest bridge or VNet | Connect selected VM and cluster-node interfaces to their approved purpose networks | Guest attachment does not grant switch, gateway or hypervisor administration |
+| Host management | Reach protected infrastructure administration endpoints | Approved administration sources and target-specific credentials |
+| Host quorum and storage transport | Carry the selected cluster and storage fabric traffic | Restricted membership; no general routed guest access |
+| Offline ceremony fabric | Support separately controlled custody and authorized transfers | Physically separate from connected hosts and networks; no routed gateway |
+
+The [compute runtime design](../compute/runtime.md) shows the guests and hosts
+that consume these attachments. The physical underlay can support multiple
+logical networks without making their policies or failure domains identical.
+
+## Supplied and consumed interfaces
+
+| Direction | Interface | Connected function | Required contract |
+| --- | --- | --- | --- |
+| Provides | Approved guest and host attachments | [Compute](../compute/README.md) | Purpose network, address identity, tagging owner and permitted transport |
+| Provides | Published and internal application paths | [Delivery](../delivery/README.md) and workloads | Named frontend/backend listeners and controlled egress |
+| Provides | Scoped service and administrative paths | Identity, cryptography and operations | Service consumption stays separate from administration |
+| Consumes | Service listeners and dependency requirements | Each service design | Explicit source, destination, protocol, enforcement point and owner |
+| Consumes | Tier and authority classification | [Tier ownership](../tier-ownership.md) | Protection follows actual privileges, independently of subnet names |
+| Exchanges | Network inventory and policy evidence | [Operations](../operations/README.md) | Complete site assignments and evidence for intended access and isolation |
 
 ## Zone assignment
 
@@ -35,6 +104,22 @@ Zone membership does not allow traffic. Use [named service rules](firewall-polic
 between subnets, including subnets in the same zone. Same-subnet traffic needs
 host, switch, or workload enforcement. WAN, client devices, and VPN entry are
 boundary peers; VPN membership alone grants no control authority.
+
+## Design choices
+
+Each variant realizes the same attachment and traffic contracts. The
+[variant model](../variants.md) records the selection for the completed environment.
+
+| Decision | Alternatives | Stable contract |
+| --- | --- | --- |
+| Guest attachment | VLAN-aware bridge or SDN VNet over the host underlay | Approved purpose network, one tagging owner and the same endpoint policy |
+| Policy grouping | Existing zones with explicit subnet rules, or an additional zone for different baseline policy | No implicit trust between member subnets; enforcement follows the required isolation |
+| Host transport | Shared physical underlay with separated logical fabrics, or selected dedicated links/switches | Required quorum/storage reachability, restricted membership and recorded physical failure domains |
+| Application publication | Existing shared proxy or a separately operated proxy | Explicit published listener and backend scope; administrative authority remains separately classified |
+
+The alternatives do not change tier ownership or automatically create redundant
+paths. Cabling, switch configuration and vendor-specific policy translation
+belong in the implementation procedures.
 
 <a id="example-network-plan"></a>
 
@@ -106,9 +191,10 @@ firewall rules.
 | Proxmox host and network configuration | Host management, quorum/storage fabrics, bridges, routing and segmentation |
 
 For example, Linux `network_zone_key = "cryptography"` selects that tier's
-`network_zones.cryptography` attachment. Cluster nodes instead use a `control`
-VNet or `vmbr0` with VLAN 13. Let either the VNet or the guest NIC own tagging;
-do not tag twice. Exact fields and runnable examples belong in
+`network_zones.cryptography` attachment. Cluster nodes instead select direct attachments:
+Tier 0 uses `control_cluster`, Tier 1 uses `application`, and Tier 2 uses its
+approved workload network in the [cluster reference](../compute/kubernetes.md).
+Let either the VNet or the guest NIC own tagging; do not tag twice. Exact fields and runnable examples belong in
 [network inputs](../../reference/network-inputs.md).
 
 Identical logical keys across repos do not allocate or guarantee the same
@@ -137,7 +223,10 @@ owns implementation and acceptance tests.
 
 ## Continue reading
 
+- [Platform overview](../README.md#technical-domains) and [reference platform](../reference-platform.md)
+- [Runtime flows](../runtime-flows.md) and [compute runtime](../compute/runtime.md)
+- [Firewall policy](firewall-policy.md) and [network input contract](../../reference/network-inputs.md)
 - [Deployment stages](../../deployment/README.md)
 - [Proxmox host networking](../../deployment/stage-1-foundation/procedures/host-network.md)
-- [Firewall policy](firewall-policy.md) and [UniFi zone setup](../../deployment/stage-1-foundation/procedures/unifi-zones.md)
+- [UniFi zone setup](../../deployment/stage-1-foundation/procedures/unifi-zones.md)
 - [Project conventions](../../development/project-documentation.md#start-with-project-values)

@@ -24,7 +24,7 @@ flowchart TB
     Primary <-->|Replication| Replica
   end
   subgraph Cluster["control_cluster: Tier 0 Kubernetes"]
-    Nodes["Control-plane and worker VMs<br/>Current implementation: Talos"]
+    Nodes["Three schedulable control planes<br/>Optional workers; currently Talos"]
     Network["CNI and cluster DNS"]
     Flux["Flux + SOPS bootstrap secrets"]
     Base["Storage, cert-manager, ingress<br/>CloudNativePG HA"]
@@ -53,8 +53,8 @@ inventory, endpoint and state, review the plan, and bootstrap the cluster.
 
 **Alternative:** [2b: manual bootstrap](step-2b-manual-cluster.md) replaces that lifecycle;
 it does not create a second state owner. Another OS requires its own implementation.
-Current inputs provide three control-plane VMs and one worker; the reference outline's
-three-worker arrangement is a sizing choice, not a fixed requirement.
+New-cluster inputs provide three schedulable control planes and no workers.
+Additional workers are an explicit capacity choice; existing clusters retain their local nodes.
 
 ## Step 3: Establish the basic platform
 

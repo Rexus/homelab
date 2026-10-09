@@ -1,0 +1,41 @@
+# Cluster-owned hardware/configuration. This root does not load Linux common.tfvars.
+# IP reservations are in ansible/group_vars/talos.yml, hosts in ansible/inventory/hosts.yml.
+# Set the image ID from the shared approved catalog, and pin matching releases/schematic.
+template_vm_id = 9102
+cluster = {
+  name               = "workload"
+  endpoint           = "https://kubernetes.workload.example.com:6443"
+  bootstrap_node     = "workload-k8ctl-1"
+  talos_version      = "REPLACE_WITH_EXACT_VERSION_WITH_v"
+  kubernetes_version = "REPLACE_WITH_COMPATIBLE_VERSION_WITHOUT_v"
+  installer_image    = "REPLACE_WITH_INSTALLER_MATCHING_TEMPLATE_SCHEMATIC_AND_VERSION"
+  pod_cidr           = "10.246.0.0/16"
+  service_cidr       = "10.113.0.0/16"
+  allow_scheduling_on_control_planes = true
+}
+
+# Reserve each MAC/IP in DHCP before applying. The endpoint needs an external
+# TCP load balancer for these control planes; it cannot use in-cluster ingress.
+# Keep host placement, storage, bridges, and image source in the same Proxmox cluster.
+nodes = {
+  workload-k8ctl-1 = {
+    vm_id = 2300, node_name = "pve01", mac_address = "02:00:00:00:23:00"
+    datastore_id = "shared", bridge = "vmbr0", vlan_id = 420, size = "medium"
+  }
+  workload-k8ctl-2 = {
+    vm_id = 2301, node_name = "pve02", mac_address = "02:00:00:00:23:01"
+    datastore_id = "shared", bridge = "vmbr0", vlan_id = 420, size = "medium"
+  }
+  workload-k8ctl-3 = {
+    vm_id = 2302, node_name = "pve03", mac_address = "02:00:00:00:23:02"
+    datastore_id = "shared", bridge = "vmbr0", vlan_id = 420, size = "medium"
+  }
+}
+
+# Start with three schedulable control planes. Optional workers need matching
+# inventory hosts, DHCP/IP reservations, and hardware entries in nodes above.
+# Existing clusters must retain their workers; this example is not a removal plan.
+
+# Add specialized workers when needed. Set pool = "development" to emit
+# the Kubernetes node-pool label. Manage taints through the Kubernetes API;
+# use matching workload selectors/tolerations. Pools do not create security boundaries.

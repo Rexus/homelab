@@ -235,7 +235,7 @@ Base-image publication is a Step 1 Tier 0 root at `tier-0/terraform/deployments/
 Its catalog, approved offline artifacts, and optional CI starter live under
 `tier-0/templates/` and `tier-0/ci/`. See [Template lifecycle](../administration/compute/template-lifecycle.md).
 
-The Kubernetes control cluster has its own Tier 0 root at `terraform/deployments/kubernetes/`
+Each Kubernetes cluster has its own tier-local root at `terraform/deployments/kubernetes/`
 and `scripts/kubernetes-cluster.sh`. It currently uses Talos inventory groups/IPs
 and native configuration rather than the Linux setup helper. Start with the
 [cluster guide](../deployment/stage-3-identity-runtime/procedures/kubernetes.md); use the
@@ -267,7 +267,7 @@ common platform references. The [input contract](../reference/platform-inputs.md
 | Owner | Implementation |
 | --- | --- |
 | Each tier | `terraform/modules/environment_guests/`, `vm/`, and `lxc/`; inventory resolution and resource lifecycle |
-| Tier 0 | `terraform/deployments/kubernetes/`, `scripts/kubernetes-cluster.sh`, Talos inventory groups and IPs |
+| Each tier | `terraform/deployments/kubernetes/`, cluster command shortcut, Talos inventory groups and IPs; shared owns the command implementation only |
 | Tier 0 | `terraform/modules/proxmox_templates/`, `scripts/proxmox-templates.sh`, `packer/`, template catalog and CI starter |
 | Tier 0 | identity, secrets, HSM, Proxmox host, and Linux template-builder playbooks and roles |
 | Tier 1 | edge, cache, development, observability, runner, and ingress playbooks and service roles |
@@ -278,7 +278,7 @@ mapping and imports the common precheck. Tier-specific collections also have a
 local requirements file: Tier 0 adds the identity collection. Shared does not
 register tier services. See [local tooling](local-setup.md).
 
-Guest module copies intentionally give each tier control of its resource lifecycle.
+Guest modules and cluster roots intentionally give each tier control of its resource lifecycle.
 They start from the same contract but are not routed through shared Terraform.
 Common sizes and image references remain single-source shared data; reviewed
 upstream fixes can be adopted per tier without transferring resource or state ownership.
@@ -293,7 +293,7 @@ base-image publication path.
 - Change a setup's Terraform root, playbook, roles, and examples in its owning tier.
 - Register added setups in that tier's `.deployment-setups`; the generator checks
   for missing inputs, unregistered roots, and overlapping tier ownership. Terraform-only
-  roots have dedicated commands; Tier 0's `kubernetes` and `templates` are explicitly validated separately.
+  roots have dedicated commands; `kubernetes` in all tiers and Tier 0's `templates` are explicitly validated separately.
 - Keep single-tier behavior with its owner. Extract to `shared/` only when
   multiple tiers consume the same stateless behavior; keep Terraform and all inventory tier-local.
 - Keep tier-wide default examples separate: each tier owns its network and

@@ -38,7 +38,7 @@ these shared implementations.
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
 | `tier-0/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
-| `tier-0/scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports credentials; currently Talos | [Kubernetes cluster](../deployment/stage-3-identity-runtime/procedures/kubernetes.md) |
+| `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports credentials; currently Talos | [Kubernetes cluster](../deployment/stage-3-identity-runtime/procedures/kubernetes.md) |
 
 ## Cheat sheet
 
@@ -76,8 +76,8 @@ Template publication uses the separate
 not `deploy.sh`. It uses provider-native environment variables, a local image
 catalog, and its own state; it never configures a Talos guest through Ansible.
 
-The Kubernetes control cluster currently uses the [Talos implementation](../deployment/stage-3-identity-runtime/procedures/talos-terraform.md)
-and `bash scripts/kubernetes-cluster.sh init` from Tier 0. It owns a separate state
+Each tier's independent Kubernetes cluster currently uses the [Talos implementation](../deployment/stage-3-identity-runtime/procedures/talos-terraform.md)
+and `bash scripts/kubernetes-cluster.sh init` from its own root. It owns a separate state
 root, uses tier-local inventory, and does not use the Linux setup/environment wrapper.
 
 ## Initialize tier repositories

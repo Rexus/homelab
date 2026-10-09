@@ -15,8 +15,9 @@ approved templates, tier-local inputs and an independent bootstrap/recovery envi
 
 ## Step 1: Deploy shared delivery services
 
-The bootstrap environment creates the Tier 1 Kubernetes cluster. Its GitOps controller
-deploys source control, a registry, general runners and optional workload-cluster management.
+The bootstrap environment creates the independent Tier 1 Kubernetes cluster.
+The selected delivery platform deploys shared applications; Tier 0 remains on Flux.
+Choose Argo CD application GitOps or Spinnaker release pipelines before enabling delivery.
 
 ```mermaid
 flowchart TB
@@ -26,17 +27,21 @@ flowchart TB
     Git["GitLab<br/>Source control + CI"]
     Builds["General CI runners"]
     Registry["Harbor<br/>OCI registry"]
+    Delivery["Delivery choice<br/>A: Argo CD / B: Spinnaker"]
     Fleet["Optional Rancher / Fleet<br/>Tier 1/2 workload-cluster management"]
     Git -->|Build jobs| Builds -->|Publish artifacts| Registry
+    Delivery -->|Approved application revisions| Git
   end
-  Bootstrap -->|Provision cluster and initial GitOps| Platform
+  Bootstrap -->|Provision cluster and initial delivery| Platform
   Identity -->|OIDC| Git
   Identity -->|OIDC| Registry
   Identity -->|OIDC| Fleet
 ```
 
-1. Create the [Tier 1 runtime](procedures/platform-cluster.md), reusing the common
-   Kubernetes procedure with Tier 1 inventory, credentials and state.
+1. Create the [Tier 1 runtime](procedures/platform-cluster.md), using
+   `bash scripts/kubernetes-cluster.sh init` from its root. Review its own inventory,
+   credentials and state. Select the [delivery option](procedures/platform-cluster.md#delivery-selection)
+   and retain independent bootstrap sources before hosted source control exists.
 2. Deploy GitLab, [Harbor or another registry](procedures/registry.md), general runners
    and Rancher/Fleet where needed. Product manifests and integration remain project work.
 3. Configure Keycloak OIDC, scoped roles and [approved edge access](procedures/edge-proxy.md).

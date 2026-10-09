@@ -9,11 +9,11 @@
 **Design:** [cluster runtime variants](../../architecture/compute/README.md).
 
 This is the manual Talos implementation of the [Kubernetes cluster goal](procedures/kubernetes.md).
-Use this procedure for a Tier 0 control cluster or a Tier 1 platform cluster.
+Use this procedure for a Tier 0 control, Tier 1 platform or Tier 2 workload cluster.
 Only the owning repo, allocations, credentials, API endpoint, and GitOps path
-change. **This is an operator-run bootstrap.** For automated Tier 0 VM creation
+change. **This is an operator-run bootstrap.** For automated tier-local VM creation
 and Talos configuration, start with [Talos Terraform](procedures/talos-terraform.md) instead;
-both routes use the verification and handover steps below. Flux service
+both routes use the verification and handover steps below. Cluster service
 directories are starters, not installed services.
 
 ## Table of contents
@@ -34,9 +34,12 @@ checkout and the required tools available outside the cluster being built.
 | Choice | Tier 0 | Tier 1 |
 | --- | --- | --- |
 | Repository root | `<prefix>-tier-0` | `<prefix>-tier-1` |
-| Automation alternative | [Tier 0 Terraform](procedures/talos-terraform.md) in `terraform/deployments/kubernetes/` | Add tier-owned VM and Talos roots when automating |
+| Automation alternative | [Tier-local Terraform](procedures/talos-terraform.md) in `terraform/deployments/kubernetes/` | Same path in the owning tier |
 | GitOps path | `clusters/tier0/` | `clusters/tier1/` |
 | Recovery | Independent of higher-tier services | Approved foundation services plus local break-glass inputs |
+
+Tier 2 uses the same workflow with its own repository, API, credentials and
+`clusters/tier2/` path; never reuse another tier's machine secrets.
 
 Before starting, have:
 
@@ -70,7 +73,7 @@ new VMIDs. Do not boot or configure the reusable template itself.
 | Setting | Initial project choice |
 | --- | --- |
 | Control plane | Three VMs on different physical hosts for HA |
-| Workers | Capacity for the intended services; normally at least one worker |
+| Workers | Optional for the compact reference; enable control-plane scheduling when no workers exist |
 | Suggested sizing | Control plane: 2 vCPU, 4 GiB RAM, 32 GiB disk; workers: 2 vCPU, 4 GiB RAM, 40 GiB disk |
 | Storage and network | Reviewed datastore and bridge/VNet available on every eligible destination |
 | Firmware, CPU, boot order | Preserve the tested template settings and common host CPU baseline |
@@ -118,6 +121,10 @@ by the generated repositories, but still needs protected external backup.
 Review `controlplane.yaml`, `worker.yaml`, and `talosconfig`. Check installation
 disk, endpoint, DNS/time, address ranges, image access, and CNI settings before
 continuing. The empty `infrastructure/cni/` directory installs nothing.
+
+For the compact reference, set `cluster.allowSchedulingOnControlPlanes: true`
+in the reviewed control-plane configurations before applying them. Otherwise
+provide workers; unschedulable control planes alone cannot run ordinary services.
 
 For each node, inspect disks in maintenance mode and verify `machine.install.disk`
 in the configuration intended for that node: [2]
@@ -170,17 +177,21 @@ Continue only when expected nodes are Ready, system pods are healthy, and the
 stable API endpoint works from the intended operator network. Save the actual
 node allocations and recovery references in project documentation. The manual
 route does not generate Terraform state or Ansible inventory; the Terraform
-route uses Tier 0's existing inventory and retains its own state.
+route uses the owning tier's inventory and retains its own state.
 
 For HA, perform the [Proxmox failure checks](../stage-1-foundation/step-1b-cluster-ha.md#prove-failover)
 and verify Kubernetes quorum/API availability separately. A VM restart alone
 does not prove cluster or application availability.
 
-Then install Flux using its [generic Git bootstrap procedure][4], with the owning
+For Tier 0, install Flux using its [generic Git bootstrap procedure][4], with the owning
 repository and GitOps path from the table above. Review its commit/push actions,
 credentials, and controller permissions before running it. The starter
 Kustomizations do not install Flux or the named services. Keep reviewed local
 controller manifests and images for Tier 0 recovery without hosted source control.
+
+Tier 1 selects [Argo CD or Spinnaker](../../architecture/delivery/controllers.md)
+separately. Tier 2 consumes scoped delivery or a local controller. Do not copy
+Tier 0's controller credentials or automatically bootstrap Flux in other tiers.
 
 Continue with the shared [cluster foundation checklist](procedures/kubernetes.md#cluster-foundation)
 for SOPS/bootstrap secrets, storage, cert-manager, ingress, and CloudNativePG

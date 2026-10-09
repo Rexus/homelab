@@ -20,5 +20,6 @@ output "nodes" {
   description = "Inventory-derived endpoints and observed Proxmox placement."
   value = { for name, vm in proxmox_virtual_environment_vm.node : name => {
     vm_id = vm.vm_id, node_name = vm.node_name, ip = local.machines[name].ip, role = local.machines[name].role
+    pool  = local.machines[name].pool
   } }
 }

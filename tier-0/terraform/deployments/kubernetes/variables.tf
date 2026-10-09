@@ -13,14 +13,15 @@ variable "group_vars_path" {
 variable "cluster" {
   description = "Cluster bootstrap contract. Retain these pins and secrets for this cluster's lifetime."
   type = object({
-    name               = string
-    endpoint           = string
-    bootstrap_node     = string
-    talos_version      = string
-    kubernetes_version = string
-    installer_image    = string
-    pod_cidr           = string
-    service_cidr       = string
+    name                               = string
+    endpoint                           = string
+    bootstrap_node                     = string
+    talos_version                      = string
+    kubernetes_version                 = string
+    installer_image                    = string
+    pod_cidr                           = string
+    service_cidr                       = string
+    allow_scheduling_on_control_planes = optional(bool, false)
   })
   validation {
     condition = (
@@ -49,6 +50,8 @@ variable "nodes" {
     cores        = optional(number)
     memory       = optional(number)
     disk_size_gb = optional(number, 40)
+    # Scheduling metadata only; not a security boundary or an autoscaler.
+    pool = optional(string)
   }))
   validation {
     condition = (
@@ -63,6 +66,12 @@ variable "nodes" {
     )
     error_message = "Nodes need unique integer VMIDs and MACs, DNS-safe names, and disks of at least 32 GiB."
   }
+  validation {
+    condition = alltrue([for node in var.nodes : node.pool == null ? true :
+      length(node.pool) <= 63 && can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?$", node.pool))
+    ])
+    error_message = "Pool names must be lowercase label values of 1-63 characters, using letters, digits, and internal hyphens."
+  }
 }
 
 variable "template_vm_id" {
@@ -71,7 +80,7 @@ variable "template_vm_id" {
 }
 
 variable "proxmox_template_catalog" {
-  description = "Shared approved image references only; templates and cluster resources belong to Tier 0."
+  description = "Shared approved image references only; Tier 0 owns templates, this tier owns cluster resources."
   type = map(object({
     title     = string
     family    = string

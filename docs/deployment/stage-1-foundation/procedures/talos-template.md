@@ -67,7 +67,7 @@ The same procedure applies to Tier 1 with different inputs and a separate state 
 | Responsibility | Tier 0 control-cluster owner |
 | --- | --- |
 | Base Talos template and publication state | Tier 0 `terraform/deployments/templates/` |
-| Control-plane/worker clones and network attachments | Tier 0 `terraform/deployments/kubernetes/` and local inventory |
+| Control-plane/worker clones and network attachments | Consuming tier's `terraform/deployments/kubernetes/` and local inventory; only Tier 0 publishes the template |
 | Per-node config, secrets, bootstrap, Talos API lifecycle | Tier 0 `terraform/deployments/kubernetes/` and protected recovery inputs |
 | Add-ons and control services after cluster readiness | Tier 0 `clusters/tier0/` |
 

@@ -4,6 +4,26 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 class ReaderRoles(TierRepositoryTestCase):
+    def test_architecture_views_connect_overview_domains_and_variants(self):
+        root = UPSTREAM / "docs/architecture"
+        overview = (root / "README.md").read_text()
+        for target in ("reference-platform.md", "runtime-flows.md", "variants.md",
+                       "compute/runtime.md", "compute/kubernetes.md", "delivery/controllers.md"):
+            self.assertIn(f"({target})", overview)
+        layers = overview.split("## Layered model\n", 1)[1].split("## Tiered model\n", 1)[0]
+        tiers = overview.split("## Tiered model\n", 1)[1].split("## Tier and zone view\n", 1)[0]
+        self.assertIn("flowchart LR", layers)
+        self.assertIn("Edge --- Application --- Control", layers)
+        self.assertIn("flowchart TB", tiers)
+        self.assertIn("T2 --- T1 --- T0", tiers)
+        for domain in ("networking", "compute", "identity", "cryptography", "delivery", "operations"):
+            content = (root / domain / "README.md").read_text()
+            self.assertIn("```mermaid", content, domain)
+            self.assertIn("runtime-flows.md", content, domain)
+        for document in ("runtime-flows.md", "reference-platform.md", "variants.md"):
+            self.assertIn("delivery/controllers.md", (root / document).read_text(), document)
+        self.assertIn("kubernetes.md", (root / "compute/runtime.md").read_text())
+
     def test_architecture_has_no_installation_sequences_or_shell_examples(self):
         root = UPSTREAM / "docs/architecture"
         for document in root.rglob("*.md"):
@@ -62,3 +82,13 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertFalse((architecture / old).exists())
             self.assertFalse((reference.parent / "architecture" / old).exists())
         self.assertTrue((reference.parent / "architecture/reference-platform.md").is_file())
+        for document in ("runtime-flows.md", "variants.md", "compute/runtime.md",
+                         "compute/kubernetes.md", "delivery/controllers.md"):
+            self.assertTrue((reference.parent / "architecture" / document).is_file(), document)
+        platform = (architecture / "README.md").read_text()
+        self.assertIn("auto-docs/architecture/runtime-flows.md", platform)
+        self.assertIn("auto-docs/architecture/variants.md", platform)
+        for domain in ("networking", "compute", "identity", "cryptography", "delivery", "operations"):
+            selected = (architecture / domain / "README.md").read_text()
+            self.assertIn("## Resulting domain design", selected)
+            self.assertIn("auto-docs/architecture/variants.md", selected)

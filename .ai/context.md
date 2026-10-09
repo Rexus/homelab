@@ -23,6 +23,14 @@ This file keeps durable context for AI-assisted work across sessions.
   and credential contracts. The old script delegates; old roots require deliberate migration
 - `docs/deployment/stage-3-identity-runtime/procedures/kubernetes.md` owns cluster choices and common readiness;
   its `talos-terraform.md` sibling and stage's `step-2b-manual-cluster.md` own implementation procedures
+- all three tiers own a Kubernetes root, inventory/IP map, state and credentials;
+  shared/scripts/kubernetes-cluster.sh is execution only, with tier-local shortcuts
+- new cluster examples use three schedulable control planes with optional workers;
+  existing configs default to disabled control-plane scheduling; never remove live workers to match examples
+- pool inputs emit node-pool labels; authorized Kubernetes operations own worker taints;
+  pools are not independent security boundaries and no autoscaler is supplied
+- Tier 0 uses Flux; Tier 1 delivery remains unselected between Argo CD and Spinnaker;
+  Tier 1 delivery never owns Tier 0 credentials or cluster/infrastructure lifecycle
 - security-first posture with strong separation of concerns
 - public upstream is curated and not meant for operational changes
 - repository model is a Tier 0, Tier 1, and Tier 2 deployment kit
@@ -111,7 +119,15 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Documentation intent
 
-- docs/architecture/README.md owns the whole-platform view and technical-domain navigation
+- docs/architecture/README.md owns the whole-platform functional view and technical-domain navigation
+- reference-platform.md allocates components; runtime-flows.md owns cross-domain service interactions;
+  domain designs expand those functions without becoming an installation sequence
+- compute/runtime.md owns generic hosting/persistence; compute/kubernetes.md owns the three-tier topology;
+  delivery/controllers.md owns the independent Flux, Argo CD and Spinnaker boundaries
+- variants.md records stable consumer contracts and different guarantees; detailed alternatives stay
+  inside their owning domain; project architecture records one compatible selected composition
+- new project starters follow overview, relationships, domains and detailed variants;
+  refresh preserves every existing owned record, even an unchanged starter
 - networking/, compute/, identity/, cryptography/, delivery/ and operations/ own domain designs
 - architecture is the static intended design: context, components, interfaces, variants and constraints
 - docs/deployment/readiness.md owns capability progress and acceptance; the deployment index owns stages

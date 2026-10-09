@@ -1,23 +1,44 @@
 # ${title} architecture
 
-This project-owned record maps the selected design to its implementation.
-Replace the draft selections with reviewed project decisions. Upstream patterns
-are references, not evidence that a service has been deployed.
+This project-owned record expands the part of the completed platform owned by
+this repository and maps its selected design to implementation. Replace the
+draft selections with reviewed project decisions. Upstream patterns supply
+alternatives; deployment records establish which results have been verified.
 
 ## Scope
 
 ${scope}
 
-The [platform architecture](${docs}/architecture/README.md) connects the
-[technical domains](${docs}/architecture/README.md#technical-domains) and their
-implementation choices. Project-wide conventions and topology belong in the
-[architecture repository](../../../${prefix}-architecture/docs/architecture/README.md).
+Start with the selected [platform architecture](../../../${prefix}-architecture/docs/architecture/README.md)
+and its [technical domains](../../../${prefix}-architecture/docs/architecture/README.md#technical-domains),
+then use this record to inspect the owned components. Project-wide conventions
+and topology belong in that architecture repository. The
+[upstream platform reference](${docs}/architecture/README.md) explains reusable
+patterns rather than the site's selected composition.
+
+## Resulting owned design
+
+Show the owned components and their relationships in a diagram of the completed design.
+Retain the names and interfaces used in the parent domain views. Include external
+providers and consumers at the boundary, with the owner and authority of each
+connection. Shared records describe the automation and reference-data contract;
+they do not claim deployed resources.
+
+| Platform function / domain | Owned component or contract | Supplied interface | Consumed dependency and owner |
+| --- | --- | --- | --- |
+| TBD | TBD | TBD | TBD |
 
 ## Selected design
 
-| Domain / capability | Selected pattern | Implementation and verification |
+| Domain / capability | Selected pattern | Implementation and acceptance reference |
 | --- | --- | --- |
 ${selections}
+
+Expand complex selections in focused design records under `architecture/`.
+Each record identifies its parent domain, the resulting topology, selected
+variant, alternatives, and required guarantees. Follow the
+[variant contract](${docs}/architecture/variants.md); a changed consumer interface
+or trust boundary also requires an update to the affected parent views.
 
 ## Boundaries
 

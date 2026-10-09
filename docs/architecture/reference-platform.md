@@ -1,46 +1,62 @@
-# Control platform design
+# Integrated reference platform
 
 Tier 0 supplies infrastructure and trust; Tier 1 supplies shared delivery
 services; Tier 2 runs workloads. This reference deployment shows the intended
 placement. It is a design, not a claim that every service is automated.
-The [deployment stages](../deployment/README.md) identify the current entry
-points and the work still required.
+The [deployment stages](../deployment/README.md) realize this result; their
+order does not determine the structure of this document.
 
-This is the component allocation of the [platform architecture](README.md).
-Use [domain choices](README.md#technical-domains) for alternatives; the diagrams below are
-one reference deployment, not a requirement to select every product or variant.
+This view expands the functions in the [platform overview](README.md) into one
+reference placement across all three tiers and separate custody. The
+[runtime relationships](runtime-flows.md) connect those components during
+normal service use, change and recovery. [Domain designs](README.md#technical-domains)
+expand their internals; [variants](variants.md) record alternative realizations.
+
+The reference fixes the hosting relationships below. Storage backends, capacity,
+key providers, seal mechanisms and required availability are explicit domain
+selections. A product name or replica count does not settle those choices.
 
 ## Table of contents
 
 - [Service placement](#service-placement)
+- [Connected functions](#connected-functions)
 - [Access and automation](#access-and-automation)
 - [Certificate trust](#certificate-trust)
+- [Data and recovery](#data-and-recovery)
 - [Implementation choices](#implementation-choices)
+- [Design to deployment](#design-to-deployment)
 
 ## Service placement
 
-Proxmox hosts the connected VMs and clusters across all tiers. Network names
-come from the [network map](networking/README.md); VLAN values are reference allocations.
-Offline custody is shown outside the connected platform deliberately.
+Proxmox hosts the connected VMs and clusters across all tiers. Tiers identify
+authority and resource ownership; VM and cluster boundaries identify runtime
+placement. Physical host, storage and network failure domains are selected
+separately. Offline custody remains outside the connected platform.
 
 ```mermaid
 flowchart TB
   subgraph PVE["Proxmox: connected virtualization platform"]
-    T2["Tier 2: workload clusters<br/>Applications, development, experiments"]
-    T1["Tier 1: platform cluster / application network<br/>Source control, OCI registry, general CI<br/>Workload cluster management"]
+    subgraph T2["Tier 2: workloads"]
+      Workloads["Project clusters and VMs: applications, development, experiments"]
+    end
+    subgraph T1["Tier 1: shared delivery"]
+      Delivery["Platform cluster: source control, registry and general CI"]
+      Edge["Published service endpoints"]
+      WorkloadManagement["Scoped workload-cluster management when selected"]
+    end
     subgraph T0["Tier 0: infrastructure and trust"]
-      M["management / VLAN 10<br/>Bootstrap or recovery VM<br/>Protected runner and protected IaC state"]
-      I["identity / VLAN 12<br/>Dedicated directory VM pair"]
-      K["control_cluster / VLAN 13<br/>Kubernetes: GitOps, identity broker, secrets<br/>Inventory, cluster UI, monitoring<br/>Certificates, ingress, storage, database HA"]
-      C["cryptography / VLAN 220<br/>Online issuing CA<br/>Optional signing gateways and local HSMs"]
+      M["Management VMs: protected runner, IaC state, recovery tools"]
+      I["Dedicated directory VM pair"]
+      K["Control cluster: identity broker, secrets, inventory and visibility"]
+      C["Online issuer and selected key provider"]
       M ~~~ I
       M ~~~ K
       I ~~~ C
       K ~~~ C
     end
-    T2 ~~~ T1 ~~~ M
+    Workloads ~~~ Delivery ~~~ M
   end
-  Offline["Separate ceremony custody / isolated VLAN 221 if needed<br/>Offline root CA, ceremony environment, recovery media"]
+  Offline["Separate custody: offline root, ceremony environment, recovery media"]
   C ~~~ Offline
 ```
 
@@ -49,18 +65,56 @@ on a connected hypervisor is not isolated from that hypervisor's administrators.
 Keep root keys on offline media/devices and conduct ceremonies in a separately
 controlled environment; a VM or VLAN label alone does not establish an air gap.
 
-| Capability | Reference deployment |
-| --- | --- |
-| Directory, DNS, Kerberos | FreeIPA primary and replica on two dedicated VMs, not Kubernetes workloads |
-| Identity federation and OIDC | Keycloak inside the Tier 0 cluster, using the directory pair |
-| Secrets | Vault inside the Tier 0 cluster in this target design; independent recovery/unseal material |
-| Cluster platform | Flux, CNI, storage, cert-manager, ingress, SOPS bootstrap secrets, CloudNativePG HA |
-| Operations | NetBox, Headlamp, monitoring/syslog/audit; retain independent recovery records |
-| Shared delivery | Tier 1 GitLab, Harbor, general runners, and Rancher/Fleet where needed |
+| Platform function | Reference component and placement | Interfaces or detailed design |
+| --- | --- | --- |
+| Compute, networking and data | Tier 0-operated Proxmox, host fabrics, selected storage and approved VM templates | [Runtime and failure domains](compute/runtime.md), [network attachments](networking/README.md) |
+| Infrastructure lifecycle | Protected workstation and management VM/runner; independent tier-owned state | [Infrastructure acceptance](compute/provisioning.md) |
+| Directory, DNS, Kerberos | FreeIPA primary and replica on two dedicated VMs, outside Kubernetes | [Identity authority](identity/README.md) |
+| Identity federation and OIDC | Keycloak inside the Tier 0 cluster, using the directory pair | [Service access](runtime-flows.md#service-access) |
+| Offline trust authority | Offline root CA, ceremony environment and root recovery material in separate custody | [Certificate hierarchy](#certificate-trust) |
+| Routine certificate issuance | Online intermediate issuing service with a selected, supported key provider | [Cryptography](cryptography/README.md) |
+| Secrets | Vault inside the Tier 0 cluster; independent recovery/unseal material | [Secret service and seal](cryptography/vault-seal.md) |
+| Tier 0 cluster services | Flux, CNI, DNS, SOPS bootstrap inputs, storage, cert-manager, ingress and CloudNativePG HA | [Kubernetes topology](compute/kubernetes.md); separate cluster owners and state |
+| Inventory and scoped control UI | NetBox and Headlamp in Tier 0; bootstrap inputs retained independently | [Operations](operations/README.md) |
+| Visibility | Tier 0 monitoring/syslog/audit, with independent failure detection; separate shared/project telemetry as required | [Telemetry](operations/telemetry.md) |
+| Source and artifacts | GitLab and Harbor in the Tier 1 platform cluster | [Artifact authority and delivery](delivery/artifact-supply.md) |
+| General builds | Tier 1 runners using scoped source and artifact access | [Application delivery](runtime-flows.md#application-delivery) |
+| Application delivery | Tier 0 Flux; Tier 1 Argo CD or Spinnaker remains unselected | [Delivery controller patterns](delivery/controllers.md) |
+| Service publication | Tier 1 edge proxy and the owning cluster/application ingress | [Delivery](delivery/README.md), [firewall policy](networking/firewall-policy.md) |
+| Workload management | Rancher/Fleet where selected, scoped to workload clusters | [Ownership](tier-ownership.md) and [compute](compute/README.md) |
+| Workloads | Tier 2 applications on approved Kubernetes runtimes or VMs | [Runtime design](compute/runtime.md), [bounded requests](compute/provisioning.md) |
+| Backup and restoration | Owner-specific backup targets, independent recovery records and protected copies | [Data and recovery](#data-and-recovery) |
+
+The [cluster topology](compute/kubernetes.md) defines three independent tier APIs,
+compact control planes and optional worker pools. [Controller patterns](delivery/controllers.md)
+keep Tier 0 Flux separate from Tier 1 delivery and scoped Tier 2 application access.
 
 Keycloak and NetBox use the database service. Vault has its own storage and
 recovery design; the database service is not its storage backend by implication.
 Database, cache, storage, and backup requirements remain service-specific.
+
+Network purposes remain `management`, `identity`, `control_cluster`,
+`cryptography`, `application` and `external_edge` as applicable. The
+[network catalog](networking/README.md#network-catalog) owns reference VLANs;
+full site allocations remain in inventory. A hosting boundary does not create
+a new subnet or permitted connection.
+
+## Connected functions
+
+| Consumer | Provider | Purpose and boundary |
+| --- | --- | --- |
+| Users and applications | Named edge/application endpoints | Service traffic; no administrative subnet publication |
+| OIDC-capable services | Identity broker, backed by directory authority | Authentication; each consumer retains its own authorization |
+| Services and clusters | Online issuer and scoped secret endpoints | Certificate/credential consumption; no root-key access |
+| Source review and general builds | Approved registry and source interfaces | Candidate publication and policy-controlled promotion |
+| Selected application delivery controller | Approved source, registry and release policy | Reconciliation or pipeline-controlled application delivery within the granted scope |
+| Tier-owned infrastructure definitions | Tier 0 acceptance and protected execution | Authorized VM/runtime lifecycle; definitions and state keep their owner |
+| Stateful services | Selected database, volume, cache or object-storage provider | Explicit data ownership, service credentials and restoration contract |
+| Platform and workload producers | Authorized telemetry/backup receivers | Scoped signal intake and protected copies; receiver administration is separate |
+
+The [runtime views](runtime-flows.md) expand these connections into focused
+diagrams. They show the steady-state operating paths, including authorized
+changes, rather than a second installation sequence.
 
 ## Access and automation
 
@@ -88,13 +142,13 @@ ceremony. Routine issuance and renewal use an online issuer, not the root.
 flowchart TB
   subgraph CER["ceremony: offline / separate custody"]
     Root["Offline root CA and root key"]
-    Ops["Authorized signing / recovery ceremony"]
+    Ops["Authorized signing and recovery ceremony"]
     Root --- Ops
   end
   subgraph CRYPTO["cryptography: online issuing services"]
     Issuer["Online intermediate CA"]
-    HSM["Optional signing gateway / local HSM"]
-    Issuer -. "Validated provider integration" .-> HSM
+    Provider["Selected software or hardware key provider"]
+    Issuer -->|Supported signing integration| Provider
   end
   Ops -. "Transfer signed intermediate certificate; no network route" .-> Issuer
   CM0["Tier 0 cert-manager"] -->|Issue / renew| Issuer
@@ -113,6 +167,28 @@ The [USB design](cryptography/usb-hsm.md) is one variant, not the entire
 cryptography design. An offline backup of an online key is not an offline
 root CA. Normal CI must never initialize keys or perform custody ceremonies.
 
+## Data and recovery
+
+Persistence is part of the result, not an installation detail. Each selected
+service needs a data owner, storage/backup boundary and recoverable configuration.
+The reference does not treat every stateful component as a consumer of one database.
+
+| State | Reference ownership and dependency | Required recovery independence |
+| --- | --- | --- |
+| Infrastructure inventory and Terraform state | Owning tier, accessed only by its authorized executor | Tools, state and credentials remain available without hosted source control |
+| Directory and DNS data | Dedicated Tier 0 directory pair | Restoration does not require the unavailable broker or control cluster |
+| Kubernetes control state and configuration | Owning cluster; approved desired state and bootstrap material | Control-plane recovery inputs survive the cluster |
+| Keycloak and NetBox data | Selected database service and application-specific dependencies | Database state, app configuration and credentials are covered together |
+| Vault data and seal/recovery material | Vault's explicitly selected storage and seal contract | Required unseal/recovery material remains independent of Vault |
+| Source, artifacts and workloads | Tier 1 or Tier 2 service owner, according to actual resources | Required code, images and workload data survive the service hosting them |
+| CA keys and certificates | Custodians for each root/issuer/provider | Recovery is possible under authorized custody after provider loss |
+| Logs, audit records and backups | Owner-specific receivers, retention and protected copies | Loss of an observed service does not remove all detection and restoration paths |
+
+Availability, replication and backup solve different failure cases. The
+[data, visibility and recovery view](runtime-flows.md#data-visibility-and-recovery)
+shows their relationships; [administration](../administration/recovery.md) owns
+operating procedures and restore evidence.
+
 ## Implementation choices
 
 Proxmox is the chosen hypervisor. Kubernetes is the cluster goal; Talos is
@@ -125,7 +201,28 @@ Review this design when a service gains cross-tier privileges, recovery starts
 depending on a higher tier, or CA/key custody changes. Record site choices in
 the project-owned design and recovery documents.
 
+## Design to deployment
+
+Architecture is organized by the finished function. The table links every
+deployment capability to the part of the integrated result it contributes.
+Detailed variants link to their own realization procedures inside the domains.
+
+| Finished function | Contributing deployment guides |
+| --- | --- |
+| Infrastructure, network attachment and approved templates | [Compute foundation](../deployment/stage-1-foundation/README.md) |
+| Offline trust and online issuance | [Cryptographic trust](../deployment/stage-2-trust/README.md) |
+| Directory, Kubernetes and base cluster services | [Identity and runtime](../deployment/stage-3-identity-runtime/README.md) |
+| Federation, secrets, inventory and visibility | [Control services](../deployment/stage-4-control-services/README.md) |
+| Shared delivery, published endpoints and protected execution handover | [Delivery and handover](../deployment/stage-5-delivery/README.md) |
+| Approved project runtimes and application reconciliation | [Workload provisioning](../deployment/stage-6-workloads/README.md) |
+
+The [support map](../reference/implementation-support.md) distinguishes supplied
+automation from project integration. [Readiness](../deployment/readiness.md)
+records demonstrated capability; selecting this reference does not establish it.
+
 ## References
+
+Sources checked 2026-10-09.
 
 1. [cert-manager: Vault issuer](https://cert-manager.io/docs/configuration/vault/)
 2. [HashiCorp: Vault HSM support](https://developer.hashicorp.com/vault/docs/enterprise/hsm)

@@ -8,6 +8,12 @@ approved image IDs and titles; keep only workload selections and service tags he
 
 ## Deployment order
 
+For an independent Kubernetes workload runtime, use this tier's
+`terraform/deployments/kubernetes/` and `bash scripts/kubernetes-cluster.sh init`.
+Follow the [common cluster procedure](../../deployment/stage-3-identity-runtime/procedures/kubernetes.md),
+then record [scoped application delivery](../../architecture/delivery/controllers.md).
+The Linux `lab` workflow below is a separate VM option, not the cluster installer.
+
 | Step | What to do | Ready to continue when |
 | --- | --- | --- |
 | 1. Select the target | Record project naming choices and consume an approved VM network/template or an existing platform runtime | Resource allocation and access are approved |

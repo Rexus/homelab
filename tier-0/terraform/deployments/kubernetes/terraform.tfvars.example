@@ -11,6 +11,7 @@ cluster = {
   installer_image    = "REPLACE_WITH_INSTALLER_MATCHING_TEMPLATE_SCHEMATIC_AND_VERSION"
   pod_cidr           = "10.244.0.0/16"
   service_cidr       = "10.96.0.0/12"
+  allow_scheduling_on_control_planes = true
 }
 
 # Reserve each MAC/IP in DHCP before applying. The endpoint needs an external
@@ -29,8 +30,8 @@ nodes = {
     vm_id = 302, node_name = "pve03", mac_address = "02:00:00:00:03:02"
     datastore_id = "shared", bridge = "control", size = "medium"
   }
-  k8node-1 = {
-    vm_id = 310, node_name = "pve01", mac_address = "02:00:00:00:03:10"
-    datastore_id = "shared", bridge = "control", size = "large", disk_size_gb = 80
-  }
 }
+
+# Start with three schedulable control planes. Optional workers need matching
+# inventory hosts, DHCP/IP reservations, and hardware entries in nodes above.
+# Existing clusters must retain their workers; this example is not a removal plan.

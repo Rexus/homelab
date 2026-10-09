@@ -17,8 +17,10 @@ def tier_readme(writer, tier, prefix, setups):
         "tier-0": ("- `templates/`, `terraform/deployments/templates/`, and `ci/`: image catalog, publication, and jobs\n"
                    "- `terraform/deployments/kubernetes/`: control-cluster VMs and bootstrap; currently Talos\n"
                    "- `packer/` and `clusters/tier0/`: custom image builds and cluster-service starters"),
-        "tier-1": "- `clusters/tier1/`: platform cluster definitions",
-        "tier-2": "- `environments/` and `workloads/`: project and workload definitions",
+        "tier-1": ("- `terraform/deployments/kubernetes/`: platform cluster VMs and bootstrap\n"
+                   "- `clusters/tier1/`: platform manifests; select the delivery controller separately"),
+        "tier-2": ("- `terraform/deployments/kubernetes/` and `clusters/tier2/`: workload cluster and manifests\n"
+                   "- `environments/` and `workloads/`: project and workload definitions"),
     }
     docs = f"../{prefix}-architecture/{AUTO_DOCS}"
     deployments = [
@@ -30,12 +32,20 @@ def tier_readme(writer, tier, prefix, setups):
         deployments[:0] = [
             "| `templates` | [main.tf](terraform/deployments/templates/main.tf) "
             "| [image recipes](templates/proxmox.yml.example) |",
-            "| `kubernetes` | [main.tf](terraform/deployments/kubernetes/main.tf) "
-            "| [machine configuration](terraform/deployments/kubernetes/machines.tf) |",
         ]
+    deployments.insert(0, "| `kubernetes` | [main.tf](terraform/deployments/kubernetes/main.tf) "
+                       "| [machine configuration](terraform/deployments/kubernetes/machines.tf) |")
     prerequisites = (
         "Tier 0 supplies approved VM templates and networks. The commands below are\n"
         "operator-run workflows, not a self-service interface for workload users.\n"
+        "For a new tier-owned Kubernetes cluster, initialize its local inputs:\n\n"
+        "```bash\n"
+        "bash scripts/kubernetes-cluster.sh init\n"
+        "```\n\n"
+        f"Follow the [cluster procedure]({docs}/deployment/stage-3-identity-runtime/procedures/talos-terraform.md)\n"
+        "to configure, plan, deploy and verify. Cluster manifests are starters, not installed services.\n"
+        f"Record the [delivery choice]({docs}/architecture/delivery/controllers.md) separately;\n"
+        "Tier 1 does not inherit Tier 0 Flux automatically.\n"
     )
     if tier == "tier-0":
         prerequisites = (

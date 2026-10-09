@@ -16,6 +16,7 @@ or recovery dependencies requires a design review before execution.
 | Test VM backup and restore | [Backup foundation](compute/backup-restore.md) |
 | Maintain hypervisor access and posture | [Hardening](compute/hardening.md), [update access](compute/update-access.md) |
 | Publish, test and promote image revisions | [Template lifecycle](compute/template-lifecycle.md) |
+| Add cluster capacity and reserve worker pools | [Kubernetes pools](compute/kubernetes-pools.md) |
 | Maintain signing gateways and key replicas | [USB HSM maintenance](cryptography/usb-hsm.md) |
 | Protect bootstrap and runtime secrets | [Secret strategy](secret-handling/strategy.md), [Ansible Vault](secret-handling/ansible-vault.md) |
 

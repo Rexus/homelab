@@ -15,12 +15,13 @@
 
 ## Purpose
 
-Use this document to understand why the repository starts with shared
-identity, PKI, secrets, and telemetry paths before larger application or lab
-deployments.
+This document expands the shared-service contracts in the
+[platform overview](README.md). Identity, PKI, secrets and telemetry supply
+reusable interfaces to application and lab environments in the completed system.
 
-The goal is modularity. Deploy the shared services from this repository
-or connect later paths to existing services.
+A service can be owned by the platform or supplied by an existing approved
+environment. [Variant selection](variants.md) keeps its consumers, authority and
+recovery obligations explicit when that implementation or sharing boundary changes.
 
 ## Why shared services matter
 

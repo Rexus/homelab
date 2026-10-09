@@ -49,7 +49,9 @@ flowchart TB
 
 1. Execute the reviewed tier-local definition and verify the intended network boundaries.
 2. For a workload cluster, reuse the [common Kubernetes procedure](../stage-3-identity-runtime/procedures/kubernetes.md)
-   with a Tier 2 implementation and inputs; no Tier 2 cluster installer is supplied.
+   with the tier-local `terraform/deployments/kubernetes/` root and
+   `bash scripts/kubernetes-cluster.sh init`. The current installer uses Talos;
+   it does not deploy applications, policies or an autoscaler.
 3. Verify runtime readiness, state locking and independent restoration before workloads.
 
 **Result:** the [compute runtime](../../architecture/compute/README.md) is ready within
@@ -62,12 +64,14 @@ can manage selected Tier 1/2 clusters, never Tier 0 infrastructure.
 
 ```mermaid
 flowchart LR
-  Source["Approved application revision"] --> GitOps["Owning-tier Flux / Fleet"]
+  Source["Approved application revision"] --> GitOps["Scoped application delivery"]
   GitOps --> Apps["Tier 2 applications"]
   Runtime["Verified workload runtime"] --> Apps
 ```
 
-1. Deploy application manifests with workload-scoped permissions and service dependencies.
+1. Select [scoped delivery](../../architecture/delivery/controllers.md) from Tier 1
+   or an independently owned local controller. Deploy application manifests with
+   workload-scoped permissions, namespaces, quotas, policies and service dependencies.
 2. Exercise an update, rollback and restore, including the behavior when source control
    is unavailable. Source loss pauses new requests; it never authorizes deletion.
 3. Hand recurring operations to [administration](../../administration/README.md), retaining

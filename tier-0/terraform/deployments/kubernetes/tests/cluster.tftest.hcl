@@ -29,7 +29,7 @@ variables {
     }
     k8node-1 = {
       vm_id        = 310, node_name = "pve01", mac_address = "02:00:00:00:03:10"
-      datastore_id = "shared", bridge = "control", size = "large"
+      datastore_id = "shared", bridge = "control", size = "large", pool = "compute"
     }
   }
 }
@@ -62,6 +62,69 @@ run "clone_and_bootstrap_contract" {
     )
     error_message = "Talos must use its native configuration, never Linux cloud-init."
   }
+  assert {
+    condition = (
+      nonsensitive(yamldecode(data.talos_machine_configuration.node["k8node-1"].config_patches[0]).machine.nodeLabels["node-pool"]) == "compute" &&
+      !nonsensitive(yamldecode(data.talos_machine_configuration.node["k8ctl-1"].config_patches[0]).cluster.allowSchedulingOnControlPlanes)
+    )
+    error_message = "Pool labels must reach node configuration; existing configs must retain disabled control-plane scheduling."
+  }
+}
+
+run "compact_control_planes" {
+  command = plan
+  variables {
+    inventory_path = "tests/fixtures/missing-worker.yml"
+    cluster = {
+      name                               = "test-compact", endpoint = "https://kubernetes.example.com:6443", bootstrap_node = "k8ctl-1"
+      talos_version                      = "v1.13.0", kubernetes_version = "1.34.0"
+      installer_image                    = "factory.talos.dev/installer/test-schematic:v1.13.0"
+      pod_cidr                           = "10.244.0.0/16", service_cidr = "10.96.0.0/12"
+      allow_scheduling_on_control_planes = true
+    }
+    nodes = {
+      k8ctl-1 = {
+        vm_id        = 300, node_name = "pve01", mac_address = "02:00:00:00:03:00"
+        datastore_id = "shared", bridge = "control"
+      }
+      k8ctl-2 = {
+        vm_id        = 301, node_name = "pve02", mac_address = "02:00:00:00:03:01"
+        datastore_id = "shared", bridge = "control"
+      }
+      k8ctl-3 = {
+        vm_id        = 302, node_name = "pve03", mac_address = "02:00:00:00:03:02"
+        datastore_id = "shared", bridge = "control"
+      }
+    }
+  }
+  assert {
+    condition = length(proxmox_virtual_environment_vm.node) == 3 && nonsensitive(
+      yamldecode(data.talos_machine_configuration.node["k8ctl-1"].config_patches[0]).cluster.allowSchedulingOnControlPlanes
+    )
+    error_message = "The compact starter must schedule workloads on its three control planes without workers."
+  }
+}
+
+run "reject_unschedulable_compact_cluster" {
+  command = plan
+  variables {
+    inventory_path = "tests/fixtures/missing-worker.yml"
+    nodes = {
+      k8ctl-1 = {
+        vm_id        = 300, node_name = "pve01", mac_address = "02:00:00:00:03:00"
+        datastore_id = "shared", bridge = "control"
+      }
+      k8ctl-2 = {
+        vm_id        = 301, node_name = "pve02", mac_address = "02:00:00:00:03:01"
+        datastore_id = "shared", bridge = "control"
+      }
+      k8ctl-3 = {
+        vm_id        = 302, node_name = "pve03", mac_address = "02:00:00:00:03:02"
+        datastore_id = "shared", bridge = "control"
+      }
+    }
+  }
+  expect_failures = [terraform_data.configuration]
 }
 
 run "reject_linux_image" {
