@@ -28,7 +28,7 @@ deployment and acceptance evidence belong in [deployment](../deployment/README.m
 
 | View | Question answered | Design |
 | --- | --- | --- |
-| Whole platform | What does the environment provide, and how do its major functions connect? | This page |
+| Whole platform | Which capabilities form the environment, and where do they belong by tier and layer? | This page |
 | Integrated reference | What components coexist in one complete realization, and where do they run? | [Reference platform](reference-platform.md) |
 | System interactions | How do access, changes, certificates, data and recovery cross domain boundaries? | [Runtime relationships](runtime-flows.md) |
 | Domain | What is inside one platform function, and what does it consume and provide? | [Technical domains](#technical-domains) |
@@ -46,67 +46,81 @@ Only designs with meaningful internal differences need another page or diagram.
 
 ## Functional structure
 
-The diagram shows supplied capabilities in the completed platform. The trust
-function expands into identity and cryptography; the foundation expands into
-compute and networking. Operations covers all hosted capabilities. Edge publication
-and software delivery are two interfaces of the delivery domain.
+The capability map places services by **owning tier** vertically and **security
+layer** horizontally. Boxes name capabilities, not products, VMs or clusters.
+Domain views expand those boxes into their components and hosting arrangements.
 
 ```mermaid
-flowchart TB
-  Users["Users and workload teams"]
-  Operators["Platform operators"]
-  subgraph Platform["Private cloud"]
-    direction TB
-    Entry["Published service access"]
-    subgraph Hosted["Hosted capabilities"]
-      Workloads["Applications and project runtimes"]
-      Delivery["Source, artifacts and delivery"]
-      Trust["Identity, certificates and secrets"]
-    end
-    Foundation["Compute, networks and persistent storage"]
-    Operations["Inventory, visibility and recovery"]
-  end
-  Custody["Separate offline trust and recovery custody"]
-  Users -->|Use named endpoints| Entry
-  Entry -->|Application traffic| Workloads
-  Users -->|Propose changes| Delivery
-  Delivery -->|Approved revisions and artifacts| Workloads
-  Trust -->|Scoped identity and trust interfaces| Workloads
-  Trust -->|Scoped identity and trust interfaces| Delivery
-  Foundation -->|Runtime, connectivity and data| Hosted
-  Hosted -->|Signals and protected backup outputs| Operations
-  Operators -->|Authorized infrastructure lifecycle| Foundation
-  Operations -->|Inventory, alerts and recovery evidence| Operators
-  Custody -.->|Authorized custody transfers| Trust
+block-beta
+  columns 4
+  Ownership["Owning tier"] Edge["Edge / DMZ"] Application["Application<br/>Services"] Control["Control"]
+  T2["Tier 2<br/>Workloads"]
+  space
+  Workloads["Applications<br/>Development / labs"]
+  space
+  T1["Tier 1<br/>Shared platform"]
+  Publication["Service publication<br/>Controlled egress"]
+  Source["Source control"]
+  space
+  space:2 Artifacts["Artifact registry"] space
+  space:2 Delivery["Build and delivery"] space
+  space:2 WorkloadManagement["Workload-cluster<br/>management"] space
+  T0["Tier 0<br/>Infrastructure / trust"]
+  space:2
+  IdM["Directory authority<br/>IdM"]
+  space:3 IdP["Identity provider<br/>IdP / SSO"]
+  space:3 PKI["Certificate issuance<br/>PKI"]
+  space:3 Secrets["Secrets management"]
+  space:3 Infrastructure["Infrastructure control"]
+  space:3 Operations["Inventory and<br/>control visibility"]
+  Custodians["Tier 0 custody"]
+  Offline["Offline root / recovery custody<br/>Outside connected layers"]:3
+  classDef axis fill:#e5e7eb,stroke:#64748b,color:#111827
+  class Ownership,Edge,Application,Control,T2,T1,T0,Custodians axis
 ```
 
-Solid arrows name functional relationships, not blanket network permissions.
-The custody arrow is an authorized transfer, not a network route. The
-[interaction views](runtime-flows.md) expand the consequential connections;
-the [firewall policy](networking/firewall-policy.md) owns allowed listeners.
-Recovery copies and external failure detection remain available beyond the
-hosted services they protect.
+Empty cells do not require additional services or networks. The map shows the
+reference placement; project services and isolated variants retain their actual
+owner and exposure. Infrastructure control owns the hosts, networks and storage
+supporting every layer, not only services in its own cell.
 
-| Function | Result available to consumers | Place in the complete system |
+**Identity and access management (IAM)** spans directory authority, the identity
+provider and service-local authorization. It is not one VM. The
+[identity view](identity/README.md) defines the terms and shows IdM on dedicated
+VMs and the IdP in the Tier 0 cluster, consumed by services in all three tiers.
+
+Both identity services remain in Control in this reference. An application-facing
+login endpoint is a permitted service interface, not a move into the Services
+zone. Control is a security layer; `management` is one network within it.
+Offline custody is outside the connected layers, not another routed zone.
+
+| Capability | Consumer-facing function | Expanded design |
 | --- | --- | --- |
-| Workload execution | Project applications, development environments and experiments | Tier 2 consumes approved runtime and shared service interfaces |
-| Networking | Named entry points and purpose-based, enforced connectivity | Connects clients, services and infrastructure without granting administrative authority |
-| Compute and data | VM/cluster capacity, approved images, persistent storage and controlled lifecycle | Supports every hosted capability; hardware authority remains Tier 0 |
-| Identity and access | Directory, DNS, authentication federation and scoped service authorization | Supplies identity to applications, delivery and operators |
-| Cryptography and secrets | Certificate trust, online issuance and controlled credential delivery | Keeps routine service access separate from root-key custody |
-| Delivery | Published endpoints, reviewed source, approved artifacts and application delivery | Connects teams and software supply to services and workloads |
-| Operations | Inventory documentation, health/audit visibility and independent recovery | Covers each function according to its owner, sensitivity and recovery needs |
+| Directory authority (IdM) | Identity lifecycle, groups, host enrollment, DNS and Kerberos | [Identity](identity/README.md) |
+| Identity provider (IdP / SSO) | Application authentication and identity claims | [Identity](identity/README.md) |
+| Certificate issuance (PKI) | Trusted service certificates under approved policy | [Cryptography](cryptography/README.md) |
+| Secrets management | Scoped credential delivery and independent recovery | [Cryptography](cryptography/README.md) |
+| Infrastructure control | Authorized compute, network, storage and image lifecycle | [Compute](compute/README.md), [networking](networking/README.md) |
+| Inventory and control visibility | Infrastructure records, health, audit and recovery evidence | [Operations](operations/README.md) |
+| Source control | Reviewed definitions and change proposals | [Delivery](delivery/README.md) |
+| Artifact registry | Approved versions and scoped artifact access | [Artifact supply](delivery/artifact-supply.md) |
+| Build and delivery | Candidate builds and authorized application releases | [Delivery controllers](delivery/controllers.md) |
+| Workload-cluster management | Scoped operation of approved workload clusters | [Kubernetes topology](compute/kubernetes.md) |
+| Service publication and controlled egress | Named entry points and approved software supply | [Delivery](delivery/README.md), [network policy](networking/firewall-policy.md) |
+| Applications and project runtimes | User services, development and experiments | [Runtime design](compute/runtime.md) |
 
-External peers are clients, approved software sources, existing contracted
-services, and optional offsite recovery targets. Existing identity, PKI or other
-services can fulfill a function through explicit ownership and recovery
-contracts. Their placement changes; the consumed interface remains visible.
+Clients, operators, approved software sources and offsite recovery targets are
+external peers. Existing services can fulfill a capability through explicit
+consumer, ownership and recovery contracts. The
+[runtime views](runtime-flows.md) show interactions; the
+[reference platform](reference-platform.md) shows hosting; the
+[network map](networking/README.md) owns attachments and firewall zones.
 
 ## How the platform works together
 
 | Relationship | Completed behavior | Expanded view |
 | --- | --- | --- |
-| Service access | Clients reach named endpoints; a broker uses the directory; each service applies its own authorization | [Access](runtime-flows.md#service-access) |
+| Service access | Clients reach named endpoints; the IdP uses directory authority; each service applies its own authorization | [Access](runtime-flows.md#service-access) |
 | Application delivery | General builds produce candidates; approved source and artifacts are delivered into the owning runtime | [Application delivery](runtime-flows.md#application-delivery) |
 | Infrastructure change | Proposed resource changes pass Tier 0 acceptance before protected execution; inventory and state remain tier-owned | [Infrastructure changes](runtime-flows.md#infrastructure-changes) |
 | Certificate trust | An offline root authorizes intermediates; online issuers serve routine certificate consumers | [Trust](reference-platform.md#certificate-trust) |
@@ -134,7 +148,7 @@ repository or ownership boundary.
 | --- | --- |
 | [Networking](networking/README.md) | Attachments, network catalog and [permitted traffic](networking/firewall-policy.md) |
 | [Compute](compute/README.md) | [VM/cluster placement](compute/runtime.md), [three-cluster topology](compute/kubernetes.md) and [protected provisioning](compute/provisioning.md) |
-| [Identity](identity/README.md) | Directory/broker/authorization relationships and [Windows integration](identity/windows-integration.md) |
+| [Identity](identity/README.md) | IdM, IdP and authorization relationships; [Windows integration](identity/windows-integration.md) |
 | [Cryptography](cryptography/README.md) | [Key custody](cryptography/hsm-selection.md), [USB gateways](cryptography/usb-hsm.md), [network HSM](cryptography/network-hsm.md) and [service seals](cryptography/vault-seal.md) |
 | [Delivery](delivery/README.md) | Endpoints, [controller choices](delivery/controllers.md), [artifact authority and distribution](delivery/artifact-supply.md) |
 | [Operations](operations/README.md) | Inventory/recovery relationships and [telemetry composition](operations/telemetry.md) |

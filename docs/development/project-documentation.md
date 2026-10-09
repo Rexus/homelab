@@ -76,14 +76,17 @@ Keep credentials and private keys out of every documentation area.
 
 | View | Question answered | Content and onward links |
 | --- | --- | --- |
-| Whole platform | What does the environment provide, and how does it fit together? | Users, external dependencies, major functions, completed design, functional relationships and shared constraints; links into domain views |
+| Whole platform | What does the environment provide, and how does it fit together? | Named service capabilities placed by owning tier and security layer; external consumers, shared constraints and links into domain views |
 | Runtime relationships | How do those functions cooperate? | Access, software supply, privileged changes and observation or recovery across domain boundaries; links to participating designs |
 | Domain | How does a platform function work internally? | Selected components, supplied and consumed interfaces, ownership, trust boundaries and required guarantees; links to detailed designs |
 | Detailed design | Which arrangement fulfills the contract? | Completed topology for the selected variant, focused alternatives, rationale, compatibility conditions and failure behavior; links back to the domain and to realization procedures |
 
-The platform view shows the combined result of the selected deployment paths.
-Domain diagrams expand functions already named in that view; detailed diagrams
-expand the domain's components or relationships. Keep names and boundary
+The platform map shows the combined result of the selected deployment paths:
+Tier 2, Tier 1, Tier 0 vertically and Edge, Application, Control horizontally.
+Boxes name service capabilities; domains organize their detailed designs.
+For example, directory authority (IdM) and the identity provider (IdP) are separate
+boxes expanded together in the identity view, with their VM/cluster runtimes and
+cross-tier consumers. Detailed diagrams expand those components or relationships. Keep names and boundary
 interfaces consistent across these views. An external dependency remains visible
 at the boundary when its internal components are outside the current scope.
 

@@ -6,7 +6,7 @@ placement. It is a design, not a claim that every service is automated.
 The [deployment stages](../deployment/README.md) realize this result; their
 order does not determine the structure of this document.
 
-This view expands the functions in the [platform overview](README.md) into one
+This view expands the services in the [capability map](README.md#functional-structure) into one
 reference placement across all three tiers and separate custody. The
 [runtime relationships](runtime-flows.md) connect those components during
 normal service use, change and recovery. [Domain designs](README.md#technical-domains)
@@ -47,7 +47,7 @@ flowchart TB
     subgraph T0["Tier 0: infrastructure and trust"]
       M["Management VMs: protected runner, IaC state, recovery tools"]
       I["Dedicated directory VM pair"]
-      K["Control cluster: identity broker, secrets, inventory and visibility"]
+      K["Control cluster: identity provider, secrets, inventory and visibility"]
       C["Online issuer and selected key provider"]
       M ~~~ I
       M ~~~ K
@@ -69,8 +69,8 @@ controlled environment; a VM or VLAN label alone does not establish an air gap.
 | --- | --- | --- |
 | Compute, networking and data | Tier 0-operated Proxmox, host fabrics, selected storage and approved VM templates | [Runtime and failure domains](compute/runtime.md), [network attachments](networking/README.md) |
 | Infrastructure lifecycle | Protected workstation and management VM/runner; independent tier-owned state | [Infrastructure acceptance](compute/provisioning.md) |
-| Directory, DNS, Kerberos | FreeIPA primary and replica on two dedicated VMs, outside Kubernetes | [Identity authority](identity/README.md) |
-| Identity federation and OIDC | Keycloak inside the Tier 0 cluster, using the directory pair | [Service access](runtime-flows.md#service-access) |
+| Directory authority (IdM) | FreeIPA primary and replica on two dedicated VMs, outside Kubernetes | [Identity authority](identity/README.md) |
+| Identity provider (IdP / SSO) | Keycloak inside the Tier 0 cluster, using the directory pair | [Service access](runtime-flows.md#service-access) |
 | Offline trust authority | Offline root CA, ceremony environment and root recovery material in separate custody | [Certificate hierarchy](#certificate-trust) |
 | Routine certificate issuance | Online intermediate issuing service with a selected, supported key provider | [Cryptography](cryptography/README.md) |
 | Secrets | Vault inside the Tier 0 cluster; independent recovery/unseal material | [Secret service and seal](cryptography/vault-seal.md) |
@@ -104,7 +104,7 @@ a new subnet or permitted connection.
 | Consumer | Provider | Purpose and boundary |
 | --- | --- | --- |
 | Users and applications | Named edge/application endpoints | Service traffic; no administrative subnet publication |
-| OIDC-capable services | Identity broker, backed by directory authority | Authentication; each consumer retains its own authorization |
+| OIDC-capable services | Identity provider, backed by directory authority | Authentication; each consumer retains its own authorization |
 | Services and clusters | Online issuer and scoped secret endpoints | Certificate/credential consumption; no root-key access |
 | Source review and general builds | Approved registry and source interfaces | Candidate publication and policy-controlled promotion |
 | Selected application delivery controller | Approved source, registry and release policy | Reconciliation or pipeline-controlled application delivery within the granted scope |
@@ -120,8 +120,8 @@ changes, rather than a second installation sequence.
 
 | Path | Boundary |
 | --- | --- |
-| Client workstation to services | HTTPS and service RBAC; OIDC through the identity broker where supported |
-| Directory pair to identity broker | Protected directory federation; no directory administration through clients |
+| Client workstation to services | HTTPS and service RBAC; OIDC through the identity provider where supported |
+| Directory pair to identity provider | Protected directory federation; no directory administration through clients |
 | Privileged workstation to infrastructure | Scoped administration and independent bootstrap/recovery credentials |
 | Cluster UI to Tier 0 Kubernetes | Privileged, scoped cluster access; not general client administration |
 | Source control to protected runner | Proposed changes pass Tier 0 authorization before privileged execution |
@@ -176,7 +176,7 @@ The reference does not treat every stateful component as a consumer of one datab
 | State | Reference ownership and dependency | Required recovery independence |
 | --- | --- | --- |
 | Infrastructure inventory and Terraform state | Owning tier, accessed only by its authorized executor | Tools, state and credentials remain available without hosted source control |
-| Directory and DNS data | Dedicated Tier 0 directory pair | Restoration does not require the unavailable broker or control cluster |
+| Directory and DNS data | Dedicated Tier 0 directory pair | Restoration does not require the unavailable IdP or control cluster |
 | Kubernetes control state and configuration | Owning cluster; approved desired state and bootstrap material | Control-plane recovery inputs survive the cluster |
 | Keycloak and NetBox data | Selected database service and application-specific dependencies | Database state, app configuration and credentials are covered together |
 | Vault data and seal/recovery material | Vault's explicitly selected storage and seal contract | Required unseal/recovery material remains independent of Vault |

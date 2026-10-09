@@ -18,7 +18,7 @@ the [firewall policy](networking/firewall-policy.md).
 ## Service access
 
 Published services expose named application endpoints. For an OIDC-capable
-service, the broker federates the directory authority and the service applies
+service, the IdP uses directory authority and the service applies
 its own authorization. This is a logical authentication scenario; exact token
 exchanges depend on the selected application integration.
 
@@ -26,14 +26,14 @@ exchanges depend on the selected application integration.
 sequenceDiagram
   participant Client as Client
   participant Service as Published service
-  participant Broker as Identity broker
+  participant IdP as Identity provider
   participant Directory as Directory authority
   Client->>Service: HTTPS application request
   Service-->>Client: Authentication required
-  Client->>Broker: Authentication through selected OIDC flow
-  Broker->>Directory: Configured federation or identity lookup
-  Directory-->>Broker: Authoritative identity information
-  Broker-->>Client: Authentication response
+  Client->>IdP: Authentication through selected OIDC flow
+  IdP->>Directory: Configured LDAP user federation or identity lookup
+  Directory-->>IdP: Authoritative identity information
+  IdP-->>Client: Authentication response
   Client->>Service: Complete the selected login flow
   Service->>Service: Validate identity and apply local authorization
   Service-->>Client: Authorized application response
@@ -49,10 +49,10 @@ integration contracts.
 | Application user | Application or project permissions granted by the service |
 | Workload delivery identity | Scoped source, registry and owning-runtime permissions |
 | Platform administrator | Separately authorized access to the target control API |
-| Recovery operator | Protected credentials available independently of normal broker login |
+| Recovery operator | Protected credentials available independently of normal IdP login |
 
 The dedicated directory pair remains outside the reference control cluster.
-The broker, its database and each consumer's authorization configuration have
+The IdP, its database and each consumer's authorization configuration have
 their own availability and recovery requirements. Detail:
 [identity and access](identity/README.md).
 
@@ -210,8 +210,8 @@ and [deployment readiness](../deployment/readiness.md).
 | Unavailable component | Expected limitation | Capability that remains independently recoverable |
 | --- | --- | --- |
 | Tier 1 source or registry | New revision/artifact retrieval can pause; affected workload restarts may need retained images | Tier 0 control, approved execution inputs and required recovery artifacts |
-| Identity broker | Normal federated login can fail | Protected recovery access and dedicated directory recovery |
-| Control cluster | Hosted broker, secrets and operational services may be unavailable together | Host access, cluster bootstrap material, unseal/recovery inputs and required external failure detection |
+| Identity provider | Normal federated login can fail | Protected recovery access and dedicated directory recovery |
+| Control cluster | Hosted IdP, secrets and operational services may be unavailable together | Host access, cluster bootstrap material, unseal/recovery inputs and required external failure detection |
 | Online issuer or key provider | New issuance/renewal is interrupted according to the chosen resilience design | Authorized provider recovery and separately held offline root custody |
 | Primary state or storage | Stateful service availability depends on its selected replication/failure design | Protected copies and the complete authorized restoration inputs |
 

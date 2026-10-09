@@ -14,14 +14,15 @@ own records.
 | Functions expanded from the platform overview | TBD |
 | Consumers and capabilities supplied | TBD |
 | Scope and exclusions | TBD |
-| Component owners and tier allocation | TBD |
+| Component owners, tier allocation and security layers | TBD |
 
 ## Resulting domain design
 
-Add a diagram expanding this domain's functions into the selected components and
-their relationships. Retain the names and boundary connections from the platform
-view. Include required providers outside the domain, labeling ownership and
-trust boundaries where an interface crosses them.
+Expand the named capabilities from the platform map into their selected
+components, VM/cluster/external runtimes and relationships. Preserve each
+capability's owning tier and security layer. Include consumers from other tiers
+and required external providers, distinguishing service access from administration.
+Keep product choices in this view, not in the capability map.
 
 | Interface | Provider | Consumer | Purpose and required behavior |
 | --- | --- | --- | --- |

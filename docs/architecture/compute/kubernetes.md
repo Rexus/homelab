@@ -23,7 +23,7 @@ flowchart TB
     C1["Independent API and etcd<br/>Source control, registry and delivery"]
   end
   subgraph T0["Tier 0: control"]
-    C0["Independent API and etcd<br/>Identity broker, secrets and control services"]
+    C0["Independent API and etcd<br/>Identity provider, secrets and control services"]
     Directory["Dedicated directory VM pair"]
     Custody["Offline root and recovery custody<br/>Outside Kubernetes"]
   end

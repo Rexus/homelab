@@ -112,7 +112,7 @@ than creating another inventory. A lab, test or production instance can reuse
 the same logical pattern with explicit differences in sharing, scale and isolation.
 An environment label alone creates no boundary.
 
-Cross-domain consistency matters: a clustered identity broker needs its selected
+Cross-domain consistency matters: a clustered identity provider needs its selected
 database and certificate dependencies; a secret service needs independent recovery
 and a viable seal dependency; a protected executor needs independent state and
 approved code; an external provider needs an accepted outage and recovery contract.
@@ -141,7 +141,7 @@ capabilities without turning the architecture into a chronological walkthrough.
 
 For example, identity spans the directory work in the identity/runtime stage
 and federation work in the control-services stage. Its architecture shows the
-directory, broker and authorization boundaries together. Cryptography shows the
+directory, IdP and authorization boundaries together. Cryptography shows the
 complete root/issuer/provider arrangement even when a hardware deployment branch
 is selected partway through a trust walkthrough.
 

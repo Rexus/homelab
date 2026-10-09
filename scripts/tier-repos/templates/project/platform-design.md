@@ -22,19 +22,22 @@ evidence belong in [deployment](../deployment/README.md).
 
 ## Platform relationships
 
-Add a diagram of the completed platform showing users and external dependencies,
-major functions, and the connections that make those functions work together.
+Add a capability map with Tier 2, Tier 1, Tier 0 from top to bottom and
+Edge, Application, Control from left to right. Place each service capability in
+its owning tier and security layer. Keep product names and VM/cluster details in
+the domain designs; identify external consumers and providers at the boundary.
 Use the [platform reference](../auto-docs/architecture/README.md) and
 [integrated reference design](../auto-docs/architecture/reference-platform.md)
 as starting points. Show the selected composition, with alternatives expanded in
 their owning domain designs.
 
-Name each function consistently in the overview and its detailed views. Show
-tier ownership and network protection separately; label service access,
-administrative authority and offline transfers distinctly. Exact hosts and
-addresses stay in inventory.
+Keep capability names consistent between the map and domain views. Tier ownership
+and security layers are separate axes, not one classification. A login interface
+does not expose the IdP's administration or change its network placement.
+Show offline custody outside the connected layers. Exact hosts and addresses
+stay in inventory; interaction diagrams belong below.
 
-| Consumer / function | Provider / function | Purpose and interface | Ownership and trust boundary |
+| Capability | Owning tier | Security layer | Domain design |
 | --- | --- | --- | --- |
 | TBD | TBD | TBD | TBD |
 

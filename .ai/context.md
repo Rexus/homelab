@@ -114,12 +114,19 @@ This file keeps durable context for AI-assisted work across sessions.
 - protect the acceptance path, jobs, runners, and credentials for privileged
   changes at the target tier; a runner tag alone is not an isolation boundary
 - use general capability terms in architecture docs, such as source control,
-  identity authority, identity broker, OIDC interface, inventory source of
+  identity authority, identity provider (IdP), OIDC interface, inventory source of
   truth, observability dashboard, and cluster management
 
 ## Documentation intent
 
-- docs/architecture/README.md owns the whole-platform functional view and technical-domain navigation
+- docs/architecture/README.md owns the capability placement map and technical-domain navigation;
+  use named services, tiers vertically (2, 1, 0), and layers horizontally (Edge, Application, Control)
+- domain diagrams expand the same capabilities into components, runtimes and cross-tier consumers;
+  product names belong in reference realizations, not the top-level capability map
+- IAM is the overall identity and access management capability, not a VM; directory authority/IdM
+  and identity provider/IdP are separate roles; LDAP user federation is not identity brokering
+- reference IdM and IdP remain Tier 0/Control; a consumed login interface does not move the IdP
+  into Services or expose its administration; management is a network, not another layer
 - reference-platform.md allocates components; runtime-flows.md owns cross-domain service interactions;
   domain designs expand those functions without becoming an installation sequence
 - compute/runtime.md owns generic hosting/persistence; compute/kubernetes.md owns the three-tier topology;

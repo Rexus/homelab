@@ -24,6 +24,30 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertIn("delivery/controllers.md", (root / document).read_text(), document)
         self.assertIn("kubernetes.md", (root / "compute/runtime.md").read_text())
 
+    def test_capability_placement_and_identity_detail_use_the_same_roles(self):
+        root = UPSTREAM / "docs/architecture"
+        overview = (root / "README.md").read_text()
+        capability_map = overview.split("## Functional structure\n", 1)[1].split(
+            "## How the platform works together\n", 1)[0]
+        self.assertIn("block-beta\n  columns 4", capability_map)
+        for ordered in (('T2["Tier 2', 'T1["Tier 1', 'T0["Tier 0'),
+                        ('Edge["Edge', 'Application["Application', 'Control["Control')):
+            positions = [capability_map.index(label) for label in ordered]
+            self.assertEqual(positions, sorted(positions))
+        control = capability_map.split('T0["Tier 0', 1)[1].split('Custodians[', 1)[0]
+        for capability in ('IdM["Directory', 'IdP["Identity provider',
+                           'PKI["Certificate', 'Secrets["Secrets'):
+            self.assertIn(capability, control)
+        self.assertIn("Outside connected layers", capability_map)
+        identity = (root / "identity/README.md").read_text()
+        for expected in ("## Terminology", "Identity and access management (IAM)",
+                         "LDAP user federation", "Identity brokering", "Tier 0 / Control layer",
+                         "Dedicated primary VM", "Dedicated replica VM", "Tier 0 Kubernetes",
+                         "T2 -->|OIDC integration| IdP", "T1 -->|OIDC integration| IdP"):
+            self.assertIn(expected, identity)
+        self.assertNotRegex(identity, r"\bIAP\b")
+        self.assertNotIn("identity broker", (root / "runtime-flows.md").read_text().lower())
+
     def test_architecture_has_no_installation_sequences_or_shell_examples(self):
         root = UPSTREAM / "docs/architecture"
         for document in root.rglob("*.md"):
@@ -88,6 +112,9 @@ class ReaderRoles(TierRepositoryTestCase):
         platform = (architecture / "README.md").read_text()
         self.assertIn("auto-docs/architecture/runtime-flows.md", platform)
         self.assertIn("auto-docs/architecture/variants.md", platform)
+        self.assertIn("Tier 2, Tier 1, Tier 0", platform)
+        self.assertIn("Edge, Application, Control", platform)
+        self.assertIn("| Capability | Owning tier | Security layer | Domain design |", platform)
         for domain in ("networking", "compute", "identity", "cryptography", "delivery", "operations"):
             selected = (architecture / domain / "README.md").read_text()
             self.assertIn("## Resulting domain design", selected)

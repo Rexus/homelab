@@ -66,7 +66,7 @@ Example rules, using addresses from the local plan:
 | --- | --- | --- | --- |
 | `edge-to-web` | ingress proxy IPs | published backend IPs | configured HTTPS/backend port |
 | `apps-to-dns` | approved app subnets | DNS server IPs | TCP and UDP `53` |
-| `apps-to-login` | approved app hosts | identity broker VIP | TCP `443` when deployed with HTTPS |
+| `apps-to-login` | approved app hosts | identity provider VIP | TCP `443` when deployed with HTTPS |
 | `apps-to-cache` | approved app hosts | cache VIP | TCP `3128` for the reference proxy |
 | `admin-to-platform` | Tier 0 bastion/runner IPs | platform admin API | configured listener; scoped admin identity |
 
