@@ -60,7 +60,7 @@ Hardware expense, node count and successful VM creation do not establish a level
 | Capability | First integration | Evidence for acceptance |
 | --- | --- | --- |
 | Compute | Compute foundation; identity/runtime | Approved guests and APIs work; selected node/storage failures and independent restore are tested |
-| Cryptography | Cryptographic trust; control services | Authorized signing, denied operations, rotation, revocation, device/provider loss and independent restore |
+| Cryptography | Cryptographic trust; control services | Authorized/denied signing, state/session correctness, host/USB loss, selected VIP partition behavior, Tier 1/2 independence and offline restore |
 | Identity | Identity/runtime; control services | Replication, scoped federation, denied access, replica/broker loss and lost-credential recovery |
 | Traffic and delivery | Compute foundation; delivery and handover | Scoped publication/pulls, promotion, rollback, endpoint failover and recovery artifacts |
 | Operations | Backups from compute foundation; visibility in control services | Ingestion, retention, scoped queries, external failure detection and restore exercises |

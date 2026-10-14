@@ -67,7 +67,7 @@ other tiers consume approved references. No hosted CI is required.
 
 Boot disposable clones and verify disks, network and access before creating service
 VMs. Optional [3b: outbound cache](step-3b-outbound-cache.md) can be introduced after
-its VM prerequisites exist; it remains Tier 1-owned and cannot be its own bootstrap dependency.
+its VM prerequisites exist; it remains Tier 2-owned and cannot be its own bootstrap dependency.
 
 Before the later Kubernetes stage starts Flux, provide a reachable approved Git or OCI
 source with independent credentials. A local checkout is not itself a reachable Flux source.

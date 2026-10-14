@@ -113,10 +113,11 @@ class SourceLayout(TierRepositoryTestCase):
             (self.root / f"verify-{name}").rename(self.root / name)
         validate_layout(self.root)
         setup_list = self.root / "tier-2/.deployment-setups"
+        original_setups = setup_list.read_text()
         setup_list.write_text("missing\n")
         with self.assertRaisesRegex(ValueError, "Missing setup source"):
             validate_layout(self.root)
-        setup_list.write_text("lab\n")
+        setup_list.write_text(original_setups)
         extra = self.root / "tier-2/terraform/deployments/unregistered/main.tf"
         extra.parent.mkdir()
         extra.write_text("# unregistered\n")

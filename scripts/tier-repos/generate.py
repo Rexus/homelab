@@ -17,7 +17,7 @@ from documentation import copy_documentation, shared_readme, tier_readme
 from project_docs import architecture_scaffold
 from licensing import copy_attribution
 from payload import (TIERS, copy_payload, read_file, report_legacy_deployments,
-                     report_legacy_shared, tier_setups, validate_layout)
+                     report_edge_ownership, report_legacy_shared, tier_setups, validate_layout)
 
 UPSTREAM = Path(__file__).resolve().parents[2]
 REPOSITORIES = ["shared", *TIERS, "architecture"]
@@ -30,6 +30,7 @@ def tier_repo(writer, tier, prefix):
     tier_readme(writer, tier, prefix, setups)
     setup_list = writer.root / ".deployment-setups"
     registered = set(setup_list.read_text(encoding="utf-8").splitlines()) if setup_list.is_file() else set(setups)
+    report_edge_ownership(writer, tier, registered)
     template_setups = {"immutable-template", "template-refresh"}
     if ((tier == "tier-0" and not template_setups.issubset(registered))
             or (tier == "tier-1" and template_setups.intersection(registered))):

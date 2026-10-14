@@ -1,5 +1,5 @@
 ---
-# Access: shared edge proxy.
+# Access: Tier 2 public edge proxy; no Tier 0 administrative or signing backends.
 # Recipe mapping: docs/administration/ansible-recipes.md
 - name: Apply edge load-balancer host baseline
   hosts: edge_load_balancers

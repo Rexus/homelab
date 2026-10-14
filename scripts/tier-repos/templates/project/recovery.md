@@ -20,7 +20,7 @@ ID ranges; use inventory and state backups for exact resource assignments.
 | Order | Tier / component | Action or linked procedure | Verification | Owner |
 | --- | --- | --- | --- | --- |
 | 1 | Tier 0 control, plus separately isolated custody | TBD | recover without Tier 1 or Tier 2 services | TBD |
-| 2 | Tier 1 platform | TBD | recover without Tier 2 workloads | TBD |
+| 2 | Tier 1 platform | TBD | recover without Tier 2 services, including public edge and caches | TBD |
 | 3 | Tier 2 workloads | TBD | service-specific health and access checks | TBD |
 
 ## Test record

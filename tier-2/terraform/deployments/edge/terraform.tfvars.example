@@ -18,7 +18,7 @@ vm_instances = {
     storage_class    = "local"
     disk_size_gb     = 20
     network_zone_key = "external_edge"
-    tags             = ["haproxy", "keepalived", "public", "always-on", "platform"]
+    tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }
   "edge-lb-2" = {
     vm_id            = 221
@@ -26,7 +26,7 @@ vm_instances = {
     storage_class    = "local"
     disk_size_gb     = 20
     network_zone_key = "external_edge"
-    tags             = ["haproxy", "keepalived", "public", "always-on", "platform"]
+    tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }
   "edge-lb-3" = {
     vm_id            = 222
@@ -34,7 +34,7 @@ vm_instances = {
     storage_class    = "local"
     disk_size_gb     = 20
     network_zone_key = "external_edge"
-    tags             = ["haproxy", "keepalived", "public", "always-on", "platform"]
+    tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }
 }
 

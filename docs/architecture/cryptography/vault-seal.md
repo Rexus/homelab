@@ -4,6 +4,10 @@ A seal protects the secret service's startup key material. It is separate from
 offline root custody, the PKI signing provider, and application-secret authorization.
 The reference product is Vault; alternative implementations need their own compatibility review.
 
+Vault consumes the selected provider; the reference HSM service starts independently
+of Vault. [HSM-backed key generation and private-key operations](usb-hsm.md#authority-and-transport)
+are a separate consumer integration, not a consequence of choosing a seal pattern.
+
 ## Table of contents
 
 - [Pattern choices](#pattern-choices)

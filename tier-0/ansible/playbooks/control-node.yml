@@ -12,6 +12,7 @@
       foundation: [community.general, ansible.posix, freeipa.ansible_freeipa]
       vault: [community.general, ansible.posix]
       hsm: [community.general, ansible.posix]
+      ingress: []
       immutable-template: [community.general, ansible.posix]
       template-refresh: []
       proxmox-hosts: []

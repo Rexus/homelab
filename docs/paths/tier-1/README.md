@@ -1,14 +1,15 @@
 # Tier 1
 
-Tier 1 owns shared platform services: edge access, caches, source control,
-runners, registries, telemetry, and optional platform Kubernetes. It consumes
+Tier 1 owns shared platform services: source control, authoritative mirrors,
+general runners, registries, telemetry, and optional platform Kubernetes. It consumes
 Tier 0 infrastructure; it does not own hypervisors or template publication.
 Approved IDs and titles come from the [shared template catalog](../../reference/template-catalog.md),
 loaded by the shared helper; only workload selections and service tags belong here.
 
 The staged reference design reaches this platform at
 [Delivery and handover](../../deployment/stage-5-delivery/README.md).
-Early edge services may be prepared independently when their prerequisites exist.
+Public edge and ordinary outbound caches belong to [Tier 2](../tier-2/README.md).
+Internet-facing runners and mirrors use Tier 1's separate `delivery_edge` DMZ subnet.
 The protected infrastructure runner remains a separate Tier 0 management VM,
 not one of this repository's general runners.
 
@@ -20,7 +21,7 @@ prerequisites; this is not a requirement to deploy every example.
 | Step | What to do | Ready to continue when |
 | --- | --- | --- |
 | 1. Confirm foundations | Read project conventions and obtain Tier 0-approved templates, networks, storage, and scoped operator access | Inputs are recorded locally; any identity/DNS/PKI prerequisites in the selected service guide exist |
-| 2. Add access services | Deploy [edge](../../deployment/stage-5-delivery/procedures/edge-proxy.md) and optional [cache](../../deployment/stage-1-foundation/step-3b-outbound-cache.md) | Intended traffic works and forbidden traffic is rejected |
+| 2. Confirm publication and supply | Obtain approved Tier 2 edge endpoints if needed; select authoritative mirrors and Tier 1 DMZ runner access | Named interfaces work; direct administrative and peer access is denied |
 | 3. Create a platform cluster, if needed | Run `bash scripts/kubernetes-cluster.sh init` from Tier 1; follow the [Kubernetes guide](../../deployment/stage-3-identity-runtime/procedures/kubernetes.md) and select [Argo CD or Spinnaker](../../architecture/delivery/controllers.md) separately | Nodes/API and selected delivery are verified; recovery is tested |
 | 4. Add development services | Follow [source control](../../deployment/stage-5-delivery/step-1b-source-control-vm.md), [runners](../../deployment/stage-5-delivery/step-1c-podman-runner.md), and [registry](../../deployment/stage-5-delivery/procedures/registry.md) guides | Selected services have identity, certificates, backups, and restricted credentials |
 | 5. Add telemetry | Follow the [telemetry procedure](../../deployment/stage-4-control-services/step-2d-telemetry-vm.md) | Hosts and services report health; alerts and recovery checks work |
@@ -32,18 +33,18 @@ scope before planning a rollout.
 
 ## Getting started
 
-From `homelab-iac/homelab-tier-1`, initialize the edge VM example:
+From `homelab-iac/homelab-tier-1`, initialize the source-control VM example:
 
 ```bash
-bash ../homelab-shared/scripts/init-local-files.sh --setup edge --env test
+bash ../homelab-shared/scripts/init-local-files.sh --setup development --env test
 ```
 
 Replace `homelab` with the prefix. Choose another `--setup` from
 `.deployment-setups`; omit `--env test` for production. Edit the local files
-using the [edge guide](../../deployment/stage-5-delivery/procedures/edge-proxy.md), then review a plan:
+using the [source-control guide](../../deployment/stage-5-delivery/step-1b-source-control-vm.md), then review a plan:
 
 ```bash
-bash ../homelab-shared/scripts/deploy.sh edge --env test --plan-only
+bash ../homelab-shared/scripts/deploy.sh development --env test --plan-only
 ```
 
 Remove `--plan-only` only after review. These are operator-run workflows, not

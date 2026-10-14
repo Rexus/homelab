@@ -9,15 +9,18 @@ hsm_variant = "hardware"
 # environment overlay, for example when testing another supported distro.
 # default_linux_vm_template_id = 111
 
-# Keep the shared external edge load balancer in the edge setup by default.
 # Keys match the stable logical host names in the Ansible inventory.
 # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
-# The repository reference shape is the shared edge load-balancer set from edge
-# plus two gateway hosts here, each with its own local USB HSM.
+# Two enabled hosts are a starter, not a limit; size the pool for traffic and failure headroom.
+# Each private Tier 0 service VM has one host-local HSM.
+# Any VIP/proxy runs on these same VMs; no public edge or extra LB pair is required.
+# The signing runtime, device passthrough and endpoint integration remain operator work.
+# Separate physical hosts are examples; verify USB affinity and Proxmox HA placement.
 # The Tier 0 Ansible inventory and hsm.yml include the matching hsm-1 and
 # hsm-2 entries.
 vm_instances = {
   "hsm-1" = {
+    proxmox_node_name = "pve01"
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 111
     vm_id            = 250
@@ -28,13 +31,24 @@ vm_instances = {
     tags             = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
   }
   "hsm-2" = {
-    vm_id            = 251
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 30
-    network_zone_key = "cryptography"
-    tags             = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
+    proxmox_node_name = "pve02"
+    vm_id             = 251
+    size              = "small"
+    storage_class     = "local"
+    disk_size_gb      = 30
+    network_zone_key  = "cryptography"
+    tags              = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
   }
+  # Add replicas with matching hsm_gateways inventory and hsm.yml IP-map entries.
+  # "hsm-3" = {
+  #   proxmox_node_name = "pve03"
+  #   vm_id             = 253
+  #   size              = "small"
+  #   storage_class     = "local"
+  #   disk_size_gb      = 30
+  #   network_zone_key  = "cryptography"
+  #   tags              = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
+  # }
   # Optional cryptography administration helper, default 0. Uncomment together
   # with the matching Ansible inventory host and hsm.yml platform_host_ips
   # entry.

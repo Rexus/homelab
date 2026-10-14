@@ -55,11 +55,11 @@ class GeneratedRepositories(TierRepositoryTestCase):
         all_hosts = set().union(*inventories.values())
         self.assertEqual(sum(map(len, inventories.values())), len(all_hosts))
         self.assertIn("idm-1", inventories["tier-0"])
-        self.assertIn("edge-lb-1", inventories["tier-1"])
+        self.assertIn("edge-lb-1", inventories["tier-2"])
         self.assertIn("lab-1", inventories["tier-2"])
         shared = self.root / "verify-shared"
         self.assertTrue((self.root / "verify-tier-0/ansible/playbooks/foundation.yml").is_file())
-        self.assertTrue((self.root / "verify-tier-1/ansible/roles/cache_proxy/templates/squid.conf.j2").is_file())
+        self.assertTrue((self.root / "verify-tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2").is_file())
         self.assertTrue((shared / "ansible/roles/baseline/tasks/main.yml").is_file())
         self.assertFalse((shared / "ansible/inventory").exists())
         self.assertFalse((shared / "ansible/group_vars").exists())
@@ -90,7 +90,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
                    self.root / "verify-tier-0/clusters/tier0/infrastructure/cni/kustomization.yaml"]
         for path in deleted:
             path.unlink()
-        updates = [(self.root / "verify-tier-1", "ansible/group_vars/edge.yml.example"),
+        updates = [(self.root / "verify-tier-2", "ansible/group_vars/edge.yml.example"),
                    (self.root / "verify-architecture", "docs/auto-docs/architecture/README.md")]
         expected = {}
         for repo, relative in updates:
@@ -162,7 +162,7 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
             cwd=self.root, capture_output=True, text=True, env=env)
         self.assertEqual(help_result.returncode, 0, help_result.stdout + help_result.stderr)
         self.assertIn("Usage:", help_result.stdout)
-        for tier, setup in (("tier-0", "hsm"), ("tier-1", "edge"), ("tier-2", "lab")):
+        for tier, setup in (("tier-0", "hsm"), ("tier-1", "development"), ("tier-2", "edge")):
             repo = self.root / f"verify-{tier}"
             init = ["bash", "../verify-shared/scripts/init-local-files.sh"]
             subprocess.run([*init, "--env", "test"], cwd=repo,

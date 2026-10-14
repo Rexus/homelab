@@ -1,12 +1,19 @@
 # Tier 2
 
-Tier 2 owns application, project, and lab workloads. Keep workload definitions,
+Tier 2 owns public edge ingress, ordinary outbound caches, clients and application,
+project and lab workloads. Keep workload definitions,
 inventory, service code, and state here. Consume approved infrastructure and
 platform services without moving their administrative authority into this repo.
 Use the [shared template catalog](../../reference/template-catalog.md) for
 approved image IDs and titles; keep only workload selections and service tags here.
 
 ## Deployment order
+
+For public application access, deploy the [edge load-balancer set](../../deployment/stage-5-delivery/procedures/edge-proxy.md)
+with the `edge` setup. The optional [outbound cache](../../deployment/stage-1-foundation/step-3b-outbound-cache.md)
+uses `cache`. Both run from this repository with its own inventory and state.
+Client VLANs are network-policy references, not provisioned server guests.
+Keep clients, public edge and Tier 1 build/supply hosts in separate subnets.
 
 For an independent Kubernetes workload runtime, use this tier's
 `terraform/deployments/kubernetes/` and `bash scripts/kubernetes-cluster.sh init`.

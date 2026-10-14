@@ -1,0 +1,8 @@
+---
+- name: Render optional co-hosted private HSM backend
+  hosts: hsm_gateways
+  gather_facts: false
+  become: true
+  roles:
+    - role: hsm_proxy_ingress
+      when: hsm_proxy_ingress_enabled | default(false) | bool

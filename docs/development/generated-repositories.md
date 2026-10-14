@@ -11,6 +11,7 @@
 - [Shared code and recovery](#shared-code-and-recovery)
 - [Refresh and local ownership](#refresh-and-local-ownership)
 - [Automation ownership upgrade](#automation-ownership-upgrade)
+- [Edge ownership upgrade](#edge-ownership-upgrade)
 - [Terraform layout upgrade](#terraform-layout-upgrade)
 - [Implementation scope](#implementation-scope)
 - [References](#references)
@@ -47,7 +48,7 @@ It creates directories and files; it does not initialize Git or create remotes.
 | --- | --- |
 | `<prefix>-tier-0` | control service code and inputs, host administration, complete template workflows, bootstrap |
 | `<prefix>-tier-1` | platform service playbooks and roles, inventory, Terraform roots, cluster definitions |
-| `<prefix>-tier-2` | workload playbooks, inventory, Terraform roots, project and application definitions |
+| `<prefix>-tier-2` | public edge/cache and workload playbooks, inventory, Terraform roots, project and application definitions |
 | `<prefix>-shared` | baseline roles, common helpers, sizes, image and platform references |
 | `<prefix>-architecture` | copied upstream docs and environment-owned design, decisions, service records, runbooks |
 
@@ -218,8 +219,8 @@ The generator assigns existing setup examples as follows:
 | Tier | Setups | Placement condition |
 | --- | --- | --- |
 | Tier 0 | `foundation`, `vault`, `hsm`, `immutable-template`, `template-refresh` | high-impact control and template builders; protected networks and recoverable local artifacts |
-| Tier 1 | `edge`, `cache`, `development`, `observability`, `podman-runner` | connected platform services, edge and general runners |
-| Tier 2 | `lab` | lab and workload instances |
+| Tier 1 | `development`, `observability`, `podman-runner` | shared platform services and general runners; `delivery_edge` is the separate build/supply DMZ subnet |
+| Tier 2 | `edge`, `cache`, `lab` | public ingress, ordinary outbound proxy/cache and workload instances; client subnets are policy references only |
 
 Tier 0 also owns the template module, publication script, Packer definitions,
 `terraform/deployments/templates/`, `templates/proxmox.yml.example`, and the seed-only
@@ -249,9 +250,10 @@ mapping. Add only that tier's hosts and IPs. Extract common roles only when
 multiple tiers need them; Terraform resource modules stay in each tier. Give it distinct resource IDs
 and state; do not transfer ownership by applying a second state to existing VMs.
 
-The Tier 0 `hsm` run targets HSM hosts only and never runs edge ingress.
-Connected service endpoints and any independently owned proxy need an explicit
-interface policy. An offline custody HSM must never become a live edge backend.
+The Tier 0 `hsm` run targets HSM hosts only. Its optional private `ingress.yml`
+is a separate snippet-rendering operation, not the public Tier 2 edge deployment.
+Connected service endpoints and private frontends need an explicit interface
+policy. Offline custody must never become a connected backend.
 
 ## Run the generated automation
 
@@ -416,6 +418,35 @@ to Tier 0's existing inventory. Empty legacy `bootstrap/proxmox/` and
 roots with live resources require explicit state/resource adoption, not a second
 apply from an empty state. Shared legacy inventories must be migrated deliberately
 to their owning tiers before retiring the old copies.
+
+## Edge ownership upgrade
+
+Public `edge` and ordinary `cache` deployments now belong to Tier 2. Tier 1
+retains general build runners and authoritative mirrors on its separate DMZ
+subnet. Private signing ingress belongs to Tier 0, never the public edge set.
+
+Refresh adds the new source paths but preserves existing registrations, live
+inputs, local code and state. It reports old Tier 1 roots or missing Tier 2
+setup registrations. It does not transfer resources between state files.
+
+1. Freeze the affected deployments and back up both tiers' state and local inputs.
+2. Review local changes before transferring edge/cache code, matching inventory
+   groups, group vars and network references into Tier 2. Reconcile `.deployment-setups`
+   and the control-node collection mapping in both repos. Keep one inventory owner per host.
+3. Retain each deployment's backend, workspace and resource addresses. Move its
+   local state/data only under an approved migration, or deliberately reconnect
+   the existing remote backend; never initialize a second empty state for live VMs.
+4. Review a plan with no duplicate creates or unintended destroys before resuming.
+   Retire old roots and registrations only after independent recovery is verified.
+
+Runner DMZ addresses and renamed edge VIP labels are starter values only;
+existing deployments need a separately planned network/configuration migration.
+HSM signing retains an independent Tier 0 path on its capacity-sized service
+pool. The optional Tier 0 snippet renderer now targets `hsm_gateways`, is
+disabled by default and requires explicit HA/readiness acknowledgements.
+It installs no service, frontend or VIP. Retire any previous separate frontend
+group only after reviewing local integration; refresh preserves live inventories
+and customized playbooks rather than migrating them automatically.
 
 ## Terraform layout upgrade
 

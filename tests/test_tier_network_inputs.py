@@ -21,9 +21,9 @@ class NetworkInputs(TierRepositoryTestCase):
                              "gateway_ipv4": "192.0.2.126"}
         for tier, setup, private_keys in (
             ("tier-0", "foundation", {"identity", "cryptography"}),
-            ("tier-1", "edge", {"observability", "storage", "telemetry_gateway",
-                                 "security_telemetry", "external_edge"}),
-            ("tier-2", "lab", set()),
+            ("tier-1", "development", {"observability", "storage", "telemetry_gateway",
+                                        "security_telemetry", "delivery_edge"}),
+            ("tier-2", "lab", {"external_edge"}),
         ):
             repo = self.root / f"verify-{tier}"
             fixture = Path(self.temp.name) / f"networks-{tier}"

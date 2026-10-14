@@ -149,3 +149,18 @@ def report_legacy_shared(writer, upstream):
         print("Legacy tier-owned automation preserved in shared. Refresh all repos, review local edits "
               "and owned CI paths before deployment; see docs/development/generated-repositories.md"
               "#automation-ownership-upgrade.")
+
+
+def report_edge_ownership(writer, tier, registered):
+    legacy_roots = ("terraform/deployments/edge", "terraform/deployments/cache")
+    old_tier_one = tier == "tier-1" and (
+        {"edge", "cache"}.intersection(registered)
+        or any((writer.root / path / "main.tf").is_file() for path in legacy_roots)
+        or (writer.root / "ansible/playbooks/ingress.yml").is_file()
+    )
+    missing_tier_two = tier == "tier-2" and not {"edge", "cache"}.issubset(registered)
+    if old_tier_one or missing_tier_two:
+        print("Edge ownership upgrade: public edge and ordinary cache belong to Tier 2; "
+              "private HSM ingress belongs to Tier 0. Existing inventory, registrations, code and state "
+              "are preserved. Do not apply the new roots before deliberate migration; see "
+              "docs/development/generated-repositories.md#edge-ownership-upgrade.")

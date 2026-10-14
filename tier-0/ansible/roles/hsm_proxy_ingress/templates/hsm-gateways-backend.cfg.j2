@@ -1,0 +1,13 @@
+# Managed by Ansible.
+# Co-hosted private Tier 0 backend; integrate with the local frontend and VIP.
+# Basic TCP checks alone do not demonstrate signing readiness or session safety.
+
+backend {{ hsm_proxy_ingress_backend_name }}
+  mode {{ hsm_proxy_ingress_mode }}
+  balance {{ hsm_proxy_ingress_balance }}
+{% for line in hsm_proxy_ingress_extra_backend_lines %}
+  {{ line }}
+{% endfor %}
+{% for host in groups[hsm_proxy_ingress_gateway_group] | default([]) %}
+  server {{ host }} {{ platform_host_ips[host] }}:{{ hostvars[host].hsm_proxy_ingress_backend_port | default(hsm_proxy_ingress_backend_port) }} {{ hsm_proxy_ingress_default_server_options | join(' ') }}
+{% endfor %}

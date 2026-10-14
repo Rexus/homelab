@@ -1,4 +1,8 @@
 ---
+# Scaffold only. See docs/deployment/stage-2-trust/step-1b-usb-hsm.md.
+hsm_proxy_ingress_enabled: false
+hsm_proxy_ingress_application_ha_validated: false
+hsm_proxy_ingress_readiness_validated: false
 hsm_proxy_ingress_output_dir: /etc/haproxy/conf.d
 hsm_proxy_ingress_output_path: "{{ hsm_proxy_ingress_output_dir }}/hsm-gateways-backend.cfg"
 hsm_proxy_ingress_gateway_group: hsm_gateways
@@ -7,6 +11,7 @@ hsm_proxy_ingress_mode: tcp
 hsm_proxy_ingress_balance: roundrobin
 hsm_proxy_ingress_backend_port: 8443
 hsm_proxy_ingress_default_server_options:
+  # TCP reachability alone is not application/device/key readiness.
   - "check"
   - "inter 3s"
   - "rise 2"

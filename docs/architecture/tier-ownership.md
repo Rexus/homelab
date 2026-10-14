@@ -18,8 +18,8 @@ VLANs remain purpose-based; they do not need tier prefixes.
 | Tier | Responsibility | Examples |
 | --- | --- | --- |
 | Tier 0 | Infrastructure and trust | Proxmox, physical networks/storage, all template publication, identity authority, PKI, privileged automation |
-| Tier 1 | Shared platform services | Source control, registries, general runners, shared ingress, platform telemetry |
-| Tier 2 | Workloads | Applications, project data, development environments, labs |
+| Tier 1 | Shared platform services | Source control, registries, authoritative mirrors, general runners, platform telemetry |
+| Tier 2 | Edge, clients and workloads | Public edge load balancers, ordinary outbound caches, clients, applications, development environments, labs |
 
 Classify the instance by its authority, not its product. A runner with
 hypervisor credentials belongs to Tier 0. A workload-local secret service is
@@ -42,7 +42,7 @@ explains repository creation and refresh.
 ## Dependency rule
 
 - Tier 0 must recover without Tier 1 or Tier 2 services.
-- Tier 1 must recover without Tier 2 workloads.
+- Tier 1 must recover without Tier 2 services, including public ingress and caches.
 - A service must not be the only source of its own recovery inputs.
 
 Retain protected code, artifacts, inventory, state, credentials, and backups
@@ -58,6 +58,18 @@ path. Consuming a service does not grant authority to administer it.
 <a id="design-guardrails"></a>
 
 ## Placement and execution
+
+Public edge load balancers belong to Tier 2 / Edge. Ordinary outbound caches
+and clients also belong to Tier 2, without infrastructure credentials. Tier 1
+Internet-facing build runners and authoritative mirrors use separate DMZ subnets;
+sharing a zone never transfers ownership or grants peer access.
+
+Privileged jump hosts, bootstrap VMs and infrastructure runners belong to Tier 0
+on protected Control networks, not the public DMZ. A remote access boundary
+requires a separately isolated entry service and an explicit target-tier access
+contract; it must not place Tier 0 credentials on an ordinary edge host.
+Internal control/API load balancers follow their target authority and remain
+independent of the Tier 2 public edge.
 
 Connected Tier 0 systems use protected Control networks. Offline root keys and
 custody remain physically separate; a VLAN or firewall deny is not an air gap.

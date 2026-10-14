@@ -83,6 +83,7 @@ introduced later without changing its purpose.
 | Isolation | Offline root material is not available to online issuers or ordinary consumers |
 | Lifecycle | Rotation and revocation preserve the intended trust and consumer compatibility |
 | Recovery | Device/provider loss cannot require the unavailable secret service to restore its own keys |
+| Foundational path | Tier 0 issuance/signing and recovery do not depend on Tier 1/2 runtimes; private endpoints share the capacity-sized USB service pool |
 
 Software custody can satisfy an accepted threat model. Hardware presence alone
 does not establish the required isolation, recovery or compliance properties.

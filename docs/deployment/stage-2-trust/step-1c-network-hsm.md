@@ -29,7 +29,7 @@ Use the documentation matching the purchased hardware, firmware and client relea
 No generic network port, export policy or automatic replication behavior is assumed.
 
 The tier-local guest code can provision issuer/client VMs, but not the appliance.
-Do not deploy the USB gateway pair solely because the setup is named hsm.
+Do not deploy the USB gateway pool solely because the setup is named hsm.
 Root custody remains separately offline; online appliance availability does not
 justify routing into the ceremony environment.
 

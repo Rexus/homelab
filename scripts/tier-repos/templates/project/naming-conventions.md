@@ -95,6 +95,8 @@ cluster-wide across all repositories; exact assignments remain in Terraform.
 | Identity authority | `12 / Control` | VLAN / zone. |
 | Internal applications | `120 / Services` | VLAN / zone. |
 | Public-facing edge | `320 / DMZ` | VLAN / zone. |
+| Build runners / authoritative mirrors | `321 / DMZ` | Separate Tier 1 subnet; not the public Tier 2 edge. |
+| Ordinary clients | `Site-defined / DMZ` | Separate Tier 2 subnet; no implicit peer access. |
 | Lab / project | `420 / Services` | Separate `Lab` zone when policy requires it. |
 
 VLAN IDs are allocations, not tier numbers or firewall rules. Offline custody

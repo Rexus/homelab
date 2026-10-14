@@ -27,6 +27,11 @@ After signing, denied-operation and restore tests pass, return to
 certificate ceremony and issuer acceptance. Replicated
 [USB gateways](step-1b-usb-hsm.md) are a separate service pattern, not a required next step.
 
+When Vault, signing workflows or other selected consumers require higher throughput
+or continued online operations during failures, use that replicated branch before accepting their new
+availability contract. Extend only the selected online key/provider arrangement;
+do not bring offline root custody online or assume a backup is an automatic failover device.
+
 ## References
 
 1. [Pico HSM capability map and device procedures](https://docs.picokeys.com/picohsm/features/)

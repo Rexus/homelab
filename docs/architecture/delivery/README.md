@@ -1,7 +1,8 @@
 # Traffic and delivery
 
 Delivery supplies approved service endpoints, software sources, code and
-artifacts. General delivery services normally belong to Tier 1. Privileged
+artifacts. Public ingress and ordinary outbound caches belong to Tier 2; source
+control, authoritative mirrors and general build runners belong to Tier 1. Privileged
 infrastructure execution and image publication remain Tier 0 responsibilities.
 These interfaces connect software producers and consumers in the
 [platform architecture](../README.md).
@@ -24,7 +25,7 @@ authorization boundary.
 
 ```mermaid
 flowchart TB
-  Source["Source control"] -->|Build definitions| Build["General build runners"]
+  Source["Tier 1: source control"] -->|Build definitions| Build["Tier 1 DMZ: general build runners"]
   Supply["Approved packages and image supply"] -->|Build inputs| Build
   Build -->|Publish under artifact policy| Registry["Registry authority"]
   Source -->|Approved revisions| Delivery["Selected application delivery controller"]
@@ -33,7 +34,7 @@ flowchart TB
   Distribution -->|Approved image pulls| Runtime
   Delivery -->|Scoped application changes| Apps["Application services"]
   Runtime -->|Run| Apps
-  Clients["Service clients"] -->|Named HTTPS listeners| Edge["Edge proxy or ingress"]
+  Clients["Tier 2 DMZ: ordinary clients"] -->|Named HTTPS listeners| Edge["Tier 2 DMZ: public edge proxy"]
   Edge -->|Approved service endpoints| Apps
   Source -->|Infrastructure proposals| Gate["Tier 0 authorization and execution"]
 ```
@@ -47,12 +48,13 @@ service instance.
 
 | Component | Function and boundary |
 | --- | --- |
-| Edge proxy | Publish named application listeners, not administrative subnet access |
-| Outbound supply | Deliver approved packages/images through egress, cache, mirrors or offline transfer |
+| Public edge proxy (Tier 2 / DMZ) | Publish named application listeners; never Tier 0 administration or the foundational signing/recovery path |
+| Outbound proxy/cache (Tier 2 / DMZ) | Forward approved outbound requests; no unsolicited WAN listener or artifact promotion authority |
+| Authoritative mirrors (Tier 1 / DMZ) | Retain approved software sources; separate subnet and publication credentials |
 | Source control | Retain reviewed definitions and coordinate changes; not a source of Tier 0 authority |
 | Registry | Own approved artifact versions and consumer access |
 | Distribution layer | Accelerate artifact delivery without becoming the artifact authority |
-| Build runners | Produce candidate artifacts; privileged execution has a separate approval and credential boundary |
+| Build runners (Tier 1 / DMZ) | Produce candidate artifacts with scoped credentials; no Tier 0 access |
 
 | Boundary | Interface and connected function |
 | --- | --- |

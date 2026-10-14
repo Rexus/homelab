@@ -1,4 +1,5 @@
 # Tier-owned logical hosts. IPs live in setup group vars.
+# Client devices are network-policy references, not provisioned server guests.
 all:
   vars:
     # DHCP guests need a resolvable environment-specific DNS name before Ansible runs.
@@ -9,6 +10,15 @@ all:
         else (platform_host_ips | default({})).get(inventory_hostname, inventory_hostname)
       }}
   children:
+    edge_load_balancers:
+      hosts:
+        edge-lb-1: {}
+        edge-lb-2: {}
+        edge-lb-3: {}
+    cache:
+      hosts:
+        cache-1: {}
+        cache-2: {}
     lab:
       hosts:
         lab-1: {}
@@ -27,4 +37,6 @@ all:
       hosts: {}
     guests:
       children:
+        edge_load_balancers: null
+        cache: null
         lab: null

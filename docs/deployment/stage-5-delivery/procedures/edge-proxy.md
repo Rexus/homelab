@@ -4,13 +4,12 @@
 
 ## Purpose
 
-Use this path to deploy the shared `external_edge` load-balancer layer. This
-is the north-south boundary for services that need controlled ingress,
-controlled egress, or load balancing from the edge network into internal
-service networks.
+Use this path from Tier 2 to deploy the public `external_edge` load-balancer layer. This
+is the north-south boundary for public application listeners and approved backend
+load balancing. Outbound proxy/cache is a separate `cache` deployment.
 
-Run deployment commands from the Tier 1 root: `tier-1/` in a private
-source checkout or `<prefix>-tier-1/` after generation. File paths below
+Run deployment commands from the Tier 2 root: `tier-2/` in a private
+source checkout or `<prefix>-tier-2/` after generation. File paths below
 are tier-relative unless marked as shared code.
 
 The reference implementation is `HAProxy` with `keepalived`. The default is a
@@ -21,7 +20,7 @@ so healthy traffic is spread while every VIP can still fail over.
 
 | Component | Terraform default | Inventory entry | Network key | Purpose |
 | --- | --- | --- | --- | --- |
-| edge load balancers | `edge-lb-1`, `edge-lb-2`, `edge-lb-3` active | present by default | `external_edge` | ingress, egress, and load balancing |
+| edge load balancers | `edge-lb-1`, `edge-lb-2`, `edge-lb-3` active | present by default | `external_edge` | public ingress and application load balancing |
 | extra edge nodes | add matching inventory and IP entries | not present by default | `external_edge` | more capacity, site spread, or policy separation |
 
 The default uses three nodes so one edge host can be updated or changed while
@@ -40,14 +39,14 @@ The example rotates priority ownership:
 | VIP | Preferred owner | First backup | Second backup |
 | --- | --- | --- | --- |
 | `internal_prod` | `edge-lb-1` | `edge-lb-2` | `edge-lb-3` |
-| `internal_mgmt` | `edge-lb-2` | `edge-lb-3` | `edge-lb-1` |
+| `internal_services` | `edge-lb-2` | `edge-lb-3` | `edge-lb-1` |
 | `dmz_ingress` | `edge-lb-3` | `edge-lb-1` | `edge-lb-2` |
 
 Normal state:
 
 ```text
 edge-lb-1 owns internal_prod
-edge-lb-2 owns internal_mgmt
+edge-lb-2 owns internal_services
 edge-lb-3 owns dmz_ingress
 ```
 
@@ -63,7 +62,7 @@ Use VIP names as policy boundaries, not only as addresses:
 | VIP type | Typical traffic | Why it is separate |
 | --- | --- | --- |
 | `internal_prod` | internal apps, APIs, Kubernetes ingress, GitLab, Keycloak, service UIs | stable application delivery and user/service traffic |
-| `internal_mgmt` | Proxmox, SSH jump paths, secret admin, PKI admin, cluster management, Kubernetes API | stricter ACLs, MFA, logging, and reduced management-plane blast radius |
+| `internal_services` | Proxmox, SSH jump paths, secret admin, PKI admin, cluster management, Kubernetes API | stricter ACLs, MFA, logging, and reduced management-plane blast radius |
 | `dmz_ingress` | internet-facing or externally reachable services | tighter exposure control and separate firewall/TLS policy |
 
 Larger environments may add VIPs for storage, observability, identity, or CI
@@ -85,17 +84,20 @@ everything when traffic purpose and trust level differ.
 
 | Path | Configuration |
 | --- | --- |
-| [`terraform/common.tfvars.example`](../../../../tier-1/terraform/common.tfvars.example) | `external_edge` attachment and optional overrides; common storage and local SSH paths follow [platform inputs](../../../reference/platform-inputs.md) |
-| [`terraform/deployments/edge/terraform.tfvars.example`](../../../../tier-1/terraform/deployments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
-| [`ansible/inventory/hosts.yml.example`](../../../../tier-1/ansible/inventory/hosts.yml.example) | `edge_load_balancers` host group |
-| [`ansible/group_vars/all.yml.example`](../../../../tier-1/ansible/group_vars/all.yml.example) | hostname, domain, SSH, and baseline settings |
-| [`ansible/group_vars/edge.yml.example`](../../../../tier-1/ansible/group_vars/edge.yml.example) | edge host IPs, VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |
+| [`terraform/common.tfvars.example`](../../../../tier-2/terraform/common.tfvars.example) | `external_edge` attachment and optional overrides; common storage and local SSH paths follow [platform inputs](../../../reference/platform-inputs.md) |
+| [`terraform/deployments/edge/terraform.tfvars.example`](../../../../tier-2/terraform/deployments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
+| [`ansible/inventory/hosts.yml.example`](../../../../tier-2/ansible/inventory/hosts.yml.example) | `edge_load_balancers` host group |
+| [`ansible/group_vars/all.yml.example`](../../../../tier-2/ansible/group_vars/all.yml.example) | hostname, domain, SSH, and baseline settings |
+| [`ansible/group_vars/edge.yml.example`](../../../../tier-2/ansible/group_vars/edge.yml.example) | edge host IPs, VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |
 
 ## How other paths use it
 
-Other paths should append or refresh only the configuration they own. For
-example, the HSM path can rerun edge configuration to add HSM gateway backends
-without redeploying the edge VMs.
+Application paths supply approved backend references to the Tier 2 edge owner.
+Only reviewed application listeners are published. Internal Kubernetes API,
+Tier 0 administration and foundational signing use independent protected paths.
+An optional consumer-facing cryptography API needs the separate
+[publication contract](../../../architecture/cryptography/usb-hsm.md#authority-and-transport);
+it is never Tier 0's internal or recovery route.
 
 Keep this boundary:
 
@@ -109,4 +111,3 @@ Keep this boundary:
 
 - [Shared services path](../../../reference/implementation-support.md)
 - [Network architecture](../../../architecture/networking/README.md)
-- [USB HSM active-active blueprint](../../stage-2-trust/step-1b-usb-hsm.md)

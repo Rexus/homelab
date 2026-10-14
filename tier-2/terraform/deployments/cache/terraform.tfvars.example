@@ -41,7 +41,7 @@ vm_instances = {
       }
     ]
     network_zone_key = "external_edge"
-    tags             = ["squid", "keepalived", "restricted", "always-on", "platform"]
+    tags             = ["squid", "keepalived", "restricted", "always-on", "egress"]
   }
   "cache-2" = {
     vm_id            = 231
@@ -57,7 +57,7 @@ vm_instances = {
       }
     ]
     network_zone_key = "external_edge"
-    tags             = ["squid", "keepalived", "restricted", "always-on", "platform"]
+    tags             = ["squid", "keepalived", "restricted", "always-on", "egress"]
   }
   # "cache-3" = {
   #   vm_id            = 232
@@ -73,7 +73,7 @@ vm_instances = {
   #     }
   #   ]
   #   network_zone_key = "external_edge"
-  #   tags             = ["squid", "keepalived", "restricted", "always-on", "platform"]
+  #   tags             = ["squid", "keepalived", "restricted", "always-on", "egress"]
   # }
 }
 

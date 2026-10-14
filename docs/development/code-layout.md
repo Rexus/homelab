@@ -35,7 +35,7 @@ linked for that deployment instead of this reference.
 | --- | --- | --- |
 | `tier-0/` | `<prefix>-tier-0/` | control services, host administration, complete template workflows, bootstrap |
 | `tier-1/` | `<prefix>-tier-1/` | platform service code, inputs, and cluster starters |
-| `tier-2/` | `<prefix>-tier-2/` | workload code, inputs, and project starters |
+| `tier-2/` | `<prefix>-tier-2/` | public edge, ordinary outbound cache, workload code and project starters |
 | `shared/` | `<prefix>-shared/` | baseline roles, generic helpers, sizes, image and platform references |
 | `docs/` | `<prefix>-architecture/docs/auto-docs/` | authoritative upstream guidance |
 | `scripts/tier-repos/` | not copied | generation, refresh policy, README/project-doc templates |
@@ -224,8 +224,8 @@ replaces setup-name dashes with underscores.
 | `tier-0` | `hsm` | [HSM scope and connected adaptation](../deployment/stage-2-trust/step-1b-usb-hsm.md) |
 | `tier-0` | `immutable-template` | [Image-based Linux](../deployment/stage-5-delivery/step-1d-image-based-linux.md) |
 | `tier-0` | `template-refresh` | [Enterprise Linux templates](../deployment/stage-1-foundation/procedures/enterprise-linux-template.md) |
-| `tier-1` | `edge` | [Edge](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
-| `tier-1` | `cache` | [Cache](../deployment/stage-1-foundation/step-3b-outbound-cache.md) |
+| `tier-2` | `edge` | [Edge](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
+| `tier-2` | `cache` | [Cache](../deployment/stage-1-foundation/step-3b-outbound-cache.md) |
 | `tier-1` | `development` | [Development platform](../deployment/stage-5-delivery/step-1b-source-control-vm.md) |
 | `tier-1` | `observability` | [Observability](../deployment/stage-4-control-services/step-2d-telemetry-vm.md) |
 | `tier-1` | `podman-runner` | [Podman runner](../deployment/stage-5-delivery/step-1c-podman-runner.md) |
@@ -269,9 +269,9 @@ common platform references. The [input contract](../reference/platform-inputs.md
 | Each tier | `terraform/modules/environment_guests/`, `vm/`, and `lxc/`; inventory resolution and resource lifecycle |
 | Each tier | `terraform/deployments/kubernetes/`, cluster command shortcut, Talos inventory groups and IPs; shared owns the command implementation only |
 | Tier 0 | `terraform/modules/proxmox_templates/`, `scripts/proxmox-templates.sh`, `packer/`, template catalog and CI starter |
-| Tier 0 | identity, secrets, HSM, Proxmox host, and Linux template-builder playbooks and roles |
-| Tier 1 | edge, cache, development, observability, runner, and ingress playbooks and service roles |
-| Tier 2 | lab playbook and workload definitions |
+| Tier 0 | identity, secrets, HSM/private signing ingress, Proxmox host and Linux template-builder playbooks and roles |
+| Tier 1 | development, observability and general-runner playbooks and service roles |
+| Tier 2 | public edge, ordinary cache and lab playbooks, service roles and workload definitions |
 
 Each tier's `ansible/playbooks/control-node.yml` declares its setup-to-collection
 mapping and imports the common precheck. Tier-specific collections also have a

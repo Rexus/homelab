@@ -20,6 +20,7 @@ the [firewall policy](firewall-policy.md) supplies the detailed traffic contract
 - [Automation mapping](#automation-mapping)
 - [Attachment constraints](#attachment-constraints)
 - [Continue reading](#continue-reading)
+- [References](#references)
 
 <a id="purpose"></a>
 
@@ -32,10 +33,11 @@ below represents a named endpoint contract, not access to an entire zone.
 ```mermaid
 flowchart LR
   Internet["Internet"]
-  Clients["Client devices"]
   AdminEntry["Approved administration entry"]
   subgraph Edge["Edge / DMZ"]
-    Gateways["Published ingress<br/>Controlled egress"]
+    Clients["Tier 2: ordinary clients<br/>Separate client subnet"]
+    Gateways["Tier 2: public ingress<br/>Outbound proxy/cache"]
+    Supply["Tier 1: build runners / mirrors<br/>Separate delivery_edge subnet"]
   end
   subgraph Application["Application / Services"]
     Services["Shared services and workloads"]
@@ -50,6 +52,8 @@ flowchart LR
   Services -->|Scoped service access| Endpoints
   Services -->|Proxy or cache access| Gateways
   Gateways -->|Approved upstreams| Internet
+  Supply -->|Approved upstreams| Internet
+  Supply -->|Scoped source / artifact access| Services
   AdminEntry -->|Target-specific access| Administration
 ```
 
@@ -90,7 +94,7 @@ The [layered view](../README.md#layered-model) reads left to right:
 
 | Layer | Firewall zone | Network purposes |
 | --- | --- | --- |
-| Edge | `DMZ` | ingress and controlled egress |
+| Edge | `DMZ` | public ingress, ordinary clients, outbound caches, Internet-facing build/supply services |
 | Application | `Services` | shared services, access front ends, workloads |
 | Control | `Control` | administration, directory authority, control cluster, cryptography |
 | Offline custody | none | root keys and authorized recovery ceremonies |
@@ -102,8 +106,33 @@ because another repository exists.
 
 Zone membership does not allow traffic. Use [named service rules](firewall-policy.md)
 between subnets, including subnets in the same zone. Same-subnet traffic needs
-host, switch, or workload enforcement. WAN, client devices, and VPN entry are
-boundary peers; VPN membership alone grants no control authority.
+host, switch, or workload enforcement. WAN and VPN entry remain boundary peers;
+ordinary clients are Tier 2 members of a separate DMZ subnet. VPN membership
+alone grants no control authority.
+
+| Instance | Tier | Network / zone | Authority boundary |
+| --- | --- | --- | --- |
+| Public edge load balancer | 2 | `external_edge` / DMZ | Named application backends; no Tier 0 administration or foundational signing dependency |
+| Ordinary outbound proxy/cache | 2 | `external_edge` or isolated egress subnet / DMZ | Approved outbound forwarding; no unsolicited WAN publication or artifact promotion authority |
+| Ordinary client device | 2 | separate `client` subnet / DMZ | Named service access; never implicit peer or administrative access |
+| General build runner / authoritative mirror | 1 | `delivery_edge` / DMZ | Scoped build or software-publication credentials; no Tier 0 credentials |
+| Privileged workstation, jump host, bootstrap VM or infrastructure runner | 0 | `management` / Control | Explicit Tier 0 administration and independent recovery |
+| Internal control/API load balancer | target tier | protected target network | Independent of public ingress; preserve target authority and recovery |
+
+USB signing uses a private Tier 0 endpoint on its service pool, not a
+separate load-balancer pair. Authorized Tier 1/2 consumers use policy-enforcing
+APIs under the [cryptography contract](../cryptography/usb-hsm.md#authority-and-transport).
+Any approved publication path is optional; Tier 0 retains independent private access.
+
+Internet access alone does not select a tier. Exposure selects the network policy;
+credentials and potential impact select ownership. An outbound cache has an
+internal listener, but that does not require an Internet port-forward. Clients
+likewise do not receive unsolicited WAN access simply by belonging to DMZ.
+
+A privileged jump host is not an ordinary DMZ host. If remote administration
+needs a perimeter entry, isolate that entry from the privileged session host and
+allow only the approved access protocol. No public edge host holds Tier 0 secrets
+or bridges into Control. Network location alone does not grant trust. [1]
 
 ## Design choices
 
@@ -132,7 +161,9 @@ purposes in the Proxmox examples.
 
 | Network key | Purpose | VLAN / subnet example | Firewall zone |
 | --- | --- | --- | --- |
-| `external_edge` | shared ingress and outbound proxies | 320 / `10.30.30.0/24` | DMZ |
+| `external_edge` | Tier 2 public ingress and ordinary outbound proxies | 320 / `10.30.30.0/24` | DMZ |
+| `delivery_edge` | Tier 1 Internet-facing build runners and authoritative mirrors | 321 / `10.30.31.0/24` | DMZ; separate subnet from Tier 2 |
+| `client` | Tier 2 ordinary workstations/endpoints; policy reference only | site-defined separate VLAN / subnet | DMZ; no server provisioning implied |
 | `application` | internal shared services and workloads | 120 / `10.20.20.0/24` | Services |
 | `application` in the lab repo | isolated lab workloads | 420 / `10.42.20.0/24` | Services or separate Lab policy |
 | `access` | application-only access and SSO front ends | 11 / `10.10.11.0/24` | Services; privileged interfaces need Control protection |
@@ -153,7 +184,6 @@ Additional networks are introduced only when needed:
 | `ceph_public` | 21 | non-routed storage client fabric; not public Internet |
 | `ceph_cluster` | 22 | non-routed storage replication fabric |
 | `ceremony` | 221 on a separate fabric | offline custody; example subnet `10.20.22.0/24`, no connected gateway |
-| `client` | site-defined | workstation/endpoint reference, not a server deployment |
 
 A service may have separate client, backend, and administrative interfaces.
 Permit the required listeners without exposing authority or administration.
@@ -230,3 +260,7 @@ owns implementation and acceptance tests.
 - [Proxmox host networking](../../deployment/stage-1-foundation/procedures/host-network.md)
 - [UniFi zone setup](../../deployment/stage-1-foundation/procedures/unifi-zones.md)
 - [Project conventions](../../development/project-documentation.md#start-with-project-values)
+
+## References
+
+1. [NIST SP 800-207: Zero Trust Architecture](https://csrc.nist.gov/pubs/sp/800/207/final) (accessed 2026-10-14)

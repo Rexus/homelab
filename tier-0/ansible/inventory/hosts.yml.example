@@ -41,6 +41,9 @@ all:
           hsm_proxy_ingress_backend_port: 8443
         hsm-2:
           hsm_proxy_ingress_backend_port: 8443
+        # Add replicas with matching Terraform and platform_host_ips entries.
+        # hsm-3:
+        #   hsm_proxy_ingress_backend_port: 8443
     crypto_admin:
       hosts: {}
     immutable_template_builders:

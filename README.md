@@ -8,7 +8,7 @@ Talos is the current node-OS implementation, not an architecture requirement.
 
 The design follows one rule: **it should be easy to do right**. Networks are
 named by purpose; tiers divide ownership into infrastructure and trust (Tier 0),
-shared services (Tier 1), and workloads (Tier 2).
+shared services (Tier 1), and public edge, clients and workloads (Tier 2).
 
 Use this public upstream for examples and code. Keep operational configuration
 in private generated repositories, a private fork, or a local working copy.
@@ -83,7 +83,7 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 - `docs/paths/` and `docs/reference/`: repository checklists and exact contracts
 - `tier-0/`: infrastructure and trust services, VM template code, Packer builds, and bootstrap
 - `tier-1/`: shared-platform service code, Terraform roots, Ansible inputs, and cluster starters
-- `tier-2/`: workload code, Terraform roots, Ansible inputs, and project starters
+- `tier-2/`: public edge, ordinary outbound caches, workload code and project starters
 - `shared/`: baseline roles, generic helpers, sizing data, and image/platform references
 - `scripts/`: repository-generation tooling and README/project-doc templates
 - `tests/`: offline generator and automation checks

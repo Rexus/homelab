@@ -1,5 +1,10 @@
 # Step 1c: Podman build runner
 
+The reference runner belongs to Tier 1 on the `delivery_edge` DMZ subnet,
+separate from Tier 2 clients and public ingress. Only approved source, registry
+and software-supply listeners are reachable; no Tier 0 credentials belong here.
+Existing installations retain their network values until an explicit migration.
+
 <a id="podman-image-runner-guide"></a>
 
 **Branch from:** [Step 1](README.md#step-1-deploy-shared-delivery-services), when choosing general build execution.

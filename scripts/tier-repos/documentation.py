@@ -10,8 +10,8 @@ AUTO_DOCS = "docs/auto-docs"
 def tier_readme(writer, tier, prefix, setups):
     descriptions = {
         "tier-0": "hardware-facing infrastructure control, all VM template lifecycles, trust systems, and recovery",
-        "tier-1": "shared platform services and connected infrastructure",
-        "tier-2": "application, project, and lab workloads",
+        "tier-1": "shared platform services, authoritative software mirrors, and general build runners",
+        "tier-2": "public edge ingress, ordinary outbound caches, and application, project, and lab workloads",
     }
     extra_paths = {
         "tier-0": ("- `templates/`, `terraform/deployments/templates/`, and `ci/`: image catalog, publication, and jobs\n"

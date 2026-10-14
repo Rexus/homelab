@@ -34,14 +34,14 @@ class PlatformInputs(TierRepositoryTestCase):
     def test_only_tier_specific_networks_and_overrides_remain_local(self):
         expected = {
             "tier-0": {"identity", "cryptography"},
-            "tier-1": {"external_edge", "observability", "storage",
+            "tier-1": {"delivery_edge", "observability", "storage",
                        "telemetry_gateway", "security_telemetry"},
-            "tier-2": set(),
+            "tier-2": {"external_edge"},
         }
         profile = (UPSTREAM / "shared/config/platform.tfvars").read_text()
         self.assertIn("shared_network_zones = {", profile)
         self.assertEqual(profile.count("  application = {"), 1)
-        for name in ("identity", "cryptography", "ceremony", "external_edge"):
+        for name in ("identity", "cryptography", "ceremony", "external_edge", "delivery_edge"):
             self.assertNotIn(f"  {name} = {{", profile)
         for tier in TIERS:
             root = UPSTREAM / tier

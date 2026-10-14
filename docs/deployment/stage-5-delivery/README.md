@@ -6,7 +6,7 @@ it does not gain authority over Tier 0 merely by hosting the repositories.
 
 **Prerequisites:** accepted [control services](../stage-4-control-services/README.md),
 approved templates, tier-local inputs and an independent bootstrap/recovery environment.
-**Owners:** Tier 1 delivery services; Tier 0 privileged infrastructure execution.
+**Owners:** Tier 1 delivery services; Tier 2 public edge; Tier 0 privileged infrastructure execution.
 
 ## Main path
 
@@ -25,13 +25,15 @@ flowchart TB
   Identity["Tier 0 Keycloak"]
   subgraph Platform["Tier 1 Kubernetes / application network"]
     Git["GitLab<br/>Source control + CI"]
-    Builds["General CI runners"]
     Registry["Harbor<br/>OCI registry"]
     Delivery["Delivery choice<br/>A: Argo CD / B: Spinnaker"]
     Fleet["Optional Rancher / Fleet<br/>Tier 1/2 workload-cluster management"]
-    Git -->|Build jobs| Builds -->|Publish artifacts| Registry
     Delivery -->|Approved application revisions| Git
   end
+  Builds["Tier 1 DMZ / delivery_edge<br/>General build runners and authoritative mirrors"]
+  Edge["Tier 2 DMZ / external_edge<br/>Public load balancers"]
+  Git -->|Build jobs| Builds -->|Publish artifacts| Registry
+  Edge -->|Approved application listeners| Git
   Bootstrap -->|Provision cluster and initial delivery| Platform
   Identity -->|OIDC| Git
   Identity -->|OIDC| Registry
@@ -44,7 +46,7 @@ flowchart TB
    and retain independent bootstrap sources before hosted source control exists.
 2. Deploy GitLab, [Harbor or another registry](procedures/registry.md), general runners
    and Rancher/Fleet where needed. Product manifests and integration remain project work.
-3. Configure Keycloak OIDC, scoped roles and [approved edge access](procedures/edge-proxy.md).
+3. Configure Keycloak OIDC, scoped roles and [Tier 2 edge access](procedures/edge-proxy.md).
    Test repository retrieval, artifact publication/pulls and general CI jobs.
 
 **Alternatives:** [1b: source-control VM](step-1b-source-control-vm.md),

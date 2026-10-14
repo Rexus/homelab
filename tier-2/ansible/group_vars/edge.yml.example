@@ -16,7 +16,7 @@ edge_keepalived_advert_int: 1
 # unique on the L2 segment. All nodes run BACKUP; priorities decide ownership.
 # The default spreads VIP ownership when healthy:
 # - internal_prod prefers edge-lb-1
-# - internal_mgmt prefers edge-lb-2
+# - internal_services prefers edge-lb-2
 # - dmz_ingress prefers edge-lb-3
 edge_keepalived_vips:
   - name: internal_prod
@@ -26,7 +26,7 @@ edge_keepalived_vips:
       edge-lb-1: 150
       edge-lb-2: 120
       edge-lb-3: 100
-  - name: internal_mgmt
+  - name: internal_services
     virtual_router_id: 31
     vip_cidr: 10.30.30.101/24
     priorities:
@@ -60,17 +60,17 @@ edge_haproxy_stats_uri: /haproxy?stats
 # Bind each frontend to the VIP that matches the traffic class.
 # Example:
 # edge_haproxy_frontends:
-#   - name: vault_https
+#   - name: application_https
 #     bind: 10.30.30.100:443
 #     mode: tcp
-#     default_backend: vault_https
+#     default_backend: application_https
 # edge_haproxy_backends:
-#   vault_https:
+#   application_https:
 #     mode: tcp
 #     balance: roundrobin
 #     servers:
-#       - name: vault-1
-#         address: 10.20.21.21
-#         port: 8200
+#       - name: app-1
+#         address: 10.20.20.50
+#         port: 443
 edge_haproxy_frontends: []
 edge_haproxy_backends: {}

@@ -103,6 +103,35 @@ This file keeps durable context for AI-assisted work across sessions.
   protection increase downward; classification lines do not imply connectivity
 - tiers divide repository ownership by potential damage and actual privileges;
   network layers separately protect from the outside inward
+- public edge load balancers and ordinary outbound proxy/cache belong to Tier 2 / DMZ;
+  their roots, inventory, roles and recipes are Tier 2-owned, not Tier 1
+- ordinary clients are Tier 2 / DMZ on a separate client subnet, not provisioned server guests;
+  DMZ membership never allows peer access or unsolicited WAN publication
+- authoritative mirrors and general Internet-facing build runners remain Tier 1 / DMZ,
+  using the separate delivery_edge subnet; they hold no Tier 0 credentials
+- privileged jump hosts, bootstrap VMs and infrastructure runners remain Tier 0 / Control;
+  any remote perimeter entry is isolated from the privileged session host
+- public edge never carries Tier 0 admin/control API or foundational signing/recovery traffic;
+  optional consumer API publication is separately scoped and retains private Tier 0 operation
+- replicated USB signing uses a capacity-sized pool of Tier 0 service VMs, one local token per host;
+  the private endpoint is logical and co-hosted, never a mandatory extra LB pair or Tier 1 cluster
+- two enabled service hosts are a starter, not a limit; choose N using measured traffic,
+  operation/session mix, latency and failure/maintenance headroom; size VIP/proxy capacity separately
+- Vault consumes HSM-backed key generation/private-key operations where supported;
+  the HSM service does not require Vault to bootstrap, and seal integration is a separate choice
+- single-device custody plus independent backup can satisfy initial deployment;
+  deployment adds the replicated variant when selected consumer availability requires it,
+  not automatically because Vault or a registry exists; root custody stays offline
+- integrated VIP/balancing means software on the existing HSM service hosts, not USB-device
+  networking or additional frontend VMs; higher-tier service loss never blocks Tier 0 startup
+- endpoint variants E1 client failover, E2 private VIP and E3 co-hosted VIP/proxies refine custody C;
+  E3 requires a supported active-active application; VIP ownership is separately active/standby
+- application state, key replication, sessions and device/key readiness have separate contracts;
+  a TCP check or duplicated key material does not prove application HA
+- optional HSM ingress targets hsm_gateways, defaults disabled and requires explicit HA/readiness
+  acknowledgements; it renders a backend scaffold only, never a complete signing/VIP installer
+- edge ownership refresh preserves old code, live inputs, registrations and state;
+  migration is deliberate and must avoid a second state managing the same VM
 - use purpose-named networks and example firewall zones DMZ, Services, and Control;
   shared zones do not imply shared subnets or unrestricted access
 - `network_zones` remains a logical guest-network input, not a firewall zone;

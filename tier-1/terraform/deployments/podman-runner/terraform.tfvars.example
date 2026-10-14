@@ -15,16 +15,16 @@ vm_instances = {
     size             = "medium"
     storage_class    = "local"
     disk_size_gb     = 80
-    network_zone_key = "application"
-    tags             = ["gitlab-runner", "podman", "bootc", "internal", "always-on", "apps"]
+    network_zone_key = "delivery_edge"
+    tags             = ["gitlab-runner", "podman", "bootc", "restricted", "always-on", "delivery"]
   }
   # "runner-2" = {
   #   vm_id            = 311
   #   size             = "medium"
   #   storage_class    = "local"
   #   disk_size_gb     = 80
-  #   network_zone_key = "application"
-  #   tags             = ["gitlab-runner", "podman", "bootc", "internal", "always-on", "apps"]
+  #   network_zone_key = "delivery_edge"
+  #   tags             = ["gitlab-runner", "podman", "bootc", "restricted", "always-on", "delivery"]
   # }
 }
 

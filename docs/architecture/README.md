@@ -54,16 +54,17 @@ Domain views expand those boxes into their components and hosting arrangements.
 block-beta
   columns 4
   Ownership["Owning tier"] Edge["Edge / DMZ"] Application["Application<br/>Services"] Control["Control"]
-  T2["Tier 2<br/>Workloads"]
-  space
+  T2["Tier 2<br/>Edge and workloads"]
+  PublicEdge["Public load balancing<br/>Outbound proxy/cache"]
   Workloads["Applications<br/>Development / labs"]
   space
+  space Clients["Ordinary clients<br/>Separate DMZ subnet"] space:2
   T1["Tier 1<br/>Shared platform"]
-  Publication["Service publication<br/>Controlled egress"]
+  Publication["Build runners<br/>Authoritative mirrors"]
   Source["Source control"]
   space
   space:2 Artifacts["Artifact registry"] space
-  space:2 Delivery["Build and delivery"] space
+  space:2 Delivery["Application delivery"] space
   space:2 WorkloadManagement["Workload-cluster<br/>management"] space
   T0["Tier 0<br/>Infrastructure / trust"]
   space:2
@@ -96,6 +97,7 @@ Offline custody is outside the connected layers, not another routed zone.
 
 | Capability | Consumer-facing function | Expanded design |
 | --- | --- | --- |
+| Client access | Tier 2 endpoints consume named services without administrative or peer trust | [Network placement](networking/README.md#zone-assignment) |
 | Directory authority (IdM) | Identity lifecycle, groups, host enrollment, DNS and Kerberos | [Identity](identity/README.md) |
 | Identity provider (IdP / SSO) | Application authentication and identity claims | [Identity](identity/README.md) |
 | Certificate issuance (PKI) | Trusted service certificates under approved policy | [Cryptography](cryptography/README.md) |
@@ -104,14 +106,18 @@ Offline custody is outside the connected layers, not another routed zone.
 | Inventory and control visibility | Infrastructure records, health, audit and recovery evidence | [Operations](operations/README.md) |
 | Source control | Reviewed definitions and change proposals | [Delivery](delivery/README.md) |
 | Artifact registry | Approved versions and scoped artifact access | [Artifact supply](delivery/artifact-supply.md) |
-| Build and delivery | Candidate builds and authorized application releases | [Delivery controllers](delivery/controllers.md) |
+| Build execution | Tier 1 DMZ runners produce candidate artifacts with scoped credentials | [Delivery](delivery/README.md) |
+| Authoritative mirrors | Tier 1 retains approved software sources separately from ordinary caches | [Software supply](delivery/README.md) |
+| Application delivery | Authorized releases or reconciliation within approved application scope | [Delivery controllers](delivery/controllers.md) |
 | Workload-cluster management | Scoped operation of approved workload clusters | [Kubernetes topology](compute/kubernetes.md) |
-| Service publication and controlled egress | Named entry points and approved software supply | [Delivery](delivery/README.md), [network policy](networking/firewall-policy.md) |
+| Service publication and controlled egress | Tier 2 public entry points and ordinary outbound proxy/cache | [Delivery](delivery/README.md), [network policy](networking/firewall-policy.md) |
 | Applications and project runtimes | User services, development and experiments | [Runtime design](compute/runtime.md) |
 
-Clients, operators, approved software sources and offsite recovery targets are
-external peers. Existing services can fulfill a capability through explicit
-consumer, ownership and recovery contracts. The
+Ordinary clients belong to Tier 2 / Edge, on their own DMZ subnet. Protected
+operator workstations belong to the tier they administer, not the ordinary client
+network. Approved software sources and offsite recovery targets are external peers.
+Existing services can fulfill a capability through explicit consumer, ownership
+and recovery contracts. The
 [runtime views](runtime-flows.md) show interactions; the
 [reference platform](reference-platform.md) shows hosting; the
 [network map](networking/README.md) owns attachments and firewall zones.
@@ -185,7 +191,7 @@ top; Tier 0 is at the bottom**, supporting the systems above it.
 
 ```mermaid
 flowchart TB
-  T2["Tier 2: workloads<br/>Applications and experiments"]
+  T2["Tier 2: edge, clients and workloads<br/>Public ingress, outbound cache<br/>Applications and experiments"]
   T1["Tier 1: shared platform<br/>Source control, registry, delivery"]
   T0["Tier 0: infrastructure and trust<br/>Proxmox, networks, templates<br/>Identity, PKI, protected automation"]
   T2 --- T1 --- T0
@@ -200,7 +206,9 @@ inventory. See [tier ownership](tier-ownership.md) for the contract.
 
 | Service | Repository | Network | Firewall zone |
 | --- | --- | --- | --- |
-| Shared reverse proxy | Tier 1 | `external_edge` | DMZ |
+| Public edge load balancer and ordinary cache | Tier 2 | `external_edge` | DMZ |
+| Ordinary clients | Tier 2 | separate `client` subnet | DMZ |
+| General build runner / authoritative mirror | Tier 1 | `delivery_edge` | DMZ |
 | Source control | Tier 1 | `application` | Services |
 | Project application | Tier 2 | `application` or a project subnet | Services or a dedicated policy |
 | Directory authority | Tier 0 | `identity` | Control |

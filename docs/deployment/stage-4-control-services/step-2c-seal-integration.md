@@ -27,6 +27,11 @@ The shipped Vault VM role starts the S1 reference service. It does not perform a
 Transit/HSM migration or implement OpenBao. A signing gateway next to Vault does
 not configure its seal or certificate-signing backend.
 
+Vault is the consumer in an HSM integration. Provision and verify any selected
+[replicated HSM service](../stage-2-trust/step-1b-usb-hsm.md) independently before
+accepting Vault's dependency on it. Its key-generation/signing integration and
+its seal configuration require separate compatibility and availability checks.
+
 ## References
 
 Sources checked 2026-10-08.

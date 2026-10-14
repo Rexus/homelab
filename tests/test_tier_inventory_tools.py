@@ -31,7 +31,7 @@ proxmox_template_catalog = {
 }
 ''')
             for tier, setup, host in (("tier-0", "foundation", "idm-1"),
-                                      ("tier-1", "edge", "edge-lb-1"), ("tier-2", "lab", "lab-1")):
+                                      ("tier-1", "development", "git-1"), ("tier-2", "edge", "edge-lb-1")):
                 with self.subTest(tier=tier):
                     repo = root / f"verify-{tier}"
                     subprocess.run(["bash", "../verify-shared/scripts/init-local-files.sh",

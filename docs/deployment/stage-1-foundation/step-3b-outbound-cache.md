@@ -3,18 +3,23 @@
 <a id="cache-path"></a>
 
 **Branch from:** [Step 3](README.md#step-3-publish-and-test-vm-templates), after the initial VM prerequisites exist.
-**Change:** Add a Tier 1-owned package/cache path without making bootstrap depend on it.
+**Change:** Add a Tier 2-owned outbound cache without making bootstrap depend on it.
 **Return:** [Step 3](README.md#step-3-publish-and-test-vm-templates) to verify templates and independent software supply.
 
 **Design:** [traffic and software supply](../../architecture/delivery/README.md).
 
 ## Purpose
 
+The ordinary outbound proxy/cache belongs to Tier 2 / DMZ. It forwards approved
+requests and holds rebuildable cache data, not authoritative software releases
+or Tier 0 credentials. Authoritative mirrors remain Tier 1; bootstrap/recovery
+must retain an approved supply path independent of this optional cache.
+
 Use this path to deploy a shared cache pair for systems that need controlled
 outbound repository and update access.
 
-Run deployment commands from the Tier 1 root: `tier-1/` in a private
-source checkout or `<prefix>-tier-1/` after generation. File paths below
+Run deployment commands from the Tier 2 root: `tier-2/` in a private
+source checkout or `<prefix>-tier-2/` after generation. File paths below
 are tier-relative unless marked as shared code.
 
 The reference implementation is `Squid` with `keepalived`. The first use case
@@ -90,11 +95,11 @@ be introduced with an explicit policy, internal CA rollout, and audit model.
 
 | Path | Configuration |
 | --- | --- |
-| [`terraform/common.tfvars.example`](../../../tier-1/terraform/common.tfvars.example) | `external_edge` attachment and optional overrides; common storage and local SSH paths follow [platform inputs](../../reference/platform-inputs.md) |
-| [`terraform/deployments/cache/terraform.tfvars.example`](../../../tier-1/terraform/deployments/cache/terraform.tfvars.example) | cache VM count, size, OS disk, cache data disk, storage, and tags |
-| [`ansible/inventory/hosts.yml.example`](../../../tier-1/ansible/inventory/hosts.yml.example) | `cache` host group |
-| [`ansible/group_vars/all.yml.example`](../../../tier-1/ansible/group_vars/all.yml.example) | shared hostname, domain, SSH, optional repository proxy URL, and baseline defaults |
-| [`ansible/group_vars/cache.yml.example`](../../../tier-1/ansible/group_vars/cache.yml.example) | cache host IPs, VIP, FQDN, port, keepalived router ID, allowed client CIDRs, allowed software-source domains, and optional upstream proxy |
+| [`terraform/common.tfvars.example`](../../../tier-2/terraform/common.tfvars.example) | `external_edge` attachment and optional overrides; common storage and local SSH paths follow [platform inputs](../../reference/platform-inputs.md) |
+| [`terraform/deployments/cache/terraform.tfvars.example`](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example) | cache VM count, size, OS disk, cache data disk, storage, and tags |
+| [`ansible/inventory/hosts.yml.example`](../../../tier-2/ansible/inventory/hosts.yml.example) | `cache` host group |
+| [`ansible/group_vars/all.yml.example`](../../../tier-2/ansible/group_vars/all.yml.example) | shared hostname, domain, SSH, optional repository proxy URL, and baseline defaults |
+| [`ansible/group_vars/cache.yml.example`](../../../tier-2/ansible/group_vars/cache.yml.example) | cache host IPs, VIP, FQDN, port, keepalived router ID, allowed client CIDRs, allowed software-source domains, and optional upstream proxy |
 
 ## Cache storage
 

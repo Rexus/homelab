@@ -247,7 +247,7 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 | Setup | What it targets | Start with |
 | --- | --- | --- |
 | `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../deployment/stage-3-identity-runtime/procedures/freeipa.md) |
-| `edge` | shared edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
+| `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
 | `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../deployment/stage-1-foundation/step-3b-outbound-cache.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-5-delivery/step-1b-source-control-vm.md) |
 | `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-4-control-services/step-2b-vault-vm.md) |

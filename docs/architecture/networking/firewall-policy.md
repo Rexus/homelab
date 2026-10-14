@@ -22,19 +22,29 @@ protocol, and listener, following default-deny guidance. [1]
 
 ## Connected-zone matrix
 
-Rows initiate traffic; columns receive it. Start with three server zones,
+Rows initiate traffic; columns receive it. Start with three connected zones,
 not separate zones for every repo. The codes are possible rule types below,
 **not permissions for the whole zone**. Add only the rules a service needs.
 
 | Source / destination | DMZ | Services | Control |
 | --- | --- | --- | --- |
-| **DMZ** | P | I, S | S |
+| **DMZ** | P, E, S | I, S | S |
 | **Services** | E | P, S, M | S, W |
 | **Control** | A, M, E | A, M, S | P, A, S, W |
 
 For example, a proxy may reach its backend and designated DNS servers.
 It cannot administer the hypervisor. A workload may authenticate against an
 identity endpoint without gaining access to its management interface.
+
+DMZ contains separate Tier 2 client/edge subnets and Tier 1 build/mirror subnets.
+The diagonal is default-deny too: permit clients to named published listeners,
+approved consumers to the cache, and runners to named sources/registries only.
+Do not permit client-to-client or cross-tier access merely because both are DMZ.
+No DMZ-to-Control rule permits Tier 0 administration or raw HSM connector access.
+An approved consumer may use a named policy-enforcing issuance/signing API under
+the [cryptography contract](../cryptography/usb-hsm.md#authority-and-transport).
+Network reachability does not authorize key use; foundational Tier 0 traffic
+retains its independent private path.
 
 Tier 0 connected control systems appear in the appropriate network policy.
 **Offline custody does not:** there is no connected zone or route into it.
@@ -68,6 +78,8 @@ Example rules, using addresses from the local plan:
 | `apps-to-dns` | approved app subnets | DNS server IPs | TCP and UDP `53` |
 | `apps-to-login` | approved app hosts | identity provider VIP | TCP `443` when deployed with HTTPS |
 | `apps-to-cache` | approved app hosts | cache VIP | TCP `3128` for the reference proxy |
+| `clients-to-web` | Tier 2 client subnet | published application VIPs | configured HTTPS listener |
+| `runner-to-source` | Tier 1 DMZ runner IPs | approved source/registry endpoints | configured HTTPS listener |
 | `admin-to-platform` | Tier 0 bastion/runner IPs | platform admin API | configured listener; scoped admin identity |
 
 These are not the complete requirements of an identity or cluster deployment.
@@ -86,7 +98,7 @@ Apply these alongside the server-zone matrix:
 | Internet/WAN | DMZ | only published VIPs/listeners; no direct Services or Control exposure |
 | egress proxy/cache | Internet/WAN | required upstream destinations/protocols only |
 | Services or Control hosts | Internet/WAN | deny by default; approved egress or explicit bootstrap exception |
-| user endpoints | application/access entry points | named service interfaces, not general subnet access |
+| Tier 2 client subnet in DMZ | application/access entry points | named service interfaces, not general subnet access |
 | approved admin devices | bastion/admin entry | scoped entry then target-specific administration |
 | managed networks | gateway services | required DHCP/DNS/time only; separate gateway admin permissions |
 | control administrators | gateway/switch administration | named endpoints and admin protocols |

@@ -25,7 +25,7 @@ the [variant map](../variants.md) relates this choice to other independent decis
 | --- | --- | --- | --- |
 | A: Software | Application keystore or software PKCS#11 provider; SoftHSM is an example [1] | Accepted software-custody deployment or interface rehearsal | Host access can expose key material; not hardware isolation |
 | B: Single USB | One authorized host and one local device, with a separate recovery arrangement | Offline custody, low-concurrency issuer or signing service | Host/device loss interrupts service; availability depends on restore |
-| C: Replicated USB gateways | Two service hosts with independent local tokens and separately governed backups | Service-level failover and horizontal signing capacity | Application routing and approved key replication are operator responsibilities, not a native HSM cluster |
+| C: Replicated USB gateways | Capacity-sized service pool with independent local tokens and separately governed backups; two-host starter | Service-level failover and measured horizontal capacity | Application routing and approved key replication are operator responsibilities, not a native HSM cluster |
 | D: Network HSM | Authorized clients use appliance partitions through the vendor client/HA model | Shared hardware service with product-supported partitions and resilience | Separate management, client trust, backup and vendor compatibility obligations |
 
 B and C are both hardware-backed options. Pico HSM and YubiHSM 2 are device
@@ -93,8 +93,8 @@ flowchart TB
   subgraph HostA["Independent host A"]
     GatewayA["Gateway service A"] -->|Host-local USB| TokenA["Local hardware token A"]
   end
-  subgraph HostB["Independent host B"]
-    GatewayB["Gateway service B"] -->|Host-local USB| TokenB["Local hardware token B"]
+  subgraph HostB["Additional independent hosts: 2..N"]
+    GatewayB["Gateway replica per host"] -->|Host-local USB| TokenB["One local hardware token per host"]
   end
   subgraph Custody["Separate recovery custody"]
     Recovery["Approved key backups and wrapping material"]
@@ -107,8 +107,10 @@ The service routes operations through a supported application integration; each
 gateway accesses only its local token. Service-level failover depends on validated
 routing, compatible key material and surviving capacity. Key replication is
 separately governed: the tokens provide no native cluster or automatic key-state
-synchronization. Recovery custody remains independent of both active hosts.
-The [gateway detail](usb-hsm.md) also shows the published endpoint variant.
+synchronization. Recovery custody remains independent of all active hosts.
+The [service detail](usb-hsm.md) places private failover on these same hosts and
+compares client failover, VIP and co-hosted proxy variants. Separate frontend VMs
+or Tier 1/2 runtimes are not prerequisites.
 
 ### D: Network HSM
 

@@ -3,5 +3,7 @@
   ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
   vars:
     control_node_setup_collection_names:
+      edge: [community.general, ansible.posix]
+      cache: [community.general, ansible.posix]
       lab: [community.general, ansible.posix]
       site: [community.general, ansible.posix]

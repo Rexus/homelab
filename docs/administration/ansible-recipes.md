@@ -32,8 +32,9 @@ same inputs; see [command reference](../reference/repository-scripts.md).
 
 Paths are relative to the tier's `ansible/playbooks/`. Legacy `<setup>.yml`
 entry points import the deployment recipe using native `import_playbook` [1].
-Standalone `proxmox-hosts.yml` and `ingress.yml` retain their dedicated entry
+Tier 0 standalone `proxmox-hosts.yml` and opt-in co-hosted signing `ingress.yml` retain their dedicated entry
 points; they are not registered Linux VM setups in the shared deployment helper.
+The signing play is a gated backend renderer, not a service, VIP or HA installer.
 
 | Tier / setup | Deployment recipe | Maintenance recipe and scope |
 | --- | --- | --- |
@@ -42,8 +43,8 @@ points; they are not registered Linux VM setups in the shared deployment helper.
 | 0 / `hsm` | `deployment/hsm-gateways.yml` | `maintenance/hsm.yml`: OS baseline only, no gateway/key operations |
 | 0 / `immutable-template` | `deployment/immutable-template.yml` | Existing builder recipe, with its current gates |
 | 0 / `template-refresh` | `deployment/template-refresh.yml` | Existing refresh recipe; replacement remains explicitly enabled |
-| 1 / `edge` | `deployment/edge-proxy.yml` | `maintenance/edge.yml`: proxy configuration |
-| 1 / `cache` | `deployment/outbound-cache.yml` | `maintenance/cache.yml`: cache configuration, no playbook-driven failover exercise |
+| 2 / `edge` | `deployment/edge-proxy.yml` | `maintenance/edge.yml`: proxy configuration |
+| 2 / `cache` | `deployment/outbound-cache.yml` | `maintenance/cache.yml`: cache configuration, no playbook-driven failover exercise |
 | 1 / `development` | `deployment/source-control-vm.yml` | `maintenance/development.yml`: existing source-control role |
 | 1 / `podman-runner` | `deployment/podman-runner.yml` | `maintenance/podman-runner.yml`: runner configuration |
 | 1 / `observability` | `deployment/telemetry-hosts.yml` | `maintenance/observability.yml`: host baseline only |

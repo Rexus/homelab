@@ -209,6 +209,7 @@ and [deployment readiness](../deployment/readiness.md).
 
 | Unavailable component | Expected limitation | Capability that remains independently recoverable |
 | --- | --- | --- |
+| Tier 2 public edge or outbound cache | Published user access or ordinary proxied downloads can pause | Tier 0 control and Tier 1 recovery through protected internal access and retained software inputs |
 | Tier 1 source or registry | New revision/artifact retrieval can pause; affected workload restarts may need retained images | Tier 0 control, approved execution inputs and required recovery artifacts |
 | Identity provider | Normal federated login can fail | Protected recovery access and dedicated directory recovery |
 | Control cluster | Hosted IdP, secrets and operational services may be unavailable together | Host access, cluster bootstrap material, unseal/recovery inputs and required external failure detection |

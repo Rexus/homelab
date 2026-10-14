@@ -24,7 +24,7 @@ flowchart TB
   end
   subgraph Crypto["cryptography: online Tier 0 services"]
     Issuer["Issuing CA VM<br/>Online intermediate CA"]
-    Hardware["Optional signing gateway / HSM"]
+    Hardware["Optional HSM provider<br/>Single device or replicated service"]
     Issuer -. Supported provider integration .-> Hardware
   end
   Bootstrap -->|Provision and configure| Issuer
@@ -41,6 +41,11 @@ policy and custodians, then prepare its host and key store. The main path uses
 [1b: replicated USB gateways](step-1b-usb-hsm.md), [1c: network HSM](step-1c-network-hsm.md)
 or [1d: single USB device](step-1d-single-usb.md). Root custody and online issuer
 protection are independent choices. Each branch returns to the hierarchy step.
+
+A single device with an independently tested backup can satisfy initial custody
+requirements. Size the replicated service for consumer traffic and availability,
+not merely because Vault or a registry has been installed.
+The HSM path remains Tier 0-owned and independently deployable in either form.
 
 The Tier 0 `foundation` root can provision the issuer host, but CA installation is
 operator integration. An existing independent issuer is also valid.

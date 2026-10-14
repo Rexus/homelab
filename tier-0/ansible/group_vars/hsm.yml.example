@@ -3,7 +3,16 @@
 # Guide: docs/deployment/stage-2-trust/step-1b-usb-hsm.md
 
 platform_host_ips:
-  # Tier 0 HSM hosts only; edge configuration has its own owner and access policy.
+  # Capacity-sized Tier 0 service pool; any VIP/proxy is co-hosted here.
   hsm-1: 10.20.21.20
   hsm-2: 10.20.21.21
+  # hsm-3: 10.20.21.22
   # crypto-admin-1: 10.20.22.20
+
+# Optional E3 backend scaffold; defaults and gates live in roles/hsm_proxy_ingress.
+# The hsm setup runs the baseline only. This standalone play installs no service or VIP.
+# Enable only after selecting the signing application and testing its supported HA model.
+# hsm_proxy_ingress_enabled: true
+# hsm_proxy_ingress_application_ha_validated: true
+# hsm_proxy_ingress_readiness_validated: true
+# hsm_proxy_ingress_extra_backend_lines: []  # Supply validated application-specific checks.

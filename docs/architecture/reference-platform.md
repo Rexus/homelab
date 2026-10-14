@@ -1,7 +1,7 @@
 # Integrated reference platform
 
 Tier 0 supplies infrastructure and trust; Tier 1 supplies shared delivery
-services; Tier 2 runs workloads. This reference deployment shows the intended
+services; Tier 2 owns public ingress, ordinary outbound caches, clients and workloads. This reference deployment shows the intended
 placement. It is a design, not a claim that every service is automated.
 The [deployment stages](../deployment/README.md) realize this result; their
 order does not determine the structure of this document.
@@ -36,12 +36,13 @@ separately. Offline custody remains outside the connected platform.
 ```mermaid
 flowchart TB
   subgraph PVE["Proxmox: connected virtualization platform"]
-    subgraph T2["Tier 2: workloads"]
+    subgraph T2["Tier 2: edge and workloads"]
+      Edge["DMZ: public load balancers and ordinary outbound caches"]
       Workloads["Project clusters and VMs: applications, development, experiments"]
     end
     subgraph T1["Tier 1: shared delivery"]
       Delivery["Platform cluster: source control, registry and general CI"]
-      Edge["Published service endpoints"]
+      Supply["DMZ: general build runners and authoritative mirrors"]
       WorkloadManagement["Scoped workload-cluster management when selected"]
     end
     subgraph T0["Tier 0: infrastructure and trust"]
@@ -59,6 +60,10 @@ flowchart TB
   Offline["Separate custody: offline root, ceremony environment, recovery media"]
   C ~~~ Offline
 ```
+
+Ordinary client workstations also belong to Tier 2 / DMZ, on a separate subnet
+outside the server runtime boundary. Privileged operator devices and bootstrap
+or jump VMs remain Tier 0 / Control.
 
 This is a placement view, not a traffic diagram. A disconnected ceremony VM
 on a connected hypervisor is not isolated from that hypervisor's administrators.
@@ -78,10 +83,11 @@ controlled environment; a VM or VLAN label alone does not establish an air gap.
 | Inventory and scoped control UI | NetBox and Headlamp in Tier 0; bootstrap inputs retained independently | [Operations](operations/README.md) |
 | Visibility | Tier 0 monitoring/syslog/audit, with independent failure detection; separate shared/project telemetry as required | [Telemetry](operations/telemetry.md) |
 | Source and artifacts | GitLab and Harbor in the Tier 1 platform cluster | [Artifact authority and delivery](delivery/artifact-supply.md) |
-| General builds | Tier 1 runners using scoped source and artifact access | [Application delivery](runtime-flows.md#application-delivery) |
+| General builds and mirrors | Tier 1 DMZ runners and authoritative mirrors using scoped source/artifact access | [Application delivery](runtime-flows.md#application-delivery) |
 | Application delivery | Tier 0 Flux; Tier 1 Argo CD or Spinnaker remains unselected | [Delivery controller patterns](delivery/controllers.md) |
-| Service publication | Tier 1 edge proxy and the owning cluster/application ingress | [Delivery](delivery/README.md), [firewall policy](networking/firewall-policy.md) |
+| Service publication | Tier 2 public edge load balancers and the owning cluster/application ingress | [Delivery](delivery/README.md), [firewall policy](networking/firewall-policy.md) |
 | Workload management | Rancher/Fleet where selected, scoped to workload clusters | [Ownership](tier-ownership.md) and [compute](compute/README.md) |
+| Outbound supply | Tier 2 ordinary proxy/cache; Tier 1 authoritative mirrors; independent bootstrap/offline artifacts | [Delivery](delivery/README.md) |
 | Workloads | Tier 2 applications on approved Kubernetes runtimes or VMs | [Runtime design](compute/runtime.md), [bounded requests](compute/provisioning.md) |
 | Backup and restoration | Owner-specific backup targets, independent recovery records and protected copies | [Data and recovery](#data-and-recovery) |
 
@@ -94,8 +100,9 @@ recovery design; the database service is not its storage backend by implication.
 Database, cache, storage, and backup requirements remain service-specific.
 
 Network purposes remain `management`, `identity`, `control_cluster`,
-`cryptography`, `application` and `external_edge` as applicable. The
-[network catalog](networking/README.md#network-catalog) owns reference VLANs;
+`cryptography`, `application`, `external_edge`, `delivery_edge` and the separate
+`client` subnet as applicable. The [network catalog](networking/README.md#network-catalog)
+owns reference VLANs;
 full site allocations remain in inventory. A hosting boundary does not create
 a new subnet or permitted connection.
 

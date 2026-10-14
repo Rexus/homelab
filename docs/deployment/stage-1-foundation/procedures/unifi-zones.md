@@ -26,7 +26,7 @@ Assign each network to one zone. [1]
 
 | Layer / purpose | Zone | Example member networks |
 | --- | --- | --- |
-| Edge | built-in `DMZ` | `edge` |
+| Edge | built-in `DMZ` | Tier 2 `edge` and separate `client`; Tier 1 `delivery_edge` |
 | Application | custom `Services` | `apps`, application-only `access`, telemetry |
 | Control | custom `Control` | `management`, `identity`, `crypto` |
 | Offline custody | none on the connected gateway | isolated ceremony/recovery fabric |
@@ -38,6 +38,11 @@ Host-only cluster/storage fabrics can remain on controlled, non-routed switching
 WAN stays External. Gateway covers the gateway's own traffic, not the Control
 layer. VPN membership is not administrative privilege. Review default Internal,
 VPN, and same-zone policies; they are not this repository's intended rules. [1]
+
+Keep these as separate VLANs/subnets even when assigned to DMZ. Add explicit
+DMZ-to-DMZ rules for named listeners and retain a deny fallback. Client membership
+does not publish a WAN listener. Tier 0 jump hosts and bootstrap VMs stay in
+Control; a separate remote-access entry requires its own reviewed policy.
 
 ## Apply the policy
 

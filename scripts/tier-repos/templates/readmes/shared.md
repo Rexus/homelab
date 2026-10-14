@@ -20,7 +20,7 @@ then start from the owning deployment repository:
 
 - [Tier 0: recovery and control](../${prefix}-tier-0/README.md)
 - [Tier 1: shared platform](../${prefix}-tier-1/README.md)
-- [Tier 2: workloads](../${prefix}-tier-2/README.md)
+- [Tier 2: public edge and workloads](../${prefix}-tier-2/README.md)
 
 Run the shared scripts from that tier's root. Keep reviewed copies of this
 repository and its dependencies available locally for recovery.

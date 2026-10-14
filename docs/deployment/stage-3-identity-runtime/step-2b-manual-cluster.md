@@ -61,7 +61,7 @@ documentation before applying configuration. [1][2]
 For HA, prepare an independent TCP load balancer for the Kubernetes API on
 port 6443, or use a release-supported endpoint design from the production guide.
 It must not depend on ingress inside this new cluster. Tier 0 must not depend on
-the general Tier 1 edge service for recovery. A single control-plane IP is
+the public Tier 2 edge service for recovery. A single control-plane IP is
 acceptable only for a non-HA pilot. Restrict Talos API port 50000 to authorized
 operators and cluster traffic; the Kubernetes endpoint is not a Talos endpoint. [1]
 
