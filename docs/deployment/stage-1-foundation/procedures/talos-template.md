@@ -1,5 +1,8 @@
 # Talos template on Proxmox
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for image publication.
+Each consuming tier owns its separate cluster deployment.
+
 **Design:** [cluster runtime and images](../../../architecture/compute/README.md).
 
 Tier 0 publishes unconfigured Talos templates for control and workload clusters

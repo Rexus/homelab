@@ -1,5 +1,8 @@
 # Proxmox API setup
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for host-side setup.
+Each consuming tier supplies its own authorized credentials through local inputs, never Shared.
+
 **Design:** [protected provisioning](../../../architecture/compute/provisioning.md).
 
 ## Table of contents

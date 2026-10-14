@@ -1,5 +1,8 @@
 # Kubernetes clusters
 
+**Working repository:** the cluster owner's `<prefix>-tier-0`, `<prefix>-tier-1`
+or `<prefix>-tier-2` (source: matching `tier-N/`). Stage 3 uses Tier 0.
+
 **Design:** [cluster runtime variants](../../../architecture/compute/README.md).
 
 The goal is an independently recoverable Kubernetes cluster on Proxmox.
@@ -10,6 +13,7 @@ system is an implementation choice, not the name or purpose of the platform.
 ## Table of contents
 
 - [Prerequisites](#prerequisites)
+- [Repository locations](#repository-locations)
 - [Implementation choice](#implementation-choice)
 - [Deploy the cluster](#deploy-the-cluster)
 - [Cluster foundation](#cluster-foundation)
@@ -26,6 +30,22 @@ inputs. Tier 0 must bootstrap and recover without Tier 1 or Tier 2 services.
 An existing cluster is a valid prerequisite when it meets the same ownership,
 network, access, and recovery requirements. Do not run a new-cluster bootstrap
 against existing resources as an adoption procedure.
+
+## Repository locations
+
+Choose one row and work from that repository's root. The same relative paths
+exist in all tiers, but each cluster has its own resources, inputs, credentials and state.
+
+| Cluster | Working repository | Terraform root | Host/IP inputs | Service manifests |
+| --- | --- | --- | --- | --- |
+| Control | `<prefix>-tier-0` | [terraform/deployments/kubernetes/](../../../../tier-0/terraform/deployments/kubernetes/) | [ansible/inventory/](../../../../tier-0/ansible/inventory/) and [ansible/group_vars/talos.yml.example](../../../../tier-0/ansible/group_vars/talos.yml.example) | [clusters/tier0/](../../../../tier-0/clusters/tier0/) |
+| Platform | `<prefix>-tier-1` | [terraform/deployments/kubernetes/](../../../../tier-1/terraform/deployments/kubernetes/) | [ansible/inventory/](../../../../tier-1/ansible/inventory/) and [ansible/group_vars/talos.yml.example](../../../../tier-1/ansible/group_vars/talos.yml.example) | [clusters/tier1/](../../../../tier-1/clusters/tier1/) |
+| Workload | `<prefix>-tier-2` | [terraform/deployments/kubernetes/](../../../../tier-2/terraform/deployments/kubernetes/) | [ansible/inventory/](../../../../tier-2/ansible/inventory/) and [ansible/group_vars/talos.yml.example](../../../../tier-2/ansible/group_vars/talos.yml.example) | [clusters/tier2/](../../../../tier-2/clusters/tier2/) |
+
+Each tier's `scripts/kubernetes-cluster.sh` delegates to Shared's
+[scripts/kubernetes-cluster.sh](../../../../shared/scripts/kubernetes-cluster.sh).
+Shared owns that reusable command, not the Terraform root or cluster inventory.
+See the [collection repository map](../../README.md#repository-locations) for source/generated paths.
 
 ## Implementation choice
 

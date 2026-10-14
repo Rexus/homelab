@@ -1,5 +1,8 @@
 # Step 1c: Podman build runner
 
+**Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
+Run repository scripts from this root; paths below are repository-relative.
+
 The reference runner belongs to Tier 1 on the `delivery_edge` DMZ subnet,
 separate from Tier 2 clients and public ingress. Only approved source, registry
 and software-supply listeners are reachable; no Tier 0 credentials belong here.
@@ -32,10 +35,6 @@ Existing installations retain their network values until an explicit migration.
 Use this guide to add a dedicated internal runner to an existing GitLab service
 for building bootc images for server templates and hosts.
 
-Run deployment commands from the Tier 1 root: `tier-1/` in a private
-source checkout or `<prefix>-tier-1/` after generation. File paths below
-are tier-relative unless marked as shared code.
-
 This is the first image-based Linux implementation path. It does not require
 Kubernetes, Harbor, or Dragonfly. The runner builds with Podman and pushes the
 image to the GitLab built-in registry. When the shared registry path exists,
@@ -45,14 +44,16 @@ the same pipeline can promote or copy images into Harbor.
 
 This path has dedicated IaC:
 
-| Layer | File | Responsibility |
-| --- | --- |
-| Terraform | `terraform/deployments/podman-runner/terraform.tfvars` | deploys runner VM(s) |
-| Ansible inventory | `ansible/inventory/hosts.yml` | keeps the stable `podman_runner` host group |
-| Ansible vars | `ansible/group_vars/podman_runner.yml` | controls packages, runner tags, and optional registration |
-| Shared Ansible role | `ansible/roles/podman_runner/` | installs Podman, Buildah, Skopeo, Git, and GitLab Runner |
-| GitLab | runner registration token and project settings | runs the bootc image pipeline |
-| GitLab registry | project or group registry | stores the first internal bootc images |
+| Repository / system | Path or setting | Responsibility |
+| --- | --- | --- |
+| Tier 1 | [terraform/deployments/podman-runner/](../../../tier-1/terraform/deployments/podman-runner/); local `terraform.tfvars` | Deploys runner VMs |
+| Tier 1 | `ansible/inventory/hosts.yml` | Stable `podman_runner` host group |
+| Tier 1 | `ansible/group_vars/podman_runner.yml` | Packages, runner tags and optional registration |
+| Tier 1 | [ansible/roles/podman_runner/](../../../tier-1/ansible/roles/podman_runner/) | Installs Podman, Buildah, Skopeo, Git and GitLab Runner |
+| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common host preparation |
+| Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) | Execution helper called from Tier 1's root |
+| GitLab | Runner registration token and project settings | Runs the bootc image pipeline; credentials stay outside Git |
+| GitLab registry | Project or group registry | Stores the first internal bootc images |
 
 Default to one runner VM. Add more runners when build time, project isolation,
 or trust boundaries require it.

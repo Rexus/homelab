@@ -1,5 +1,8 @@
 # UniFi zone firewall
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for network policy.
+Configuration is applied in the network controller, not by a supplied IaC installer.
+
 **Design:** [firewall contracts](../../../architecture/networking/firewall-policy.md).
 
 ## Table of contents

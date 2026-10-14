@@ -1,5 +1,7 @@
 # Establish the issuing service
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+
 **Design:** [certificate trust](../../../architecture/reference-platform.md#certificate-trust)
 and [key-protection variant](../../../architecture/cryptography/hsm-selection.md).
 **Prerequisites:** accepted compute foundation, authorized custodians, selected issuer software and approved

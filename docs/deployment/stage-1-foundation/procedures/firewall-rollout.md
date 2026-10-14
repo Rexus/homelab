@@ -1,5 +1,8 @@
 # Firewall rollout and acceptance
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for network policy.
+Guest-specific inputs remain in the consuming tier; gateway changes are operator procedures.
+
 **Design:** [network map](../../../architecture/networking/README.md) and
 [firewall contracts](../../../architecture/networking/firewall-policy.md).
 **Prerequisites:** local console recovery and the approved endpoint/port policy.

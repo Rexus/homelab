@@ -1,5 +1,8 @@
 # Step 1b: Source control on a VM
 
+**Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
+Run repository scripts from this root; paths below are repository-relative.
+
 <a id="development-platform-path"></a>
 
 **Branch from:** [Step 1](README.md#step-1-deploy-shared-delivery-services), instead of deploying source control in the Tier 1 cluster.
@@ -25,10 +28,6 @@
 
 Use this path when the private cloud needs source control, CI/CD coordination,
 and a starting point for internal software projects.
-
-Run deployment commands from the Tier 1 root: `tier-1/` in a private
-source checkout or `<prefix>-tier-1/` after generation. File paths below
-are tier-relative unless marked as shared code.
 
 The reference implementation is GitLab on one dedicated Podman VM. This keeps
 the first deployment simple and movable. Dedicated runners, Harbor, bootc image
@@ -70,13 +69,16 @@ from the GitLab host.
 
 ## IaC used for this
 
-| Layer | File |
-| --- | --- |
-| Terraform setup | `terraform/deployments/development/terraform.tfvars` |
-| Ansible inventory | `ansible/inventory/hosts.yml` |
-| Ansible environment vars | `ansible/group_vars/all.yml` or `all.<env>.yml` |
-| Ansible setup vars | `ansible/group_vars/development.yml` |
-| Shared Ansible role | `ansible/roles/gitlab_container/` |
+| Repository | Layer | Path inside that repository |
+| --- | --- | --- |
+| Tier 1 | Terraform setup | [terraform/deployments/development/](../../../tier-1/terraform/deployments/development/); local `terraform.tfvars` |
+| Tier 1 | Ansible inventory | `ansible/inventory/hosts.yml` |
+| Tier 1 | Ansible environment vars | `ansible/group_vars/all.yml` or `all.<env>.yml` |
+| Tier 1 | Ansible setup vars | `ansible/group_vars/development.yml` |
+| Tier 1 | Deployment recipe | [ansible/playbooks/deployment/source-control-vm.yml](../../../tier-1/ansible/playbooks/deployment/source-control-vm.yml) |
+| Tier 1 | Service role | [ansible/roles/gitlab_container/](../../../tier-1/ansible/roles/gitlab_container/) |
+| Shared | Host baseline | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) |
+| Shared | Execution helper | [scripts/deploy.sh](../../../shared/scripts/deploy.sh); called by Tier 1's `scripts/deploy.sh` |
 
 ## Configure the deployment
 

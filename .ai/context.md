@@ -93,6 +93,9 @@ This file keeps durable context for AI-assisted work across sessions.
   identity and Kubernetes, control services, delivery and handover, and workload provisioning
 - each stage has a main README with numbered local steps, diagrams, a capability result,
   and links to the static architecture; only the initial compute foundation is bootstrap
+- deployment guides name the working generated repository and upstream source directory near the top;
+  IaC tables distinguish tier-owned inputs/resources from Shared helper implementations;
+  docs/deployment/README.md#repository-locations owns the checkout/path convention
 - optional step-Nb/step-Nc guides sit beside the main README, identify their branch
   and return point; detailed configuration lives in that stage's procedures/ folder
 - Trust Step 1b hardware protection is optional; the USB hsm setup provides VMs and OS baseline,

@@ -2,6 +2,8 @@
 
 Design options describe valid arrangements, not automatic installer coverage.
 [Six capability stages](../deployment/README.md) combine the selected procedures.
+The [repository map](../deployment/README.md#repository-locations) identifies the
+working checkouts; Shared helpers do not own the tier deployments they execute.
 
 | Stage | Capability | Repository support |
 | --- | --- | --- |

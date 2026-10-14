@@ -1,5 +1,8 @@
 # Step 2b: Vault on a dedicated VM
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+Run repository scripts from this root; paths below are repository-relative.
+
 <a id="vault-foundation-deployment"></a>
 
 **Branch from:** [Step 2](README.md#step-2-deploy-operational-services), instead of deploying the cluster instance.
@@ -23,10 +26,6 @@
 
 Use this guide after identity, DNS, and PKI are available to
 deploy Vault as the shared secret-platform service.
-
-Run deployment commands from the Tier 0 root: `tier-0/` in a private
-source checkout or `<prefix>-tier-0/` after generation. File paths below
-are tier-relative unless marked as shared code.
 
 ```mermaid
 flowchart TB
@@ -71,13 +70,13 @@ platform.
 
 Edit these local files before running the Vault foundation deployment:
 
-| Path | Configuration |
-| --- | --- |
-| [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | tier guest networks and optional platform overrides; shared storage and local SSH paths follow [platform inputs](../../reference/platform-inputs.md) |
-| [`terraform/deployments/vault/terraform.tfvars.example`](../../../tier-0/terraform/deployments/vault/terraform.tfvars.example) | Vault VM definitions in `vm_instances` |
-| [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | stable Vault host key and inventory group |
-| [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain when using `--env` |
-| [`ansible/group_vars/vault.yml.example`](../../../tier-0/ansible/group_vars/vault.yml.example) | Vault host IPs, `vault_api_addr`, `vault_cluster_addr`, `vault_node_id`, TLS source paths, and listener settings |
+| Repository | Path inside that repository | Configuration |
+| --- | --- | --- |
+| Tier 0 | [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | tier guest networks and optional platform overrides; shared storage and local SSH paths follow [platform inputs](../../reference/platform-inputs.md) |
+| Tier 0 | [`terraform/deployments/vault/terraform.tfvars.example`](../../../tier-0/terraform/deployments/vault/terraform.tfvars.example) | Vault VM definitions in `vm_instances` |
+| Tier 0 | [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | stable Vault host key and inventory group |
+| Tier 0 | [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain when using `--env` |
+| Tier 0 | [`ansible/group_vars/vault.yml.example`](../../../tier-0/ansible/group_vars/vault.yml.example) | Vault host IPs, `vault_api_addr`, `vault_cluster_addr`, `vault_node_id`, TLS source paths, and listener settings |
 
 ### Deployment shape
 
@@ -119,17 +118,15 @@ Use these first-node settings:
 
 ## IaC used for this
 
-Use these repo paths for the Vault foundation deployment:
+The inputs above stay in Tier 0. Follow these entry points to their implementation:
 
-| IaC path | Used for here | Local configuration |
+| Repository | Code path inside that repository | Responsibility |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../../tier-0/terraform/common.tfvars.example) | tier guest networks and optional platform overrides | the local `terraform/common.tfvars` |
-| [`terraform/deployments/vault/terraform.tfvars.example`](../../../tier-0/terraform/deployments/vault/terraform.tfvars.example) | provisions one or more dedicated Vault VMs | `terraform/deployments/vault/terraform.tfvars` based on `.example` |
-| [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | starting point for the `vault` inventory group | the local `ansible/inventory/hosts.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | the local `ansible/group_vars/all.<env>.yml` |
-| [`ansible/group_vars/vault.yml.example`](../../../tier-0/ansible/group_vars/vault.yml.example) | starting point for Vault IPs, listener, TLS, and node settings | the local `ansible/group_vars/vault.yml` |
-| [`ansible/playbooks/vault.yml`](../../../tier-0/ansible/playbooks/vault.yml) | baseline host preparation and Vault installation on hosts in the `vault` group | inventory and Vault group variables |
-| [`scripts/deploy.sh`](../../../tier-0/scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `vault` setup when ready for deployment |
+| Tier 0 | [terraform/deployments/vault/main.tf](../../../tier-0/terraform/deployments/vault/main.tf) | Dedicated Vault VMs through tier-local modules |
+| Tier 0 | [ansible/playbooks/deployment/vault-vm.yml](../../../tier-0/ansible/playbooks/deployment/vault-vm.yml) and [ansible/roles/vault/](../../../tier-0/ansible/roles/vault/) | Vault host preparation and installation |
+| Tier 0 | [scripts/deploy.sh](../../../tier-0/scripts/deploy.sh) | Tier entry point; select `vault` |
+| Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) | Reusable execution implementation, using Tier 0 inputs/state |
+| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common host preparation, reused by the Tier 0 recipe |
 
 This deployment flow installs Vault and prepares the first node. Operator
 initialization, unseal handling, and secret handoff stay manual.

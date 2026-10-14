@@ -1,5 +1,8 @@
 # Step 1b: Replicated USB HSM services
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+Run repository scripts from this root; Shared contributes only the named reusable primitives.
+
 <a id="usb-hsm-active-active-deployment-guide"></a>
 
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before creating production issuer keys.
@@ -116,13 +119,13 @@ PKCS#11/device connectors as a public signing API.
 
 ## IaC used for this
 
-| Source | Responsibility |
-| --- | --- |
-| [HSM VM inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) | Capacity-sized service pool; two enabled hosts and a third-host example; offline helper is separate |
-| [Tier 0 inventory](../../../tier-0/ansible/inventory/hosts.yml.example) and [HSM vars](../../../tier-0/ansible/group_vars/hsm.yml.example) | One host/IP source consumed by Terraform and Ansible |
-| [HSM deployment recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml) | OS baseline only |
-| [Private backend scaffold](../../../tier-0/ansible/playbooks/ingress.yml) | Opt-in snippet on those same hosts; no package, frontend, VIP, reload or readiness installer |
-| [Shared Keepalived primitive](../../../shared/ansible/roles/shared/tasks/keepalived.yml) | Reusable configuration building block for reviewed endpoint integration, not an HSM HA recipe |
+| Repository | Source inside that repository | Responsibility |
+| --- | --- | --- |
+| Tier 0 | [HSM VM inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) | Capacity-sized service pool; two enabled hosts and a third-host example; offline helper is separate |
+| Tier 0 | [Inventory](../../../tier-0/ansible/inventory/hosts.yml.example) and [HSM vars](../../../tier-0/ansible/group_vars/hsm.yml.example) | One host/IP source consumed by Terraform and Ansible |
+| Tier 0 | [HSM deployment recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml) | OS baseline only |
+| Tier 0 | [Private backend scaffold](../../../tier-0/ansible/playbooks/ingress.yml) | Opt-in snippet on those same hosts; no package, frontend, VIP, reload or readiness installer |
+| Shared | [Keepalived primitive](../../../shared/ansible/roles/shared/tasks/keepalived.yml) | Reusable configuration building block for reviewed endpoint integration, not an HSM HA recipe |
 
 The scaffold is skipped unless `hsm_proxy_ingress_enabled` is explicitly enabled.
 It then requires `hsm_proxy_ingress_application_ha_validated`,

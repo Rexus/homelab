@@ -15,6 +15,9 @@ Existing services can satisfy verified prerequisites.
 
 Only work owned by this repository is executed here. Other steps record consumed
 dependencies and their owners; stage and step numbers do not transfer resource or state ownership.
+Use the upstream [repository map](${docs}/deployment/README.md#repository-locations)
+to locate reference IaC. Each local procedure records its working repository and
+repository-relative input/code paths, including any Shared helper it calls.
 
 Add local instructions under the relevant capability folder, such as
 `stage-2-trust/`. Its README explains numbered steps with diagrams and the

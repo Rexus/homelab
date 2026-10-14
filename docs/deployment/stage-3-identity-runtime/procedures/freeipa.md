@@ -1,5 +1,8 @@
 # Identity foundation path
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+Run repository scripts from this root; paths below are repository-relative.
+
 **Design:** [identity authority](../../../architecture/identity/README.md).
 
 ## Table of contents
@@ -43,9 +46,8 @@ This is the default authority path for the repository, not a mandatory global
 prerequisite. Existing identity, DNS, and PKI services can provide the shared
 services for later paths.
 
-Run from the repository that owns the instance (`tier-0/` in a private source
-checkout or `<prefix>-tier-0/` after generation). A connected authority with
-domain-wide control is Tier 0; offline root-key custody is separate. Guest
+A connected authority with domain-wide control is Tier 0; offline root-key
+custody is separate. Guest
 network keys must map to that tier's actual networks. See
 [setup ownership](../../../development/generated-repositories.md#setup-ownership).
 
@@ -165,29 +167,26 @@ Keep the same repo pattern even when the services already exist:
 
 Edit these local files before deployment:
 
-| Path | Configuration |
-| --- | --- |
-| [`terraform/common.tfvars.example`](../../../../tier-0/terraform/common.tfvars.example) | tier guest networks and optional platform overrides; shared storage and local SSH paths follow [platform inputs](../../../reference/platform-inputs.md) |
-| [`terraform/deployments/foundation/terraform.tfvars.example`](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
-| [`ansible/inventory/hosts.yml.example`](../../../../tier-0/ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
-| [`ansible/group_vars/all.yml.example`](../../../../tier-0/ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, SSH user, port, and baseline defaults |
-| [`ansible/group_vars/all.env.yml.example`](../../../../tier-0/ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
-| [`ansible/group_vars/foundation.yml.example`](../../../../tier-0/ansible/group_vars/foundation.yml.example) | foundation host IPs, domain, realm, DNS behavior and controller-side secret lookups |
+| Repository | Path inside that repository | Configuration |
+| --- | --- | --- |
+| Tier 0 | [`terraform/common.tfvars.example`](../../../../tier-0/terraform/common.tfvars.example) | tier guest networks and optional platform overrides; shared storage and local SSH paths follow [platform inputs](../../../reference/platform-inputs.md) |
+| Tier 0 | [`terraform/deployments/foundation/terraform.tfvars.example`](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
+| Tier 0 | [`ansible/inventory/hosts.yml.example`](../../../../tier-0/ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
+| Tier 0 | [`ansible/group_vars/all.yml.example`](../../../../tier-0/ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, SSH user, port, and baseline defaults |
+| Tier 0 | [`ansible/group_vars/all.env.yml.example`](../../../../tier-0/ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
+| Tier 0 | [`ansible/group_vars/foundation.yml.example`](../../../../tier-0/ansible/group_vars/foundation.yml.example) | foundation host IPs, domain, realm, DNS behavior and controller-side secret lookups |
 
 ## IaC used for this
 
-Use these repo paths here:
+The inputs above stay in Tier 0. Follow these entry points to their implementation:
 
-| IaC path | Used for here | Local configuration |
+| Repository | Code path inside that repository | Responsibility |
 | --- | --- | --- |
-| [`terraform/common.tfvars.example`](../../../../tier-0/terraform/common.tfvars.example) | tier guest networks and optional platform overrides | the local `terraform/common.tfvars` |
-| [`terraform/deployments/foundation/terraform.tfvars.example`](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example) | provisions the foundation VM layout for identity and PKI hosts | `terraform/deployments/foundation/terraform.tfvars` based on `.example` |
-| [`ansible/inventory/hosts.yml.example`](../../../../tier-0/ansible/inventory/hosts.yml.example) | starting point for the stable foundation inventory groups | the local `ansible/inventory/hosts.yml` |
-| [`ansible/group_vars/all.yml.example`](../../../../tier-0/ansible/group_vars/all.yml.example) | starting point for shared Ansible defaults and the default environment | the local `ansible/group_vars/all.yml` |
-| [`ansible/group_vars/all.env.yml.example`](../../../../tier-0/ansible/group_vars/all.env.yml.example) | starting point for environment-specific hostname decoration and domain | the local `ansible/group_vars/all.<env>.yml` |
-| [`ansible/group_vars/foundation.yml.example`](../../../../tier-0/ansible/group_vars/foundation.yml.example) | starting point for foundation IPs, FreeIPA, and service inputs | the local plain-YAML `ansible/group_vars/foundation.yml`; secrets are injected separately |
-| [`ansible/playbooks/foundation.yml`](../../../../tier-0/ansible/playbooks/foundation.yml) | applies baseline configuration, installs the first FreeIPA host, sanity-checks it, and then installs replicas | inventory and foundation group variables |
-| [`scripts/deploy.sh`](../../../../tier-0/scripts/deploy.sh) | repository wrapper for the mapped precheck, Terraform, and Ansible flow | choose the `foundation` setup when ready for deployment |
+| Tier 0 | [terraform/deployments/foundation/main.tf](../../../../tier-0/terraform/deployments/foundation/main.tf) | Provisions the configured identity and PKI VMs through tier-local modules |
+| Tier 0 | [ansible/playbooks/deployment/identity-freeipa.yml](../../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml) | Baseline, primary installation, verification and replica installation |
+| Tier 0 | [scripts/deploy.sh](../../../../tier-0/scripts/deploy.sh) | Tier entry point; select `foundation` |
+| Shared | [scripts/deploy.sh](../../../../shared/scripts/deploy.sh) | Reusable execution implementation, using Tier 0 inputs/state |
+| Shared | [ansible/roles/baseline/](../../../../shared/ansible/roles/baseline/) | Common host preparation, reused by the Tier 0 recipe |
 
 Current boundary:
 

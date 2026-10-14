@@ -1,5 +1,8 @@
 # Edge proxy path
 
+**Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
+Run repository scripts from this root; paths below are repository-relative.
+
 **Design:** [traffic boundaries](../../../architecture/delivery/README.md).
 
 ## Purpose
@@ -7,10 +10,6 @@
 Use this path from Tier 2 to deploy the public `external_edge` load-balancer layer. This
 is the north-south boundary for public application listeners and approved backend
 load balancing. Outbound proxy/cache is a separate `cache` deployment.
-
-Run deployment commands from the Tier 2 root: `tier-2/` in a private
-source checkout or `<prefix>-tier-2/` after generation. File paths below
-are tier-relative unless marked as shared code.
 
 The reference implementation is `HAProxy` with `keepalived`. The default is a
 3-node edge set with multiple VIPs. Each VIP has a different preferred owner,
@@ -61,14 +60,14 @@ Use VIP names as policy boundaries, not only as addresses:
 
 | VIP type | Typical traffic | Why it is separate |
 | --- | --- | --- |
-| `internal_prod` | internal apps, APIs, Kubernetes ingress, GitLab, Keycloak, service UIs | stable application delivery and user/service traffic |
-| `internal_services` | Proxmox, SSH jump paths, secret admin, PKI admin, cluster management, Kubernetes API | stricter ACLs, MFA, logging, and reduced management-plane blast radius |
+| `internal_prod` | approved application APIs, ingress and user interfaces | stable application delivery and user/service traffic |
+| `internal_services` | separately approved platform application listeners, not privileged control APIs | separate application access policy; the name grants no Tier 0 access |
 | `dmz_ingress` | internet-facing or externally reachable services | tighter exposure control and separate firewall/TLS policy |
 
-Larger environments may add VIPs for storage, observability, identity, or CI
-when those traffic classes need their own firewall rules, certificates, logging,
-or maintenance ownership. The important rule is to avoid one giant VIP for
-everything when traffic purpose and trust level differ.
+Additional application VIPs may separate firewall rules, certificates, logging
+or maintenance ownership. Proxmox, privileged jump access, secret/PKI administration
+and Kubernetes control APIs use protected paths owned by their respective tiers,
+not this Tier 2 edge deployment.
 
 ## Service shape
 
@@ -82,13 +81,19 @@ everything when traffic purpose and trust level differ.
 
 ## Configuration
 
-| Path | Configuration |
-| --- | --- |
-| [`terraform/common.tfvars.example`](../../../../tier-2/terraform/common.tfvars.example) | `external_edge` attachment and optional overrides; common storage and local SSH paths follow [platform inputs](../../../reference/platform-inputs.md) |
-| [`terraform/deployments/edge/terraform.tfvars.example`](../../../../tier-2/terraform/deployments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
-| [`ansible/inventory/hosts.yml.example`](../../../../tier-2/ansible/inventory/hosts.yml.example) | `edge_load_balancers` host group |
-| [`ansible/group_vars/all.yml.example`](../../../../tier-2/ansible/group_vars/all.yml.example) | hostname, domain, SSH, and baseline settings |
-| [`ansible/group_vars/edge.yml.example`](../../../../tier-2/ansible/group_vars/edge.yml.example) | edge host IPs, VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |
+| Repository | Path inside that repository | Configuration |
+| --- | --- | --- |
+| Tier 2 | [`terraform/common.tfvars.example`](../../../../tier-2/terraform/common.tfvars.example) | `external_edge` attachment and optional overrides; common storage and local SSH paths follow [platform inputs](../../../reference/platform-inputs.md) |
+| Tier 2 | [`terraform/deployments/edge/terraform.tfvars.example`](../../../../tier-2/terraform/deployments/edge/terraform.tfvars.example) | edge VM count, size, storage, and tags |
+| Tier 2 | [`ansible/inventory/hosts.yml.example`](../../../../tier-2/ansible/inventory/hosts.yml.example) | `edge_load_balancers` host group |
+| Tier 2 | [`ansible/group_vars/all.yml.example`](../../../../tier-2/ansible/group_vars/all.yml.example) | hostname, domain, SSH, and baseline settings |
+| Tier 2 | [`ansible/group_vars/edge.yml.example`](../../../../tier-2/ansible/group_vars/edge.yml.example) | edge host IPs, VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |
+
+The Tier 2 [deployment recipe](../../../../tier-2/ansible/playbooks/deployment/edge-proxy.yml)
+uses its [edge_load_balancer role](../../../../tier-2/ansible/roles/edge_load_balancer/).
+Shared supplies the [deploy helper](../../../../shared/scripts/deploy.sh) and
+[Keepalived primitive](../../../../shared/ansible/roles/shared/tasks/keepalived.yml),
+not the edge inventory, Terraform or frontend definitions.
 
 ## How other paths use it
 

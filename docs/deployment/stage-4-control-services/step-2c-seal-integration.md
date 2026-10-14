@@ -1,5 +1,8 @@
 # Step 2c: Vault seal integration
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+Use Tier 0 cluster manifests or the dedicated VM's local `ansible/group_vars/vault.yml`.
+
 <a id="secret-service-seal-integration"></a>
 
 **Branch from:** [Step 2](README.md#step-2-deploy-operational-services), before accepting the secret service.

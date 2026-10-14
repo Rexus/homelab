@@ -1,5 +1,9 @@
 # Deploy Kubernetes with Talos: Terraform
 
+**Working repository:** select Tier 0, Tier 1 or Tier 2 in the
+[cluster repository map](kubernetes.md#repository-locations). Stage 3 uses `<prefix>-tier-0`.
+Run commands from the selected tier's root; Shared is not the cluster's working directory.
+
 **Design:** [cluster runtime variants](../../../architecture/compute/README.md).
 
 This is the current Talos implementation of the [Kubernetes cluster goal](kubernetes.md).
@@ -52,13 +56,13 @@ bash scripts/kubernetes-cluster.sh init
 Initialization copies missing examples only. Existing files are never overwritten
 or merged; add the Talos groups from the inventory example when upgrading.
 
-| File, relative to the owning tier | Edit or purpose |
-| --- | --- |
-| `ansible/inventory/hosts.yml` | Logical hosts in `talos_control_plane` and `talos_workers`, both under `talos` |
-| `ansible/group_vars/talos.yml` | `platform_host_ips`, matching the external DHCP reservations |
-| `terraform/deployments/kubernetes/terraform.tfvars` | Cluster endpoint, pinned releases/installer, template selection, VMIDs, MACs, placement, disks, and size selections |
-| Sibling shared `config/guest-sizes.json` | Common sizing data, read directly by tier-local Terraform |
-| Sibling shared `templates/proxmox-catalog.tfvars` | Approved image metadata, loaded by the command |
+| Repository | File relative to that repository | Edit or purpose |
+| --- | --- | --- |
+| Selected tier | `ansible/inventory/hosts.yml` | Logical hosts in `talos_control_plane` and `talos_workers`, both under `talos` |
+| Selected tier | `ansible/group_vars/talos.yml` | `platform_host_ips`, matching the external DHCP reservations |
+| Selected tier | `terraform/deployments/kubernetes/terraform.tfvars` | Cluster endpoint, pinned releases/installer, template selection, VMIDs, MACs, placement, disks, and size selections |
+| Shared | [config/guest-sizes.json](../../../../shared/config/guest-sizes.json) | Common sizing data, read directly by tier-local Terraform |
+| Shared | [templates/proxmox-catalog.tfvars](../../../../shared/templates/proxmox-catalog.tfvars) | Approved image metadata, loaded by the command |
 
 Every Talos inventory host must have one hardware entry and one fixed IPv4
 reservation. Each new-cluster example starts with three schedulable control-plane

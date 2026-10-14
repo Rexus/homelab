@@ -5,7 +5,9 @@ At the end of this stage, the workstation can create and recover the first guest
 without Kubernetes, hosted source control or identity services.
 
 **Prerequisites:** physical hosts, network equipment, approved installation sources
-and a privileged workstation with independent console access. **Owner:** Tier 0.
+and a privileged workstation with independent console access.
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+The optional cache branch uses `<prefix>-tier-2` instead.
 **Design:** [compute](../../architecture/compute/README.md) and
 [network boundaries](../../architecture/networking/README.md).
 
@@ -64,6 +66,12 @@ Follow the [local publication workflow](../../administration/compute/template-li
 for [Linux images](procedures/enterprise-linux-template.md) and the current
 [Kubernetes node image](procedures/talos-template.md). Tier 0 publishes templates;
 other tiers consume approved references. No hosted CI is required.
+
+Publication code and inputs are in Tier 0's
+[terraform/deployments/templates/](../../../tier-0/terraform/deployments/templates/) and
+[templates/proxmox.yml.example](../../../tier-0/templates/proxmox.yml.example).
+Approved consumer references are in Shared's
+[templates/proxmox-catalog.tfvars](../../../shared/templates/proxmox-catalog.tfvars).
 
 Boot disposable clones and verify disks, network and access before creating service
 VMs. Optional [3b: outbound cache](step-3b-outbound-cache.md) can be introduced after

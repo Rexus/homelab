@@ -1,5 +1,8 @@
 # Enterprise Linux template on Proxmox
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+Run repository scripts from this root; Proxmox console commands run on the indicated host.
+
 **Design:** [image and guest variants](../../../architecture/compute/README.md).
 
 ## Table of contents
@@ -39,10 +42,6 @@ Version note:
 Use an official Generic Cloud `qcow2` image from AlmaLinux or Rocky Linux.
 These images already support cloud-init and fit Proxmox templates better than a
 full installer ISO.
-
-The template lifecycle runs from the Tier 0 root: `tier-0/` in a private source
-checkout or `<prefix>-tier-0/` after generation. Commands below use tier-local
-inputs and shared automation.
 
 Current repository note:
 

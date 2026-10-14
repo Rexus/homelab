@@ -1,5 +1,8 @@
 # Step 1c: Network HSM
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for issuer/client integration.
+Appliance commissioning uses the vendor procedure; no appliance installer is supplied.
+
 <a id="network-hsm-integration"></a>
 
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before creating production keys.

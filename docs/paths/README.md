@@ -16,6 +16,9 @@ These short checklists answer what to do from each repository. Design lives in
 | Shared | [Common automation](shared/README.md) | Reusable execution and references; no inventory or state |
 | Architecture | [Project records](../development/project-documentation.md) | Selected platform architecture, decisions and cross-repository procedures |
 
+Use the [repository map](../deployment/README.md#repository-locations) to translate
+these owners into generated checkout names and upstream source paths.
+
 ## Follow the model
 
 [Platform architecture](../architecture/README.md) ->

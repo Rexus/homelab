@@ -1,9 +1,72 @@
 """Design alternatives, staged realization and owned project records stay aligned."""
 
+import re
+
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 class ReaderRoles(TierRepositoryTestCase):
+    def test_deployment_guides_name_working_repositories_in_source_and_generated_docs(self):
+        self.generate()
+        source = UPSTREAM / "docs/deployment"
+        generated = self.root / "verify-architecture/docs/auto-docs/deployment"
+        for root in (source, generated):
+            index = (root / "README.md").read_text(encoding="utf-8")
+            self.assertIn("## Repository locations", index)
+            self.assertIn("Run repository scripts from the owning tier's root", index)
+            for name in ("tier-0", "tier-1", "tier-2", "shared", "architecture"):
+                self.assertIn(f"`<prefix>-{name}/`", index)
+            for name in ("tier-0", "tier-1", "tier-2", "shared"):
+                link = re.search(rf"\[{name}/\]\(([^)]+)\)", index)[1]
+                expected = UPSTREAM / name if root == source else self.root / f"verify-{name}"
+                self.assertEqual((root / link).resolve(), expected)
+            for document in root.glob("stage-*/**/*.md"):
+                opening = "\n".join(document.read_text(encoding="utf-8").splitlines()[:22])
+                self.assertRegex(opening, r"\*\*Working repository:\*\*|## Working repositories", str(document))
+                self.assertIn("<prefix>-tier-", opening, str(document))
+            for relative, owner in (
+                ("stage-1-foundation/step-3b-outbound-cache.md", "tier-2"),
+                ("stage-2-trust/step-1b-usb-hsm.md", "tier-0"),
+                ("stage-3-identity-runtime/procedures/freeipa.md", "tier-0"),
+                ("stage-4-control-services/step-2b-vault-vm.md", "tier-0"),
+                ("stage-4-control-services/step-2d-telemetry-vm.md", "tier-1"),
+                ("stage-5-delivery/step-1b-source-control-vm.md", "tier-1"),
+                ("stage-5-delivery/step-1c-podman-runner.md", "tier-1"),
+                ("stage-5-delivery/step-1d-image-based-linux.md", "tier-0"),
+                ("stage-5-delivery/procedures/edge-proxy.md", "tier-2"),
+            ):
+                content = (root / relative).read_text(encoding="utf-8")
+                self.assertIn(f"**Working repository:** `<prefix>-{owner}`", content)
+                self.assertNotIn("| Shared Ansible role |", content)
+        for tier in ("tier-0", "tier-1", "tier-2"):
+            readme = (self.root / f"verify-{tier}/README.md").read_text(encoding="utf-8")
+            self.assertIn(f"All entry points below belong to `verify-{tier}`", readme)
+            self.assertIn("deployment/README.md#repository-locations", readme)
+
+    def test_deployment_code_links_match_the_named_repository(self):
+        self.generate()
+        for docs, repos in (
+            (UPSTREAM / "docs/deployment", {name: UPSTREAM / name for name in
+                                           ("tier-0", "tier-1", "tier-2", "shared")}),
+            (self.root / "verify-architecture/docs/auto-docs/deployment",
+             {name: self.root / f"verify-{name}" for name in
+              ("tier-0", "tier-1", "tier-2", "shared")}),
+        ):
+            checked = 0
+            for document in docs.rglob("*.md"):
+                for line in document.read_text(encoding="utf-8").splitlines():
+                    row = re.match(r"\| (Tier [012]|Shared) \|", line)
+                    if not row:
+                        continue
+                    owner = row[1].lower().replace(" ", "-")
+                    for link in re.findall(r"\[[^\]]*\]\(([^)#]+)(?:#[^)]*)?\)", line):
+                        destination = (document.parent / link).resolve()
+                        if any(destination.is_relative_to(repo) for repo in repos.values()):
+                            self.assertTrue(destination.is_relative_to(repos[owner]),
+                                            f"{document}: {owner}: {link}")
+                            checked += 1
+            self.assertGreater(checked, 30)
+
     def test_architecture_views_connect_overview_domains_and_variants(self):
         root = UPSTREAM / "docs/architecture"
         overview = (root / "README.md").read_text()

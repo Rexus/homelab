@@ -1,5 +1,7 @@
 # Proxmox host networking
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+
 **Design:** [network boundaries](../../../architecture/networking/README.md).
 
 ## Table of contents

@@ -8,6 +8,17 @@ separate from hypervisor and cluster lifecycle authority.
 scoped credentials, protected state and tested recovery.
 **Owners:** Tier 2 workload definitions; Tier 0 privileged execution.
 
+## Working repositories
+
+| Work | Repository | IaC location inside that repository |
+| --- | --- | --- |
+| VM and workload definitions | `<prefix>-tier-2` | [terraform/deployments/lab/](../../../tier-2/terraform/deployments/lab/), [ansible/](../../../tier-2/ansible/) and [workloads/](../../../tier-2/workloads/) |
+| Workload cluster | `<prefix>-tier-2` | [terraform/deployments/kubernetes/](../../../tier-2/terraform/deployments/kubernetes/) and [clusters/tier2/](../../../tier-2/clusters/tier2/) |
+| Privileged request execution | `<prefix>-tier-0` | Project integration; no complete request controller is supplied |
+
+Run local operator commands from Tier 2's root. Tier 0 execution does not move
+these definitions, inventory or state into Tier 0 or Shared.
+
 ## Main path
 
 1. [Define the approved request](#step-1-define-the-approved-request)

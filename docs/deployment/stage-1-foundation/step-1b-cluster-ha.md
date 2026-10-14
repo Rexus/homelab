@@ -1,5 +1,7 @@
 # Step 1b: Proxmox cluster HA
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+
 <a id="proxmox-cluster-and-ha"></a>
 
 **Branch from:** [Step 1](README.md#step-1-prepare-compute-and-templates), before important guests exist.

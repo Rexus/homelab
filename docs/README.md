@@ -27,6 +27,10 @@ development and administration maintain it.
 5. Follow the [deployment stages](deployment/README.md), using verified
    existing services wherever they satisfy the prerequisites.
 
+Deployment guides name the working repository; the
+[repository map](deployment/README.md#repository-locations) connects Tier 0/1/2
+and Shared to generated checkouts and source directories.
+
 Generated repositories use the same architecture, deployment, development and
 administration folders for project-owned records. The architecture repository's
 `docs/auto-docs/` mirrors this upstream tree as reference material.

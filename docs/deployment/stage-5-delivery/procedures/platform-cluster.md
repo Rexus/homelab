@@ -1,5 +1,9 @@
 # Kubernetes platform path
 
+**Working repository:** `<prefix>-tier-1` (source: `tier-1/`) for the delivery platform.
+Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes/) and
+[clusters/tier1/](../../../../tier-1/clusters/tier1/); other clusters use their own tier repositories.
+
 **Design:** [delivery runtimes](../../../architecture/delivery/README.md).
 
 ## Table of contents
@@ -16,7 +20,7 @@
 Use this path when the private cloud needs an application runtime layer above
 the Proxmox VM foundation.
 
-For installation and node-OS choices, follow the shared
+For installation and node-OS choices, follow the common
 [Kubernetes cluster guide](../../stage-3-identity-runtime/procedures/kubernetes.md).
 Use the [Tier 1 checklist](../../../paths/tier-1/README.md) for platform services or the
 [Tier 0 checklist](../../../paths/tier-0/README.md) for the independent control cluster.

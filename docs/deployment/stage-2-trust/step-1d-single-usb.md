@@ -1,5 +1,8 @@
 # Step 1d: Single USB key device
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for issuer/device integration.
+Device initialization and custody are operator procedures, not a supplied installer.
+
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before creating keys.
 **Change:** use one host-local hardware device instead of a software key store.
 **Return:** [Step 2](README.md#step-2-establish-the-certificate-hierarchy) for intermediate signing and issuer verification.

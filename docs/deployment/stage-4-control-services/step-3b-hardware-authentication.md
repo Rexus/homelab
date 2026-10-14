@@ -1,5 +1,8 @@
 # Step 3b: Hardware-backed authentication
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for identity integration.
+Enrollment and authentication policy use product procedures; no complete installer is supplied.
+
 <a id="hardware-backed-user-authentication"></a>
 
 **Branch from:** [Step 3](README.md#step-3-integrate-access-and-recovery), after directory and recovery access work.

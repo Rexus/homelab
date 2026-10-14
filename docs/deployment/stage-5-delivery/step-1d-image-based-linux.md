@@ -1,5 +1,8 @@
 # Step 1d: Image-based Linux
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for image builders.
+Run repository scripts from this root; Tier 1 consumers keep their own workload definitions.
+
 <a id="image-based-linux-path"></a>
 
 **Branch from:** [Step 1](README.md#step-1-deploy-shared-delivery-services), when choosing the Tier 1 host lifecycle.
@@ -26,10 +29,6 @@
 
 Use this path to manage Linux servers from versioned
 operating-system images instead of ad hoc package changes on each host.
-
-Run deployment commands from the Tier 0 root: `tier-0/` in a private
-source checkout or `<prefix>-tier-0/` after generation. File paths below
-are tier-relative unless marked as shared code.
 
 The repository reference implementation is `bootc` for Fedora and Enterprise
 Linux-like systems: build a bootable OCI image, publish it to a registry,
@@ -102,12 +101,14 @@ Proxmox templates for immutable or image-based Linux hosts. The guide keeps the
 broader name "image-based Linux" because bootc is the current implementation,
 not the only possible model.
 
-| Layer | File | Responsibility |
+| Repository | Path inside that repository | Responsibility |
 | --- | --- | --- |
-| Terraform | `terraform/deployments/immutable-template/terraform.tfvars` | deploys the temporary template-builder VM |
-| Ansible inventory | `ansible/inventory/hosts.yml` | keeps the stable `immutable_template_builders` host group |
-| Ansible vars | `ansible/group_vars/immutable_template.yml` | controls bootc image, registry auth, CA trust, and cleanup |
-| Tier 0 Ansible role | `ansible/roles/immutable_template/` | installs bootc tooling and prepares the VM for template conversion |
+| Tier 0 | [terraform/deployments/immutable-template/](../../../tier-0/terraform/deployments/immutable-template/); local `terraform.tfvars` | Temporary template-builder VM |
+| Tier 0 | `ansible/inventory/hosts.yml` | Stable `immutable_template_builders` host group |
+| Tier 0 | `ansible/group_vars/immutable_template.yml` | bootc image, registry auth, CA trust and cleanup |
+| Tier 0 | [ansible/roles/immutable_template/](../../../tier-0/ansible/roles/immutable_template/) | bootc tooling and preparation for template conversion |
+| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common host preparation |
+| Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) | Execution helper called from Tier 0's root |
 
 The default is one builder VM named for the target template,
 `rhel-10-immu-tmpl`. The builder starts as a normal VM so Ansible can configure

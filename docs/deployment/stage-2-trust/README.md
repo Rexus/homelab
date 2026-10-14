@@ -6,7 +6,8 @@ it is an optional branch, not a prerequisite for the rest of the platform.
 
 **Prerequisites:** accepted [compute foundation](../stage-1-foundation/README.md),
 selected CA software, protected recovery storage and authorized custodians.
-**Owner:** Tier 0. **Design:** [certificate trust](../../architecture/reference-platform.md#certificate-trust).
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+**Design:** [certificate trust](../../architecture/reference-platform.md#certificate-trust).
 
 ## Main path
 
@@ -47,7 +48,8 @@ requirements. Size the replicated service for consumer traffic and availability,
 not merely because Vault or a registry has been installed.
 The HSM path remains Tier 0-owned and independently deployable in either form.
 
-The Tier 0 `foundation` root can provision the issuer host, but CA installation is
+Tier 0's [terraform/deployments/foundation/](../../../tier-0/terraform/deployments/foundation/)
+can provision the issuer host, but CA installation is
 operator integration. An existing independent issuer is also valid.
 
 ## Step 2: Establish the certificate hierarchy

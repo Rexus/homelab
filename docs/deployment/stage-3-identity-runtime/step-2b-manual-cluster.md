@@ -1,5 +1,9 @@
 # Step 2b: Manual cluster bootstrap
 
+**Working repository:** the cluster owner's `<prefix>-tier-0`, `<prefix>-tier-1`
+or `<prefix>-tier-2` (source: matching `tier-N/`). Stage 3 uses Tier 0;
+see the [cluster repository map](procedures/kubernetes.md#repository-locations).
+
 <a id="bootstrap-kubernetes-with-talos"></a>
 
 **Branch from:** [Step 2](README.md#step-2-create-the-kubernetes-cluster), instead of the supplied Terraform cluster lifecycle.

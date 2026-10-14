@@ -106,8 +106,8 @@ def copy_documentation(writer, prefix, upstream):
             destination = writer.root.parent / f"{prefix}-{parts[0]}" / Path(*parts[1:])
             return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
 
-        # Preserve Markdown and local doc links; only source-file destinations move between repos.
-        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012])/[^)#]+",
+        # Preserve local doc links; source files and repository roots move between repos.
+        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012])/[^)#]*",
                          relocate, content)
         project_docs = Path(os.path.relpath(writer.root / "docs/README.md",
                                            (writer.root / target).parent)).as_posix()

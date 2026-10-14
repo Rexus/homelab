@@ -8,6 +8,19 @@ it does not gain authority over Tier 0 merely by hosting the repositories.
 approved templates, tier-local inputs and an independent bootstrap/recovery environment.
 **Owners:** Tier 1 delivery services; Tier 2 public edge; Tier 0 privileged infrastructure execution.
 
+## Working repositories
+
+| Work | Repository | IaC location inside that repository |
+| --- | --- | --- |
+| Platform cluster and applications | `<prefix>-tier-1` | [terraform/deployments/kubernetes/](../../../tier-1/terraform/deployments/kubernetes/) and [clusters/tier1/](../../../tier-1/clusters/tier1/) |
+| Source-control VM and general runners | `<prefix>-tier-1` | [terraform/deployments/](../../../tier-1/terraform/deployments/) and [ansible/playbooks/deployment/](../../../tier-1/ansible/playbooks/deployment/) |
+| Public edge | `<prefix>-tier-2` | [terraform/deployments/edge/](../../../tier-2/terraform/deployments/edge/) and [ansible/playbooks/deployment/edge-proxy.yml](../../../tier-2/ansible/playbooks/deployment/edge-proxy.yml) |
+| Image builders | `<prefix>-tier-0` | [terraform/deployments/immutable-template/](../../../tier-0/terraform/deployments/immutable-template/) |
+| Protected runner and authorization | `<prefix>-tier-0` | Project integration; no complete runner/controller installer is supplied |
+
+Run each procedure from its named repository root. Shared supplies reusable execution
+code, not delivery-service inventory or infrastructure state; see [repository locations](../README.md#repository-locations).
+
 ## Main path
 
 1. [Deploy shared delivery services](#step-1-deploy-shared-delivery-services)

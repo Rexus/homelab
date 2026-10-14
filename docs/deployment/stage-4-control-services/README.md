@@ -5,7 +5,9 @@ FreeIPA and the issuing CA remain dedicated external services; Flux adds the ide
 broker, secrets, inventory documentation and operational tools.
 
 **Prerequisites:** accepted [identity and runtime](../stage-3-identity-runtime/README.md),
-service storage/backups and independent recovery inputs. **Owner:** Tier 0.
+service storage/backups and independent recovery inputs.
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+The telemetry VM option uses `<prefix>-tier-1` instead.
 **Design:** [identity](../../architecture/identity/README.md),
 [secrets](../../architecture/cryptography/README.md) and [operations](../../architecture/operations/README.md).
 
@@ -43,7 +45,9 @@ flowchart TB
 
 ## Step 1: Deploy identity federation
 
-Add reviewed Keycloak manifests in the Tier 0 cluster path. Configure its database,
+Add reviewed Keycloak manifests in Tier 0's
+[clusters/tier0/applications/keycloak/](../../../tier-0/clusters/tier0/applications/keycloak/).
+Configure its database,
 TLS and FreeIPA federation; verify group mappings before granting administrative
 roles. The directory remains independent of its broker.
 
@@ -52,6 +56,10 @@ Service manifests and integration remain project work; see the
 [support map](../../reference/implementation-support.md).
 
 ## Step 2: Deploy operational services
+
+Keep control-service manifests in Tier 0's
+[clusters/tier0/applications/](../../../tier-0/clusters/tier0/applications/),
+not in Shared. These paths are starters for project integration.
 
 Deploy Vault with its own persistent storage, initialization, audit and protected
 unseal/recovery material. It does not use CloudNativePG as its storage backend.

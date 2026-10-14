@@ -5,7 +5,8 @@ configures FreeIPA on VMs; cluster tooling establishes Kubernetes, then Flux and
 platform services. Keycloak and operational applications arrive in the next stage.
 
 **Prerequisites:** approved compute, templates, certificate trust, software supply,
-a reachable bootstrap source and independent credentials. **Owner:** Tier 0.
+a reachable bootstrap source and independent credentials.
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Design:** [identity authority](../../architecture/identity/README.md) and
 [cluster runtime](../../architecture/compute/README.md).
 
@@ -38,7 +39,9 @@ flowchart TB
 ## Step 1: Deploy the directory pair
 
 Follow the [FreeIPA procedure](procedures/freeipa.md). Add the identity VMs to the
-Tier 0 foundation root and inventory without removing the existing issuer definition.
+Tier 0 [foundation root](../../../tier-0/terraform/deployments/foundation/)
+and [inventory](../../../tier-0/ansible/inventory/hosts.yml.example)
+without removing the existing issuer definition.
 Verify the primary before joining the replica; test DNS and replication before
 replacing temporary bootstrap dependencies.
 
@@ -49,7 +52,9 @@ once their prerequisites exist. Preserve independent administrative credentials.
 
 Follow the [common cluster procedure](procedures/kubernetes.md), then the current
 [Talos Terraform implementation](procedures/talos-terraform.md). Set the tier-local
-inventory, endpoint and state, review the plan, and bootstrap the cluster.
+inventory, endpoint and state in Tier 0's
+[terraform/deployments/kubernetes/](../../../tier-0/terraform/deployments/kubernetes/),
+review the plan, and bootstrap the cluster.
 
 **Alternative:** [2b: manual bootstrap](step-2b-manual-cluster.md) replaces that lifecycle;
 it does not create a second state owner. Another OS requires its own implementation.
@@ -63,7 +68,8 @@ dependency order: networking, Flux, SOPS/bootstrap secrets, storage, certificate
 and database readiness. Connect certificate automation to the existing issuer through
 a supported integration.
 
-The add-on folders are starters. Supply reviewed manifests, verify reconciliation,
+Tier 0's [clusters/tier0/](../../../tier-0/clusters/tier0/) add-on folders are starters.
+Supply reviewed manifests, verify reconciliation,
 decryption, persistence, TLS and database health, and start backups as state appears.
 Flux requires a reachable source with independent credentials, not merely a local checkout.
 

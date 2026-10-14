@@ -1,5 +1,8 @@
 # Step 1c: SDN guest networks
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+Consuming tiers keep their own guest-network inputs.
+
 **Branch from:** [Step 1](README.md#step-1-prepare-compute-and-templates), before attaching guests.
 **Change:** use SDN VNets instead of direct bridge/VLAN guest attachments.
 **Design:** [network placement](../../architecture/networking/README.md).

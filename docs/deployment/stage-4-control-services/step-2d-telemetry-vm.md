@@ -1,5 +1,8 @@
 # Step 2d: Telemetry VMs
 
+**Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
+Run repository scripts from this root; paths below are repository-relative.
+
 <a id="deploy-the-telemetry-host-variant"></a>
 
 **Branch from:** [Step 2](README.md#step-2-deploy-operational-services), instead of the selected cluster telemetry components.
@@ -32,8 +35,12 @@ Control-cluster monitoring is a separate Tier 0 integration.
 
 ## IaC defaults
 
-`terraform/deployments/observability/` creates the VM foundations;
-`ansible/playbooks/observability.yml` applies the shared `baseline` role.
+| Repository | IaC location inside that repository | Supplied behavior |
+| --- | --- | --- |
+| Tier 1 | [terraform/deployments/observability/](../../../tier-1/terraform/deployments/observability/) | Creates the VM foundations |
+| Tier 1 | [ansible/playbooks/deployment/telemetry-hosts.yml](../../../tier-1/ansible/playbooks/deployment/telemetry-hosts.yml) | Applies the shared host baseline |
+| Tier 1 | [ansible/group_vars/observability.yml.example](../../../tier-1/ansible/group_vars/observability.yml.example) | Tier-local host/IP inputs |
+| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common OS preparation, not collector/backend installation |
 Neither installs collectors, backends, dashboards, or their integrations.
 Add service automation in Tier 1 before treating the stack as operational.
 High-availability expansion is represented as commented Terraform instances

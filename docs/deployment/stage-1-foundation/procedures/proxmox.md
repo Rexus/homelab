@@ -1,5 +1,7 @@
 # Proxmox platform
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+
 **Design:** [compute foundation](../../../architecture/compute/README.md).
 
 ## Table of contents

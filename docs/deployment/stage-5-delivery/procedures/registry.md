@@ -1,5 +1,9 @@
 # Deploy the selected registry variant
 
+**Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
+The cluster variant uses [clusters/tier1/platform/artifact-registry/](../../../../tier-1/clusters/tier1/platform/artifact-registry/);
+the integrated source-control variant uses Tier 1's `development` setup.
+
 **Design:** [artifact supply options A-C](../../../architecture/delivery/artifact-supply.md).
 **Prerequisites:** approved runtime, storage, TLS/DNS, identity policy and retained
 bootstrap artifacts. **Owner:** Tier 1. Registry integration is project-owned;

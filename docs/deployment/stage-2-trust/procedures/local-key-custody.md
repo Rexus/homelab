@@ -1,5 +1,8 @@
 # Local key custody
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for integration records.
+Custody operations run in the authorized environment; key material never belongs in Git.
+
 **Design:** [options A and B](../../../architecture/cryptography/hsm-selection.md).
 **Prerequisites:** approved key purpose, host boundary, backup policy and custodian.
 These procedures do not require replicated gateways or a published signing endpoint.

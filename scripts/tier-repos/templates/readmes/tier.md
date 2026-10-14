@@ -73,6 +73,10 @@ Start with a deployment's `main.tf`, then follow its module calls into
 See the [Terraform design map](${docs}/development/code-layout.md#terraform-structure)
 for file responsibilities and the inventory-to-resource flow.
 
+All entry points below belong to `${prefix}-${tier}`. Reusable execution code
+in `${prefix}-shared` does not own these deployments or their inventory and state.
+Upstream guides name their owners using the [repository map](${docs}/deployment/README.md#repository-locations).
+
 | Deployment | Terraform entry point | Host configuration or images |
 | --- | --- | --- |
 ${deployments}
