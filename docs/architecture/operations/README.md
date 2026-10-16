@@ -35,7 +35,9 @@ flowchart TB
 NetBox documents approved inventory; Headlamp supplies scoped cluster operations.
 Their interfaces complement telemetry without replacing tier-local bootstrap inputs
 or independent recovery records. General telemetry can be Tier 1-owned; Tier 0
-control visibility has an independently recoverable path.
+control visibility has an independently recoverable path. Syslog and audit evidence
+from every tier remain in protected Tier 0 custody; shared analytics receives only
+approved copies, with application-owner read scopes separate from security readers.
 
 ## Components and interfaces
 
@@ -44,6 +46,7 @@ control visibility has an independently recoverable path.
 | Inventory documentation | Describe deployed infrastructure; never replace tier-local bootstrap inputs |
 | Cluster interface | Expose scoped cluster operations; not blanket infrastructure administration |
 | Telemetry collectors | Receive, normalize and route signals under approved access policy |
+| Protected log intake | Accept all tiers' security submissions without granting archive queries, editing or deletion |
 | Signal backends | Store metrics, traces, logs and audit records according to purpose and retention |
 | Recovery storage | Retain backups and restore evidence outside the service being recovered |
 | Workload governance | Isolate consumers and authorize changes without transferring Tier 0 control |
@@ -88,12 +91,15 @@ A central dashboard alone is insufficient for independent failure detection.
 
 - [Runtime flows](../runtime-flows.md#data-visibility-and-recovery) connects service data, visibility and recovery across domains.
 - [Telemetry design](telemetry.md) expands collection, signal backends, retention and placement alternatives.
+- [Security logging](security-logging.md) owns append-only submission, segmented reads and the evidence durability contract.
 - [Service boundaries](../service-boundaries.md) defines shared and isolated operational services.
 - [Workload request contract](../compute/provisioning.md) connects governance to privileged execution.
 - [Component allocation](../reference-platform.md#service-placement) locates inventory, cluster interfaces and supporting services.
 
 ## Realization
 
-Implementation procedures: [operational services](../../deployment/stage-4-control-services/README.md#step-2-deploy-operational-services)
+Implementation procedures: [foundational logging](../../deployment/stage-1-foundation/procedures/syslog.md),
+[observability growth](../../deployment/stage-4-control-services/procedures/observability.md),
+[operational services](../../deployment/stage-4-control-services/README.md#step-2-deploy-operational-services)
 and [operational acceptance](../../deployment/stage-4-control-services/README.md#step-3-integrate-access-and-recovery).
 Recurring work belongs in [administration](../../administration/README.md).

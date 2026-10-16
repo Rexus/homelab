@@ -1,6 +1,6 @@
 # Stage 1: Compute foundation
 
-Establish Proxmox, networks, VM templates and independent bootstrap access.
+Establish Proxmox, networks, VM templates, independent bootstrap access and protected log intake.
 At the end of this stage, the workstation can create and recover the first guests
 without Kubernetes, hosted source control or identity services.
 
@@ -16,6 +16,7 @@ The optional cache branch uses `<prefix>-tier-2` instead.
 1. [Prepare hosts and networks](#step-1-prepare-hosts-and-networks)
 2. [Protect provisioning access and state](#step-2-protect-provisioning-access-and-state)
 3. [Publish and test VM templates](#step-3-publish-and-test-vm-templates)
+4. [Establish protected logging](#step-4-establish-protected-logging)
 
 ```mermaid
 flowchart TB
@@ -26,8 +27,10 @@ flowchart TB
     PVE["Proxmox<br/>Compute and storage"]
     Templates["Approved Linux and Kubernetes node templates"]
     Bootstrap["Optional bootstrap / recovery VM<br/>management network"]
+    Logs["Independent Tier 0 syslog intake<br/>Protected evidence and recovery"]
     Network --- PVE
     PVE --> Templates --> Bootstrap
+    Templates --> Logs
   end
   Admin <--> State
   Admin -->|Configure| Network
@@ -80,10 +83,22 @@ its VM prerequisites exist; it remains Tier 2-owned and cannot be its own bootst
 Before the later Kubernetes stage starts Flux, provide a reachable approved Git or OCI
 source with independent credentials. A local checkout is not itself a reachable Flux source.
 
+## Step 4: Establish protected logging
+
+Follow [foundational syslog](procedures/syslog.md) from the Tier 0 repository.
+Begin outside Kubernetes, then accept redundant intake, durable queues and
+protected evidence before relying on critical audit records. The starter provisions
+VMs/disks and baseline only; receiver/retention integration is separate project work.
+
+Connect infrastructure sources now and each tier's security/audit sources as they
+appear. Producers can append through scoped intake, not read/edit/delete evidence.
+Future [monitoring and shared search](../stage-4-control-services/procedures/observability.md)
+extend this capability without taking custody of the raw archive.
+
 ## Capability available
 
 **Result:** independently recoverable virtualization with tested templates and enforced
-network boundaries, realizing the compute portion of the
+network boundaries and protected foundational logging, realizing the compute and evidence portions of the
 [reference platform](../../architecture/reference-platform.md#service-placement).
 
 Record template boot, network allow/deny and state-restore evidence. Continue with

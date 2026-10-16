@@ -36,7 +36,7 @@ These services give later projects a common base:
 | identity | one user and group authority for operators, services, and automation |
 | PKI | trusted certificates for internal TLS, mTLS, service identity, and device identity |
 | secret platform | one controlled place for long-lived secrets, tokens, and service credentials |
-| observability and syslog | one place to see health, audit trails, security events, and capacity |
+| observability and syslog | Tier 0 evidence custody and critical visibility; Tier 1 approved search copies and scoped application diagnostics |
 
 This is not only convenience. It also removes many weak defaults:
 
@@ -170,7 +170,7 @@ Use this split:
 | issuing CA | shared per trust boundary | project requires separate certificate policy or key custody |
 | secret platform | shared early | project requires separate secret administration or blast-radius boundary |
 | observability | shared early | project has strict isolation, high-risk data, or separate retention policy |
-| syslog/security archive | shared with clear source tagging | regulated or high-risk project needs independent archive custody |
+| syslog/security archive | Tier 0-owned; all tiers submit through scoped intake; raw reads restricted | additional custody separation or stricter retention is required |
 | application platform | shared first, then multiplied where needed | teams or projects need source control, CI/CD, GitOps, Kubernetes, or isolated runtime boundaries |
 
 The default private-cloud path is a shared service backbone with isolated

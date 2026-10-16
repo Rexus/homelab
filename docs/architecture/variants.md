@@ -57,7 +57,7 @@ overview does not accumulate every possible optional box.
 | Approved software supply | Approved egress, cache, mirror or offline content; shared or dedicated supply | [Delivery](delivery/README.md) |
 | Artifact authority | Integrated registry, independent registry, or independent registry with distribution acceleration | [Artifacts](delivery/artifact-supply.md) |
 | Application delivery | Tier 0 Flux; unselected Tier 1 Argo CD or Spinnaker; scoped Tier 2 delivery | [Controller patterns](delivery/controllers.md) |
-| Operational visibility | VM, cluster or existing telemetry; shared or isolated retention/access | [Telemetry](operations/telemetry.md) |
+| Operational visibility | Independent Tier 0 logging/critical monitoring; Tier 1 shared analytics; VM, cluster or existing runtime | [Telemetry](operations/telemetry.md), [protected evidence](operations/security-logging.md) |
 | Resource changes | Reviewed protected operator execution or a separately implemented bounded request service | [Infrastructure control](compute/provisioning.md) |
 
 Selection is per component and decision, not one global option letter. Root-key

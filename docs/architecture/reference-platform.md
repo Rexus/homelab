@@ -44,16 +44,19 @@ flowchart TB
       Delivery["Platform cluster: source control, registry and general CI"]
       Supply["DMZ: general build runners and authoritative mirrors"]
       WorkloadManagement["Scoped workload-cluster management when selected"]
+      Analytics["Shared analytics: approved log copies, traces and metrics"]
     end
     subgraph T0["Tier 0: infrastructure and trust"]
       M["Management VMs: protected runner, IaC state, recovery tools"]
       I["Dedicated directory VM pair"]
       K["Control cluster: identity provider, secrets, inventory and visibility"]
       C["Online issuer and selected key provider"]
+      Evidence["Independent log intake and protected evidence<br/>Critical monitoring and alerts"]
       M ~~~ I
       M ~~~ K
       I ~~~ C
       K ~~~ C
+      M ~~~ Evidence
     end
     Workloads ~~~ Delivery ~~~ M
   end
@@ -81,7 +84,8 @@ controlled environment; a VM or VLAN label alone does not establish an air gap.
 | Secrets | Vault inside the Tier 0 cluster; independent recovery/unseal material | [Secret service and seal](cryptography/vault-seal.md) |
 | Tier 0 cluster services | Flux, CNI, DNS, SOPS bootstrap inputs, storage, cert-manager, ingress and CloudNativePG HA | [Kubernetes topology](compute/kubernetes.md); separate cluster owners and state |
 | Inventory and scoped control UI | NetBox and Headlamp in Tier 0; bootstrap inputs retained independently | [Operations](operations/README.md) |
-| Visibility | Tier 0 monitoring/syslog/audit, with independent failure detection; separate shared/project telemetry as required | [Telemetry](operations/telemetry.md) |
+| Security evidence | Tier 0 private receivers and protected archive; all tiers submit, only authorized administrator/security roles read raw evidence | [Security logging](operations/security-logging.md) |
+| Monitoring and investigation | Tier 0 critical metrics/alerts and Netdata diagnostics; Tier 1 OpenSearch/Dashboards and shared metrics; Tier 2 collectors with scoped application views | [Telemetry](operations/telemetry.md) |
 | Source and artifacts | GitLab and Harbor in the Tier 1 platform cluster | [Artifact authority and delivery](delivery/artifact-supply.md) |
 | General builds and mirrors | Tier 1 DMZ runners and authoritative mirrors using scoped source/artifact access | [Application delivery](runtime-flows.md#application-delivery) |
 | Application delivery | Tier 0 Flux; Tier 1 Argo CD or Spinnaker remains unselected | [Delivery controller patterns](delivery/controllers.md) |
@@ -219,7 +223,9 @@ Detailed variants link to their own realization procedures inside the domains.
 | Infrastructure, network attachment and approved templates | [Compute foundation](../deployment/stage-1-foundation/README.md) |
 | Offline trust and online issuance | [Cryptographic trust](../deployment/stage-2-trust/README.md) |
 | Directory, Kubernetes and base cluster services | [Identity and runtime](../deployment/stage-3-identity-runtime/README.md) |
-| Federation, secrets, inventory and visibility | [Control services](../deployment/stage-4-control-services/README.md) |
+| Protected syslog and audit evidence | [Foundational logging](../deployment/stage-1-foundation/procedures/syslog.md) |
+| Federation, secrets, inventory and critical visibility | [Control services](../deployment/stage-4-control-services/README.md) |
+| Shared analytics and scoped application diagnostics | [Observability additions](../deployment/stage-4-control-services/procedures/observability.md) |
 | Shared delivery, published endpoints and protected execution handover | [Delivery and handover](../deployment/stage-5-delivery/README.md) |
 | Approved project runtimes and application reconciliation | [Workload provisioning](../deployment/stage-6-workloads/README.md) |
 

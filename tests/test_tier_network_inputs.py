@@ -20,7 +20,7 @@ class NetworkInputs(TierRepositoryTestCase):
         local_application = {"bridge": "tier-app", "cidr_ipv4": "192.0.2.0/25",
                              "gateway_ipv4": "192.0.2.126"}
         for tier, setup, private_keys in (
-            ("tier-0", "foundation", {"identity", "cryptography"}),
+            ("tier-0", "foundation", {"management", "identity", "cryptography"}),
             ("tier-1", "development", {"observability", "storage", "telemetry_gateway",
                                         "security_telemetry", "delivery_edge"}),
             ("tier-2", "lab", {"external_edge"}),

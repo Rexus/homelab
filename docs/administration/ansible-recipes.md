@@ -39,6 +39,7 @@ The signing play is a gated backend renderer, not a service, VIP or HA installer
 | Tier / setup | Deployment recipe | Maintenance recipe and scope |
 | --- | --- | --- |
 | 0 / `foundation` | `deployment/identity-freeipa.yml` | `maintenance/foundation.yml`: read-only directory service/API checks |
+| 0 / `syslog` | `deployment/foundation-logging.yml` | `maintenance/syslog.yml`: OS baseline only, not receiver/retention changes |
 | 0 / `vault` | `deployment/vault-vm.yml` | `maintenance/vault.yml`: reconcile existing role configuration |
 | 0 / `hsm` | `deployment/hsm-gateways.yml` | `maintenance/hsm.yml`: OS baseline only, no gateway/key operations |
 | 0 / `immutable-template` | `deployment/immutable-template.yml` | Existing builder recipe, with its current gates |

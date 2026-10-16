@@ -2,6 +2,9 @@
 # Replace every value before use.
 # Setup guide: docs/deployment/stage-4-control-services/step-2d-telemetry-vm.md
 # Shared values live in ../../common.tfvars.
+# Optional VM realization, not the main Kubernetes observability deployment.
+# Tier 0 owns foundational receivers and authoritative security evidence.
+# These VMs receive approved copies/operational data; they are not immutable custody.
 
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
@@ -42,14 +45,16 @@ vm_instances = {
   #   network_zone_key = "security_telemetry"
   #   tags             = ["syslog", "restricted", "always-on", "security"]
   # }
-  "health-1" = {
-    vm_id            = 270
-    size             = "medium"
-    storage_class    = "local"
-    disk_size_gb     = 100
-    network_zone_key = "observability"
-    tags             = ["netdata", "internal", "always-on", "platform"]
-  }
+  # Optional lower-tier Netdata parent only when separately justified.
+  # The foundational parent belongs to Tier 0, not this setup.
+  # "health-1" = {
+  #   vm_id            = 270
+  #   size             = "medium"
+  #   storage_class    = "local"
+  #   disk_size_gb     = 100
+  #   network_zone_key = "observability"
+  #   tags             = ["netdata", "internal", "always-on", "platform"]
+  # }
   "metrics-1" = {
     vm_id            = 400
     size             = "large"
@@ -58,14 +63,16 @@ vm_instances = {
     network_zone_key = "observability"
     tags             = ["victoriametrics", "internal", "always-on", "platform"]
   }
-  "apm-1" = {
-    vm_id            = 401
-    size             = "large"
-    storage_class    = "shared"
-    disk_size_gb     = 1000
-    network_zone_key = "observability"
-    tags             = ["signoz", "clickhouse", "internal", "always-on", "apps"]
-  }
+  # Legacy alternative: SigNoZ/ClickHouse is not part of the reference stack.
+  # Existing deployments keep their local inputs/state; do not remove live hosts on refresh.
+  # "apm-1" = {
+  #   vm_id            = 401
+  #   size             = "large"
+  #   storage_class    = "shared"
+  #   disk_size_gb     = 1000
+  #   network_zone_key = "observability"
+  #   tags             = ["signoz", "clickhouse", "internal", "always-on", "apps"]
+  # }
   "logs-1" = {
     vm_id            = 410
     size             = "large"
@@ -99,6 +106,7 @@ vm_instances = {
     tags             = ["opensearch-dashboards", "internal", "always-on", "platform"]
   }
   "archive-1" = {
+    # Operational exports only; never the authoritative Tier 0 security archive.
     vm_id            = 272
     size             = "small"
     storage_class    = "local"

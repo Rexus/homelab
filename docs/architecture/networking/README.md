@@ -167,7 +167,7 @@ purposes in the Proxmox examples.
 | `application` | internal shared services and workloads | 120 / `10.20.20.0/24` | Services |
 | `application` in the lab repo | isolated lab workloads | 420 / `10.42.20.0/24` | Services or separate Lab policy |
 | `access` | application-only access and SSO front ends | 11 / `10.10.11.0/24` | Services; privileged interfaces need Control protection |
-| `management` | Proxmox API/UI, bastions, protected runners | 10 / `10.10.10.0/24` | Control |
+| `management` | Proxmox API/UI, bastions, protected runners and bootstrap log receivers | 10 / `10.10.10.0/24` | Control |
 | `identity` | directory authority, DNS, Kerberos | 12 / `10.10.12.0/24` | Control |
 | `control_cluster` | control-cluster nodes and private API | 13 / `10.10.13.0/24` | Control |
 | `cryptography` | online issuer, privileged secrets, HSM gateways | 220 / `10.20.21.0/24` | Control |
@@ -179,7 +179,7 @@ Additional networks are introduced only when needed:
 | --- | --- | --- |
 | `observability` | 130 | telemetry backends and dashboards in Services |
 | `telemetry_gateway` | 230 | scoped telemetry intake in Services |
-| `security_telemetry` | 231 | restricted audit/log intake |
+| `security_telemetry` | 231 | Tier 1 processing/intake, not authoritative Tier 0 evidence custody |
 | `corosync` | 20 | non-routed Proxmox quorum fabric |
 | `ceph_public` | 21 | non-routed storage client fabric; not public Internet |
 | `ceph_cluster` | 22 | non-routed storage replication fabric |

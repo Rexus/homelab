@@ -247,11 +247,12 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 | Setup | What it targets | Start with |
 | --- | --- | --- |
 | `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../deployment/stage-3-identity-runtime/procedures/freeipa.md) |
+| `syslog` | Tier 0 receiver VMs/disks and baseline only; not an HA/WORM installer | [Foundational logging](../deployment/stage-1-foundation/procedures/syslog.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
 | `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../deployment/stage-1-foundation/step-3b-outbound-cache.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-5-delivery/step-1b-source-control-vm.md) |
 | `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-4-control-services/step-2b-vault-vm.md) |
-| `observability` | system-control telemetry, syslog, metrics, logs, and archive hosts | [Observability path](../deployment/stage-4-control-services/step-2d-telemetry-vm.md) |
+| `observability` | Tier 1 optional VM foundations for shared telemetry/copies, not raw evidence custody | [Observability VM alternative](../deployment/stage-4-control-services/step-2d-telemetry-vm.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../deployment/stage-5-delivery/step-1c-podman-runner.md) |
 | `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../deployment/stage-5-delivery/step-1d-image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/stage-1-foundation/procedures/enterprise-linux-template.md) |

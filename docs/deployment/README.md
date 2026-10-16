@@ -8,11 +8,11 @@ the end, and links back to the architecture it implements.
 
 | Stage | Capability available | Working repository | Walkthrough |
 | --- | --- | --- | --- |
-| 1: Compute foundation | Proxmox, networks, VM templates and independent provisioning tools/state | Tier 0; optional cache in Tier 2 | [Foundation](stage-1-foundation/README.md) |
+| 1: Compute foundation | Proxmox, networks, templates, independent provisioning and protected log intake | Tier 0; optional cache in Tier 2 | [Foundation](stage-1-foundation/README.md) |
 | 2: Cryptographic trust | Offline root custody and an online issuing service | Tier 0 | [Trust](stage-2-trust/README.md) |
 | 3: Identity and Kubernetes | Dedicated directory pair and the Tier 0 cluster with basic platform services | Tier 0 | [Identity and Kubernetes](stage-3-identity-runtime/README.md) |
 | 4: Control services | Federated access, secrets, inventory documentation and visibility | Tier 0; optional telemetry VMs in Tier 1 | [Control services](stage-4-control-services/README.md) |
-| 5: Delivery and handover | Source control, artifacts, builds and protected infrastructure execution | Tier 1 delivery; Tier 2 edge; Tier 0 execution | [Delivery and handover](stage-5-delivery/README.md) |
+| 5: Delivery and handover | Source control, artifacts, builds, shared analytics and protected infrastructure execution | Tier 1 platform; Tier 2 edge; Tier 0 execution | [Delivery and handover](stage-5-delivery/README.md) |
 | 6: Workload provisioning | Approved Tier 2 runtime and application deployment | Tier 2 definitions; Tier 0 execution | [Workload provisioning](stage-6-workloads/README.md) |
 
 For a new installation, follow this order. Existing infrastructure can satisfy a

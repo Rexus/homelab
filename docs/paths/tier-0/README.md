@@ -21,7 +21,7 @@ options branch from the relevant decision and return to the main path.
 
 | Stage | Tier 0 responsibility | Walkthrough |
 | --- | --- | --- |
-| **1: Compute foundation** | Proxmox, networks, templates and independent tools/state | [Foundation](../../deployment/stage-1-foundation/README.md) |
+| **1: Compute foundation** | Proxmox, networks, templates, independent tools/state and protected logging | [Foundation](../../deployment/stage-1-foundation/README.md) |
 | **2: Cryptographic trust** | Offline root and online issuer; optional hardware protection | [Trust](../../deployment/stage-2-trust/README.md) |
 | **3: Identity and Kubernetes** | Dedicated FreeIPA pair and control cluster | [Identity and Kubernetes](../../deployment/stage-3-identity-runtime/README.md) |
 | **4: Control services** | Keycloak, Vault, NetBox, Headlamp and monitoring | [Control services](../../deployment/stage-4-control-services/README.md) |
@@ -46,6 +46,8 @@ to configure, plan, publish, and test images. Tier 0 approves references in the
 [shared catalog](../../reference/template-catalog.md); other tiers consume them.
 Verified existing templates are valid. No hosted CI or cluster is required.
 
+After templates, establish [foundational syslog](../../deployment/stage-1-foundation/procedures/syslog.md)
+with the Tier 0 `syslog` setup. Receiver/HA/retention installation remains project integration.
 After the trust stage, initialize the Kubernetes control cluster:
 
 ```bash

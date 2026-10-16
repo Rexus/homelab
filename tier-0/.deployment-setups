@@ -1,4 +1,5 @@
 foundation
+syslog
 vault
 hsm
 immutable-template

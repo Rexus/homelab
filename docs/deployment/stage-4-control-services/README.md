@@ -30,7 +30,7 @@ flowchart TB
     direction LR
     Keycloak["Keycloak<br/>Directory federation, OIDC / MFA"]
     Vault["Vault<br/>Secrets / supported PKI integration"]
-    Ops["NetBox, Headlamp<br/>Monitoring, syslog and audit"]
+    Ops["NetBox, Headlamp<br/>Critical monitoring integration"]
     Keycloak ~~~ Vault ~~~ Ops
   end
   Existing -->|Flux deploys reviewed service manifests| Added
@@ -66,9 +66,12 @@ unseal/recovery material. It does not use CloudNativePG as its storage backend.
 **Alternative:** [2b: dedicated Vault VM](step-2b-vault-vm.md) replaces the cluster instance.
 [2c: seal integration](step-2c-seal-integration.md) changes unseal/recovery, not PKI signing.
 
-Add NetBox with its database/cache dependencies, Headlamp with scoped permissions,
-and monitoring/syslog/audit with failure detection outside the control-cluster
-failure domain. [2d: telemetry VMs](step-2d-telemetry-vm.md) is an alternative runtime.
+Add NetBox with its database/cache dependencies and Headlamp with scoped permissions.
+Extend the existing Tier 0 log capability with
+[critical monitoring](procedures/observability.md#1-add-independent-foundation-monitoring).
+Required cluster-loss detection stays outside the observed cluster. Shared analytics
+is added with the Tier 1 platform, not as a prerequisite for Tier 0 operation.
+[2d: telemetry VMs](step-2d-telemetry-vm.md) is its explicit VM alternative.
 
 NetBox documents inventory. It never supplies the inventory needed to bootstrap
 its own platform. Test backups and restoration before other tiers depend on these services.

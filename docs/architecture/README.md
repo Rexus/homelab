@@ -66,6 +66,7 @@ block-beta
   space:2 Artifacts["Artifact registry"] space
   space:2 Delivery["Application delivery"] space
   space:2 WorkloadManagement["Workload-cluster<br/>management"] space
+  space:2 Analytics["Shared analytics<br/>Scoped application diagnostics"] space
   T0["Tier 0<br/>Infrastructure / trust"]
   space:2
   IdM["Directory authority<br/>IdM"]
@@ -74,6 +75,7 @@ block-beta
   space:3 Secrets["Secrets management"]
   space:3 Infrastructure["Infrastructure control"]
   space:3 Operations["Inventory and<br/>control visibility"]
+  space:3 Evidence["Protected log intake<br/>Security / audit evidence"]
   Custodians["Tier 0 custody"]
   Offline["Offline root / recovery custody<br/>Outside connected layers"]:3
   classDef axis fill:#e5e7eb,stroke:#64748b,color:#111827
@@ -104,6 +106,8 @@ Offline custody is outside the connected layers, not another routed zone.
 | Secrets management | Scoped credential delivery and independent recovery | [Cryptography](cryptography/README.md) |
 | Infrastructure control | Authorized compute, network, storage and image lifecycle | [Compute](compute/README.md), [networking](networking/README.md) |
 | Inventory and control visibility | Infrastructure records, health, audit and recovery evidence | [Operations](operations/README.md) |
+| Protected security logging | All tiers submit; restricted raw-evidence reads and enforced retention remain Tier 0-owned | [Security logging](operations/security-logging.md) |
+| Shared analytics | Tier 1 investigates approved copies; developers query only their application scope | [Telemetry](operations/telemetry.md) |
 | Source control | Reviewed definitions and change proposals | [Delivery](delivery/README.md) |
 | Artifact registry | Approved versions and scoped artifact access | [Artifact supply](delivery/artifact-supply.md) |
 | Build execution | Tier 1 DMZ runners produce candidate artifacts with scoped credentials | [Delivery](delivery/README.md) |

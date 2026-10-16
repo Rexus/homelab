@@ -194,7 +194,9 @@ flowchart TB
   Independent -->|Independent failure alert| Operators
 ```
 
-General shared telemetry may belong to Tier 1. Tier 0 retains the detection and
+General shared telemetry may belong to Tier 1. All tiers submit security/audit
+records to [protected Tier 0 logging](operations/security-logging.md); Tier 1
+searches approved projections with segmented reader scopes. Tier 0 retains the detection and
 evidence required to operate and recover without that service. Intake permission
 does not grant backend administration or access to every producer's records.
 NetBox documents the environment; tier-local bootstrap inventory remains

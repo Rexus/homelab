@@ -22,7 +22,7 @@ class ReaderRoles(TierRepositoryTestCase):
                 self.assertEqual((root / link).resolve(), expected)
             for document in root.glob("stage-*/**/*.md"):
                 opening = "\n".join(document.read_text(encoding="utf-8").splitlines()[:22])
-                self.assertRegex(opening, r"\*\*Working repository:\*\*|## Working repositories", str(document))
+                self.assertRegex(opening, r"\*\*Working repositor(?:y|ies):\*\*|## Working repositories", str(document))
                 self.assertIn("<prefix>-tier-", opening, str(document))
             for relative, owner in (
                 ("stage-1-foundation/step-3b-outbound-cache.md", "tier-2"),

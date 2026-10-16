@@ -1,0 +1,7 @@
+---
+# Host convergence only, not receiver upgrades or archive retention changes.
+- name: Reconcile foundational logging host baseline
+  hosts: foundation_logging
+  become: true
+  roles:
+    - baseline

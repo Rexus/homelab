@@ -28,7 +28,7 @@ not separate zones for every repo. The codes are possible rule types below,
 
 | Source / destination | DMZ | Services | Control |
 | --- | --- | --- | --- |
-| **DMZ** | P, E, S | I, S | S |
+| **DMZ** | P, E, S | I, S | S, W |
 | **Services** | E | P, S, M | S, W |
 | **Control** | A, M, E | A, M, S | P, A, S, W |
 
@@ -80,11 +80,17 @@ Example rules, using addresses from the local plan:
 | `apps-to-cache` | approved app hosts | cache VIP | TCP `3128` for the reference proxy |
 | `clients-to-web` | Tier 2 client subnet | published application VIPs | configured HTTPS listener |
 | `runner-to-source` | Tier 1 DMZ runner IPs | approved source/registry endpoints | configured HTTPS listener |
+| `sources-to-security-logs` | registered producers/relays from each tier | Tier 0 log-intake IPs only | selected authenticated submission listener; not archive read/admin APIs |
 | `admin-to-platform` | Tier 0 bastion/runner IPs | platform admin API | configured listener; scoped admin identity |
 
 These are not the complete requirements of an identity or cluster deployment.
 Derive other ports from the actual service configuration. A network allow
 does not replace authentication or authorization.
+
+All tiers can submit security records under the
+[logging contract](../operations/security-logging.md). This exception grants
+append-only service submission, never general DMZ-to-Control or storage access.
+Developer queries target approved Tier 1 application-log views, not Tier 0 raw evidence.
 
 Record each rule's reason, source/destination objects, protocol/ports, IP family,
 enforcement point, owner, and positive/negative tests. Give temporary rules an expiry.
@@ -132,8 +138,8 @@ owns the change sequence and test matrix.
 
 ## References
 
-Sources checked 2026-09-19.
+Sources checked 2026-10-16.
 
 1. [NIST SP 800-41 Rev. 1: Guidelines on Firewalls and Firewall Policy](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-41r1.pdf)
 2. [Ubiquiti: Implementing Network and Client Isolation](https://help.ui.com/hc/en-us/articles/18965560820247-Implementing-Network-and-Client-Isolation-in-UniFi)
-3. [RFC 4890: Recommendations for Filtering ICMPv6 Messages in Firewalls](https://www.rfc-editor.org/info/rfc4890/)
+3. [RFC 4890: Recommendations for Filtering ICMPv6 Messages in Firewalls](https://www.rfc-editor.org/rfc/rfc4890.html)

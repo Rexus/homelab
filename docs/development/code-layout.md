@@ -220,6 +220,7 @@ replaces setup-name dashes with underscores.
 | Owner | Setup | Guide |
 | --- | --- | --- |
 | `tier-0` | `foundation` | [Identity](../deployment/stage-3-identity-runtime/procedures/freeipa.md) |
+| `tier-0` | `syslog` | [Independent protected log hosts](../deployment/stage-1-foundation/procedures/syslog.md) |
 | `tier-0` | `vault` | [Vault](../deployment/stage-4-control-services/step-2b-vault-vm.md) |
 | `tier-0` | `hsm` | [HSM scope and connected adaptation](../deployment/stage-2-trust/step-1b-usb-hsm.md) |
 | `tier-0` | `immutable-template` | [Image-based Linux](../deployment/stage-5-delivery/step-1d-image-based-linux.md) |

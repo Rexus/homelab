@@ -11,6 +11,11 @@ all:
   children:
     hypervisors:
       hosts: {}
+    foundation_logging:
+      hosts:
+        foundation-log-1: {}
+        # Required redundancy before accepting the HA security-logging contract.
+        # foundation-log-2: {}
     foundation:
       children:
         identity: null
@@ -67,6 +72,7 @@ all:
       hosts: {}
     guests:
       children:
+        foundation_logging: null
         foundation: null
         vault: null
         hsm_gateways: null

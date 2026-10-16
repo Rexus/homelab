@@ -18,6 +18,7 @@ or recovery dependencies requires a design review before execution.
 | Publish, test and promote image revisions | [Template lifecycle](compute/template-lifecycle.md) |
 | Add cluster capacity and reserve worker pools | [Kubernetes pools](compute/kubernetes-pools.md) |
 | Maintain signing gateways and key replicas | [USB HSM maintenance](cryptography/usb-hsm.md) |
+| Verify security evidence, reader scopes and durability | [Security logging](security-logging.md) |
 | Protect bootstrap and runtime secrets | [Secret strategy](secret-handling/strategy.md), [Ansible Vault](secret-handling/ansible-vault.md) |
 
 Record approvals, schedules, restore evidence and rollback procedures in the

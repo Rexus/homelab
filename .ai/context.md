@@ -91,6 +91,16 @@ This file keeps durable context for AI-assisted work across sessions.
   its authoritative contract is docs/architecture/compute/provisioning.md
 - docs/deployment/README.md indexes six capability stages: compute foundation, cryptographic trust,
   identity and Kubernetes, control services, delivery and handover, and workload provisioning
+- protected syslog/audit intake starts in Stage 1 on independent Tier 0 VMs;
+  syslog setup supplies VM/disk provisioning and baseline only, not receiver/HA/WORM installation
+- all tiers submit security records to narrow authenticated Tier 0 intake; producers append only,
+  explicitly authorized administrator/security roles read raw evidence, and retention custody is separate
+- Tier 1 holds approved searchable projections with per-application developer scopes, never raw archive authority;
+  trusted source attribution, index permissions and read auditing enforce segmentation, not UI tenants alone
+- reference observability is Tier 0 critical monitoring/Netdata parent plus Tier 1 OpenSearch/Data Prepper,
+  shared VictoriaMetrics/alerting and Tier 2 collectors; no default SigNoZ/ClickHouse or full per-tier stack
+- one receiver is bootstrap only; HA acceptance specifies durable acknowledgement/replication semantics,
+  independent failure domains, bounded queues and protected retention; UDP and source-loss gaps stay explicit
 - each stage has a main README with numbered local steps, diagrams, a capability result,
   and links to the static architecture; only the initial compute foundation is bootstrap
 - deployment guides name the working generated repository and upstream source directory near the top;

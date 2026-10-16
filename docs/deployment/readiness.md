@@ -63,7 +63,8 @@ Hardware expense, node count and successful VM creation do not establish a level
 | Cryptography | Cryptographic trust; control services | Authorized/denied signing, state/session correctness, host/USB loss, selected VIP partition behavior, Tier 1/2 independence and offline restore |
 | Identity | Identity/runtime; control services | Replication, scoped federation, denied access, replica/broker loss and lost-credential recovery |
 | Traffic and delivery | Compute foundation; delivery and handover | Scoped publication/pulls, promotion, rollback, endpoint failover and recovery artifacts |
-| Operations | Backups from compute foundation; visibility in control services | Ingestion, retention, scoped queries, external failure detection and restore exercises |
+| Protected logging | Compute foundation; sources added with each tier | Numbered-event accounting, durable commit, receiver/host loss, retention-lock denial, segmented reads and independent restore |
+| Monitoring and analytics | Critical monitoring in control services; shared analytics with the Tier 1 platform | Independent foundation alerts, approved projections, scoped application queries and bounded queue replay |
 
 The directory and broker, or issuer and seal provider, may have different readiness.
 Each stage records acceptance and operational handover; later stages do not postpone basic protection and

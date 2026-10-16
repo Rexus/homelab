@@ -11,6 +11,12 @@
 # SDN: use the VNet ID as bridge, without a second VLAN tag.
 # Non-SDN: use a VLAN-aware bridge plus vlan_id. Review every reference value.
 network_zones = {
+  management = {
+    bridge       = "vmbr0"
+    vlan_id      = 10
+    cidr_ipv4    = "10.10.10.0/24"
+    gateway_ipv4 = "10.10.10.1"
+  }
   identity = {
     bridge       = "ident"
     vlan_id      = null

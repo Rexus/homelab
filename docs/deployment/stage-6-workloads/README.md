@@ -70,6 +70,10 @@ the workload's allocated scope, without changing Tier 0 ownership.
 
 ## Step 3: Deploy and verify applications
 
+Connect [workload telemetry](../stage-4-control-services/procedures/observability.md#3-connect-scoped-workload-telemetry):
+security/audit submissions go to protected Tier 0 intake; developer views expose
+only approved application logs in Tier 1. Local buffering does not imply local alerting.
+
 Approved application revisions are reconciled inside the owning cluster. Rancher/Fleet
 can manage selected Tier 1/2 clusters, never Tier 0 infrastructure.
 

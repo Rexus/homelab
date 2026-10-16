@@ -61,6 +61,9 @@ flowchart TB
    and Rancher/Fleet where needed. Product manifests and integration remain project work.
 3. Configure Keycloak OIDC, scoped roles and [Tier 2 edge access](procedures/edge-proxy.md).
    Test repository retrieval, artifact publication/pulls and general CI jobs.
+4. Add the [shared observability platform](../stage-4-control-services/procedures/observability.md#2-add-the-shared-investigation-platform)
+   with approved log projections, central metrics and application investigation.
+   Keep raw security evidence and foundational alerting in Tier 0.
 
 **Alternatives:** [1b: source-control VM](step-1b-source-control-vm.md),
 [1c: Podman build runner](step-1c-podman-runner.md) and

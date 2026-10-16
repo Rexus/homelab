@@ -10,6 +10,7 @@
           Debian: [ansible-freeipa]
     control_node_setup_collection_names:
       foundation: [community.general, ansible.posix, freeipa.ansible_freeipa]
+      syslog: [community.general, ansible.posix]
       vault: [community.general, ansible.posix]
       hsm: [community.general, ansible.posix]
       ingress: []

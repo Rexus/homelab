@@ -3,9 +3,9 @@
 # Setup guide: docs/deployment/stage-4-control-services/step-2d-telemetry-vm.md
 
 platform_host_ips:
-  health-1: 10.20.30.10
+  # health-1: 10.20.30.10
   metrics-1: 10.20.30.11
-  apm-1: 10.20.30.12
+  # apm-1: 10.20.30.12
   logs-1: 10.20.30.20
   # logs-2: 10.20.30.21
   # logs-3: 10.20.30.22

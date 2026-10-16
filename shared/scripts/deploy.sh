@@ -9,6 +9,7 @@ Usage:
 
 Kit setups (only those owned by the current tier are available):
   foundation
+  syslog
   edge
   cache
   development

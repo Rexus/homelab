@@ -1,0 +1,6 @@
+# Copy to: ansible/group_vars/syslog.yml
+# Guide: docs/deployment/stage-1-foundation/procedures/syslog.md
+# Tier 0 inventory/IP inputs only. Receiver and archive integration is project-owned.
+platform_host_ips:
+  foundation-log-1: 10.10.10.30
+  # foundation-log-2: 10.10.10.31

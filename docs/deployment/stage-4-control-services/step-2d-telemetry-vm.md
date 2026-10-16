@@ -12,7 +12,10 @@ Run repository scripts from this root; paths below are repository-relative.
 **Design:** [telemetry options A-C](../../architecture/operations/telemetry.md).
 **Prerequisites:** selected collector/backend roles, network policy, retention,
 software supply and recovery targets. Run the supplied VM workflow from Tier 1.
-Control-cluster monitoring is a separate Tier 0 integration.
+Protected security logging is already established in
+[Tier 0](../stage-1-foundation/procedures/syslog.md); these VMs do not take its custody.
+The main later path is the [shared observability platform](procedures/observability.md),
+not a mandatory VM for every logical component.
 
 ## Table of contents
 
@@ -51,13 +54,16 @@ Use this matrix for the default Terraform shape:
 | Component | Terraform default | Inventory action | Network key |
 | --- | --- | --- | --- |
 | telemetry gateway | `telemetry-1` active, `telemetry-2` commented | `telemetry-1` present by default | `telemetry_gateway` |
-| syslog collector | `syslog-1` active, `syslog-2` commented | `syslog-1` present by default | `security_telemetry` |
-| live health | `health-1` active | `health-1` present by default | `observability` |
+| syslog processing | `syslog-1` active, `syslog-2` commented | Tier 1 processing only; authoritative evidence stays in Tier 0 | `security_telemetry` |
 | metrics store | `metrics-1` active | `metrics-1` present by default | `observability` |
-| APM and traces | `apm-1` active | `apm-1` present by default | `observability` |
-| log store | `logs-1` active, `logs-2` and `logs-3` commented | `logs-1` present by default | `observability` |
+| log/trace analytics | `logs-1` active, `logs-2` and `logs-3` commented | Single active VM is not OpenSearch HA; enable reviewed replicas before HA acceptance | `observability` |
 | dashboard entry | `telemetry-ui-1` active | `telemetry-ui-1` present by default | `observability` |
-| archive writer | `archive-1` active | `archive-1` present by default | `storage` |
+| operational export writer | `archive-1` active | Not the authoritative Tier 0 security archive | `storage` |
+
+`health-1` is a commented optional lower-tier parent; `apm-1` is a commented
+legacy SigNoZ/ClickHouse alternative. Neither is enabled by the reference.
+Existing live inputs/state are preserved; retire or migrate a deployed service
+deliberately, never by replacing its desired-state file with a new example.
 
 Commented Terraform `vm_instances` are default `0` and should stay commented
 until the matching Ansible inventory group and IP entry are enabled.

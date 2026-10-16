@@ -17,12 +17,15 @@ all:
         telemetry-1: {}
     security_telemetry:
       hosts:
+        # Tier 1 processing; protected evidence intake belongs to Tier 0.
         syslog-1: {}
     observability:
       hosts:
-        health-1: {}
+        # Optional non-foundational parent; enable only with matching hardware/IP inputs.
+        # health-1: {}
         metrics-1: {}
-        apm-1: {}
+        # Legacy alternative, not the OpenSearch reference pipeline.
+        # apm-1: {}
         logs-1: {}
         telemetry-ui-1: {}
     archive:

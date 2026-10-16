@@ -9,6 +9,7 @@ working checkouts; Shared helpers do not own the tier deployments they execute.
 | --- | --- | --- |
 | 1 | Proxmox, physical network, optional HA/SDN, firewall | Operator procedures; no complete host/network installer |
 | 1 | Approved VM templates | Tier 0 publication root and local/CD commands; shared consumer references |
+| 1 | Protected security logging | Tier 0 `syslog` VM/disk root and baseline; receiver, durable commit/replication, retention locks and segmented access remain project integration |
 | 1 | Optional software-supply cache | Tier 2 ordinary cache VMs, Squid/keepalived automation; independent bootstrap supply required |
 | 2 | Root/issuer trust and custody A/B | Operator integration and product procedures; no complete CA or token installer |
 | 2 | C: Replicated USB services | Capacity-sized Tier 0 VM pool/baseline; two-host starter and opt-in backend scaffold. Application HA, devices, keys, readiness and VIP runtime remain operator integration |
@@ -18,6 +19,7 @@ working checkouts; Shared helpers do not own the tier deployments they execute.
 | 3/4 | Cluster add-ons and control services | Tier-owned cluster starters; application manifests and service integration remain project work |
 | 4 | Dedicated secret-service VM | Tier 0 Vault root/role; Shamir reference; no automatic Transit/PKCS#11 migration |
 | 4 | Telemetry VM pattern | Tier 1 observability hosts/baseline; collectors/backends need service automation |
+| 4/5/6 | Independent monitoring and shared analytics | Tier 0 critical monitoring, Tier 1 OpenSearch/metrics and Tier 2 collection are design/project integration; no complete product stack installer |
 | 5 | Delivery controller | Tier 0 uses Flux; Tier 1 Argo CD/Spinnaker are unselected design options, not supplied installers |
 | 5 | Source control and general runners | Tier 1 setups and deployment recipes; registry/mirror variants need project integration |
 | 5/6 | Public edge | Tier 2 edge VMs and HAProxy/keepalived recipes; clients are network references only |
