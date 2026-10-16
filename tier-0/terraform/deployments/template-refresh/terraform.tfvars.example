@@ -1,6 +1,6 @@
 # Copy to: terraform/deployments/template-refresh/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/deployment/stage-1-foundation/procedures/enterprise-linux-template.md
+# Setup guide: docs/deployment/foundation/procedures/enterprise-linux-template.md
 # Shared values live in ../../common.tfvars.
 
 vm_instances = {

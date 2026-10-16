@@ -1,5 +1,5 @@
 ---
-# Stage 1: docs/deployment/stage-1-foundation/procedures/syslog.md
+# Stage 1: docs/deployment/stage-1-logging/README.md
 # Host baseline only; receiver, durable queues, replication and retention remain project integration.
 - name: Prepare independent Tier 0 log receivers
   hosts: foundation_logging

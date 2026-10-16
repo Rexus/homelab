@@ -1,6 +1,6 @@
 # Copy to: terraform/deployments/cache/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/deployment/stage-1-foundation/step-3b-outbound-cache.md
+# Setup guide: docs/deployment/foundation/step-3b-outbound-cache.md
 # Shared values live in ../../common.tfvars.
 
 # Optional: override the shared default Linux VM template for this setup or

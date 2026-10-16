@@ -74,7 +74,7 @@ This file keeps durable context for AI-assisted work across sessions.
   consumer references, not image recipes or lifecycle ownership
 - Tier 0 owns all hardware-facing control, including hypervisors, physical networks,
   storage administration, and every VM template lifecycle across all consuming tiers
-- initial template publication is Stage 1 local automation, before managed VMs
+- initial template publication is foundation local automation, before managed VMs
   or hosted tooling; generated Tier 0 fast paths start with the template catalog
 - AlmaLinux/Rocky/Talos publication uses verified local images; Talos templates
   contain no machine configuration; Tier 0's separate Talos deployment creates
@@ -89,10 +89,15 @@ This file keeps durable context for AI-assisted work across sessions.
   requests, not control operations, and must not trigger workload deletion
 - delegated provisioning is a design goal, not an implemented controller or API;
   its authoritative contract is docs/architecture/compute/provisioning.md
-- docs/deployment/README.md indexes six capability stages: compute foundation, cryptographic trust,
+- docs/deployment/foundation/ contains unnumbered host/network/access/template prerequisites;
+  docs/deployment/README.md indexes six capability stages: protected logging, cryptographic trust,
   identity and Kubernetes, control services, delivery and handover, and workload provisioning
 - protected syslog/audit intake starts in Stage 1 on independent Tier 0 VMs;
   syslog setup supplies VM/disk provisioning and baseline only, not receiver/HA/WORM installation
+- retain local logs from first boot; central intake precedes PKI/FreeIPA and Kubernetes;
+  portable evidence and an independent reader/key kit support offline data-volume inspection
+- critical-data recovery follows 3-2-1 with independent offline/immutable custody;
+  preserve evidence before tier recovery, and separate query roles from all deletion/pruning authority
 - all tiers submit security records to narrow authenticated Tier 0 intake; producers append only,
   explicitly authorized administrator/security roles read raw evidence, and retention custody is separate
 - Tier 1 holds approved searchable projections with per-application developer scopes, never raw archive authority;
@@ -102,7 +107,8 @@ This file keeps durable context for AI-assisted work across sessions.
 - one receiver is bootstrap only; HA acceptance specifies durable acknowledgement/replication semantics,
   independent failure domains, bounded queues and protected retention; UDP and source-loss gaps stay explicit
 - each stage has a main README with numbered local steps, diagrams, a capability result,
-  and links to the static architecture; only the initial compute foundation is bootstrap
+  and links to the static architecture; named monitoring/analytics/collection deployments
+  belong to their owning stages, not one cross-stage procedure
 - deployment guides name the working generated repository and upstream source directory near the top;
   IaC tables distinguish tier-owned inputs/resources from Shared helper implementations;
   docs/deployment/README.md#repository-locations owns the checkout/path convention
@@ -150,7 +156,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - `network_zones` remains a logical guest-network input, not a firewall zone;
   generation does not allocate subnets or configure gateway policy
 - keep network placement and firewall contracts in architecture/networking/, and
-  vendor-specific zone-matrix translation in deployment/stage-1-foundation/procedures/
+  vendor-specific zone-matrix translation in deployment/foundation/procedures/
 - Tier 0 includes connected high-impact control systems; only selected custody
   and recovery assets are air-gapped; artifact handoffs do not create routed access
 - protect the acceptance path, jobs, runners, and credentials for privileged
@@ -208,6 +214,9 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Working rules
 
+- after major changes and before release handover, repeat the new-operator journey
+  from hardware/network setup through every deployment option, operation and total-loss recovery;
+  record unresolved work in [the hidden operator checklist](operator-walkthrough.md), not public roadmap text
 - do not encourage storing secrets in Git
 - do not treat this upstream as the destination for live environment changes
 - prefer private forks, mirrors, or local copies for operational work

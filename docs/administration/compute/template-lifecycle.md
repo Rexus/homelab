@@ -5,7 +5,7 @@ approval, including all implementation code. Consuming tiers own their VMs
 and select approved template versions. AlmaLinux, Rocky Linux, and Talos use
 the same local-image import path. Kubernetes cluster bootstrap remains separate.
 
-**Initial template publication belongs to Step 1.** Run it from a protected local
+**Initial template publication is a foundation prerequisite.** Run it from a protected local
 execution host before creating managed VMs, including the first control-cluster
 nodes. Hosted CI or GitOps scheduling is an optional operational addition to the same
 Tier 0-owned automation, not a prerequisite for creating templates.
@@ -37,8 +37,8 @@ custody deployment, acquire and verify outside the air gap, then transfer throug
 the approved custody procedure. Matching a locally supplied checksum detects
 changed bytes; it is not, by itself, proof of vendor authenticity. No job
 downloads from the Internet.
-See the [Enterprise Linux image guide](../../deployment/stage-1-foundation/procedures/enterprise-linux-template.md) or
-[Talos image guide](../../deployment/stage-1-foundation/procedures/talos-template.md) for source selection.
+See the [Enterprise Linux image guide](../../deployment/foundation/procedures/enterprise-linux-template.md) or
+[Talos image guide](../../deployment/foundation/procedures/talos-template.md) for source selection.
 
 ## Ownership
 
@@ -127,7 +127,7 @@ only recovery source. Use offline transfer when crossing a custody air gap.
 For Talos, publish a fresh raw image for each release/schematic revision;
 do not run package updates, SSH provisioners, or Linux cleanup roles on it.
 Updating the template does not upgrade running cluster nodes. Follow the
-[Talos guide](../../deployment/stage-1-foundation/procedures/talos-template.md) for the separate machine lifecycle.
+[Talos guide](../../deployment/foundation/procedures/talos-template.md) for the separate machine lifecycle.
 
 Tier 1 and Tier 2 consume approved templates or transferred image artifacts.
 Use controlled distribution for connected platforms and offline handoff across

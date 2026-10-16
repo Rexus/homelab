@@ -99,6 +99,16 @@ Default Terraform shape:
 | size | small or medium | increase disk when builds cache many layers |
 | template | normal Linux template | bootc is built by the runner, not required on the runner OS |
 
+Initialize the selected test context from Tier 1:
+
+```bash
+bash scripts/init-local-files.sh --setup podman-runner --env test
+```
+
+Edit the local inputs above, including the runner token supplied through protected
+controller inputs. Complete [environment isolation](../../reference/repository-scripts.md#environment-isolation)
+before planning; a test state must not reuse a production VMID, IP or registration.
+
 Plan a test environment first:
 
 ```bash
@@ -286,7 +296,7 @@ retention, and Kubernetes pull scaling.
 - [Development platform path](step-1b-source-control-vm.md)
 - [Container registry path](procedures/registry.md)
 - [Image-based Linux path](step-1d-image-based-linux.md)
-- [Enterprise Linux template](../stage-1-foundation/procedures/enterprise-linux-template.md)
+- [Enterprise Linux template](../foundation/procedures/enterprise-linux-template.md)
 
 ## References
 

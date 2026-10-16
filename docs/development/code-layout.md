@@ -170,7 +170,7 @@ Only set `proxmox_node_name` on an individual guest to override
 that default for a clustered Proxmox placement.
 After VM creation, Proxmox owns node moves; changing this input does not migrate
 an existing VM. This does not cover external LXC migration. See the
-[cluster placement contract](../deployment/stage-1-foundation/step-1b-cluster-ha.md#terraform-against-the-cluster).
+[cluster placement contract](../deployment/foundation/step-1b-cluster-ha.md#terraform-against-the-cluster).
 The older `default_proxmox_node_name` key is still accepted as a compatibility
 fallback, but new local files should use the platform-generic name.
 
@@ -217,22 +217,11 @@ Every Linux setup lives in `<owner>/terraform/deployments/<setup>/` with its IP 
 service example at `<owner>/ansible/group_vars/<stem>.yml.example`. The stem
 replaces setup-name dashes with underscores.
 
-| Owner | Setup | Guide |
-| --- | --- | --- |
-| `tier-0` | `foundation` | [Identity](../deployment/stage-3-identity-runtime/procedures/freeipa.md) |
-| `tier-0` | `syslog` | [Independent protected log hosts](../deployment/stage-1-foundation/procedures/syslog.md) |
-| `tier-0` | `vault` | [Vault](../deployment/stage-4-control-services/step-2b-vault-vm.md) |
-| `tier-0` | `hsm` | [HSM scope and connected adaptation](../deployment/stage-2-trust/step-1b-usb-hsm.md) |
-| `tier-0` | `immutable-template` | [Image-based Linux](../deployment/stage-5-delivery/step-1d-image-based-linux.md) |
-| `tier-0` | `template-refresh` | [Enterprise Linux templates](../deployment/stage-1-foundation/procedures/enterprise-linux-template.md) |
-| `tier-2` | `edge` | [Edge](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
-| `tier-2` | `cache` | [Cache](../deployment/stage-1-foundation/step-3b-outbound-cache.md) |
-| `tier-1` | `development` | [Development platform](../deployment/stage-5-delivery/step-1b-source-control-vm.md) |
-| `tier-1` | `observability` | [Observability](../deployment/stage-4-control-services/step-2d-telemetry-vm.md) |
-| `tier-1` | `podman-runner` | [Podman runner](../deployment/stage-5-delivery/step-1c-podman-runner.md) |
-| `tier-2` | `lab` | [Local setup](local-setup.md) |
+The [IaC capability map](../deployment/README.md#iac-capability-map) owns the complete
+entry-point, stage and walkthrough index. Use it to choose a deployment; this guide
+describes the code organization behind those entry points.
 
-Base-image publication is a Step 1 Tier 0 root at `tier-0/terraform/deployments/templates/`.
+Base-image publication is a foundation Tier 0 root at `tier-0/terraform/deployments/templates/`.
 Its catalog, approved offline artifacts, and optional CI starter live under
 `tier-0/templates/` and `tier-0/ci/`. See [Template lifecycle](../administration/compute/template-lifecycle.md).
 

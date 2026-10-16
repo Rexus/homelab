@@ -39,7 +39,7 @@ requirements.
 
 Read more in:
 
-- [API setup](../../deployment/stage-1-foundation/procedures/api-access.md)
+- [API setup](../../deployment/foundation/procedures/api-access.md)
 - [Secret strategy](../secret-handling/strategy.md)
 
 ## Host and cluster hygiene

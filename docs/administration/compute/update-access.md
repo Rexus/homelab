@@ -10,7 +10,7 @@ environments where Proxmox hosts, template builders, or restricted networks
 should use the same repository/cache proxy as other managed systems.
 
 The cache service itself is owned by the
-[cache path](../../deployment/stage-1-foundation/step-3b-outbound-cache.md). This guide only shows how
+[cache path](../../deployment/foundation/step-3b-outbound-cache.md). This guide only shows how
 Proxmox-facing workflows can consume that proxy.
 
 ## Proxy endpoint
@@ -177,7 +177,7 @@ sudo dnf \
 
 ## Read more
 
-- [Cache path](../../deployment/stage-1-foundation/step-3b-outbound-cache.md)
-- [Enterprise Linux template](../../deployment/stage-1-foundation/procedures/enterprise-linux-template.md)
+- [Cache path](../../deployment/foundation/step-3b-outbound-cache.md)
+- [Enterprise Linux template](../../deployment/foundation/procedures/enterprise-linux-template.md)
 - [Proxmox hardening baseline](hardening.md)
 - [Proxmox datacenter configuration](https://pve.proxmox.com/pve-docs/datacenter.cfg.5.html)

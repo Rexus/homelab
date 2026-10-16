@@ -82,6 +82,15 @@ from the GitLab host.
 
 ## Configure the deployment
 
+Initialize the selected test context from Tier 1:
+
+```bash
+bash scripts/init-local-files.sh --setup development --env test
+```
+
+Complete [environment isolation](../../reference/repository-scripts.md#environment-isolation)
+before planning. Test and production require different VMIDs, IPs and service allocations.
+
 Edit `terraform/deployments/development/terraform.tfvars`:
 
 | Value | What to choose |
@@ -106,14 +115,23 @@ Deploy a test environment first:
 
 ```bash
 bash scripts/deploy.sh development --env test --plan-only
+```
+
+After reviewing the plan:
+
+```bash
 bash scripts/deploy.sh development --env test
 ```
 
-Run production by omitting `--env`:
+For production, configure the base files with their own allocations, plan without
+`--env`, then apply after review:
 
 ```bash
-bash scripts/deploy.sh development
+bash scripts/deploy.sh development --plan-only
 ```
+
+Use `bash scripts/deploy.sh development` only after that review; omitting `--env`
+selects production, not a promotion of the test state.
 
 ## Ports and DNS
 

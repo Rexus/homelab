@@ -72,7 +72,7 @@ network keys must map to that tier's actual networks. See
 
 Do not start this path until the foundation hosts can install required
 software. That access can come from the existing network, mirrors, offline
-repos, or the repository [Cache path](../../stage-1-foundation/step-3b-outbound-cache.md). The cache guide owns the
+repos, or the repository [Cache path](../../foundation/step-3b-outbound-cache.md). The cache guide owns the
 proxy design, variables, and bootstrap notes.
 
 ## Default private-domain shape
@@ -104,36 +104,12 @@ the matching Ansible inventory group and IP entry are enabled.
 
 ## Authentication design
 
-Use `FreeIPA` with Kerberos as the core identity authority. Anchor user, host,
-and service trust in PKI, then harden privileged users with hardware-backed
-authentication.
-
-Apply these rules when designing the domain:
-
-| Rule | What it means for this path |
-| --- | --- |
-| hardware key = identity proof | Use YubiKey or compatible hardware tokens as the strongest proof of user identity once the domain is stable. |
-| Kerberos = internal SSO | Use Kerberos for enrolled hosts and services, but avoid broad or unconstrained delegation. |
-| SSH = short-lived or non-delegatable | Prefer short-lived OpenSSH user certificates, scoped keys, or credentials that services cannot reuse as the user. |
-| assume every host can be compromised | Do not place reusable passwords or unrestricted credentials on managed hosts. |
-
-Default behavior:
-
-| Auth path | Default | Notes |
-| --- | --- | --- |
-| user passwords | enabled | needed for first deployment, recovery, and compatibility |
-| Kerberos through SSSD | expected | normal Linux domain authentication path |
-| SSH certificates | recommended hardening | stronger SSH access path after the domain and host enrollment are stable |
-| YubiKey or hardware OTP | recommended hardening | optional after the first domain is stable |
-| PIV or smart-card certificates | stronger hardening path | optional after PKI and recovery processes are ready |
-
-Avoid credential delegation. Services should not collect reusable user
-passwords so they can act as users later. Prefer Kerberos tickets, service
-principals, certificates, secret-platform-issued credentials, or the access-layer SSO
-path when that exists.
-
-Use [Hardware-backed user authentication](../../stage-4-control-services/step-3b-hardware-authentication.md) when ready
-to add YubiKey OTP or PIV authentication.
+FreeIPA supplies directory, Kerberos and host identity; it does not install an
+IdP, SSH certificate service or hardware-token policy. Keep independently tested
+bootstrap/recovery access and scoped credentials throughout installation.
+The [identity design](../../../architecture/identity/README.md) owns authority and
+consumer boundaries; [hardware-backed authentication](../../stage-4-control-services/step-3b-hardware-authentication.md)
+owns the optional OTP/PIV and SSH-certificate rollout after the directory is accepted.
 
 ## Using an existing domain
 
@@ -272,13 +248,31 @@ Supply `FREEIPA_DM_PASSWORD` and `FREEIPA_ADMIN_PASSWORD` through protected
 controller inputs. For encrypted secret-only files, use the separate
 [Ansible-only workflow](../../../administration/secret-handling/ansible-vault.md#encrypted-secret-file).
 
-Example with the recommended first `test` inputs:
+For the main rollout, keep the same context/state used for the issuer in Stage 2.
+The default-context example below omits `--env`; it must not be used against
+resources already owned by a named environment's state.
 
 ```bash
-bash scripts/init-local-files.sh --setup foundation --env test
-
-bash scripts/deploy.sh foundation --env test
+bash scripts/init-local-files.sh --setup foundation
 ```
+
+Edit those files and complete [environment isolation](../../../reference/repository-scripts.md#environment-isolation),
+including unused VMIDs and distinct host IPs. Preserve the issuer already managed
+by this root/state. Plan before running the installation:
+
+```bash
+bash scripts/deploy.sh foundation --plan-only
+```
+
+After review:
+
+```bash
+bash scripts/deploy.sh foundation
+```
+
+If trust used `--env test` or another named context, use that same flag for all three
+commands and edit its matching overlays. A separate rehearsal needs independent
+allocations and trust inputs; it is not another state owner for the existing issuer.
 
 The wrapper automatically loads `.env.local` when it exists. Add
 `--env-file path/to/file` to override that with another file.
@@ -311,10 +305,10 @@ Windows integration and hardware-backed user authentication are optional later w
 - [Windows and AD support](../../../architecture/identity/windows-integration.md)
 - [Hardware-backed user authentication](../../stage-4-control-services/step-3b-hardware-authentication.md)
 - [Edge proxy path](../../stage-5-delivery/procedures/edge-proxy.md)
-- [Cache path](../../stage-1-foundation/step-3b-outbound-cache.md)
+- [Cache path](../../foundation/step-3b-outbound-cache.md)
 - [Vault foundation deployment](../../stage-4-control-services/step-2b-vault-vm.md)
 - [Deployment readiness](../../readiness.md)
 - [Secret strategy](../../../administration/secret-handling/strategy.md)
 - [Environment variable conventions](../../../reference/environment-variables.md)
 - [Network architecture](../../../architecture/networking/README.md)
-- [Proxmox reference platform](../../stage-1-foundation/procedures/proxmox.md)
+- [Proxmox reference platform](../../foundation/procedures/proxmox.md)

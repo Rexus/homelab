@@ -33,12 +33,17 @@ The generator requires Python 3.9 or later and PyYAML. An existing Python
 environment containing PyYAML needs no additional install. If it is missing:
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 python3 -m pip install -r scripts/tier-repos/requirements.txt
 ```
 
 Native Windows can invoke
 `python scripts/tier-repos/generate.py` with the same arguments. Run deployments
 from Linux or WSL with the [deployment tooling](local-setup.md).
+The virtual-environment commands above use Bash on Linux/WSL; activate the same
+environment before later generation or refresh. Install the OS Python venv package
+first if `python3 -m venv` is unavailable; do not bypass managed-system Python protections.
 Generation needs no server, provider credentials, or hosted source control.
 It creates directories and files; it does not initialize Git or create remotes.
 
@@ -207,7 +212,7 @@ not Ansible guest configuration. Its
 [separate root and command](../deployment/stage-3-identity-runtime/procedures/talos-terraform.md) consume Talos groups
 and IP reservations, with state at `.terraform/state/talos/terraform.tfstate`.
 
-NetBox or another inventory application is a Step 4 documentation service.
+NetBox or another inventory application is a Stage 4 documentation service.
 Recovery uses local tier inputs and operator-held material without querying it.
 An exported inventory snapshot can be reviewed into a tier later; the generator
 does not implement a live inventory-application integration.
@@ -218,7 +223,7 @@ The generator assigns existing setup examples as follows:
 
 | Tier | Setups | Placement condition |
 | --- | --- | --- |
-| Tier 0 | `foundation`, `vault`, `hsm`, `immutable-template`, `template-refresh` | high-impact control and template builders; protected networks and recoverable local artifacts |
+| Tier 0 | `foundation`, `syslog`, `vault`, `hsm`, `immutable-template`, `template-refresh` | high-impact control, protected logging and template builders; protected networks and recoverable local artifacts |
 | Tier 1 | `development`, `observability`, `podman-runner` | shared platform services and general runners; `delivery_edge` is the separate build/supply DMZ subnet |
 | Tier 2 | `edge`, `cache`, `lab` | public ingress, ordinary outbound proxy/cache and workload instances; client subnets are policy references only |
 
@@ -257,7 +262,7 @@ policy. Offline custody must never become a connected backend.
 
 ## Run the generated automation
 
-First complete Tier 0's [Step 1 template publication](../administration/compute/template-lifecycle.md#local-workflow)
+First complete Tier 0's [foundation template publication](../administration/compute/template-lifecycle.md#local-workflow)
 and verify the template IDs in the consuming tier's mappings. Hosted CI and the
 control cluster are not prerequisites for that local workflow.
 

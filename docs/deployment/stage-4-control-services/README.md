@@ -16,6 +16,7 @@ The telemetry VM option uses `<prefix>-tier-1` instead.
 1. [Deploy identity federation](#step-1-deploy-identity-federation)
 2. [Deploy operational services](#step-2-deploy-operational-services)
 3. [Integrate access and recovery](#step-3-integrate-access-and-recovery)
+4. [Establish independent monitoring](#step-4-establish-independent-monitoring)
 
 ```mermaid
 flowchart TB
@@ -30,10 +31,11 @@ flowchart TB
     direction LR
     Keycloak["Keycloak<br/>Directory federation, OIDC / MFA"]
     Vault["Vault<br/>Secrets / supported PKI integration"]
-    Ops["NetBox, Headlamp<br/>Critical monitoring integration"]
+    Ops["NetBox, Headlamp<br/>Inventory and scoped cluster access"]
     Keycloak ~~~ Vault ~~~ Ops
   end
   Existing -->|Flux deploys reviewed service manifests| Added
+  Existing --> Monitoring["Independent Tier 0 monitoring<br/>Critical history and external alerts"]
 ```
 
 | Existing interface | New consumer |
@@ -67,11 +69,8 @@ unseal/recovery material. It does not use CloudNativePG as its storage backend.
 [2c: seal integration](step-2c-seal-integration.md) changes unseal/recovery, not PKI signing.
 
 Add NetBox with its database/cache dependencies and Headlamp with scoped permissions.
-Extend the existing Tier 0 log capability with
-[critical monitoring](procedures/observability.md#1-add-independent-foundation-monitoring).
-Required cluster-loss detection stays outside the observed cluster. Shared analytics
-is added with the Tier 1 platform, not as a prerequisite for Tier 0 operation.
-[2d: telemetry VMs](step-2d-telemetry-vm.md) is its explicit VM alternative.
+The optional [2d: Tier 1 telemetry VMs](step-2d-telemetry-vm.md) prepares an alternative
+runtime for later shared analytics, not the independent Tier 0 monitoring capability.
 
 NetBox documents inventory. It never supplies the inventory needed to bootstrap
 its own platform. Test backups and restoration before other tiers depend on these services.
@@ -84,6 +83,16 @@ access, then rehearse privileged recovery without normal directory or broker log
 Optional [3b: hardware-backed authentication](step-3b-hardware-authentication.md)
 adds stronger operator login after recovery is working. Restrict routine bootstrap
 credentials only after independent break-glass access and recovery custody are verified.
+
+## Step 4: Establish independent monitoring
+
+Follow the [monitoring deployment](monitoring.md): prepare its independent runtime,
+add critical history/diagnostics, then enable and test external alerts. Each step
+shows what is added to the existing Tier 0 logging foundation.
+
+Required cluster-loss detection stays outside the observed cluster. Shared analytics
+is a separate [Stage 5 capability](../stage-5-delivery/analytics.md), not a prerequisite
+for Tier 0 investigation or alerting.
 
 ## Capability available
 

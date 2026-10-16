@@ -98,8 +98,9 @@ A central dashboard alone is insufficient for independent failure detection.
 
 ## Realization
 
-Implementation procedures: [foundational logging](../../deployment/stage-1-foundation/procedures/syslog.md),
-[observability growth](../../deployment/stage-4-control-services/procedures/observability.md),
+Implementation procedures: [foundational logging](../../deployment/stage-1-logging/README.md),
+[independent monitoring](../../deployment/stage-4-control-services/monitoring.md),
+[shared analytics](../../deployment/stage-5-delivery/analytics.md),
 [operational services](../../deployment/stage-4-control-services/README.md#step-2-deploy-operational-services)
 and [operational acceptance](../../deployment/stage-4-control-services/README.md#step-3-integrate-access-and-recovery).
 Recurring work belongs in [administration](../../administration/README.md).

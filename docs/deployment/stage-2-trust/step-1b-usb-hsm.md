@@ -99,7 +99,7 @@ These are independently managed replicas, not a native HSM cluster.
 
 Keep USB affinity explicit. The VM code does not configure device passthrough,
 host pinning or Proxmox HA restrictions. Initial placement alone is not a runtime
-affinity guarantee; review [cluster mobility](../stage-1-foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
+affinity guarantee; review [cluster mobility](../foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
 before permitting a device-facing VM to move. A single-host rehearsal is not host HA.
 
 Scope firewall rules to hosts and actual listeners, following the

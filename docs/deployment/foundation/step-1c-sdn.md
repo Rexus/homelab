@@ -9,7 +9,7 @@ Consuming tiers keep their own guest-network inputs.
 
 ## Deployment
 
-Use SDN as a Proxmox-side convenience for VM-facing networks. This repository
+Use SDN as a foundation option for VM-facing networks. This repository
 only needs the final VM attachment name.
 
 Choose this during [early host preparation](procedures/proxmox.md#first-deployment-order),

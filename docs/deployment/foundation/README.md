@@ -1,8 +1,8 @@
-# Stage 1: Compute foundation
+# Foundation and prerequisites
 
-Establish Proxmox, networks, VM templates, independent bootstrap access and protected log intake.
-At the end of this stage, the workstation can create and recover the first guests
-without Kubernetes, hosted source control or identity services.
+Prepare Proxmox, networks, approved VM templates and independent provisioning/recovery
+access before deploying platform capabilities. Existing infrastructure is valid when
+it passes these checks. Foundation is not a numbered capability stage.
 
 **Prerequisites:** physical hosts, network equipment, approved installation sources
 and a privileged workstation with independent console access.
@@ -11,12 +11,11 @@ The optional cache branch uses `<prefix>-tier-2` instead.
 **Design:** [compute](../../architecture/compute/README.md) and
 [network boundaries](../../architecture/networking/README.md).
 
-## Main path
+## Preparation checklist
 
 1. [Prepare hosts and networks](#step-1-prepare-hosts-and-networks)
 2. [Protect provisioning access and state](#step-2-protect-provisioning-access-and-state)
 3. [Publish and test VM templates](#step-3-publish-and-test-vm-templates)
-4. [Establish protected logging](#step-4-establish-protected-logging)
 
 ```mermaid
 flowchart TB
@@ -27,10 +26,8 @@ flowchart TB
     PVE["Proxmox<br/>Compute and storage"]
     Templates["Approved Linux and Kubernetes node templates"]
     Bootstrap["Optional bootstrap / recovery VM<br/>management network"]
-    Logs["Independent Tier 0 syslog intake<br/>Protected evidence and recovery"]
     Network --- PVE
     PVE --> Templates --> Bootstrap
-    Templates --> Logs
   end
   Admin <--> State
   Admin -->|Configure| Network
@@ -41,7 +38,9 @@ flowchart TB
 
 ## Step 1: Prepare hosts and networks
 
-Prepare [local tools](../../development/local-setup.md), install
+Prepare [local tools](../../development/local-setup.md) and bring up the external
+network; the [UniFi starting path](procedures/unifi-zones.md#bring-up-the-network)
+includes controller adoption and VLAN/port preparation. Install
 [Proxmox](procedures/proxmox.md), then configure [host networking](procedures/host-network.md)
 and storage. Verify management access, DNS, time and permitted guest networks.
 
@@ -52,6 +51,10 @@ where required. These options return here after their own checks.
 Apply the [firewall policy](procedures/firewall-rollout.md), using the
 [UniFi translation](procedures/unifi-zones.md) where applicable. Verify permitted
 and denied paths; cluster membership alone is not evidence of HA.
+
+Keep persistent local host logs from first boot and export network-device logs where
+supported. Preserve these early records until the Stage 1 collector can receive them;
+central collection must not wait for FreeIPA or Kubernetes.
 
 ## Step 2: Protect provisioning access and state
 
@@ -83,23 +86,15 @@ its VM prerequisites exist; it remains Tier 2-owned and cannot be its own bootst
 Before the later Kubernetes stage starts Flux, provide a reachable approved Git or OCI
 source with independent credentials. A local checkout is not itself a reachable Flux source.
 
-## Step 4: Establish protected logging
+<a id="capability-available"></a>
 
-Follow [foundational syslog](procedures/syslog.md) from the Tier 0 repository.
-Begin outside Kubernetes, then accept redundant intake, durable queues and
-protected evidence before relying on critical audit records. The starter provisions
-VMs/disks and baseline only; receiver/retention integration is separate project work.
-
-Connect infrastructure sources now and each tier's security/audit sources as they
-appear. Producers can append through scoped intake, not read/edit/delete evidence.
-Future [monitoring and shared search](../stage-4-control-services/procedures/observability.md)
-extend this capability without taking custody of the raw archive.
-
-## Capability available
+## Foundation ready
 
 **Result:** independently recoverable virtualization with tested templates and enforced
-network boundaries and protected foundational logging, realizing the compute and evidence portions of the
+network boundaries, realizing the compute portion of the
 [reference platform](../../architecture/reference-platform.md#service-placement).
 
-Record template boot, network allow/deny and state-restore evidence. Continue with
-[Stage 2: Cryptographic trust](../stage-2-trust/README.md).
+Record template boot, network allow/deny and state-restore evidence. Begin numbered
+deployment with [Stage 1: Protected logging](../stage-1-logging/README.md), before PKI,
+FreeIPA or Kubernetes. Logging can start as soon as one approved Linux template is ready;
+it does not wait for every optional foundation variant.

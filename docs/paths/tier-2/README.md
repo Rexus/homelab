@@ -10,7 +10,7 @@ approved image IDs and titles; keep only workload selections and service tags he
 ## Deployment order
 
 For public application access, deploy the [edge load-balancer set](../../deployment/stage-5-delivery/procedures/edge-proxy.md)
-with the `edge` setup. The optional [outbound cache](../../deployment/stage-1-foundation/step-3b-outbound-cache.md)
+with the `edge` setup. The optional [outbound cache](../../deployment/foundation/step-3b-outbound-cache.md)
 uses `cache`. Both run from this repository with its own inventory and state.
 Client VLANs are network-policy references, not provisioned server guests.
 Keep clients, public edge and Tier 1 build/supply hosts in separate subnets.
@@ -58,6 +58,6 @@ same inventory; no separate shared inventory is required.
 
 - [Inventory and automation layout](../../development/code-layout.md)
 - [Workload provisioning stage](../../deployment/stage-6-workloads/README.md)
-- [VM placement and Proxmox HA](../../deployment/stage-1-foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
+- [VM placement and Proxmox HA](../../deployment/foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
 - [Delivery stage](../../deployment/stage-5-delivery/README.md#step-2-enable-protected-execution)
 - [Project conventions and recovery records](../../development/project-documentation.md)

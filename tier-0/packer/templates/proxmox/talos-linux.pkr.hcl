@@ -9,7 +9,7 @@ packer {
 
 # Optional, incomplete custom ISO-build scaffold, not the template publication path.
 # Use Tier 0 terraform/deployments/templates/ for verified NoCloud raw-image imports.
-# Reference: docs/deployment/stage-1-foundation/procedures/talos-template.md
+# Reference: docs/deployment/foundation/procedures/talos-template.md
 # Prefer environment variables for sensitive runtime values.
 # See: docs/reference/environment-variables.md
 source "proxmox-iso" "taloslinux" {

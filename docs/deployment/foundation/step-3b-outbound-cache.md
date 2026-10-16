@@ -6,10 +6,18 @@ Run repository scripts from this root; paths below are repository-relative.
 <a id="cache-path"></a>
 
 **Branch from:** [Step 3](README.md#step-3-publish-and-test-vm-templates), after the initial VM prerequisites exist.
-**Change:** Add a Tier 2-owned outbound cache without making bootstrap depend on it.
+**Change:** Add a Tier 2-owned outbound cache as an optional software-supply prerequisite.
 **Return:** [Step 3](README.md#step-3-publish-and-test-vm-templates) to verify templates and independent software supply.
 
 **Design:** [traffic and software supply](../../architecture/delivery/README.md).
+
+## Main path
+
+1. [Initialize and configure](#configuration)
+2. [Plan and deploy](#plan-and-deploy)
+3. [Verify node and VIP behavior](#validation)
+
+The remaining sections explain policy, storage and sizing when those details are needed.
 
 ## Purpose
 
@@ -71,19 +79,17 @@ the reference feedback distros for the current cache path.
 | allowed CIDRs | defines which internal networks may use the cache |
 | allowed domains | defines which external software-source domains are reachable |
 
-## Hardening TODO
+<a id="hardening-todo"></a>
+
+## Transport limits
 
 The default proxy listener is HTTP on an internal, restricted network. That is
 normal for repository proxy use: clients speak HTTP proxy protocol to Squid,
 while HTTPS destinations still use CONNECT tunnels and remain encrypted to the
 upstream site.
 
-Future hardening work can add:
-
-- authenticated proxy access
-- TLS on the client-to-proxy listener
-- mTLS for selected high-security zones
-- separate proxy pairs per security zone or policy boundary
+The supplied configuration uses CIDR/domain restrictions, not authenticated clients
+or a TLS/mTLS proxy listener. Select another reviewed configuration when those are required.
 
 Avoid TLS interception by default. It changes end-to-end trust and should only
 be introduced with an explicit policy, internal CA rollout, and audit model.
@@ -91,6 +97,12 @@ be introduced with an explicit policy, internal CA rollout, and audit model.
 <a id="what-you-configure"></a>
 
 ## Configuration
+
+From Tier 2, initialize local inputs before editing the examples' live counterparts:
+
+```bash
+bash scripts/init-local-files.sh --setup cache
+```
 
 | Repository | Path inside that repository | Configuration |
 | --- | --- | --- |
@@ -104,6 +116,24 @@ The Tier 2 [deployment recipe](../../../tier-2/ansible/playbooks/deployment/outb
 uses its [cache_proxy role](../../../tier-2/ansible/roles/cache_proxy/).
 Shared's [deploy helper](../../../shared/scripts/deploy.sh) executes this recipe
 with Tier 2 inputs; the cache service code is not in Shared.
+
+## Plan and deploy
+
+Set the allowed client networks/domains, host IPs, VIP and cache disk before planning.
+The role formats the selected cache data disk; confirm that it contains no required data.
+
+```bash
+bash scripts/deploy.sh cache --plan-only
+```
+
+Review the resources and disk choices, then deploy:
+
+```bash
+bash scripts/deploy.sh cache
+```
+
+Keep the cache hosts' own package access independent of the cache being built.
+Proceed to [validation](#validation) before pointing other hosts at its VIP.
 
 ## Cache storage
 

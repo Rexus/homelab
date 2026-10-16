@@ -250,7 +250,7 @@ service.
 Use these related documents as the source of truth for adjacent platform
 guidelines:
 
-- use [Host networking](../deployment/stage-1-foundation/procedures/host-network.md) and
+- use [Host networking](../deployment/foundation/procedures/host-network.md) and
   [Network architecture](../architecture/networking/README.md)
   for bridge, VLAN, and subnet naming
 - use [Hardening baseline](../administration/compute/hardening.md) for the checkpoint that node, bridge,
@@ -260,6 +260,6 @@ guidelines:
 
 ## Related references
 
-- [Proxmox reference platform](../deployment/stage-1-foundation/procedures/proxmox.md)
-- [Enterprise Linux template](../deployment/stage-1-foundation/procedures/enterprise-linux-template.md)
+- [Proxmox reference platform](../deployment/foundation/procedures/proxmox.md)
+- [Enterprise Linux template](../deployment/foundation/procedures/enterprise-linux-template.md)
 - [Deployment readiness](../deployment/readiness.md)

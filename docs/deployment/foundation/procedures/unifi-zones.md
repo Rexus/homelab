@@ -8,6 +8,7 @@ Configuration is applied in the network controller, not by a supplied IaC instal
 ## Table of contents
 
 - [Prerequisites](#prerequisites)
+- [Bring up the network](#bring-up-the-network)
 - [Map the architecture](#map-the-architecture)
 - [Apply the policy](#apply-the-policy)
 - [Verify](#verify)
@@ -22,6 +23,40 @@ and approved [network plan](../../../architecture/networking/README.md#example-n
 This is a manual translation, not gateway automation. No zone is created just
 because a tier repository exists.
 
+A UniFi switch alone is not the zone-firewall gateway. Use a supported UniFi
+gateway plus its Network application, or apply equivalent policy on the existing
+router/firewall. Keep that control/recovery path available before the future
+Kubernetes cluster or hosted identity service exists. [1]
+
+## Bring up the network
+
+```mermaid
+flowchart LR
+  Admin["Local privileged workstation"] --> Controller["Gateway / independent Network application"]
+  Controller --> Switch["Adopted switch and optional APs"]
+  Switch --> Hosts["Proxmox management and guest trunks"]
+  Switch --> Clients["Separate ordinary-client networks"]
+```
+
+1. Commission the gateway and Network application using the selected model's
+   procedure. Adopt switches/APs over a working management network before changing
+   their VLANs. Retain local recovery access and a configuration export. [3]
+2. Create the approved networks from the [network plan](../../../architecture/networking/README.md#example-network-plan):
+   VLAN, subnet, gateway and DHCP/static reservations. Start with management, a client
+   subnet and the first guest network; add later purpose networks before their consumers.
+3. Configure the port path end to end, then apply the [zone policy](#map-the-architecture).
+   Move one test port/client first; verify management access before cutting over uplinks. [4]
+
+| Port purpose | Assignment to verify |
+| --- | --- |
+| Ordinary wired client | Access port with the selected client network as native/untagged; no guest/control trunk |
+| Proxmox or switch uplink | Explicit allowed tagged VLANs and a documented native/drop policy matching both ends |
+| AP uplink | Required management connectivity plus only selected wireless VLANs; verify the AP-specific native/tagged rules [4] |
+
+Native traffic on an intentional client access port is not the same as an accidental
+native VLAN on a server trunk. Do not copy a tagged-only server profile onto the
+only current controller or workstation path without a tested cutover.
+
 ## Map the architecture
 
 Use the existing DMZ zone and add Services and Control zones as needed.
@@ -29,9 +64,9 @@ Assign each network to one zone. [1]
 
 | Layer / purpose | Zone | Example member networks |
 | --- | --- | --- |
-| Edge | built-in `DMZ` | Tier 2 `edge` and separate `client`; Tier 1 `delivery_edge` |
-| Application | custom `Services` | `apps`, application-only `access`, telemetry |
-| Control | custom `Control` | `management`, `identity`, `crypto` |
+| Edge | built-in `DMZ` | Tier 2 `external_edge` and separate `client`; Tier 1 `delivery_edge` |
+| Application | custom `Services` | `application`, application-only `access`, telemetry |
+| Control | custom `Control` | `management`, `identity`, `control_cluster`, `cryptography` |
 | Offline custody | none on the connected gateway | isolated ceremony/recovery fabric |
 
 Use a separate `Lab` or other purpose-named zone when its policy differs.
@@ -74,7 +109,9 @@ zones whenever access requirements differ.
 
 ## References
 
-Sources checked 2026-09-19.
+Sources checked 2026-10-16.
 
 1. [Ubiquiti: Zone-Based Firewalls in UniFi](https://help.ui.com/hc/en-us/articles/115003173168-Zone-Based-Firewalls-in-UniFi)
 2. [Ubiquiti: Implementing Network and Client Isolation](https://help.ui.com/hc/en-us/articles/18965560820247-Implementing-Network-and-Client-Isolation-in-UniFi)
+3. [Ubiquiti: Device adoption](https://help.ui.com/hc/en-us/articles/360012622613-UniFi-Device-Adoption)
+4. [Ubiquiti: Switch port VLAN assignment](https://help.ui.com/hc/en-us/articles/26136855808919-Switch-Port-VLAN-Assignment-Trunk-Access-Ports)

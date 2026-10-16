@@ -61,12 +61,38 @@ class Observability(TierRepositoryTestCase):
             for expected in ("Data Prepper", "vmalert", "Alertmanager", "Tier 2 normally retains collection",
                              "not independent querying or alerts", "separate SigNoZ/ClickHouse"):
                 self.assertIn(expected, telemetry)
-            foundation = (docs / "deployment/stage-1-foundation/README.md").read_text()
-            self.assertIn("## Step 4: Establish protected logging", foundation)
-            self.assertIn("procedures/syslog.md", foundation)
-            later = (docs / "deployment/stage-4-control-services/procedures/observability.md").read_text()
+            foundation = (docs / "deployment/foundation/README.md").read_text()
+            self.assertIn("Stage 1: Protected logging", foundation)
+            later = (docs / "deployment/stage-5-delivery/analytics.md").read_text()
             self.assertIn("An app owner receives an application-log view", later)
-            self.assertIn("receiver/retention", (docs / "deployment/stage-1-foundation/README.md").read_text())
+            logging_stage = (docs / "deployment/stage-1-logging/README.md").read_text()
+            self.assertIn("retention and HA are explicit project integration", logging_stage)
+
+    def test_early_collection_and_offline_recovery_contracts_are_published(self):
+        self.generate()
+        for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            foundation = (docs / "deployment/foundation/README.md").read_text()
+            self.assertIn("persistent local host logs from first boot", foundation)
+            logging = (docs / "architecture/operations/security-logging.md").read_text()
+            for expected in ("## Offline-readable evidence", "UTF-8 JSON Lines",
+                             "independently held recovery kit", "no retention or backup authority"):
+                self.assertIn(expected, logging)
+            procedure = (docs / "deployment/stage-1-logging/README.md").read_text()
+            self.assertIn("before PKI and FreeIPA", procedure)
+            self.assertIn("Only the log-data volume and offline kit survive", procedure)
+            operations = (docs / "administration/security-logging.md").read_text()
+            self.assertIn("no-journal-replay", operations)
+            self.assertIn("never let reindexing modify originals", operations)
+            backup = (docs / "administration/compute/backup-restore.md").read_text()
+            for expected in ("**3-2-1**", "including the primary", "two different",
+                             "DatastoreBackup", "Datastore.Prune", "RPO", "RTO"):
+                self.assertIn(expected, backup)
+            recovery = (docs / "administration/recovery.md").read_text()
+            self.assertLess(recovery.index("| 1 | Isolate"), recovery.index("| 3 | Restore Tier 0 intake"))
+            self.assertLess(recovery.index("| 3 | Restore Tier 0 intake"), recovery.index("| 4 | Restore Tier 0 trust"))
+        runbook = (self.root / "verify-architecture/docs/administration/recovery.md").read_text()
+        self.assertIn("offline reader/key kit", runbook)
+        self.assertIn("RPO/RTO and pruning custodian", runbook)
 
     def test_refresh_preserves_existing_logging_and_analytics_decisions(self):
         self.generate()
@@ -77,6 +103,7 @@ class Observability(TierRepositoryTestCase):
             "verify-tier-1/terraform/deployments/observability/terraform.tfvars": '# Existing apm-1 resources\n',
             "verify-tier-1/ansible/inventory/hosts.yml": "all: {hosts: {apm-1: {}}}\n",
             "verify-tier-0/docs/deployment/README.md": "# Local logging acceptance\n",
+            "verify-architecture/docs/administration/recovery.md": "# Local offline logging runbook\n",
         }
         for relative, content in owned.items():
             path = self.root / relative

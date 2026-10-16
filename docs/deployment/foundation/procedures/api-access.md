@@ -11,6 +11,7 @@ Each consuming tier supplies its own authorized credentials through local inputs
 - [Prerequisites](#prerequisites)
 - [What this repo needs](#what-this-repo-needs)
 - [Endpoint values](#endpoint-values)
+- [TLS gate](#tls-gate)
 - [Create Platform Automation Access](#create-platform-automation-access)
 - [Use the token](#use-the-token)
 - [Validate access](#validate-access)
@@ -74,6 +75,18 @@ Use different endpoint formats depending on the tool:
 For Terraform in this repo, do not append `/api2/json`. The Linux deployment wrapper
 maps `PROXMOX_API_URL`, `PROXMOX_API_TOKEN_ID`, and
 `PROXMOX_API_TOKEN_SECRET` into the Terraform provider variables.[3][4]
+
+## TLS gate
+
+**Before a live deployment:** inspect `terraform/deployments/<setup>/providers.tf`
+in the owning tier. Linux VM/LXC roots currently set `insecure = true`, disabling
+API certificate verification. The template publisher and Kubernetes roots set it to false.
+This is a security exception, not an accepted production default. [5]
+
+Install independently verified API trust on the execution host and use the matching
+certificate hostname, then set the selected Linux root to `insecure = false` and test
+its plan. Do not treat a successful plan with verification disabled as proof of server identity.
+Do not paste API tokens into commands or documents; follow the protected input paths below.
 
 ## Create Platform Automation Access
 
@@ -364,3 +377,4 @@ lifecycle permissions.
 2. [Proxmox VE Software-Defined Network](https://pve.proxmox.com/pve-docs/chapter-pvesdn.html)
 3. [Terraform Provider for Proxmox VE](https://bpg.sh/docs/)
 4. [HashiCorp Packer Proxmox ISO builder](https://developer.hashicorp.com/packer/plugins/builders/proxmox/iso)
+5. [BPG provider TLS behavior and security guidance](https://raw.githubusercontent.com/bpg/terraform-provider-proxmox/v0.112.0/docs/index.md), checked 2026-10-16.

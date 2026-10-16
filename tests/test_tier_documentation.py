@@ -67,7 +67,8 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         setup = "bash ../verify-shared/scripts/init-local-files.sh"
         self.assertIn("Templates before VMs", tier0)
         self.assertIn("six-capability deployment checklist", tier0)
-        self.assertIn("deployment/stage-1-foundation/README.md", tier0)
+        self.assertIn("deployment/foundation/README.md", tier0)
+        self.assertIn("deployment/stage-1-logging/README.md", tier0)
         self.assertIn("deployment/stage-2-trust/README.md", tier0)
         self.assertIn("FreeIPA runs on two dedicated VMs", tier0)
         self.assertIn("Keycloak is a later service in this cluster", tier0)
@@ -154,7 +155,8 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         for step in range(1, 7):
             self.assertIn(f"**{step}:", tier0)
         bootstrap = (architecture / "deployment/README.md").read_text()
-        self.assertIn("stage-1-foundation/README.md", bootstrap)
+        self.assertIn("foundation/README.md", bootstrap)
+        self.assertIn("stage-1-logging/README.md", bootstrap)
         self.assertIn("Terraform / OpenTofu", bootstrap)
         self.assertIn("Current wrappers call `terraform`", bootstrap)
         foundation = (architecture / "deployment/stage-3-identity-runtime/procedures/kubernetes.md").read_text()
@@ -193,10 +195,12 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                 self.assertIn("**Change:**", text, option)
                 self.assertIn("Return", text, option)
                 self.assertIn(f"({option.name})", content, option)
-        foundation, trust, runtime, control, delivery, workloads = (
+        logging, trust, runtime, control, delivery, workloads = (
             stage.read_text(encoding="utf-8") for stage in stages
         )
+        foundation = (docs / "deployment/foundation/README.md").read_text()
         self.assertIn("not itself a reachable Flux source", " ".join(foundation.split()))
+        self.assertIn("## Step 1: Provision the log host", logging)
         self.assertIn("Hardware protection", trust)
         self.assertIn("FreeIPA stays outside Kubernetes", runtime)
         self.assertIn("kubernetes.md#cluster-foundation", runtime)

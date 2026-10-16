@@ -9,6 +9,7 @@ can investigate raw evidence. Producers cannot read, edit or delete it.
 
 - [Authority and flow](#authority-and-flow)
 - [Segmented access](#segmented-access)
+- [Offline-readable evidence](#offline-readable-evidence)
 - [Durability and availability](#durability-and-availability)
 - [Protected retention](#protected-retention)
 - [Realization](#realization)
@@ -58,6 +59,39 @@ tenants organize saved objects and are not by themselves log-data isolation. [1]
 SSO authenticates the user; application authorization grants the selected scope.
 Cross-tenant isolation is tested using hostile labels and direct API queries, not only UI views.
 
+Application query roles have no ingest, update, delete, delete-by-query or management
+rights over log records/indexes, and no retention or backup authority. Dashboard saved-object
+permissions are separate from log-data permissions. A Tier 1 administrator may damage searchable copies,
+but has no credentials or storage path that can erase the Tier 0 originals or their backups.
+Reader roles remain separate from retention custodians even when one person holds both roles.
+
+## Offline-readable evidence
+
+The evidence format must survive loss of the running environment. An intact log-data
+volume and an independently held recovery kit are sufficient for authorized inspection;
+FreeIPA, the identity provider, Kubernetes, Vault and OpenSearch are not required.
+
+| Retained material | Required property |
+| --- | --- |
+| Records | UTF-8 JSON Lines or documented syslog text segments, preserving original messages, authenticated source identity, tier/project scope and source/receive timestamps |
+| Interpretation | Schema, source catalogue, timezone/clock notes and available sequence ranges stored with the records; no inventory service required |
+| Verification | Segment manifests and integrity metadata; trusted verification material retained independently of the evidence volume |
+| Recovery kit | Offline runbook, filesystem/volume layout, reader/decompression tools and separately protected decryption/recovery keys |
+
+The receiver writes this portable representation as part of its durable evidence path,
+not as an occasional export from a search database. Binary queues and search indexes
+are not the only retained copy. rsyslog supports native text/JSON templates; use supported
+escaping rather than constructing records from untrusted strings. [6]
+
+Encryption remains required where the storage policy calls for it; offline readability
+does not mean an unencrypted disk or unrestricted physical access. Recovery keys cannot
+exist only inside the system being recovered. The contract covers an intact logical
+volume, not an arbitrary member disk from a RAID or distributed storage pool.
+
+[Backup policy](../../administration/compute/backup-restore.md#backup-policy) owns independent
+copies and recovery objectives. [Offline investigation](../../administration/security-logging.md#offline-investigation)
+owns preservation and read-only inspection. Tier 1 search indexes are rebuildable projections.
+
 ## Durability and availability
 
 The objective is **no loss of accepted records within a declared failure envelope**,
@@ -103,9 +137,10 @@ separate threats requiring independent copies and recovery custody.
 
 ## Realization
 
-[Foundational syslog](../../deployment/stage-1-foundation/procedures/syslog.md) owns
-bootstrap, receiver integration and acceptance. [Observability deployment](../../deployment/stage-4-control-services/procedures/observability.md)
-adds approved search copies and monitoring. [Logging administration](../../administration/security-logging.md)
+[Foundational syslog](../../deployment/stage-1-logging/README.md) owns
+bootstrap, receiver integration and acceptance. [Monitoring](../../deployment/stage-4-control-services/monitoring.md)
+adds critical health and alerts; [shared analytics](../../deployment/stage-5-delivery/analytics.md)
+adds approved search copies. [Logging administration](../../administration/security-logging.md)
 owns recurring access, gap, capacity and restore checks. No supplied VM baseline
 claims to install a lossless or immutable archive.
 
@@ -118,3 +153,4 @@ Sources checked 2026-10-16.
 3. [RFC 5426: UDP syslog reliability](https://www.rfc-editor.org/info/rfc5426/)
 4. [rsyslog reliable forwarding and crash-durability limits](https://docs.rsyslog.com/doc/tutorials/reliable_forwarding.html)
 5. [S3 Object Lock retention modes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html)
+6. [rsyslog text/JSON templates and safe encoding](https://docs.rsyslog.com/doc/configuration/templates.html)

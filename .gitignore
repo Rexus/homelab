@@ -65,6 +65,7 @@ Thumbs.db
 
 # Temporary local validation output
 .tmp/
+.venv/
 
 # Retired local configuration retained during layout cleanup
 .local-archive/

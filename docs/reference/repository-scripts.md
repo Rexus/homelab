@@ -7,6 +7,7 @@
 - [Cheat sheet](#cheat-sheet)
 - [Initialize tier repositories](#initialize-tier-repositories)
 - [Initialize local files](#initialize-local-files)
+- [Environment isolation](#environment-isolation)
 - [Run a deployment](#run-a-deployment)
 - [Available setups](#available-setups)
 - [What the deployment wrapper does](#what-the-deployment-wrapper-does)
@@ -170,9 +171,30 @@ Use `--env <name>` for any supported environment name, such as `test`, `lab1`,
 The initializer copies examples only. The generated local files still require configuration
 before deployment.
 
+## Environment isolation
+
+**`--env` separates state and selects overlays; it does not allocate independent resources.**
+Never apply a second state to VMIDs already managed by another environment.
+The initializer copies setup IPs from the same examples and does not create Terraform
+environment overlays. Before running test and production on the same platform:
+
+| Input | Required separation |
+| --- | --- |
+| VM/LXC identifiers | Allocate unused VMIDs in `terraform/deployments/<setup>/terraform.<env>.tfvars`; a supplied `vm_instances` or `lxc_instances` map replaces that complete base map |
+| Host IPs | Set the complete `platform_host_ips` map in `ansible/group_vars/<stem>.<env>.yml` |
+| Names and domains | Review `all.<env>.yml`; generated prefixes do not reserve DNS or addresses |
+| VIPs, VRRP IDs, MACs and listeners | Allocate non-conflicting service values in the setup overlay; different hostnames alone do not isolate them |
+| Network and credentials | Select isolated networks/scopes where required; `--env` creates neither firewall policy nor permissions |
+
+For one disposable run, the base hardware file may hold its allocations. Before using
+the base files for production, retire that test deployment under its original state
+or keep explicit non-overlapping overlays for both. Do not solve a collision by importing
+the same live resource into another state. Review every plan against the allocation record.
+
 ## Run a deployment
 
-Plan the first foundation run for a disposable environment:
+After completing [environment isolation](#environment-isolation), plan the first
+foundation run for a disposable environment:
 
 ```bash
 bash scripts/deploy.sh foundation --env test --plan-only
@@ -247,15 +269,15 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 | Setup | What it targets | Start with |
 | --- | --- | --- |
 | `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../deployment/stage-3-identity-runtime/procedures/freeipa.md) |
-| `syslog` | Tier 0 receiver VMs/disks and baseline only; not an HA/WORM installer | [Foundational logging](../deployment/stage-1-foundation/procedures/syslog.md) |
+| `syslog` | Tier 0 receiver VMs/disks and baseline only; not an HA/WORM installer | [Foundational logging](../deployment/stage-1-logging/README.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
-| `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../deployment/stage-1-foundation/step-3b-outbound-cache.md) |
+| `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../deployment/foundation/step-3b-outbound-cache.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-5-delivery/step-1b-source-control-vm.md) |
 | `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-4-control-services/step-2b-vault-vm.md) |
 | `observability` | Tier 1 optional VM foundations for shared telemetry/copies, not raw evidence custody | [Observability VM alternative](../deployment/stage-4-control-services/step-2d-telemetry-vm.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../deployment/stage-5-delivery/step-1c-podman-runner.md) |
 | `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../deployment/stage-5-delivery/step-1d-image-based-linux.md) |
-| `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/stage-1-foundation/procedures/enterprise-linux-template.md) |
+| `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/foundation/procedures/enterprise-linux-template.md) |
 | `hsm` | USB or software HSM gateway deployment pattern | [USB HSM active-active blueprint](../deployment/stage-2-trust/step-1b-usb-hsm.md) |
 | `lab` | general-purpose lab guests | this reference and the local inventory |
 

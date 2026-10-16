@@ -24,7 +24,7 @@ prerequisites; this is not a requirement to deploy every example.
 | 2. Confirm publication and supply | Obtain approved Tier 2 edge endpoints if needed; select authoritative mirrors and Tier 1 DMZ runner access | Named interfaces work; direct administrative and peer access is denied |
 | 3. Create a platform cluster, if needed | Run `bash scripts/kubernetes-cluster.sh init` from Tier 1; follow the [Kubernetes guide](../../deployment/stage-3-identity-runtime/procedures/kubernetes.md) and select [Argo CD or Spinnaker](../../architecture/delivery/controllers.md) separately | Nodes/API and selected delivery are verified; recovery is tested |
 | 4. Add development services | Follow [source control](../../deployment/stage-5-delivery/step-1b-source-control-vm.md), [runners](../../deployment/stage-5-delivery/step-1c-podman-runner.md), and [registry](../../deployment/stage-5-delivery/procedures/registry.md) guides | Selected services have identity, certificates, backups, and restricted credentials |
-| 5. Add shared observability | Follow the [observability procedure](../../deployment/stage-4-control-services/procedures/observability.md#2-add-the-shared-investigation-platform); VMs are an explicit alternative | Approved copies and scoped app diagnostics; raw security evidence stays in Tier 0 |
+| 5. Add shared observability | Follow the [observability procedure](../../deployment/stage-5-delivery/analytics.md); VMs are an explicit alternative | Approved copies and scoped app diagnostics; raw security evidence stays in Tier 0 |
 
 The Linux setups and the optional Kubernetes path are separate. Source control
 on a Linux VM does not require step 3. Cluster service directories are starter
@@ -49,7 +49,7 @@ bash ../homelab-shared/scripts/deploy.sh development --env test --plan-only
 
 Remove `--plan-only` only after review. These are operator-run workflows, not
 workload-user access to Tier 0 credentials. For VM mobility, confirm the
-[cluster placement contract](../../deployment/stage-1-foundation/step-1b-cluster-ha.md#terraform-against-the-cluster).
+[cluster placement contract](../../deployment/foundation/step-1b-cluster-ha.md#terraform-against-the-cluster).
 
 <a id="find-your-way"></a>
 

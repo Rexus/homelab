@@ -17,10 +17,12 @@ Run repository scripts from this root; paths below are repository-relative.
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
 - [IaC used for this](#iac-used-for-this)
-- [How to shape the deployment](#how-to-shape-the-deployment)
+- [Plan and deploy](#plan-and-deploy)
+- [Operator bootstrap](#operator-bootstrap)
 - [After deployment](#after-deployment)
 - [Later hardening](#later-hardening)
 - [Read more](#read-more)
+- [References](#references)
 
 ## Purpose
 
@@ -68,6 +70,12 @@ platform.
 
 ## Configuration
 
+Initialize missing local files from Tier 0:
+
+```bash
+bash scripts/init-local-files.sh --setup vault
+```
+
 Edit these local files before running the Vault foundation deployment:
 
 | Repository | Path inside that repository | Configuration |
@@ -77,6 +85,8 @@ Edit these local files before running the Vault foundation deployment:
 | Tier 0 | [`ansible/inventory/hosts.yml.example`](../../../tier-0/ansible/inventory/hosts.yml.example) | stable Vault host key and inventory group |
 | Tier 0 | [`ansible/group_vars/all.env.yml.example`](../../../tier-0/ansible/group_vars/all.env.yml.example) | environment-specific hostname decoration and domain when using `--env` |
 | Tier 0 | [`ansible/group_vars/vault.yml.example`](../../../tier-0/ansible/group_vars/vault.yml.example) | Vault host IPs, `vault_api_addr`, `vault_cluster_addr`, `vault_node_id`, TLS source paths, and listener settings |
+
+<a id="how-to-shape-the-deployment"></a>
 
 ### Deployment shape
 
@@ -101,13 +111,6 @@ The starter places privileged secrets at `10.20.21.21` on the cryptography
 network, not on the application subnet. Existing deployments keep their local
 inputs during refresh; moving a live Vault service requires a separate reviewed
 network, DNS, TLS, firewall, and recovery plan.
-
-Use this rule:
-
-- keep `1` dedicated Vault VM for the default deployment flow
-- add more Vault VMs in `vm_instances` only when intentionally starting
-  with a multi-node Raft deployment
-- add every Vault node to the Ansible `vault` inventory group
 
 Use these first-node settings:
 
@@ -138,47 +141,58 @@ Ansible inventory owns stable logical host keys and service groups. Ansible
 Vault IP map, while the Vault Terraform environment owns hardware placement
 and Proxmox tags.
 
-## How to shape the deployment
+## Plan and deploy
 
-Use the Vault environment as a dedicated service layer, not as a mixed-use VM.
+Prepare the TLS files and local inputs above, then plan:
 
-- keep the default path at `1` dedicated Vault VM
-- add more Vault nodes in `vm_instances` only when intentionally deploying a
-  multi-node Raft design from the start
-- keep every Vault VM in the Ansible `vault` inventory group
-- keep TLS enabled from the first startup and prepare the certificate inputs
-  before the run
-- leave `vault_raft_retry_join` empty for the first single-node deployment
-- leave `vault_seal_hcl` empty for the first deployment and add seal changes
-  later through the hardening path
-- keep Vault on dedicated hosts instead of combining it with identity, PKI, or
-  application roles
+```bash
+bash scripts/deploy.sh vault --plan-only
+```
 
-To deploy the setup, use the repository deployment wrapper with
-the `vault` setup. Keep the exact execution flow in the wrapper rather than
-repeating it in this guide. That wrapper also checks the required local config
-files for the setup before it runs.
+Review VM/disk changes and certificate sources before deploying:
 
-After the wrapper run:
+```bash
+bash scripts/deploy.sh vault
+```
 
-- verify the Vault service is running but still sealed
-- initialize Vault with an operator-reviewed command, for example:
+**Result:** a new Vault service is installed, running and sealed; the wrapper does not initialize or unseal it.
+
+## Operator bootstrap
+
+Use a trusted operator terminal, not CI logs. Configure the CLI with the actual
+HTTPS endpoint and local CA bundle from the chosen TLS configuration. [1]
+
+```bash
+read -r -p "Vault HTTPS URL from vault_api_addr: " VAULT_ADDR
+read -r -p "Absolute path to the trusted Vault CA bundle: " VAULT_CACERT
+export VAULT_ADDR VAULT_CACERT
+vault status
+```
+
+A sealed server returns exit code 2 from `vault status`; inspect its `Initialized`
+and `Sealed` fields. Initialize only a new, uninitialized service. Recovery of an
+existing service uses its original data and keys, never another initialization. [2]
+Prepare protected share/root-token custody first; PGP output encryption is supported. [3]
+For the selected three-share/two-custodian Shamir example:
 
 ```bash
 vault operator init -key-shares=3 -key-threshold=2
 ```
 
-- unseal the first node and enable an audit device before storing shared
-  secrets:
+Retain the resulting material under the selected custody policy. Enter two distinct
+shares interactively, then authenticate before configuring the audit device: [2][4]
 
 ```bash
 vault operator unseal
 vault operator unseal
+vault login
 vault audit enable file file_path=/var/log/vault/audit.log
 ```
 
-For stronger operator handling, use PGP encryption for unseal shares and the
-initial root token during `vault operator init`.
+The login uses the protected initial root token at the prompt; do not put it in a
+command argument. Configure and test normal scoped administrative access before
+revoking bootstrap authority. Forward audit records to protected logging before
+storing important secrets; the local audit file alone is not the retained evidence archive.
 
 ## After deployment
 
@@ -211,3 +225,12 @@ with the security docs instead of extending this deployment guide:
 - [Deployment readiness](../readiness.md)
 - [Secret strategy](../../administration/secret-handling/strategy.md)
 - [Ansible Vault bootstrap fallback](../../administration/secret-handling/ansible-vault.md)
+
+## References
+
+Operator command guidance checked 2026-10-16; use the installed release's documentation.
+
+1. [Vault CLI address and CA configuration](https://developer.hashicorp.com/vault/docs/commands)
+2. [Vault status and sealed exit code](https://developer.hashicorp.com/vault/docs/commands/status)
+3. [Vault initialization and PGP protection](https://developer.hashicorp.com/vault/docs/commands/operator/init)
+4. [Vault interactive authentication](https://developer.hashicorp.com/vault/docs/commands/login)

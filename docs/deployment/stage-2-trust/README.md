@@ -4,7 +4,8 @@ Establish an offline root and an online issuing CA. Normal issuance and renewal 
 the intermediate CA, never an online root. Hardware protection changes key custody;
 it is an optional branch, not a prerequisite for the rest of the platform.
 
-**Prerequisites:** accepted [compute foundation](../stage-1-foundation/README.md),
+**Prerequisites:** verified [foundation](../foundation/README.md) and accepted
+[protected logging](../stage-1-logging/README.md),
 selected CA software, protected recovery storage and authorized custodians.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Design:** [certificate trust](../../architecture/reference-platform.md#certificate-trust).
@@ -51,6 +52,8 @@ The HSM path remains Tier 0-owned and independently deployable in either form.
 Tier 0's [terraform/deployments/foundation/](../../../tier-0/terraform/deployments/foundation/)
 can provision the issuer host, but CA installation is
 operator integration. An existing independent issuer is also valid.
+This Terraform root also contains the selected directory guests. Review the whole
+plan; do not remove existing resources to make its contents match a stage number.
 
 ## Step 2: Establish the certificate hierarchy
 

@@ -111,8 +111,10 @@ every variant, including when approved copies are searchable in Tier 1.
 Tier 0 outages can still interrupt higher-tier foundational dependencies. Local
 telemetry survives only where its compute, storage and credential dependencies survive.
 
-Deployment begins with [foundational syslog](../../deployment/stage-1-foundation/procedures/syslog.md),
-then adds [observability capabilities](../../deployment/stage-4-control-services/procedures/observability.md).
+Deployment begins with [foundational syslog](../../deployment/stage-1-logging/README.md),
+then adds [independent monitoring](../../deployment/stage-4-control-services/monitoring.md),
+[shared analytics](../../deployment/stage-5-delivery/analytics.md) and
+[workload collection](../../deployment/stage-6-workloads/telemetry.md).
 The [VM alternative](../../deployment/stage-4-control-services/step-2d-telemetry-vm.md)
 provides host foundations only. Product installation and integrations remain project work.
 

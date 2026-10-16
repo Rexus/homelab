@@ -154,6 +154,15 @@ Linux template work instead of replacing it.
 
 Use this flow:
 
+Initialize the selected context from Tier 0 before editing inputs:
+
+```bash
+bash scripts/init-local-files.sh --setup immutable-template --env test
+```
+
+Complete [environment isolation](../../reference/repository-scripts.md#environment-isolation),
+including a unique builder VMID and IP. Keep the builder in its original state throughout conversion.
+
 1. Create or reuse normal cloud-init templates such as `rhel-10-tmpl`,
    `alma-10-tmpl`, or `rocky-10-tmpl`.
 2. Edit `terraform/deployments/immutable-template/terraform.tfvars`.
@@ -253,7 +262,7 @@ keeps the previous deployment available.[4]
 - [Container registry path](procedures/registry.md)
 - [Development platform path](step-1b-source-control-vm.md)
 - [Podman image runner guide](step-1c-podman-runner.md)
-- [Enterprise Linux template](../stage-1-foundation/procedures/enterprise-linux-template.md)
+- [Enterprise Linux template](../foundation/procedures/enterprise-linux-template.md)
 - [Proxmox planning guidelines](../../reference/proxmox-conventions.md)
 - [Security principles](../../architecture/principles.md)
 

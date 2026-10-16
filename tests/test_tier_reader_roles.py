@@ -20,12 +20,12 @@ class ReaderRoles(TierRepositoryTestCase):
                 link = re.search(rf"\[{name}/\]\(([^)]+)\)", index)[1]
                 expected = UPSTREAM / name if root == source else self.root / f"verify-{name}"
                 self.assertEqual((root / link).resolve(), expected)
-            for document in root.glob("stage-*/**/*.md"):
+            for document in [*root.glob("stage-*/**/*.md"), *root.glob("foundation/**/*.md")]:
                 opening = "\n".join(document.read_text(encoding="utf-8").splitlines()[:22])
                 self.assertRegex(opening, r"\*\*Working repositor(?:y|ies):\*\*|## Working repositories", str(document))
                 self.assertIn("<prefix>-tier-", opening, str(document))
             for relative, owner in (
-                ("stage-1-foundation/step-3b-outbound-cache.md", "tier-2"),
+                ("foundation/step-3b-outbound-cache.md", "tier-2"),
                 ("stage-2-trust/step-1b-usb-hsm.md", "tier-0"),
                 ("stage-3-identity-runtime/procedures/freeipa.md", "tier-0"),
                 ("stage-4-control-services/step-2b-vault-vm.md", "tier-0"),
@@ -150,14 +150,14 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertIn("Required readiness", deployment)
             self.assertIn("deployment/readiness.md", deployment)
             self.assertIn("Selected variant / local procedure", deployment)
-            for stage in ("stage-1-foundation", "stage-2-trust", "stage-3-identity-runtime",
+            for stage in ("stage-1-logging", "stage-2-trust", "stage-3-identity-runtime",
                           "stage-4-control-services", "stage-5-delivery", "stage-6-workloads"):
                 self.assertIn(f"{stage}/README.md", deployment)
             self.assertIn("../architecture/README.md", deployment)
             self.assertIn("do not transfer resource or state ownership", deployment)
         reference = self.root / "verify-architecture/docs/auto-docs/deployment"
         self.assertEqual(sorted(path.parent.name for path in reference.glob("stage-*/README.md")),
-                         ["stage-1-foundation", "stage-2-trust", "stage-3-identity-runtime",
+                         ["stage-1-logging", "stage-2-trust", "stage-3-identity-runtime",
                           "stage-4-control-services", "stage-5-delivery", "stage-6-workloads"])
         for old in ("stages", "compute", "cryptography", "identity", "network", "delivery", "operations"):
             self.assertFalse((reference / old).exists(), old)

@@ -108,6 +108,6 @@ is justified by capacity requirements, not by an assumed product progression.
 
 ## Realization
 
-Implementation procedures: [independent software supply](../../deployment/stage-1-foundation/README.md#step-2-protect-provisioning-access-and-state)
+Implementation procedures: [independent software supply](../../deployment/foundation/README.md#step-2-protect-provisioning-access-and-state)
 and [hosted delivery](../../deployment/stage-5-delivery/README.md#step-1-deploy-shared-delivery-services).
 Procedure reuse does not transfer service ownership between tiers.

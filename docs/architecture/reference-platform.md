@@ -220,12 +220,12 @@ Detailed variants link to their own realization procedures inside the domains.
 
 | Finished function | Contributing deployment guides |
 | --- | --- |
-| Infrastructure, network attachment and approved templates | [Compute foundation](../deployment/stage-1-foundation/README.md) |
+| Infrastructure, network attachment and approved templates | [Compute foundation](../deployment/foundation/README.md) |
 | Offline trust and online issuance | [Cryptographic trust](../deployment/stage-2-trust/README.md) |
 | Directory, Kubernetes and base cluster services | [Identity and runtime](../deployment/stage-3-identity-runtime/README.md) |
-| Protected syslog and audit evidence | [Foundational logging](../deployment/stage-1-foundation/procedures/syslog.md) |
+| Protected syslog and audit evidence | [Foundational logging](../deployment/stage-1-logging/README.md) |
 | Federation, secrets, inventory and critical visibility | [Control services](../deployment/stage-4-control-services/README.md) |
-| Shared analytics and scoped application diagnostics | [Observability additions](../deployment/stage-4-control-services/procedures/observability.md) |
+| Shared analytics and scoped application diagnostics | [Observability additions](../deployment/stage-4-control-services/monitoring.md) |
 | Shared delivery, published endpoints and protected execution handover | [Delivery and handover](../deployment/stage-5-delivery/README.md) |
 | Approved project runtimes and application reconciliation | [Workload provisioning](../deployment/stage-6-workloads/README.md) |
 

@@ -69,6 +69,11 @@ On the Proxmox side, decide and document:
 
 ## Recommended host pattern
 
+For the first deployment, a switched VLAN-aware `vmbr0` at MTU 1500 is sufficient
+when capacity and availability requirements permit it. Keep management reachable;
+introduce bonds, separate storage and jumbo frames only after that path is verified.
+The diagram below is an expanded option, not a minimum hardware requirement.
+
 ```mermaid
 flowchart LR
     Switches[Managed switches or upstream fabric]
@@ -142,8 +147,10 @@ Bonding and bridge notes:
 
 - when using `802.3ad` for `bond0` or `bond1`, configure the switch side for
   LACP too
-- in UniFi this is exposed through port
-  [aggregation](https://help.ui.com/hc/en-us/articles/360007279753-UniFi-USW-Configuring-Link-Aggregation-Groups-LAG-?source=post_page---------------------------)
+- in UniFi this is exposed through port aggregation. [1]
+- terminate ordinary LACP on one logical switch. Spanning two independent switches
+  requires a supported and configured MC-LAG/stacking design; two purchased switches
+  do not provide that automatically. [1][2]
 - on other switch platforms, the same setup is often presented more explicitly
   as dynamic `LACP` on the member ports or a port-channel
 - keep `vmbr1` VLAN-aware and allow only the needed storage VLANs and the
@@ -324,3 +331,10 @@ Before running automation, confirm:
   part of the design
 - MTU, routes, and host-side naming are consistent across the nodes that should
   be interchangeable
+
+## References
+
+Switch aggregation guidance checked 2026-10-16. Verify support for the actual hardware.
+
+1. [Ubiquiti: Port aggregation and MC-LAG distinction](https://help.ui.com/hc/en-us/articles/360007279753-Port-Aggregation-FAQs)
+2. [Ubiquiti: MC-LAG commissioning and supported devices](https://help.ui.com/hc/en-us/articles/19133507506711-Configuring-MC-LAG-in-UniFi-Network)

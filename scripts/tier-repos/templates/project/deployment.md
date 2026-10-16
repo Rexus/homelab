@@ -6,10 +6,11 @@ Existing services can satisfy verified prerequisites.
 
 | Stage | Selected variant / local procedure | Acceptance evidence | Reference |
 | --- | --- | --- | --- |
-| 1: Compute foundation | Record hosts, networks, templates, provisioning access and protected logging acceptance | Pending review | [Foundation](${docs}/deployment/stage-1-foundation/README.md) |
+| Foundation prerequisites | Record hosts, networks, templates, provisioning access and independent recovery | Pending review | [Foundation](${docs}/deployment/foundation/README.md) |
+| 1: Protected logging | Record collector deployment, protected evidence, offline inspection and selected failure contract | Pending review | [Logging](${docs}/deployment/stage-1-logging/README.md) |
 | 2: Cryptographic trust | Record root custody and issuer selection | Pending review | [Trust](${docs}/deployment/stage-2-trust/README.md) |
 | 3: Identity and Kubernetes | Record directory and cluster procedures | Pending review | [Identity and Kubernetes](${docs}/deployment/stage-3-identity-runtime/README.md) |
-| 4: Control services | Record federation, operational services and access integration | Pending review | [Control services](${docs}/deployment/stage-4-control-services/README.md) |
+| 4: Control services | Record federation, operational services, independent monitoring and access integration | Pending review | [Control services](${docs}/deployment/stage-4-control-services/README.md), [monitoring](${docs}/deployment/stage-4-control-services/monitoring.md) |
 | 5: Delivery and handover | Record shared delivery and protected execution handover | Pending review | [Delivery and handover](${docs}/deployment/stage-5-delivery/README.md) |
 | 6: Workload provisioning | Record the approved workload lifecycle | Pending review | [Workload provisioning](${docs}/deployment/stage-6-workloads/README.md) |
 

@@ -51,7 +51,10 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "platforms/proxmox/cluster-ha.md", "deployment/stages/foundation.md",
                     "architecture/system/capability-growth.md", "architecture/system-design/README.md",
                     "architecture/subsystem-design/compute/README.md",
-                    "deployment/stage-0-foundation/README.md", "deployment/stage-1-trust/usb-hsm.md"]
+                    "deployment/stage-0-foundation/README.md", "deployment/stage-1-trust/usb-hsm.md",
+                    "deployment/stage-1-foundation/README.md",
+                    "deployment/stage-1-foundation/procedures/syslog.md",
+                    "deployment/stage-4-control-services/procedures/observability.md"]
         for old in examples:
             relative = f"docs/auto-docs/{old}"
             path = repo / relative
@@ -83,11 +86,18 @@ class DocumentationMigration(TierRepositoryTestCase):
         self.assertIn("(../../deployment/readiness.md)", progress_pointer.read_text())
         self.assertIn("(../README.md)", (repo / "docs/auto-docs" / examples[5]).read_text())
         self.assertIn("(../../compute/README.md)", (repo / "docs/auto-docs" / examples[6]).read_text())
-        for old, target in ((examples[7], "stage-1-foundation/README.md"),
+        for old, target in ((examples[7], "foundation/README.md"),
                             (examples[8], "stage-2-trust/step-1b-usb-hsm.md")):
             pointer_text = (repo / "docs/auto-docs" / old).read_text()
             self.assertIn(f"(../{target})", pointer_text)
             self.assertIn('id="stable-anchor"', pointer_text)
+        for old in examples[9:]:
+            pointer = repo / "docs/auto-docs" / old
+            content = pointer.read_text()
+            self.assertIn('id="stable-anchor"', content)
+            self.assertIn("current guide", content)
+            target = repo / "docs/auto-docs" / MOVES[old]
+            self.assertTrue(target.is_file())
         self.generate("--refresh")
         self.assertEqual(pointer.read_text(), content)
         self.assertEqual(stage_pointer.read_text(), stage_content)

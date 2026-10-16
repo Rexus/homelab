@@ -47,9 +47,9 @@ Tier 2 uses the same workflow with its own repository, API, credentials and
 
 Before starting, have:
 
-- Prepared [Proxmox hosts](../stage-1-foundation/procedures/proxmox.md#first-deployment-order), storage,
-  guest networks, and optional [HA/SDN](../stage-1-foundation/step-1b-cluster-ha.md).
-- A tested [Talos template](../stage-1-foundation/procedures/talos-template.md), its pinned release
+- Prepared [Proxmox hosts](../foundation/procedures/proxmox.md#first-deployment-order), storage,
+  guest networks, and optional [HA/SDN](../foundation/step-1b-cluster-ha.md).
+- A tested [Talos template](../foundation/procedures/talos-template.md), its pinned release
   and schematic, and the matching installer image retained for recovery.
   Obtain its approved ID, title, and source node from the [shared catalog](../../reference/template-catalog.md).
 - Matching `talosctl`, compatible `kubectl`, and the required container images.
@@ -183,7 +183,7 @@ node allocations and recovery references in project documentation. The manual
 route does not generate Terraform state or Ansible inventory; the Terraform
 route uses the owning tier's inventory and retains its own state.
 
-For HA, perform the [Proxmox failure checks](../stage-1-foundation/step-1b-cluster-ha.md#prove-failover)
+For HA, perform the [Proxmox failure checks](../foundation/step-1b-cluster-ha.md#prove-failover)
 and verify Kubernetes quorum/API availability separately. A VM restart alone
 does not prove cluster or application availability.
 

@@ -6,7 +6,7 @@ Each consuming tier owns its separate cluster deployment.
 **Design:** [cluster runtime and images](../../../architecture/compute/README.md).
 
 Tier 0 publishes unconfigured Talos templates for control and workload clusters
-across all tiers. Its own first control cluster needs a tested template during the compute foundation stage.
+across all tiers. Its own first control cluster needs a tested template from the foundation prerequisites.
 Use the [template lifecycle](../../../administration/compute/template-lifecycle.md) for publication and CD jobs;
 this guide owns Talos-specific image selection and bootstrap boundaries.
 

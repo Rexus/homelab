@@ -22,7 +22,7 @@ system is an implementation choice, not the name or purpose of the platform.
 
 ## Prerequisites
 
-Prepare [Proxmox](../../stage-1-foundation/procedures/proxmox.md#first-deployment-order), approved node
+Prepare [Proxmox](../../foundation/procedures/proxmox.md#first-deployment-order), approved node
 images, networks, storage, API access, and an execution host outside the cluster.
 Record the owning tier, node allocations, cluster API endpoint, and recovery
 inputs. Tier 0 must bootstrap and recover without Tier 1 or Tier 2 services.

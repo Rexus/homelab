@@ -68,7 +68,7 @@ host is a valid pilot; cluster membership, HA, and SDN are explicit choices.
 | 5. Optional SDN | Configure [guest VNets](host-network.md#optional-sdn-for-guest-networks) on eligible nodes | VNet/bridge IDs and VLAN policy match the tier inputs |
 | 6. Protect access and data | Configure [API access](api-access.md), [backups](../../../administration/compute/backup-restore.md), and the [hardening baseline](../../../administration/compute/hardening.md) | Scoped credentials, recovery access, and restore checks work |
 | 7. Publish templates | Run the [local template workflow](../../../administration/compute/template-lifecycle.md#local-workflow) | Disposable clones boot with the correct disks and networks |
-| 8. Deploy guests | Continue with [Kubernetes](../../stage-3-identity-runtime/procedures/kubernetes.md) or [Linux identity VMs](../../stage-3-identity-runtime/procedures/freeipa.md) | Chosen service/cluster checks pass; selected HA guests pass failover tests |
+| 8. Start capabilities | Begin [Stage 1: Protected logging](../../stage-1-logging/README.md), then follow the [deployment stages](../../README.md) | Protected collection works at its recorded readiness before trust, identity and clusters |
 
 The installer writes the selected disks; back up existing contents before
 installation. [1] [Cluster joining](../step-1b-cluster-ha.md#prepare-and-join-hosts) also needs

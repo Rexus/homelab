@@ -5,16 +5,16 @@ Run repository scripts from this root; paths below are repository-relative.
 
 <a id="deploy-the-telemetry-host-variant"></a>
 
-**Branch from:** [Step 2](README.md#step-2-deploy-operational-services), instead of the selected cluster telemetry components.
+**Branch from:** [Step 2](README.md#step-2-deploy-operational-services), only when preparing the Tier 1 analytics VM alternative early.
 **Change:** Use dedicated telemetry hosts in their owning tier.
-**Return:** [Step 2](README.md#step-2-deploy-operational-services) to continue with service visibility and external failure detection.
+**Return:** [Step 2](README.md#step-2-deploy-operational-services) for Tier 0 services; the same VM recipe can be used later from Stage 5 analytics.
 
 **Design:** [telemetry options A-C](../../architecture/operations/telemetry.md).
 **Prerequisites:** selected collector/backend roles, network policy, retention,
 software supply and recovery targets. Run the supplied VM workflow from Tier 1.
 Protected security logging is already established in
-[Tier 0](../stage-1-foundation/procedures/syslog.md); these VMs do not take its custody.
-The main later path is the [shared observability platform](procedures/observability.md),
+[Tier 0](../stage-1-logging/README.md); these VMs do not take its custody.
+The main later path is the [shared observability platform](../stage-5-delivery/analytics.md),
 not a mandatory VM for every logical component.
 
 ## Table of contents
@@ -30,6 +30,19 @@ not a mandatory VM for every logical component.
 2. For A, initialize the observability setup, select hosts and sizes in Terraform,
    and align their tier-local inventory and IP maps. The shared deployment wrapper
    provisions hosts and applies baseline only.
+
+   ```bash
+   bash scripts/init-local-files.sh --setup observability
+   ```
+
+   After editing local Terraform/inventory inputs:
+
+   ```bash
+   bash scripts/deploy.sh observability --plan-only
+   ```
+
+   Review the plan, then run `bash scripts/deploy.sh observability` to provision
+   and baseline the selected VMs. This does not install the backend products.
 3. Install selected collectors, backends and dashboards with project-owned service
    automation. B uses cluster manifests; C verifies existing endpoints instead.
 4. Configure approved source-to-collector and collector-to-backend routes, TLS,

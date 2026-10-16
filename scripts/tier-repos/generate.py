@@ -10,7 +10,8 @@ sys.dont_write_bytecode = True
 try:
     import yaml
 except ImportError:
-    sys.exit("PyYAML is required: python3 -m pip install -r scripts/tier-repos/requirements.txt")
+    sys.exit("PyYAML is required. Activate a Python environment with PyYAML; "
+             "see docs/development/generated-repositories.md#purpose-and-prerequisites.")
 
 from generated_files import MARKER, RepositoryWriter
 from documentation import copy_documentation, shared_readme, tier_readme

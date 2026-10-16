@@ -65,12 +65,28 @@ flowchart TB
    it does not deploy applications, policies or an autoscaler.
 3. Verify runtime readiness, state locking and independent restoration before workloads.
 
+For the operator-driven VM/LXC path, initialize from the Tier 2 repository root:
+
+```bash
+bash scripts/init-local-files.sh --setup lab
+```
+
+Edit local `terraform/deployments/lab/terraform.tfvars`, inventory and
+`ansible/group_vars/lab.yml` together. With authorized execution credentials, plan:
+
+```bash
+bash scripts/deploy.sh lab --plan-only
+```
+
+Review the complete resource plan before `bash scripts/deploy.sh lab`. These are
+operator commands, not a command path that grants ordinary workload users Proxmox access.
+
 **Result:** the [compute runtime](../../architecture/compute/README.md) is ready within
 the workload's allocated scope, without changing Tier 0 ownership.
 
 ## Step 3: Deploy and verify applications
 
-Connect [workload telemetry](../stage-4-control-services/procedures/observability.md#3-connect-scoped-workload-telemetry):
+Follow the [workload collection deployment](telemetry.md), Steps 1-3:
 security/audit submissions go to protected Tier 0 intake; developer views expose
 only approved application logs in Tier 1. Local buffering does not imply local alerting.
 

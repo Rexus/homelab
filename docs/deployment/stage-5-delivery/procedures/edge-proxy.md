@@ -5,6 +5,15 @@ Run repository scripts from this root; paths below are repository-relative.
 
 **Design:** [traffic boundaries](../../../architecture/delivery/README.md).
 
+## Main path
+
+1. [Initialize and configure](#configuration)
+2. [Plan and deploy](#plan-and-deploy)
+3. [Verify before publication](#verify-before-publication)
+
+Defaults and VIP behavior below explain the pattern; the starter has no application
+frontends/backends enabled. Provisioning the edge set alone does not publish an application.
+
 ## Purpose
 
 Use this path from Tier 2 to deploy the public `external_edge` load-balancer layer. This
@@ -81,6 +90,12 @@ not this Tier 2 edge deployment.
 
 ## Configuration
 
+Initialize local inputs from Tier 2 before editing their example-derived live files:
+
+```bash
+bash scripts/init-local-files.sh --setup edge
+```
+
 | Repository | Path inside that repository | Configuration |
 | --- | --- | --- |
 | Tier 2 | [`terraform/common.tfvars.example`](../../../../tier-2/terraform/common.tfvars.example) | `external_edge` attachment and optional overrides; common storage and local SSH paths follow [platform inputs](../../../reference/platform-inputs.md) |
@@ -94,6 +109,33 @@ uses its [edge_load_balancer role](../../../../tier-2/ansible/roles/edge_load_ba
 Shared supplies the [deploy helper](../../../../shared/scripts/deploy.sh) and
 [Keepalived primitive](../../../../shared/ansible/roles/shared/tasks/keepalived.yml),
 not the edge inventory, Terraform or frontend definitions.
+
+## Plan and deploy
+
+Configure host IPs, unused VIPs/VRRP IDs and approved application frontends/backends.
+For multiple environments, complete [environment isolation](../../../reference/repository-scripts.md#environment-isolation).
+
+```bash
+bash scripts/deploy.sh edge --plan-only
+```
+
+Review the resources and listeners, then deploy:
+
+```bash
+bash scripts/deploy.sh edge
+```
+
+## Verify before publication
+
+1. Test the selected VIP/listener from an approved internal client, backend health,
+   TLS/service hostname and denied access from an unauthorized subnet.
+2. Verify VIP failover on disposable traffic; check remaining capacity and endpoint
+   continuity before relying on the HA pattern.
+3. Publish only the selected application DNS/NAT/firewall path. Keep administrative
+   APIs private, and test the actual WAN/VPN path and IPv6 policy separately.
+
+Never open the whole edge host or backend subnet merely because one app works.
+Retain [logging and recovery](../../../administration/README.md) before carrying important traffic.
 
 ## How other paths use it
 

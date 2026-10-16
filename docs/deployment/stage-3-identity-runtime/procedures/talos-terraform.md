@@ -29,8 +29,8 @@ independent authorized execution host. Tier 0 recovery must not depend on Tier 1
 Install Terraform, matching `talosctl`, and compatible `kubectl`. Provider constraints
 and checksums live in `terraform/deployments/kubernetes/`.
 
-- Complete [Proxmox preparation](../../stage-1-foundation/procedures/proxmox.md#first-deployment-order),
-  optional [HA](../../stage-1-foundation/step-1b-cluster-ha.md), and [Talos template publication](../../stage-1-foundation/procedures/talos-template.md).
+- Complete [Proxmox preparation](../../foundation/procedures/proxmox.md#first-deployment-order),
+  optional [HA](../../foundation/step-1b-cluster-ha.md), and [Talos template publication](../../foundation/procedures/talos-template.md).
 - Approve the template ID, title, and source node in the sibling shared
   [catalog](../../../reference/template-catalog.md). Retain the disk and matching installer image.
 - Prepare DHCP reservations for each VM's MAC/IP, bootstrap DNS/time, and image
@@ -122,7 +122,7 @@ kubectl get pods -A
 ```
 
 Stop on unhealthy nodes or system pods. Confirm the independent API endpoint,
-CNI, and [failover checks](../../stage-1-foundation/step-1b-cluster-ha.md#prove-failover) before services
+CNI, and [failover checks](../../foundation/step-1b-cluster-ha.md#prove-failover) before services
 depend on this cluster. Terraform completion alone does not prove readiness.
 
 Continue with the [cluster-foundation checklist](kubernetes.md#cluster-foundation).

@@ -10,7 +10,7 @@
 
 **Design:** [compute availability](../../architecture/compute/README.md).
 
-Optional early Tier 0 setup, **before templates and important guests**. A single
+Optional foundation setup in Tier 0, **before templates and important guests**. A single
 host is valid for a pilot. A cluster adds shared administration; HA must be
 configured separately for selected guests. Neither replaces backups.
 
@@ -115,9 +115,8 @@ reviewed container provider reads a node-specific path; do not assume the same
 external-migration behavior for LXC. [6] Talos clones need their own resources,
 not the Linux cloud-init module; see [Talos bootstrap](../stage-3-identity-runtime/step-2b-manual-cluster.md).
 
-The Linux guest roots currently set provider `insecure = true`. Before production,
-establish trusted API certificates and review that setting in the owning roots.
-The separate template publisher already verifies TLS.
+Complete the [API TLS gate](procedures/api-access.md#tls-gate) before live deployment;
+cluster membership does not establish trusted API certificates.
 
 ## Prove failover
 

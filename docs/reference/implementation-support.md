@@ -1,16 +1,17 @@
 # Implementation support
 
 Design options describe valid arrangements, not automatic installer coverage.
-[Six capability stages](../deployment/README.md) combine the selected procedures.
+[Foundation prerequisites](../deployment/foundation/README.md) precede the
+[six capability stages](../deployment/README.md).
 The [repository map](../deployment/README.md#repository-locations) identifies the
 working checkouts; Shared helpers do not own the tier deployments they execute.
 
 | Stage | Capability | Repository support |
 | --- | --- | --- |
-| 1 | Proxmox, physical network, optional HA/SDN, firewall | Operator procedures; no complete host/network installer |
-| 1 | Approved VM templates | Tier 0 publication root and local/CD commands; shared consumer references |
+| Foundation | Proxmox, physical network, optional HA/SDN, firewall | Operator procedures; no complete host/network installer |
+| Foundation | Approved VM templates | Tier 0 publication root and local/CD commands; shared consumer references |
 | 1 | Protected security logging | Tier 0 `syslog` VM/disk root and baseline; receiver, durable commit/replication, retention locks and segmented access remain project integration |
-| 1 | Optional software-supply cache | Tier 2 ordinary cache VMs, Squid/keepalived automation; independent bootstrap supply required |
+| Foundation option | Optional software-supply cache | Tier 2 ordinary cache VMs, Squid/keepalived automation; independent bootstrap supply required |
 | 2 | Root/issuer trust and custody A/B | Operator integration and product procedures; no complete CA or token installer |
 | 2 | C: Replicated USB services | Capacity-sized Tier 0 VM pool/baseline; two-host starter and opt-in backend scaffold. Application HA, devices, keys, readiness and VIP runtime remain operator integration |
 | 2 | D: Network HSM | Vendor appliance/client integration guide; no appliance installer or generic HA role |
@@ -18,7 +19,7 @@ working checkouts; Shared helpers do not own the tier deployments they execute.
 | 3/5/6 | Independent cluster nodes/bootstrap | Each tier owns a Kubernetes Terraform root, currently Talos; compact three-control-plane examples and optional pool labels; no autoscaler |
 | 3/4 | Cluster add-ons and control services | Tier-owned cluster starters; application manifests and service integration remain project work |
 | 4 | Dedicated secret-service VM | Tier 0 Vault root/role; Shamir reference; no automatic Transit/PKCS#11 migration |
-| 4 | Telemetry VM pattern | Tier 1 observability hosts/baseline; collectors/backends need service automation |
+| 5; can prepare earlier | Telemetry VM pattern | Tier 1 observability hosts/baseline; collectors/backends need service automation |
 | 4/5/6 | Independent monitoring and shared analytics | Tier 0 critical monitoring, Tier 1 OpenSearch/metrics and Tier 2 collection are design/project integration; no complete product stack installer |
 | 5 | Delivery controller | Tier 0 uses Flux; Tier 1 Argo CD/Spinnaker are unselected design options, not supplied installers |
 | 5 | Source control and general runners | Tier 1 setups and deployment recipes; registry/mirror variants need project integration |

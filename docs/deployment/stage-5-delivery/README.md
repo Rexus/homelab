@@ -25,6 +25,7 @@ code, not delivery-service inventory or infrastructure state; see [repository lo
 
 1. [Deploy shared delivery services](#step-1-deploy-shared-delivery-services)
 2. [Enable protected execution](#step-2-enable-protected-execution)
+3. [Deploy shared investigation](#step-3-deploy-shared-investigation)
 
 ## Step 1: Deploy shared delivery services
 
@@ -61,9 +62,6 @@ flowchart TB
    and Rancher/Fleet where needed. Product manifests and integration remain project work.
 3. Configure Keycloak OIDC, scoped roles and [Tier 2 edge access](procedures/edge-proxy.md).
    Test repository retrieval, artifact publication/pulls and general CI jobs.
-4. Add the [shared observability platform](../stage-4-control-services/procedures/observability.md#2-add-the-shared-investigation-platform)
-   with approved log projections, central metrics and application investigation.
-   Keep raw security evidence and foundational alerting in Tier 0.
 
 **Alternatives:** [1b: source-control VM](step-1b-source-control-vm.md),
 [1c: Podman build runner](step-1c-podman-runner.md) and
@@ -106,6 +104,16 @@ flowchart TB
 
 **Result:** routine infrastructure changes use the protected runner under Tier 0 authority.
 Source control coordinates them, while GitOps separately reconciles approved applications.
+
+## Step 3: Deploy shared investigation
+
+Follow the [analytics deployment](analytics.md): prepare the selected runtime,
+deploy scoped ingestion/backends, then publish and verify read-only views.
+Its diagrams show how Tier 1 adds searchable copies and shared metric history
+without taking custody of Tier 0 evidence or foundation alerts.
+
+This capability can be deployed once the Step 1 platform is ready; it does not
+have to wait for protected-runner handover when those dependencies are already verified.
 
 ## Capability available
 

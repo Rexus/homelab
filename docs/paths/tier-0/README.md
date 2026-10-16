@@ -15,21 +15,22 @@ Tier 1 or Tier 2. Start here for a new installation.
 
 Record [project conventions](../../development/project-documentation.md#start-with-project-values)
 and prepare [local tools](../../development/local-setup.md) first.
-Follow the [six capability stages](../../deployment/README.md).
+Verify the unnumbered [foundation prerequisites](../../deployment/foundation/README.md),
+then follow the [six capability stages](../../deployment/README.md).
 Each stage's README explains its numbered steps with diagrams and acceptance checks;
 options branch from the relevant decision and return to the main path.
 
 | Stage | Tier 0 responsibility | Walkthrough |
 | --- | --- | --- |
-| **1: Compute foundation** | Proxmox, networks, templates, independent tools/state and protected logging | [Foundation](../../deployment/stage-1-foundation/README.md) |
+| **1: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1-3](../../deployment/stage-1-logging/README.md) |
 | **2: Cryptographic trust** | Offline root and online issuer; optional hardware protection | [Trust](../../deployment/stage-2-trust/README.md) |
 | **3: Identity and Kubernetes** | Dedicated FreeIPA pair and control cluster | [Identity and Kubernetes](../../deployment/stage-3-identity-runtime/README.md) |
-| **4: Control services** | Keycloak, Vault, NetBox, Headlamp and monitoring | [Control services](../../deployment/stage-4-control-services/README.md) |
+| **4: Control services** | Keycloak, Vault, NetBox, Headlamp and independent alerts | [Control services](../../deployment/stage-4-control-services/README.md), [monitoring](../../deployment/stage-4-control-services/monitoring.md) |
 | **5: Delivery and handover** | Protected Tier 0 runner; Tier 1 owns delivery services | [Delivery and handover](../../deployment/stage-5-delivery/README.md) |
 | **6: Workload provisioning** | Approve and execute infrastructure requests | [Workload provisioning](../../deployment/stage-6-workloads/README.md) |
 
-Select optional [HA](../../deployment/stage-1-foundation/step-1b-cluster-ha.md) and
-[SDN](../../deployment/stage-1-foundation/step-1c-sdn.md) before important guests.
+Select optional [HA](../../deployment/foundation/step-1b-cluster-ha.md) and
+[SDN](../../deployment/foundation/step-1c-sdn.md) before important guests.
 Protect access and backups from the first step; the
 [support map](../../reference/implementation-support.md) identifies automation and remaining integration.
 
@@ -46,7 +47,7 @@ to configure, plan, publish, and test images. Tier 0 approves references in the
 [shared catalog](../../reference/template-catalog.md); other tiers consume them.
 Verified existing templates are valid. No hosted CI or cluster is required.
 
-After templates, establish [foundational syslog](../../deployment/stage-1-foundation/procedures/syslog.md)
+After templates, establish [foundational syslog](../../deployment/stage-1-logging/README.md)
 with the Tier 0 `syslog` setup. Receiver/HA/retention installation remains project integration.
 After the trust stage, initialize the Kubernetes control cluster:
 

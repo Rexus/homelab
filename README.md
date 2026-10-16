@@ -5,6 +5,8 @@ homelab or small-datacenter scale. Packer builds images, Terraform provisions
 infrastructure, and Ansible configures hosts using the same inventory inputs.
 Proxmox is the chosen virtualization platform. Kubernetes is the cluster goal;
 Talos is the current node-OS implementation, not an architecture requirement.
+Runnable workflows and project integration starters are distinguished in the
+[implementation support map](docs/reference/implementation-support.md).
 
 The design follows one rule: **it should be easy to do right**. Networks are
 named by purpose; tiers divide ownership into infrastructure and trust (Tier 0),
@@ -41,8 +43,8 @@ commands use tier-local code and shared helpers with local inputs. Substitute
 the prefix if customized. Each README is a developer-owned starter template.
 
 The [deployment checklist](docs/paths/tier-0/README.md#deployment-order) leads
-from Proxmox and templates through trust, identity, Kubernetes, shared services,
-and controlled automation. Each stage links to its detailed procedure.
+from foundation prerequisites through protected logging, trust, identity, Kubernetes,
+shared services and controlled automation. Each capability has a numbered deployment path.
 Select [domain patterns](docs/architecture/README.md#technical-domains) in each generated
 repo's `docs/architecture/README.md`; keep procedures under `docs/deployment/`,
 `docs/development/`, and `docs/administration/`.
