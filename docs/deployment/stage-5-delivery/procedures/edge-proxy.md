@@ -127,6 +127,10 @@ bash scripts/deploy.sh edge
 
 ## Verify before publication
 
+For a browser-facing website, use the [public HTTPS procedure](../../stage-6-workloads/public-https.md)
+for HTTP-01, trusted public certificates, verified origin TLS and scheduled renewal.
+The generic edge recipe does not select or obtain those certificates on its own.
+
 1. Test the selected VIP/listener from an approved internal client, backend health,
    TLS/service hostname and denied access from an unauthorized subnet.
 2. Verify VIP failover on disposable traffic; check remaining capacity and endpoint

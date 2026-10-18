@@ -41,3 +41,5 @@ reconnecting old disks or credentials must not reintroduce the compromised autho
 Use the [deployment stages](../deployment/README.md) for service-specific prerequisites,
 the [backup guide](compute/backup-restore.md) for recovery objectives and restore validation, and
 [secret strategy](secret-handling/strategy.md) for protected recovery material.
+For the software issuer, follow the [clean-target restore procedure](cryptography/issuer-recovery.md),
+not fresh key creation or initial token activation.

@@ -71,9 +71,12 @@ This file keeps durable context for AI-assisted work across sessions.
 - CA reference: permanent OpenXPKI Community infrastructure issuer/portal on ca-1,
   offline clca root and sibling FreeIPA CA with explicit CA replication; Vault retains the reference secret-service role
 - CA runtime: Tier 0 Debian template option, foundation extra disks, OpenXPKI installer,
-  reviewed immutable configuration bundle and guarded database/runtime activation; no automatic key creation
+  pinned policy builder and guarded database/runtime activation; routine convergence never creates keys.
+  Software-first setup has a separately approved encrypted-key/CSR recipe and offline clca templates
 - FreeIPA supports external CSR/pause/completion and an explicit CA replica; live custody,
-  signing, logging forwarding, ACME and recovery qualification remain .ai/ca-implementation.md work
+  signing, audit forwarding and recovery qualification remain .ai/ca-implementation.md work.
+  Internal ACME remains integration; public HTTP-01 has Tier 2 automation with verified origins,
+  separate staging/production state and a serialized controller timer, still requiring live acceptance
 - Tier 0 owns publication catalogs, creation/update CD jobs, publication state,
   `template-refresh` and `immutable-template` builders, all template modules,
   Packer definitions, and the local publication script; shared holds only approved
@@ -225,6 +228,11 @@ This file keeps durable context for AI-assisted work across sessions.
 - after major changes and before release handover, repeat the new-operator journey
   from hardware/network setup through every deployment option, operation and total-loss recovery;
   record unresolved work in [the hidden operator checklist](operator-walkthrough.md), not public roadmap text
+- use the established software-engineer perspective for that walkthrough: newly installed servers
+  and UniFi switches, programming experience but no assumed infrastructure-specialist knowledge;
+  follow actual commands and handoffs, not only architecture roles or passing regression tests
+- prepare and validate changes, review and stage the intended files, then hand the user exact
+  signed commit and push commands. Never execute commit or push; signing is a manual user operation
 - do not encourage storing secrets in Git
 - do not treat this upstream as the destination for live environment changes
 - prefer private forks, mirrors, or local copies for operational work

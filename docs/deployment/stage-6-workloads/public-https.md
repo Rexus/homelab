@@ -8,6 +8,9 @@ This optional path uses the existing Tier 2 HAProxy/keepalived pool.
 **Prerequisites:** prepared Enterprise Linux edge hosts/VIP, Linux Ansible controller
 with OpenSSL and system CA trust, community.crypto, valid origin certificates,
 accepted audit forwarding and authorized public DNS/firewall access.
+If the edge pool does not exist, follow the
+[edge provisioning path](../stage-5-delivery/procedures/edge-proxy.md#configuration),
+then return here before publishing a website.
 
 ## Contents
 
@@ -96,7 +99,8 @@ installs a systemd timer, not a daemon on each edge. Supply a private vars file:
 | `public_certificate_schedule_state` | Same private state directory, mode 0700, owned by that user |
 
 ```bash
-ansible-playbook --ask-become-pass -i localhost, ansible/playbooks/deployment/public-certificate-schedule.yml \
+ANSIBLE_CONFIG=ansible/ansible.cfg \
+  ansible-playbook --ask-become-pass -i localhost, ansible/playbooks/deployment/public-certificate-schedule.yml \
   -e @/absolute/private/renewal-schedule.yml
 sudo systemctl start public-certificate-renewal.service
 sudo systemctl status public-certificate-renewal.timer

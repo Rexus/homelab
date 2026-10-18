@@ -72,12 +72,14 @@ also required for key preparation. DataVault loss cannot be repaired by generati
 another random value. [1]
 
 ```bash
-ansible-playbook -i localhost, ansible/playbooks/deployment/openxpki-bundle.yml \
+ANSIBLE_CONFIG=ansible/ansible.cfg \
+  ansible-playbook -i localhost, ansible/playbooks/deployment/openxpki-bundle.yml \
   -e @/absolute/private/issuer-policy.yml
 ```
 
 The builder pins an upstream commit, copies native schemas/workflows and applies
 site policy with Ansible modules. It refuses an existing final archive.
+The explicit configuration selects the tier's roles when running from its root.
 Review the private output and checksum; qualify it with the exact signed package
 versions. A successful build is not a live OpenXPKI acceptance test.
 

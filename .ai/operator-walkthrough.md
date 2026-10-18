@@ -1,6 +1,6 @@
 # Operator walkthrough checklist
 
-Reviewed 2026-10-17 from the perspective of a software engineer with newly installed
+Rechecked 2026-10-18 against `d91b07f` from the perspective of a software engineer with newly installed
 servers and UniFi switches. This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
 
@@ -8,6 +8,20 @@ project documentation or a claim of production readiness.
 ordinary users, applications, maintenance, expansion and total-loss recovery.
 **Evidence boundary:** source/generator review and offline tests; no live gateway,
 Proxmox, HSM, service deployment, failover or disaster restore was performed.
+
+## Current journey verdict
+
+The engineer can generate repositories and follow the foundation procedures, but
+cannot obtain the complete reference platform merely by running the supplied IaC.
+The first security gate is verified Proxmox API trust; Linux roots still need their
+documented TLS correction. Stage 1 is the first capability implementation stop:
+bootstrap certificates, source forwarding, locked retention and independent copies
+need a selected integration. Do not bypass that gate to declare a production PKI.
+
+Since the prior walkthrough, software PKI and public HTTPS have concrete recipes,
+not just designs. Fresh-shell controller commands now select their Ansible config;
+edge setup links to HTTPS and recovery links directly to issuer restoration.
+Package qualification and live acceptance remain distinct from supplied mechanisms.
 
 ## Corrected reading and execution gaps
 
@@ -29,6 +43,8 @@ Proxmox, HSM, service deployment, failover or disaster restore was performed.
 - [x] Remove repeated identity-authentication and Vault-shape explanations in favor of their authoritative homes.
 - [x] Align generated setup ownership and template references with logging and unnumbered foundation.
 - [x] Use an ignored Python virtual environment for the generator dependency instructions.
+- [x] Reproduce and fix missing-role failures in direct PKI/scheduler commands; test the documented invocations.
+- [x] Connect edge publication and total-loss recovery to the new HTTPS and issuer-restore procedures.
 
 ## Blocking work before claiming an end-to-end installation
 
@@ -38,8 +54,8 @@ Proxmox, HSM, service deployment, failover or disaster restore was performed.
   supports independent bootstrap trust. The [transition guide](../docs/administration/compute/proxmox-tls.md)
   now covers trust, optional platform-PKI adoption, removal and recovery; runtime defaults
   and live cutover/negative tests remain outstanding.
-- [ ] **P1: Logging integration.** Implement the selected receiver, durable queue/commit
-  path, portable evidence, source identities, protected retention and independent copies.
+- [ ] **P1: Logging integration.** Complete bootstrap trust, source forwarding, replicated
+  commit, protected retention, independent copies and audited reader access.
   The `syslog` root now supplies VMs/disks, baseline and an isolated TLS receiver;
   local files/queues do not implement protected retention or replicated commit. Complete
   [Stage 1 acceptance](../docs/deployment/stage-1-logging/README.md#step-3-protect-and-verify-retained-evidence)
@@ -47,11 +63,11 @@ Proxmox, HSM, service deployment, failover or disaster restore was performed.
   Isolated native process/TLS/crash tests do not satisfy this item; no deployed collector,
   independent retained backup, SELinux-enforcing target or physical failure domain was
   available for infrastructure fault/restore acceptance during the 2026-10-17 review.
-- [ ] **P1: Initial trust.** The OpenXPKI/clca reference, sibling FreeIPA CA, deployment
-  contracts, native runtime installer and phased identity recipe are supplied; qualify the
-  [CA implementation checklist](ca-implementation.md). A design, CA VM or provider
-  selection does not prove issuance; real policy, custody, forwarding, signing and recovery
-  still need acceptance. No CA keys or identity migration were added.
+- [ ] **P1: Initial trust.** Native policy construction, explicit software key/CSR preparation,
+  offline root templates, token/CRL procedures, encrypted backup/clean-target restore and phased
+  FreeIPA installation are supplied; qualify the [CA checklist](ca-implementation.md).
+  Live policy denial, custody, audit forwarding, signing and restoration remain unproved.
+  Routine convergence creates no CA keys; no existing identity domain is migrated.
 - [ ] **P1: Cluster API endpoint.** Supply a tested private endpoint recipe or a clearly
   verified existing prerequisite before cluster bootstrap. It must not require the public
   Tier 2 edge or the cluster it serves. Include DHCP/MAC reservations and bootstrap DNS/time.
@@ -85,12 +101,12 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Path | Entry | Review outcome / remaining proof |
 | --- | --- | --- |
 | Foundation | [Preparation](../docs/deployment/foundation/README.md) | Network, access, templates and recovery precede capability deployment; live commissioning required |
-| Logging | [Stage 1](../docs/deployment/stage-1-logging/README.md) | Runnable host foundation; receiver/retention integration blocks full service acceptance |
-| Trust | [Stage 2](../docs/deployment/stage-2-trust/README.md) | Software and hardware choices explicit; actual CA procedure remains integration |
+| Logging | [Stage 1](../docs/deployment/stage-1-logging/README.md) | TLS receiver/local queues supplied; forwarding and protected archive integration block full acceptance |
+| Trust | [Stage 2](../docs/deployment/stage-2-trust/README.md) | Software PKI procedure/recipes supplied; package qualification, ceremonies, forwarding and live acceptance required; hardware remains integration |
 | Identity/runtime | [Stage 3](../docs/deployment/stage-3-identity-runtime/README.md) | Directory recipe and new-cluster lifecycle supplied; endpoint/add-ons still required |
 | Control services | [Stage 4](../docs/deployment/stage-4-control-services/README.md) | Cluster services are starters; independent monitoring has its own path |
 | Delivery | [Stage 5](../docs/deployment/stage-5-delivery/README.md) | VM alternatives supplied; controller, registry and protected execution require selected integrations |
-| Workloads | [Stage 6](../docs/deployment/stage-6-workloads/README.md) | VM/cluster resources supplied; application manifests, publication and policies remain project work |
+| Workloads | [Stage 6](../docs/deployment/stage-6-workloads/README.md) | VM/cluster resources and opt-in public HTTPS supplied; application manifests, policies, alerts and live publication acceptance remain project work |
 | Proxmox HA | [Foundation 1b](../docs/deployment/foundation/step-1b-cluster-ha.md) | Quorum/storage/fencing separate from VM creation; physical failure tests outstanding |
 | Guest SDN | [Foundation 1c](../docs/deployment/foundation/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
 | Outbound cache | [Foundation 3b](../docs/deployment/foundation/step-3b-outbound-cache.md) | Supplied Squid/VIP recipe; independent bootstrap egress and declared transport limits |
@@ -118,8 +134,9 @@ inspected. Every selected path still needs its own live acceptance evidence.
 - [ ] **P2: Small-team access.** Add onboarding/offboarding and a tested role matrix for
   administrator, developer, employee and guest. Verify repository/app/log scopes and session,
   token and device removal; a shared identity source does not implement application authorization.
-- [ ] **P2: Remote entry and publication.** Document one chosen VPN/admin-entry path and
-  private-versus-public app publication, including DNS/NAT, certificate renewal and IPv6 checks.
+- [ ] **P2: Remote entry and publication.** Public HTTP-01, origin verification and renewal
+  now have a concrete guide/recipes. A chosen VPN/admin-entry path, complete private-app path
+  and live DNS/NAT/IPv6, expiry-alert and failover checks are still needed.
 - [ ] **P2: Upgrade and hardware replacement.** Supply a routine calendar/runbook with
   release compatibility, serial health gates, rollback, node/storage retirement and recovery
   on replacement hardware. Existing worker-pool guidance is not a rolling-upgrade controller.
@@ -152,13 +169,20 @@ Store sensitive evidence in the private project's runbook, not this public check
 
 ## Repeat cadence
 
-Latest local result: 112 regression tests passed, including generated CA ownership/docs,
-native Terraform image/data-disk inputs, Ansible schema/policy/storage guards and the
-FreeIPA CSR/completion sequence. Focused native checks also cover escaped mount-unit
-names after final review. Real loopback syslog-ng TLS/raw-record/process-restart tests passed.
-The preceding diagram review rendered 64 Mermaid diagrams and visually inspected logging
-and CA hierarchy/enrollment views; no diagrams changed in the runtime implementation.
-No live infrastructure acceptance box above is satisfied by those results.
+Latest rerun, 2026-10-18: **120 tests passed, zero skipped** in an isolated Linux/WSL
+copy. Coverage includes fresh-shell commands in source/generated docs, generator
+refresh/link contracts, native Terraform inputs, FreeIPA sequencing, policy construction,
+offline clca constraints, HAProxy parsing and loopback syslog-ng TLS/raw-record/crash recovery.
+The new command regression fails against the original guides and passes after correction.
+
+Test tools: Python 3.12.3, Ansible core 2.21.5, Terraform 1.16.6, HAProxy 2.8.16 and
+syslog-ng 4.3.1 with matching extracted modules. The latter checks isolated engine
+behavior, not qualification of the documented EL 10/syslog-ng 4.8+ deployment target.
+Native PKI tests used `PKI_CONFIG_REPOSITORY` at `0aa2db093e6f0573dd296c69c98c0e61d03bdf48`,
+`PKI_CLCA_REPOSITORY` at `d560135cf4bbdc1916fa4c5545012085b96d4a21`,
+`PKI_HAPROXY_BINARY` and `SYSLOG_NG_TEST_BINARY`/`SYSLOG_NG_TEST_MODULE_PATH`.
+No diagrams changed; the earlier 64-diagram render remains historical evidence.
+No live infrastructure acceptance box above is satisfied by these results.
 
 From an upstream checkout on Linux/WSL with the documented test tools/collections:
 

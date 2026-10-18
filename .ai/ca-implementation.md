@@ -1,7 +1,8 @@
 # CA implementation checklist
 
-Design and contracts adopted 2026-10-17. Tier 0 runtime installation and the external
-identity CA sequence are implemented; live CA acceptance remains outstanding.
+Design and contracts adopted 2026-10-17; implementation status rechecked 2026-10-18.
+Tier 0 runtime, software policy/custody/recovery recipes and the external identity
+CA sequence are supplied; live CA acceptance remains outstanding.
 Routine convergence never creates keys or rechains identity. The software-first
 path adds separately approved fresh-key and clean-target recovery recipes.
 Parent: [operator walkthrough](operator-walkthrough.md).
@@ -36,7 +37,8 @@ Authoritative design: [certificate authority](../docs/architecture/cryptography/
   approved image; keep only consumer ID/title references in Shared. Never silently use EL10.
 - [x] Expose/forward the existing guest module's `extra_disks` contract through the foundation
   root without changing existing resource addresses or state; test unchanged old inputs.
-- [ ] Define CA data mount, encryption/key custody and application-consistent backups; no automatic formatting.
+- [x] Define data-mount guards, software-key custody and encrypted application-consistent backup recipes.
+- [ ] Prepare and live-verify encrypted volumes, independent recovery keys and off-host copies; no automatic formatting.
 - [x] Remove root hosts from connected `foundation` execution scope. The existing separate
   ceremony runbook requires a disconnected inventory; the empty compatibility group remains empty.
 - [ ] Qualify one provider path initially with disposable keys; test engine/provider versions,
@@ -50,10 +52,12 @@ Authoritative design: [certificate authority](../docs/architecture/cryptography/
   in existing foundation state; Stage 2 issuer operations must not install the identity pair.
 - [x] Keep package/configuration convergence separate from schema changes, key creation,
   token import/activation, initial CA signing, rollover and recovery. Missing keys fail closed.
-- [ ] Provide restrictive production profiles, requester/operator roles, independent bootstrap
-  administration, portal TLS, publication and Stage 1 audit forwarding; no demo credentials.
-- [ ] Protect database/session/workflow state and DataVault secrets/tokens independently;
-  qualify native backup, clean-target restore and a compatible application/config/schema upgrade.
+- [x] Supply restrictive profiles, independent requester/approver roles, privileged CLI identity,
+  pinned bootstrap portal TLS and native CA/CRL publication configuration; no demo credentials.
+- [ ] Replace bootstrap portal TLS, integrate Stage 1 audit forwarding and prove policy denials live.
+- [x] Bind database/session/configuration inputs and supply encrypted backup/clean-target restore
+  mechanisms preserving signing identity and DataVault material.
+- [ ] Qualify recovery and a compatible application/configuration/schema upgrade on real services.
 
 ## 3. Root and identity integration
 
@@ -68,9 +72,10 @@ Authoritative design: [certificate authority](../docs/architecture/cryptography/
 
 ## 4. Enrollment and operational acceptance
 
-- [ ] Qualify acme2certifier against authenticated OpenXPKI RPC: tier-scoped identities,
+- [ ] If internal automated enrollment is selected, qualify acme2certifier against authenticated
+  OpenXPKI RPC: tier-scoped identities,
   restrictive default/allowed leaf profiles, name/SAN authorization and denied CA requests.
-- [ ] Correlate ACME accounts/orders to backend workflows; test renewal, retries, timeout,
+- [ ] For that internal adapter, correlate accounts/orders to backend workflows; test renewal, retries, timeout,
   cross-tier rejection and restoration of bridge state. EAB alone is insufficient authorization.
 - [ ] Publish stable CA/CRL objects without exposing administration; test freshness, revocation
   at enforcing clients and required mirror availability. Select/test OCSP separately if needed.

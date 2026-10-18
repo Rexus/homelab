@@ -2,6 +2,8 @@
 
 import os
 from pathlib import Path
+import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -13,6 +15,45 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 class PkiBundle(TierRepositoryTestCase):
+    @unittest.skipUnless(os.name != 'nt' and shutil.which('ansible-playbook'),
+                         'Requires Ansible on Linux/WSL')
+    def test_documented_controller_commands_resolve_roles_in_a_fresh_shell(self):
+        self.generate()
+        guides = (
+            ('tier-0', 'stage-2-trust/procedures/software-pki.md', 'openxpki-bundle.yml'),
+            ('tier-2', 'stage-6-workloads/public-https.md', 'public-certificate-schedule.yml'),
+        )
+        for collection, prefix, docs in (
+            (UPSTREAM, '', UPSTREAM / 'docs'),
+            (self.root, 'verify-', self.root / 'verify-architecture/docs/auto-docs'),
+        ):
+            for tier, guide, playbook in guides:
+                content = (docs / 'deployment' / guide).read_text()
+                commands = [
+                    shlex.split(line)
+                    for block in re.findall(r'```bash\n(.*?)```', content, re.DOTALL)
+                    for line in block.replace('\\\n', ' ').splitlines()
+                    if 'ansible-playbook ' in line
+                ]
+                self.assertEqual(len(commands), 1, guide)
+                arguments = commands[0]
+                self.assertEqual(arguments.pop(0), 'ANSIBLE_CONFIG=ansible/ansible.cfg', guide)
+                self.assertIn(f'ansible/playbooks/deployment/{playbook}', arguments)
+                environment = dict(os.environ)
+                environment.pop('ANSIBLE_CONFIG', None)
+                environment.pop('ANSIBLE_ROLES_PATH', None)
+                environment['ANSIBLE_CONFIG'] = 'ansible/ansible.cfg'
+                # Parse the documented command without secrets, prompts or executing tasks.
+                variables = arguments.index('-e')
+                del arguments[variables:variables + 2]
+                if '--ask-become-pass' in arguments:
+                    arguments.remove('--ask-become-pass')
+                result = subprocess.run(
+                    [*arguments, '--syntax-check'], cwd=collection / f'{prefix}{tier}',
+                    env=environment, capture_output=True, text=True, timeout=60,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_generated_repositories_include_the_owned_pki_recipes(self):
         self.generate()
         for name in ('openxpki-bundle.yml', 'openxpki-key.yml'):
