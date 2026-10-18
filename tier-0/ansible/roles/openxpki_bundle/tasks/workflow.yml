@@ -1,0 +1,26 @@
+---
+# Remove the validity override itself, not just its menu entry.
+- name: Start with the native CSR state map
+  ansible.builtin.set_fact:
+    openxpki_bundle_csr_states: "{{ openxpki_bundle_csr.state }}"
+
+- name: Remove operator-selected validity from reachable CSR transitions
+  ansible.builtin.set_fact:
+    openxpki_bundle_csr_states: >-
+      {{ openxpki_bundle_csr_states | combine({item:
+          openxpki_bundle_csr.state[item] | combine({
+            'action': openxpki_bundle_csr.state[item].action
+              | reject('match', '^edit_validity(?: |$)') | list,
+            'button': openxpki_bundle_csr.state[item].button | dict2items
+              | rejectattr('key', 'equalto', 'edit_validity') | items2dict
+          })
+        }) }}
+  loop: [VALIDITY_WARNING, PENDING, PENDING_POLICY_VIOLATION]
+
+- name: Apply the restricted state and action maps
+  ansible.builtin.set_fact:
+    openxpki_bundle_csr: >-
+      {{ openxpki_bundle_csr
+         | combine({'action': openxpki_bundle_csr.action | dict2items
+                      | rejectattr('key', 'equalto', 'edit_validity') | items2dict,
+                    'state': openxpki_bundle_csr_states}) }}

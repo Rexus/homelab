@@ -1,0 +1,47 @@
+---
+- name: Validate receiver prerequisites
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Prepare isolated receiver runtime
+  ansible.builtin.import_tasks: runtime.yml
+
+- name: Install receiver certificates
+  ansible.builtin.import_tasks: tls.yml
+
+- name: Apply host security policy
+  ansible.builtin.import_tasks: security.yml
+
+- name: Render and validate receiver configuration
+  ansible.builtin.template:
+    src: receiver.conf.j2
+    dest: "{{ syslog_ng_config_dir }}/receiver.conf"
+    owner: root
+    group: "{{ syslog_ng_user }}"
+    mode: "0640"
+    validate: /usr/sbin/syslog-ng --syntax-only --cfgfile %s
+  notify: Restart isolated syslog receiver
+
+- name: Install isolated receiver unit
+  ansible.builtin.template:
+    src: receiver.service.j2
+    dest: /etc/systemd/system/syslog-ng-receiver.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart isolated syslog receiver
+
+- name: Apply receiver changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable only the isolated network receiver
+  ansible.builtin.systemd_service:
+    name: syslog-ng-receiver.service
+    daemon_reload: true
+    enabled: true
+    state: started
+
+- name: Wait for the TLS listener
+  ansible.builtin.wait_for:
+    host: "{{ syslog_ng_listen_address }}"
+    port: "{{ syslog_ng_tls_port }}"
+    timeout: 30

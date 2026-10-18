@@ -1,0 +1,7 @@
+LocalPassword:
+    type: Password
+    user:
+{{ openxpki_bundle_users | to_nice_yaml(indent=4) | indent(8, true) }}
+System:
+    type: Anonymous
+    role: System

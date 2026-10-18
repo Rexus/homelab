@@ -33,6 +33,12 @@
           - foundation_freeipa_admin_password is defined
           - foundation_freeipa_dm_password != "change-me"
           - foundation_freeipa_admin_password != "change-me"
+          - foundation_freeipa_ca_mode | default('internal') in ['internal', 'external']
+          - foundation_freeipa_external_phase | default('csr') in ['csr', 'complete']
+          - >-
+            foundation_freeipa_ca_mode | default('internal') != 'external' or
+            foundation_freeipa_external_phase | default('csr') == 'csr' or
+            foundation_freeipa_external_cert_files | default([]) | length > 0
         fail_msg: >-
           Foundation FreeIPA requires one identity_primary host, at least one
           identity_replicas host, platform_domain, static platform_host_ips
@@ -42,7 +48,7 @@
       when: foundation_freeipa_enabled | default(false) | bool
 
 - name: Wait for foundation hosts to accept SSH
-  hosts: foundation
+  hosts: identity
   gather_facts: false
   any_errors_fatal: true
   serial: 1
@@ -77,7 +83,7 @@
           }}
 
 - name: Apply foundation baseline
-  hosts: foundation
+  hosts: identity
   become: true
   roles:
     - baseline
@@ -98,15 +104,51 @@
   become: true
   any_errors_fatal: true
   serial: 1
-  roles:
-    - role: freeipa.ansible_freeipa.ipaserver
+  tasks:
+    - name: Select the explicit external CA phase
+      ansible.builtin.set_fact:
+        ipaserver_external_ca: "{{ foundation_freeipa_external_phase | default('csr') == 'csr' }}"
+      when: foundation_freeipa_ca_mode | default('internal') == 'external'
+
+    - name: Supply the offline-signed certificate chain only for primary completion
+      ansible.builtin.set_fact:
+        ipaserver_external_cert_files_from_controller: "{{ foundation_freeipa_external_cert_files }}"
+      when:
+        - foundation_freeipa_ca_mode | default('internal') == 'external'
+        - foundation_freeipa_external_phase | default('csr') == 'complete'
+
+    - name: Install or resume the primary through the upstream role
+      ansible.builtin.include_role:
+        name: freeipa.ansible_freeipa.ipaserver
       when: foundation_freeipa_enabled | default(false) | bool
+
+    - name: Preserve the public identity CA CSR for the offline ceremony
+      ansible.builtin.fetch:
+        src: /root/ipa.csr
+        dest: "{{ foundation_freeipa_csr_directory }}/{{ platform_fqdn }}-ipa.csr"
+        flat: true
+      when:
+        - foundation_freeipa_enabled | default(false) | bool
+        - foundation_freeipa_ca_mode | default('internal') == 'external'
+        - foundation_freeipa_external_phase | default('csr') == 'csr'
+
+    - name: Stop this invocation before health checks or replica installation
+      ansible.builtin.meta: end_play
+      when:
+        - foundation_freeipa_ca_mode | default('internal') == 'external'
+        - foundation_freeipa_external_phase | default('csr') == 'csr'
 
 - name: Sanity-check the first FreeIPA identity host
   hosts: identity_primary
   become: true
   gather_facts: false
   any_errors_fatal: true
+  pre_tasks:
+    - name: Leave CSR-only primary installation paused for offline signing
+      ansible.builtin.meta: end_play
+      when:
+        - foundation_freeipa_ca_mode | default('internal') == 'external'
+        - foundation_freeipa_external_phase | default('csr') == 'csr'
   tasks:
     - name: Verify FreeIPA services on the first identity host
       ansible.builtin.command:
@@ -133,9 +175,18 @@
   become: true
   any_errors_fatal: true
   serial: 1
+  pre_tasks:
+    - name: Defer replicas until the externally signed primary is complete
+      ansible.builtin.meta: end_play
+      when:
+        - foundation_freeipa_ca_mode | default('internal') == 'external'
+        - foundation_freeipa_external_phase | default('csr') == 'csr'
   roles:
     - role: freeipa.ansible_freeipa.ipareplica
       when: foundation_freeipa_enabled | default(false) | bool
 
 - name: Verify deployed identity services
   ansible.builtin.import_playbook: ../maintenance/foundation.yml
+  when: >-
+    foundation_freeipa_ca_mode | default('internal') != 'external' or
+    foundation_freeipa_external_phase | default('csr') == 'complete'

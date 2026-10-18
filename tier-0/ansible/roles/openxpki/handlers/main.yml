@@ -1,0 +1,12 @@
+---
+- name: Restart OpenXPKI runtime
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: restarted
+  loop: [openxpki-serverd, openxpki-clientd]
+  when: openxpki_activate_runtime | bool
+
+- name: Reload issuer portal
+  ansible.builtin.systemd_service:
+    name: apache2
+    state: reloaded

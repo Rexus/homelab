@@ -1,0 +1,87 @@
+---
+- name: Read native workflows that must not offer a parallel issuance path
+  ansible.builtin.slurp:
+    src: "{{ openxpki_bundle_directory }}/upstream/config.d/realm.tpl/workflow/def/{{ item }}.yaml"
+  loop: [certificate_enroll, certificate_privkey_export]
+  register: openxpki_bundle_auxiliary
+
+- name: Keep unqualified enrollment and private-key export private to custodians
+  ansible.builtin.copy:
+    content: >-
+      {{ item.content | b64decode | from_yaml | combine({'acl': {
+          'System': {'creator': 'any', 'fail': 1, 'resume': 1, 'wakeup': 1}
+        }}) | to_nice_yaml(indent=4, width=100) }}
+    dest: >-
+      {{ openxpki_bundle_directory }}/bundle/config.d/realm/{{ openxpki_bundle_realm
+      }}/workflow/def/{{ item.item }}.yaml
+    mode: "0600"
+  loop: "{{ openxpki_bundle_auxiliary.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Read the native revocation workflow
+  ansible.builtin.slurp:
+    src: "{{ openxpki_bundle_directory }}/upstream/config.d/realm.tpl/workflow/def/certificate_revocation_request_v2.yaml"
+  register: openxpki_bundle_crr
+
+- name: Apply independent approval to the native revocation condition and action
+  ansible.builtin.set_fact:
+    openxpki_bundle_crr_policy: >-
+      {{ openxpki_bundle_crr.content | b64decode | from_yaml | combine({
+          'condition': {
+            'acl_can_approve': {'param': {'condition2': '!global_is_creator'}}
+          },
+          'action': {'approve_crr': {'param': {'check_creator': 1}}}
+        }, recursive=true) }}
+
+- name: Replace revocation autoapproval with an explicit operator approval requirement
+  ansible.builtin.copy:
+    content: >-
+      {{ openxpki_bundle_crr_policy | combine({
+          'condition': openxpki_bundle_crr_policy.condition | combine({
+            'is_approved': {'class': 'OpenXPKI::Server::Workflow::Condition::Approved',
+                            'param': {'role': 'RA Operator'}}
+          }),
+          'acl': openxpki_bundle_crr_policy.acl | dict2items
+            | rejectattr('key', 'equalto', 'Anonymous') | items2dict
+        }) | to_nice_yaml(indent=4, width=100) }}
+    dest: >-
+      {{ openxpki_bundle_directory }}/bundle/config.d/realm/{{ openxpki_bundle_realm
+      }}/workflow/def/certificate_revocation_request_v2.yaml
+    mode: "0600"
+
+- name: Read the native CRL workflow
+  ansible.builtin.slurp:
+    src: "{{ openxpki_bundle_directory }}/upstream/config.d/realm.tpl/workflow/def/crl_issuance.yaml"
+  register: openxpki_bundle_crl
+
+- name: Permit CRL creation only by custodians and operators
+  ansible.builtin.copy:
+    content: >-
+      {{ openxpki_bundle_crl.content | b64decode | from_yaml | combine({'acl': {
+          'System': {'creator': 'any', 'fail': 1, 'resume': 1, 'wakeup': 1},
+          'RA Operator': {'creator': 'any', 'history': 1, 'context': 1}
+        }}) | to_nice_yaml(indent=4, width=100) }}
+    dest: "{{ openxpki_bundle_directory }}/bundle/config.d/realm/{{ openxpki_bundle_realm }}/workflow/def/crl_issuance.yaml"
+    mode: "0600"
+
+- name: Read native certificate menus
+  ansible.builtin.slurp:
+    src: "{{ openxpki_bundle_directory }}/upstream/config.d/realm.tpl/uicontrol/{{ item }}/certaction.yaml"
+  loop: [_default, RA Operator]
+  register: openxpki_bundle_certificate_menus
+
+- name: Remove unsupported renewal shortcuts and server-key export from the portal
+  ansible.builtin.copy:
+    content: >-
+      {{ item.content | b64decode | from_yaml
+         | rejectattr('workflow', 'equalto', 'certificate_privkey_export')
+         | rejectattr('workflow', 'equalto', 'certificate_renewal_request')
+         | list | to_nice_yaml(indent=4, width=100) }}
+    dest: >-
+      {{ openxpki_bundle_directory }}/bundle/config.d/realm/{{ openxpki_bundle_realm
+      }}/uicontrol/{{ item.item }}/certaction.yaml
+    mode: "0600"
+  loop: "{{ openxpki_bundle_certificate_menus.results }}"
+  loop_control:
+    label: "{{ item.item }}"

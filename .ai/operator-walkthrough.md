@@ -1,6 +1,6 @@
 # Operator walkthrough checklist
 
-Reviewed 2026-10-16 from the perspective of a software engineer with newly installed
+Reviewed 2026-10-17 from the perspective of a software engineer with newly installed
 servers and UniFi switches. This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
 
@@ -17,6 +17,9 @@ Proxmox, HSM, service deployment, failover or disaster restore was performed.
 - [x] Add gateway/controller adoption and VLAN/port preparation before the UniFi policy matrix.
 - [x] Distinguish ordinary client access ports from server trunks and supported multi-switch aggregation.
 - [x] Put the existing Linux-provider TLS exception in the API setup gate, not only the HA guide.
+- [x] Document verified Proxmox bootstrap trust and optional API certificate migration after PKI.
+- [x] Add a logging fault/restore drill, seed-owned evidence record and offline reconciliation checks.
+- [x] Supply a Tier 0 syslog-ng receiver with mount/TLS guards, raw JSON records and native local tests.
 - [x] Explain that `--env` does not allocate unique VMIDs, addresses, VIPs or security boundaries.
 - [x] Keep directory deployment in the trust stage's existing context/state instead of silently switching to test.
 - [x] Add initialization and plan/review/deploy commands to cache, edge and Vault paths.
@@ -30,17 +33,25 @@ Proxmox, HSM, service deployment, failover or disaster restore was performed.
 ## Blocking work before claiming an end-to-end installation
 
 - [ ] **P1: Secure provider defaults.** Linux roots still hard-code `insecure = true`.
-  Implement and test trusted-TLS defaults across all consuming roots; document deliberate
-  bootstrap trust and upgrades for existing projects. The current [TLS gate](../docs/deployment/foundation/procedures/api-access.md#tls-gate)
-  makes the exception visible but does not change runtime behavior.
+  Implement and test verified-TLS defaults with an explicit, bounded bootstrap exception
+  only where required. Self-signed does not inherently require a bypass: the cluster CA
+  supports independent bootstrap trust. The [transition guide](../docs/administration/compute/proxmox-tls.md)
+  now covers trust, optional platform-PKI adoption, removal and recovery; runtime defaults
+  and live cutover/negative tests remain outstanding.
 - [ ] **P1: Logging integration.** Implement the selected receiver, durable queue/commit
   path, portable evidence, source identities, protected retention and independent copies.
-  The `syslog` root currently supplies only VMs/disks and baseline. Complete
+  The `syslog` root now supplies VMs/disks, baseline and an isolated TLS receiver;
+  local files/queues do not implement protected retention or replicated commit. Complete
   [Stage 1 acceptance](../docs/deployment/stage-1-logging/README.md#step-3-protect-and-verify-retained-evidence)
-  with real fault and restore evidence.
-- [ ] **P1: Initial trust.** Select one supported CA implementation and write/test the
-  actual root/intermediate procedure and recovery. Decide FreeIPA CA relationship explicitly;
-  a CA VM or software/USB/network provider selection does not install issuance.
+  with real fault and restore evidence using the [repeatable drill](../docs/administration/logging-drill.md).
+  Isolated native process/TLS/crash tests do not satisfy this item; no deployed collector,
+  independent retained backup, SELinux-enforcing target or physical failure domain was
+  available for infrastructure fault/restore acceptance during the 2026-10-17 review.
+- [ ] **P1: Initial trust.** The OpenXPKI/clca reference, sibling FreeIPA CA, deployment
+  contracts, native runtime installer and phased identity recipe are supplied; qualify the
+  [CA implementation checklist](ca-implementation.md). A design, CA VM or provider
+  selection does not prove issuance; real policy, custody, forwarding, signing and recovery
+  still need acceptance. No CA keys or identity migration were added.
 - [ ] **P1: Cluster API endpoint.** Supply a tested private endpoint recipe or a clearly
   verified existing prerequisite before cluster bootstrap. It must not require the public
   Tier 2 edge or the cluster it serves. Include DHCP/MAC reservations and bootstrap DNS/time.
@@ -141,9 +152,13 @@ Store sensitive evidence in the private project's runbook, not this public check
 
 ## Repeat cadence
 
-Latest offline result: 90 regression tests passed; 61 Mermaid diagrams rendered,
-with the new commissioning diagram visually inspected. No live acceptance box above
-is satisfied by those results.
+Latest local result: 112 regression tests passed, including generated CA ownership/docs,
+native Terraform image/data-disk inputs, Ansible schema/policy/storage guards and the
+FreeIPA CSR/completion sequence. Focused native checks also cover escaped mount-unit
+names after final review. Real loopback syslog-ng TLS/raw-record/process-restart tests passed.
+The preceding diagram review rendered 64 Mermaid diagrams and visually inspected logging
+and CA hierarchy/enrollment views; no diagrams changed in the runtime implementation.
+No live infrastructure acceptance box above is satisfied by those results.
 
 From an upstream checkout on Linux/WSL with the documented test tools/collections:
 

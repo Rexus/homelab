@@ -1,0 +1,16 @@
+token:
+    default:
+        backend: OpenXPKI::Crypto::Backend::OpenSSL
+        api: OpenXPKI::Crypto::Backend::API
+        engine: OpenSSL
+        key_store: OPENXPKI
+        shell: /usr/bin/openssl
+        randfile: /var/openxpki/rand
+secret:
+    default:
+        method: literal
+        export: 0
+        value: {{ openxpki_bundle_signer_password | to_json }}
+    svault:
+        method: literal
+        value: {{ openxpki_bundle_datavault_secret | to_json }}

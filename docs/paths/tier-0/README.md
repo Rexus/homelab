@@ -48,7 +48,8 @@ to configure, plan, publish, and test images. Tier 0 approves references in the
 Verified existing templates are valid. No hosted CI or cluster is required.
 
 After templates, establish [foundational syslog](../../deployment/stage-1-logging/README.md)
-with the Tier 0 `syslog` setup. Receiver/HA/retention installation remains project integration.
+with the Tier 0 `syslog` setup. Prepare storage/TLS before installing its isolated
+receiver; HA and protected retention remain project integration.
 After the trust stage, initialize the Kubernetes control cluster:
 
 ```bash

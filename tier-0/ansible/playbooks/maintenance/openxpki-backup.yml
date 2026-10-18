@@ -1,0 +1,9 @@
+---
+- name: Back up the quiesced issuer as one encrypted recovery set
+  hosts: issuing_ca
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  roles:
+    - role: openxpki
+      tasks_from: backup

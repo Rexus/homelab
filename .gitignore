@@ -67,5 +67,8 @@ Thumbs.db
 .tmp/
 .venv/
 
+# Local security-logging drill manifests, raw exports and reports
+.logging-evidence/
+
 # Retired local configuration retained during layout cleanup
 .local-archive/

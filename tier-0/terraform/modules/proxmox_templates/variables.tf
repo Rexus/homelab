@@ -27,9 +27,9 @@ variable "images" {
 
   validation {
     condition = alltrue([
-      for image in var.images : contains(["alma", "rocky", "talos"], image.family)
+      for image in var.images : contains(["alma", "rocky", "talos", "debian"], image.family)
     ])
-    error_message = "Supported image families are alma, rocky, and talos."
+    error_message = "Supported image families are alma, rocky, talos, and debian."
   }
 
   validation {

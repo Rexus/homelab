@@ -6,3 +6,4 @@ entry points.
 
 - [Repository context](context.md)
 - [Operator walkthrough and remaining work](operator-walkthrough.md)
+- [CA implementation gates](ca-implementation.md)

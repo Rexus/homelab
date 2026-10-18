@@ -1,0 +1,27 @@
+# Copy to ansible/group_vars/issuer.yml; pass with --ansible-vars.
+# Input contract and production bundle: docs/reference/openxpki.md
+openxpki_deployment_id: infrastructure-ca-1
+openxpki_data_mount: /srv/openxpki
+openxpki_data_uuid: REPLACE_WITH_PREPARED_FILESYSTEM_UUID
+openxpki_configuration_src: /REPLACE_WITH_ABSOLUTE_PATH/secrets/openxpki/configuration.tar.gz
+openxpki_configuration_sha256: REPLACE_WITH_REVIEWED_ARCHIVE_SHA256
+openxpki_repository_key_sha256: REPLACE_WITH_INDEPENDENTLY_VERIFIED_KEY_SHA256
+openxpki_package_versions:
+  libopenxpki-perl: REPLACE_WITH_EXACT_PACKAGE_VERSION
+  openxpki-cgi-session-driver: REPLACE_WITH_EXACT_PACKAGE_VERSION
+  openxpki-i18n: REPLACE_WITH_EXACT_PACKAGE_VERSION
+openxpki_realm: infrastructure
+openxpki_portal_fqdn: "{{ platform_fqdn }}"
+openxpki_listen_address: "{{ ansible_host }}"
+openxpki_admin_networks: [10.10.10.0/24]
+openxpki_publication_networks: [10.0.0.0/8]
+# Passwords/session secret and TLS source paths use OPENXPKI_* controller variables.
+# Initialization is explicit, for the first empty database only; return to false afterward.
+openxpki_initialize_database: false
+# Set true after ceremony preparation and custody checks; token import follows.
+openxpki_activate_runtime: false
+openxpki_issuer_fingerprint: REPLACE_WITH_ISSUER_SHA256_COLON_SEPARATED_FINGERPRINT
+openxpki_required_state_paths:
+  - /srv/openxpki/identity/issuer.pem
+  - /srv/openxpki/keys/REPLACE_WITH_REQUIRED_SIGNER_OR_PROVIDER_STATE
+  - /srv/openxpki/keys/REPLACE_WITH_DATAVAULT_RECOVERY_STATE

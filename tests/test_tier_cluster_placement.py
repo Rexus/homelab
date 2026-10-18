@@ -54,6 +54,7 @@ class ClusterPlacement(TierRepositoryTestCase):
                 "110": {"title": "Linux source", "family": "alma", "node_name": "pve01", "tags": ["source"]},
                 "120": {"title": "Alternate Linux", "family": "rocky", "node_name": "pve03", "tags": ["alternate"]},
                 "130": {"title": "Local Linux", "family": "alma", "tags": ["local"]},
+                "9103": {"title": "Debian issuer", "family": "debian", "node_name": "pve01"},
                 "9100": {"title": "Builder output", "family": "alma", "node_name": "output-node", "tags": ["output"]},
                 "9102": {"title": "Talos candidate", "family": "talos"},
             },
@@ -65,6 +66,9 @@ class ClusterPlacement(TierRepositoryTestCase):
             ({"template_vm_id": 120, "proxmox_node_name": "pve04"}, "pve03", "pve04", ["alternate"]),
             ({"template_vm_id": 130}, None, "pve02", ["local"]),
             ({"template_vm_id": 140}, None, "pve02", []),
+            ({"template_vm_id": 9103, "extra_disks": [
+                {"interface": "scsi1", "size_gb": 40, "storage_class": "local"},
+            ]}, "pve01", "pve02", []),
         )
         for index, (overrides, source, target, tags) in enumerate(cases):
             with self.subTest(overrides=overrides):
@@ -80,6 +84,11 @@ class ClusterPlacement(TierRepositoryTestCase):
                 self.assertEqual(resolved["template_node_name"], source)
                 self.assertEqual(resolved["node_name"], target)
                 self.assertEqual(resolved["tags"], tags)
+                disks = resolved["extra_disks"]
+                self.assertEqual(len(disks), len(overrides.get("extra_disks", [])))
+                if disks:
+                    self.assertEqual(disks[0]["interface"], "scsi1")
+                    self.assertEqual(disks[0]["size_gb"], 40)
                 template_id = str(overrides.get("template_vm_id", 110))
                 title = module["proxmox_template_catalog"].get(template_id, {}).get("title")
                 self.assertEqual(resolved["template_title"], title)

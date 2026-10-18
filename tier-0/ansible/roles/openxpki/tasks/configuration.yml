@@ -1,0 +1,178 @@
+---
+- name: Create protected configuration storage
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "{{ openxpki_data_mount }}/configuration", mode: "0755"}
+    - {path: "{{ openxpki_release_dir }}", mode: "0755"}
+    - {path: /etc/openxpki, mode: "0755"}
+
+- name: Record the deployment binding before initializing any application state
+  ansible.builtin.copy:
+    content: "{{ openxpki_binding | to_nice_json }}\n"
+    dest: "{{ openxpki_data_mount }}/deployment.json"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Transfer the checksum-verified production configuration archive
+  ansible.builtin.copy:
+    src: "{{ openxpki_configuration_src }}"
+    dest: "{{ openxpki_data_mount }}/configuration.tar.gz"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Prepare protected signing and public identity directories without creating keys
+  ansible.builtin.file:
+    path: "{{ openxpki_data_mount }}/{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: openxpki
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: keys, owner: openxpki, mode: "0700"}
+    - {path: identity, owner: root, mode: "0750"}
+
+- name: Extract the approved bundle once
+  ansible.builtin.unarchive:
+    src: "{{ openxpki_data_mount }}/configuration.tar.gz"
+    dest: "{{ openxpki_release_dir }}"
+    remote_src: true
+    owner: root
+    group: root
+    creates: "{{ openxpki_release_dir }}/.extracted"
+  no_log: true
+
+- name: Permit service traversal and reading of the non-secret logging configuration
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "{{ openxpki_release_dir }}", mode: "0755"}
+    - {path: "{{ openxpki_release_dir }}/log.conf", mode: "0644"}
+
+- name: Require native configuration and matching schema files
+  ansible.builtin.stat:
+    path: "{{ openxpki_release_dir }}/{{ item }}"
+  loop:
+    - config.d/system/server.yaml
+    - config.d/system/realms.yaml
+    - "config.d/realm/{{ openxpki_realm }}/crypto.yaml"
+    - "config.d/realm/{{ openxpki_realm }}/auth/handler.yaml"
+    - "config.d/realm/{{ openxpki_realm }}/auth/stack.yaml"
+    - client.d/system/server.yaml
+    - log.conf
+    - schemas/backend.sql
+    - schemas/frontend.sql
+  register: openxpki_bundle_files
+
+- name: Refuse an incomplete or incompatible production bundle
+  ansible.builtin.assert:
+    that: item.stat.isreg | default(false)
+  loop: "{{ openxpki_bundle_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Reject demonstration realms and public authentication stacks
+  ansible.builtin.import_tasks: policy.yml
+
+- name: Restrict backend and frontend configuration to their service accounts
+  ansible.builtin.file:
+    path: "{{ openxpki_release_dir }}/{{ item.path }}"
+    state: directory
+    recurse: true
+    owner: root
+    group: "{{ item.group }}"
+    mode: u=rwX,g=rX,o=
+  loop:
+    - {path: config.d, group: openxpki}
+    - {path: client.d, group: openxpkiclient}
+
+- name: Render local database and session connections
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ openxpki_release_dir }}/{{ item.dest }}"
+    owner: root
+    group: "{{ item.group }}"
+    mode: "0640"
+  no_log: true
+  loop:
+    - {src: database.yaml.j2, dest: config.d/system/database.yaml, group: openxpki}
+    - {src: webui.yaml.j2, dest: client.d/service/webui/default.yaml, group: openxpkiclient}
+  notify: Restart OpenXPKI runtime
+
+- name: Point native configuration paths at the reviewed persistent bundle
+  ansible.builtin.file:
+    src: "{{ openxpki_release_dir }}/{{ item }}"
+    dest: "/etc/openxpki/{{ item }}"
+    state: link
+    owner: root
+    group: root
+    force: false
+  loop: [config.d, client.d, log.conf]
+  notify: Restart OpenXPKI runtime
+
+- name: Validate backend configuration with the product CLI before starting it
+  ansible.builtin.command:
+    argv: [oxi, config, verify, --config, /etc/openxpki/config.d]
+  changed_when: false
+  no_log: true
+
+- name: Install the host-local native CLI credential from the immutable bundle
+  ansible.builtin.copy:
+    src: "{{ openxpki_release_dir }}/cli.pem"
+    dest: "{{ openxpki_data_mount }}/keys/cli.pem"
+    remote_src: true
+    owner: openxpki
+    group: openxpki
+    mode: "0400"
+    force: false
+  when: openxpki_managed_cli | bool
+  no_log: true
+
+- name: Mark extraction complete only after configuration validation
+  ansible.builtin.copy:
+    content: "{{ openxpki_configuration_sha256 }}\n"
+    dest: "{{ openxpki_release_dir }}/.extracted"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Create native service dependency override directories
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item }}.service.d"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [mariadb, openxpki-serverd, openxpki-clientd, apache2]
+
+- name: Resolve the mount unit name with systemd's native path escaping
+  ansible.builtin.command:
+    argv: [systemd-escape, --path, --suffix=mount, "{{ openxpki_data_mount }}"]
+  register: openxpki_data_mount_unit
+  changed_when: false
+
+- name: Make mounted state a startup and runtime dependency
+  ansible.builtin.template:
+    src: storage.conf.j2
+    dest: "/etc/systemd/system/{{ item }}.service.d/storage.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [mariadb, openxpki-serverd, openxpki-clientd, apache2]
+  register: openxpki_service_dependencies
+
+- name: Load the persistent-state dependencies before starting any database or issuer
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: openxpki_service_dependencies.changed

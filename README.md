@@ -77,6 +77,7 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 | Run, plan, or destroy | [Repository scripts](docs/reference/repository-scripts.md) |
 | Find implementation files | [Automation layout](docs/development/code-layout.md) |
 | Handle secrets | [Secret strategy](docs/administration/secret-handling/strategy.md) |
+| Deploy private PKI and public HTTPS | [Software-backed PKI](docs/deployment/stage-2-trust/procedures/software-pki.md) |
 
 ## Repository Structure
 

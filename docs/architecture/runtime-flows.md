@@ -135,6 +135,8 @@ authoritative cross-tier trust view. It distinguishes offline authorization of
 intermediates from routine online issuance. The
 [cryptography domain](cryptography/README.md) expands signing, key custody,
 secret storage and seal/unseal as separate components.
+The [CA design](cryptography/certificate-authority.md) expands the infrastructure
+portal, authorized enrollment adapter, separate identity CA and public-object publication.
 
 | Consumer interaction | Required boundary |
 | --- | --- |

@@ -33,8 +33,10 @@ flowchart TB
 ```
 
 This view separates functions; a selected product can implement more than one.
-The reference allocation separates online issuance from offline root custody
-and uses Vault as the secret service.
+The reference allocation uses OpenXPKI as the permanent infrastructure issuer,
+FreeIPA's sibling identity CA under the same offline root, and Vault as the secret
+service. The [CA design](certificate-authority.md) expands policy, portal, enrollment
+and publication without merging those responsibilities.
 Root and online keys can use different custody providers, while the secret-service
 seal remains a separate integration.
 
@@ -66,6 +68,7 @@ by being reachable; the application needs supported provider integration.
 | --- | --- | --- |
 | Key custody | A: software; B: single USB; C: replicated USB gateways; D: network HSM | [Key-protection options](hsm-selection.md) |
 | Issuer location | Existing authority; dedicated VM; cluster service | Same offline-root/online-issuer boundary; no self-bootstrap dependency |
+| Issuer implementation | OpenXPKI Community reference; existing qualified CA or Enterprise alternative | [CA and enrollment design](certificate-authority.md); no assumed native Community ACME or OCSP |
 | Secret-service placement | Dedicated VM; Kubernetes service; existing approved service | Same access and recovery contract; migration needs explicit data/state ownership |
 | Secret-service seal | Shamir; independent Transit service; supported native PKCS#11 | [Seal patterns](vault-seal.md), independent of A-D |
 
@@ -90,8 +93,13 @@ does not establish the required isolation, recovery or compliance properties.
 
 ## Detailed views
 
+- [Algorithm selection](algorithm-selection.md) separates hashes, signatures, encryption and practical key sizes.
+- [Post-quantum readiness](post-quantum.md) distinguishes migration planning from qualified PQC deployment.
+- [Hardware migration](hardware-migration.md) defines software-to-HSM rollover and recovery.
+- [YubiHSM performance](../../reference/yubihsm-performance.md) records vendor benchmark timings and limits.
 - [Runtime flows](../runtime-flows.md#certificate-and-secret-consumption) connects certificate and secret consumers across domains.
 - [Certificate hierarchy](../reference-platform.md#certificate-trust) connects issuing services to tier-local consumers.
+- [Certificate authority](certificate-authority.md) expands the sibling issuers, portal, enrollment and publication.
 - [Key-protection options A-D](hsm-selection.md) compares custody boundaries and supported interfaces.
 - [Replicated USB gateways](usb-hsm.md) and [network HSMs](network-hsm.md) expand the selected hardware arrangement.
 - [Secret-service seal patterns](vault-seal.md) details startup protection independently of signing.

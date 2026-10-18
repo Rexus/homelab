@@ -80,8 +80,8 @@ FreeIPA, the identity provider, Kubernetes, Vault and OpenSearch are not require
 
 The receiver writes this portable representation as part of its durable evidence path,
 not as an occasional export from a search database. Binary queues and search indexes
-are not the only retained copy. rsyslog supports native text/JSON templates; use supported
-escaping rather than constructing records from untrusted strings. [6]
+are not the only retained copy. Use native text/JSON templates and supported escaping
+rather than constructing records from untrusted strings. [6]
 
 Encryption remains required where the storage policy calls for it; offline readability
 does not mean an unencrypted disk or unrestricted physical access. Recovery keys cannot
@@ -138,11 +138,16 @@ separate threats requiring independent copies and recovery custody.
 ## Realization
 
 [Foundational syslog](../../deployment/stage-1-logging/README.md) owns
-bootstrap, receiver integration and acceptance. [Monitoring](../../deployment/stage-4-control-services/monitoring.md)
+bootstrap, receiver integration and acceptance. The initial implementation is a
+dedicated syslog-ng OSE network receiver, alongside the untouched OS logger, with
+independent trust, raw messages and portable local JSON records. rsyslog is a valid
+alternative under the same contract; the choice does not establish reliability superiority.
+The [receiver contract](../../reference/syslog-receiver.md) distinguishes supplied
+local collection from archive/HA integration. [Monitoring](../../deployment/stage-4-control-services/monitoring.md)
 adds critical health and alerts; [shared analytics](../../deployment/stage-5-delivery/analytics.md)
 adds approved search copies. [Logging administration](../../administration/security-logging.md)
-owns recurring access, gap, capacity and restore checks. No supplied VM baseline
-claims to install a lossless or immutable archive.
+owns recurring access, gap, capacity and restore checks. The receiver does not
+claim a lossless or immutable archive.
 
 ## References
 

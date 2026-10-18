@@ -1,0 +1,16 @@
+---
+# Runtime only; root ceremonies and issuer-token activation remain explicit.
+- name: Install the Tier 0 infrastructure certificate authority runtime
+  hosts: issuing_ca
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  pre_tasks:
+    - name: Require an issuer-only connected inventory
+      ansible.builtin.assert:
+        that:
+          - groups.get('issuing_ca', []) | length == 1
+          - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
+          - groups.get('issuing_ca', []) | intersect(groups.get('identity', [])) | length == 0
+  roles:
+    - openxpki

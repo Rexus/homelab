@@ -6,9 +6,11 @@ it is an optional branch, not a prerequisite for the rest of the platform.
 
 **Prerequisites:** verified [foundation](../foundation/README.md) and accepted
 [protected logging](../stage-1-logging/README.md),
-selected CA software, protected recovery storage and authorized custodians.
+protected recovery storage and authorized custodians. The reference selects OpenXPKI
+Community as the permanent infrastructure issuer and clca for offline root operations;
+existing qualified authorities remain valid. The runtime installer does not perform root ceremonies or token activation.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Design:** [certificate trust](../../architecture/reference-platform.md#certificate-trust).
+**Design:** [certificate authority](../../architecture/cryptography/certificate-authority.md).
 
 ## Main path
 
@@ -35,8 +37,14 @@ flowchart TB
 
 ## Step 1: Prepare issuer and key custody
 
-Follow [issuer setup](procedures/issuer.md): select the CA implementation, certificate
-policy and custodians, then prepare its host and key store. The main path uses
+For a fresh software-backed root, issuer and FreeIPA domain, start with the
+[complete software PKI path](procedures/software-pki.md). It joins the policy
+builder, explicit fresh-key recipe, offline ceremony, native activation and recovery
+gates. Choose [algorithms](../../architecture/cryptography/algorithm-selection.md)
+before creating keys; hardware remains an independent migration decision.
+
+Follow [issuer setup](procedures/issuer.md): approve the package/OS exception, certificate
+policy and custodians, then prepare `ca-1` and its key store. The main path uses
 [protected software custody](procedures/local-key-custody.md).
 
 **Before creating keys**, select a hardware branch when required:
@@ -50,27 +58,37 @@ not merely because Vault or a registry has been installed.
 The HSM path remains Tier 0-owned and independently deployable in either form.
 
 Tier 0's [terraform/deployments/foundation/](../../../tier-0/terraform/deployments/foundation/)
-can provision the issuer host, but CA installation is
-operator integration. An existing independent issuer is also valid.
+provisions the issuer host. Its Tier 0 OpenXPKI recipe installs the native runtime
+from approved packages/configuration; signing ceremonies, token import and acceptance
+remain controlled operations. An existing independent issuer is also valid.
 This Terraform root also contains the selected directory guests. Review the whole
 plan; do not remove existing resources to make its contents match a stage number.
 
 ## Step 2: Establish the certificate hierarchy
 
-Perform the authorized root/intermediate ceremony using the selected CA procedure.
+Follow the [offline root procedure](procedures/offline-root.md) for the authorized
+root/intermediate ceremony. The root signs the infrastructure issuer and, during Stage 3,
+the separate FreeIPA CA as sibling authorities.
 Transfer the signed intermediate certificate and public chain, then return root
 custody offline. Configure the issuing service without giving it the root key.
 
 A ceremony VLAN or disconnected VM alone does not isolate root keys from a connected
 hypervisor administrator. Follow the [custody boundary](../../architecture/reference-platform.md#service-placement).
-If Vault will later become the issuer, retain this bootstrap issuer until migration
-and recovery of the replacement have been tested.
+OpenXPKI remains the long-term infrastructure issuer; Vault's later deployment does
+not imply a CA migration or become a prerequisite for this service.
 
 ## Step 3: Enable and verify routine issuance
 
 Configure authorized consumers, distribute public trust material and test issuance,
 renewal, revocation, denied requests and recovery with the root offline.
 For hardware variants, verify the selected device/host failure and backup behavior.
+Use the [CA acceptance matrix](../../administration/cryptography/certificate-authority.md#acceptance-evidence).
+The Community ACME adapter is a separate qualification gate, not an installed cert-manager integration.
+
+If the selected policy replaces Proxmox API certificates, complete the
+[API PKI transition](../../administration/compute/proxmox-tls.md#step-2-adopt-the-platform-pki)
+and verify every caller. Retaining the independently trusted Proxmox CA is also valid;
+neither path retains an API verification bypass.
 
 Root signing, key initialization and sensitive replication remain separately
 authorized ceremonies. Routine CI may maintain approved hosts and software later;

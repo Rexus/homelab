@@ -29,7 +29,7 @@ class Observability(TierRepositoryTestCase):
             for recipe in ("deployment/foundation-logging.yml", "maintenance/syslog.yml"):
                 plays = yaml.safe_load((tier / "ansible/playbooks" / recipe).read_text())
                 self.assertEqual(plays[0]["hosts"], "foundation_logging")
-                self.assertEqual(plays[0]["roles"], ["baseline"])
+                self.assertEqual(plays[0]["roles"], ["baseline", "syslog_ng"])
             for other in ("tier-1", "tier-2", "shared"):
                 self.assertFalse((collection / f"{prefix}{other}/terraform/deployments/syslog").exists())
             platform = collection / f"{prefix}tier-1"

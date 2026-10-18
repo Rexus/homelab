@@ -1,0 +1,12 @@
+---
+openxpki_bundle_directory: ""
+openxpki_bundle_revision: 0aa2db093e6f0573dd296c69c98c0e61d03bdf48
+openxpki_bundle_repository: https://github.com/openxpki/openxpki-config.git
+openxpki_bundle_realm: infrastructure
+openxpki_bundle_portal_fqdn: ""
+openxpki_bundle_publication_url: ""
+openxpki_bundle_dns_suffixes: []
+openxpki_bundle_users: {}
+openxpki_bundle_signer_password: "{{ lookup('ansible.builtin.env', 'OPENXPKI_SIGNER_PASSWORD') }}"
+openxpki_bundle_datavault_secret: "{{ lookup('ansible.builtin.env', 'OPENXPKI_DATAVAULT_SECRET') }}"
+openxpki_bundle_data_mount: /srv/openxpki

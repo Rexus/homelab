@@ -4,6 +4,11 @@ global
   user haproxy
   group haproxy
   stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+{% if edge_acme_enabled | bool %}
+  ssl-default-bind-options ssl-min-ver TLSv1.2 no-tls-tickets
+  ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
+  ssl-default-server-options ssl-min-ver TLSv1.2
+{% endif %}
 
 defaults
   log global
@@ -20,6 +25,10 @@ listen stats
   mode http
   stats enable
   stats uri {{ edge_haproxy_stats_uri }}
+{% endif %}
+
+{% if edge_acme_enabled | bool %}
+{% include 'public_https.cfg.j2' %}
 {% endif %}
 
 {% for frontend in edge_haproxy_frontends %}
@@ -42,7 +51,7 @@ backend {{ backend.key }}
   {{ line }}
 {% endfor %}
 {% for server in backend.value.servers | default([]) %}
-  server {{ server.name }} {{ server.address }}:{{ server.port }}{% if server.check | default(true) | bool %} check{% endif %}{% if server.extra | default('') %} {{ server.extra }}{% endif %}
+  server {{ server.name }} {{ server.address }}:{{ server.port }}{% if server.check | default(true) | bool %} check{% endif %}{% if server.tls | default(false) | bool %} ssl verify required ca-file {{ server.ca_file }} verifyhost {{ server.verify_hostname }} sni str({{ server.verify_hostname }}) check-sni {{ server.verify_hostname }}{% endif %}{% if server.extra | default('') %} {{ server.extra }}{% endif %}
 {% endfor %}
 
 {% endfor %}

@@ -231,7 +231,7 @@ Tier 0 also owns the template module, publication script, Packer definitions,
 `terraform/deployments/templates/`, `templates/proxmox.yml.example`, and the seed-only
 `ci/gitlab-templates.yml.example`. The
 [template publisher](../administration/compute/template-lifecycle.md) is a separate
-Terraform-only workflow for unbooted AlmaLinux, Rocky Linux, and Talos images;
+Terraform-only workflow for unbooted AlmaLinux, Rocky Linux, Debian, and Talos images;
 it is not a Linux guest setup in `.deployment-setups`. Its catalog has no guest
 IPs or credentials. Template-builder VMs retain the normal inventory contract.
 

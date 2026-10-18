@@ -68,6 +68,12 @@ This file keeps durable context for AI-assisted work across sessions.
 - code ownership upgrades preserve retired shared files for manual review and
   do not port local edits into new tier paths, alter owned CI jobs, or move state
 - Tier 0 must remain bootstrapable and recoverable without higher-tier services
+- CA reference: permanent OpenXPKI Community infrastructure issuer/portal on ca-1,
+  offline clca root and sibling FreeIPA CA with explicit CA replication; Vault retains the reference secret-service role
+- CA runtime: Tier 0 Debian template option, foundation extra disks, OpenXPKI installer,
+  reviewed immutable configuration bundle and guarded database/runtime activation; no automatic key creation
+- FreeIPA supports external CSR/pause/completion and an explicit CA replica; live custody,
+  signing, logging forwarding, ACME and recovery qualification remain .ai/ca-implementation.md work
 - Tier 0 owns publication catalogs, creation/update CD jobs, publication state,
   `template-refresh` and `immutable-template` builders, all template modules,
   Packer definitions, and the local publication script; shared holds only approved
@@ -76,7 +82,7 @@ This file keeps durable context for AI-assisted work across sessions.
   storage administration, and every VM template lifecycle across all consuming tiers
 - initial template publication is foundation local automation, before managed VMs
   or hosted tooling; generated Tier 0 fast paths start with the template catalog
-- AlmaLinux/Rocky/Talos publication uses verified local images; Talos templates
+- AlmaLinux/Rocky/Debian/Talos publication uses verified local images; Talos templates
   contain no machine configuration; Tier 0's separate Talos deployment creates
   VMs, machine configuration, and the cluster without Ansible guest configuration
 - dedicated Tier 0 template CI is optional hosted automation; local commands,
@@ -93,7 +99,9 @@ This file keeps durable context for AI-assisted work across sessions.
   docs/deployment/README.md indexes six capability stages: protected logging, cryptographic trust,
   identity and Kubernetes, control services, delivery and handover, and workload provisioning
 - protected syslog/audit intake starts in Stage 1 on independent Tier 0 VMs;
-  syslog setup supplies VM/disk provisioning and baseline only, not receiver/HA/WORM installation
+  syslog setup provisions VMs/disks and installs Tier 0's isolated syslog-ng OSE receiver after
+  explicit data-mount UUID, client catalogue and independent TLS preparation; OS logger is untouched;
+  local JSON records/reliable queues are not HA, protected retention or independent backup integration
 - retain local logs from first boot; central intake precedes PKI/FreeIPA and Kubernetes;
   portable evidence and an independent reader/key kit support offline data-volume inspection
 - critical-data recovery follows 3-2-1 with independent offline/immutable custody;

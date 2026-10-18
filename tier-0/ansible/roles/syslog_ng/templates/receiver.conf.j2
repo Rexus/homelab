@@ -1,0 +1,51 @@
+@version: 4.2
+# Network-only instance: the OS logger retains its own sockets, config and unit.
+options {
+    use-dns(no); keep-hostname(yes); chain-hostnames(no);
+    log-msg-size({{ syslog_ng_max_message_bytes }});
+    time-zone("UTC");
+};
+
+source s_tls {
+    network(ip("{{ syslog_ng_listen_address }}") port({{ syslog_ng_tls_port }}) transport("tls")
+        flags(no-parse store-raw-message) max-connections({{ syslog_ng_max_connections }})
+        tls(ca-file("{{ syslog_ng_config_dir }}/tls/ca.pem")
+            cert-file("{{ syslog_ng_config_dir }}/tls/server.pem")
+            key-file("{{ syslog_ng_config_dir }}/tls/key.pem")
+            peer-verify(required-trusted)
+            ssl-options(no-sslv2, no-sslv3, no-tlsv1, no-tlsv11)
+            trusted-dn({% for source in syslog_ng_sources %}"{{ source.tls_dn }}"{{ ', ' if not loop.last else '' }}{% endfor %})
+        )
+    );
+};
+{% if syslog_ng_legacy_sources %}
+source s_udp {
+    network(ip("{{ syslog_ng_listen_address }}") port({{ syslog_ng_udp_port }}) transport("udp")
+        flags(no-parse store-raw-message));
+};
+{% endif %}
+
+# Normalization is best effort. RAWMSG remains authoritative even on parser errors.
+parser p_syslog { syslog-parser(template("${RAWMSG}") flags(syslog-protocol) drop-invalid(no)); };
+
+{% for transport, sources in [('tls', syslog_ng_sources), ('udp', syslog_ng_legacy_sources)] %}
+{% for source in sources %}
+filter f_{{ source.name }} {
+    netmask("{{ source.address }}/32")
+{% if transport == 'tls' %}
+    and "${.tls.x509_cn}" eq "{{ source.name }}"
+{% endif %}
+    ;
+};
+destination d_{{ source.name }} {
+    file("{{ syslog_ng_data_mount }}/records/{{ source.name }}/${R_YEAR}-${R_MONTH}-${R_DAY}.jsonl"
+        create-dirs(yes) owner("{{ syslog_ng_user }}") group("{{ syslog_ng_read_group }}")
+        perm(0640) dir-perm(0750) fsync(yes) flush-lines(1)
+        disk-buffer(reliable(yes) capacity-bytes({{ syslog_ng_queue_bytes }})
+            dir("{{ syslog_ng_data_mount }}/.state"))
+        template("$(format-json --pair schema=1 --pair source={{ source.name }} --pair source_tier={{ source.tier }} --pair transport={{ transport }} --pair received_at=${R_ISODATE} --pair peer_ip=${SOURCEIP} --pair peer_cn=${.tls.x509_cn} --pair raw=${RAWMSG} --pair message=${MESSAGE} --pair reported_at=${ISODATE} --pair reported_host=${HOST})\n")
+    );
+};
+log { source(s_{{ transport }}); filter(f_{{ source.name }}); parser(p_syslog); destination(d_{{ source.name }}); flags(flow-control); };
+{% endfor %}
+{% endfor %}

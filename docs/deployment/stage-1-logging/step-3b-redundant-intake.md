@@ -25,8 +25,11 @@ flowchart LR
 ## 2. Review and apply the same state root
 
 Run `bash scripts/deploy.sh syslog --plan-only`, review added hosts/disks, then run
-`bash scripts/deploy.sh syslog`. Keep existing hosts and state; no replacement archive
-or second Terraform owner is introduced. The command still provisions/baselines only.
+`bash scripts/deploy.sh syslog --terraform-only`. Keep existing hosts and state; no
+replacement archive or second Terraform owner is introduced. Prepare each new data
+mount and its host-specific UUID/TLS inputs using the [receiver guide](receiver.md),
+then run `bash scripts/deploy.sh syslog --ansible-only`. This installs independent
+receivers, not replication or an immutable archive.
 
 Configure supported sender failover/dual submission, persistent queues, durable
 copies and governed retention in project-owned automation. A VIP does not establish

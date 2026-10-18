@@ -45,7 +45,7 @@ class SourceLayout(TierRepositoryTestCase):
             for relative in set(manifest["files"]) | set(manifest["owned"]):
                 if relative in ("README.md", "docs/README.md", "docs/architecture/README.md",
                                 "docs/deployment/README.md", "docs/development/README.md",
-                                "docs/administration/README.md",
+                                "docs/administration/README.md", "docs/administration/logging-evidence.md",
                                 ".gitignore", ".gitattributes", "UPSTREAM-NOTICE", "LICENSE"):
                     continue
                 expected = (source / relative).read_text(encoding="utf-8")

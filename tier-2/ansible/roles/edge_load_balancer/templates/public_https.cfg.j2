@@ -1,0 +1,32 @@
+frontend public_http
+  bind :80
+  acl approved_host hdr(host),field(1,:),lower -m str {{ edge_acme_domains | join(' ') }}
+  http-request deny deny_status 421 unless approved_host
+  acl acme_challenge path_beg /.well-known/acme-challenge/
+{% if edge_public_certificate.stat.exists %}
+  http-request redirect scheme https code 301 unless acme_challenge
+{% else %}
+  http-request return status 503 content-type text/plain string "TLS setup incomplete" unless acme_challenge
+{% endif %}
+  use_backend acme_http01 if acme_challenge
+
+backend acme_http01
+  server local_challenge 127.0.0.1:8888
+
+{% if edge_public_certificate.stat.exists %}
+frontend public_https
+  bind :443 ssl crt /etc/haproxy/certificates/public.pem strict-sni
+  acl approved_host hdr(host),field(1,:),lower -m str {{ edge_acme_domains | join(' ') }}
+  http-request deny deny_status 421 unless approved_host
+  http-request del-header Forwarded
+  http-request del-header X-Forwarded-For
+  http-request del-header X-Forwarded-Proto
+  http-request set-header X-Forwarded-For %[src]
+  http-request set-header X-Forwarded-Proto https
+  http-response set-header Strict-Transport-Security max-age=31536000
+  http-response set-header X-Content-Type-Options nosniff
+  stick-table type ip size 100k expire 30s store http_req_rate(10s)
+  http-request track-sc0 src
+  http-request deny deny_status 429 if { sc_http_req_rate(0) gt {{ edge_public_request_rate }} }
+  default_backend {{ edge_public_https_backend }}
+{% endif %}

@@ -28,6 +28,11 @@ The wrapper supplies the same inventory, ordered group vars, roles path, and
 precheck as deployment. Direct `ansible-playbook` execution is valid with those
 same inputs; see [command reference](../reference/repository-scripts.md).
 
+Use `--playbook deployment/openxpki.yml --ansible-only` with the `foundation`
+setup for the issuer-only recipe, plus `--ansible-vars ansible/group_vars/issuer.yml`.
+Select `maintenance/openxpki.yml` for read-only CA inspection. The override selects
+only a tier-local recipe; it never creates another Terraform root or state owner.
+
 ## Recipe map
 
 Paths are relative to the tier's `ansible/playbooks/`. Legacy `<setup>.yml`
@@ -39,12 +44,15 @@ The signing play is a gated backend renderer, not a service, VIP or HA installer
 | Tier / setup | Deployment recipe | Maintenance recipe and scope |
 | --- | --- | --- |
 | 0 / `foundation` | `deployment/identity-freeipa.yml` | `maintenance/foundation.yml`: read-only directory service/API checks |
-| 0 / `syslog` | `deployment/foundation-logging.yml` | `maintenance/syslog.yml`: OS baseline only, not receiver/retention changes |
+| 0 / `foundation`, issuer override | `deployment/openxpki.yml` | `maintenance/openxpki.yml`: read-only service/configuration/API checks |
+| 0 / issuer, explicit custody | `deployment/openxpki-bundle.yml` (controller), `deployment/openxpki-key.yml` | `maintenance/openxpki-backup.yml` and `maintenance/openxpki-restore.yml`: separately approved recovery operations |
+| 0 / `syslog` | `deployment/foundation-logging.yml` | `maintenance/syslog.yml`: baseline and isolated receiver convergence; no package upgrades, evidence/queue deletion or retention changes |
 | 0 / `vault` | `deployment/vault-vm.yml` | `maintenance/vault.yml`: reconcile existing role configuration |
 | 0 / `hsm` | `deployment/hsm-gateways.yml` | `maintenance/hsm.yml`: OS baseline only, no gateway/key operations |
 | 0 / `immutable-template` | `deployment/immutable-template.yml` | Existing builder recipe, with its current gates |
 | 0 / `template-refresh` | `deployment/template-refresh.yml` | Existing refresh recipe; replacement remains explicitly enabled |
 | 2 / `edge` | `deployment/edge-proxy.yml` | `maintenance/edge.yml`: proxy configuration |
+| 2 / public HTTPS, opt-in | `deployment/public-certificate-schedule.yml` (controller) | `maintenance/public-certificates.yml`: native public ACME renewal and validated proxy reload |
 | 2 / `cache` | `deployment/outbound-cache.yml` | `maintenance/cache.yml`: cache configuration, no playbook-driven failover exercise |
 | 1 / `development` | `deployment/source-control-vm.yml` | `maintenance/development.yml`: existing source-control role |
 | 1 / `podman-runner` | `deployment/podman-runner.yml` | `maintenance/podman-runner.yml`: runner configuration |

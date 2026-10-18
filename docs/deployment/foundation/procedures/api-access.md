@@ -83,9 +83,11 @@ in the owning tier. Linux VM/LXC roots currently set `insecure = true`, disablin
 API certificate verification. The template publisher and Kubernetes roots set it to false.
 This is a security exception, not an accepted production default. [5]
 
-Install independently verified API trust on the execution host and use the matching
-certificate hostname, then set the selected Linux root to `insecure = false` and test
-its plan. Do not treat a successful plan with verification disabled as proof of server identity.
+The initial certificate trust can come from Proxmox's own cluster CA; platform PKI
+is not required first. Follow [bootstrap trust and PKI transition](../../../administration/compute/proxmox-tls.md)
+to install verified trust, use a matching endpoint name and remove the bypass from
+each provider. Installing a platform-issued certificate later does not automatically
+turn verification on. Do not treat a successful insecure plan as proof of server identity.
 Do not paste API tokens into commands or documents; follow the protected input paths below.
 
 ## Create Platform Automation Access

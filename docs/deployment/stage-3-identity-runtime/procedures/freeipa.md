@@ -1,314 +1,160 @@
-# Identity foundation path
+# Deploy the identity authority
+
+Deploy the dedicated FreeIPA primary and CA-enabled replica outside Kubernetes.
+Keycloak is a later service in the Tier 0 cluster, not part of this recipe.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-Run repository scripts from this root; paths below are repository-relative.
+**Design:** [identity authority](../../../architecture/identity/README.md),
+[CA hierarchy](../../../architecture/cryptography/certificate-authority.md).
+**Prerequisites:** accepted logging/trust, independent SSH/DNS/time, supported Linux
+image, repository access and protected bootstrap passwords.
 
-**Design:** [identity authority](../../../architecture/identity/README.md).
+## Contents
 
-## Table of contents
+- [Step 1: Configure and provision the pair](#step-1-configure-and-provision-the-pair)
+- [External CA integration gate](#external-ca-integration-gate)
+- [Step 2: Generate and sign the identity CA request](#step-2-generate-and-sign-the-identity-ca-request)
+- [Step 3: Complete the primary and replica](#step-3-complete-the-primary-and-replica)
+- [Existing domains and alternatives](#existing-domains-and-alternatives)
+- [IaC ownership](#iac-ownership)
+- [References](#references)
 
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Repository access](#repository-access)
-- [Default private-domain shape](#default-private-domain-shape)
-- [Authentication design](#authentication-design)
-- [Using an existing domain](#using-an-existing-domain)
-- [Configuration](#configuration)
-- [IaC used for this](#iac-used-for-this)
-- [Staged identity rollout](#staged-identity-rollout)
-- [How to shape the deployment](#how-to-shape-the-deployment)
-- [What comes next](#what-comes-next)
-- [Read more](#read-more)
-
-## Purpose
-
-Use this path for the dedicated directory pair in [Step 1](../README.md#step-1-deploy-the-directory-pair).
-The [cryptographic trust stage](../../stage-2-trust/README.md#step-1-prepare-issuer-and-key-custody) already supplies trust;
-this procedure adds FreeIPA, DNS and replication rather than recreating that CA.
-
-The combined foundation root contains:
-
-- `2` dedicated FreeIPA VMs with DNS in `identity`: `idm-1` and `idm-2`
-- `1` issuing CA in `cryptography`
-- `0-1` offline root CA host in `ceremony`
-
-FreeIPA runs outside Kubernetes. Keycloak runs inside the Tier 0 Kubernetes cluster
-and connects to this pair for the [control-service identity path](../../stage-4-control-services/README.md#step-1-deploy-identity-federation).
-The `foundation` setup owns the FreeIPA VMs; it does not install Keycloak.
-Bootstrap access must work without either service being available.
-
-When the issuer was provisioned in the trust stage using this root, add the identity VMs
-to its existing desired configuration and state. Preserve the issuer's host key,
-VMID and inputs; replacing the configuration with an identity-only map would plan
-removal of the managed CA host. An existing external issuer needs no duplicate VM.
-
-This is the default authority path for the repository, not a mandatory global
-prerequisite. Existing identity, DNS, and PKI services can provide the shared
-services for later paths.
-
-A connected authority with domain-wide control is Tier 0; offline root-key
-custody is separate. Guest
-network keys must map to that tier's actual networks. See
-[setup ownership](../../../development/generated-repositories.md#setup-ownership).
+## Step 1: Configure and provision the pair
 
 <a id="before-you-start"></a>
-
-## Prerequisites
-
-- local tooling is ready
-- the deployment machine already has `ansible-core` and `terraform`
-- Proxmox API access is working
-- repo-local working files have been initialized with
-  `bash scripts/init-local-files.sh --setup foundation`
-- the local FreeIPA vars file has real non-secret values and protected password inputs
-- the deployment environment file has the Proxmox API values, or the shell has
-  equivalent variables set
-- the network plan already includes at least `management`, `identity`, and
-  `cryptography`
-- the Enterprise Linux template is available for the first shared-service hosts
-- repository/update access exists for the foundation hosts
-
-## Repository access
-
-Do not start this path until the foundation hosts can install required
-software. That access can come from the existing network, mirrors, offline
-repos, or the repository [Cache path](../../foundation/step-3b-outbound-cache.md). The cache guide owns the
-proxy design, variables, and bootstrap notes.
-
-## Default private-domain shape
-
-Use this as the starting point:
-
-Use a private internal subdomain for the platform domain, such as
-`corp.example.com` or `internal.example.com`. Do not use the same DNS name as
-the public website, such as `example.com`, for the internal identity and PKI
-domain.
-
-| Component | Terraform default | Inventory entry | Network key | Purpose |
-| --- | --- | --- | --- | --- |
-| identity hosts | `idm-1`, `idm-2` active | `idm-1`, `idm-2` present by default | `identity` | `FreeIPA`, DNS, and the first identity authority |
-| issuing CA host | `ca-1` active | `ca-1` present by default | `cryptography` | online issuing CA for the platform |
-| root CA host | `ca-root-1` commented, default `0` | uncomment `ca-root-1` when enabled | `ceremony` | optional offline root CA host |
-
-Keep the root CA host separate from the identity hosts when enabled. Treat
-it as a ceremony system that should normally stay offline outside planned CA
-operations.
-
-Both CA layers can later be hardened with HSM-backed keys, but the default
-identity path does not require HSM on day one.
-
-The Terraform example for this path lives in
-`terraform/deployments/foundation/terraform.tfvars.example`. Commented
-`vm_instances` are default `0` and should stay commented until
-the matching Ansible inventory group and IP entry are enabled.
-
-## Authentication design
-
-FreeIPA supplies directory, Kerberos and host identity; it does not install an
-IdP, SSH certificate service or hardware-token policy. Keep independently tested
-bootstrap/recovery access and scoped credentials throughout installation.
-The [identity design](../../../architecture/identity/README.md) owns authority and
-consumer boundaries; [hardware-backed authentication](../../stage-4-control-services/step-3b-hardware-authentication.md)
-owns the optional OTP/PIV and SSH-certificate rollout after the directory is accepted.
-
-## Using an existing domain
-
-This deployment can be omitted when an existing environment already provides the
-services this path would create.
-
-Use the existing environment as the source for:
-
-| Existing service | Later paths need |
-| --- | --- |
-| DNS and private domain | stable FQDNs for platform hosts and services |
-| identity | users, groups, service identities, and host enrollment model |
-| PKI | trusted certificates for internal TLS and service identity |
-| secrets platform | shared secret storage and token handoff |
-| telemetry or syslog | audit, troubleshooting, and platform visibility |
-
-Keep the same repo pattern even when the services already exist:
-
-- keep stable inventory host keys such as `idm-1`, `vault-1`, or `logs-1`
-- keep environment-specific domains in `all.<env>.yml`
-- keep environment-specific IP maps in the matching setup overlay, such as
-  `foundation.<env>.yml`
-- override subnets and VLANs in Terraform only when that environment needs a
-  different network shape
-- avoid deploying duplicate identity systems for labs unless isolation is the
-  goal
-
 <a id="what-you-configure"></a>
 
-## Configuration
+1. Initialize local inputs, using the same context/state used for the issuer in Stage 2:
 
-Edit these local files before deployment:
+   ```bash
+   bash scripts/init-local-files.sh --setup foundation
+   ```
 
-| Repository | Path inside that repository | Configuration |
-| --- | --- | --- |
-| Tier 0 | [`terraform/common.tfvars.example`](../../../../tier-0/terraform/common.tfvars.example) | tier guest networks and optional platform overrides; shared storage and local SSH paths follow [platform inputs](../../../reference/platform-inputs.md) |
-| Tier 0 | [`terraform/deployments/foundation/terraform.tfvars.example`](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example) | foundation VM hardware shape, tags, storage class, disk size, and network zone |
-| Tier 0 | [`ansible/inventory/hosts.yml.example`](../../../../tier-0/ansible/inventory/hosts.yml.example) | stable logical host keys and foundation groups |
-| Tier 0 | [`ansible/group_vars/all.yml.example`](../../../../tier-0/ansible/group_vars/all.yml.example) | hostname prefix or suffix, domain, SSH user, port, and baseline defaults |
-| Tier 0 | [`ansible/group_vars/all.env.yml.example`](../../../../tier-0/ansible/group_vars/all.env.yml.example) | optional environment overlay for `all.<env>.yml` when using `--env` |
-| Tier 0 | [`ansible/group_vars/foundation.yml.example`](../../../../tier-0/ansible/group_vars/foundation.yml.example) | foundation host IPs, domain, realm, DNS behavior and controller-side secret lookups |
+   Retain the same `--env` flag on every command if the issuer used a named environment.
+2. Add `idm-1` and `idm-2` to the existing foundation desired guest map, inventory
+   and IP map. Do not replace the map with an identity-only file: that would remove
+   an already-managed `ca-1`. Select the supported Enterprise Linux image for the
+   directory pair, not the Debian CA-specific image. Place replicas on independent
+   failure domains and provide stable forward/reverse DNS before installation.
+3. Review the whole state, then provision:
 
-## IaC used for this
+   ```bash
+   bash scripts/deploy.sh foundation --plan-only
+   ```
 
-The inputs above stay in Tier 0. Follow these entry points to their implementation:
+   After review:
 
-| Repository | Code path inside that repository | Responsibility |
-| --- | --- | --- |
-| Tier 0 | [terraform/deployments/foundation/main.tf](../../../../tier-0/terraform/deployments/foundation/main.tf) | Provisions the configured identity and PKI VMs through tier-local modules |
-| Tier 0 | [ansible/playbooks/deployment/identity-freeipa.yml](../../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml) | Baseline, primary installation, verification and replica installation |
-| Tier 0 | [scripts/deploy.sh](../../../../tier-0/scripts/deploy.sh) | Tier entry point; select `foundation` |
-| Shared | [scripts/deploy.sh](../../../../shared/scripts/deploy.sh) | Reusable execution implementation, using Tier 0 inputs/state |
-| Shared | [ansible/roles/baseline/](../../../../shared/ansible/roles/baseline/) | Common host preparation, reused by the Tier 0 recipe |
+   ```bash
+   bash scripts/deploy.sh foundation --terraform-only
+   ```
 
-Current boundary:
+| Tier 0 input | Configuration |
+| --- | --- |
+| `terraform/deployments/foundation/terraform.tfvars` | Guest hardware, image IDs, storage, placement and identity network |
+| `ansible/inventory/hosts.yml` | Exactly one `identity_primary`, at least one `identity_replicas` |
+| `ansible/group_vars/all.yml` | SSH account/key path, internal domain and hostname decoration |
+| `ansible/group_vars/foundation.yml` | Static IPs, identity realm, DNS policy and CA phase |
+| Protected controller environment | `FREEIPA_DM_PASSWORD` and `FREEIPA_ADMIN_PASSWORD` |
 
-- Ansible inventory owns stable logical host keys and service groups
-- Ansible `all` group vars own hostname decoration and domain
-- foundation group vars own the foundation guest IP map
-- Terraform prepares the identity foundation hardware layout and Proxmox tags
-- Terraform reads the Ansible group vars to derive the Proxmox VM names and IPs
-- the foundation playbook prepares those hosts for managed operation
-- the foundation playbook installs the first `FreeIPA` host, verifies it, and
-  then installs the replica hosts
-- the issuing CA host is provisioned in `cryptography`; detailed issuing-CA
-  service policy remains a PKI operations step
+Keep `root_ca` empty in the connected inventory. It is no longer a child of
+`foundation`; the identity recipe targets only `identity`. The issuer and offline
+root are never configured by the directory deployment.
 
-## Staged identity rollout
+Use an internal subdomain such as `internal.example.com`, distinct from the public
+website. DNS forwarders, firewall policy and supported software sources must already
+work; an [outbound cache](../../foundation/step-3b-outbound-cache.md) is optional.
 
-The foundation playbook handles `FreeIPA` as a staged deployment:
+## External CA integration gate
 
-| Stage | What happens | Sanity gate |
-| --- | --- | --- |
-| baseline | all hosts in `foundation` get the baseline role | SSH and baseline tasks complete |
-| primary identity | the single host in `identity_primary` gets the first `FreeIPA` server | `ipactl status` and `ipa ping` pass |
-| replica identity | hosts in `identity_replicas` are configured one at a time | the same checks pass on every identity host |
+The reference uses sibling infrastructure and identity CAs signed by the offline
+root, not an identity CA subordinate to OpenXPKI. The recipe now orchestrates the
+upstream two-phase install; offline signing and chain acceptance remain controlled
+operator actions. [1]
 
-Keep exactly one host in `identity_primary`. Add additional identity replicas
-under `identity_replicas` so the first authority is always verified before the
-redundant pair is completed.
+| Local setting | Required value / behavior |
+| --- | --- |
+| `foundation_freeipa_ca_mode` | `external` for a new reference deployment; default `internal` preserves the existing alternative |
+| `foundation_freeipa_external_phase` | `csr`, then `complete`; the CSR phase never checks incomplete services or installs replicas |
+| `foundation_freeipa_csr_directory` | Protected controller handoff directory; default ignored `secrets/identity` |
+| `foundation_freeipa_external_cert_files` | Absolute controller paths to the approved identity CA certificate and root/chain |
+| `ipareplica_setup_ca: true` | Explicit CA replica, not just a second directory server [2] |
 
-## How to shape the deployment
+The recipe maps the selected phase to `ipaserver_external_ca` and
+`ipaserver_external_cert_files_from_controller`; the upstream role performs the
+native installation. These inputs do not rechain an existing installed domain.
 
-Use the default shape unless the environment has a documented need for a
-different authority layout.
+## Step 2: Generate and sign the identity CA request
 
-- keep `management`, `identity`, and `cryptography` defined before adding
-  other optional zones
-- keep `2` identity hosts unless this is only a short-lived test environment
-- place the identity hosts on different Proxmox nodes when the platform allows
-  it
-- keep the issuing CA on its own dedicated host in `cryptography`
-- enable a root CA host in `ceremony` only for a separate offline
-  ceremony system from the start
-- keep the inventory groups aligned with the host intent:
-  `identity_primary`, `identity_replicas`, `issuing_ca`, and optional
-  `root_ca`
+1. Set `foundation_freeipa_ca_mode: external` and
+   `foundation_freeipa_external_phase: csr` in local foundation vars. Inject the
+   bootstrap passwords through the controller or an
+   [Ansible-only secret override](../../../administration/secret-handling/ansible-vault.md).
+2. Run the directory recipe against the already-provisioned guests:
 
-For environment separation within a tier, keep one stable inventory and separate ignored
-local data files and state:
+   ```bash
+   bash scripts/deploy.sh foundation --ansible-only
+   ```
 
-| Environment | Local var file | Wrapper command |
-| --- | --- | --- |
-| first validation run | `terraform/deployments/foundation/terraform.tfvars` plus `ansible/group_vars/all.test.yml` and `foundation.test.yml` | `bash scripts/deploy.sh foundation --env test` |
-| lab, dev, or staging | `terraform/deployments/foundation/terraform.tfvars` plus matching Ansible env and setup vars | `bash scripts/deploy.sh foundation --env lab1` |
-| production | `terraform/deployments/foundation/terraform.tfvars` | `bash scripts/deploy.sh foundation` |
+   The recipe prepares identity hosts, generates the primary's CSR and fetches it
+   as `secrets/identity/<primary-fqdn>-ipa.csr`, distinct across environments. Primary health checks, replica installation
+   and final health checks are deliberately deferred.
+3. Verify the CSR identity and constraints, then use the separate
+   [offline root ceremony](../../stage-2-trust/procedures/offline-root.md).
+   Return only the signed identity CA certificate and public chain. Preserve the
+   primary's pending installation and private key; never regenerate it to retry a transfer.
 
-The wrapper stores local Terraform state separately per setup and environment,
-for example `.terraform/state/foundation/test/terraform.tfstate`.
+## Step 3: Complete the primary and replica
 
-Terraform uses the base `terraform/common.tfvars` and foundation
-`terraform.tfvars` for every environment by default. Add
-`terraform/common.<env>.tfvars` or
-`terraform/deployments/foundation/terraform.<env>.tfvars` only when that
-environment intentionally needs different platform values, VM sizes, or
-placement.
+1. Verify the signed certificate matches the pending CSR/key, approved subject,
+   subordinate constraints and expected root. Set the local phase to `complete`
+   and populate `foundation_freeipa_external_cert_files` with absolute controller
+   certificate/chain paths. Keep the same realm, hosts, passwords and state context.
+2. Resume with the same command:
 
-Put the hostname prefix or suffix and domain in
-`ansible/group_vars/all.<env>.yml`. Put foundation IPs in
-`ansible/group_vars/foundation.<env>.yml`. Use DNS-safe environment names with
-letters, numbers, and dashes. Do not add leading or trailing separators to the
-prefix or suffix; the automation adds the dash when needed. The initializer
-fills the prefix from `--env`; the domain and setup IPs still require configuration before
-deployment. For suffix-style names, clear the prefix and set
-`platform_hostname_suffix` instead.
+   ```bash
+   bash scripts/deploy.sh foundation --ansible-only
+   ```
 
-No `--env` means production and uses the base local files:
-`terraform/common.tfvars`, `terraform/deployments/foundation/terraform.tfvars`,
-`ansible/group_vars/all.yml`, and `ansible/group_vars/foundation.yml`.
+   The upstream role completes the primary. Only after `ipactl status` and
+   `ipa ping` pass does the CA-enabled replica install serially.
+3. Verify directory and DNS replication, certificate issuance on **both** hosts,
+   matching identity CA chain and loss of either host. Record the result before
+   continuing to the [Kubernetes cluster](kubernetes.md). A passing service check
+   alone does not prove CA replication or failure recovery.
 
-With `--env`, the wrapper automatically loads both environment-wide vars and
-foundation setup vars, for example `ansible/group_vars/all.test.yml` and
-`ansible/group_vars/foundation.test.yml`. Use `--ansible-vars` only for an
-extra one-off plain-YAML override. Keep these files readable by Terraform.
-Supply `FREEIPA_DM_PASSWORD` and `FREEIPA_ADMIN_PASSWORD` through protected
-controller inputs. For encrypted secret-only files, use the separate
-[Ansible-only workflow](../../../administration/secret-handling/ansible-vault.md#encrypted-secret-file).
-
-For the main rollout, keep the same context/state used for the issuer in Stage 2.
-The default-context example below omits `--env`; it must not be used against
-resources already owned by a named environment's state.
+For routine read-only service/API checks:
 
 ```bash
-bash scripts/init-local-files.sh --setup foundation
+bash scripts/deploy.sh foundation --recipe maintenance
 ```
 
-Edit those files and complete [environment isolation](../../../reference/repository-scripts.md#environment-isolation),
-including unused VMIDs and distinct host IPs. Preserve the issuer already managed
-by this root/state. Plan before running the installation:
+## Existing domains and alternatives
 
-```bash
-bash scripts/deploy.sh foundation --plan-only
-```
+An existing qualified identity service can satisfy this capability without a
+duplicate installation. The `internal` CA mode preserves the previous internally
+rooted FreeIPA alternative and its normal `foundation` command; it is not the
+selected sibling-CA reference. Never switch an existing domain's mode expecting
+the installer to migrate it. Rechaining, renewal and recovery require a separately
+tested migration with backups and rollback.
 
-After review:
+Local state remains `.terraform/state/foundation/<env>/terraform.tfstate`.
+Environment overlays replace local allocations, not inventory ownership. Follow
+[environment isolation](../../../reference/repository-scripts.md#environment-isolation)
+for a disposable rehearsal; never create another state owner for the live issuer.
 
-```bash
-bash scripts/deploy.sh foundation
-```
+## IaC ownership
 
-If trust used `--env test` or another named context, use that same flag for all three
-commands and edit its matching overlays. A separate rehearsal needs independent
-allocations and trust inputs; it is not another state owner for the existing issuer.
+| Repository | Path inside that repository | Responsibility |
+| --- | --- | --- |
+| Tier 0 | [terraform/deployments/foundation/](../../../../tier-0/terraform/deployments/foundation/) | Identity/issuer VM resources and state |
+| Tier 0 | [deployment/identity-freeipa.yml](../../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml) | Identity-only baseline, CSR pause, completion and replica sequencing |
+| Tier 0 | [foundation.yml.example](../../../../tier-0/ansible/group_vars/foundation.yml.example) | Host IPs, domain, CA phase and supported upstream-role mappings |
+| Shared | [baseline](../../../../shared/ansible/roles/baseline/), [deployment helper](../../../../shared/scripts/deploy.sh) | Reusable preparation/execution; no inventory, CA keys or state ownership |
+| External collection | `freeipa.ansible_freeipa.ipaserver`, `ipareplica` | Native product installation and CA replication interfaces |
 
-The wrapper automatically loads `.env.local` when it exists. Add
-`--env-file path/to/file` to override that with another file.
+## References
 
-To remove a disposable environment after testing, run the same setup with
-`--destroy`:
+Sources checked 2026-10-17.
 
-```bash
-bash scripts/deploy.sh foundation --env test --destroy
-```
-
-To deploy the setup, use the repository deployment wrapper with
-the `foundation` setup. Keep the exact execution flow in the wrapper rather
-than repeating it in this guide. That wrapper also checks the required local
-config files for the setup before it runs.
-
-## What comes next
-
-Verify FreeIPA, DNS and replication from the deployment machine, including the
-selected trust relationship with the existing issuer. Keep root custody offline. Continue
-with the [Step 2: Kubernetes cluster](../README.md#step-2-create-the-kubernetes-cluster), then
-[Stage 4: Control services](../../stage-4-control-services/README.md).
-Windows integration and hardware-backed user authentication are optional later work.
-
-## Read more
-
-- [Infrastructure automation layout](../../../development/code-layout.md)
-- [Repository scripts](../../../reference/repository-scripts.md)
-- [Shared services model](../../../architecture/service-boundaries.md)
-- [Windows and AD support](../../../architecture/identity/windows-integration.md)
-- [Hardware-backed user authentication](../../stage-4-control-services/step-3b-hardware-authentication.md)
-- [Edge proxy path](../../stage-5-delivery/procedures/edge-proxy.md)
-- [Cache path](../../foundation/step-3b-outbound-cache.md)
-- [Vault foundation deployment](../../stage-4-control-services/step-2b-vault-vm.md)
-- [Deployment readiness](../../readiness.md)
-- [Secret strategy](../../../administration/secret-handling/strategy.md)
-- [Environment variable conventions](../../../reference/environment-variables.md)
-- [Network architecture](../../../architecture/networking/README.md)
-- [Proxmox reference platform](../../foundation/procedures/proxmox.md)
+1. [FreeIPA Ansible server role: two-phase external signing](https://github.com/freeipa/ansible-freeipa/blob/master/roles/ipaserver/README.md)
+2. [FreeIPA Ansible replica role: explicit CA setup](https://github.com/freeipa/ansible-freeipa/blob/master/roles/ipareplica/README.md)

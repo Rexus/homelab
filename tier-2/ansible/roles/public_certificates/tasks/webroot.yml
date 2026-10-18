@@ -1,0 +1,51 @@
+---
+- name: Install the native loopback-only challenge web server
+  ansible.builtin.package:
+    name: [nginx, python3-libselinux, policycoreutils-python-utils]
+    state: present
+
+- name: Create the HTTP-01 token directory
+  ansible.builtin.file:
+    path: "{{ edge_acme_webroot }}/.well-known/acme-challenge"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Own the dedicated edge challenge server configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: nginx -t -c %s
+  register: edge_acme_nginx_configuration
+
+- name: Label the challenge directory for enforcing SELinux
+  community.general.sefcontext:
+    target: /var/lib/acme(/.*)?
+    setype: httpd_sys_content_t
+    state: present
+  when: ansible_selinux.status == 'enabled'
+
+- name: Apply the native SELinux file labels
+  ansible.builtin.command:
+    argv: [/usr/sbin/restorecon, -Rv, /var/lib/acme]
+  register: edge_acme_labels
+  changed_when: edge_acme_labels.stdout | length > 0
+  when: ansible_selinux.status == 'enabled'
+
+- name: Assign the loopback challenge port to the native HTTP service type
+  community.general.seport:
+    ports: "{{ edge_acme_webroot_port }}"
+    proto: tcp
+    setype: http_port_t
+    state: present
+  when: ansible_selinux.status == 'enabled'
+
+- name: Start the isolated challenge server
+  ansible.builtin.systemd_service:
+    name: nginx
+    enabled: true
+    state: "{{ 'restarted' if edge_acme_nginx_configuration.changed else 'started' }}"

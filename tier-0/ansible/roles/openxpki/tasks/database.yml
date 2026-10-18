@@ -1,0 +1,85 @@
+---
+- name: Keep MariaDB on the local Unix socket only
+  ansible.builtin.template:
+    src: mariadb.cnf.j2
+    dest: /etc/mysql/mariadb.conf.d/70-openxpki.cnf
+    owner: root
+    group: root
+    mode: "0644"
+  register: openxpki_database_config
+
+- name: Start the local persistent database
+  ansible.builtin.systemd_service:
+    name: mariadb
+    enabled: true
+    state: "{{ 'restarted' if openxpki_database_config.changed else 'started' }}"
+
+- name: Inspect application tables before any initialization
+  ansible.mariadb.mariadb_query:
+    login_unix_socket: /run/mysqld/mysqld.sock
+    config_file: ""
+    query: SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = 'openxpki'
+  register: openxpki_tables
+  changed_when: false
+
+- name: Inspect the completed schema receipt
+  ansible.builtin.stat:
+    path: "{{ openxpki_data_mount }}/schema-initialized"
+  register: openxpki_schema_receipt
+
+- name: Fail closed on lost state, partial initialization or an unapproved first import
+  ansible.builtin.assert:
+    that:
+      - >-
+        (openxpki_schema_receipt.stat.exists and openxpki_tables.query_result[0][0].total | int > 0) or
+        (not openxpki_schema_receipt.stat.exists and openxpki_tables.query_result[0][0].total | int == 0
+        and openxpki_initialize_database | bool)
+    fail_msg: >-
+      Initialization requires an empty database and openxpki_initialize_database=true.
+      Existing tables without a receipt or a receipt without tables require explicit recovery.
+      Never rerun schema imports against partial or existing CA state.
+
+- name: Initialize a new application database exactly once
+  when: not openxpki_schema_receipt.stat.exists
+  block:
+    - name: Create the empty application database
+      ansible.mariadb.mariadb_db:
+        name: openxpki
+        encoding: utf8mb4
+        login_unix_socket: /run/mysqld/mysqld.sock
+        config_file: ""
+        state: present
+
+    - name: Import the approved backend and frontend schemas into the empty database
+      ansible.mariadb.mariadb_db:
+        name: openxpki
+        state: import
+        target: "{{ openxpki_release_dir }}/schemas/{{ item }}.sql"
+        login_unix_socket: /run/mysqld/mysqld.sock
+        config_file: ""
+      loop: [backend, frontend]
+
+    - name: Record successful schema initialization on persistent storage
+      ansible.builtin.copy:
+        content: "{{ openxpki_configuration_sha256 }}\n"
+        dest: "{{ openxpki_data_mount }}/schema-initialized"
+        owner: root
+        group: root
+        mode: "0600"
+
+- name: Create separate local application and session identities
+  ansible.mariadb.mariadb_user:
+    name: "{{ item.name }}"
+    host: localhost
+    password: "{{ item.password }}"
+    priv: "{{ item.priv }}"
+    update_password: on_create
+    state: present
+    login_unix_socket: /run/mysqld/mysqld.sock
+    config_file: ""
+  no_log: true
+  loop:
+    - {name: openxpki, password: "{{ openxpki_database_password }}", priv: "openxpki.*:ALL"}
+    - name: openxpki_session
+      password: "{{ openxpki_session_password }}"
+      priv: "openxpki.frontend_session:SELECT,INSERT,UPDATE,DELETE"

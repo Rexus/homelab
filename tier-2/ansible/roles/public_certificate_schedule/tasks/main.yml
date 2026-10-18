@@ -1,0 +1,57 @@
+---
+- name: Require an explicitly selected Linux controller and private renewal inputs
+  ansible.builtin.assert:
+    that:
+      - public_certificate_schedule_enabled | bool
+      - ansible_system == 'Linux'
+      - ansible_service_mgr == 'systemd'
+      - public_certificate_schedule_user is match('^[a-z][a-z0-9_-]+$')
+      - public_certificate_schedule_user != 'root'
+      - public_certificate_schedule_repository is match('^/[a-zA-Z0-9_./-]+$')
+      - public_certificate_schedule_inputs is match('^/[a-zA-Z0-9_./-]+$')
+      - public_certificate_schedule_state is match('^/[a-zA-Z0-9_./-]+$')
+      - "'/../' not in public_certificate_schedule_state"
+      - "'/../' not in public_certificate_schedule_repository"
+      - "'/../' not in public_certificate_schedule_inputs"
+      - public_certificate_schedule_state not in ['/', '/tmp', '/home', '/var']
+
+- name: Verify renewal input and execution paths
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ public_certificate_schedule_repository }}/scripts/deploy.sh"
+    - "{{ public_certificate_schedule_inputs }}"
+    - "{{ public_certificate_schedule_state }}"
+  register: public_certificate_schedule_paths
+
+- name: Require prepared, private state and inputs
+  ansible.builtin.assert:
+    that:
+      - public_certificate_schedule_paths.results[0].stat.isreg | default(false)
+      - public_certificate_schedule_paths.results[1].stat.isreg | default(false)
+      - public_certificate_schedule_paths.results[1].stat.mode in ['0400', '0600']
+      - public_certificate_schedule_paths.results[1].stat.pw_name == public_certificate_schedule_user
+      - public_certificate_schedule_paths.results[2].stat.isdir | default(false)
+      - public_certificate_schedule_paths.results[2].stat.mode == '0700'
+      - public_certificate_schedule_paths.results[2].stat.pw_name == public_certificate_schedule_user
+
+- name: Install the native serialized renewal job and persistent timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [public-certificate-renewal.service, public-certificate-renewal.timer]
+  register: public_certificate_schedule_units
+
+- name: Load the renewal units
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: public_certificate_schedule_units.changed
+
+- name: Enable periodic certificate renewal
+  ansible.builtin.systemd_service:
+    name: public-certificate-renewal.timer
+    enabled: true
+    state: started

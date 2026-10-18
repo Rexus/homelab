@@ -1,0 +1,16 @@
+# Native clca instance configuration; authoritative state stays offline.
+CADBDIR=$CA_HOME/ca
+CACERT=$CADBDIR/cacert.pem
+CAPRIVDIR=$CA_HOME/private
+CERTDIR=$CA_HOME/certs
+CRLDIR=$CA_HOME/crl
+ENGINE=openssl
+OPENSSL=/usr/bin/openssl
+CNF=$CA_HOME/etc/openssl.cnf
+ROOTKEYNAME=cakey.pem
+DEFAULT_PUBKEY_ALGORITHM=rsa
+DEFAULT_RSA_KEYSIZE=4096
+DEFAULT_ENC_ALGORITHM=aes256
+CA_VALIDITY=3650
+RANDOMIZE_SERIAL=1
+BATCH=0

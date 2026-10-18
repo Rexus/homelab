@@ -7,9 +7,14 @@ platform_host_ips:
   idm-1: 10.10.12.10
   idm-2: 10.10.12.11
   ca-1: 10.20.21.10
-  # ca-root-1: 10.20.22.10
 
 foundation_freeipa_enabled: true
+# Existing internally rooted installations remain unchanged. For the sibling-CA
+# reference select external, run csr, sign offline, then select complete.
+foundation_freeipa_ca_mode: internal
+foundation_freeipa_external_phase: csr
+foundation_freeipa_external_cert_files: []
+foundation_freeipa_csr_directory: "{{ inventory_dir }}/../../secrets/identity"
 
 # Bootstrap SSH waits are intentionally setup-owned so first-run timing can be
 # tuned without changing global Ansible SSH behavior.
@@ -52,6 +57,7 @@ ipadm_password: "{{ foundation_freeipa_dm_password }}"
 ipareplica_domain: "{{ foundation_freeipa_domain }}"
 ipareplica_realm: "{{ foundation_freeipa_realm }}"
 ipareplica_setup_dns: "{{ foundation_freeipa_setup_dns }}"
+ipareplica_setup_ca: true
 ipareplica_setup_firewalld: "{{ foundation_freeipa_setup_firewalld }}"
 ipareplica_hostname: "{{ platform_fqdn }}"
 ipareplica_servers: >-

@@ -9,6 +9,7 @@ and recorded failure, retention, access and recovery contracts.
 
 - [Routine checks](#routine-checks)
 - [Maintenance and incidents](#maintenance-and-incidents)
+- [Fault and restore evidence](#fault-and-restore-evidence)
 - [Offline investigation](#offline-investigation)
 - [Automation boundary](#automation-boundary)
 - [References](#references)
@@ -43,6 +44,12 @@ When outage duration exceeds the declared buffer/failure envelope, follow the
 approved backpressure or fail-closed policy and record the incident. No finite
 buffer makes all sources lossless indefinitely.
 
+## Fault and restore evidence
+
+Use the [fault and restore drill](logging-drill.md) for numbered test batches,
+controlled failures, independent restoration and the project-owned acceptance record.
+Record reconciliation alone does not prove fault survival or archive protection.
+
 ## Offline investigation
 
 **Prerequisites:** authorized recovery custodian, trusted isolated recovery host,
@@ -73,8 +80,10 @@ This verifies readability, not live-collector HA or protection against every phy
 ## Automation boundary
 
 Tier 0 `bash scripts/deploy.sh syslog --ansible-only --recipe maintenance` currently
-reconciles the host baseline only. It does not upgrade receivers, rotate evidence,
-change retention or prove HA. Product operations remain project-owned procedures.
+reconciles the baseline and [isolated receiver](../reference/syslog-receiver.md)
+serially. It does not upgrade packages, delete evidence/queues, change retention or
+prove HA. Drain backlogs and preserve persist files before source/queue changes;
+remove retired firewall rules deliberately. Product operations remain project-owned procedures.
 Tier 1 search-index maintenance never grants authority to alter Tier 0 evidence.
 
 ## References

@@ -1,0 +1,4 @@
+{{ {openxpki_bundle_realm: {
+  'label': 'Infrastructure certificates',
+  'baseurl': 'https://' ~ openxpki_bundle_portal_fqdn ~ '/webui/' ~ openxpki_bundle_realm ~ '/',
+  'description': 'Private infrastructure issuer'}} | to_nice_yaml(indent=4) }}

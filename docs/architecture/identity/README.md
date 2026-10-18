@@ -69,6 +69,10 @@ Keycloak implements the IdP in the Tier 0 cluster. Their hosting and recovery
 remain separate. The IdP's database, TLS and directory failover are explicit
 integration requirements, not implied by a replica count or installed by this diagram.
 
+FreeIPA retains one replicated identity CA under the offline root, as a sibling of
+the infrastructure issuer. Its certificate inventory and custody remain separate
+from the OpenXPKI portal; see the [CA design](../cryptography/certificate-authority.md).
+
 Arrows identify logical consumers and dependencies, not every browser redirect
 or token exchange. [Service access](../runtime-flows.md#service-access) expands
 the login interaction. Enrolled hosts consume directory services directly;

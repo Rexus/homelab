@@ -1,0 +1,40 @@
+---
+- name: Create a dedicated bootstrap portal key without replacing existing material
+  community.crypto.openssl_privatekey:
+    path: "{{ openxpki_bundle_directory }}/portal-key.pem"
+    type: ECC
+    curve: secp256r1
+    regenerate: fail
+    mode: "0600"
+  no_log: true
+
+- name: Create the DNS-bound temporary portal request
+  community.crypto.openssl_csr:
+    path: "{{ openxpki_bundle_directory }}/portal.csr"
+    privatekey_path: "{{ openxpki_bundle_directory }}/portal-key.pem"
+    common_name: "{{ openxpki_bundle_portal_fqdn }}"
+    subject_alt_name: ["DNS:{{ openxpki_bundle_portal_fqdn }}"]
+    basic_constraints: ['CA:FALSE']
+    basic_constraints_critical: true
+    key_usage: [digitalSignature]
+    extended_key_usage: [serverAuth]
+    mode: "0600"
+
+- name: Create the short-lived explicitly pinned bootstrap portal certificate
+  community.crypto.x509_certificate:
+    path: "{{ openxpki_bundle_directory }}/portal-bootstrap.pem"
+    csr_path: "{{ openxpki_bundle_directory }}/portal.csr"
+    privatekey_path: "{{ openxpki_bundle_directory }}/portal-key.pem"
+    provider: selfsigned
+    selfsigned_digest: sha256
+    selfsigned_not_after: "+7d"
+    mode: "0600"
+
+- name: Record the bootstrap portal fingerprint for independent verification
+  community.crypto.x509_certificate_info:
+    path: "{{ openxpki_bundle_directory }}/portal-bootstrap.pem"
+  register: openxpki_bundle_portal_certificate
+
+- name: Show the public fingerprint to verify through an independent channel
+  ansible.builtin.debug:
+    msg: "{{ openxpki_bundle_portal_certificate.fingerprints.sha256 }}"

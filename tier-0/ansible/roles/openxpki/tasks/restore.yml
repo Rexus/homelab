@@ -1,0 +1,139 @@
+---
+- name: Validate the prepared runtime binding and mounted storage
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Require an explicit clean-target software recovery operation
+  ansible.builtin.assert:
+    that:
+      - openxpki_restore_approved | bool
+      - not openxpki_activate_runtime | bool
+      - openxpki_managed_cli | bool
+      - openxpki_restore_directory is match('^/srv/[a-zA-Z0-9_-]+/recovery$')
+      - not openxpki_restore_directory.startswith(openxpki_data_mount ~ '/')
+      - openxpki_restore_manifest_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_signer_password | length >= 32
+
+- name: Inspect recovery authorization and prior attempts
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop:
+    - "{{ openxpki_restore_directory }}/recovery.json"
+    - "{{ openxpki_data_mount }}/restore-attempt.json"
+    - "{{ openxpki_data_mount }}/keys/issuer.pem"
+    - "{{ openxpki_data_mount }}/identity/issuer.pem"
+  register: openxpki_restore_paths
+
+- name: Refuse existing signing state, repeat attempts or an unverified manifest
+  ansible.builtin.assert:
+    that:
+      - openxpki_restore_paths.results[0].stat.isreg | default(false)
+      - not openxpki_restore_paths.results[0].stat.islnk | default(false)
+      - openxpki_restore_paths.results[0].stat.checksum == openxpki_restore_manifest_sha256
+      - not openxpki_restore_paths.results[1].stat.exists
+      - not openxpki_restore_paths.results[2].stat.exists
+      - not openxpki_restore_paths.results[3].stat.exists
+
+- name: Read the independently verified recovery manifest and binding
+  ansible.builtin.slurp:
+    src: "{{ openxpki_restore_directory }}/{{ item }}"
+  loop: [recovery.json, deployment.json]
+  register: openxpki_restore_records
+  no_log: true
+
+- name: Decode the recovery records
+  ansible.builtin.set_fact:
+    openxpki_restore_manifest: "{{ openxpki_restore_records.results[0].content | b64decode | from_json }}"
+    openxpki_restore_binding: "{{ openxpki_restore_records.results[1].content | b64decode | from_json }}"
+  no_log: true
+
+- name: Require the original deployment, secrets, package set and signing identity
+  ansible.builtin.assert:
+    that:
+      - openxpki_restore_manifest.format == 1
+      - openxpki_restore_manifest.deployment_id == openxpki_deployment_id
+      - openxpki_restore_manifest.configuration_sha256 == openxpki_configuration_sha256
+      - openxpki_restore_manifest.package_versions == openxpki_package_versions
+      - openxpki_restore_manifest.realm == openxpki_realm
+      - openxpki_restore_manifest.issuer_fingerprint | lower == openxpki_issuer_fingerprint | lower
+      - openxpki_restore_binding == openxpki_binding
+  no_log: true
+
+- name: Inspect restored signing identity without importing it
+  community.crypto.x509_certificate_info:
+    path: "{{ openxpki_restore_directory }}/identity/issuer.pem"
+  register: openxpki_restore_certificate
+
+- name: Verify that the recovered encrypted key matches the certificate
+  community.crypto.openssl_privatekey_info:
+    path: "{{ openxpki_restore_directory }}/keys/issuer.pem"
+    passphrase: "{{ openxpki_signer_password }}"
+  register: openxpki_restore_key
+  no_log: true
+
+- name: Require the independently recorded original public key and fingerprint
+  ansible.builtin.assert:
+    that:
+      - openxpki_restore_certificate.fingerprints.sha256 | lower == openxpki_issuer_fingerprint | lower
+      - openxpki_restore_certificate.public_key == openxpki_restore_key.public_key
+  no_log: true
+
+- name: Inspect the clean target's issuance and workflow history
+  ansible.mariadb.mariadb_query:
+    login_unix_socket: /run/mysqld/mysqld.sock
+    config_file: ""
+    query:
+      - SELECT COUNT(*) AS total FROM openxpki.certificate
+      - SELECT COUNT(*) AS total FROM openxpki.workflow
+  register: openxpki_restore_history
+  changed_when: false
+
+- name: Refuse overwriting a target with any CA history
+  ansible.builtin.assert:
+    that:
+      - openxpki_restore_history.query_result[0][0].total | int == 0
+      - openxpki_restore_history.query_result[1][0].total | int == 0
+
+- name: Keep all writers stopped throughout recovery
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
+  loop: [openxpki-crl.timer, apache2, openxpki-clientd, openxpki-serverd]
+
+- name: Record a non-repeatable restore attempt before changing state
+  ansible.builtin.copy:
+    content: "{{ openxpki_restore_manifest | to_nice_json }}"
+    dest: "{{ openxpki_data_mount }}/restore-attempt.json"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Restore the logical database through its native module
+  ansible.mariadb.mariadb_db:
+    name: openxpki
+    state: import
+    target: "{{ openxpki_restore_directory }}/database.sql"
+    login_unix_socket: /run/mysqld/mysqld.sock
+    config_file: ""
+
+- name: Recover the original keys and signed public state
+  ansible.builtin.copy:
+    src: "{{ openxpki_restore_directory }}/{{ item.path }}/"
+    dest: "{{ openxpki_data_mount }}/{{ item.path }}/"
+    remote_src: true
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: preserve
+  loop:
+    - {path: keys, owner: openxpki, group: openxpki}
+    - {path: identity, owner: root, group: openxpki}
+    - {path: public, owner: openxpki, group: www-data}
+  no_log: true
+
+- name: Leave recovery inactive until identity, history and audit acceptance
+  ansible.builtin.debug:
+    msg: >-
+      Recovery data is installed but all application writers remain stopped.
+      Verify the isolated target before using the normal explicit activation recipe.
+      A failed restore attempt requires investigation and a new clean target, not deleting the receipt.

@@ -1,0 +1,72 @@
+---
+- name: Label isolated receiver paths for the native logging policy
+  community.general.sefcontext:
+    target: "{{ item.path }}"
+    setype: "{{ item.type }}"
+    state: present
+  loop:
+    - {path: '{{ syslog_ng_config_dir | regex_escape }}(/.*)?', type: syslog_conf_t}
+    - {path: '{{ syslog_ng_data_mount | regex_escape }}/records(/.*)?', type: var_log_t}
+    - {path: '{{ syslog_ng_data_mount | regex_escape }}/\.state(/.*)?', type: syslogd_var_lib_t}
+    - {path: '/run/syslog-ng-receiver(/.*)?', type: syslogd_var_run_t}
+  when: ansible_selinux.status == 'enabled'
+
+- name: Apply labels to receiver configuration and certificates
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/restorecon
+      - -Rv
+      - "{{ syslog_ng_config_dir }}"
+  register: syslog_ng_restorecon
+  changed_when: syslog_ng_restorecon.stdout | length > 0
+  when: ansible_selinux.status == 'enabled'
+
+- name: Label data roots without recursively relabeling historical evidence
+  ansible.builtin.command:
+    argv: [/usr/sbin/restorecon, -v, "{{ item }}"]
+  loop:
+    - "{{ syslog_ng_data_mount }}/records"
+    - "{{ syslog_ng_data_mount }}/.state"
+  register: syslog_ng_data_labels
+  changed_when: syslog_ng_data_labels.stdout | length > 0
+  when: ansible_selinux.status == 'enabled'
+
+- name: Register the selected TLS port with SELinux
+  community.general.seport:
+    ports: "{{ syslog_ng_tls_port }}"
+    proto: tcp
+    setype: syslog_tls_port_t
+    state: present
+  when: ansible_selinux.status == 'enabled'
+
+- name: Register an explicitly selected legacy UDP port
+  community.general.seport:
+    ports: "{{ syslog_ng_udp_port }}"
+    proto: udp
+    setype: syslogd_port_t
+    state: present
+  when: ansible_selinux.status == 'enabled' and syslog_ng_legacy_sources | length > 0
+
+- name: Allow only catalogued TLS producer addresses through the host firewall
+  ansible.posix.firewalld:
+    zone: "{{ syslog_ng_firewall_zone }}"
+    rich_rule: >-
+      rule family="ipv4" source address="{{ item.address }}/32"
+      port port="{{ syslog_ng_tls_port }}" protocol="tcp" accept
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ syslog_ng_sources }}"
+  when: syslog_ng_manage_firewall
+
+- name: Allow only explicitly accepted legacy UDP producer addresses
+  ansible.posix.firewalld:
+    zone: "{{ syslog_ng_firewall_zone }}"
+    rich_rule: >-
+      rule family="ipv4" source address="{{ item.address }}/32"
+      port port="{{ syslog_ng_udp_port }}" protocol="udp" accept
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ syslog_ng_legacy_sources }}"
+  when: syslog_ng_manage_firewall

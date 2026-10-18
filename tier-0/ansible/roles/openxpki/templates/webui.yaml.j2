@@ -1,0 +1,14 @@
+session:
+  database:
+    type: MariaDB2
+    name: openxpki
+    user: openxpki_session
+    password: {{ openxpki_session_password | to_json }}
+    encrypt_key: {{ openxpki_session_secret | to_json }}
+  timeout: 600
+  cookey: OPENXPKISESSID
+  fingerprint: [HTTP_USER_AGENT, HTTP_ACCEPT_LANGUAGE]
+realm:
+  mode: path
+  map:
+    {{ openxpki_realm }}: {{ openxpki_realm }}

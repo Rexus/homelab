@@ -1,0 +1,35 @@
+---
+- name: Read the native realm and authentication configuration
+  ansible.builtin.slurp:
+    src: "{{ openxpki_release_dir }}/config.d/{{ item }}"
+  loop:
+    - system/realms.yaml
+    - "realm/{{ openxpki_realm }}/auth/handler.yaml"
+    - "realm/{{ openxpki_realm }}/auth/stack.yaml"
+  register: openxpki_policy_files
+  no_log: true
+
+- name: Parse the production realm and independent bootstrap authentication
+  ansible.builtin.set_fact:
+    openxpki_realms: "{{ openxpki_policy_files.results[0].content | b64decode | from_yaml }}"
+    openxpki_auth_handlers: "{{ openxpki_policy_files.results[1].content | b64decode | from_yaml }}"
+    openxpki_auth_stacks: "{{ openxpki_policy_files.results[2].content | b64decode | from_yaml }}"
+  no_log: true
+
+- name: Require a single production realm and password-authenticated portal
+  ansible.builtin.assert:
+    that:
+      - openxpki_realm not in ['democa', 'rootca']
+      - openxpki_realms.keys() | list == [openxpki_realm]
+      - openxpki_auth_handlers.keys() | sort == ['LocalPassword', 'System']
+      - openxpki_auth_handlers.LocalPassword.type == 'Password'
+      - openxpki_auth_handlers.System.role == 'System'
+      - openxpki_auth_stacks.keys() | sort(case_sensitive=true) == ['LocalPassword', '_System']
+      - openxpki_auth_stacks.LocalPassword.handler == 'LocalPassword'
+      - openxpki_auth_stacks.LocalPassword.type == 'passwd'
+      - openxpki_auth_stacks._System.handler == 'System'
+    fail_msg: >-
+      The initial runtime supports one production realm with independent local password
+      authentication and the private system stack only. Remove demo/test/anonymous and
+      wildcard certificate login. Additional authentication methods need explicit qualification.
+  no_log: true

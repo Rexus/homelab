@@ -1,6 +1,25 @@
 # Copy to: ansible/group_vars/syslog.yml
 # Guide: docs/deployment/stage-1-logging/README.md
-# Tier 0 inventory/IP inputs only. Receiver and archive integration is project-owned.
+# Tier 0 owns receiver configuration and evidence. Shared owns no log inventory.
 platform_host_ips:
   foundation-log-1: 10.10.10.30
   # foundation-log-2: 10.10.10.31
+
+# Set the UUID of the deliberately prepared data filesystem, not its device name.
+# With multiple receivers, put each UUID in its own inventory host variables.
+syslog_ng_data_uuid: ""
+syslog_ng_data_mount: /srv/security-logging
+# Firewalld must already run; use the actual zone containing the intake interface.
+syslog_ng_firewall_zone: public
+# Bind client certificates to a server-owned source name, tier and observed IPv4 address.
+# Certificate CN must equal name; tls_dn is the exact subject, without wildcard matching.
+syslog_ng_sources: []
+# Example entry after issuing a client certificate:
+#  - name: pve01
+#    address: 10.10.10.11
+#    tier: 0
+#    tls_dn: CN=pve01
+# Optional, explicitly accepted unauthenticated first hop; empty means no UDP listener.
+syslog_ng_legacy_sources: []
+# TLS files are supplied through SYSLOG_NG_TLS_CA_FILE, SYSLOG_NG_TLS_CERT_FILE
+# and SYSLOG_NG_TLS_KEY_FILE on the execution host. Never store private keys here.

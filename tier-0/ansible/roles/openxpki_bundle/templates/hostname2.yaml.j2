@@ -1,0 +1,6 @@
+id: hostname2
+label: Additional approved DNS names
+type: text
+required: 0
+max: 10
+match: \A (?i:(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*(?:{{ openxpki_bundle_dns_suffixes | map('regex_escape') | join('|') }})) \z

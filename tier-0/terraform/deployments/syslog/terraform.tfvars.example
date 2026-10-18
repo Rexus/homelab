@@ -1,7 +1,8 @@
 # Copy to: terraform/deployments/syslog/terraform.tfvars
 # Guide: docs/deployment/stage-1-logging/README.md
 # Tier 0 owns protected log intake; shared supplies only sizes and platform/image references.
-# Provisioning and OS baseline only: no receiver, replication or immutable archive installer.
+# Terraform owns VMs/disks; Tier 0 Ansible installs the receiver after mount/TLS preparation.
+# Neither installs archive replication or protected retention.
 
 vm_instances = {
   "foundation-log-1" = {

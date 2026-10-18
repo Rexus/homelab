@@ -1,0 +1,32 @@
+entity:
+    disk@: connector:publishing.connectors.local
+crl:
+    crl@: connector:publishing.connectors.cdp
+cacert:
+    disk-pem@: connector:publishing.connectors.cacert-pem
+    disk-der@: connector:publishing.connectors.cacert-der
+connectors:
+    local:
+        class: Connector::Builtin::File::Path
+        LOCATION: {{ (openxpki_bundle_data_mount ~ '/public') | to_json }}
+        file: "[% ARGS.0.replace('[^\\w-]','_') %].crt"
+        content: "[% pem %]"
+        mode: "0644"
+    cdp:
+        class: Connector::Builtin::File::Path
+        LOCATION: {{ (openxpki_bundle_data_mount ~ '/public') | to_json }}
+        file: issuer.crl
+        content: "[% der %]"
+        mode: "0644"
+    cacert-pem:
+        class: Connector::Builtin::File::Path
+        LOCATION: {{ (openxpki_bundle_data_mount ~ '/public') | to_json }}
+        file: issuer.crt
+        content: "[% pem %]"
+        mode: "0644"
+    cacert-der:
+        class: Connector::Builtin::File::Path
+        LOCATION: {{ (openxpki_bundle_data_mount ~ '/public') | to_json }}
+        file: issuer.cer
+        content: "[% der %]"
+        mode: "0644"

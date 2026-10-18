@@ -36,6 +36,8 @@ Options:
   --plan-only       Run Terraform init and plan, then stop.
   --terraform-only  Run the precheck and Terraform only.
   --ansible-only    Run the precheck and mapped Ansible playbooks only.
+  --playbook PATH   Select a tier-local deployment/ or maintenance/ recipe.
+                   Requires --ansible-only; never changes Terraform state selection.
   --recipe NAME     deployment (default) or maintenance. Maintenance runs
                    Ansible only, using existing inventory and service vars.
   --destroy         Destroy the Terraform resources for this setup.
@@ -90,6 +92,7 @@ auto_approve=false
 destroy=false
 reset_known_hosts=false
 recipe=deployment
+playbook_override=""
 deployment_env="prod"
 explicit_env=false
 env_file_path=""
@@ -102,6 +105,14 @@ ansible_vars_paths=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --playbook)
+      if [[ $# -lt 2 || ! "$2" =~ ^(deployment|maintenance)/[a-z0-9-]+\.yml$ ]]; then
+        echo "--playbook requires deployment/<name>.yml or maintenance/<name>.yml." >&2
+        exit 1
+      fi
+      playbook_override="$2"
+      shift 2
+      ;;
     --recipe)
       if [[ $# -lt 2 || ! "$2" =~ ^(deployment|maintenance)$ ]]; then
         echo "--recipe requires deployment or maintenance." >&2
@@ -199,6 +210,11 @@ if [[ "$recipe" == maintenance ]]; then
   ansible_only=true
 fi
 
+if [[ -n "$playbook_override" && "$ansible_only" != true ]]; then
+  echo "--playbook requires --ansible-only (or --recipe maintenance)." >&2
+  exit 1
+fi
+
 if [[ "$plan_only" == true && "$ansible_only" == true ]]; then
   echo "--plan-only and --ansible-only cannot be used together." >&2
   exit 1
@@ -263,6 +279,9 @@ terraform_dir="$repo_root/terraform/deployments/$setup_name"
 ansible_playbooks=("$setup_name.yml")
 if [[ "$recipe" == maintenance ]]; then
   ansible_playbooks=("maintenance/$setup_name.yml")
+fi
+if [[ -n "$playbook_override" ]]; then
+  ansible_playbooks=("$playbook_override")
 fi
 setup_ansible_vars_env_stem="${setup_name//-/_}"
 setup_ansible_vars_base_path="$ansible_dir/group_vars/$setup_ansible_vars_env_stem.yml"
@@ -390,7 +409,7 @@ load_env_file() {
       ansible_dir|ansible_playbook_dir|automation_root|DEPLOYMENT_REPO_DIR|SHARED_REPO_DIR|\
       deployment_env|env_file_path|inventory_path|repo_root|setup_name|terraform_dir|\
       terraform_state_path|terraform_data_dir|var_file_path|recipe|ansible_only|\
-      terraform_only|plan_only|destroy|auto_approve|ansible_playbooks)
+      terraform_only|plan_only|destroy|auto_approve|ansible_playbooks|playbook_override)
         echo "Environment file uses reserved wrapper variable: $key" >&2
         echo "Rename or remove it from $env_file_path." >&2
         exit 1

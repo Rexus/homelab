@@ -1,0 +1,70 @@
+---
+- name: Require explicit website names and a TLS-verified origin pool
+  ansible.builtin.assert:
+    that:
+      - edge_acme_domains | length > 0
+      - edge_haproxy_frontends | length == 0
+      - edge_public_https_backend in edge_haproxy_backends
+      - edge_public_https_backend is match('^[a-zA-Z0-9][a-zA-Z0-9_-]*$')
+      - edge_haproxy_backends[edge_public_https_backend].servers | length > 0
+      - edge_haproxy_backends[edge_public_https_backend].mode | default('http') == 'http'
+      - edge_haproxy_backends[edge_public_https_backend].extra_lines | default([]) | length == 0
+      - edge_public_request_rate | int >= 10
+      - edge_public_request_rate | int <= 10000
+    fail_msg: Public HTTPS owns ports 80/443 and requires an explicitly configured TLS origin pool.
+
+- name: Validate public domain names before rendering HAProxy ACLs
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$')
+  loop: "{{ edge_acme_domains }}"
+
+- name: Refuse unverified or cleartext public-site origins
+  ansible.builtin.assert:
+    that:
+      - item.tls | default(false) | bool
+      - item.name is match('^[a-zA-Z0-9][a-zA-Z0-9_-]*$')
+      - item.address is match('^[a-zA-Z0-9.-]+$')
+      - item.port | int >= 1
+      - item.port | int <= 65535
+      - item.verify_hostname is defined
+      - item.verify_hostname is match('^[a-zA-Z0-9.-]+$')
+      - item.ca_file is match('^/etc/haproxy/trust/[a-zA-Z0-9_.-]+$')
+      - item.extra | default('') == ''
+  loop: "{{ edge_haproxy_backends[edge_public_https_backend].servers }}"
+
+- name: Create the origin trust directory
+  ansible.builtin.file:
+    path: /etc/haproxy/trust
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Validate origin trust file names before copying
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]+$')
+      - item.src is match('^/')
+  loop: "{{ edge_backend_trust_files }}"
+
+- name: Install the independently verified origin CA bundles
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/haproxy/trust/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ edge_backend_trust_files }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Inspect the public listener certificate without assuming bootstrap completion
+  ansible.builtin.stat:
+    path: /etc/haproxy/certificates/public.pem
+  register: edge_public_certificate
+
+- name: Prepare HTTP-01 serving without exposing the challenge server externally
+  ansible.builtin.include_role:
+    name: public_certificates
+    tasks_from: webroot

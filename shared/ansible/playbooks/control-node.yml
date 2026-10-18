@@ -20,6 +20,11 @@
             - ansible-collection-ansible-posix
           Debian:
             - ansible-collection-ansible-posix
+      community.crypto:
+        name: community.crypto
+        os_packages:
+          RedHat: [ansible-collection-community-crypto]
+          Debian: [ansible]
 
   tasks:
     - name: Gather deployment control-node facts

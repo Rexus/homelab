@@ -1,0 +1,10 @@
+[Unit]
+Description=Check CRL refresh every six hours
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=6h
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

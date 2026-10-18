@@ -1,0 +1,7 @@
+---
+- name: Restore a software issuer onto a fresh inactive runtime
+  hosts: issuing_ca
+  become: true
+  roles:
+    - role: openxpki
+      tasks_from: restore

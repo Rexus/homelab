@@ -1,0 +1,41 @@
+---
+- name: Require explicitly prepared signing state before enabling issuance
+  when: openxpki_activate_runtime | bool
+  block:
+    - name: Require an independently recorded issuer identity and state paths
+      ansible.builtin.assert:
+        that:
+          - openxpki_issuer_fingerprint is match('^([A-Fa-f0-9]{2}:){31}[A-Fa-f0-9]{2}$')
+          - openxpki_required_state_paths | length > 0
+
+    - name: Inspect independently prepared signing state without creating keys
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        follow: true
+      loop: "{{ openxpki_required_state_paths }}"
+      register: openxpki_signer_paths
+      no_log: true
+
+    - name: Refuse missing keys, DataVault recovery material or provider state
+      ansible.builtin.assert:
+        that:
+          - item.item is match('^' ~ openxpki_data_mount ~ '/[a-zA-Z0-9_./-]+$')
+          - "'/../' not in item.item"
+          - item.stat.exists
+      loop: "{{ openxpki_signer_paths.results }}"
+      no_log: true
+
+    - name: Inspect the separately prepared issuer certificate
+      community.crypto.x509_certificate_info:
+        path: "{{ openxpki_data_mount }}/identity/issuer.pem"
+        valid_at:
+          now: "+0s"
+      register: openxpki_issuer_certificate
+
+    - name: Require the original unexpired CA certificate
+      ansible.builtin.assert:
+        that:
+          - openxpki_issuer_certificate.valid_at.now
+          - "'CA:TRUE' in openxpki_issuer_certificate.basic_constraints"
+          - openxpki_issuer_certificate.fingerprints.sha256 | lower == openxpki_issuer_fingerprint | lower
+        fail_msg: Missing, expired or different signing identity requires an explicit ceremony or recovery.

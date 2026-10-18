@@ -41,6 +41,7 @@ module "vms" {
   cores                    = each.value.cores
   memory                   = each.value.memory
   disk_size_gb             = each.value.disk_size_gb
+  extra_disks              = each.value.extra_disks
   ipv4_address             = each.value.ipv4_address
   ipv4_gateway             = each.value.ipv4_gateway
   ssh_public_keys          = var.ssh_public_keys

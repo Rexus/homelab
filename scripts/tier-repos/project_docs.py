@@ -35,6 +35,9 @@ def workflow_guides(writer, repo, docs):
     for area, (purpose, tasks) in workflows.items():
         rows = "\n".join(f"| {task} | {procedure} | [Guide]({docs}/{reference}) |"
                          for task, procedure, reference in tasks)
+        if repo == "tier-0" and area == "administration":
+            rows += ("\n| Test security logging | [Project evidence record](logging-evidence.md) | "
+                     f"[Fault/restore drill]({docs}/administration/logging-drill.md) |")
         owned_template(writer, "project/workflow.md", f"docs/{area}/README.md",
                        title=title, area_title=area,
                        purpose=purpose, rows=rows)
@@ -45,7 +48,7 @@ def repository_guides(writer, repo, prefix, scope):
         "tier-0": (
             "| Compute | Draft: Proxmox; select single host or HA, bridge or SDN | Templates and Kubernetes roots; host readiness checks |\n"
             "| Identity | Draft: dedicated FreeIPA pair and cluster identity provider | Foundation root; directory health and OIDC checks |\n"
-            "| Cryptography | Select offline custody, issuer and optional HSM variant | HSM host root is baseline only; record signing integration separately |"
+            "| Cryptography | Draft: OpenXPKI infrastructure CA, separate offline clca root and sibling FreeIPA CA; select custody variant | Tier 0 runtime installer and two-phase identity recipe; qualify production policy, custody, enrollment and recovery |"
         ),
         "tier-1": (
             "| Software supply | Select authoritative mirrors and DMZ build access | Tier-local delivery_edge network and runner recipe; mirror service integration remains project work |\n"
@@ -65,6 +68,9 @@ def repository_guides(writer, repo, prefix, scope):
                    legacy="docs/architecture.md", title=title, prefix=prefix,
                    scope=f"This repository owns {scope}.", selections=selections[repo], docs=f"../{docs}")
     workflow_guides(writer, repo, f"../{docs}")
+    if repo == "tier-0":
+        owned_template(writer, "project/logging-evidence.md", "docs/administration/logging-evidence.md",
+                       docs=f"../{docs}")
 
 
 def architecture_scaffold(writer, prefix):

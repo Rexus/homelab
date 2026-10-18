@@ -1,0 +1,63 @@
+# Dedicated issuer; enrollment adapters are not exposed by this configuration.
+ServerName {{ openxpki_portal_fqdn }}
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+ProxyRequests Off
+
+<Directory "{{ openxpki_data_mount }}/public">
+    Options -Indexes -ExecCGI
+    AllowOverride None
+    Require ip {{ openxpki_publication_networks | join(' ') }}
+    <FilesMatch "(?i)\.(?!crt$|cer$|pem$|crl$)[^.]+$">
+        Require all denied
+    </FilesMatch>
+</Directory>
+
+<VirtualHost {{ openxpki_listen_address }}:80>
+    ServerName {{ openxpki_portal_fqdn }}
+    Alias /download/ "{{ openxpki_data_mount }}/public/"
+    <LocationMatch "^/(?!download/)">
+        Require all denied
+    </LocationMatch>
+</VirtualHost>
+
+<VirtualHost {{ openxpki_listen_address }}:443>
+    ServerName {{ openxpki_portal_fqdn }}
+    DocumentRoot /var/www
+    SSLEngine on
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+    SSLCertificateFile /etc/openxpki/portal-tls/fullchain.pem
+    SSLCertificateKeyFile /etc/openxpki/portal-tls/key.pem
+    SSLVerifyClient none
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set Strict-Transport-Security "max-age=31536000"
+    RequestHeader unset X-ReverseProxy-ENV-SSL_CLIENT_S_DN
+    RequestHeader unset X-ReverseProxy-ENV-SSL_CLIENT_CERT
+    RequestHeader unset X-ReverseProxy-ENV-REMOTE_USER
+    RequestHeader set X-Forwarded-Proto https
+    RequestHeader set X-ReverseProxy-ENVSET 1
+    RequestHeader set X-ReverseProxy-QueryString "expr=%{base64:%{QUERY_STRING}}"
+    Alias /download/ "{{ openxpki_data_mount }}/public/"
+    <Directory /var/www/openxpki>
+        Options -Indexes -ExecCGI
+        AllowOverride None
+        Require ip {{ openxpki_admin_networks | join(' ') }}
+    </Directory>
+    <Location />
+        Require ip {{ openxpki_admin_networks | join(' ') }}
+    </Location>
+    <Location /download/>
+        Require ip {{ openxpki_publication_networks | join(' ') }}
+    </Location>
+    <LocationMatch "^/(rpc|acme|scep|cmc|certep|healthcheck|\.well-known)(/|$)">
+        Require all denied
+    </LocationMatch>
+    RewriteEngine on
+    RewriteRule ^/$ /webui/{{ openxpki_realm }}/ [R=302,L]
+    RewriteRule ^/(webui/{{ openxpki_realm }}/)cgi-bin/webui.fcgi$ "unix:/run/openxpki-clientd/openxpki-clientd.sock|http://localhost/$1" [P,L]
+    ProxyPassReverse /webui http://localhost/
+    RewriteRule ^/webui/{{ openxpki_realm }}/$ /var/www/openxpki/index.html [L]
+    RewriteRule ^/webui/{{ openxpki_realm }}/(?!cgi-bin/)(.*)$ /var/www/openxpki/$1 [L]
+</VirtualHost>

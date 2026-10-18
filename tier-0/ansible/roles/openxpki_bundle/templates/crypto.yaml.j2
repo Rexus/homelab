@@ -1,0 +1,20 @@
+type:
+    certsign: ca-signer
+    datasafe: svault
+token:
+    ca-signer:
+        backend: OpenXPKI::Crypto::Backend::OpenSSL
+        key_store: OPENXPKI
+        key: {{ (openxpki_bundle_data_mount ~ '/keys/issuer.pem') | to_json }}
+        engine: OpenSSL
+        shell: /usr/bin/openssl
+        randfile: /var/openxpki/rand
+        secret: default
+    svault:
+        class: OpenXPKI::Crypto::Token::Vault
+        secret: svault
+secret:
+    default:
+        import: 1
+    svault:
+        import: 1

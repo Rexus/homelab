@@ -2,7 +2,7 @@
 
 Tier 0 owns base template creation, updates, candidate testing, and release
 approval, including all implementation code. Consuming tiers own their VMs
-and select approved template versions. AlmaLinux, Rocky Linux, and Talos use
+and select approved template versions. AlmaLinux, Rocky Linux, Debian, and Talos use
 the same local-image import path. Kubernetes cluster bootstrap remains separate.
 
 **Initial template publication is a foundation prerequisite.** Run it from a protected local

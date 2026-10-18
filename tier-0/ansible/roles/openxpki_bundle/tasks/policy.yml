@@ -1,0 +1,92 @@
+---
+- name: Remove unused certificate profiles
+  ansible.builtin.find:
+    paths: "{{ openxpki_bundle_directory }}/bundle/config.d/realm/{{ openxpki_bundle_realm }}/profile"
+    patterns: "*.yaml"
+    recurse: false
+  register: openxpki_bundle_profiles
+
+- name: Replace the demo profile set with the production leaf allowlist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ openxpki_bundle_profiles.files }}"
+
+- name: Render production configuration with independent accounts and custody
+  ansible.builtin.template:
+    src: "{{ item.src }}.j2"
+    dest: "{{ openxpki_bundle_directory }}/bundle/{{ item.dest }}"
+    mode: "0600"
+  no_log: true
+  loop:
+    - {src: realms.yaml, dest: config.d/system/realms.yaml}
+    - {src: system-crypto.yaml, dest: config.d/system/crypto.yaml}
+    - {src: crypto.yaml, dest: "config.d/realm/{{ openxpki_bundle_realm }}/crypto.yaml"}
+    - {src: handler.yaml, dest: "config.d/realm/{{ openxpki_bundle_realm }}/auth/handler.yaml"}
+    - {src: stack.yaml, dest: "config.d/realm/{{ openxpki_bundle_realm }}/auth/stack.yaml"}
+    - {src: tls-server.yaml, dest: "config.d/realm/{{ openxpki_bundle_realm }}/profile/tls_server.yaml"}
+    - {src: publishing.yaml, dest: "config.d/realm/{{ openxpki_bundle_realm }}/publishing.yaml"}
+    - {src: hostname.yaml, dest: "config.d/realm/{{ openxpki_bundle_realm }}/profile/template/hostname.yaml"}
+    - {src: hostname2.yaml, dest: "config.d/realm/{{ openxpki_bundle_realm }}/profile/template/hostname2.yaml"}
+
+- name: Read the upstream CSR workflow as structured configuration
+  ansible.builtin.slurp:
+    src: "{{ openxpki_bundle_directory }}/upstream/config.d/realm.tpl/workflow/def/certificate_signing_request_v2.yaml"
+  register: openxpki_bundle_csr_file
+
+- name: Enforce independent approval in both the condition and approval action
+  ansible.builtin.set_fact:
+    openxpki_bundle_csr: >-
+      {{ openxpki_bundle_csr_file.content | b64decode | from_yaml
+         | combine({
+             'condition': {'acl_can_approve': {'param': {'condition2': '!global_is_creator'}}},
+             'action': {'approve_csr': {'param': {'check_creator': 1}}}
+           }, recursive=true) }}
+
+- name: Install the policy-bound CSR workflow
+  ansible.builtin.include_tasks: workflow.yml
+
+- name: Write the policy-bound CSR workflow
+  ansible.builtin.copy:
+    content: >-
+      {{ openxpki_bundle_csr | combine({'acl': {
+          'User': {'creator': 'self'},
+          'RA Operator': {'creator': 'any', 'history': 1, 'context': 1},
+          'System': {'creator': 'any', 'fail': 1, 'resume': 1, 'wakeup': 1}
+        }}) | to_nice_yaml(indent=4, width=100) }}
+    dest: >-
+      {{ openxpki_bundle_directory }}/bundle/config.d/realm/{{ openxpki_bundle_realm
+      }}/workflow/def/certificate_signing_request_v2.yaml
+    mode: "0600"
+
+- name: Restrict auxiliary enrollment, revocation and portal actions
+  ansible.builtin.import_tasks: enrollment.yml
+
+- name: Set a daily CRL with early refresh
+  ansible.builtin.copy:
+    content: >-
+      {{ {'validity': {'nextupdate': '+000001', 'renewal': '+000000120000'},
+          'digest': 'sha384', 'extensions': {
+            'authority_key_identifier': {'critical': 0, 'keyid': 1, 'issuer': 0}
+          }} | to_nice_yaml(indent=4) }}
+    dest: "{{ openxpki_bundle_directory }}/bundle/config.d/realm/{{ openxpki_bundle_realm }}/crl/default.yaml"
+    mode: "0600"
+
+- name: Limit advertised key creation to client-held keys and approved algorithms
+  ansible.builtin.copy:
+    content: >-
+      {{ {'key': {'alg': ['rsa', 'ec'], 'enc': ['aes256'], 'generate': 'client',
+          'rsa': {'key_length': [3072, 4096]},
+          'ec': {'curve_name': ['prime256v1', 'secp384r1']}},
+          'validity': {'notafter': '+000030'}, 'digest': 'sha384',
+          'publish': ['disk'], 'extensions': {
+            'basic_constraints': {'critical': 1, 'ca': 0},
+            'subject_key_identifier': {'critical': 0, 'hash': 1},
+            'authority_key_identifier': {'critical': 0, 'keyid': 1, 'issuer': 0},
+            'crl_distribution_points': {'critical': 0, 'uri': [
+              openxpki_bundle_publication_url ~ 'issuer.crl']},
+            'authority_info_access': {'critical': 0, 'ca_issuers':
+              openxpki_bundle_publication_url ~ 'issuer.cer'}
+          }} | to_nice_yaml(indent=4, width=100) }}
+    dest: "{{ openxpki_bundle_directory }}/bundle/config.d/realm/{{ openxpki_bundle_realm }}/profile/default.yaml"
+    mode: "0600"

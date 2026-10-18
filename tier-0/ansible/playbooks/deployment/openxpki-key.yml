@@ -1,0 +1,10 @@
+---
+# Explicit fresh-issuer ceremony step; never imported by deployment/openxpki.yml.
+- name: Prepare the fresh software issuer key and public CSR
+  hosts: issuing_ca
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  roles:
+    - role: openxpki
+      tasks_from: bootstrap

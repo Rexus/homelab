@@ -147,8 +147,17 @@ variable "vm_instances" {
     memory              = optional(number)
     storage_class       = optional(string)
     disk_size_gb        = number
-    network_zone_key    = optional(string)
-    tags                = optional(list(string))
+    extra_disks = optional(list(object({
+      interface     = string
+      size_gb       = number
+      datastore_id  = optional(string)
+      storage_class = optional(string)
+      iothread      = optional(bool)
+      discard       = optional(string)
+      ssd           = optional(bool)
+    })), [])
+    network_zone_key = optional(string)
+    tags             = optional(list(string))
   }))
   default = {}
 }

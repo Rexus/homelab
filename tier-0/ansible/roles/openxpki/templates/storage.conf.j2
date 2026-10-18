@@ -1,0 +1,14 @@
+[Unit]
+RequiresMountsFor={{ openxpki_data_mount }} /var/lib/mysql
+BindsTo={{ openxpki_data_mount_unit.stdout }} var-lib-mysql.mount
+ConditionPathIsMountPoint={{ openxpki_data_mount }}
+ConditionPathIsMountPoint=/var/lib/mysql
+{% if item in ['openxpki-serverd', 'openxpki-clientd'] %}
+After=mariadb.service
+Requires=mariadb.service
+ConditionPathExists={{ openxpki_data_mount }}/schema-initialized
+ConditionPathExists={{ openxpki_data_mount }}/identity/issuer.pem
+{% for state_path in openxpki_required_state_paths %}
+ConditionPathExists={{ state_path }}
+{% endfor %}
+{% endif %}

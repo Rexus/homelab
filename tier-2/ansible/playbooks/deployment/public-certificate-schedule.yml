@@ -1,0 +1,8 @@
+---
+- name: Schedule public certificate renewal on the authorized Tier 2 controller
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+  roles:
+    - public_certificate_schedule

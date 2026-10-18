@@ -1,0 +1,38 @@
+---
+# Tier 0 runtime contract: docs/reference/openxpki.md
+openxpki_data_mount: /srv/openxpki
+openxpki_data_uuid: ""
+openxpki_min_free_mb: 2048
+openxpki_deployment_id: ""
+openxpki_configuration_src: ""
+openxpki_configuration_sha256: ""
+openxpki_repository_uri: https://packages.openxpki.org/v3/bookworm/
+openxpki_repository_key_url: https://packages.openxpki.org/v3/bookworm/Release.key
+openxpki_repository_key_sha256: ""
+openxpki_package_versions: {}
+openxpki_database_password: "{{ lookup('ansible.builtin.env', 'OPENXPKI_DATABASE_PASSWORD') }}"
+openxpki_session_password: "{{ lookup('ansible.builtin.env', 'OPENXPKI_SESSION_PASSWORD') }}"
+openxpki_session_secret: "{{ lookup('ansible.builtin.env', 'OPENXPKI_SESSION_SECRET') }}"
+openxpki_initialize_database: false
+openxpki_activate_runtime: false
+openxpki_realm: infrastructure
+openxpki_portal_fqdn: "{{ platform_fqdn }}"
+openxpki_listen_address: "{{ ansible_host }}"
+openxpki_admin_networks: []
+openxpki_publication_networks: []
+openxpki_tls_cert_src: "{{ lookup('ansible.builtin.env', 'OPENXPKI_TLS_CERT_FILE') }}"
+openxpki_tls_key_src: "{{ lookup('ansible.builtin.env', 'OPENXPKI_TLS_KEY_FILE') }}"
+openxpki_issuer_fingerprint: ""
+openxpki_required_state_paths: []
+openxpki_managed_cli: false
+openxpki_create_issuer_key: false
+openxpki_issuer_common_name: ""
+openxpki_signer_password: "{{ lookup('ansible.builtin.env', 'OPENXPKI_SIGNER_PASSWORD') }}"
+openxpki_ceremony_directory: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/share/pki-ceremony"
+openxpki_backup_directory: ""
+openxpki_backup_recipient: ""
+openxpki_backup_id: ""
+openxpki_restore_approved: false
+openxpki_restore_directory: ""
+openxpki_restore_manifest_sha256: ""
+openxpki_release_dir: "{{ openxpki_data_mount }}/configuration/{{ openxpki_configuration_sha256 }}"

@@ -1,0 +1,9 @@
+---
+# Controller-only production configuration; never contacts an issuer or root.
+- name: Build the reviewed software-backed issuer configuration
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+  roles:
+    - openxpki_bundle

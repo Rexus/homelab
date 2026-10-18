@@ -81,7 +81,7 @@ flowchart LR
 | --- | --- | --- |
 | Tier 0 | [terraform/deployments/syslog/](../../../tier-0/terraform/deployments/syslog/) | Existing independent log-host resources; reuse does not install monitoring |
 | Tier 0 | [clusters/tier0/](../../../tier-0/clusters/tier0/) | Project cluster manifests; no monitoring installer |
-| Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) | Existing host baseline only; product roles/recipes must be added explicitly |
+| Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) | Existing baseline and log receiver; monitoring product roles/recipes must be added explicitly |
 | Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common OS preparation, not inventory, state or alert authority |
 
 Return to [Stage 4 acceptance](README.md#capability-available). Later

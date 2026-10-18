@@ -1,0 +1,158 @@
+---
+- name: Check the installed immutable binding and expected signing identity
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Validate the active signer before accepting a recovery set
+  ansible.builtin.import_tasks: signer.yml
+
+- name: Require a separately custodied recipient and protected backup destination
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Debian'
+      - ansible_distribution_major_version == '12'
+      - openxpki_backup_directory is match('^/srv/[a-zA-Z0-9_-]+$')
+      - openxpki_backup_directory != openxpki_data_mount
+      - openxpki_backup_recipient is match('^age1[a-z0-9]+$')
+      - openxpki_backup_id is match('^[a-zA-Z0-9_-]{3,64}$')
+      - openxpki_activate_runtime | bool
+      - openxpki_managed_cli | bool
+
+- name: Verify the backed-up software key still matches the signing identity
+  community.crypto.openssl_privatekey_info:
+    path: "{{ openxpki_data_mount }}/keys/issuer.pem"
+    passphrase: "{{ openxpki_signer_password }}"
+  register: openxpki_backup_key
+  no_log: true
+
+- name: Reject a different or unreadable recovery key
+  ansible.builtin.assert:
+    that: openxpki_backup_key.public_key == openxpki_issuer_certificate.public_key
+  no_log: true
+
+- name: Inspect writers before the controlled pause
+  ansible.builtin.service_facts:
+
+- name: Refuse starting previously stopped services as a backup side effect
+  ansible.builtin.assert:
+    that: ansible_facts.services[item ~ '.service'].state == 'running'
+  loop: [apache2, openxpki-clientd, openxpki-serverd]
+
+- name: Install the native backup encryption tool
+  ansible.builtin.apt:
+    name: age
+    state: present
+
+- name: Inspect the intended encrypted backup path
+  ansible.builtin.stat:
+    path: "{{ openxpki_backup_directory }}/{{ openxpki_backup_id }}.tar.gz.age"
+  register: openxpki_backup_existing
+
+- name: Refuse overwriting a previous recovery set
+  ansible.builtin.assert:
+    that: not openxpki_backup_existing.stat.exists
+
+- name: Create the protected backup directory
+  ansible.builtin.file:
+    path: "{{ openxpki_backup_directory }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Create a private temporary recovery workspace
+  ansible.builtin.tempfile:
+    state: directory
+    path: "{{ openxpki_backup_directory }}"
+    prefix: recovery-
+  register: openxpki_backup_workspace
+
+- name: Capture consistent application and custody state
+  block:
+    - name: Pause the timer and all certificate and portal writers
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+      loop: [openxpki-crl.timer, apache2, openxpki-clientd, openxpki-serverd]
+
+    - name: Copy the complete software custody and configuration set
+      ansible.builtin.copy:
+        src: "{{ openxpki_data_mount }}/{{ item }}"
+        dest: "{{ openxpki_backup_workspace.path }}/"
+        remote_src: true
+        mode: preserve
+      loop: [configuration, keys, identity, public, deployment.json, schema-initialized]
+      no_log: true
+
+    - name: Dump the quiesced backend and session database through MariaDB
+      ansible.mariadb.mariadb_db:
+        name: openxpki
+        state: dump
+        target: "{{ openxpki_backup_workspace.path }}/database.sql"
+        login_unix_socket: /run/mysqld/mysqld.sock
+        config_file: ""
+        single_transaction: true
+        hex_blob: true
+
+    - name: Record the independently expected signing identity
+      ansible.builtin.copy:
+        content: >-
+          {{ {'format': 1, 'deployment_id': openxpki_deployment_id,
+              'configuration_sha256': openxpki_configuration_sha256,
+              'issuer_fingerprint': openxpki_issuer_fingerprint,
+              'package_versions': openxpki_package_versions,
+              'realm': openxpki_realm} | to_nice_json }}
+        dest: "{{ openxpki_backup_workspace.path }}/recovery.json"
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Archive the logical recovery set without copying live database files
+      community.general.archive:
+        path: "{{ openxpki_backup_workspace.path }}/*"
+        dest: "{{ openxpki_backup_workspace.path }}.tar.gz"
+        format: gz
+        mode: "0600"
+
+    - name: Encrypt the recovery set for the offline-held recipient key
+      ansible.builtin.command:
+        argv:
+          - age
+          - --recipient
+          - "{{ openxpki_backup_recipient }}"
+          - --output
+          - "{{ openxpki_backup_directory }}/{{ openxpki_backup_id }}.tar.gz.age"
+          - "{{ openxpki_backup_workspace.path }}.tar.gz"
+      changed_when: true
+  always:
+    - name: Remove plaintext recovery staging before resuming service
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ openxpki_backup_workspace.path }}"
+        - "{{ openxpki_backup_workspace.path }}.tar.gz"
+
+    - name: Resume the unchanged issuer after the backup attempt
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: started
+      loop: [openxpki-serverd, openxpki-clientd, apache2, openxpki-crl.timer]
+
+- name: Restrict the encrypted recovery archive
+  ansible.builtin.file:
+    path: "{{ openxpki_backup_directory }}/{{ openxpki_backup_id }}.tar.gz.age"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Compute the encrypted archive identity for the independent recovery record
+  ansible.builtin.stat:
+    path: "{{ openxpki_backup_directory }}/{{ openxpki_backup_id }}.tar.gz.age"
+    checksum_algorithm: sha256
+  register: openxpki_backup_archive
+
+- name: Show only the encrypted archive and checksum
+  ansible.builtin.debug:
+    msg:
+      archive: "{{ openxpki_backup_archive.stat.path }}"
+      sha256: "{{ openxpki_backup_archive.stat.checksum }}"

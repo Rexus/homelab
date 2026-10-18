@@ -1,0 +1,24 @@
+---
+- name: Inspect the Tier 0 certificate authority without changing CA state
+  hosts: issuing_ca
+  become: true
+  tasks:
+    - name: Inspect issuer services
+      ansible.builtin.service_facts:
+
+    - name: Require the independently bootable issuer runtime
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services[item ~ '.service'].state == 'running'
+      loop: [mariadb, openxpki-serverd, openxpki-clientd, apache2]
+
+    - name: Validate current native configuration
+      ansible.builtin.command:
+        argv: [oxi, config, verify, --config, /etc/openxpki/config.d]
+      changed_when: false
+      no_log: true
+
+    - name: Check the local backend API
+      ansible.builtin.command:
+        argv: [oxi, cli, ping]
+      changed_when: false

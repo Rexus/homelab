@@ -1,0 +1,106 @@
+---
+- name: Require explicit storage, trust and source choices
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution_major_version | int == 10
+      - syslog_ng_data_mount is match('^/[A-Za-z0-9_/-]+$')
+      - syslog_ng_data_mount not in ['/', '/var', '/var/log', '/srv', '/home', '/tmp', '/etc']
+      - syslog_ng_data_uuid | length > 0
+      - syslog_ng_listen_address is match('^[0-9.]+$')
+      - syslog_ng_listen_address not in ['0.0.0.0', '127.0.0.1']
+      - syslog_ng_tls_port | int > 0 and syslog_ng_tls_port | int < 65536
+      - syslog_ng_udp_port | int > 0 and syslog_ng_udp_port | int < 65536
+      - syslog_ng_sources | length > 0
+      - syslog_ng_tls_ca_src | length > 0
+      - syslog_ng_tls_cert_src | length > 0
+      - syslog_ng_tls_key_src | length > 0
+      - syslog_ng_queue_bytes | int >= 1048576
+      - syslog_ng_min_free_mb | int >= 1024
+      - syslog_ng_max_message_bytes | int >= 1024 and syslog_ng_max_message_bytes | int <= 1048576
+      - syslog_ng_max_connections | int > 0
+    fail_msg: >-
+      The receiver supports EL 10, a prepared dedicated mount with its expected UUID,
+      an explicit IPv4 bind address, client catalogue and independent TLS files.
+      Follow docs/deployment/stage-1-logging/receiver.md. No disk is formatted by this role.
+
+- name: Validate server-owned source namespaces
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9_-]{0,62}$')
+      - item.address is match('^[0-9.]+$')
+      - item.tier in [0, 1, 2]
+  loop: "{{ syslog_ng_sources + syslog_ng_legacy_sources }}"
+  loop_control:
+    label: "{{ item.name | default('missing source name') }}"
+
+- name: Require exact TLS subjects and matching common names
+  ansible.builtin.assert:
+    that:
+      - item.tls_dn is match('^[A-Za-z0-9=, ._@/-]+$')
+      - ('CN=' ~ item.name) in item.tls_dn.split(',') | map('trim') | list
+  loop: "{{ syslog_ng_sources }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Reject duplicate source names and legacy addresses
+  ansible.builtin.assert:
+    that:
+      - >-
+        (syslog_ng_sources + syslog_ng_legacy_sources) | map(attribute='name') | unique | length ==
+        (syslog_ng_sources + syslog_ng_legacy_sources) | length
+      - >-
+        syslog_ng_legacy_sources | map(attribute='address') | unique | length ==
+        syslog_ng_legacy_sources | length
+
+- name: Refresh mount facts without modifying storage
+  ansible.builtin.setup:
+    gather_subset: ['!all', mounts]
+
+- name: Select the prepared data and root mounts
+  ansible.builtin.set_fact:
+    syslog_ng_data_facts: "{{ ansible_mounts | selectattr('mount', 'equalto', syslog_ng_data_mount) | list }}"
+    syslog_ng_root_facts: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | list }}"
+
+- name: Refuse missing, wrong or exhausted data storage
+  ansible.builtin.assert:
+    that:
+      - syslog_ng_data_facts | length == 1
+      - syslog_ng_root_facts | length == 1
+      - syslog_ng_data_facts[0].uuid == syslog_ng_data_uuid
+      - syslog_ng_data_facts[0].uuid != syslog_ng_root_facts[0].uuid
+      - syslog_ng_data_facts[0].device != syslog_ng_root_facts[0].device
+      - syslog_ng_data_facts[0].fstype in ['xfs', 'ext4']
+      - "'rw' in syslog_ng_data_facts[0].options.split(',')"
+      - syslog_ng_data_facts[0].size_available | int > syslog_ng_min_free_mb | int * 1024 * 1024
+    fail_msg: Prepare and persist the correct dedicated writable data mount before running the receiver recipe.
+
+- name: Inspect existing receiver directories without following links
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - "{{ syslog_ng_data_mount }}/records"
+    - "{{ syslog_ng_data_mount }}/.state"
+    - "{{ syslog_ng_config_dir }}"
+    - "{{ syslog_ng_config_dir }}/tls"
+  register: syslog_ng_directory_stats
+
+- name: Refuse linked or non-directory receiver paths
+  ansible.builtin.assert:
+    that:
+      - not item.stat.exists or (item.stat.isdir | default(false) and not item.stat.islnk | default(false))
+  loop: "{{ syslog_ng_directory_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Inspect existing services without changing the OS logger
+  ansible.builtin.service_facts:
+
+- name: Refuse a competing package daemon or absent managed firewall
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.services.get('syslog-ng.service', {}).get('state', 'stopped') != 'running'
+      - ansible_facts.services.get('syslog-ng.service', {}).get('status', 'disabled') != 'enabled'
+      - not syslog_ng_manage_firewall or ansible_facts.services.get('firewalld.service', {}).get('state') == 'running'
+    fail_msg: Leave the OS logger running; stop to resolve any competing syslog-ng daemon or missing host firewall.

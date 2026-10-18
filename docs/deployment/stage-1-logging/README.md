@@ -16,7 +16,8 @@ Keycloak, Vault and Tier 1 analytics are not prerequisites.
 2. [Enable protected collection](#step-2-enable-protected-collection)
 3. [Protect and verify retained evidence](#step-3-protect-and-verify-retained-evidence)
 
-The IaC provisions hosts/disks and applies the OS baseline. Receiver installation,
+The IaC provisions hosts/disks, applies the OS baseline and installs a dedicated
+syslog-ng OSE receiver after storage and TLS preparation. Protected archive
 retention and HA are explicit project integration, not results of a successful apply.
 
 <a id="1-provision-the-bootstrap-receiver"></a>
@@ -25,7 +26,7 @@ retention and HA are explicit project integration, not results of a successful a
 
 ```mermaid
 flowchart TB
-  Template["Existing approved Linux template"] --> VM["New Tier 0 log VM<br/>OS baseline only"]
+  Template["Existing approved Linux template"] --> VM["New Tier 0 log VM<br/>VM and disk allocation"]
   VM --> Data["Separate log-data volume<br/>Not formatted or mounted by the starter"]
   Local["Existing local host/device logs"] -. Retain until intake is ready .-> VM
 ```
@@ -58,12 +59,12 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    After review:
 
    ```bash
-   bash scripts/deploy.sh syslog
+   bash scripts/deploy.sh syslog --terraform-only
    ```
 
 Edit the local files seeded from examples. The starter creates `foundation-log-1`
-outside Kubernetes with an OS disk and a separate log-data disk. It does not install
-the receiver or format/mount that disk. Size storage from measured rate/retention,
+outside Kubernetes with an OS disk and a separate log-data disk. This Terraform-only
+step does not configure the receiver or format/mount that disk. Size storage from measured rate/retention,
 not from the starter's example capacity.
 
 **Result:** a reachable log host and allocated data disk, not yet a working collector.
@@ -80,15 +81,18 @@ record the bootstrap failure window rather than delaying intake for later servic
 flowchart LR
   Sources["Existing infrastructure sources<br/>Durable local queues"] -->|Scoped append submissions| Intake
   subgraph New["Tier 0 collection added"]
-    Intake["Receiver<br/>Independent trust and credentials"] --> Records["Readable evidence segments<br/>Separate data volume"]
+    Intake["TLS receiver<br/>Independent trust and credentials"] --> Records["Local JSON Lines<br/>Separate data volume"]
   end
-  Admin["Authorized security reader"] -->|Audited read| Records
+  Admin["Authorized security reader"] -->|Scoped read| Records
 ```
 
-1. Select and implement receiver/disk configuration with project-owned Tier 0 Ansible.
-   Reuse Shared stateless roles where appropriate; inventories, credentials and state stay local.
-2. Configure the controls below, then connect infrastructure sources and preserve early local records.
-3. Submit numbered test events and verify their source identity, timestamps and offline-readable representation.
+1. Follow [receiver setup, Steps 1-3](receiver.md): prepare the data mount, independent
+   certificates and source catalogue, then run the Tier 0 Ansible recipe. It leaves the
+   OS logger intact and refuses missing storage or trust inputs.
+2. Connect approved sources with durable local forwarding, including the collector's
+   own OS logger. Source forwarding is configured separately; a listener alone collects nothing.
+3. Submit numbered test events and verify source identity, timestamps and offline-readable
+   records. Preserve early local records; configure the remaining controls below before acceptance.
 
 | Configure | Required result |
 | --- | --- |
@@ -102,7 +106,9 @@ flowchart LR
 | Readers | Explicit system-administrator/security-reader roles; queries and exports audited; no general developer access to raw evidence |
 | Unsupported sources | Document any UDP or unauthenticated first-hop exception and local relay; do not claim end-to-end zero loss |
 
-Select the product's supported receiver, queue, TLS and retention procedures.
+The default receiver writes local JSON Lines and reliable delivery queues; neither
+is independently locked retention. An existing rsyslog receiver can satisfy the same
+contract instead; do not run two listeners on the same address/port.
 The [design](../../architecture/operations/security-logging.md#durability-and-availability)
 owns acknowledgement and failure requirements; neither TCP nor a VIP proves them.
 After PKI is accepted, rotate bootstrap trust under a tested continuity plan.
@@ -141,8 +147,10 @@ flowchart LR
 Prove this with numbered synthetic events and source/receiver/archive counts,
 not just an open port or a successful Terraform apply. Record unavoidable source
 gaps separately from loss of already accepted records.
-Use the [offline investigation procedure](../../administration/security-logging.md#offline-investigation)
-on a test copy, then repeat recovery from the independently protected backup.
+Follow the [numbered fault and restore drill](../../administration/logging-drill.md).
+It supplies synthetic record reconciliation and a project-owned acceptance record;
+real faults, retention denials and independent backup restoration still require the
+selected receiver/storage implementation. Offline checker tests do not accept this stage.
 
 ## IaC locations
 
@@ -150,12 +158,14 @@ on a test copy, then repeat recovery from the independently protected backup.
 | --- | --- | --- |
 | Tier 0 | [terraform/deployments/syslog/](../../../tier-0/terraform/deployments/syslog/) | Receiver VM/disk provisioning only; separate `syslog` state |
 | Tier 0 | [ansible/inventory/hosts.yml.example](../../../tier-0/ansible/inventory/hosts.yml.example) and [ansible/group_vars/syslog.yml.example](../../../tier-0/ansible/group_vars/syslog.yml.example) | `foundation_logging` hosts and shared Terraform/Ansible IP inputs |
-| Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) | OS baseline only, not receiver/HA/WORM installation |
+| Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) and [ansible/roles/syslog_ng/](../../../tier-0/ansible/roles/syslog_ng/) | OS baseline and isolated TLS receiver; no filesystem creation, HA or WORM installation |
 | Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) and [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Reusable execution and host preparation using Tier 0 inputs |
 
 Existing generated projects preserve owned `.deployment-setups` and local inventory.
 After refresh, deliberately register `syslog` and add its new hosts/IPs before
-initialization; do not move Tier 1 observability state or reuse a VM under two states.
+initialization. Existing baseline-only installations must prepare receiver inputs
+before rerunning Ansible; it now fails closed instead of reporting baseline-only success.
+Do not move Tier 1 observability state or reuse a VM under two states.
 
 ## Capability available
 

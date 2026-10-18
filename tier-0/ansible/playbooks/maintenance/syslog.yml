@@ -1,7 +1,9 @@
 ---
-# Host convergence only, not receiver upgrades or archive retention changes.
-- name: Reconcile foundational logging host baseline
+# Reconcile the supported receiver; no automatic upgrades, queue pruning or archive deletion.
+- name: Reconcile foundational logging receivers
   hosts: foundation_logging
   become: true
+  serial: 1
   roles:
     - baseline
+    - syslog_ng

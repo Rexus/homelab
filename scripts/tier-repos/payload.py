@@ -14,7 +14,7 @@ SHARED_TREES = {
     "config": ("*.json", "platform.tfvars"),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2"),
     "ansible/playbooks": ("*.yml",),
-    "scripts": ("*.sh",),
+    "scripts": ("*.sh", "log-evidence.py"),
     "templates": ("proxmox-catalog.tfvars",),
 }
 TIER_TREES = {

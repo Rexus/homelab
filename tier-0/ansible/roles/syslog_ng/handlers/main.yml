@@ -1,0 +1,6 @@
+---
+- name: Restart isolated syslog receiver
+  ansible.builtin.systemd_service:
+    name: syslog-ng-receiver.service
+    daemon_reload: true
+    state: restarted

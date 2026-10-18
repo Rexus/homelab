@@ -1,0 +1,20 @@
+label: Infrastructure TLS server
+style:
+    approved_dns:
+        label: Approved infrastructure DNS names
+        ui:
+            subject: [hostname, hostname2]
+            info: [requestor_email, comment]
+        subject:
+            dn: CN=[% hostname.lower %]
+            san:
+                dns:
+                    - "[% hostname.lower %]"
+                    - "[% FOREACH entry = hostname2 %][% entry.lower %] | [% END %]"
+extensions:
+    key_usage:
+        critical: 1
+        digital_signature: 1
+    extended_key_usage:
+        critical: 0
+        server_auth: 1

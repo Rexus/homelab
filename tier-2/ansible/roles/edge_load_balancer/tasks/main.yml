@@ -69,6 +69,10 @@
       systemctl is-active --quiet haproxy
   notify: Restart keepalived
 
+- name: Prepare verified public HTTPS and challenge routing
+  ansible.builtin.import_tasks: public_https.yml
+  when: edge_acme_enabled | bool
+
 - name: Render HAProxy configuration
   ansible.builtin.template:
     src: haproxy.cfg.j2

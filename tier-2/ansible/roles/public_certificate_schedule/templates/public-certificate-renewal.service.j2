@@ -1,0 +1,15 @@
+[Unit]
+Description=Renew and distribute public edge certificates
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User={{ public_certificate_schedule_user }}
+WorkingDirectory={{ public_certificate_schedule_repository }}
+ExecStart=/usr/bin/flock --nonblock {{ public_certificate_schedule_state }}/renew.lock /bin/bash {{ public_certificate_schedule_repository }}/scripts/deploy.sh edge --recipe maintenance --playbook maintenance/public-certificates.yml --ansible-vars {{ public_certificate_schedule_inputs }}
+Environment=ANSIBLE_FORCE_COLOR=0
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+TimeoutStartSec=20min

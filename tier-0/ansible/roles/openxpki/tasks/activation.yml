@@ -1,0 +1,23 @@
+---
+
+- name: Apply validated runtime and portal changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the independently bootable issuer services only after explicit activation
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: "{{ openxpki_activate_runtime | bool }}"
+    state: "{{ 'started' if openxpki_activate_runtime | bool else 'stopped' }}"
+  loop: [openxpki-serverd, openxpki-clientd]
+
+- name: Start the TLS portal and public-object endpoint
+  ansible.builtin.systemd_service:
+    name: apache2
+    enabled: true
+    state: started
+
+- name: Verify the active backend through its native local CLI
+  ansible.builtin.command:
+    argv: [oxi, cli, ping]
+  changed_when: false
+  when: openxpki_activate_runtime | bool

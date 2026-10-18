@@ -1,0 +1,164 @@
+---
+- name: Require the qualified platform and explicit deployment inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Debian'
+      - ansible_distribution_major_version == '12'
+      - ansible_architecture == 'x86_64'
+      - not ansible_check_mode
+      - openxpki_data_mount is match('^/srv/[a-zA-Z0-9_-]+$')
+      - openxpki_data_uuid | length > 0
+      - openxpki_deployment_id is match('^[a-zA-Z0-9_-]{3,64}$')
+      - openxpki_configuration_src is match('^/')
+      - openxpki_configuration_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_repository_key_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_repository_uri is match('^https://')
+      - openxpki_repository_key_url is match('^https://')
+      - openxpki_package_versions.keys() | sort == ['libopenxpki-perl', 'openxpki-cgi-session-driver', 'openxpki-i18n']
+      - openxpki_realm is match('^[a-z][a-z0-9-]+$')
+      - openxpki_portal_fqdn is match('^[a-zA-Z0-9.-]+$')
+      - openxpki_listen_address is match('^[0-9.]+$')
+      - openxpki_listen_address not in ['0.0.0.0', '127.0.0.1']
+      - openxpki_admin_networks | length > 0
+      - openxpki_publication_networks | length > 0
+    fail_msg: >-
+      OpenXPKI requires Debian 12 amd64, explicit signed package versions, a reviewed
+      configuration archive, prepared storage and restricted networks. Check mode is
+      not an installation preview; inspect the inputs and use a disposable host first.
+
+- name: Reject package wildcards and unsafe Apache network arguments
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-zA-Z0-9.+:~_-]+$')
+      - "'REPLACE' not in item"
+  loop: "{{ openxpki_package_versions.values() | list }}"
+
+- name: Validate restricted source networks
+  ansible.builtin.assert:
+    that:
+      - item is match('^[0-9.]+/[0-9]{1,2}$')
+      - item not in ['0.0.0.0/0', '0.0.0.0/1', '128.0.0.0/1']
+  loop: "{{ openxpki_admin_networks + openxpki_publication_networks }}"
+
+- name: Require independent database and session secrets
+  ansible.builtin.assert:
+    that:
+      - openxpki_database_password | length >= 32
+      - openxpki_session_password | length >= 32
+      - openxpki_session_secret | length >= 32
+      - openxpki_database_password != openxpki_session_password
+  no_log: true
+
+- name: Verify the controller configuration archive
+  ansible.builtin.stat:
+    path: "{{ openxpki_configuration_src }}"
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: openxpki_configuration_stat
+
+- name: Require the exact reviewed configuration artifact
+  ansible.builtin.assert:
+    that:
+      - openxpki_configuration_stat.stat.isreg | default(false)
+      - openxpki_configuration_stat.stat.checksum | default('') == openxpki_configuration_sha256
+
+- name: Refresh prepared storage facts
+  ansible.builtin.setup:
+    gather_subset: ['!all', mounts]
+
+- name: Select issuer and database mounts
+  ansible.builtin.set_fact:
+    openxpki_data_facts: "{{ ansible_mounts | selectattr('mount', 'equalto', openxpki_data_mount) | list }}"
+    openxpki_database_facts: "{{ ansible_mounts | selectattr('mount', 'equalto', '/var/lib/mysql') | list }}"
+    openxpki_root_facts: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | list }}"
+
+- name: Refuse an absent, incorrect or exhausted data disk and database bind mount
+  ansible.builtin.assert:
+    that:
+      - openxpki_data_facts | length == 1
+      - openxpki_database_facts | length == 1
+      - openxpki_root_facts | length == 1
+      - openxpki_data_facts[0].uuid == openxpki_data_uuid
+      - openxpki_database_facts[0].uuid == openxpki_data_uuid
+      - openxpki_data_facts[0].uuid != openxpki_root_facts[0].uuid
+      - openxpki_data_facts[0].fstype in ['ext4', 'xfs']
+      - "'rw' in openxpki_data_facts[0].options.split(',')"
+      - "'rw' in openxpki_database_facts[0].options.split(',')"
+      - openxpki_data_facts[0].size_available | int > openxpki_min_free_mb | int * 1024 * 1024
+    fail_msg: >-
+      Prepare the dedicated data disk and persist its mysql subdirectory bind mount at
+      /var/lib/mysql before installation. This role never formats disks or moves a live database.
+
+- name: Inspect the deployment binding
+  ansible.builtin.stat:
+    path: "{{ openxpki_data_mount }}/deployment.json"
+    follow: false
+  register: openxpki_binding_stat
+
+- name: Refuse a linked or non-file deployment binding
+  ansible.builtin.assert:
+    that:
+      - >-
+        not openxpki_binding_stat.stat.exists or
+        (openxpki_binding_stat.stat.isreg | default(false) and
+        not openxpki_binding_stat.stat.islnk | default(false))
+
+- name: Read the existing deployment binding
+  ansible.builtin.slurp:
+    src: "{{ openxpki_data_mount }}/deployment.json"
+  register: openxpki_binding_file
+  when: openxpki_binding_stat.stat.exists
+
+- name: Define the immutable runtime and secret binding
+  ansible.builtin.set_fact:
+    openxpki_binding:
+      deployment_id: "{{ openxpki_deployment_id }}"
+      configuration_sha256: "{{ openxpki_configuration_sha256 }}"
+      package_versions: "{{ openxpki_package_versions }}"
+      secret_digest: "{{ [openxpki_database_password, openxpki_session_password, openxpki_session_secret] | to_json | hash('sha256') }}"
+  no_log: true
+
+- name: Refuse implicit configuration, schema or credential replacement
+  ansible.builtin.assert:
+    that:
+      - openxpki_binding_file.content | b64decode | from_json == openxpki_binding
+    fail_msg: >-
+      The installed runtime binding differs. Use the backed-up, rehearsed upgrade or
+      credential-rotation procedure, not routine reconciliation, to change this deployment.
+  no_log: true
+  when: openxpki_binding_stat.stat.exists
+
+- name: Inspect existing application configuration
+  ansible.builtin.stat:
+    path: /etc/openxpki/config.d
+    follow: false
+  register: openxpki_existing_config
+
+- name: Refuse takeover of an unregistered CA
+  ansible.builtin.assert:
+    that:
+      - openxpki_binding_stat.stat.exists or not openxpki_existing_config.stat.exists
+    fail_msg: Existing OpenXPKI configuration requires an explicit migration or recovery, never a fresh install.
+
+- name: Inspect managed directories without following links
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - "{{ openxpki_data_mount }}/configuration"
+    - "{{ openxpki_release_dir }}"
+    - "{{ openxpki_data_mount }}/public"
+    - "{{ openxpki_data_mount }}/keys"
+    - "{{ openxpki_data_mount }}/identity"
+    - /etc/openxpki
+    - /etc/openxpki/portal-tls
+  register: openxpki_directories
+
+- name: Refuse linked or non-directory runtime paths
+  ansible.builtin.assert:
+    that:
+      - not item.stat.exists or (item.stat.isdir | default(false) and not item.stat.islnk | default(false))
+  loop: "{{ openxpki_directories.results }}"
+  loop_control:
+    label: "{{ item.item }}"

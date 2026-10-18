@@ -67,9 +67,9 @@ class AnsibleOwnership(TierRepositoryTestCase):
         common = yaml.safe_load((shared / "ansible/playbooks/control-node.yml").read_text())[0]
         catalog = common["vars"]["control_node_base_collection_catalog"]
         expected_roles = {
-            "tier-0": {"hsm_proxy_ingress", "immutable_template", "proxmox_host", "proxmox_template_replace", "template_refresh", "vault"},
+            "tier-0": {"hsm_proxy_ingress", "immutable_template", "proxmox_host", "proxmox_template_replace", "template_refresh", "vault", "syslog_ng", "openxpki", "openxpki_bundle"},
             "tier-1": {"gitlab_container", "podman_runner"},
-            "tier-2": {"cache_proxy", "edge_load_balancer"},
+            "tier-2": {"cache_proxy", "edge_load_balancer", "public_certificates", "public_certificate_schedule"},
         }
         for tier in TIERS:
             repo = self.root / f"verify-{tier}"
@@ -122,10 +122,11 @@ class AnsibleOwnership(TierRepositoryTestCase):
         }]
         common_path.write_text(yaml.safe_dump(common))
         for tier, setup, expected in (
-            ("tier-0", "foundation", ["community.general", "ansible.posix", "freeipa.ansible_freeipa"]),
+            ("tier-0", "foundation", ["community.general", "ansible.posix", "freeipa.ansible_freeipa", "ansible.mariadb", "community.crypto"]),
             ("tier-0", "template-refresh", []),
+            ("tier-0", "syslog", ["community.general", "ansible.posix", "community.crypto"]),
             ("tier-1", "development", ["community.general", "ansible.posix"]),
-            ("tier-2", "edge", ["community.general", "ansible.posix"]),
+            ("tier-2", "edge", ["community.general", "ansible.posix", "community.crypto"]),
             ("tier-2", "lab", ["community.general", "ansible.posix"]),
         ):
             repo = self.root / f"verify-{tier}"

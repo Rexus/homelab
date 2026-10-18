@@ -57,15 +57,17 @@ machine. That precheck is setup-aware: it verifies only the Ansible collections
 needed by the selected setup, tries to install missing collections from the OS
 package manager first, and falls back to `ansible-galaxy` only when the OS
 package path does not provide them.
-For example, `foundation` needs `community.general`, `ansible.posix`, and
-`freeipa.ansible_freeipa`, while `cache` needs `community.general` and
+For example, `foundation` includes directory and issuer requirements:
+`community.general`, `ansible.posix`, `freeipa.ansible_freeipa`, `community.crypto`
+and `ansible.mariadb`, while `cache` needs `community.general` and
 `ansible.posix`.
 
 Run the tier's `ansible/playbooks/control-node.yml`, which imports shared checks
 with tier-owned requirements. For offline use, pre-stage collections from
 `shared/ansible/requirements.yml` (the prefixed shared repo after generation)
-and any owning-tier `ansible/requirements.yml`. Tier 0 adds the identity
-collection there; Tier 1 and Tier 2 use only the common requirements.
+and any owning-tier `ansible/requirements.yml`. Shared owns `community.crypto`
+for private PKI and public ACME. Tier 0 adds `freeipa.ansible_freeipa` and
+`ansible.mariadb`; Tier 1 and Tier 2 use the common requirements.
 Keep collection artifacts on the recovery host so the precheck needs no network.
 
 The repository deployment wrapper runs that precheck before Terraform or host

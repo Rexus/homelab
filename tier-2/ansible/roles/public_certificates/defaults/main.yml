@@ -1,0 +1,17 @@
+---
+edge_acme_enabled: false
+edge_acme_production: false
+edge_acme_email: ""
+edge_acme_domains: []
+edge_acme_state_directory: ""
+edge_acme_terms_agreed: false
+edge_acme_remaining_days: 5
+edge_acme_system_ca_file: /etc/ssl/certs/ca-certificates.crt
+edge_acme_certificate_path: /etc/haproxy/certificates/public.pem
+edge_acme_webroot: /var/lib/acme
+edge_acme_webroot_port: 8888
+edge_acme_directory: >-
+  {{ 'https://acme-v02.api.letsencrypt.org/directory' if edge_acme_production
+     else 'https://acme-staging-v02.api.letsencrypt.org/directory' }}
+edge_acme_environment_directory: >-
+  {{ edge_acme_state_directory }}/{{ 'production' if edge_acme_production else 'staging' }}

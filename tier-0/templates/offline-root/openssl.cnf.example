@@ -1,0 +1,65 @@
+# Replace the approved identity and publication URLs before a ceremony.
+# clca initialize resolves the CA-instance paths.
+dir = .
+certs = $dir/certs
+crl_dir = $dir/crl
+database = $dir/ca/index.txt
+new_certs_dir = $dir/certs
+certificate = $dir/ca/cacert.pem
+private_key = $dir/private/cakey.pem
+serial = $dir/ca/serial
+crlnumber = $dir/ca/crlnumber.txt
+crl = $dir/crl/ca.crl
+RANDFILE = $dir/private/.rand
+default_md = sha384
+default_days = 1825
+default_crl_days = 90
+unique_subject = no
+email_in_dn = no
+copy_extensions = none
+policy = subordinate_subject
+
+[ca]
+default_ca = CA_default
+
+[CA_default]
+x509_extensions = root_ext
+crl_extensions = root_crl_ext
+
+[req]
+distinguished_name = root_dn
+prompt = no
+x509_extensions = root_ext
+string_mask = utf8only
+
+[root_dn]
+organizationName = REPLACE_WITH_APPROVED_ORGANIZATION
+commonName = REPLACE_WITH_APPROVED_ROOT_CA_NAME
+
+[subordinate_subject]
+countryName = optional
+organizationName = optional
+organizationalUnitName = optional
+commonName = supplied
+domainComponent = optional
+
+[level2]
+prompt = no
+x509_extensions = level2_ext
+
+[root_ext]
+basicConstraints = critical,CA:true,pathlen:1
+keyUsage = critical,keyCertSign,cRLSign
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+
+[level2_ext]
+basicConstraints = critical,CA:true,pathlen:0
+keyUsage = critical,keyCertSign,cRLSign
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+crlDistributionPoints = URI:http://pki.example.invalid/download/root.crl
+authorityInfoAccess = caIssuers;URI:http://pki.example.invalid/download/root.cer
+
+[root_crl_ext]
+authorityKeyIdentifier = keyid:always

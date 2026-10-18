@@ -1,0 +1,16 @@
+[Unit]
+Description=Refresh the infrastructure issuer CRL through its native workflow
+Requires=openxpki-serverd.service
+After=openxpki-serverd.service
+RequiresMountsFor={{ openxpki_data_mount }}
+
+[Service]
+Type=oneshot
+User=openxpki
+Group=openxpki
+ExecStart=/usr/bin/oxi --auth-key {{ openxpki_data_mount }}/keys/cli.pem workflow create --realm {{ openxpki_realm }} --type crl_issuance
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ openxpki_data_mount }}/public /var/log/openxpki-server /var/openxpki /run/openxpkid

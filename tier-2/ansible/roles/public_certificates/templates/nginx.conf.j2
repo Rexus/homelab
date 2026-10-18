@@ -1,0 +1,19 @@
+user nginx;
+worker_processes auto;
+pid /run/nginx.pid;
+events { worker_connections 256; }
+http {
+    server_tokens off;
+    access_log /var/log/nginx/acme-access.log;
+    error_log /var/log/nginx/acme-error.log warn;
+    server {
+        listen 127.0.0.1:{{ edge_acme_webroot_port }};
+        root {{ edge_acme_webroot }};
+        location ^~ /.well-known/acme-challenge/ {
+            default_type text/plain;
+            limit_except GET { deny all; }
+            try_files $uri =404;
+        }
+        location / { return 404; }
+    }
+}

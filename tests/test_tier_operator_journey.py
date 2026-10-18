@@ -43,7 +43,9 @@ class OperatorJourney(TierRepositoryTestCase):
                 lines = [line.strip() for line in content.splitlines()]
                 init = f"bash scripts/init-local-files.sh --setup {setup}{environment}"
                 apply = f"bash scripts/deploy.sh {setup}{environment}"
-                positions = [lines.index(command) for command in (init, apply + " --plan-only", apply)]
+                # Identity now provisions once, then explicitly pauses/resumes its CA recipe.
+                provision = apply + " --terraform-only" if setup == "foundation" else apply
+                positions = [lines.index(command) for command in (init, apply + " --plan-only", provision)]
                 self.assertEqual(positions, sorted(positions), relative)
                 for block in re.findall(r"```bash\n(.*?)```", content, re.DOTALL):
                     self.assertFalse(apply + " --plan-only" in block and apply + "\n" in block, relative)
@@ -99,3 +101,21 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("not an accepted production default", guide)
             checklist = (UPSTREAM / ".ai/operator-walkthrough.md").read_text()
             self.assertIn("P1: Secure provider defaults", checklist)
+
+    def test_bootstrap_tls_and_pki_cutover_are_reachable_in_generated_guides(self):
+        self.generate()
+        relative = "administration/compute/proxmox-tls.md"
+        for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            guide = (docs / relative).read_text()
+            for heading in ("## Step 1: Trust the bootstrap CA", "## Step 2: Adopt the platform PKI",
+                            "## Step 3: Remove exceptions and verify callers", "## Renewal and recovery"):
+                self.assertIn(heading, guide)
+            self.assertIn("insecure = false", guide)
+            self.assertIn("unset PROXMOX_VE_INSECURE PM_VE_INSECURE", guide)
+            self.assertIn("SHA-256 fingerprint", guide)
+            self.assertIn("untrusted CA and a wrong hostname are rejected", guide)
+            self.assertIn("state as before", guide)
+            entry = (docs / "deployment/foundation/procedures/api-access.md").read_text()
+            self.assertIn(relative, entry)
+            trust = (docs / "deployment/stage-2-trust/README.md").read_text()
+            self.assertIn(relative + "#step-2-adopt-the-platform-pki", trust)

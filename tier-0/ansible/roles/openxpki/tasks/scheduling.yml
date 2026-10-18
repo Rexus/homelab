@@ -1,0 +1,21 @@
+---
+- name: Install native CRL refresh scheduling
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [openxpki-crl.service, openxpki-crl.timer]
+  register: openxpki_crl_units
+
+- name: Load the CRL refresh units
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: openxpki_crl_units.changed
+
+- name: Enable CRL refresh only for an explicitly activated issuer
+  ansible.builtin.systemd_service:
+    name: openxpki-crl.timer
+    enabled: "{{ openxpki_activate_runtime | bool }}"
+    state: "{{ 'started' if openxpki_activate_runtime | bool else 'stopped' }}"

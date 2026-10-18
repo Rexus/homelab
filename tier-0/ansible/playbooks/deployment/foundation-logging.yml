@@ -1,8 +1,10 @@
 ---
 # Stage 1: docs/deployment/stage-1-logging/README.md
-# Host baseline only; receiver, durable queues, replication and retention remain project integration.
-- name: Prepare independent Tier 0 log receivers
+# Requires prepared storage and independent TLS; no filesystem creation or archive locking.
+- name: Deploy independent Tier 0 log receivers
   hosts: foundation_logging
   become: true
+  serial: 1
   roles:
     - baseline
+    - syslog_ng

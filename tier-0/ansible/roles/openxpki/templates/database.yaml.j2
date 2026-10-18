@@ -1,0 +1,6 @@
+main:
+  type: MariaDB2
+  name: openxpki
+  user: openxpki
+  passwd: {{ openxpki_database_password | to_json }}
+  debug: 0

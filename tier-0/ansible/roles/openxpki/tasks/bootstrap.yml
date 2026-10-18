@@ -1,0 +1,94 @@
+---
+- name: Validate the prepared immutable runtime and dedicated storage
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Require explicit authorization for a fresh software signer
+  ansible.builtin.assert:
+    that:
+      - openxpki_create_issuer_key | default(false) | bool
+      - not openxpki_activate_runtime | bool
+      - ansible_distribution == 'Debian'
+      - ansible_distribution_major_version == '12'
+      - openxpki_issuer_common_name is match('^[a-zA-Z0-9 ._-]{3,80}$')
+      - openxpki_signer_password | length >= 32
+      - openxpki_managed_cli | bool
+    fail_msg: Use this explicit fresh-key recipe only after inactive runtime installation and custody approval.
+  no_log: true
+
+- name: Confirm the prepared storage and existing runtime binding
+  ansible.builtin.setup:
+    gather_subset: ['!all', mounts]
+
+- name: Require the already installed issuer and dedicated data mount
+  ansible.builtin.assert:
+    that:
+      - ansible_mounts | selectattr('mount', 'equalto', openxpki_data_mount) | list | length == 1
+      - >-
+        (ansible_mounts | selectattr('mount', 'equalto', openxpki_data_mount) | first).uuid
+        == openxpki_data_uuid
+
+- name: Inspect bootstrap state without following links
+  ansible.builtin.stat:
+    path: "{{ openxpki_data_mount }}/{{ item }}"
+    follow: false
+  loop: [deployment.json, keys, keys/issuer.pem, identity/issuer.pem]
+  register: openxpki_bootstrap_state
+
+- name: Refuse regeneration, linked state or an already signed issuer
+  ansible.builtin.assert:
+    that:
+      - openxpki_bootstrap_state.results[0].stat.isreg | default(false)
+      - openxpki_bootstrap_state.results[1].stat.isdir | default(false)
+      - not openxpki_bootstrap_state.results[1].stat.islnk | default(false)
+      - not openxpki_bootstrap_state.results[2].stat.exists
+      - not openxpki_bootstrap_state.results[2].stat.islnk | default(false)
+      - not openxpki_bootstrap_state.results[3].stat.exists
+    fail_msg: Existing or partial signing state needs explicit recovery; this recipe never replaces a CA key.
+
+- name: Read the selected software token's configured unlock value
+  ansible.builtin.slurp:
+    src: "{{ openxpki_release_dir }}/config.d/system/crypto.yaml"
+  register: openxpki_bootstrap_crypto
+  no_log: true
+
+- name: Require the already approved software signer passphrase
+  ansible.builtin.assert:
+    that:
+      - (openxpki_bootstrap_crypto.content | b64decode | from_yaml).secret.default.value == openxpki_signer_password
+  no_log: true
+
+- name: Create the encrypted P-384 issuer key exactly once
+  community.crypto.openssl_privatekey:
+    path: "{{ openxpki_data_mount }}/keys/issuer.pem"
+    type: ECC
+    curve: secp384r1
+    passphrase: "{{ openxpki_signer_password }}"
+    cipher: auto
+    regenerate: fail
+    owner: openxpki
+    group: openxpki
+    mode: "0400"
+  no_log: true
+
+- name: Create the path-length-zero subordinate CSR
+  community.crypto.openssl_csr:
+    path: "{{ openxpki_data_mount }}/identity/issuer.csr"
+    privatekey_path: "{{ openxpki_data_mount }}/keys/issuer.pem"
+    privatekey_passphrase: "{{ openxpki_signer_password }}"
+    common_name: "{{ openxpki_issuer_common_name }}"
+    use_common_name_for_san: false
+    basic_constraints: ['CA:TRUE', 'pathlen:0']
+    basic_constraints_critical: true
+    key_usage: [keyCertSign, cRLSign]
+    key_usage_critical: true
+    digest: sha384
+    owner: root
+    group: openxpki
+    mode: "0640"
+  no_log: true
+
+- name: Fetch only the public CSR for the offline signing ceremony
+  ansible.builtin.fetch:
+    src: "{{ openxpki_data_mount }}/identity/issuer.csr"
+    dest: "{{ openxpki_ceremony_directory }}/{{ inventory_hostname }}-issuer.csr"
+    flat: true

@@ -66,8 +66,9 @@ def tier_readme(writer, tier, prefix, setups):
             "their IDs and recovery copies before continuing.\n\n"
             f"Deploy [Stage 1: protected logging]({docs}/deployment/stage-1-logging/README.md), Steps 1-3,\n"
             "outside Kubernetes with this repository's `syslog` setup. The supplied code\n"
-            "provisions receiver VMs/disks and baseline only; service, HA and protected\n"
-            "retention integration require their own acceptance checks.\n\n"
+            "provisions receiver VMs/disks and installs the isolated receiver after\n"
+            "storage/TLS preparation; HA and protected retention require separate integration\n"
+            "and acceptance checks.\n\n"
             f"After logging, complete [trust]({docs}/deployment/stage-2-trust/README.md) before the cluster.\n"
             "**Kubernetes control cluster.** Initialize its Tier 0 inputs:\n\n"
             "```bash\n"
@@ -81,6 +82,8 @@ def tier_readme(writer, tier, prefix, setups):
             "FreeIPA runs on two dedicated VMs through\n"
             "the Linux `foundation` setup below, outside Kubernetes. The Linux\n"
             "helper does not create the cluster or install Keycloak.\n"
+            f"The [externally signed CA flow]({docs}/deployment/stage-3-identity-runtime/procedures/freeipa.md#external-ca-integration-gate)\n"
+            "uses explicit CSR/pause and signed-certificate completion phases; offline signing remains separate.\n"
         )
     owned_template(writer, "readmes/tier.md", "README.md", prefix=prefix,
                    tier_title=tier.replace("-", " ").title(), purpose=descriptions[tier],

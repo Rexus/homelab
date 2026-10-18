@@ -1,3 +1,4 @@
 # Source-tier commands must also work from Windows checkouts through WSL.
 *.sh text eol=lf
 .deployment-setups text eol=lf
+tier-0/templates/offline-root/clca.cfg.example text eol=lf

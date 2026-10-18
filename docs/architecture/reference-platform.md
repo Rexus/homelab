@@ -80,7 +80,7 @@ controlled environment; a VM or VLAN label alone does not establish an air gap.
 | Directory authority (IdM) | FreeIPA primary and replica on two dedicated VMs, outside Kubernetes | [Identity authority](identity/README.md) |
 | Identity provider (IdP / SSO) | Keycloak inside the Tier 0 cluster, using the directory pair | [Service access](runtime-flows.md#service-access) |
 | Offline trust authority | Offline root CA, ceremony environment and root recovery material in separate custody | [Certificate hierarchy](#certificate-trust) |
-| Routine certificate issuance | Online intermediate issuing service with a selected, supported key provider | [Cryptography](cryptography/README.md) |
+| Routine certificate issuance | OpenXPKI Community on Tier 0 `ca-1`, local database and portal, with selected key provider; separate FreeIPA identity CA | [Certificate authority](cryptography/certificate-authority.md) |
 | Secrets | Vault inside the Tier 0 cluster; independent recovery/unseal material | [Secret service and seal](cryptography/vault-seal.md) |
 | Tier 0 cluster services | Flux, CNI, DNS, SOPS bootstrap inputs, storage, cert-manager, ingress and CloudNativePG HA | [Kubernetes topology](compute/kubernetes.md); separate cluster owners and state |
 | Inventory and scoped control UI | NetBox and Headlamp in Tier 0; bootstrap inputs retained independently | [Operations](operations/README.md) |
@@ -157,20 +157,23 @@ flowchart TB
     Root --- Ops
   end
   subgraph CRYPTO["cryptography: online issuing services"]
-    Issuer["Online intermediate CA"]
+    Issuer["Infrastructure issuing CA<br/>OpenXPKI on ca-1"]
     Provider["Selected software or hardware key provider"]
     Issuer -->|Supported signing integration| Provider
   end
   Ops -. "Transfer signed intermediate certificate; no network route" .-> Issuer
-  CM0["Tier 0 cert-manager"] -->|Issue / renew| Issuer
-  CM1["Tier 1 cert-manager"] -->|Issue / renew| Issuer
-  CM2["Tier 2 cert-manager"] -->|Issue / renew| Issuer
+  Ops -. "Separate signed subordinate certificate" .-> IdentityCA["FreeIPA identity CA<br/>Primary and CA replica"]
+  CM0["Tier 0 cert-manager"] -->|Issue / renew| Enrollment["Authorized enrollment adapter"]
+  CM1["Tier 1 cert-manager"] -->|Issue / renew| Enrollment
+  CM2["Tier 2 cert-manager"] -->|Issue / renew| Enrollment
+  Enrollment -->|Authenticated issuer interface| Issuer
 ```
 
-The issuing service can be a dedicated CA or a supported PKI service. Its
-integration is explicit: cert-manager's Vault issuer uses Vault's PKI API [1].
-That does not make an arbitrary remote PKCS#11 gateway a Vault signing backend.
-Seal/unseal support and certificate signing are different integration choices [2].
+The [CA design](cryptography/certificate-authority.md) owns the OpenXPKI portal,
+Community ACME adapter and separate FreeIPA certificate inventory. OpenXPKI is the
+long-term issuer; Vault remains the secret service. A Vault PKI issuer remains an
+explicit alternative using its own API [1], not the default migration destination.
+Seal/unseal support and certificate signing remain different integrations [2].
 
 Hardware is optional. The [key-protection variants](cryptography/hsm-selection.md)
 include software custody, single USB, replicated gateways and network HSMs.
@@ -192,7 +195,7 @@ The reference does not treat every stateful component as a consumer of one datab
 | Keycloak and NetBox data | Selected database service and application-specific dependencies | Database state, app configuration and credentials are covered together |
 | Vault data and seal/recovery material | Vault's explicitly selected storage and seal contract | Required unseal/recovery material remains independent of Vault |
 | Source, artifacts and workloads | Tier 1 or Tier 2 service owner, according to actual resources | Required code, images and workload data survive the service hosting them |
-| CA keys and certificates | Custodians for each root/issuer/provider | Recovery is possible under authorized custody after provider loss |
+| CA state and identities | Root/issuer/provider custodians; local OpenXPKI database, configuration and DataVault material | Signing, issuance history and revocation survive replacement without the cluster or secret service |
 | Logs, audit records and backups | Owner-specific receivers, retention and protected copies | Loss of an observed service does not remove all detection and restoration paths |
 
 Availability, replication and backup solve different failure cases. The

@@ -1,0 +1,8 @@
+---
+# Run regularly from the authorized Tier 2 controller; no CA credentials are used.
+- name: Prepare and renew the public edge certificate
+  hosts: edge_load_balancers
+  become: true
+  any_errors_fatal: true
+  roles:
+    - public_certificates

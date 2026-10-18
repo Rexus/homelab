@@ -1,0 +1,24 @@
+---
+- name: Generate the private host-local CLI authentication key
+  community.crypto.openssl_privatekey:
+    path: "{{ openxpki_bundle_directory }}/bundle/cli.pem"
+    type: ECC
+    curve: secp256r1
+    regenerate: fail
+    mode: "0600"
+  no_log: true
+
+- name: Read only the public CLI identity
+  community.crypto.openssl_privatekey_info:
+    path: "{{ openxpki_bundle_directory }}/bundle/cli.pem"
+  register: openxpki_bundle_cli
+  no_log: true
+
+- name: Install the native public-key administrative allowlist
+  ansible.builtin.copy:
+    content: >-
+      {{ {'auth': {'local-custodian': {
+          'key': openxpki_bundle_cli.public_key, 'role': 'System'
+        }}} | to_nice_yaml(indent=4, width=100) }}
+    dest: "{{ openxpki_bundle_directory }}/bundle/config.d/system/cli.yaml"
+    mode: "0600"

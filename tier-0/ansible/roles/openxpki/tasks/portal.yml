@@ -1,0 +1,93 @@
+---
+- name: Inspect the independent portal certificate on the controller
+  community.crypto.x509_certificate_info:
+    path: "{{ openxpki_tls_cert_src }}"
+    valid_at:
+      now: "+0s"
+  delegate_to: localhost
+  become: false
+  register: openxpki_portal_certificate
+
+- name: Inspect the matching portal key without exposing it
+  community.crypto.openssl_privatekey_info:
+    path: "{{ openxpki_tls_key_src }}"
+  delegate_to: localhost
+  become: false
+  register: openxpki_portal_key
+  no_log: true
+
+- name: Refuse expired, mismatched or incorrectly named portal credentials
+  ansible.builtin.assert:
+    that:
+      - openxpki_portal_certificate.valid_at.now
+      - openxpki_portal_certificate.public_key == openxpki_portal_key.public_key
+      - "('DNS:' ~ openxpki_portal_fqdn) in openxpki_portal_certificate.subject_alt_name | default([])"
+  no_log: true
+
+- name: Create private TLS and public certificate publication directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    state: directory
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: /etc/openxpki/portal-tls, owner: root, group: root, mode: "0700"}
+    - {path: "{{ openxpki_data_mount }}/public", owner: openxpki, group: www-data, mode: "0755"}
+
+- name: Install independent portal credentials
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/openxpki/portal-tls/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  loop:
+    - {src: "{{ openxpki_tls_cert_src }}", name: fullchain.pem}
+    - {src: "{{ openxpki_tls_key_src }}", name: key.pem}
+  notify: Reload issuer portal
+
+- name: Enable only the required native Apache modules
+  community.general.apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop: [ssl, headers, rewrite, proxy, proxy_http]
+  notify: Reload issuer portal
+
+- name: Restrict the dedicated host listeners
+  ansible.builtin.template:
+    src: ports.conf.j2
+    dest: /etc/apache2/ports.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload issuer portal
+
+- name: Install the restricted portal and publication virtual hosts
+  ansible.builtin.template:
+    src: apache.conf.j2
+    dest: /etc/apache2/sites-available/openxpki.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload issuer portal
+
+- name: Disable default sites on this dedicated issuer
+  ansible.builtin.file:
+    path: "/etc/apache2/sites-enabled/{{ item }}"
+    state: absent
+  loop: [000-default.conf, default-ssl.conf]
+  notify: Reload issuer portal
+
+- name: Enable the owned issuer virtual hosts
+  ansible.builtin.file:
+    src: /etc/apache2/sites-available/openxpki.conf
+    dest: /etc/apache2/sites-enabled/openxpki.conf
+    state: link
+  notify: Reload issuer portal
+
+- name: Validate the complete Apache configuration before any reload
+  ansible.builtin.command:
+    argv: [apache2ctl, configtest]
+  changed_when: false

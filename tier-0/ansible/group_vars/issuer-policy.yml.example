@@ -1,0 +1,14 @@
+---
+# Copy outside Git to a private controller path and pass with --ansible-vars.
+openxpki_bundle_directory: /home/automation/.local/share/pki/configuration-001
+openxpki_bundle_realm: infrastructure
+openxpki_bundle_portal_fqdn: ca.internal.example.invalid
+openxpki_bundle_publication_url: http://ca.internal.example.invalid/download/
+openxpki_bundle_dns_suffixes: [internal.example.invalid]
+openxpki_bundle_users:
+  certificate-requester:
+    role: User
+    digest: REPLACE_WITH_INDEPENDENT_ARGON2ID_HASH
+  certificate-approver:
+    role: RA Operator
+    digest: REPLACE_WITH_DIFFERENT_ARGON2ID_HASH

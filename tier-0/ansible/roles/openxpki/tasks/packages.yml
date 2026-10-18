@@ -1,0 +1,65 @@
+---
+- name: Install native repository and runtime prerequisites without starting daemons
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - python3-debian
+      - python3-pymysql
+      - python3-cryptography
+      - locales
+      - apache2
+      - mariadb-server
+      - libdbd-mariadb-perl
+    state: present
+    update_cache: true
+    policy_rc_d: 101
+
+- name: Enable the application locale
+  community.general.locale_gen:
+    name: en_US.UTF-8
+    state: present
+
+- name: Prepare the native signing-key directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Fetch the independently approved repository signing key
+  ansible.builtin.get_url:
+    url: "{{ openxpki_repository_key_url }}"
+    dest: /etc/apt/keyrings/openxpki.asc
+    checksum: "sha256:{{ openxpki_repository_key_sha256 }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure the signed native package repository
+  ansible.builtin.deb822_repository:
+    name: openxpki
+    types: [deb]
+    uris: ["{{ openxpki_repository_uri }}"]
+    suites: [bookworm]
+    components: [release]
+    architectures: [amd64]
+    signed_by: /etc/apt/keyrings/openxpki.asc
+    state: present
+  register: openxpki_repository
+
+- name: Read the newly configured signed package index
+  ansible.builtin.apt:
+    update_cache: true
+  when: openxpki_repository.changed
+
+- name: Install exact application versions without demo configuration or auto-start
+  ansible.builtin.apt:
+    name: "{{ item.key }}={{ item.value }}"
+    state: present
+    policy_rc_d: 101
+    fail_on_autoremove: true
+    allow_downgrade: false
+  environment:
+    OPENXPKI_NOCONFIG: "1"
+  loop: "{{ openxpki_package_versions | dict2items }}"

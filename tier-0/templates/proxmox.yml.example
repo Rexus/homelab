@@ -5,6 +5,17 @@
 # Connected Tier 0 uses a protected control network; offline custody needs a separate isolated fabric.
 # Add a new entry and VMID for every revision; retain previous entries for rollback.
 templates:
+  debian-build-1:
+    family: debian
+    release: REPLACE_WITH_EXACT_DEBIAN_12_BUILD
+    vm_id: 9103
+    name: debian-template-build-1
+    node_name: pve01
+    datastore_id: local-lvm
+    image_datastore_id: local
+    image_path: /srv/tier0/artifacts/debian-12-genericcloud-amd64.qcow2
+    sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
+    bridge: control
   alma-build-1:
     family: alma
     release: REPLACE_WITH_EXACT_RELEASE_AND_BUILD

@@ -1,0 +1,6 @@
+---
+public_certificate_schedule_enabled: false
+public_certificate_schedule_user: ""
+public_certificate_schedule_repository: ""
+public_certificate_schedule_inputs: ""
+public_certificate_schedule_state: ""

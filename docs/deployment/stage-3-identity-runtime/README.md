@@ -42,6 +42,9 @@ Follow the [FreeIPA procedure](procedures/freeipa.md). Add the identity VMs to t
 Tier 0 [foundation root](../../../tier-0/terraform/deployments/foundation/)
 and [inventory](../../../tier-0/ansible/inventory/hosts.yml.example)
 without removing the existing issuer definition.
+For the sibling FreeIPA CA, the [external-signing integration gate](procedures/freeipa.md#external-ca-integration-gate)
+selects the CSR/pause and certificate/completion phases now implemented by the recipe.
+Offline signing remains a separate authorized operation.
 Verify the primary before joining the replica; test DNS and replication before
 replacing temporary bootstrap dependencies.
 
@@ -67,6 +70,8 @@ Follow the [foundation checklist](procedures/kubernetes.md#cluster-foundation) i
 dependency order: networking, Flux, SOPS/bootstrap secrets, storage, certificates/ingress
 and database readiness. Connect certificate automation to the existing issuer through
 a supported integration.
+For the OpenXPKI Community reference, the [ACME adapter qualification](../stage-2-trust/procedures/issuer.md#step-3-activate-and-accept-issuance)
+is explicit; installing cert-manager does not supply that adapter or authorize enrollment.
 
 Tier 0's [clusters/tier0/](../../../tier-0/clusters/tier0/) add-on folders are starters.
 Supply reviewed manifests, verify reconciliation,

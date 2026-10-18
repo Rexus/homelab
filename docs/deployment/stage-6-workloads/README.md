@@ -86,6 +86,10 @@ the workload's allocated scope, without changing Tier 0 ownership.
 
 ## Step 3: Deploy and verify applications
 
+For an internet-facing website, follow the
+[public HTTPS procedure](public-https.md): staging-first HTTP-01, verified private
+origins, multi-node challenge serving and controller-owned renewal.
+
 Follow the [workload collection deployment](telemetry.md), Steps 1-3:
 security/audit submissions go to protected Tier 0 intake; developer views expose
 only approved application logs in Tier 1. Local buffering does not imply local alerting.

@@ -11,6 +11,12 @@ default_linux_vm_template_id = null
 # Keys are Proxmox VMIDs; title is the human-readable Proxmox template name.
 # Keep old approved IDs while consumers use them. Do not repoint an ID at a new image.
 proxmox_template_catalog = {
+  # "9103" = {
+  #   title     = "debian-template-build-1"
+  #   node_name = "pve01"
+  #   family    = "debian"
+  #   tags      = ["x86_64", "cloud-init", "debian"]
+  # }
   # "9100" = {
   #   title     = "alma-template-build-1"
   #   node_name = "pve01"

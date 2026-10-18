@@ -1,0 +1,57 @@
+---
+- name: Keep ACME account and leaf state private on the Tier 2 controller
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0700"
+  loop:
+    - "{{ edge_acme_state_directory }}"
+    - "{{ edge_acme_environment_directory }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Create independent account and website keys without replacing existing keys
+  community.crypto.openssl_privatekey:
+    path: "{{ edge_acme_environment_directory }}/{{ item }}.pem"
+    type: ECC
+    curve: secp256r1
+    regenerate: fail
+    mode: "0600"
+  loop: [account, privatekey]
+  delegate_to: localhost
+  become: false
+  run_once: true
+  no_log: true
+
+- name: Create the exact DNS-bound public certificate request
+  community.crypto.openssl_csr:
+    path: "{{ edge_acme_environment_directory }}/request.csr"
+    privatekey_path: "{{ edge_acme_environment_directory }}/privatekey.pem"
+    subject_alt_name: "{{ edge_acme_domains | map('regex_replace', '^', 'DNS:') | list }}"
+    use_common_name_for_san: false
+    basic_constraints: ['CA:FALSE']
+    key_usage: [digitalSignature]
+    extended_key_usage: [serverAuth]
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Create a native ACME order only when renewal is due
+  community.crypto.acme_certificate:
+    account_key_src: "{{ edge_acme_environment_directory }}/account.pem"
+    account_email: "{{ edge_acme_email }}"
+    acme_directory: "{{ edge_acme_directory }}"
+    acme_version: 2
+    modify_account: true
+    terms_agreed: "{{ edge_acme_terms_agreed }}"
+    csr: "{{ edge_acme_environment_directory }}/request.csr"
+    fullchain_dest: "{{ edge_acme_environment_directory }}/fullchain.pem"
+    dest: "{{ edge_acme_environment_directory }}/certificate.pem"
+    challenge: http-01
+    remaining_days: "{{ edge_acme_remaining_days }}"
+  register: edge_acme_order
+  delegate_to: localhost
+  become: false
+  run_once: true

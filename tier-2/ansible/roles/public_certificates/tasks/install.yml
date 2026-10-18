@@ -1,0 +1,78 @@
+---
+- name: Validate the public chain against the controller system trust store
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - verify
+      - -purpose
+      - sslserver
+      - -verify_hostname
+      - "{{ edge_acme_domains[0] }}"
+      - -CAfile
+      - "{{ edge_acme_system_ca_file }}"
+      - -untrusted
+      - "{{ edge_acme_environment_directory }}/fullchain.pem"
+      - "{{ edge_acme_environment_directory }}/certificate.pem"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: false
+
+- name: Inspect the issued certificate and key
+  community.crypto.x509_certificate_info:
+    path: "{{ edge_acme_environment_directory }}/certificate.pem"
+    valid_at:
+      minimum: "+1d"
+  register: edge_acme_certificate_info
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Inspect the corresponding public key only
+  community.crypto.openssl_privatekey_info:
+    path: "{{ edge_acme_environment_directory }}/privatekey.pem"
+  register: edge_acme_privatekey_info
+  delegate_to: localhost
+  become: false
+  run_once: true
+  no_log: true
+
+- name: Require the complete SAN set, matching key and sufficient validity
+  ansible.builtin.assert:
+    that:
+      - edge_acme_certificate_info.valid_at.minimum
+      - edge_acme_certificate_info.public_key == edge_acme_privatekey_info.public_key
+      - >-
+        edge_acme_certificate_info.subject_alt_name | sort ==
+        edge_acme_domains | map('regex_replace', '^', 'DNS:') | list | sort
+  run_once: true
+
+- name: Protect public-edge private keys
+  ansible.builtin.file:
+    path: /etc/haproxy/certificates
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install the verified full chain and private key atomically
+  ansible.builtin.copy:
+    content: |
+      {{ lookup('ansible.builtin.file', edge_acme_environment_directory ~ '/fullchain.pem') }}
+      {{ lookup('ansible.builtin.file', edge_acme_environment_directory ~ '/privatekey.pem') }}
+    dest: "{{ edge_acme_certificate_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  register: edge_acme_installed
+  no_log: true
+
+- name: Reconcile and validate the edge configuration with its new certificate
+  ansible.builtin.include_role:
+    name: edge_load_balancer
+
+- name: Reload the validated edge certificate without restarting the process
+  ansible.builtin.systemd_service:
+    name: haproxy
+    state: reloaded
+  when: edge_acme_installed.changed

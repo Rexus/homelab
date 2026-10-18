@@ -1,0 +1,82 @@
+---
+- name: Validate explicit public enrollment and private controller state
+  ansible.builtin.assert:
+    that:
+      - edge_acme_enabled | bool
+      - ansible_os_family == 'RedHat'
+      - edge_acme_terms_agreed | bool
+      - edge_acme_email is match('^[^@\s]+@[^@\s]+\.[^@\s]+$')
+      - edge_acme_domains | length > 0
+      - edge_acme_domains | unique | length == edge_acme_domains | length
+      - edge_acme_state_directory is match('^/[a-zA-Z0-9_./-]+$')
+      - "'/../' not in edge_acme_state_directory"
+      - edge_acme_state_directory not in ['/', '/tmp', '/home', '/var']
+      - edge_acme_certificate_path == '/etc/haproxy/certificates/public.pem'
+      - edge_acme_webroot == '/var/lib/acme'
+      - edge_acme_webroot_port == 8888
+      - edge_acme_remaining_days | int >= 2
+      - edge_acme_remaining_days | int <= 10
+    fail_msg: Set reviewed public-HTTPS inputs and use a private Tier 2 controller state directory outside Git.
+
+- name: Reject wildcard and example public names for HTTP-01
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$')
+      - not item.endswith('.invalid')
+      - item not in ['example.com', 'example.org', 'example.net']
+  loop: "{{ edge_acme_domains }}"
+
+- name: Require identical names and ACME environment across the edge pool
+  ansible.builtin.assert:
+    that:
+      - hostvars[item].edge_acme_domains == edge_acme_domains
+      - hostvars[item].edge_acme_state_directory == edge_acme_state_directory
+      - hostvars[item].edge_acme_production | default(false) | bool == edge_acme_production | bool
+  loop: "{{ groups['edge_load_balancers'] }}"
+  run_once: true
+
+- name: Prepare local HTTP challenge serving on every possible VIP owner
+  ansible.builtin.import_tasks: webroot.yml
+
+- name: Request and fulfill public ACME authorization
+  block:
+    - name: Prepare the account, key, request and ACME order on the controller
+      ansible.builtin.import_tasks: order.yml
+
+    - name: Publish each public challenge on every edge node
+      ansible.builtin.copy:
+        content: "{{ item.value['http-01'].resource_value }}"
+        dest: "{{ edge_acme_webroot }}/{{ item.value['http-01'].resource }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ hostvars[ansible_play_hosts_all[0]].edge_acme_order.challenge_data | default({}) | dict2items }}"
+
+    - name: Complete the native ACME order after all nodes hold its challenges
+      community.crypto.acme_certificate:
+        account_key_src: "{{ edge_acme_environment_directory }}/account.pem"
+        account_email: "{{ edge_acme_email }}"
+        acme_directory: "{{ edge_acme_directory }}"
+        acme_version: 2
+        modify_account: true
+        terms_agreed: "{{ edge_acme_terms_agreed }}"
+        csr: "{{ edge_acme_environment_directory }}/request.csr"
+        fullchain_dest: "{{ edge_acme_environment_directory }}/fullchain.pem"
+        dest: "{{ edge_acme_environment_directory }}/certificate.pem"
+        challenge: http-01
+        data: "{{ hostvars[ansible_play_hosts_all[0]].edge_acme_order }}"
+        remaining_days: "{{ edge_acme_remaining_days }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      when: hostvars[ansible_play_hosts_all[0]].edge_acme_order.changed
+  always:
+    - name: Remove this invocation's public challenge files
+      ansible.builtin.file:
+        path: "{{ edge_acme_webroot }}/{{ item.value['http-01'].resource }}"
+        state: absent
+      loop: "{{ hostvars[ansible_play_hosts_all[0]].edge_acme_order.challenge_data | default({}) | dict2items }}"
+
+- name: Install only a verified production certificate
+  ansible.builtin.import_tasks: install.yml
+  when: edge_acme_production | bool

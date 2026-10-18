@@ -39,6 +39,7 @@ these shared implementations.
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
 | `tier-0/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
+| `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../administration/logging-drill.md); no faults or service changes |
 | `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports credentials; currently Talos | [Kubernetes cluster](../deployment/stage-3-identity-runtime/procedures/kubernetes.md) |
 
 ## Cheat sheet
@@ -252,6 +253,7 @@ Useful options:
 | `--plan-only` | run Terraform init and plan only |
 | `--terraform-only` | provisioning only, without mapped host playbooks |
 | `--ansible-only` | rerun mapped host playbooks without Terraform |
+| `--playbook PATH` | select an existing tier-local `deployment/<name>.yml` or `maintenance/<name>.yml`; requires Ansible-only execution, leaves Terraform root/state unchanged |
 | `--recipe deployment\|maintenance` | default deployment; maintenance implies Ansible-only and rejects Terraform plan/apply/destroy modes |
 | `--destroy` | destroy the selected setup and environment |
 | `--auto-approve` | run Terraform apply or destroy without an interactive approval |
@@ -269,7 +271,7 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 | Setup | What it targets | Start with |
 | --- | --- | --- |
 | `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../deployment/stage-3-identity-runtime/procedures/freeipa.md) |
-| `syslog` | Tier 0 receiver VMs/disks and baseline only; not an HA/WORM installer | [Foundational logging](../deployment/stage-1-logging/README.md) |
+| `syslog` | Tier 0 VMs/disks, baseline and isolated TLS receiver after mount/certificate preparation; not an HA/WORM installer | [Foundational logging](../deployment/stage-1-logging/README.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
 | `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../deployment/foundation/step-3b-outbound-cache.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-5-delivery/step-1b-source-control-vm.md) |

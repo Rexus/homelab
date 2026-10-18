@@ -1,0 +1,22 @@
+---
+# Copy to ignored group_vars/edge.yml or pass as a private --ansible-vars override.
+edge_acme_enabled: true
+edge_acme_production: false
+edge_acme_email: operations@example.invalid
+edge_acme_domains: [www.example.invalid]
+edge_acme_terms_agreed: false
+edge_acme_state_directory: /home/automation/.local/share/public-certificates
+edge_public_https_backend: website
+edge_haproxy_frontends: []
+edge_backend_trust_files:
+  - name: infrastructure.pem
+    src: /home/automation/.local/share/trust/infrastructure.pem
+edge_haproxy_backends:
+  website:
+    servers:
+      - name: website-1
+        address: 10.30.40.20
+        port: 443
+        tls: true
+        verify_hostname: website.internal.example.invalid
+        ca_file: /etc/haproxy/trust/infrastructure.pem

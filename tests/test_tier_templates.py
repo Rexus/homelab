@@ -29,7 +29,7 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
             for module in re.findall(r'source\s*=\s*"(\.\./[^\"]+)"', source.read_text()):
                 self.assertTrue((source.parent / module).is_dir(), (source, module))
         catalog = yaml.safe_load((tier0 / "templates/proxmox.yml.example").read_text())["templates"]
-        self.assertEqual({entry["family"] for entry in catalog.values()}, {"alma", "rocky", "talos"})
+        self.assertEqual({entry["family"] for entry in catalog.values()}, {"alma", "rocky", "talos", "debian"})
         self.assertTrue(all(entry["node_name"] == "pve01" and entry["bridge"] == "control"
                             for entry in catalog.values()))
         self.assertFalse((tier0 / "templates/proxmox.yml").exists())

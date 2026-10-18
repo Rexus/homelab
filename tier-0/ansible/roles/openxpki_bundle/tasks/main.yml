@@ -1,0 +1,140 @@
+---
+- name: Validate the private output location and site policy
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Linux'
+      - openxpki_bundle_directory is match('^/[a-zA-Z0-9_./-]+$')
+      - "'/../' not in openxpki_bundle_directory"
+      - openxpki_bundle_directory not in ['/', '/tmp', '/var', '/home']
+      - openxpki_bundle_revision is match('^[a-f0-9]{40}$')
+      - openxpki_bundle_realm is match('^[a-z][a-z0-9-]+$')
+      - openxpki_bundle_realm not in ['democa', 'rootca']
+      - openxpki_bundle_portal_fqdn is match('^[a-zA-Z0-9.-]+$')
+      - openxpki_bundle_publication_url is match('^https?://[a-zA-Z0-9.-]+/download/$')
+      - openxpki_bundle_data_mount is match('^/srv/[a-zA-Z0-9_-]+$')
+      - openxpki_bundle_dns_suffixes | length > 0
+      - openxpki_bundle_users | length >= 2
+      - "'User' in (openxpki_bundle_users.values() | map(attribute='role') | list)"
+      - "'RA Operator' in (openxpki_bundle_users.values() | map(attribute='role') | list)"
+
+- name: Validate explicitly authorized DNS suffixes
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$')
+      - item | length <= 253
+      - not item.endswith('.invalid')
+      - item not in ['example.com', 'example.org', 'example.net']
+  loop: "{{ openxpki_bundle_dns_suffixes }}"
+
+- name: Require independent production accounts with password hashes
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[a-z][a-z0-9_.-]{2,63}$')
+      - item.key not in ['caop', 'raop', 'alice', 'bob', 'rose', 'rob']
+      - item.value.role in ['User', 'RA Operator']
+      - item.value.digest is match('^\$argon2id\$')
+  loop: "{{ openxpki_bundle_users | dict2items }}"
+  no_log: true
+
+- name: Require independently backed-up signer and DataVault secrets
+  ansible.builtin.assert:
+    that:
+      - openxpki_bundle_signer_password | length >= 32
+      - openxpki_bundle_datavault_secret is match('^[a-fA-F0-9]{64}$')
+      - openxpki_bundle_signer_password != openxpki_bundle_datavault_secret
+  no_log: true
+
+- name: Refuse replacing an existing configuration artifact
+  ansible.builtin.stat:
+    path: "{{ openxpki_bundle_directory }}/configuration.tar.gz"
+  register: openxpki_bundle_existing
+
+- name: Require a new private build directory for each configuration revision
+  ansible.builtin.assert:
+    that: not openxpki_bundle_existing.stat.exists
+    fail_msg: Existing bundles are immutable. Use a new directory and the controlled upgrade procedure.
+
+- name: Create the private build root
+  ansible.builtin.file:
+    path: "{{ openxpki_bundle_directory }}"
+    state: directory
+    mode: "0700"
+
+- name: Fetch the pinned native configuration and schemas
+  ansible.builtin.git:
+    repo: "{{ openxpki_bundle_repository }}"
+    version: "{{ openxpki_bundle_revision }}"
+    dest: "{{ openxpki_bundle_directory }}/upstream"
+    update: true
+  register: openxpki_bundle_checkout
+
+- name: Require the exact reviewed upstream commit
+  ansible.builtin.assert:
+    that: openxpki_bundle_checkout.after == openxpki_bundle_revision
+
+- name: Create production configuration directories
+  ansible.builtin.file:
+    path: "{{ openxpki_bundle_directory }}/bundle/{{ item }}"
+    state: directory
+    mode: "0700"
+  loop:
+    - config.d/realm
+    - client.d/service/webui
+    - schemas
+
+- name: Reuse native configuration and resolve its template links
+  ansible.builtin.copy:
+    src: "{{ openxpki_bundle_directory }}/upstream/{{ item.src }}/"
+    dest: "{{ openxpki_bundle_directory }}/bundle/{{ item.dest }}/"
+    local_follow: true
+    mode: preserve
+  loop:
+    - {src: config.d/system, dest: config.d/system}
+    - {src: config.d/realm.tpl, dest: "config.d/realm/{{ openxpki_bundle_realm }}"}
+    - {src: client.d/system, dest: client.d/system}
+
+- name: Install native schemas and logging configuration unchanged
+  ansible.builtin.copy:
+    src: "{{ openxpki_bundle_directory }}/upstream/{{ item.src }}"
+    dest: "{{ openxpki_bundle_directory }}/bundle/{{ item.dest }}"
+    mode: "0600"
+  loop:
+    - {src: contrib/sql/mariadb-backend-schema.sql, dest: schemas/backend.sql}
+    - {src: contrib/sql/mariadb-frontend-schema.sql, dest: schemas/frontend.sql}
+    - {src: log.conf, dest: log.conf}
+
+- name: Apply restrictive site policy through native configuration
+  ansible.builtin.import_tasks: policy.yml
+
+- name: Prepare authenticated native administrative access
+  ansible.builtin.import_tasks: cli.yml
+
+- name: Prepare independent temporary portal credentials
+  ansible.builtin.import_tasks: portal.yml
+
+- name: Protect the complete configuration tree
+  ansible.builtin.file:
+    path: "{{ openxpki_bundle_directory }}/bundle"
+    state: directory
+    recurse: true
+    mode: u=rwX,go=
+
+- name: Archive the production configuration as a private artifact
+  community.general.archive:
+    path: "{{ openxpki_bundle_directory }}/bundle/*"
+    dest: "{{ openxpki_bundle_directory }}/configuration.tar.gz"
+    format: gz
+    mode: "0600"
+
+- name: Record the immutable configuration checksum
+  ansible.builtin.stat:
+    path: "{{ openxpki_bundle_directory }}/configuration.tar.gz"
+    checksum_algorithm: sha256
+  register: openxpki_bundle_archive
+
+- name: Show only the non-secret artifact identity
+  ansible.builtin.debug:
+    msg:
+      artifact: "{{ openxpki_bundle_directory }}/configuration.tar.gz"
+      sha256: "{{ openxpki_bundle_archive.stat.checksum }}"
+      upstream_revision: "{{ openxpki_bundle_revision }}"

@@ -1,0 +1,6 @@
+id: hostname
+label: Approved server DNS name
+type: text
+required: 1
+match: \A (?i:(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*(?:{{ openxpki_bundle_dns_suffixes | map('regex_escape') | join('|') }})) \z
+renew: keep
