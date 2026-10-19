@@ -1,0 +1,113 @@
+---
+- name: Require an independent recovery host and explicit backup custody
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['RedHat', 'Debian']
+      - inventory_hostname not in groups.get('foundation_logging', [])
+      - logging_backup_source is match('^//[A-Za-z0-9.-]+/[A-Za-z0-9_-]+$')
+      - logging_backup_mount is match('^/mnt/[a-z0-9_-]+$')
+      - logging_backup_marker is match('^[A-Za-z0-9_-]{16,128}$')
+      - logging_backup_credentials is match('^/')
+      - logging_backup_password is match('^/')
+      - logging_backup_repository is match('^/[A-Za-z0-9_./-]+$')
+      - "'..' not in logging_backup_repository.split('/')"
+      - not logging_backup_repository.startswith(logging_backup_mount + '/')
+      - logging_backup_watchdog_url is match('^https://[A-Za-z0-9./_?=&:%-]+$')
+      - "logging_backup_calendar is match('^[A-Za-z0-9*: ,./-]+$')"
+    fail_msg: Use a separately administered recovery host and an independent mounted recovery repository.
+
+- name: Install supported native backup dependencies
+  ansible.builtin.package:
+    name: [restic, cifs-utils, python3, curl]
+    state: present
+
+- name: Install recovery-only secrets without exposing them to the collector
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - {src: "{{ logging_backup_credentials }}", dest: /etc/security-log-backup-nas.credentials}
+    - {src: "{{ logging_backup_password }}", dest: /etc/security-log-backup.password}
+  no_log: true
+  diff: false
+
+- name: Mount archive input read-only with a distinct NAS reader identity
+  ansible.posix.mount:
+    path: "{{ logging_backup_mount }}"
+    src: "{{ logging_backup_source }}"
+    fstype: cifs
+    opts: ro,credentials=/etc/security-log-backup-nas.credentials,vers=3.1.1,seal,nosuid,nodev,noexec,_netdev,nofail,dir_mode=0700,file_mode=0600
+    state: mounted
+
+- name: Inspect the explicitly commissioned independent recovery mount
+  ansible.builtin.command:
+    argv: [mountpoint, --quiet, "{{ logging_backup_repository }}"]
+  changed_when: false
+
+- name: Prepare backup tooling and private status directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop: [/usr/local/lib/security-logging, /var/lib/security-log-backup]
+
+- name: Install the same offline verifier used by checkpoint publication
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../logging_archive/files/{{ item }}"
+    dest: "/usr/local/lib/security-logging/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [logging_checkpoint.py, logging_io.py, logging_health.py]
+
+- name: Initialize a new encrypted repository only with explicit approval
+  ansible.builtin.command:
+    argv: [restic, --repo, "{{ logging_backup_repository }}", --password-file, /etc/security-log-backup.password, init]
+    creates: "{{ logging_backup_repository }}/config"
+  when: logging_backup_initialize | bool
+
+- name: Verify existing repository access without silently creating a replacement
+  ansible.builtin.command:
+    argv: [restic, --repo, "{{ logging_backup_repository }}", --password-file, /etc/security-log-backup.password, snapshots, --json]
+  changed_when: false
+  no_log: true
+
+- name: Install independent backup job and timer
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ '0700' if item.src == 'backup.sh.j2' else '0644' }}"
+  loop:
+    - {src: backup.sh.j2, dest: /usr/local/lib/security-logging/backup.sh}
+    - {src: backup.service.j2, dest: /etc/systemd/system/security-log-backup.service}
+    - {src: backup.timer.j2, dest: /etc/systemd/system/security-log-backup.timer}
+  no_log: true
+
+- name: Keep the backup health capability URL in a root-only native curl file
+  ansible.builtin.copy:
+    dest: /etc/security-log-backup.curl
+    content: "url = \"{{ logging_backup_watchdog_url }}\"\n"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Run the first verified backup
+  ansible.builtin.systemd_service:
+    name: security-log-backup.service
+    daemon_reload: true
+    state: started
+
+- name: Enable independently scheduled recovery copies
+  ansible.builtin.systemd_service:
+    name: security-log-backup.timer
+    enabled: true
+    state: started

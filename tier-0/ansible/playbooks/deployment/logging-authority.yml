@@ -1,0 +1,9 @@
+---
+# Run locally on the protected signing controller; never a general CI runner.
+- name: Maintain independent bootstrap logging trust
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - logging_authority

@@ -1,0 +1,11 @@
+---
+# Execute on an independent recovery host, never a collector.
+logging_backup_source: ""
+logging_backup_marker: ""
+logging_backup_mount: /mnt/security-log-recovery-source
+logging_backup_credentials: "{{ lookup('ansible.builtin.env', 'LOGGING_BACKUP_NAS_CREDENTIALS_FILE') }}"
+logging_backup_repository: ""
+logging_backup_password: "{{ lookup('ansible.builtin.env', 'LOGGING_BACKUP_PASSWORD_FILE') }}"
+logging_backup_initialize: false
+logging_backup_calendar: hourly
+logging_backup_watchdog_url: ""

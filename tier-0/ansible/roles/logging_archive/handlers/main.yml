@@ -1,0 +1,5 @@
+---
+- name: Load logging read audit rules
+  ansible.builtin.command:
+    argv: [/usr/sbin/augenrules, --load]
+  changed_when: true

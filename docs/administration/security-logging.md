@@ -12,6 +12,7 @@ and recorded failure, retention, access and recovery contracts.
 - [Fault and restore evidence](#fault-and-restore-evidence)
 - [Offline investigation](#offline-investigation)
 - [Automation boundary](#automation-boundary)
+- [NAS backup restoration](#nas-backup-restoration)
 - [References](#references)
 
 ## Routine checks
@@ -92,6 +93,56 @@ serially. It does not upgrade packages, delete evidence/queues, change retention
 prove HA. Drain backlogs and preserve persist files before source/queue changes;
 remove retired firewall rules deliberately. Product operations remain project-owned procedures.
 Tier 1 search-index maintenance never grants authority to alter Tier 0 evidence.
+
+The [pipeline recipes](../reference/logging-pipeline.md#ownership-and-entry-points)
+reconcile producers, trust, NAS publication and independent backup separately.
+Reapply the owning recipe for reviewed configuration changes; authority operations
+run only on the protected signing controller. Jobs never prune or delete evidence.
+Check `security-log-archive.timer`, `security-log-backup.timer` and producer health
+timers as well as the independently observed dead-man status. A recent checkpoint
+ping does not certify completion of NAS snapshots or a separate backup.
+
+## NAS backup restoration
+
+1. On an authorized, isolated recovery host, retrieve the independent restic
+   repository, separately held password, and the offline reader kit containing
+   `logging_checkpoint.py`, `logging_io.py` and `logging_health.py`. Preserve the
+   source repository; select a new empty restore directory, never the live share.
+2. Select the protected paths and inspect the recorded snapshots:
+
+   ```bash
+   read -r -e -p 'Independent restic repository path: ' RESTIC_REPOSITORY
+   read -r -e -p 'Recovery password file path: ' RESTIC_PASSWORD_FILE
+   export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
+   restic snapshots --tag security-logging
+   restic check --read-data
+   ```
+
+3. Choose the incident's known-good snapshot and an empty disposable target:
+
+   ```bash
+   read -r -p 'Approved snapshot ID: ' LOGGING_SNAPSHOT
+   read -r -e -p 'New empty restore directory: ' LOGGING_RESTORE
+   restic restore "$LOGGING_SNAPSHOT" --target "$LOGGING_RESTORE"
+   ```
+
+   Restic preserves the original path tree beneath that target. Locate the restored
+   archive root containing `<collector>/checkpoints/` and `<collector>/chunks/`, then
+   verify using the kit's script from its own directory:
+
+   ```bash
+   read -r -e -p 'Restored archive root containing collector directories: ' LOGGING_ARCHIVE_ROOT
+   python3 logging_checkpoint.py verify --root "$LOGGING_ARCHIVE_ROOT"
+   ```
+
+4. Reconcile the covered numbered batches using the [logging drill](logging-drill.md),
+   inspect the source catalogue in manifests and read JSONL without a search service.
+   Record the last independently protected checkpoint, missing tail, duplicates and
+   measured RPO/RTO. Hash verification alone does not prove coverage or authorized custody.
+
+The default backup job does not initialize existing repositories, delete snapshots,
+prune, or restore automatically. NAS snapshot restoration is a separate custodian
+operation; perform it on a copy and verify with the same reader kit.
 
 ## References
 

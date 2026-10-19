@@ -108,6 +108,10 @@ bash scripts/init-local-files.sh --setup podman-runner --env test
 Edit the local inputs above, including the runner token supplied through protected
 controller inputs. Complete [environment isolation](../../reference/repository-scripts.md#environment-isolation)
 before planning; a test state must not reuse a production VMID, IP or registration.
+For the commands below, create `terraform/deployments/podman-runner/terraform.test.tfvars`
+with the complete test guest map and edit `ansible/group_vars/podman_runner.test.yml`
+for IPs and service settings. The copied test vars override the base setup vars;
+editing `podman_runner.yml` alone does not configure the test run.
 
 Plan a test environment first:
 

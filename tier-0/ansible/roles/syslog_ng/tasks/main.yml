@@ -8,6 +8,10 @@
 - name: Install receiver certificates
   ansible.builtin.import_tasks: tls.yml
 
+- name: Install current producer revocations when selected
+  ansible.builtin.import_tasks: revocation.yml
+  when: syslog_ng_tls_crl_src | length > 0
+
 - name: Apply host security policy
   ansible.builtin.import_tasks: security.yml
 

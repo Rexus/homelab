@@ -5,6 +5,7 @@
     name:
       - syslog-ng
       - python3-cryptography
+      - openssl
       - policycoreutils-python-utils
       - python3-libselinux
     state: present
@@ -20,8 +21,8 @@
 - name: Require the validated receiver feature baseline
   ansible.builtin.assert:
     that:
-      - syslog_ng_version.stdout is search('syslog-ng 4 \(4\.(8|9|[1-9][0-9]+)\.')
-    fail_msg: This configuration requires syslog-ng OSE 4.8 or later in the 4.x series.
+      - syslog_ng_version.stdout is search('syslog-ng 4 \(4\.(1[1-9]|[2-9][0-9]+)\.')
+    fail_msg: Require syslog-ng OSE 4.11+ in the 4.x series; older builds can omit first-batch TLS identity metadata.
 
 - name: Prevent the unused package daemon from starting at boot
   ansible.builtin.systemd_service:

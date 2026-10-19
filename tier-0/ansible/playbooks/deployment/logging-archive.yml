@@ -1,0 +1,8 @@
+---
+# Tier 0 owns archive publication; NAS snapshot authority stays outside the collector.
+- name: Publish create-only logging checkpoints and audited app copies
+  hosts: foundation_logging
+  become: true
+  serial: 1
+  roles:
+    - logging_archive

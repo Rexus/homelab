@@ -1,0 +1,59 @@
+---
+- name: Keep the health capability URL out of process arguments and public units
+  ansible.builtin.copy:
+    dest: "{{ log_forwarder_config }}/watchdog.curl"
+    content: "url = \"{{ log_forwarder_watchdog_url }}\"\n"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Install the guarded sender health probe
+  ansible.builtin.template:
+    src: health.sh.j2
+    dest: "{{ log_forwarder_config }}/health.sh"
+    owner: root
+    group: root
+    mode: "0700"
+  no_log: true
+
+- name: Install independent source health scheduling
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/log-forwarder-health.{{ item.suffix }}"
+    content: "{{ item.content }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - suffix: service
+      content: |
+        [Unit]
+        Description=Check protected log sender capacity and credentials
+        [Service]
+        Type=oneshot
+        ExecStart={{ log_forwarder_config }}/health.sh
+        TimeoutStartSec=60s
+        NoNewPrivileges=true
+        ProtectSystem=strict
+    - suffix: timer
+      content: |
+        [Unit]
+        Description=Schedule protected log sender checks
+        [Timer]
+        OnBootSec=60s
+        OnUnitActiveSec=60s
+        [Install]
+        WantedBy=timers.target
+
+- name: Verify initial source health and external connectivity
+  ansible.builtin.systemd_service:
+    name: log-forwarder-health.service
+    daemon_reload: true
+    state: started
+
+- name: Enable recurring source health checks
+  ansible.builtin.systemd_service:
+    name: log-forwarder-health.timer
+    enabled: true
+    state: started

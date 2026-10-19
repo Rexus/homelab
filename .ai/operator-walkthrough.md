@@ -1,7 +1,8 @@
 # Operator walkthrough checklist
 
-Rechecked 2026-10-18 against `d91b07f` from the perspective of a software engineer with newly installed
-servers and UniFi switches. This is the maintainer's working checklist, not generated
+Rechecked 2026-10-19 against `20efefb` and the handoff corrections below, from the
+perspective of a software engineer with newly installed servers and UniFi switches.
+This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
 
 **Scope:** clone, generation, foundation, all six stages and adjacent options,
@@ -15,14 +16,24 @@ The engineer can generate repositories and follow the foundation procedures, but
 cannot obtain the complete reference platform merely by running the supplied IaC.
 The first security gate is verified Proxmox API trust; all supplied Terraform roots
 now verify TLS, and provisioning entry points reject inherited insecure flags.
-Stage 1 is the first capability implementation stop:
-bootstrap certificates, source forwarding, selected archive retention and independent copies
-need a selected integration. Do not bypass that gate to declare a production PKI.
+Stage 1 now has a selected Linux/NAS main path: reviewed-CSR producer trust, native
+host forwarding, create-only checkpoints, audited file views and independent encrypted
+backup. NAS snapshots/accounts and the recovery filesystem require commissioning;
+physical faults and access/restore results remain manual verification. This is
+asynchronous bounded-loss custody, not replicated/lossless intake. The Stage 2 policy issues
+TLS-server leaves, not producer client-auth certificates. Do not bypass that gate to
+declare a production PKI or assume Stage 2 automatically replaces producer trust.
 
 Since the prior walkthrough, software PKI and public HTTPS have concrete recipes,
 not just designs. Fresh-shell controller commands now select their Ansible config;
 edge setup links to HTTPS and recovery links directly to issuer restoration.
 Package qualification and live acceptance remain distinct from supplied mechanisms.
+
+The fresh generated collection keeps ownership and input paths aligned. The numbered
+route is understandable, but not yet an uninterrupted deployable platform: after logging,
+cluster endpoints/add-ons, control applications and protected delegated execution still
+need implementations. Household/team use and a complete first-app restore remain the
+outcome gaps below. A clean offline suite does not close those gaps.
 
 ## Corrected reading and execution gaps
 
@@ -48,6 +59,15 @@ Package qualification and live acceptance remain distinct from supplied mechanis
 - [x] Connect edge publication and total-loss recovery to the new HTTPS and issuer-restore procedures.
 - [x] Separate NAS-backed trusted-admin retention from optional storage-enforced locks;
   link both Stage 1 branches and record custody/review triggers in the evidence template.
+- [x] Use `syslog` in fresh Tier 0 README quick starts, in the same base state context as
+  Stage 1; link environment isolation beside optional `--env`, and retain storage/TLS preparation gates.
+- [x] Point test source-control, runner and image-builder instructions at their selected
+  Ansible test vars and explicit complete-map Terraform overlays, including final conversion.
+- [x] Prepare/test local-input recovery before provisioning; test guest restore after the
+  first disposable clone, and accept verified existing backup services without requiring PBS.
+- [x] Clarify the independent producer-authority handoff instead of assuming the software
+  PKI's TLS-server profile also issues logging client certificates.
+- [x] Align remaining IdP wording and the image-builder's shared-catalog comment with their authoritative contracts.
 
 ## Implemented priority mechanisms
 
@@ -61,20 +81,27 @@ Package qualification and live acceptance remain distinct from supplied mechanis
   Optional HSM/internal-ACME work remains separate in the [CA checklist](ca-implementation.md).
   This checks mechanism coverage, not package qualification or operational acceptance.
 
-## Remaining implementation before an end-to-end installation
+- [x] **P1: Logging integration - sources (selected Linux path).** Shared isolated native
+  rsyslog journal/file instances with host-local keys, disk queues, cursors and independent
+  source health checks; tier-local recipes/inputs include collector OS, audit and CA files.
+  Appliance firmware and Kubernetes collectors remain explicitly selected product integrations,
+  not falsely implied host-role coverage. Register unsupported-device gaps in the live record.
+- [x] **P1: Logging integration - producer trust.** Protected Tier 0 native CSR signing,
+  explicit initialization, encrypted CA key, bounded leaf renewal and cumulative CRLs;
+  source private keys never leave their hosts. Client/server profiles and key fingerprints
+  are explicitly approved. Existing-session withdrawal/CRL distribution remain operator recipes.
+- [x] **P1: Logging integration - durable archive (NAS main path).** Create-only complete
+  JSONL chunks, source catalogue, hashed linked checkpoints, cursor-after-NAS ordering,
+  bounded source queues and independent health gates. Native sender release is transport-based;
+  exposed tails and replay windows are explicit. No replicated-intake or zero-loss claim.
+- [x] **P1: Logging integration - custody (trusted-admin NAS).** Separate transfer/read/backup
+  credentials, NAS-owned snapshot commissioning contract, independent restic jobs with no prune,
+  offline verifier and restore procedure, native raw/view read audit and fixed application-only
+  filesystem views. Actual NAS grants/snapshots/audit and physical independence need live proof.
+  [Locked retention](../docs/deployment/stage-1-logging/step-3d-retention-lock.md), replicated intake
+  and later Tier 1 search remain separate variants, not supplied by this NAS implementation.
 
-- [ ] **P1: Logging integration - sources.** Supply source forwarding and independent bootstrap
-  client trust for supported hosts/devices, including collector OS and CA events. The receiver
-  alone does not configure senders; record unsupported-device exceptions explicitly.
-- [ ] **P1: Logging integration - durable archive.** Select and implement the archive handoff,
-  replicated commit boundary, sender-release policy and outage/backpressure behavior.
-  Two independent receivers or TCP receipts alone do not implement this contract.
-- [ ] **P1: Logging integration - custody.** Implement protected retention, independent copies,
-  separate writer/reader/retention authority and audited reads. Keep app-owner query views
-  separate from authoritative Tier 0 evidence. The [NAS/locked alternatives](../docs/architecture/operations/log-retention.md)
-  are selected design/procedures, not installed archive integration. Under NAS custody,
-  one trusted person may hold all roles using separate credentials; strict WORM is optional.
-  These are missing mechanisms, not merely unrun tests.
+## Remaining implementation before an end-to-end installation
 
 Secure provider defaults and the selected software-first Initial Trust mechanisms are
 supplied. Their live proof is tracked in the separate
@@ -113,8 +140,8 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Path | Entry | Review outcome / remaining proof |
 | --- | --- | --- |
 | Foundation | [Preparation](../docs/deployment/foundation/README.md) | Network, access, templates and recovery precede capability deployment; live commissioning required |
-| Logging | [Stage 1](../docs/deployment/stage-1-logging/README.md) | TLS receiver/local queues supplied; forwarding and protected archive integration block full acceptance |
-| Trust | [Stage 2](../docs/deployment/stage-2-trust/README.md) | Software PKI procedure/recipes supplied; package qualification, ceremonies, forwarding and live acceptance required; hardware remains integration |
+| Logging | [Stage 1](../docs/deployment/stage-1-logging/README.md) | Linux/NAS recipes supplied; actual NAS custody, devices, bounded-loss fault and restore acceptance outstanding |
+| Trust | [Stage 2](../docs/deployment/stage-2-trust/README.md) | Software PKI and file/journal forwarding supplied; qualify packages, actual CA audit scope, ceremonies and live acceptance; hardware remains integration |
 | Identity/runtime | [Stage 3](../docs/deployment/stage-3-identity-runtime/README.md) | Directory recipe and new-cluster lifecycle supplied; endpoint/add-ons still required |
 | Control services | [Stage 4](../docs/deployment/stage-4-control-services/README.md) | Cluster services are starters; independent monitoring has its own path |
 | Delivery | [Stage 5](../docs/deployment/stage-5-delivery/README.md) | VM alternatives supplied; controller, registry and protected execution require selected integrations |
@@ -123,7 +150,7 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Guest SDN | [Foundation 1c](../docs/deployment/foundation/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
 | Outbound cache | [Foundation 3b](../docs/deployment/foundation/step-3b-outbound-cache.md) | Supplied Squid/VIP recipe; independent bootstrap egress and declared transport limits |
 | Redundant logging | [Logging 3b](../docs/deployment/stage-1-logging/step-3b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
-| NAS-backed evidence | [Logging 3c](../docs/deployment/stage-1-logging/step-3c-nas-archive.md) | Trusted-admin alternative documented; transfer, snapshots/backups and audited access still need integration and live proof |
+| NAS-backed evidence | [Logging 3c](../docs/deployment/stage-1-logging/step-3c-nas-archive.md) | Checkpoint/backup/audit-view recipes supplied; NAS-owned snapshots/accounts and live failure/access proof remain commissioning |
 | Retention-locked evidence | [Logging 3d](../docs/deployment/stage-1-logging/step-3d-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |
 | Replicated USB HSM | [Trust 1b](../docs/deployment/stage-2-trust/step-1b-usb-hsm.md) | Host pool and optional snippet only; provider/application/key readiness and endpoint require implementation |
 | Network HSM | [Trust 1c](../docs/deployment/stage-2-trust/step-1c-network-hsm.md) | Vendor commissioning/client/HA procedure required |
@@ -165,6 +192,9 @@ inspected. Every selected path still needs its own live acceptance evidence.
 - [ ] **P3: Reading density.** Split historic generated-repository upgrade detail away from
   first-use contracts; separate advanced direct-mesh storage and large cache-sizing material
   from the main path. Preserve old anchors and generated-project edits when moving content.
+- [ ] **P3: GitHub diagram review.** Inspect the hosted rendering and refine layout details
+  separately; no topology redraw is part of this operator pass. Check labels, replica groups,
+  tier ordering and layer placement rather than equating local render success with hosted visual acceptance.
 
 ## Manual operational verification
 
@@ -179,6 +209,33 @@ be relabelled as a deployed-system pass.
 
 
 ## Repeat cadence
+
+Logging installation, 2026-10-19: **142 full regression tests passed, zero skipped**;
+after final probe-credential/audit changes, **37 affected tests passed, zero skipped**.
+Coverage includes native reviewed-CSR client/server issuance, actual expiry-window renewal,
+CRL rejection, rsyslog outage plus abrupt process restart, first-batch source identity,
+create-only NAS checkpoint fixtures, application-scope denial, tamper detection, native
+encrypted restic backup/clean restore, generated ownership and source/generated syntax/links.
+`git diff --check` passed. No live hosts, SMB server, physical faults or NAS grants were exercised.
+
+Native tools: syslog-ng **4.11.0**, rsyslog **8.2312.0** with GnuTLS, restic **0.16.4**,
+Ansible core **2.21.5** and Python **3.12.3**. The older cached 4.3.1 receiver exposed
+upstream first-read missing TLS metadata (syslog-ng #5603); the runtime now requires 4.11+.
+The official Ubuntu test package was extracted, not installed; SHA-256 matched its
+official index: `49d548107fcfac677892284c879d73b72bc78213bb52c202c3aca76a7c237052`.
+This qualifies local interoperability, not the selected EL 10 package/SELinux/SMB deployment.
+NAS snapshots, external dead-man services, independent storage and all manual operational
+checks remain commissioning/acceptance work. Existing diagrams were not changed in this pass.
+
+Operator journey, 2026-10-19: **129 baseline tests passed, zero skipped** in the isolated
+Linux/WSL checkout. After handoff corrections and three new tests, **42 affected tests
+passed, zero skipped**. Source/generated links, formal language, branch metadata,
+state/input ownership and preservation of owned records were included.
+Exercised a separate fresh five-repository collection, Tier 0 template/syslog/cluster
+initialization and Tier 1 named-test initialization; no live plan or apply was run.
+The test setup creates Ansible overlays but no Terraform environment overlay, matching
+the corrected guide. Existing owned READMEs remain unchanged on refresh.
+Diagrams were not changed or reaccepted in this pass; GitHub visual review remains separate.
 
 Diagram review, 2026-10-19: all **65 Mermaid diagrams** render in light and dark themes
 with Mermaid 11.17.2 (**130 renders**). Placement views use six block grids; interaction

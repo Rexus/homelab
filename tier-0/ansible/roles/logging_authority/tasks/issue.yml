@@ -1,0 +1,57 @@
+---
+- name: Validate the approved request descriptor
+  ansible.builtin.assert:
+    that:
+      - request.name is match('^[a-z][a-z0-9_-]{0,62}$')
+      - request.profile in ['client', 'server']
+      - request.csr is match('^/')
+      - request.key_sha256 is match('^([0-9a-f]{2}:){31}[0-9a-f]{2}$')
+      - request.profile != 'server' or request.san | default([]) | length > 0
+
+- name: Inspect the signed public request using native crypto metadata
+  community.crypto.openssl_csr_info:
+    path: "{{ request.csr }}"
+  register: logging_authority_csr
+
+- name: Reject unapproved keys, identities, alternate names and certificate powers
+  ansible.builtin.assert:
+    that:
+      - logging_authority_csr.signature_valid
+      - "logging_authority_csr.subject == {'commonName': request.name}"
+      - logging_authority_csr.public_key_fingerprints.sha256 == request.key_sha256
+      - logging_authority_csr.basic_constraints == ['CA:FALSE']
+      - logging_authority_csr.basic_constraints_critical
+      - logging_authority_csr.key_usage == ['Digital Signature']
+      - logging_authority_csr.extended_key_usage == [expected_eku]
+      - (logging_authority_csr.subject_alt_name | default([], true) | sort) == (request.san | default([]) | sort)
+    fail_msg: Approve the authenticated request fingerprint and exact client/server profile before signing.
+  vars:
+    expected_eku: "{{ 'TLS Web Client Authentication' if request.profile == 'client' else 'TLS Web Server Authentication' }}"
+
+- name: Inspect the existing leaf before renewal
+  ansible.builtin.stat:
+    path: "{{ logging_authority_directory }}/public/{{ request.name }}.pem"
+  register: logging_authority_leaf_file
+
+- name: Check the renewal window
+  community.crypto.x509_certificate_info:
+    path: "{{ logging_authority_directory }}/public/{{ request.name }}.pem"
+    valid_at:
+      renewal: "+{{ logging_authority_renew_days }}d"
+  when: logging_authority_leaf_file.stat.exists
+  register: logging_authority_leaf
+
+- name: Sign or renew the approved identity without exporting any private key
+  community.crypto.x509_certificate:
+    path: "{{ logging_authority_directory }}/public/{{ request.name }}.pem"
+    csr_path: "{{ request.csr }}"
+    ownca_path: "{{ logging_authority_directory }}/ca.pem"
+    ownca_privatekey_path: "{{ logging_authority_directory }}/key.pem"
+    ownca_privatekey_passphrase: "{{ logging_authority_passphrase }}"
+    ownca_not_before: '-5m'
+    ownca_not_after: "+{{ logging_authority_leaf_days }}d"
+    provider: ownca
+    force: "{{ logging_authority_leaf_file.stat.exists and not logging_authority_leaf.valid_at.renewal }}"
+    backup: true
+    mode: "0644"
+  no_log: true

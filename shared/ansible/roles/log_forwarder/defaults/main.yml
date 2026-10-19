@@ -1,0 +1,15 @@
+---
+# Inputs and identities belong to the executing tier, never Shared.
+log_forwarder_mode: install
+log_forwarder_streams: []
+log_forwarder_target: ""
+log_forwarder_peer: ""
+log_forwarder_port: 6514
+log_forwarder_credentials: "{{ lookup('ansible.builtin.env', 'LOGGING_PUBLIC_DIR') }}"
+log_forwarder_requests: "{{ lookup('ansible.builtin.env', 'LOGGING_REQUEST_DIR') }}"
+log_forwarder_config: /etc/log-forwarder
+log_forwarder_state: /var/lib/rsyslog/forwarder
+log_forwarder_queue_bytes: 1073741824
+log_forwarder_journal_bytes: 1073741824
+log_forwarder_min_free_bytes: 268435456
+log_forwarder_watchdog_url: ""

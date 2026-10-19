@@ -67,7 +67,10 @@ central collection must not wait for FreeIPA or Kubernetes.
 ## Step 2: Protect provisioning access and state
 
 Configure [scoped API access](procedures/api-access.md) and protected local state
-or an independent backend. Test [backup and restore](../../administration/compute/backup-restore.md).
+or an independent backend. Back up local state, inventory and bootstrap inputs now;
+test their recovery before provisioning. Prepare the
+[backup destination](../../administration/compute/backup-restore.md), using PBS or
+a verified existing service. Guest backup/restore follows the first disposable clone in Step 3.
 Keep code, tools and recovery credentials outside the systems being created.
 
 A bootstrap VM is optional. It cannot replace recovery access outside Proxmox.
@@ -88,7 +91,10 @@ Approved consumer references are in Shared's
 [templates/proxmox-catalog.tfvars](../../../shared/templates/proxmox-catalog.tfvars).
 
 Boot disposable clones and verify disks, network and access before creating service
-VMs. Optional [3b: outbound cache](step-3b-outbound-cache.md) can be introduced after
+VMs. Back up and restore a disposable clone, including every required data disk,
+through the [backup procedure](../../administration/compute/backup-restore.md#quick-steps)
+before important guests depend on that path.
+Optional [3b: outbound cache](step-3b-outbound-cache.md) can be introduced after
 its VM prerequisites exist; it remains Tier 2-owned and cannot be its own bootstrap dependency.
 
 Before the later Kubernetes stage starts Flux, provide a reachable approved Git or OCI

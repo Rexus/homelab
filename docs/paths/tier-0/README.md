@@ -49,7 +49,8 @@ Verified existing templates are valid. No hosted CI or cluster is required.
 
 After templates, establish [foundational syslog](../../deployment/stage-1-logging/README.md)
 with the Tier 0 `syslog` setup. Prepare storage/TLS before installing its isolated
-receiver; HA and protected retention remain project integration.
+receiver, then follow its producer, NAS checkpoint and independent-backup recipes.
+NAS snapshots/access custody and live acceptance remain commissioning gates; HA is a separate selection.
 After the trust stage, initialize the Kubernetes control cluster:
 
 ```bash

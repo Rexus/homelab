@@ -2,7 +2,7 @@
 
 Deploy the Tier 0 operational applications into the accepted Kubernetes platform.
 FreeIPA and the issuing CA remain dedicated external services; Flux adds the identity
-broker, secrets, inventory documentation and operational tools.
+provider (IdP), secrets, inventory documentation and operational tools.
 
 **Prerequisites:** accepted [identity and runtime](../stage-3-identity-runtime/README.md),
 service storage/backups and independent recovery inputs.
@@ -57,7 +57,7 @@ Add reviewed Keycloak manifests in Tier 0's
 [clusters/tier0/applications/keycloak/](../../../tier-0/clusters/tier0/applications/keycloak/).
 Configure its database,
 TLS and FreeIPA federation; verify group mappings before granting administrative
-roles. The directory remains independent of its broker.
+roles. The directory remains independent of the IdP.
 
 The source folders are editable starters, not complete application installers.
 Service manifests and integration remain project work; see the
@@ -84,7 +84,7 @@ its own platform. Test backups and restoration before other tiers depend on thes
 ## Step 3: Integrate access and recovery
 
 Configure OIDC clients and service roles where supported. Test permitted and denied
-access, then rehearse privileged recovery without normal directory or broker login.
+access, then rehearse privileged recovery without normal directory or IdP login.
 
 Optional [3b: hardware-backed authentication](step-3b-hardware-authentication.md)
 adds stronger operator login after recovery is working. Restrict routine bootstrap

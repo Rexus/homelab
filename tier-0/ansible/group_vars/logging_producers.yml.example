@@ -1,0 +1,14 @@
+# Local inputs; reusable implementation: Shared ansible/roles/log_forwarder.
+# Add approved existing hosts to logging_producers in this tier's inventory.
+log_forwarder_target: ""  # independently resolvable collector IP or name
+log_forwarder_peer: ""  # exact receiver certificate DNS SAN
+# Set a distinct external dead-man URL per host; a shared URL can hide a failed producer.
+# Set streams per host using ansible/host_vars/<inventory-host>.yml, not one shared CN.
+# log_forwarder_watchdog_url: <unique-host-external-dead-man-url>
+# log_forwarder_streams:
+#   - {name: foundation-log-1-os, kind: security, input: journal}
+#   - name: foundation-log-1-audit
+#     kind: security
+#     input: files
+#     files: [/var/log/audit/audit.log]
+# CA example: separate security stream for the actual OpenXPKI/Dogtag audit files.

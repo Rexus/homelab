@@ -32,11 +32,14 @@ ${prerequisites}
 After the checklist's prerequisites, initialize a Linux VM setup from this root:
 
 ```bash
-bash ../${prefix}-shared/scripts/init-local-files.sh --setup ${example} --env test
+bash ../${prefix}-shared/scripts/init-local-files.sh --setup ${example}
 ```
 
-Use `--setup` to select an entry in `.deployment-setups` and `--env` to select
-an environment. Omit `--env` for production.
+Use `--setup` to select an entry in `.deployment-setups`. These commands use the
+base production context, matching the main deployment path. For a disposable context,
+add the same `--env test` to initialization and deployment, and complete
+[environment isolation](${docs}/reference/repository-scripts.md#environment-isolation)
+first; the flag does not allocate separate VMIDs or addresses.
 
 Edit `.env.local`, inventory and group vars under `ansible/`, and local
 Terraform inputs under `terraform/`. Set common storage, initial placement and
@@ -47,11 +50,12 @@ in [platform inputs](${docs}/reference/platform-inputs.md). Follow the
 [setup guide](${docs}/reference/repository-scripts.md#available-setups), then plan:
 
 ```bash
-bash ../${prefix}-shared/scripts/deploy.sh ${example} --env test --plan-only
+bash ../${prefix}-shared/scripts/deploy.sh ${example} --plan-only
 ```
 
-Review the plan before removing `--plan-only`. Shared scripts use this
-repository's inputs and state; run these commands from this root.
+Review the plan, then follow the setup guide's provisioning and configuration steps.
+Some setups require storage or TLS preparation before host configuration.
+Shared scripts use this repository's inputs and state; run these commands from this root.
 
 ## Repository structure
 

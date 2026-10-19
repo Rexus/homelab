@@ -16,10 +16,11 @@ Keycloak, Vault and Tier 1 analytics are not prerequisites.
 2. [Enable protected collection](#step-2-enable-protected-collection)
 3. [Protect and verify retained evidence](#step-3-protect-and-verify-retained-evidence)
 
-The IaC provisions hosts/disks, applies the OS baseline and installs a dedicated
-syslog-ng OSE receiver after storage and TLS preparation. Protected archive
-retention and HA are explicit project integration, not results of a successful apply.
-At Step 3, select [NAS-backed retention](step-3c-nas-archive.md) for a trusted-admin
+The IaC provisions hosts/disks, installs the isolated receiver, configures supported
+Linux producers and publishes NAS checkpoints with independent encrypted backups.
+Storage preparation, NAS-owned snapshots and live acceptance remain explicit gates;
+this asynchronous main path has declared durability limits, not lossless HA.
+At Step 3, use [NAS-backed retention](step-3c-nas-archive.md) for a trusted-admin
 homelab or [retention locks](step-3d-retention-lock.md) for protection from privileged
 deletion. These are alternatives, not mandatory consecutive deployments.
 
@@ -105,11 +106,11 @@ flowchart LR
   class Records data
 ```
 
-1. Follow [receiver setup, Steps 1-3](receiver.md): prepare the data mount, independent
-   certificates and source catalogue, then run the Tier 0 Ansible recipe. It leaves the
+1. Follow [receiver setup, Steps 1-3](receiver.md): prepare the data mount,
+   [independent producer trust](producer-trust.md) and source catalogue, then run the Tier 0 recipe. It leaves the
    OS logger intact and refuses missing storage or trust inputs.
-2. Connect approved sources with durable local forwarding, including the collector's
-   own OS logger. Source forwarding is configured separately; a listener alone collects nothing.
+2. Follow [source preparation and installation](sources.md) in each owning tier,
+   including the collector's own OS and audit streams. A listener alone collects nothing.
 3. Submit numbered test events and verify source identity, timestamps and offline-readable
    records. Preserve early local records; configure the remaining controls below before acceptance.
 
@@ -130,7 +131,11 @@ is independently locked retention. An existing rsyslog receiver can satisfy the 
 contract instead; do not run two listeners on the same address/port.
 The [design](../../architecture/operations/security-logging.md#durability-and-availability)
 owns acknowledgement and failure requirements; neither TCP nor a VIP proves them.
-After PKI is accepted, rotate bootstrap trust under a tested continuity plan.
+The [software PKI policy](../stage-2-trust/procedures/software-pki.md#decisions-and-recovery-kit)
+issues TLS-server certificates only, not producer client-auth certificates. Retain
+the independent producer authority until a suitable client-auth profile and renewal
+path are qualified. Rotate trust only under a tested continuity plan; Stage 2
+completion alone does not replace producer trust.
 Keep independently retained evidence outside the collector VM's destruction lifecycle;
 rebuilding a receiver must not delete its archive or all recovery copies.
 
@@ -165,8 +170,9 @@ flowchart LR
    under A's trusted-admin assumption; record that boundary explicitly.
 2. Test offline inspection, restoration and denied access using the matrix below.
 3. Record the achieved [readiness](../readiness.md#readiness-levels) and residual gaps.
-   Select [3b: redundant intake](step-3b-redundant-intake.md) before claiming HA or the
-   accepted-record durability contract; a bootstrap host alone cannot satisfy it.
+   Record NAS checkpoint/snapshot/backup lag and the transport-release limit. Select
+   [3b: redundant intake](step-3b-redundant-intake.md) if replicated intake/HA is required;
+   the asynchronous main path does not claim that stronger contract.
 
 | Test | Acceptance |
 | --- | --- |
@@ -192,6 +198,9 @@ selected receiver/storage implementation. Offline checker tests do not accept th
 | Tier 0 | [ansible/inventory/hosts.yml.example](../../../tier-0/ansible/inventory/hosts.yml.example) and [ansible/group_vars/syslog.yml.example](../../../tier-0/ansible/group_vars/syslog.yml.example) | `foundation_logging` hosts and shared Terraform/Ansible IP inputs |
 | Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) and [ansible/roles/syslog_ng/](../../../tier-0/ansible/roles/syslog_ng/) | OS baseline and isolated TLS receiver; no filesystem creation, HA or WORM installation |
 | Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) and [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Reusable execution and host preparation using Tier 0 inputs |
+
+The [pipeline map](../../reference/logging-pipeline.md#ownership-and-entry-points)
+lists the tier-owned authority/archive/backup recipes and Shared forwarding implementation.
 
 Existing generated projects preserve owned `.deployment-setups` and local inventory.
 After refresh, deliberately register `syslog` and add its new hosts/IPs before

@@ -1,0 +1,9 @@
+[Unit]
+Description=Schedule independent protected logging backups
+
+[Timer]
+OnCalendar={{ logging_backup_calendar }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

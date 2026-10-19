@@ -1,0 +1,20 @@
+[Unit]
+Description=Protected log forwarding - {{ stream.name }}
+Wants=network-online.target
+After=network-online.target systemd-journald.service
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/rsyslogd -n -i /run/log-forwarder-{{ stream.name }}/pid -f {{ log_forwarder_config }}/{{ stream.name }}/sender.conf
+RuntimeDirectory=log-forwarder-{{ stream.name }}
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths={{ log_forwarder_state }}/{{ stream.name }} /run/log-forwarder-{{ stream.name }}
+
+[Install]
+WantedBy=multi-user.target

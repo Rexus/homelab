@@ -1,0 +1,6 @@
+{{ {'mount': logging_archive_mount, 'marker': logging_archive_marker,
+    'collector': logging_archive_collector, 'data': logging_archive_data,
+    'state': '/var/lib/security-logging/checkpoint.json', 'max_bytes': logging_archive_max_bytes,
+    'views': logging_archive_views, 'view_root': logging_archive_view_root,
+    'required_sources': logging_archive_required_sources, 'max_lag_seconds': logging_archive_max_lag_seconds,
+    'min_free_bytes': logging_archive_min_free_bytes} | to_nice_json }}

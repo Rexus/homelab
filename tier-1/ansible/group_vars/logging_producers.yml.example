@@ -1,0 +1,8 @@
+# Local inputs; reusable implementation: Shared ansible/roles/log_forwarder.
+# Add approved existing hosts to logging_producers in this tier's inventory.
+log_forwarder_target: ""
+log_forwarder_peer: ""
+# Set per-host stream identities in ignored ansible/host_vars/<host>.yml.
+# log_forwarder_watchdog_url: <unique-host-external-dead-man-url>
+# log_forwarder_streams:
+#   - {name: platform-host-os, kind: security, input: journal}

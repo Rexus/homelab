@@ -1,0 +1,146 @@
+---
+- name: Require commissioned NAS custody, health monitoring and explicit storage
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - logging_archive_source is match('^//[A-Za-z0-9.-]+/[A-Za-z0-9_-]+$')
+      - logging_archive_mount is match('^/mnt/[a-z0-9_-]+$')
+      - logging_archive_collector is match('^[a-z][a-z0-9_-]{0,62}$')
+      - logging_archive_marker is match('^[A-Za-z0-9_-]{16,128}$')
+      - logging_archive_credentials is match('^/')
+      - logging_archive_snapshot_contract | length > 0
+      - logging_archive_watchdog_url is match('^https://[A-Za-z0-9./_?=&:%-]+$')
+      - logging_archive_data is match('^/[A-Za-z0-9_/-]+$')
+      - logging_archive_view_root is match('^/srv/[A-Za-z0-9_-]+$')
+      - "'..' not in logging_archive_data.split('/')"
+      - logging_archive_interval | int >= 10
+      - logging_archive_max_bytes | int >= 65536
+      - logging_archive_required_sources | length > 0
+      - logging_archive_max_lag_seconds | int >= 120
+      - logging_archive_min_free_bytes | int >= 16777216
+    fail_msg: Commission NAS snapshots and an external dead-man check before enabling archive publication.
+
+- name: Install native NAS, audit and reader dependencies
+  ansible.builtin.dnf:
+    name: [cifs-utils, audit, python3, curl]
+    state: present
+    allowerasing: false
+
+- name: Validate fixed application reader group names
+  ansible.builtin.assert:
+    that: item is match('^[a-z][a-z0-9_-]{0,62}$')
+  loop: "{{ logging_archive_views.values() | list | unique }}"
+
+- name: Install the restricted archive-transfer credential
+  ansible.builtin.copy:
+    src: "{{ logging_archive_credentials }}"
+    dest: /etc/security-log-nas.credentials
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Mount only the explicitly selected authenticated encrypted NAS share
+  ansible.posix.mount:
+    path: "{{ logging_archive_mount }}"
+    src: "{{ logging_archive_source }}"
+    fstype: cifs
+    opts: credentials=/etc/security-log-nas.credentials,vers=3.1.1,seal,nosuid,nodev,noexec,_netdev,nofail,dir_mode=0700,file_mode=0600
+    state: mounted
+
+- name: Read the marker provisioned by the NAS custodian
+  ansible.builtin.slurp:
+    src: "{{ logging_archive_mount }}/.logging-target"
+  register: logging_archive_target
+
+- name: Refuse an uncommissioned or incorrect destination
+  ansible.builtin.assert:
+    that: logging_archive_target.content | b64decode | trim == logging_archive_marker
+
+- name: Prepare local job state and app-copy boundary
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ '0711' if item == logging_archive_view_root else '0700' }}"
+  loop:
+    - /usr/local/lib/security-logging
+    - /var/lib/security-logging
+    - "{{ logging_archive_view_root }}"
+
+- name: Create explicit application-reader groups without enrolling users
+  ansible.builtin.group:
+    name: "{{ item }}"
+    system: true
+  loop: "{{ logging_archive_views.values() | list | unique }}"
+
+- name: Install the portable checkpoint writer and offline verifier
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/usr/local/lib/security-logging/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [logging_checkpoint.py, logging_io.py, logging_health.py]
+
+- name: Install the root-owned archive contract
+  ansible.builtin.template:
+    src: archive.json.j2
+    dest: /etc/security-log-archive.json
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Install checkpoint service and timer
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - {src: archive.service.j2, dest: /etc/systemd/system/security-log-archive.service}
+    - {src: archive.timer.j2, dest: /etc/systemd/system/security-log-archive.timer}
+
+- name: Install the owned logging read-audit policy
+  ansible.builtin.template:
+    src: audit.rules.j2
+    dest: /etc/audit/rules.d/70-security-logging.rules
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Load logging read audit rules
+
+- name: Keep the checkpoint health capability URL in a root-only native curl file
+  ansible.builtin.copy:
+    dest: /etc/security-log-archive.curl
+    content: "url = \"{{ logging_archive_watchdog_url }}\"\n"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Apply read-audit policy before publication
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure the native audit daemon is enabled
+  ansible.builtin.systemd_service:
+    name: auditd.service
+    enabled: true
+    state: started
+
+- name: Run the first guarded checkpoint now
+  ansible.builtin.systemd_service:
+    name: security-log-archive.service
+    daemon_reload: true
+    state: started
+
+- name: Enable recurring checkpoints
+  ansible.builtin.systemd_service:
+    name: security-log-archive.timer
+    enabled: true
+    state: started

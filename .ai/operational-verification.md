@@ -47,10 +47,11 @@ by refresh and therefore still require review.
 
 ## 2. Logging integration
 
-**Implementation prerequisites:** source forwarding/bootstrap trust, selected durable
-archive handoff, protected retention, independent copies and audited reads are still
-[missing integration](operator-walkthrough.md#remaining-implementation-before-an-end-to-end-installation).
-Do not attempt to pass this section with only the supplied local receiver.
+**Implementation:** selected Linux/NAS recipes are supplied; follow the
+[pipeline contract](../docs/reference/logging-pipeline.md). Commission actual NAS
+snapshots/accounts/audit, independent backup storage and external dead-man alerts
+before these checks. Device-native and Kubernetes collector variants require their
+selected integrations. Do not pass this section with only the local receiver.
 Select [A: NAS-backed or B: retention-locked](../docs/architecture/operations/log-retention.md)
 and record trusted administrators. One homelab operator may hold all roles under A
 using separate credentials; this does not claim protection against that administrator.
@@ -60,6 +61,8 @@ using separate credentials; this does not claim protection against that administ
 - [ ] **LOG-1: Real source delivery.** Emit numbered records from Proxmox, supported network
   devices, collector OS and the CA host; extend to every tier as it exists. Pass when retained
   records preserve identity/timestamps and the authenticated source catalogue matches.
+  Include the first burst immediately after a fresh TLS handshake, without warm-up;
+  verify the deployed 4.11+ receiver preserves every expected source identity then.
   Document every unauthenticated or unbuffered first-hop exception.
 - [ ] **LOG-2: Authorization and retention.** Exercise producer, approved reader and custodian
   roles. Pass when forged ownership, cross-scope reads and producer/query overwrite or
@@ -71,8 +74,10 @@ using separate credentials; this does not claim protection against that administ
   raw access denied and qualify later analytics views separately.
 - [ ] **LOG-3: Declared durability.** Reconcile before/during/after batches across process,
   host/power, network and archive failures within the approved failure envelope. Pass when
-  accepted events survive, retries are accounted for and senders do not release their copies
-  before the required durable protection. An open TCP connection is not this evidence.
+  independently protected checkpoints survive and measured loss/replay/duplicates meet the
+  declared RPO. NAS main-path native queues release on transport; measure that exposed tail,
+  source retention and snapshot/backup lag, never claim application-acknowledged replication.
+  The stronger intake variant must separately prove its release/commit contract.
 - [ ] **LOG-4: Bounded exhaustion and independence.** On capped disposable storage, test queue
   pressure and a Tier 1/cluster/SSO outage. Pass when the recorded backpressure policy and
   independent alerts operate, and authorized Tier 0 investigation remains possible.

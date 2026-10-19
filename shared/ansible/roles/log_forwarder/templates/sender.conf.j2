@@ -1,0 +1,28 @@
+# Stateless implementation: Shared log_forwarder; identity/input selection is tier-local.
+global(workDirectory="{{ log_forwarder_state }}/{{ stream.name }}"
+    DefaultNetstreamDriverCRLFile="{{ log_forwarder_config }}/{{ stream.name }}/revoked.pem"
+    maxMessageSize="64k")
+main_queue(queue.type="Disk" queue.filename="outbound"
+    queue.maxDiskSpace="{{ log_forwarder_queue_bytes }}" queue.maxFileSize="1048576"
+    queue.checkpointInterval="1" queue.syncQueueFiles="on"
+    queue.discardSeverity="8" queue.timeoutEnqueue="60000"
+    queue.saveOnShutdown="on")
+{% if stream.input == 'journal' %}
+module(load="imjournal" StateFile="journal.cursor" PersistStateInterval="1"
+    FSync="on" Ratelimit.Interval="0" IgnorePreviousMessages="off")
+{% else %}
+module(load="imfile")
+{% for path in stream.files %}
+input(type="imfile" File="{{ path }}" Tag="{{ stream.name }}"
+    Facility="local6" Severity="info" PersistStateInterval="1" freshStartTail="off")
+{% endfor %}
+{% endif %}
+action(type="omfwd" target="{{ log_forwarder_target }}" port="{{ log_forwarder_port }}"
+    protocol="tcp" TCP_Framing="traditional" template="RSYSLOG_SyslogProtocol23Format"
+    StreamDriver="gtls" StreamDriverMode="1" StreamDriverAuthMode="x509/name"
+    StreamDriverPermittedPeers="{{ log_forwarder_peer }}"
+    StreamDriver.PrioritizeSAN="on" StreamDriver.CheckExtendedKeyPurpose="on"
+    StreamDriver.CAFile="{{ log_forwarder_config }}/{{ stream.name }}/ca.pem"
+    StreamDriver.CertFile="{{ log_forwarder_config }}/{{ stream.name }}/client.pem"
+    StreamDriver.KeyFile="{{ log_forwarder_config }}/{{ stream.name }}/key.pem"
+    action.resumeRetryCount="-1" action.resumeInterval="5")

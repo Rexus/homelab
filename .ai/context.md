@@ -75,12 +75,20 @@ This file keeps durable context for AI-assisted work across sessions.
   Software-first setup has a separately approved encrypted-key/CSR recipe and offline clca templates
 - FreeIPA supports external CSR/pause/completion and an explicit CA replica; live custody,
   signing and recovery qualification remain manual operational verification.
-  Source audit forwarding and protected retention remain missing logging integration.
+  The selected Linux/NAS logging path now supplies forwarding and protected-copy jobs;
+  actual NAS custody and live fault/access/restore results remain manual qualification.
 - Log archive alternatives are NAS-managed snapshots/independent backups with trusted
   administrators, or qualified retention locks when privileged deletion must be prevented.
   One homelab operator may hold all roles with separate credentials; same-person custody
   is explicit, not WORM. Growth/access changes trigger review, not an automatic cloud dependency.
   docs/architecture/operations/log-retention.md owns this choice; Stage 1 options 3c/3d guide it.
+- Logging implementation: Shared owns stateless `log_forwarder`; tier inventories,
+  source keys/cursors and selectors stay local. Tier 0 owns reviewed-CSR signing,
+  receiver, create-only NAS checkpoints, audited application filesystem views and
+  independent restic jobs on a separate recovery host. NAS accounts/snapshots and
+  independent storage are commissioned prerequisites, not collector privileges.
+  Native sender release is transport-based; expose the unprotected tail explicitly.
+  This bounded-loss main path is not replicated intake or WORM. See `docs/reference/logging-pipeline.md`.
 - All source Linux, template and Kubernetes Terraform roots verify Proxmox TLS. Provisioning
   entry points reject current/legacy insecure environment flags; bootstrap trusts the Proxmox CA.
 - .ai/operator-walkthrough.md tracks missing mechanisms separately from supplied code;

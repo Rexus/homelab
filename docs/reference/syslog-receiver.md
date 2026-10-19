@@ -27,6 +27,7 @@ overrides stay in ignored Tier 0 group/host vars, never Shared.
 | `syslog_ng_listen_address` | Inventory host address; explicit non-wildcard IPv4 only |
 | `syslog_ng_tls_port`, `syslog_ng_udp_port` | 6514 / 514; UDP exists only with legacy sources |
 | `syslog_ng_tls_ca_src`, `syslog_ng_tls_cert_src`, `syslog_ng_tls_key_src` | Execution-host files from `SYSLOG_NG_TLS_CA_FILE`, `SYSLOG_NG_TLS_CERT_FILE`, `SYSLOG_NG_TLS_KEY_FILE` |
+| `syslog_ng_tls_crl_src` | Optional externally supplied signed CRL from `SYSLOG_NG_TLS_CRL_FILE`; required by the supplied independent-authority main path; native hashed CRL directory, receiver restart on change |
 | `syslog_ng_manage_firewall`, `syslog_ng_firewall_zone` | `true`, `public`; firewalld must already run; select the interface's actual zone |
 | `syslog_ng_queue_bytes` | 268435456 per destination; budget for every active source/date writer and backlog, not total archive capacity |
 | `syslog_ng_max_message_bytes`, `syslog_ng_max_connections` | 65536 / 100; oversize behavior must be tested against the selected producer/framing |
@@ -64,7 +65,7 @@ does not cryptographically authenticate every device behind it.
 | Host isolation | Dedicated non-login service user, read-only system, limited bind capability and native SELinux labels/ports; policy remains enabled |
 | Network ACL | Narrow per-source host rules; no automatic removal of stale/pre-existing broader firewall rules; review gateway and host rules on source removal |
 | Local delivery | File flush per record, `fsync(yes)`, reliable disk buffer and flow control; storage/controller behavior still matters [2] |
-| Archive custody | Local files remain mutable by service/root/hypervisor; selected [NAS-backed or locked retention](../architecture/operations/log-retention.md), independent copies, manifests, encryption and audited reads are project integrations |
+| Archive custody | Local files remain mutable; separate [NAS pipeline recipes](logging-pipeline.md) supply checkpoints, independent encrypted backup and audited file views. NAS snapshot/access administration and optional locks remain outside this receiver role |
 | HA / quotas / analytics | No replication, multi-host commit, per-tenant filesystem quotas, external alerts or Tier 1 forwarding installed |
 
 Disk buffers are delivery queues, not replicated commit receipts or protected retention.
@@ -83,6 +84,9 @@ Jinja2 (included with Ansible) renders the real receiver template; Ansible with
 `community.crypto` also checks certificate/key validation against disposable certificates.
 `SYSLOG_NG_TEST_MODULE_PATH` optionally selects extracted matching modules.
 These tests use temporary files and loopback ports, never installed system services.
+Use a 4.11+ receiver for first-batch interoperability: earlier syslog-ng releases can
+omit the TLS identity on an entire first read batch. A passing orderly-closing Python
+client test alone does not cover that defect.
 
 Native process checks are not EL host deployment, SELinux enforcement, physical
 power-loss, bounded-full-disk, independent backup or WORM acceptance. Record those

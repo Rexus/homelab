@@ -146,6 +146,36 @@ class NativeReceiver(unittest.TestCase):
         time.sleep(0.3)
         self.assertEqual(len(records(self.directory)), 1)
 
+    def test_native_receiver_enforces_signed_producer_revocation(self):
+        from datetime import datetime, timedelta, timezone
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+
+        tls = self.directory / 'tls'
+        ca = x509.load_pem_x509_certificate((tls / 'ca.pem').read_bytes())
+        key = serialization.load_pem_private_key((tls / 'ca.key').read_bytes(), None)
+        producer = x509.load_pem_x509_certificate((tls / 'producer.pem').read_bytes())
+        now = datetime.now(timezone.utc)
+        revoked = (x509.RevokedCertificateBuilder().serial_number(producer.serial_number)
+                   .revocation_date(now - timedelta(minutes=1)).build())
+        crl = (x509.CertificateRevocationListBuilder().issuer_name(ca.subject)
+               .last_update(now - timedelta(minutes=1)).next_update(now + timedelta(days=1))
+               .add_revoked_certificate(revoked).sign(key, hashes.SHA256()))
+        (tls / 'crl').mkdir()
+        path = tls / 'crl/revoked.pem'
+        path.write_bytes(crl.public_bytes(serialization.Encoding.PEM))
+        lookup = command('openssl', 'crl', '-in', str(path), '-hash', '-noout').stdout.strip()
+        (tls / f'crl/{lookup}.r0').symlink_to('revoked.pem')
+        self.config.write_text(self.config.read_text().replace(
+            'peer-verify(required-trusted)', f'crl-dir("{tls}/crl") peer-verify(required-trusted)'))
+        self.start()
+        try:
+            send(self.directory, self.port, ['revoked-client-must-not-append'])
+        except (ssl.SSLError, OSError):
+            pass
+        time.sleep(0.3)
+        self.assertEqual(records(self.directory), [])
+
     @unittest.skipUnless(shutil.which('ansible-playbook'), 'Requires Ansible and community.crypto')
     def test_native_certificate_metadata_rejects_a_mismatched_server_key(self):
         tasks = yaml.safe_load((ROLE / 'tasks/tls.yml').read_text())
@@ -161,6 +191,65 @@ class NativeReceiver(unittest.TestCase):
         (self.directory / 'tls/key.pem').write_bytes((self.directory / 'tls/producer.key').read_bytes())
         result = subprocess.run(arguments, capture_output=True, text=True, timeout=30)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    @unittest.skipUnless(shutil.which('rsyslogd') and os.environ.get('RSYSLOG_TEST_MODULE_PATH'),
+                         'Requires native rsyslog and a GnuTLS plugin path')
+    def test_native_sender_disk_queue_survives_receiver_outage_and_restart(self):
+        from datetime import datetime, timedelta, timezone
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from jinja2 import Environment, StrictUndefined
+        from tier_repo_test_support import UPSTREAM
+
+        sender = self.directory / 'sender'
+        (sender / 'producer').mkdir(parents=True)
+        for source, destination in [('ca.pem', 'ca.pem'), ('producer.pem', 'client.pem'),
+                                    ('producer.key', 'key.pem')]:
+            shutil.copyfile(self.directory / 'tls' / source, sender / 'producer' / destination)
+        ca = x509.load_pem_x509_certificate((self.directory / 'tls/ca.pem').read_bytes())
+        ca_key = serialization.load_pem_private_key((self.directory / 'tls/ca.key').read_bytes(), None)
+        now = datetime.now(timezone.utc)
+        crl = (x509.CertificateRevocationListBuilder().issuer_name(ca.subject)
+               .last_update(now - timedelta(minutes=1)).next_update(now + timedelta(days=1))
+               .sign(ca_key, hashes.SHA256()))
+        (sender / 'producer/revoked.pem').write_bytes(crl.public_bytes(serialization.Encoding.PEM))
+        spool = self.directory / 'spool/producer'
+        spool.mkdir(parents=True)
+        source = self.directory / 'application.log'
+        source.write_text(''.join(f'queue-test-event-{number}\n' for number in range(10)))
+        template = UPSTREAM / 'shared/ansible/roles/log_forwarder/templates/sender.conf.j2'
+        config = Environment(undefined=StrictUndefined).from_string(template.read_text()).render(
+            stream=dict(name='producer', kind='security', input='files', files=[str(source)]),
+            log_forwarder_config=str(sender), log_forwarder_state=str(self.directory / 'spool'),
+            log_forwarder_queue_bytes=16777216, log_forwarder_target='127.0.0.1',
+            log_forwarder_peer='localhost', log_forwarder_port=self.port)
+        path = self.directory / 'sender.conf'
+        path.write_text(config)
+        arguments = ['rsyslogd', '-M', os.environ['RSYSLOG_TEST_MODULE_PATH'], '-f', str(path)]
+        command(*arguments, '-N1')
+        producer = subprocess.Popen(arguments + ['-n', '-i', str(self.directory / 'sender.pid')],
+                                    stdout=self.log, stderr=self.log)
+        try:
+            time.sleep(1)
+            self.assertIsNone(producer.poll(), (self.directory / 'process.log').read_text())
+            producer.kill()
+            producer.wait(timeout=10)
+            self.assertTrue(any(spool.glob('outbound*')), 'No durable outbound queue created')
+            self.start()
+            producer = subprocess.Popen(arguments + ['-n', '-i', str(self.directory / 'sender.pid')],
+                                        stdout=self.log, stderr=self.log)
+            try:
+                found = wait_for_records(self.directory, 10)
+            except AssertionError:
+                self.fail((self.directory / 'process.log').read_bytes()[-5000:].decode(errors='replace'))
+            messages = '\n'.join(row['raw'] for row in found)
+            for number in range(10):
+                self.assertIn(f'queue-test-event-{number}', messages)
+            self.assertTrue(all(row['source'] == 'producer' for row in found))
+        finally:
+            if producer.poll() is None:
+                producer.kill()
+                producer.wait(timeout=10)
 
 
 if __name__ == '__main__':

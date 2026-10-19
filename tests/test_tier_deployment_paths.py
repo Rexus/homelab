@@ -33,7 +33,9 @@ class DeploymentPaths(TierRepositoryTestCase):
                             "scripts/deploy.sh syslog --plan-only", "scripts/deploy.sh syslog"):
                 self.assertIn(command, logging)
             self.assertIn("OS baseline", logging)
-            self.assertIn("project integration", logging)
+            self.assertIn("sources.md", logging)
+            self.assertIn("step-3c-nas-archive.md", logging)
+            self.assertIn("declared durability limits", logging)
 
     def test_every_runnable_root_has_a_capability_and_walkthrough(self):
         self.generate()

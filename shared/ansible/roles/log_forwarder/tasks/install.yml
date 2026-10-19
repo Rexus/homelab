@@ -1,0 +1,126 @@
+---
+- name: Validate destination and durable queue settings
+  ansible.builtin.assert:
+    that:
+      - log_forwarder_target is match('^[A-Za-z0-9][A-Za-z0-9.-]+$')
+      - log_forwarder_peer is match('^[A-Za-z0-9][A-Za-z0-9.-]+$')
+      - log_forwarder_peer is not match('^[0-9.]+$')
+      - log_forwarder_port | int > 0
+      - log_forwarder_port | int < 65536
+      - log_forwarder_watchdog_url is match('^https://[A-Za-z0-9./_?=&:%-]+$')
+
+- name: Preserve existing logger service ownership
+  ansible.builtin.service_facts:
+
+- name: Install Red Hat native sender and TLS driver without erasing the OS logger
+  ansible.builtin.dnf:
+    name: [rsyslog, rsyslog-gnutls, openssl, curl]
+    state: present
+    allowerasing: false
+  when: ansible_os_family == 'RedHat'
+
+- name: Install Debian native sender without starting vendor services
+  ansible.builtin.apt:
+    name: [rsyslog, rsyslog-gnutls, openssl, curl]
+    state: present
+    fail_on_autoremove: true
+    policy_rc_d: 101
+  when: ansible_os_family == 'Debian'
+
+- name: Keep a newly installed vendor unit inactive
+  ansible.builtin.systemd_service:
+    name: rsyslog.service
+    enabled: false
+    state: stopped
+  when: "'rsyslog.service' not in ansible_facts.services"
+
+- name: Inspect native sender capability
+  ansible.builtin.command:
+    argv: [/usr/sbin/rsyslogd, -v]
+  register: log_forwarder_version
+  changed_when: false
+
+- name: Require per-stream TLS identities and revocation support
+  ansible.builtin.assert:
+    that:
+      - (log_forwarder_version.stdout | regex_search('rsyslogd\s+([0-9.]+)', '\1') | first) is version('8.2308.0', '>=')
+    fail_msg: Supply a qualified rsyslog 8.2308+ package with the GnuTLS driver.
+
+- name: Prepare bounded durable state directories without resetting cursors
+  ansible.builtin.file:
+    path: "{{ log_forwarder_state }}/{{ item.name }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop: "{{ log_forwarder_streams }}"
+
+- name: Install and validate each stream
+  ansible.builtin.include_tasks: stream.yml
+  loop: "{{ log_forwarder_streams }}"
+  loop_control:
+    loop_var: stream
+
+- name: Prepare persistent journal settings
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Retain early journal records within the declared capacity
+  ansible.builtin.template:
+    src: journal.conf.j2
+    dest: /etc/systemd/journald.conf.d/60-protected-logging.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart persistent journal
+
+- name: Apply sender changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Install a security-stream heartbeat without changing application files
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/log-forwarder-heartbeat.{{ item.suffix }}"
+    content: "{{ item.content }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - suffix: service
+      content: |
+        [Unit]
+        Description=Protected logging source heartbeat
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/logger -t protected-logging-heartbeat source-alive
+        NoNewPrivileges=true
+    - suffix: timer
+      content: |
+        [Unit]
+        Description=Schedule protected logging source heartbeat
+        [Timer]
+        OnBootSec=30s
+        OnUnitActiveSec=60s
+        [Install]
+        WantedBy=timers.target
+  when: log_forwarder_streams | selectattr('input', 'equalto', 'journal') | length > 0
+
+- name: Enable source freshness signals for journal streams
+  ansible.builtin.systemd_service:
+    name: log-forwarder-heartbeat.timer
+    daemon_reload: true
+    enabled: true
+    state: started
+  when: log_forwarder_streams | selectattr('input', 'equalto', 'journal') | length > 0
+
+- name: Enable the explicitly selected streams
+  ansible.builtin.systemd_service:
+    name: "log-forwarder-{{ item.name }}.service"
+    daemon_reload: true
+    enabled: true
+    state: started
+  loop: "{{ log_forwarder_streams }}"
+
+- name: Install independently observed producer health checks
+  ansible.builtin.import_tasks: health.yml

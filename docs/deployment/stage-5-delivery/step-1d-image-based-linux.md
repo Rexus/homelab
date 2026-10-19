@@ -164,8 +164,12 @@ including a unique builder VMID and IP. Keep the builder in its original state t
 
 1. Create or reuse normal cloud-init templates such as `rhel-10-tmpl`,
    `alma-10-tmpl`, or `rocky-10-tmpl`.
-2. Edit `terraform/deployments/immutable-template/terraform.tfvars`.
-3. Edit `ansible/group_vars/immutable_template.yml`.
+2. Create `terraform/deployments/immutable-template/terraform.test.tfvars` from the
+   initialized base `terraform.tfvars`, with the complete test builder map and unique VMID.
+   The initializer does not create this Terraform overlay.
+3. Edit `ansible/group_vars/immutable_template.test.yml`, including its IP and image
+   settings. The copied test vars override `immutable_template.yml`; base edits alone
+   do not configure this run.
 4. Clone the template into a temporary conversion VM.
 5. Use Ansible to install the bootc tooling required by the selected distro.
 6. Switch or install the host to the target bootc image.
@@ -193,14 +197,14 @@ bash scripts/deploy.sh immutable-template --env test
 ```
 
 After verifying the bootc system, enable cleanup in
-`ansible/group_vars/immutable_template.<env>.yml` or `immutable_template.yml`:
+`ansible/group_vars/immutable_template.test.yml` for this test context:
 
 ```yaml
 immutable_template_prepare_for_template: true
 ```
 
 Rerun Ansible, then set the builder VM to `template = true` and
-`started = false` in `terraform/deployments/immutable-template/terraform.tfvars`.
+`started = false` in the same `terraform/deployments/immutable-template/terraform.test.tfvars`.
 Run only Terraform for the final conversion:
 
 ```bash

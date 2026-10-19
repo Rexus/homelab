@@ -25,6 +25,11 @@ class OperatorJourney(TierRepositoryTestCase):
             for expected in ("## Bring up the network", "switch alone is not", "controller",
                              "native/untagged", "control_cluster"):
                 self.assertIn(expected.lower(), network.lower())
+            for relative in ("README.md", "receiver.md"):
+                logging = (docs / "deployment/stage-1-logging" / relative).read_text()
+                self.assertIn("software-pki.md#decisions-and-recovery-kit", logging)
+                self.assertIn("client-auth", logging)
+                self.assertIn("independent producer authority", logging)
 
     def test_service_walkthroughs_initialize_plan_review_then_deploy(self):
         self.generate()
@@ -91,6 +96,46 @@ class OperatorJourney(TierRepositoryTestCase):
         self.assertIn("PyYAML is required", result.stderr)
         self.assertIn("generated-repositories.md#purpose-and-prerequisites", result.stderr)
         self.assertFalse(self.parent.exists())
+
+    def test_first_guest_restore_follows_template_publication_and_allows_existing_backup_services(self):
+        self.generate("--repo", "architecture")
+        for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            foundation = (docs / "deployment/foundation/README.md").read_text()
+            step2, step3 = foundation.split("## Step 2:", 1)[1].split("## Step 3:", 1)
+            self.assertIn("test their recovery before provisioning", step2)
+            self.assertIn("first disposable clone in Step 3", step2)
+            self.assertIn("Back up and restore a disposable clone", step3)
+            backup = (docs / "administration/compute/backup-restore.md").read_text()
+            self.assertIn("installing PBS is not mandatory", backup)
+            criteria = backup.split("## Done criteria", 1)[1].split("## Read more", 1)[0]
+            self.assertNotIn("PBS is reachable", criteria)
+            self.assertIn("selected backup destination", criteria)
+
+    def test_named_test_guides_edit_the_files_that_override_base_settings(self):
+        self.generate("--repo", "architecture")
+        guides = (("step-1b-source-control-vm.md", "development", "development"),
+                  ("step-1c-podman-runner.md", "podman-runner", "podman_runner"),
+                  ("step-1d-image-based-linux.md", "immutable-template", "immutable_template"))
+        for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            for relative, setup, stem in guides:
+                content = (docs / "deployment/stage-5-delivery" / relative).read_text()
+                plan = content.index(f"bash scripts/deploy.sh {setup} --env test --plan-only")
+                for path in (f"terraform/deployments/{setup}/terraform.test.tfvars",
+                             f"ansible/group_vars/{stem}.test.yml"):
+                    self.assertLess(content.index(path), plan)
+                self.assertIn("override", content)
+
+    def test_fresh_readme_uses_logging_and_keeps_environment_isolation_adjacent(self):
+        self.generate()
+        for tier in ("tier-0", "tier-1", "tier-2"):
+            readme = (self.root / f"verify-{tier}/README.md").read_text()
+            quick = readme.split("## Linux VM quick start", 1)[1].split("## Repository structure", 1)[0]
+            self.assertIn("#environment-isolation", quick)
+            self.assertNotIn("--env test --plan-only", quick)
+            self.assertIn("Some setups require storage or TLS preparation", quick)
+            if tier == "tier-0":
+                self.assertIn("--setup syslog", quick)
+                self.assertIn("deploy.sh syslog --plan-only", quick)
 
     def test_tls_exceptions_are_visible_before_linux_api_use(self):
         guide = (UPSTREAM / "docs/deployment/foundation/procedures/api-access.md").read_text()

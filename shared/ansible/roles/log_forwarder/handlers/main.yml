@@ -1,0 +1,12 @@
+---
+- name: Restart selected log forwarders
+  ansible.builtin.systemd_service:
+    name: "log-forwarder-{{ item.name }}.service"
+    daemon_reload: true
+    state: restarted
+  loop: "{{ log_forwarder_streams }}"
+
+- name: Restart persistent journal
+  ansible.builtin.systemd_service:
+    name: systemd-journald.service
+    state: restarted

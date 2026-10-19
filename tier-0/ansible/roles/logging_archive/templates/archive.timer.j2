@@ -1,0 +1,10 @@
+[Unit]
+Description=Schedule protected logging checkpoints
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec={{ logging_archive_interval }}s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,16 @@
+---
+logging_archive_mount: /mnt/security-log-archive
+logging_archive_source: ""
+logging_archive_marker: ""
+logging_archive_credentials: "{{ lookup('ansible.builtin.env', 'LOGGING_NAS_CREDENTIALS_FILE') }}"
+logging_archive_data: /srv/security-logging
+logging_archive_collector: "{{ inventory_hostname }}"
+logging_archive_max_bytes: 67108864
+logging_archive_interval: 60
+logging_archive_views: {}
+logging_archive_view_root: /srv/application-log-views
+logging_archive_snapshot_contract: ""
+logging_archive_watchdog_url: ""
+logging_archive_required_sources: []
+logging_archive_max_lag_seconds: 300
+logging_archive_min_free_bytes: 2147483648

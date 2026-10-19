@@ -1,0 +1,12 @@
+---
+logging_authority_directory: "{{ lookup('ansible.builtin.env', 'LOGGING_AUTHORITY_DIR') }}"
+logging_authority_passphrase: "{{ lookup('ansible.builtin.env', 'LOGGING_AUTHORITY_PASSPHRASE') }}"
+logging_authority_initialize: false
+logging_authority_name: Independent logging authority
+logging_authority_requests: []
+logging_authority_revocations: []
+logging_authority_leaf_days: 90
+logging_authority_renew_days: 30
+logging_receiver_directory: "{{ lookup('ansible.builtin.env', 'LOGGING_RECEIVER_DIR') }}"
+logging_receiver_name: "{{ lookup('ansible.builtin.env', 'LOGGING_RECEIVER_NAME') }}"
+logging_receiver_dns: "{{ lookup('ansible.builtin.env', 'LOGGING_RECEIVER_DNS') }}"

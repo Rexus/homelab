@@ -6,10 +6,17 @@ Local records are mutable staging, **not an immutable archive or HA acceptance**
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** [Stage 1, Step 1](README.md#step-1-provision-the-log-host), EL 10
-(AlmaLinux/Rocky/RHEL), approved signed syslog-ng 4.8+ packages and dependencies,
+(AlmaLinux/Rocky/RHEL), approved signed syslog-ng 4.11+ packages and dependencies,
 working time/DNS, firewalld, and independently supplied TLS certificates.
 Prepare repository access or an approved offline mirror before deployment; the role
 does not enable EPEL or depend on a later Tier 1 software-supply service. [1]
+The 4.11 minimum includes the upstream first-read TLS metadata fix: older versions
+can omit the CN used for strict routing and drop the first read batch. Do not relax
+the identity filter to accommodate those packages. Qualify the signed repository
+or approved offline package source before the receiver installation. [3]
+Do not assume EPEL alone satisfies that gate: distribution versions may lag it.
+Qualify the upstream stable EL 10 packages/signing key or a reviewed internal build;
+never substitute Fedora RPMs, nightly packages or disabled signature checks. [1][4]
 
 ## Contents
 
@@ -46,7 +53,8 @@ without the mount. The preflight free-space threshold is a gate, not a capacity 
 
 ## Step 2: Register trust and producers
 
-1. Supply an independent CA bundle, current server certificate/full chain with the
+1. Follow [independent logging trust](producer-trust.md), or supply an existing qualified
+   independent CA bundle, current server certificate/full chain with the
    receiver DNS/IP in its SAN and server-auth usage, and matching unencrypted service
    key. Issue client-auth certificates per producer/relay. Protect these files outside
    Git on the execution host; keep CA signing/recovery keys separately. Stage 2 PKI is
@@ -69,13 +77,17 @@ configuration or command history:
 read -r -e -p 'Receiver CA bundle path: ' SYSLOG_NG_TLS_CA_FILE
 read -r -e -p 'Receiver certificate chain path: ' SYSLOG_NG_TLS_CERT_FILE
 read -r -e -p 'Receiver private key path: ' SYSLOG_NG_TLS_KEY_FILE
-export SYSLOG_NG_TLS_CA_FILE SYSLOG_NG_TLS_CERT_FILE SYSLOG_NG_TLS_KEY_FILE
+read -r -e -p 'Current signed producer CRL path: ' SYSLOG_NG_TLS_CRL_FILE
+export SYSLOG_NG_TLS_CA_FILE SYSLOG_NG_TLS_CERT_FILE SYSLOG_NG_TLS_KEY_FILE SYSLOG_NG_TLS_CRL_FILE
 ```
 
 No generic unauthenticated TCP listener is installed. TLS requires client certificates,
 trusted subjects and matching source IP/CN; TLS versions below 1.2 are disabled. [2]
-Producer forwarding, durable source queues and device-specific framing are separate
-configuration. Verify the actual source path before claiming coverage, including local
+The supplied [software PKI policy](../stage-2-trust/procedures/software-pki.md#decisions-and-recovery-kit)
+does not issue client-auth certificates. Its TLS-server profile is not a replacement
+for the independent producer authority; qualify that integration before migrating trust.
+Configure [producer forwarding and durable queues](sources.md) in the owning tier;
+device-specific exceptions remain explicit. Verify the actual source path, including local
 receiver events; the OS logger's journal/socket/configuration remain untouched.
 
 ## Step 3: Deploy and verify
@@ -104,7 +116,8 @@ receiver events; the OS logger's journal/socket/configuration remain untouched.
    certificates, mismatched origins and attempts to select another source namespace.
 3. Continue [Stage 1, Step 3](README.md#step-3-protect-and-verify-retained-evidence)
    and the [fault/restore drill](../../administration/logging-drill.md). Prepare independent
-   protected copies, retention enforcement, audited reader access and capacity/gap alerts.
+   [NAS checkpoints, independent copies and audited reader access](step-3c-nas-archive.md),
+   or the selected locked-storage alternative.
 
 The [receiver reference](../../reference/syslog-receiver.md) defines files, queue sizing,
 runtime safeguards, reconciliation fields and limitations. The maintenance recipe reuses
@@ -113,7 +126,9 @@ Do not remove sources or change queue paths/capacities with an unreviewed backlo
 
 ## References
 
-Sources checked 2026-10-17.
+Sources checked 2026-10-19.
 
 1. [Fedora package catalogue: syslog-ng and EPEL versions](https://packages.fedoraproject.org/pkgs/syslog-ng/syslog-ng/index.html)
 2. [syslog-ng TLS, certificate validation and subject restrictions](https://syslog-ng.github.io/admin-guide/100_TLS-encrypted_message_transfer/004_TLS_options.html)
+3. [syslog-ng first-read TLS peer metadata fix](https://github.com/syslog-ng/syslog-ng/pull/5603)
+4. [Upstream stable package availability and binary-installation entry](https://www.syslog-ng.com/community/b/blog/posts/syslog-ng-4-11-0-packaging-status)

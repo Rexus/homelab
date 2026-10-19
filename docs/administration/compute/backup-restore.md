@@ -50,13 +50,23 @@ against backup-server compromise. [3]
 
 This phase requires the following outcomes:
 
-- a running Proxmox Backup Server
-- a datastore created on PBS
-- PBS added to Proxmox VE as storage
+- an approved backup destination with independently recoverable access and keys
+- protected copies of local state, inventory and bootstrap inputs before guest creation
 - at least one successful VM or LXC backup
 - at least one successful restore test
 
+Guest tests require a disposable clone. In the
+[foundation checklist](../../deployment/foundation/README.md), prepare the destination
+and test local-input recovery in Step 2, then test guest backup/restore in Step 3.
+A NAS or another existing service is valid when its selected backup tooling preserves
+the required data and passes the same recovery and authority checks. A shared folder
+or successful file transfer alone does not establish that result.
+
 ## Quick steps
+
+The following is the **PBS reference path**. With an existing approved service,
+use its supported backup/restore procedure and complete the same done criteria;
+installing PBS is not mandatory.
 
 1. Install Proxmox Backup Server.
 2. Log in to the PBS web UI on port `8007`.
@@ -74,8 +84,8 @@ This phase requires the following outcomes:
 
 Do not continue until all of these are true:
 
-- PBS is reachable from Proxmox VE
-- the datastore is visible and usable
+- the selected backup destination is reachable from its intended client
+- storage and independently held recovery credentials are usable
 - a backup completes successfully
 - a restore completes successfully
 - the restored workload can boot or otherwise be validated
@@ -93,7 +103,7 @@ Do not continue until all of these are true:
 
 ## References
 
-Sources checked 2026-10-16.
+Sources checked 2026-10-19.
 
 1. [HHS backup and recovery guidance: 3-2-1 and offline copies](https://www.hhs.gov/hipaa/for-professionals/security/guidance/cybersecurity-newsletter-october-2022/index.html)
 2. [PBS roles, privileges and namespace-scoped access](https://pbs.proxmox.com/docs/user-management.html)

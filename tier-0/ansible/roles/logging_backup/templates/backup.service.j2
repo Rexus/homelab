@@ -1,0 +1,18 @@
+[Unit]
+Description=Independent encrypted recovery copy of protected logging checkpoints
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor={{ logging_backup_mount }} {{ logging_backup_repository }}
+
+[Service]
+Type=oneshot
+WorkingDirectory=/usr/local/lib/security-logging
+ExecStart=/usr/local/lib/security-logging/backup.sh
+TimeoutStartSec=6h
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ logging_backup_repository }} /var/lib/security-log-backup
+Environment=RESTIC_CACHE_DIR=/var/lib/security-log-backup/cache

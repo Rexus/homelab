@@ -1,0 +1,17 @@
+# Pass explicitly with -e @ansible/group_vars/logging_authority.yml on the signing host.
+# Guide: docs/deployment/stage-1-logging/producer-trust.md
+logging_authority_initialize: false
+logging_authority_requests: []
+# - name: pve01
+#   profile: client
+#   csr: /protected/requests/pve01.csr
+#   key_sha256: <independently-verified-colon-separated-public-key-sha256>
+# - name: foundation-log-1
+#   profile: server
+#   csr: /protected/requests/foundation-log-1.csr
+#   key_sha256: <independently-verified-colon-separated-public-key-sha256>
+#   san: ['DNS:logs.internal.example']
+logging_authority_revocations: []
+# - serial_number: <integer-from-issued-certificate>
+#   revocation_date: '20261019000000Z'
+#   reason: key_compromise

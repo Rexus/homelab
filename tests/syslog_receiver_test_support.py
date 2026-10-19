@@ -25,6 +25,7 @@ def render_config(directory, port, udp_sources=None):
         syslog_ng_data_mount=str(directory / "data"),
         syslog_ng_config_dir=str(directory), syslog_ng_listen_address="127.0.0.1",
         syslog_ng_tls_port=port, syslog_ng_udp_port=port,
+        syslog_ng_tls_crl_src='',
         syslog_ng_user=str(os.getuid()), syslog_ng_read_group=str(os.getgid()),
         syslog_ng_queue_bytes=1048576,
         syslog_ng_sources=[dict(name="producer", address="127.0.0.1", tier=0, tls_dn="CN=producer")],
@@ -51,7 +52,7 @@ def certificates(directory):
         command("openssl", "req", "-new", "-newkey", "rsa:2048", "-nodes", "-subj", f"/CN={name}",
                 "-keyout", str(tls / f"{name}.key"), "-out", str(tls / f"{name}.csr"))
         extensions = tls / f"{name}.ext"
-        extensions.write_text("subjectAltName=IP:127.0.0.1\nextendedKeyUsage=serverAuth,clientAuth\n")
+        extensions.write_text("subjectAltName=IP:127.0.0.1,DNS:localhost\nextendedKeyUsage=serverAuth,clientAuth\n")
         command("openssl", "x509", "-req", "-in", str(tls / f"{name}.csr"), "-CA", str(tls / "ca.pem"),
                 "-CAkey", str(tls / "ca.key"), "-CAcreateserial", "-days", "2",
                 "-extfile", str(extensions), "-out", str(tls / f"{name}.pem"))

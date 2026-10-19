@@ -11,9 +11,9 @@ retention is not required for this selected homelab model.
 **Design:** [choice A: NAS custody](../../architecture/operations/log-retention.md).
 **Prerequisites:** working collection, dedicated NAS storage, independent admin
 credentials and a recovery destination outside that NAS's failure domain.
-**Automation boundary:** the supplied receiver writes local records. NAS setup,
-archive transfer, snapshot/backup scheduling and access auditing require product
-integration; `deploy.sh syslog` does not install them.
+**Automation boundary:** Tier 0 supplies separate archive and independent-backup
+recipes; `deploy.sh syslog` alone installs neither. NAS account/snapshot commissioning
+and the independent recovery filesystem remain prerequisites, not collector privileges.
 
 ## Contents
 
@@ -34,6 +34,17 @@ integration; `deploy.sh syslog` does not install them.
 3. Configure NAS-owned snapshots and independent backup retention. Select intervals
    from measured event rate and acceptable loss, not an example schedule.
 
+Permit only the selected endpoints; keep these flows separate from administration:
+
+| Initiator | Destination | Main-path transport |
+| --- | --- | --- |
+| Approved producers | Tier 0 receiver address | TCP 6514 with client TLS; selected port if overridden |
+| Collector transfer / independent recovery host | Dedicated NAS share endpoint | TCP 445, authenticated encrypted SMB; separate write/read identities |
+| Producer, archive and backup health jobs | Named independent dead-man endpoints | TCP 443, verified HTTPS; no general outbound permission implied |
+
+No producer receives NAS access. Restrict recovery-repository and approved reader
+access independently; this role does not open gateway rules or a public query listener.
+
 | Identity | Scope |
 | --- | --- |
 | Archive transfer account | Only its archive intake area; no NAS/snapshot/backup administration |
@@ -50,23 +61,69 @@ restrictions for that mode. [1]
 
 ## Step 2: Connect collection to retained copies
 
-1. Configure the selected transfer integration for consistent checkpoints: complete
-   portable records, source catalogue, event ranges and integrity metadata. Retain
-   source/collector copies until the required checkpoint and backup are verified.
-   Do not copy live queue files or treat TCP success as archive commitment.
-2. Transfer without propagating deletion from the collector. A missing source file
-   must not delete the NAS copy; ordinary mirroring with deletion is not archival.
-   If the transfer identity can overwrite/delete live share files, record that limit:
-   recovery then depends on a previously completed snapshot it cannot administer.
-3. Schedule snapshots on the NAS and backups to a different recovery target.
-   Keep completion/coverage records outside the collector. For UniFi Drive, use
-   [Backup Tasks](https://help.ui.com/hc/en-us/articles/30961935781655-Troubleshooting-UNAS-Backup-Issues)
-   for the selected external destination; snapshots alone do not create that copy.
+1. On the NAS, create `.logging-target` in the dedicated archive share with an
+   independently recorded marker of 16-128 letters/digits/underscores/hyphens.
+   Give the collector transfer account only this share, never NAS administration.
+   Create a distinct read-only account for the recovery host. Enable SMB 3.1.1
+   encryption, NAS-owned snapshots, retention and NAS-side access auditing.
+2. From the Tier 0 root, copy and edit the archive inputs:
+
+   ```bash
+   cp ansible/group_vars/logging_archive.yml.example ansible/group_vars/logging_archive.yml
+   read -r -e -p 'Restricted NAS transfer credential file: ' LOGGING_NAS_CREDENTIALS_FILE
+   export LOGGING_NAS_CREDENTIALS_FILE
+   ```
+
+   Set the SMB source, marker, snapshot owner/runbook, required active OS source
+   names, capacity/lag budgets and an **external dead-man URL** that alerts when
+   successful pings stop. The credential file uses native CIFS `username=`, `password=`
+   and optional `domain=` lines. It is copied root-only, not placed in inventory/Git.
+   Optionally map only approved application sources to dedicated reader groups;
+   security-stream classification comes from Tier 0's source catalogue.
+3. After the source heartbeats are arriving and the storage contract is reviewed, deploy:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-archive.yml -e @ansible/group_vars/logging_archive.yml
+   ```
+
+   The role mounts the selected encrypted share, checks its independent marker and
+   starts `security-log-archive.timer`. Each run seals complete JSONL prefixes into
+   create-only hashed chunks and manifests, then advances its local cursor. It never
+   copies live queue files, mirrors deletion or removes local evidence. Linux audit
+   records raw/view reads; forward `/var/log/audit/audit.log` as a security stream.
+4. On a separate, Tier 0-owned Linux recovery host, prepare a mounted recovery filesystem
+   outside the NAS/collector failure domain. Add that existing host to `logging_recovery`
+   in Tier 0 inventory, never `foundation_logging`. Copy/edit its backup inputs:
+
+   ```bash
+   cp ansible/group_vars/logging_backup.yml.example ansible/group_vars/logging_backup.yml
+   read -r -e -p 'Read-only NAS recovery credential file: ' LOGGING_BACKUP_NAS_CREDENTIALS_FILE
+   read -r -e -p 'Separately held restic password file: ' LOGGING_BACKUP_PASSWORD_FILE
+   export LOGGING_BACKUP_NAS_CREDENTIALS_FILE LOGGING_BACKUP_PASSWORD_FILE
+   ```
+
+   Set source/marker, independent mounted repository, schedule and a separate external
+   dead-man check. Keep password/recovery keys off the collector. Approve repository
+   initialization only for a deliberately new destination; otherwise use the existing
+   repository/password. Deploy the separate backup recipe:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-backup.yml -e @ansible/group_vars/logging_backup.yml
+   ```
+
+   It verifies complete checkpoints, backs up only that fixed verified file list with
+   restic, checks the encrypted repository and pings only after success. No automatic
+   expiry/prune or NAS administration is granted. Native NAS backup tasks are also a
+   valid independently qualified alternative; avoid two unreviewed retention owners.
 
 Record source-to-copy lag and the latest verified snapshot/backup checkpoint.
 An asynchronous copy/snapshot interval creates an exposed tail; it is not zero RPO.
 RAID and another snapshot on the same NAS do not cover loss of the whole appliance.
 Protect decryption keys independently under the [backup policy](../../administration/compute/backup-restore.md#backup-policy).
+The [pipeline contract](../../reference/logging-pipeline.md) defines exact paths,
+failure behavior, filesystem reader views and the distinction between transport,
+NAS checkpoint, NAS snapshot and independent backup. Snapshot coverage is
+commissioned/checked on the NAS, not inferred from a successful transfer heartbeat.
 
 ## Step 3: Verify and record the boundary
 

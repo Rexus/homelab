@@ -11,6 +11,7 @@ syslog_ng_legacy_sources: []
 syslog_ng_tls_ca_src: "{{ lookup('ansible.builtin.env', 'SYSLOG_NG_TLS_CA_FILE') }}"
 syslog_ng_tls_cert_src: "{{ lookup('ansible.builtin.env', 'SYSLOG_NG_TLS_CERT_FILE') }}"
 syslog_ng_tls_key_src: "{{ lookup('ansible.builtin.env', 'SYSLOG_NG_TLS_KEY_FILE') }}"
+syslog_ng_tls_crl_src: "{{ lookup('ansible.builtin.env', 'SYSLOG_NG_TLS_CRL_FILE') }}"
 syslog_ng_manage_firewall: true
 syslog_ng_firewall_zone: public
 syslog_ng_max_message_bytes: 65536

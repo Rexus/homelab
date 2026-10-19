@@ -25,6 +25,9 @@ class SharedTemplateCatalog(TierRepositoryTestCase):
             for field in ("title", "family", "node_name", "tags"):
                 self.assertRegex(variables, rf"{field}\s*=")
         self.assertNotRegex(catalog.read_text(), r"(?m)^\s*(image_path|sha256|datastore_id|api_token)\s*=")
+        builder = (self.root / "verify-tier-0/terraform/deployments/immutable-template/terraform.tfvars.example").read_text()
+        self.assertIn("sibling shared repo's templates/proxmox-catalog.tfvars", builder)
+        self.assertNotIn("linux_vm_template_catalog in terraform/common.tfvars", builder)
 
     def test_refresh_never_replaces_or_recreates_the_owned_catalog(self):
         self.generate()

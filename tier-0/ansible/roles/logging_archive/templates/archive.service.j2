@@ -1,0 +1,18 @@
+[Unit]
+Description=Publish protected log checkpoints to independently administered NAS
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor={{ logging_archive_mount }} {{ logging_archive_data }}
+ConditionPathIsMountPoint={{ logging_archive_mount }}
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/security-logging/logging_checkpoint.py checkpoint --config /etc/security-log-archive.json
+ExecStartPost=/usr/bin/curl --fail --silent --show-error --max-time 20 --config /etc/security-log-archive.curl
+TimeoutStartSec=180
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ logging_archive_mount }} /var/lib/security-logging {{ logging_archive_view_root }}

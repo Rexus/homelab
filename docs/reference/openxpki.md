@@ -83,7 +83,7 @@ contains these paths at its root, with all imports/symlinks resolved within the 
 | `config.d/system/` | Native backend settings, exactly the selected production realm, protected CLI and logging configuration |
 | `config.d/realm/<realm>/` | Complete crypto/provider settings, independent local authentication, roles/ACLs, workflows and restrictive leaf profiles |
 | `client.d/` | Matching current frontend/service configuration, Unix sockets and independent local authentication |
-| `log.conf` | Product logging configuration; CA events must reach the already-tested Stage 1 forwarding path |
+| `log.conf` | Product logging configuration; add its actual journal/file outputs to [Tier 0 security streams](../deployment/stage-1-logging/sources.md#3-extend-coverage), then verify CA events on the already-tested Stage 1 path |
 | `schemas/backend.sql`, `schemas/frontend.sql` | Unmodified MariaDB schemas from the same approved configuration/package combination |
 
 The role supplies only backend database credentials and frontend database/session

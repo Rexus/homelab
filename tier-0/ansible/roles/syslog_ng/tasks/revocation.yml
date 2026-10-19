@@ -1,0 +1,51 @@
+---
+- name: Prepare the native revocation directory
+  ansible.builtin.file:
+    path: "{{ syslog_ng_config_dir }}/tls/crl"
+    state: directory
+    owner: root
+    group: "{{ syslog_ng_user }}"
+    mode: "0750"
+
+- name: Install the signed producer revocation list
+  ansible.builtin.copy:
+    src: "{{ syslog_ng_tls_crl_src }}"
+    dest: "{{ syslog_ng_config_dir }}/tls/crl/revoked.pem"
+    owner: root
+    group: "{{ syslog_ng_user }}"
+    mode: "0640"
+  notify: Restart isolated syslog receiver
+
+- name: Verify the current server purpose, chain and signed unexpired CRL
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - verify
+      - -CAfile
+      - "{{ syslog_ng_config_dir }}/tls/ca.pem"
+      - -CRLfile
+      - "{{ syslog_ng_config_dir }}/tls/crl/revoked.pem"
+      - -crl_check
+      - -purpose
+      - sslserver
+      - "{{ syslog_ng_config_dir }}/tls/server.pem"
+  changed_when: false
+
+- name: Read the OpenSSL CRL lookup hash
+  ansible.builtin.command:
+    argv: [openssl, crl, -in, "{{ syslog_ng_config_dir }}/tls/crl/revoked.pem", -hash, -noout]
+  register: syslog_ng_crl_hash
+  changed_when: false
+
+- name: Validate the native lookup name
+  ansible.builtin.assert:
+    that: syslog_ng_crl_hash.stdout is match('^[0-9a-f]{8}$')
+
+- name: Link the native CRL lookup without changing the issuer
+  ansible.builtin.file:
+    src: revoked.pem
+    dest: "{{ syslog_ng_config_dir }}/tls/crl/{{ syslog_ng_crl_hash.stdout }}.r0"
+    state: link
+    owner: root
+    group: "{{ syslog_ng_user }}"
+  notify: Restart isolated syslog receiver

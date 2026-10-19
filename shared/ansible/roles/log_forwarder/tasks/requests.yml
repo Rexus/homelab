@@ -1,0 +1,45 @@
+---
+- name: Install the native cryptography dependency without replacing packages
+  ansible.builtin.package:
+    name: python3-cryptography
+    state: present
+
+- name: Prepare private producer configuration
+  ansible.builtin.file:
+    path: "{{ log_forwarder_config }}/{{ item.name }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop: "{{ log_forwarder_streams }}"
+
+- name: Keep each producer private key on its owning host
+  community.crypto.openssl_privatekey:
+    path: "{{ log_forwarder_config }}/{{ item.name }}/key.pem"
+    type: ECC
+    curve: secp384r1
+    regenerate: never
+    mode: "0600"
+  loop: "{{ log_forwarder_streams }}"
+  no_log: true
+
+- name: Request only the approved client-authentication identity
+  community.crypto.openssl_csr:
+    path: "{{ log_forwarder_config }}/{{ item.name }}/request.csr"
+    privatekey_path: "{{ log_forwarder_config }}/{{ item.name }}/key.pem"
+    common_name: "{{ item.name }}"
+    use_common_name_for_san: false
+    basic_constraints: ['CA:FALSE']
+    basic_constraints_critical: true
+    key_usage: [digitalSignature]
+    key_usage_critical: true
+    extended_key_usage: [clientAuth]
+    mode: "0644"
+  loop: "{{ log_forwarder_streams }}"
+
+- name: Fetch public requests only to this tier's protected handoff directory
+  ansible.builtin.fetch:
+    src: "{{ log_forwarder_config }}/{{ item.name }}/request.csr"
+    dest: "{{ log_forwarder_requests }}/{{ item.name }}.csr"
+    flat: true
+  loop: "{{ log_forwarder_streams }}"

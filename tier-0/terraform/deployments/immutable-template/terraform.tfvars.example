@@ -14,7 +14,7 @@ vm_instances = {
   # Use the target template name as the key. Change this consistently in the
   # inventory and immutable_template.yml when you build another OS or major release.
   # Before final conversion, add or uncomment the matching target template ID
-  # in linux_vm_template_catalog in terraform/common.tfvars.
+  # in the sibling shared repo's templates/proxmox-catalog.tfvars.
   "rhel-10-immu-tmpl" = {
     vm_id               = 120
     template_catalog_id = 120

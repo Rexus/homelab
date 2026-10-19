@@ -1,0 +1,8 @@
+---
+# Shared owns the implementation; this tier owns hosts, streams, keys and cursors.
+- name: Configure approved Tier 2 logging producers
+  hosts: logging_producers
+  become: true
+  serial: 1
+  roles:
+    - log_forwarder

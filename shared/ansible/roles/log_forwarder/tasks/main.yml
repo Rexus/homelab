@@ -1,0 +1,38 @@
+---
+- name: Validate the producer contract
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['RedHat', 'Debian']
+      - ansible_service_mgr == 'systemd'
+      - log_forwarder_mode in ['prepare', 'install']
+      - log_forwarder_streams | length > 0
+      - log_forwarder_streams | map(attribute='name') | unique | length == log_forwarder_streams | length
+      - log_forwarder_queue_bytes | int >= 16777216
+      - log_forwarder_journal_bytes | int >= 16777216
+      - log_forwarder_requests is match('^/')
+      - log_forwarder_config is match('^/[A-Za-z0-9_/-]+$')
+      - log_forwarder_state is match('^/[A-Za-z0-9_/-]+$')
+      - log_forwarder_min_free_bytes | int >= 16777216
+      - log_forwarder_mode == 'prepare' or log_forwarder_credentials is match('^/')
+    fail_msg: Select explicit tier-owned streams, absolute controller handoff paths and bounded storage.
+
+- name: Validate each fixed stream identity and input scope
+  ansible.builtin.assert:
+    that:
+      - stream.name is match('^[a-z][a-z0-9_-]{0,62}$')
+      - stream.kind in ['security', 'application']
+      - stream.input in ['journal', 'files']
+      - stream.kind != 'application' or stream.input == 'files'
+      - stream.input != 'files' or stream.files | default([]) | length > 0
+      - stream.input != 'journal' or log_forwarder_streams | selectattr('input', 'equalto', 'journal') | length == 1
+    fail_msg: Application streams require explicit files and a separate certificate; journal is security-only.
+  loop: "{{ log_forwarder_streams }}"
+  loop_control:
+    loop_var: stream
+
+- name: Prepare native keys and public certificate requests
+  ansible.builtin.import_tasks: requests.yml
+
+- name: Install independent native forwarding instances
+  ansible.builtin.import_tasks: install.yml
+  when: log_forwarder_mode == 'install'

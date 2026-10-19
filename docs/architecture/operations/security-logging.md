@@ -111,6 +111,12 @@ before its sender may release it. Transport acknowledgement alone does not prove
 replicated archive commitment. Duplicates may occur; preservation takes priority
 over claiming exactly-once delivery.
 
+The initial NAS profile is intentionally asynchronous and bounded-loss: native
+forwarders release on transport submission, while protected acceptance applies only
+to the checkpoint covered by the required snapshot/independent copy. The interval
+before that boundary is exposed. This simpler profile is not the replicated-intake
+objective below; select that stronger contract when its residual risk is unacceptable.
+
 | Boundary | Required property |
 | --- | --- |
 | Producer | Durable local spool, stable identity/sequence where supported, retry and measurable gaps; no premature acknowledgement of an unprotected event |
@@ -153,8 +159,9 @@ bootstrap, receiver integration and acceptance. The initial implementation is a
 dedicated syslog-ng OSE network receiver, alongside the untouched OS logger, with
 independent trust, raw messages and portable local JSON records. rsyslog is a valid
 alternative under the same contract; the choice does not establish reliability superiority.
-The [receiver contract](../../reference/syslog-receiver.md) distinguishes supplied
-local collection from archive/HA integration. [Monitoring](../../deployment/stage-4-control-services/monitoring.md)
+The [receiver contract](../../reference/syslog-receiver.md) and
+[pipeline contract](../../reference/logging-pipeline.md) distinguish local collection,
+asynchronous NAS custody and stronger HA integration. [Monitoring](../../deployment/stage-4-control-services/monitoring.md)
 adds critical health and alerts; [shared analytics](../../deployment/stage-5-delivery/analytics.md)
 adds approved search copies. [Logging administration](../../administration/security-logging.md)
 owns recurring access, gap, capacity and restore checks. The receiver does not

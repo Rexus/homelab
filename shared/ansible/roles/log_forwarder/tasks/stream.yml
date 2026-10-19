@@ -1,0 +1,71 @@
+---
+- name: Reject unsafe source-file paths
+  ansible.builtin.assert:
+    that:
+      - item is match('^/[A-Za-z0-9_./*-]+$')
+      - "'..' not in item.split('/')"
+  loop: "{{ stream.files | default([]) }}"
+
+- name: Copy public trust, current revocations and signed producer identity
+  ansible.builtin.copy:
+    src: "{{ log_forwarder_credentials }}/{{ item.src }}"
+    dest: "{{ log_forwarder_config }}/{{ stream.name }}/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - {src: ca.pem, dest: ca.pem}
+    - {src: revoked.pem, dest: revoked.pem}
+    - {src: "{{ stream.name }}.pem", dest: client.pem}
+  notify: Restart selected log forwarders
+
+- name: Verify the leaf, purpose, chain, revocation and host-local private key
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - verify
+      - -CAfile
+      - "{{ log_forwarder_config }}/{{ stream.name }}/ca.pem"
+      - -CRLfile
+      - "{{ log_forwarder_config }}/{{ stream.name }}/revoked.pem"
+      - -crl_check
+      - -purpose
+      - sslclient
+      - "{{ log_forwarder_config }}/{{ stream.name }}/client.pem"
+  changed_when: false
+
+- name: Inspect certificate and host key
+  community.crypto.x509_certificate_info:
+    path: "{{ log_forwarder_config }}/{{ stream.name }}/client.pem"
+  register: log_forwarder_leaf
+
+- name: Inspect the retained private key
+  community.crypto.openssl_privatekey_info:
+    path: "{{ log_forwarder_config }}/{{ stream.name }}/key.pem"
+  register: log_forwarder_key
+  no_log: true
+
+- name: Refuse identity mismatch before enabling forwarding
+  ansible.builtin.assert:
+    that:
+      - log_forwarder_leaf.subject.commonName == stream.name
+      - log_forwarder_leaf.public_key == log_forwarder_key.public_key
+
+- name: Render a standalone native sender configuration
+  ansible.builtin.template:
+    src: sender.conf.j2
+    dest: "{{ log_forwarder_config }}/{{ stream.name }}/sender.conf"
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/sbin/rsyslogd -N1 -f %s
+  notify: Restart selected log forwarders
+
+- name: Install an isolated stream unit without modifying the OS logger
+  ansible.builtin.template:
+    src: sender.service.j2
+    dest: "/etc/systemd/system/log-forwarder-{{ stream.name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart selected log forwarders

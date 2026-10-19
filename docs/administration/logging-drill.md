@@ -36,6 +36,9 @@ Do not run fault commands on the only collector, archive, backup or surviving ev
    boundary and capture its receipts or equivalent proof before releasing source copies.
    TCP/RELP receipts and orderly-shutdown queue persistence do not prove survival
    of arbitrary crashes or replicated archive commitment. [1]
+   Under the bounded-loss NAS main path, native queue release is transport-based:
+   record that limitation, retain original source files for replay, and measure the
+   unprotected tail rather than claiming sender-to-archive acknowledgements.
 3. Verify the independent backup includes data disks, closed segments, source catalogue,
    integrity metadata and required keys. Record approved RPO/RTO and abort thresholds
    from the [backup policy](compute/backup-restore.md#backup-policy). Stop if access,
@@ -102,7 +105,7 @@ not silently removed or treated as exactly-once delivery.
 | Healthy control | All expected records arrive with valid source identity; establish the normal latency and count baseline |
 | Abrupt receiver process loss | Kill the approved disposable receiver process without a graceful flush; observe restart/replay and reconcile accepted records |
 | Physical host/power loss | Remove one approved failure domain under the [redundant-intake contract](../deployment/stage-1-logging/step-3b-redundant-intake.md); a guest reboot is not this test |
-| Network or archive outage | Isolate only the approved test path; prove queues retain records until the required copy is protected and replay after recovery |
+| Network or archive outage | Isolate only the approved test path; measure spool/replay and NAS/backup lag. Main path retains within its configured buffers, not until application-level archive acknowledgement; reconcile and report the exposed tail |
 | Bounded queue/storage exhaustion | Use a capped test volume/quota, never fill a live filesystem; observe independent alerts and the declared reject/backpressure policy |
 | Tier 1, cluster and SSO unavailable | Intake, authorized evidence reads and independent notifications continue within the selected failure envelope |
 | Unprivileged access | As producer/query roles, attempt forged ownership, raw reads, overwrite and deletion; deny snapshot/backup administration to the transfer identity; for B also prove retained-version deletion/shortening denial |

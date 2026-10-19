@@ -1,0 +1,101 @@
+---
+# Run only on the protected signing controller. No private CA key is distributed.
+- name: Require explicit authority custody and bounded certificate lifetimes
+  ansible.builtin.assert:
+    that:
+      - logging_authority_directory is match('^/')
+      - logging_authority_passphrase | length >= 20
+      - logging_authority_leaf_days | int > logging_authority_renew_days | int
+      - logging_authority_leaf_days | int <= 365
+      - logging_authority_renew_days | int > 0
+      - logging_authority_requests | map(attribute='name') | unique | length == logging_authority_requests | length
+    fail_msg: Use a protected absolute authority directory and separately held strong passphrase.
+  no_log: true
+
+- name: Inspect authority material before allowing initialization
+  ansible.builtin.stat:
+    path: "{{ logging_authority_directory }}/{{ item }}"
+    follow: false
+  loop: [key.pem, ca.pem]
+  register: logging_authority_existing
+
+- name: Refuse silent authority replacement or partial recovery
+  ansible.builtin.assert:
+    that:
+      - >-
+        (logging_authority_existing.results[0].stat.exists and logging_authority_existing.results[1].stat.exists)
+        or (logging_authority_initialize | bool and not logging_authority_existing.results[0].stat.exists
+        and not logging_authority_existing.results[1].stat.exists)
+      - not (logging_authority_existing.results[0].stat.islnk | default(false))
+      - not (logging_authority_existing.results[1].stat.islnk | default(false))
+    fail_msg: Restore the original authority, or approve first initialization on an empty protected directory.
+
+- name: Prepare private authority and public handoff directories
+  ansible.builtin.file:
+    path: "{{ logging_authority_directory }}/{{ item }}"
+    state: directory
+    mode: "0700"
+  loop: ['', public]
+
+- name: Retain an encrypted signing key
+  community.crypto.openssl_privatekey:
+    path: "{{ logging_authority_directory }}/key.pem"
+    type: ECC
+    curve: secp384r1
+    passphrase: "{{ logging_authority_passphrase }}"
+    cipher: auto
+    regenerate: never
+    mode: "0600"
+  no_log: true
+
+- name: Define the independent logging authority
+  community.crypto.openssl_csr:
+    path: "{{ logging_authority_directory }}/authority.csr"
+    privatekey_path: "{{ logging_authority_directory }}/key.pem"
+    privatekey_passphrase: "{{ logging_authority_passphrase }}"
+    common_name: "{{ logging_authority_name }}"
+    use_common_name_for_san: false
+    basic_constraints: ['CA:TRUE', 'pathlen:0']
+    basic_constraints_critical: true
+    key_usage: [keyCertSign, cRLSign]
+    key_usage_critical: true
+    mode: "0600"
+  no_log: true
+
+- name: Establish the explicitly approved independent trust anchor
+  community.crypto.x509_certificate:
+    path: "{{ logging_authority_directory }}/ca.pem"
+    csr_path: "{{ logging_authority_directory }}/authority.csr"
+    privatekey_path: "{{ logging_authority_directory }}/key.pem"
+    privatekey_passphrase: "{{ logging_authority_passphrase }}"
+    provider: selfsigned
+    selfsigned_not_after: '+1825d'
+    mode: "0600"
+  no_log: true
+
+- name: Issue only reviewed public requests
+  ansible.builtin.include_tasks: issue.yml
+  loop: "{{ logging_authority_requests }}"
+  loop_control:
+    loop_var: request
+
+- name: Publish the public trust anchor
+  ansible.builtin.copy:
+    src: "{{ logging_authority_directory }}/ca.pem"
+    dest: "{{ logging_authority_directory }}/public/ca.pem"
+    remote_src: true
+    mode: "0644"
+
+- name: Publish a fresh signed cumulative revocation list
+  community.crypto.x509_crl:
+    path: "{{ logging_authority_directory }}/public/revoked.pem"
+    privatekey_path: "{{ logging_authority_directory }}/key.pem"
+    privatekey_passphrase: "{{ logging_authority_passphrase }}"
+    issuer:
+      CN: "{{ logging_authority_name }}"
+    revoked_certificates: "{{ logging_authority_revocations }}"
+    crl_mode: update
+    last_update: '+0s'
+    next_update: '+7d'
+    mode: "0644"
+  no_log: true

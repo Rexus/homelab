@@ -91,7 +91,11 @@ bash scripts/init-local-files.sh --setup development --env test
 Complete [environment isolation](../../reference/repository-scripts.md#environment-isolation)
 before planning. Test and production require different VMIDs, IPs and service allocations.
 
-Edit `terraform/deployments/development/terraform.tfvars`:
+For these `--env test` commands, create
+`terraform/deployments/development/terraform.test.tfvars` from the initialized
+`terraform.tfvars`, then set unused test VMIDs and the complete desired guest map.
+The initializer does not create this Terraform overlay. Keep production allocations
+in the base file; an overlay replaces a complete map rather than merging guest fields.
 
 | Value | What to choose |
 | --- | --- |
@@ -100,15 +104,18 @@ Edit `terraform/deployments/development/terraform.tfvars`:
 | `vm_instances.git-1.storage_class` | use storage that matches the backup and restore plan |
 | `vm_instances.git-1.network_zone_key` | normally `application` |
 
-Edit `ansible/group_vars/development.yml`:
+Edit `ansible/group_vars/development.test.yml`, including its `platform_host_ips`
+and the settings below. The initializer copies the complete example into this test
+file, which overrides `development.yml`; editing the base file alone does not change
+those test values.
 
 | Value | What to choose |
 | --- | --- |
 | `gitlab_container_image` | pin a GitLab image tag before production use |
 | `gitlab_hostname` | the DNS name GitLab should present to users |
 | `gitlab_external_url` | the final HTTPS URL for GitLab |
-| `gitlab_tls_cert_src` | certificate file from the shared PKI |
-| `gitlab_tls_key_src` | private key file from the shared PKI |
+| `gitlab_tls_cert_src` | approved service certificate/chain on the deployment machine |
+| `gitlab_tls_key_src` | matching service private key on the deployment machine, never a CA key |
 | `gitlab_ssh_host_port` | host port used for Git over SSH, default `2222` |
 
 Deploy a test environment first:

@@ -18,6 +18,8 @@ class ReceiverPreflight(TierRepositoryTestCase):
     def test_native_assertions_accept_prepared_inputs_and_reject_unsafe_variants(self):
         tasks = yaml.safe_load((ROLE / 'tasks/preflight.yml').read_text())
         assertions = [task for task in tasks if 'ansible.builtin.assert' in task]
+        runtime = yaml.safe_load((ROLE / 'tasks/runtime.yml').read_text())
+        assertions += [task for task in runtime if 'ansible.builtin.assert' in task]
         valid = yaml.safe_load((ROLE / 'defaults/main.yml').read_text())
         valid.update(
             ansible_os_family='RedHat', ansible_distribution_major_version='10',
@@ -29,6 +31,7 @@ class ReceiverPreflight(TierRepositoryTestCase):
                                       size_available=10 * 1024**3)],
             syslog_ng_directory_stats=dict(results=[dict(item='records', stat=dict(exists=False))]),
             ansible_facts=dict(services={'firewalld.service': dict(state='running')}),
+            syslog_ng_version=dict(stdout='syslog-ng 4 (4.11.0)'),
         )
         cases = [('prepared', valid)]
         for name, changes in (
@@ -48,6 +51,7 @@ class ReceiverPreflight(TierRepositoryTestCase):
             ('existing logger', dict(ansible_facts=dict(services={
                 'syslog-ng.service': dict(state='running'), 'firewalld.service': dict(state='running')}))),
             ('unsupported OS', dict(ansible_distribution_major_version='9')),
+            ('old TLS metadata runtime', dict(syslog_ng_version=dict(stdout='syslog-ng 4 (4.10.2)'))),
         ):
             case = deepcopy(valid)
             case.update(changes)

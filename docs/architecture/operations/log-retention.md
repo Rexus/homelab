@@ -68,7 +68,7 @@ storage; a read-only share alone does not audit its reads.
 | Snapshot | Protects a checkpoint from share-writer changes only if that writer cannot remove the snapshot; storage administrators remain trusted under A |
 | Retention lock | A completed, verified locked version is not proof that a required replica has committed |
 | Independent copy | Another directory, snapshot or RAID member in the same storage pool is not a separate device/site failure domain |
-| Source release | Original/source and collector copies are retained until the selected archive checkpoint is verified; transport receipts are not release authority |
+| Source release | NAS main path releases native queue items on transport submission, not protected commit; retain original journals/files for the declared replay window and measure the exposed tail. A stronger replicated-intake path must explicitly gate release on its durable acknowledgement |
 | Recovery | Portable records, source catalogue, integrity references and separately held keys/tools remain usable without identity services or Kubernetes |
 
 Record checkpoint lag and the exposed unprotected tail, not only the configured

@@ -1,0 +1,3 @@
+# Audited read/export/write attempts; forward /var/log/audit/audit.log as a security stream.
+-w {{ logging_archive_data }}/records -p rwa -k security_log_access
+-w {{ logging_archive_view_root }} -p rwa -k application_log_access

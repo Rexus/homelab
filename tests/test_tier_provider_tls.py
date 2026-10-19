@@ -30,7 +30,9 @@ class ProviderTls(TierRepositoryTestCase):
         self.assertIn('## Implemented priority mechanisms', main)
         self.assertIn('## Remaining implementation before an end-to-end installation', main)
         self.assertIn('## Manual operational verification', main)
-        self.assertIn('- [ ] **P1: Logging integration - sources.', main)
+        self.assertIn('- [x] **P1: Logging integration - sources (selected Linux path).', main)
+        self.assertNotRegex(manual, r'(?m)^- \[x\]')
+        self.assertIn('transport', manual)
         for repo in self.root.iterdir():
             self.assertFalse((repo / '.ai/operational-verification.md').exists())
 

@@ -1,0 +1,38 @@
+---
+# Service key belongs to the protected deployment controller, not the signing authority.
+- name: Require explicit receiver identity and protected service-key custody
+  ansible.builtin.assert:
+    that:
+      - logging_receiver_directory is match('^/')
+      - logging_receiver_name is match('^[a-z][a-z0-9_-]{0,62}$')
+      - logging_receiver_dns is match('^[A-Za-z0-9][A-Za-z0-9.-]+$')
+      - logging_receiver_dns is not match('^[0-9.]+$')
+
+- name: Prepare the protected receiver request directory
+  ansible.builtin.file:
+    path: "{{ logging_receiver_directory }}"
+    state: directory
+    mode: "0700"
+
+- name: Retain the receiver service key without accidental rotation
+  community.crypto.openssl_privatekey:
+    path: "{{ logging_receiver_directory }}/key.pem"
+    type: ECC
+    curve: secp384r1
+    regenerate: never
+    mode: "0600"
+  no_log: true
+
+- name: Prepare the exact server-auth request for separate approval
+  community.crypto.openssl_csr:
+    path: "{{ logging_receiver_directory }}/server.csr"
+    privatekey_path: "{{ logging_receiver_directory }}/key.pem"
+    common_name: "{{ logging_receiver_name }}"
+    use_common_name_for_san: false
+    subject_alt_name: ["DNS:{{ logging_receiver_dns }}"]
+    basic_constraints: ['CA:FALSE']
+    basic_constraints_critical: true
+    key_usage: [digitalSignature]
+    key_usage_critical: true
+    extended_key_usage: [serverAuth]
+    mode: "0644"

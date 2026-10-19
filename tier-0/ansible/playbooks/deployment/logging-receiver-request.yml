@@ -1,0 +1,11 @@
+---
+- name: Prepare the receiver key and public request without issuing trust
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Use the Tier 0 native certificate request contract
+      ansible.builtin.include_role:
+        name: logging_authority
+        tasks_from: receiver-request

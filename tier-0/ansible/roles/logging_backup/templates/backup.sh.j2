@@ -1,0 +1,12 @@
+#!/bin/sh
+# Native restic owns encryption/snapshots. No forget, prune, mirroring or source deletion.
+set -eu
+export RESTIC_REPOSITORY='{{ logging_backup_repository }}'
+export RESTIC_PASSWORD_FILE=/etc/security-log-backup.password
+mountpoint --quiet '{{ logging_backup_repository }}'
+python3 -c 'from logging_io import require_mount; require_mount("{{ logging_backup_mount }}", "{{ logging_backup_marker }}")'
+python3 /usr/local/lib/security-logging/logging_checkpoint.py verify --root '{{ logging_backup_mount }}' --files-list /var/lib/security-log-backup/files
+# Nonzero/partial backups must not ping the independent dead-man monitor.
+restic backup --json --tag security-logging --files-from-verbatim /var/lib/security-log-backup/files
+restic check
+curl --fail --silent --show-error --max-time 20 --config /etc/security-log-backup.curl

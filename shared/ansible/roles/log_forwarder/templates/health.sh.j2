@@ -1,0 +1,13 @@
+#!/bin/sh
+# Native CLI probes; the external dead-man check detects failure or a stopped host/timer.
+set -eu
+{% for stream in log_forwarder_streams %}
+systemctl is-active --quiet 'log-forwarder-{{ stream.name }}.service'
+used=$(du -sb '{{ log_forwarder_state }}/{{ stream.name }}' | cut -f1)
+test "$used" -lt '{{ (log_forwarder_queue_bytes | int * 8 / 10) | int }}'
+free=$(df -PB1 '{{ log_forwarder_state }}/{{ stream.name }}' | awk 'NR==2 {print $4}')
+test "$free" -ge '{{ log_forwarder_min_free_bytes | int }}'
+openssl x509 -in '{{ log_forwarder_config }}/{{ stream.name }}/client.pem' -checkend 86400 -noout
+openssl verify -CAfile '{{ log_forwarder_config }}/{{ stream.name }}/ca.pem' -CRLfile '{{ log_forwarder_config }}/{{ stream.name }}/revoked.pem' -crl_check -purpose sslclient '{{ log_forwarder_config }}/{{ stream.name }}/client.pem'
+{% endfor %}
+curl --fail --silent --show-error --max-time 20 --config '{{ log_forwarder_config }}/watchdog.curl'

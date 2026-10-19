@@ -66,7 +66,9 @@ class Observability(TierRepositoryTestCase):
             later = (docs / "deployment/stage-5-delivery/analytics.md").read_text()
             self.assertIn("An app owner receives an application-log view", later)
             logging_stage = (docs / "deployment/stage-1-logging/README.md").read_text()
-            self.assertIn("retention and HA are explicit project integration", logging_stage)
+            self.assertIn("declared durability limits", logging_stage)
+            self.assertIn("independent encrypted backups", logging_stage)
+            self.assertIn("lossless HA", logging_stage)
 
     def test_early_collection_and_offline_recovery_contracts_are_published(self):
         self.generate()

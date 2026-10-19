@@ -1,0 +1,13 @@
+# Pass explicitly with -e @ansible/group_vars/logging_archive.yml.
+# Guide: docs/deployment/stage-1-logging/step-3c-nas-archive.md
+logging_archive_source: ""  # //nas.internal.example/security-logs
+logging_archive_marker: ""  # independently commissioned .logging-target contents
+logging_archive_snapshot_contract: ""  # private runbook/owner, interval and tested recovery window
+logging_archive_watchdog_url: ""  # external dead-man endpoint; missing successful pings must alert
+logging_archive_required_sources: []  # active journal identities; include receiver OS, later CA OS
+logging_archive_max_lag_seconds: 300
+logging_archive_min_free_bytes: 2147483648
+logging_archive_views: {}
+# Approved application sources only, never OS/audit/CA streams:
+# logging_archive_views:
+#   example-app: example-app-readers

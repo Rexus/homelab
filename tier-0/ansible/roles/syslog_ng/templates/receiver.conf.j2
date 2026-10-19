@@ -10,6 +10,9 @@ source s_tls {
     network(ip("{{ syslog_ng_listen_address }}") port({{ syslog_ng_tls_port }}) transport("tls")
         flags(no-parse store-raw-message) max-connections({{ syslog_ng_max_connections }})
         tls(ca-file("{{ syslog_ng_config_dir }}/tls/ca.pem")
+{% if syslog_ng_tls_crl_src | default('') %}
+            crl-dir("{{ syslog_ng_config_dir }}/tls/crl")
+{% endif %}
             cert-file("{{ syslog_ng_config_dir }}/tls/server.pem")
             key-file("{{ syslog_ng_config_dir }}/tls/key.pem")
             peer-verify(required-trusted)

@@ -277,17 +277,21 @@ control cluster are not prerequisites for that local workflow.
 From `homelab-iac/homelab-tier-0`, initialize local working files for the Linux setup:
 
 ```bash
-bash ../homelab-shared/scripts/init-local-files.sh --setup foundation --env test
+bash ../homelab-shared/scripts/init-local-files.sh --setup syslog
 ```
 
 Replace `homelab` if another prefix was selected. Edit the initialized local files
-and confirm network placement and permissions, then review a plan from that directory:
+and confirm network placement and permissions, then review a plan from that directory.
+This uses the same base context as [Stage 1 logging](../deployment/stage-1-logging/README.md).
+For a disposable environment, retain the same `--env` on every command and complete
+[environment isolation](../reference/repository-scripts.md#environment-isolation) first.
 
 ```bash
-bash ../homelab-shared/scripts/deploy.sh foundation --env test --plan-only
+bash ../homelab-shared/scripts/deploy.sh syslog --plan-only
 ```
 
-After reviewing the plan, use the same deployment command without `--plan-only`.
+After reviewing the plan, follow Stage 1's separate provisioning, storage/TLS
+preparation and Ansible steps. Do not run the full receiver recipe on an unprepared disk.
 The existing [script options](../reference/repository-scripts.md) apply in every tier.
 In a private source checkout, start in `tier-0/` and use
 `bash scripts/init-local-files.sh` or `bash scripts/deploy.sh ...`.
