@@ -118,6 +118,7 @@ rollback behavior are tested.
 ## Reference workflow
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Source[Git repo<br/>Containerfile and policy] --> GitLab[GitLab CI<br/>build bootc image]
   GitLab --> GitLabRegistry[GitLab registry<br/>first internal image source]
@@ -129,15 +130,13 @@ flowchart TB
   Template --> Proxmox[Proxmox templates<br/>rhel-10-immu-tmpl]
   Proxmox -. approved release .-> VMs[Workload clones<br/>bootc hosts]
   Updates --> VMs
-
-  style Source fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#1f2937
-  style GitLab fill:#fff7ed,stroke:#c2410c,stroke-width:2px,color:#1f2937
-  style GitLabRegistry fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#1f2937
-  style Harbor fill:#dcfce7,stroke:#15803d,stroke-width:2px,color:#1f2937
-  style Template fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1f2937
-  style Proxmox fill:#e0f2fe,stroke:#0369a1,stroke-width:2px,color:#1f2937
-  style VMs fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#1f2937
-  style Updates fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#1f2937
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Source,GitLabRegistry,Approved,Harbor data
+  class GitLab,Updates,VMs services
+  class Template,Proxmox control
 ```
 
 Figure: this workflow uses GitLab for the build and initial registry. Harbor is

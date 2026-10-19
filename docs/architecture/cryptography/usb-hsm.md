@@ -26,6 +26,7 @@ valid where its outage and recovery contract is sufficient.
 ## Topology
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   T2["Tier 2<br/>Explicitly authorized consumers"]
   T1["Tier 1 Kubernetes<br/>Authorized service clients"]
@@ -47,10 +48,20 @@ flowchart TB
     Endpoint --> S1
     Endpoint --> S2
   end
+  T1 ~~~ C0
   T1 -->|Authenticated, policy-scoped API| Endpoint
   T2 -->|Authenticated, policy-scoped API| Endpoint
   Backup["Separate offline backup custody<br/>Online-key recovery, not the root CA"]
   H1 -. Authorized recovery transfer .-> Backup
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class T2,T1 services
+  class T0,C0,Endpoint control
+  class A,B replicas
+  class H1,H2,Backup custody
 ```
 
 The endpoint is a **logical address/failover function, not dedicated frontend VMs**.

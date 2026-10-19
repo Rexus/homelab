@@ -21,6 +21,7 @@ remains separately controlled, and signing and secret-service startup protection
 retain independent provider choices.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph Offline["Separate offline custody"]
     Root["Root CA and authorized ceremony"]
@@ -30,6 +31,13 @@ flowchart TB
   Issuer -->|Supported signing integration| Signing["Selected key provider"]
   Clients["Authorized secret consumers"] -->|Scoped secret API| Secrets["Secret service"]
   Secrets -->|Selected seal and recovery mechanism| Seal["Protected startup material"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Offline,Root,Seal custody
+  class Issuer,Signing,Secrets control
+  class Certificates,Clients actor
 ```
 
 This view separates functions; a selected product can implement more than one.

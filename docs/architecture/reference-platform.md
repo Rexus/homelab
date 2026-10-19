@@ -34,34 +34,48 @@ placement. Physical host, storage and network failure domains are selected
 separately. Offline custody remains outside the connected platform.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph PVE["Proxmox: connected virtualization platform"]
+    direction TB
     subgraph T2["Tier 2: edge and workloads"]
-      Edge["DMZ: public load balancers and ordinary outbound caches"]
-      Workloads["Project clusters and VMs: applications, development, experiments"]
+      direction LR
+      Edge["DMZ<br/>Public load balancers<br/>Ordinary outbound caches"]
+      Workloads["Services<br/>Project clusters and VMs<br/>Applications / development / labs"]
+      Edge ~~~ Workloads
     end
     subgraph T1["Tier 1: shared delivery"]
-      Delivery["Platform cluster: source control, registry and general CI"]
-      Supply["DMZ: general build runners and authoritative mirrors"]
-      WorkloadManagement["Scoped workload-cluster management when selected"]
-      Analytics["Shared analytics: approved log copies, traces and metrics"]
+      direction LR
+      Supply["DMZ<br/>General build runners<br/>Authoritative mirrors"]
+      Delivery["Services cluster<br/>Source control / registry<br/>General CI"]
+      WorkloadManagement["Services<br/>Scoped workload-cluster<br/>management"]
+      Analytics["Services<br/>Approved log copies<br/>Traces / metrics"]
+      Supply ~~~ Delivery ~~~ WorkloadManagement ~~~ Analytics
     end
     subgraph T0["Tier 0: infrastructure and trust"]
-      M["Management VMs: protected runner, IaC state, recovery tools"]
-      I["Dedicated directory VM pair"]
-      K["Control cluster: identity provider, secrets, inventory and visibility"]
-      C["Online issuer and selected key provider"]
-      Evidence["Independent log intake and protected evidence<br/>Critical monitoring and alerts"]
-      M ~~~ I
-      M ~~~ K
-      I ~~~ C
-      K ~~~ C
-      M ~~~ Evidence
+      direction LR
+      M["Management VMs<br/>Runner / IaC state<br/>Recovery tools"]
+      I["Directory authority<br/>Dedicated VM pair"]
+      K["Control cluster<br/>IdP / secrets<br/>Inventory / visibility"]
+      C["Online issuer<br/>Selected key provider"]
+      Evidence["Independent log intake<br/>Protected evidence<br/>Critical monitoring / alerts"]
+      M ~~~ I ~~~ K ~~~ C ~~~ Evidence
     end
-    Workloads ~~~ Delivery ~~~ M
+    T2 ~~~ T1 ~~~ T0
   end
-  Offline["Separate custody: offline root, ceremony environment, recovery media"]
-  C ~~~ Offline
+  Offline["Separate custody<br/>Offline root / ceremony environment / recovery media"]
+  T0 ~~~ Offline
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class PVE,T2,T1,T0 boundary
+  class Edge,Supply edge
+  class Delivery,WorkloadManagement,Analytics,Workloads services
+  class M,I,K,C,Evidence control
+  class Offline custody
 ```
 
 Ordinary client workstations also belong to Tier 2 / DMZ, on a separate subnet
@@ -150,6 +164,7 @@ The offline root signs intermediate CA certificates during an authorized
 ceremony. Routine issuance and renewal use an online issuer, not the root.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph CER["ceremony: offline / separate custody"]
     Root["Offline root CA and root key"]
@@ -167,6 +182,15 @@ flowchart TB
   CM1["Tier 1 cert-manager"] -->|Issue / renew| Enrollment
   CM2["Tier 2 cert-manager"] -->|Issue / renew| Enrollment
   Enrollment -->|Authenticated issuer interface| Issuer
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class CER,Root,Ops custody
+  class CRYPTO,Issuer,Provider,IdentityCA control
+  class Enrollment services
+  class CM0,CM1,CM2 actor
 ```
 
 The [CA design](cryptography/certificate-authority.md) owns the OpenXPKI portal,

@@ -14,12 +14,20 @@ add matching inventory/IP entries. Place receivers on distinct physical failure 
 Add further capacity as demand requires. Receiver count alone does not establish storage redundancy.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Queue["Source durable queues"] --> A["Receiver A<br/>Failure domain A"]
   Queue --> B["Receiver B<br/>Failure domain B"]
   A --> Commit["Verified durable archive handoff"]
   B --> Commit
   Commit --> Copies["Independently protected copies"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Queue actor
+  class A,B,Commit control
+  class Copies custody
 ```
 
 ## 2. Review and apply the same state root

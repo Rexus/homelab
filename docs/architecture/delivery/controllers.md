@@ -29,12 +29,20 @@ size alone does not select the controller.
 ## Authority and ownership
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Approved["Approved revisions and artifacts"] --> F["Tier 0 Flux"]
   F --> Control["Tier 0 control services"]
   Release["Tier 1 release definitions"] --> D["Tier 1 delivery<br/>A: Argo CD / B: Spinnaker"]
   D --> Platform["Approved Tier 1 applications"]
   D --> Workload["Approved Tier 2 targets"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Approved,Release data
+  class F,Control control
+  class D,Platform,Workload services
 ```
 
 Tier 1 delivery has no Tier 0 Kubernetes credentials, Proxmox credentials or

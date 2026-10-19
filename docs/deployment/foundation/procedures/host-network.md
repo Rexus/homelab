@@ -75,52 +75,42 @@ introduce bonds, separate storage and jumbo frames only after that path is verif
 The diagram below is an expanded option, not a minimum hardware requirement.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
-    Switches[Managed switches or upstream fabric]
-
-    subgraph Fabric["Storage path"]
-      direction TB
-      Bond0[bond1<br/>storage bond<br/>MTU 9000]
-      Vmbr0[vmbr1<br/>storage bridge<br/>VLAN-aware<br/>MTU 9000]
-      Mgmt[corosync 2<br/>often MTU 1500]
-      Corosync1[ceph_public]
-      Guests[ceph_cluster]
-
-      Bond0 --> Vmbr0
-      Vmbr0 --> Mgmt
-      Vmbr0 --> Corosync1
-      Vmbr0 --> Guests
-    end
-
-    subgraph Storage["Fabric path"]
-      direction TB
-      Bond1[bond0<br/>fabric bond<br/>MTU 1500]
-      Vmbr1[vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500]
-      Corosync2[host-management IPs<br/>Proxmox UI, API, SSH]
-      CephPublic[corosync 1]
-      CephCluster[access, identity, application,<br/>external_edge, cryptography guests]
-
-      Bond1 --> Vmbr1
-      Vmbr1 --> Corosync2
-      Vmbr1 --> CephPublic
-      Vmbr1 --> CephCluster
-    end
-
-    Switches --> Bond0
-    Switches --> Bond1
-
-    style Fabric fill:#fff7ed,stroke:#c2410c,stroke-width:2px,color:#1f2937
-    style Storage fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1f2937
-
-    classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
-    classDef appNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
-    classDef proxmoxNode fill:#fdba74,stroke:#9a3412,color:#1f2937
-    classDef cephNode fill:#fee2e2,stroke:#dc2626,color:#1f2937
-
-    class Switches,Corosync2 mgmtNode
-    class CephCluster appNode
-    class Bond0,Bond1,Vmbr0,Vmbr1,Mgmt,CephPublic proxmoxNode
-    class Corosync1,Guests cephNode
+  Switches["Managed switches or upstream fabric"]
+  subgraph Fabric["Fabric path"]
+    direction TB
+    FabricBond["bond0<br/>fabric bond<br/>MTU 1500"]
+    FabricBridge["vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500"]
+    Management["Host-management IPs<br/>Proxmox UI, API, SSH"]
+    QuorumPrimary["corosync 1"]
+    Guests["access, identity, application,<br/>external_edge, cryptography guests"]
+    FabricBond --> FabricBridge
+    FabricBridge --> Management
+    FabricBridge --> QuorumPrimary
+    FabricBridge --> Guests
+  end
+  subgraph Storage["Storage path"]
+    direction TB
+    StorageBond["bond1<br/>storage bond<br/>MTU 9000"]
+    StorageBridge["vmbr1<br/>storage bridge<br/>VLAN-aware<br/>MTU 9000"]
+    QuorumSecondary["corosync 2<br/>often MTU 1500"]
+    CephPublic["ceph_public"]
+    CephCluster["ceph_cluster"]
+    StorageBond --> StorageBridge
+    StorageBridge --> QuorumSecondary
+    StorageBridge --> CephPublic
+    StorageBridge --> CephCluster
+  end
+  Switches --> FabricBond
+  Switches --> StorageBond
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Fabric boundary
+  class Switches,FabricBond,FabricBridge,StorageBond,StorageBridge,Management,QuorumPrimary,QuorumSecondary control
+  class Storage,CephPublic,CephCluster data
 ```
 
 Figure: one strong clustered Proxmox pattern is to keep normal platform VLANs

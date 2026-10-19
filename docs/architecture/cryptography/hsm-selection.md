@@ -47,6 +47,7 @@ dependencies. Application-state backups accompany the selected key-recovery meth
 ### A: Software
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Consumers["Authorized consumers"] -->|Certificate or signing requests| Service
   subgraph Host["Authorized online host"]
@@ -56,6 +57,13 @@ flowchart TB
     Recovery["Protected key backups and recovery material"]
   end
   Recovery -. "Authorized restore" .-> Provider
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Consumers actor
+  class Host control
+  class Custody,Recovery custody
 ```
 
 Key custody shares the host's compromise boundary. This arrangement has one
@@ -66,6 +74,7 @@ hardware isolation. [1]
 ### B: Single USB
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Consumers["Authorized consumers"] -->|Certificate or signing requests| Service
   subgraph Host["Authorized online host"]
@@ -76,6 +85,13 @@ flowchart TB
     Recovery["Permitted device backup and recovery material"]
   end
   Recovery -. "Supported authorized restore" .-> Token
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Consumers actor
+  class Host control
+  class Custody,Recovery,Token custody
 ```
 
 The local token supplies the key-custody boundary; the host still owns application
@@ -86,6 +102,7 @@ application state, not on the presence of a replacement device alone. [2][3]
 ### C: Replicated USB gateways
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Consumers["Authorized consumers"] -->|Certificate or signing requests| Service["Issuer or signing service"]
   Service -->|Validated application routing| GatewayA
@@ -101,6 +118,13 @@ flowchart TB
   end
   Recovery -. "Authorized recovery transfer" .-> TokenA
   Recovery -. "Authorized recovery transfer" .-> TokenB
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Consumers actor
+  class Service,HostA,HostB control
+  class Custody,Recovery,TokenA,TokenB custody
 ```
 
 The service routes operations through a supported application integration; each
@@ -115,6 +139,7 @@ or Tier 1/2 runtimes are not prerequisites.
 ### D: Network HSM
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Consumers["Authorized consumers"] -->|Certificate or signing requests| Service["Issuer or signing service"]
   Service -->|Supported provider integration| Client["Authorized vendor client"]
@@ -125,6 +150,13 @@ flowchart TB
   end
   Recovery -. "Vendor-supported restore" .-> PartitionA
   Recovery -. "Vendor-supported restore" .-> PartitionB
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Consumers actor
+  class Service,Client control
+  class PartitionA,PartitionB,Custody,Recovery custody
 ```
 
 Custody resides in the selected appliance partitions, with client authorization

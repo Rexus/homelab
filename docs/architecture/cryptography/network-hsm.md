@@ -7,12 +7,18 @@ partitions through the vendor's supported client and transport.
 ## Components and boundaries
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Consumers["Approved issuer / signing service"] --> Client["Vendor client<br/>Authorized partition access"]
   Client --> H1["HSM partition A"]
   Client --> H2["HSM partition B<br/>Optional vendor HA member"]
   Admin["Separate custody administration"] -. "Partition policy and recovery" .-> H1
   Admin -. "Partition policy and recovery" .-> H2
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Consumers,Client control
+  class H1,H2,Admin custody
 ```
 
 This is not the USB gateway service with different hardware. A network appliance

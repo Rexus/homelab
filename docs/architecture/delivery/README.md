@@ -24,6 +24,7 @@ controls approved versions. Infrastructure proposals cross a separate Tier 0
 authorization boundary.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Source["Tier 1: source control"] -->|Build definitions| Build["Tier 1 DMZ: general build runners"]
   Supply["Approved packages and image supply"] -->|Build inputs| Build
@@ -37,6 +38,15 @@ flowchart TB
   Clients["Tier 2 DMZ: ordinary clients"] -->|Named HTTPS listeners| Edge["Tier 2 DMZ: public edge proxy"]
   Edge -->|Approved service endpoints| Apps
   Source -->|Infrastructure proposals| Gate["Tier 0 authorization and execution"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Source,Registry,Delivery,Runtime,Distribution,Apps services
+  class Build,Edge edge
+  class Gate control
+  class Supply,Clients actor
 ```
 
 Registry interfaces also supply approved OS images and template inputs to host

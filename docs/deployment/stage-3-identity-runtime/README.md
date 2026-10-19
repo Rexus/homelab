@@ -17,6 +17,7 @@ a reachable bootstrap source and independent credentials.
 3. [Establish the basic platform](#step-3-establish-the-basic-platform)
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Bootstrap["Bootstrap workstation / VM<br/>Terraform + Ansible + cluster tooling"]
   subgraph Identity["identity: dedicated VMs"]
@@ -34,6 +35,15 @@ flowchart TB
   Bootstrap -->|Create and configure directory| Primary
   Bootstrap -->|Create and bootstrap cluster| Nodes
   Source["Reachable bootstrap Git / OCI source"] --> Flux
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Bootstrap actor
+  class Identity,Cluster control
+  class DirectoryPair replicas
+  class Source,Base data
 ```
 
 ## Step 1: Deploy the directory pair

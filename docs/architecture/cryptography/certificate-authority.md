@@ -19,16 +19,24 @@ replacement for this issuer.
 ## Trust hierarchy
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Root["Offline root CA<br/>Separate custody; clca reference"]
   Infrastructure["Infrastructure issuing CA<br/>OpenXPKI on ca-1"]
   Identity["Identity issuing CA<br/>FreeIPA primary and CA replica"]
   Services["Infrastructure and workload certificates"]
   Hosts["FreeIPA host, service and identity certificates"]
-  Root -->|Signs subordinate CA certificate offline| Infrastructure
-  Root -->|Signs subordinate CA certificate offline| Identity
+  Root -.->|Signs subordinate CA<br/>certificate offline| Infrastructure
+  Root -.->|Signs subordinate CA<br/>certificate offline| Identity
   Infrastructure --> Services
   Identity --> Hosts
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Root custody
+  class Infrastructure,Identity control
+  class Services,Hosts services
 ```
 
 These arrows represent certificate signing, not network connections. The directory
@@ -56,14 +64,24 @@ retains independently tested recovery access.
 ## Enrollment and publication
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
-  Operator["Authorized certificate operator"] -->|Request, approve, renew, revoke| Portal["Tier 0 CA portal"]
+  Operator["Authorized<br/>certificate operator"] -->|Request, approve<br/>renew, revoke| Portal["Tier 0<br/>CA portal"]
   Clusters["Tier 0 / 1 / 2 cert-manager<br/>Separate authorized identities"] -->|ACME| Bridge["Enrollment adapter<br/>acme2certifier reference"]
-  Portal --> Issuer["Infrastructure issuing service"]
-  Bridge -->|Authenticated RPC; restricted profiles| Issuer
-  Issuer -->|Selected signing interface| Keys["Software or hardware custody"]
-  Issuer -->|Signed certificates and CRLs| Publication["Public trust-object endpoint"]
-  Clients["Certificate verifiers"] -->|Retrieve public objects| Publication
+  Portal --> Issuer["Infrastructure<br/>issuing service"]
+  Bridge -->|Authenticated RPC<br/>Restricted profiles| Issuer
+  Issuer -->|Selected signing<br/>interface| Keys["Software or<br/>hardware custody"]
+  Issuer -->|Signed certificates<br/>and CRLs| Publication["Public trust-object<br/>endpoint"]
+  Clients["Certificate verifiers"] -->|Retrieve<br/>public objects| Publication
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Operator,Clusters,Clients actor
+  class Portal,Issuer control
+  class Bridge,Publication services
+  class Keys custody
 ```
 
 Community enrollment includes SCEP, EST and RPC; native ACME is Enterprise-only. [3]

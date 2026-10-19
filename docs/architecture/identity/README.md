@@ -40,28 +40,48 @@ from the [capability map](../README.md#functional-structure). Ownership, runtime
 and service consumption are shown separately.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
+  Hosts["Other approved enrolled hosts<br/>DNS, LDAP and Kerberos clients"]
   T2["Tier 2 applications<br/>OIDC relying parties and local authorization"]
   T1["Tier 1 shared services<br/>OIDC relying parties and local authorization"]
   T2 ~~~ T1
   subgraph T0["Tier 0 / Control layer"]
+    subgraph Directory["Directory authority (IdM) / identity network"]
+      subgraph DirectoryPair[" "]
+        direction LR
+        Primary["Dedicated primary VM"] <-->|Replication| Replica["Dedicated replica VM"]
+      end
+    end
     subgraph Cluster["Tier 0 Kubernetes / control_cluster network"]
+      Services["Tier 0 services<br/>OIDC relying parties and local authorization"]
       IdP["Identity provider (IdP / SSO)"]
       Data[("Persistent IdP state")]
-      Services["Tier 0 services<br/>OIDC relying parties and local authorization"]
       Services -->|OIDC integration| IdP
       IdP -->|Selected database interface| Data
-    end
-    subgraph Directory["Directory authority (IdM) / identity network"]
-      Primary["Dedicated primary VM"] <-->|Replication| Replica["Dedicated replica VM"]
     end
     IdP -->|Protected LDAP user federation| Primary
     IdP -->|Configured directory failover| Replica
   end
-  T1 ~~~ T0
+  %% Anchor both inner groups below Tier 1; cross-boundary links must not lift it beside Tier 0.
+  T1 ~~~ Services
+  T1 ~~~ Primary
   T2 -->|OIDC integration| IdP
   T1 -->|OIDC integration| IdP
-  Hosts["Enrolled hosts from approved networks"] -->|DNS, LDAP and Kerberos| Directory
+  Hosts -->|DNS, LDAP and Kerberos| Directory
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class T2,T1 services
+  class T0,Directory control
+  class Cluster runtime
+  class DirectoryPair replicas
+  class Data data
+  class Hosts actor
 ```
 
 In the reference allocation, FreeIPA implements IdM on two dedicated Tier 0 VMs;

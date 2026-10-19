@@ -18,6 +18,7 @@ can investigate raw evidence. Producers cannot read, edit or delete it.
 ## Authority and flow
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Sources["Tier 0 / 1 / 2<br/>Durable local queues"] -->|Submit only| Intake
   subgraph T0["Tier 0 / Control"]
@@ -28,6 +29,15 @@ flowchart LR
   end
   Evidence -. Approved projection .-> Search["Tier 1 scoped copies"]
   Developer["Application owner"] -->|Own app only| Search
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Sources,Readers,Developer actor
+  class T0 control
+  class Evidence data
+  class Search services
 ```
 
 Submission rights are not filesystem, database or object-store credentials.

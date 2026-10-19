@@ -21,9 +21,17 @@ installer. Product configuration/manifests and their execution recipe remain pro
 ## Step 1: Prepare the monitoring runtime
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Existing["Existing Tier 0 log intake<br/>Protected evidence"] --- Host["Existing independent Tier 0 host<br/>Monitoring capacity selected"]
   Cluster["Tier 0 cluster being observed"] -. Must not host its only outage detector .-> Host
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Existing data
+  class Host control
+  class Cluster services
 ```
 
 1. Select an existing independent host or provision reviewed Tier 0 capacity.
@@ -40,10 +48,18 @@ flowchart LR
 ## Step 2: Add critical health and history
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Sources["Hosts, storage, network<br/>Log queues and control APIs"] --> Metrics["Tier 0 critical metric history"]
   Agents["Netdata agents"] --> Parent["Tier 0 live diagnostics"]
   Metrics --> Rules["Local rule evaluation"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Sources,Agents actor
+  class Metrics data
+  class Parent,Rules control
 ```
 
 1. Select a small dataset: host/storage/network health, source coverage, receiver queues,
@@ -59,10 +75,18 @@ flowchart LR
 ## Step 3: Enable and verify independent alerts
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Rules["Tier 0 local rules"] --> Routing["Independent notification delivery"] --> Admin["Authorized administrators"]
   Watch["External heartbeat / watchdog"] -->|Collector or monitoring host missing| Admin
   T1["Tier 1 unavailable"] -. No required dependency .-> Rules
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Rules,Routing,Watch control
+  class Admin actor
+  class T1 services
 ```
 
 1. Configure local evaluation and notification routing, such as Alertmanager, with

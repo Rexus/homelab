@@ -11,10 +11,10 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
         for docs in (UPSTREAM / 'docs', self.root / 'verify-architecture/docs/auto-docs'):
             design = (docs / 'architecture/cryptography/certificate-authority.md').read_text()
             for expected in ('OpenXPKI Community', 'permanent infrastructure issuer',
-                             'Root -->|Signs subordinate CA certificate offline| Infrastructure',
-                             'Root -->|Signs subordinate CA certificate offline| Identity',
                              'Enterprise-only', 'acme2certifier', 'DataVault', 'missing signing identity'):
                 self.assertIn(expected, design)
+            for issuer in ('Infrastructure', 'Identity'):
+                self.assertIn(f'Root -.->|Signs subordinate CA<br/>certificate offline| {issuer}', design)
             self.assertIn('Vault remains a secret service', design)
             reference = (docs / 'architecture/reference-platform.md').read_text()
             self.assertIn('OpenXPKI on ca-1', reference)

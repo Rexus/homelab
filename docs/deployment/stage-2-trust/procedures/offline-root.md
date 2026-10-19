@@ -44,10 +44,18 @@ the only copy of authoritative CA state.
 ## Step 2: Authorize subordinate signing
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Requests["Online issuer or FreeIPA CSR<br/>Approved public-key fingerprint"] -->|Controlled media| Ceremony["Offline root ceremony<br/>Review identity and constraints"]
   Ceremony -->|Signed subordinate certificate and public chain| Return["Verified return handoff"]
   Return --> Online["Owning online CA imports certificate<br/>Private key remains in its own custody"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Requests,Return data
+  class Ceremony custody
+  class Online control
 ```
 
 1. Receive and inspect the infrastructure issuer CSR. Verify its approved public key,

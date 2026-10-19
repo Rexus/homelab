@@ -19,6 +19,7 @@ The telemetry VM option uses `<prefix>-tier-1` instead.
 4. [Establish independent monitoring](#step-4-establish-independent-monitoring)
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph Existing["Existing Tier 0 prerequisites"]
     direction LR
@@ -36,6 +37,11 @@ flowchart TB
   end
   Existing -->|Flux deploys reviewed service manifests| Added
   Existing --> Monitoring["Independent Tier 0 monitoring<br/>Critical history and external alerts"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Existing boundary
+  class Added,Monitoring control
 ```
 
 | Existing interface | New consumer |

@@ -40,10 +40,18 @@ upgrades applied by the existing role. Device choice is independent:
 ## Transit dependency
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Custody["Independent recovery custody<br/>Optional hardware protection"] -. "Authorized recovery" .-> A["Unseal service A<br/>Transit only"]
   A -->|Scoped unseal interface| B["Main secret service B"]
   B --> Consumers["Authorized consumers"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Custody custody
+  class A,B control
+  class Consumers actor
 ```
 
 A has a narrowly scoped purpose, audit and independent recovery. B's restart

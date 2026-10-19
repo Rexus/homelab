@@ -23,6 +23,7 @@ control side that maintains their infrastructure. Both operate over the same
 approved resource model; consuming a runtime does not grant control of its hosts.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Services["Trust, delivery, operations and workload services"]
   Runtime["VM and Kubernetes runtimes"]
@@ -35,6 +36,13 @@ flowchart TB
   Images -->|Approved guest images| Hosts
   Execution -->|Authorized infrastructure operations| Hosts
   Execution -->|Protected reads and writes| State
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Services,Runtime services
+  class Execution,Hosts control
+  class Images,State data
 ```
 
 Arrows describe hosting and control relationships. They are not network rules or

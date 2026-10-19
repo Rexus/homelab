@@ -51,6 +51,7 @@ GitOps definitions. Tier 2 users may then request approved VM creation and
 updates without administering the infrastructure or changing the controller.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Request["Tier 2<br/>Workload create or update request"]
   Policy["Tier 0 control<br/>Authorize and validate request"]
@@ -59,11 +60,11 @@ flowchart TB
   Request -->|bounded request data| Policy
   Policy --> Execute --> Platform
   Execute -. scoped result .-> Request
-
-  style Request fill:#f8fafc,stroke:#64748b,color:#1f2937
-  style Policy fill:#dcfce7,stroke:#15803d,color:#1f2937
-  style Execute fill:#dcfce7,stroke:#15803d,color:#1f2937
-  style Platform fill:#dbeafe,stroke:#2563eb,color:#1f2937
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Request actor
+  class Policy,Execute,Platform control
 ```
 
 Arrows show the request contract, not a dependency on Tier 2 for control-plane

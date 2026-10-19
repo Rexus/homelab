@@ -18,6 +18,7 @@ The optional cache branch uses `<prefix>-tier-2` instead.
 3. [Publish and test VM templates](#step-3-publish-and-test-vm-templates)
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Admin["Privileged workstation<br/>Local Git, Terraform / OpenTofu, Ansible"]
   State["Protected IaC state<br/>Bootstrap credentials and backups"]
@@ -32,6 +33,13 @@ flowchart TB
   Admin <--> State
   Admin -->|Configure| Network
   Admin -->|Proxmox API| PVE
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Admin actor
+  class State,Templates data
+  class Physical,Network,PVE,Bootstrap control
 ```
 
 <a id="step-1-prepare-compute-and-templates"></a>

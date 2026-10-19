@@ -52,34 +52,39 @@ Domain views expand those boxes into their components and hosting arrangements.
 
 ```mermaid
 block-beta
-  columns 4
-  Ownership["Owning tier"] Edge["Edge / DMZ"] Application["Application<br/>Services"] Control["Control"]
+  columns 5
+  Ownership["Owning tier"] Edge["Edge / DMZ"] Application["Application<br/>Services"] Control["Control"]:2
   T2["Tier 2<br/>Edge and workloads"]
   PublicEdge["Public load balancing<br/>Outbound proxy/cache"]
   Workloads["Applications<br/>Development / labs"]
-  space
-  space Clients["Ordinary clients<br/>Separate DMZ subnet"] space:2
+  space:2
+  space Clients["Ordinary clients<br/>Separate DMZ subnet"] space:3
   T1["Tier 1<br/>Shared platform"]
   Publication["Build runners<br/>Authoritative mirrors"]
-  Source["Source control"]
-  space
-  space:2 Artifacts["Artifact registry"] space
-  space:2 Delivery["Application delivery"] space
-  space:2 WorkloadManagement["Workload-cluster<br/>management"] space
-  space:2 Analytics["Shared analytics<br/>Scoped application diagnostics"] space
+  Source["Source control"] space:2
+  space:2 Artifacts["Artifact registry"] space:2
+  space:2 Delivery["Application delivery"] space:2
+  space:2 WorkloadManagement["Workload-cluster<br/>management"] space:2
+  space:2 Analytics["Shared analytics<br/>Application diagnostics"] space:2
   T0["Tier 0<br/>Infrastructure / trust"]
   space:2
-  IdM["Directory authority<br/>IdM"]
-  space:3 IdP["Identity provider<br/>IdP / SSO"]
-  space:3 PKI["Certificate issuance<br/>PKI"]
-  space:3 Secrets["Secrets management"]
-  space:3 Infrastructure["Infrastructure control"]
-  space:3 Operations["Inventory and<br/>control visibility"]
-  space:3 Evidence["Protected log intake<br/>Security / audit evidence"]
+  IdM["Directory authority<br/>IdM"] IdP["Identity provider<br/>IdP / SSO"]
+  space:3 PKI["Certificate issuance<br/>PKI"] Secrets["Secrets management"]
+  space:3 Infrastructure["Infrastructure control"] Operations["Inventory and<br/>control visibility"]
+  space:3 Evidence["Protected log intake<br/>Security / audit evidence"]:2
   Custodians["Tier 0 custody"]
-  Offline["Offline root / recovery custody<br/>Outside connected layers"]:3
-  classDef axis fill:#e5e7eb,stroke:#64748b,color:#111827
-  class Ownership,Edge,Application,Control,T2,T1,T0,Custodians axis
+  Offline["Offline root / recovery custody<br/>Outside connected layers"]:4
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Ownership,T2,T1,T0,Custodians boundary
+  class Edge,PublicEdge,Clients,Publication edge
+  class Application,Workloads,Source,Artifacts,Delivery,WorkloadManagement,Analytics services
+  class Control,IdM,IdP,PKI,Secrets,Infrastructure,Operations,Evidence control
+  class Offline custody
 ```
 
 Empty cells do not require additional services or networks. The map shows the
@@ -176,14 +181,21 @@ systems. The network names describe what runs there; firewall zones group
 networks with similar policy.
 
 ```mermaid
-flowchart LR
+block-beta
+  columns 3
   Edge["Edge / DMZ<br/>external_edge"]
   Application["Application / Services<br/>application, access"]
-  Control["Control / Control<br/>management, identity<br/>control_cluster, cryptography"]
-  Edge --- Application --- Control
+  Control["Control<br/>management, identity<br/>control_cluster, cryptography"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Edge edge
+  class Application services
+  class Control control
 ```
 
-Lines show placement, not allowed traffic. Only named service connections are
+Columns show placement, not allowed traffic. Only named service connections are
 permitted. Control is a layer; `management` is one network within it.
 Host storage/quorum fabrics and offline `ceremony` are separate from this
 routed service path. The [network map](networking/README.md) owns VLANs and attachments.
@@ -194,11 +206,14 @@ Repositories divide responsibility by potential impact. **Tier 2 is at the
 top; Tier 0 is at the bottom**, supporting the systems above it.
 
 ```mermaid
-flowchart TB
+block-beta
+  columns 1
   T2["Tier 2: edge, clients and workloads<br/>Public ingress, outbound cache<br/>Applications and experiments"]
   T1["Tier 1: shared platform<br/>Source control, registry, delivery"]
   T0["Tier 0: infrastructure and trust<br/>Proxmox, networks, templates<br/>Identity, PKI, protected automation"]
-  T2 --- T1 --- T0
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  class T2,T1,T0 boundary
 ```
 
 These are ownership boundaries, not network routes. Each tier owns its

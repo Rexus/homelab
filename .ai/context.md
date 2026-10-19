@@ -231,6 +231,9 @@ This file keeps durable context for AI-assisted work across sessions.
 - prefer diagrams, lists, and tables over long prose
 - make example-to-live-file patterns explicit
 - keep instructions fast to scan and easy to maintain
+- follow [diagram conventions](../docs/development/diagrams.md): Tier 2/1/0 top-down,
+  Edge/Services/Control left-to-right; use block grids for placement and nested flowcharts
+  for interfaces; validate the shared palette and render both light and dark themes
 - make it easy to do right: avoid encoding tier, zone, VLAN, and IP into names
 
 ## Working rules

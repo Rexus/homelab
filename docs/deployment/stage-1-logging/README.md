@@ -28,10 +28,18 @@ deletion. These are alternatives, not mandatory consecutive deployments.
 ## Step 1: Provision the log host
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Template["Existing approved Linux template"] --> VM["New Tier 0 log VM<br/>VM and disk allocation"]
   VM --> Data["Separate log-data volume<br/>Not formatted or mounted by the starter"]
   Local["Existing local host/device logs"] -. Retain until intake is ready .-> VM
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Template,Data data
+  class VM control
+  class Local actor
 ```
 
 Before this VM exists, retain persistent local host logs and supported device buffers
@@ -81,12 +89,20 @@ record the bootstrap failure window rather than delaying intake for later servic
 ## Step 2: Enable protected collection
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Sources["Existing infrastructure sources<br/>Durable local queues"] -->|Scoped append submissions| Intake
   subgraph New["Tier 0 collection added"]
     Intake["TLS receiver<br/>Independent trust and credentials"] --> Records["Local JSON Lines<br/>Separate data volume"]
   end
   Admin["Authorized security reader"] -->|Scoped read| Records
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Sources,Admin actor
+  class New,Intake control
+  class Records data
 ```
 
 1. Follow [receiver setup, Steps 1-3](receiver.md): prepare the data mount, independent
@@ -126,11 +142,21 @@ it without identity services or a cluster. A single collector still has a declar
 ## Step 3: Protect and verify retained evidence
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Intake["Existing Tier 0 intake"] --> Evidence["Protected evidence<br/>Governed retention"]
   Evidence --> Copy["Independent recovery copies<br/>Separate deletion authority"]
   Copy --> Offline["Offline inspection<br/>Reader kit and separately held keys"]
   Evidence -. Later approved copies .-> Search["Stage 5 Tier 1 analytics"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Intake control
+  class Evidence data
+  class Copy,Offline custody
+  class Search services
 ```
 
 1. Select [A: NAS snapshots/backups](step-3c-nas-archive.md) or

@@ -21,6 +21,7 @@ the observed cluster. Recovery copies remain available independently of the
 services and dashboards that normally manage them.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Runtime["Hosts, clusters and applications"] -->|Approved signals| Collectors["Telemetry and security collectors"]
   Collectors -->|Route by signal and policy| Stores["Metrics, traces, logs and audit stores"]
@@ -30,6 +31,17 @@ flowchart TB
   External["Independent failure detection"] -->|Health checks| Runtime
   External -->|Failure alerts| Alerts["External alert delivery"]
   Stores -->|Owned alert rules| Alerts
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Runtime,Collectors services
+  class Stores data
+  class Recovery custody
+  class External,Alerts control
+  class Operators actor
 ```
 
 NetBox documents approved inventory; Headlamp supplies scoped cluster operations.

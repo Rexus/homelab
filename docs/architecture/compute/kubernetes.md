@@ -15,20 +15,23 @@ capacity within that authority. Talos is the supplied node OS, not the design go
 ## Cluster boundaries
 
 ```mermaid
-flowchart TB
-  subgraph T2["Tier 2: workloads"]
-    C2["Independent API and etcd<br/>Development, testing and lab workloads"]
-  end
-  subgraph T1["Tier 1: shared platform"]
-    C1["Independent API and etcd<br/>Source control, registry and delivery"]
-  end
-  subgraph T0["Tier 0: control"]
-    C0["Independent API and etcd<br/>Identity provider, secrets and control services"]
-    Directory["Dedicated directory VM pair"]
-    Custody["Offline root and recovery custody<br/>Outside Kubernetes"]
-  end
-  T2 ~~~ T1 ~~~ T0
-  Directory -->|Directory federation| C0
+block-beta
+  columns 4
+  Owner["Owning tier"] Runtime["Independent Kubernetes cluster"]:2 Dedicated["Outside Kubernetes"]
+  T2["Tier 2<br/>Workloads"] C2["Independent API and etcd<br/>Development / testing / labs"]:2 space
+  T1["Tier 1<br/>Shared platform"] C1["Independent API and etcd<br/>Source control / registry / delivery"]:2 space
+  T0["Tier 0<br/>Control"] C0["Independent API and etcd<br/>IdP / secrets / control services"]:2
+  Directory["Dedicated directory VM pair<br/>Directory federation"]
+  Custody["Separate offline root and recovery custody<br/>Outside Kubernetes and connected hosts"]:4
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Owner,Runtime,Dedicated,T2,T1,T0 boundary
+  class C2,C1 services
+  class C0,Directory control
+  class Custody custody
 ```
 
 Network attachments follow purpose and exposure, not tier numbers. The examples
@@ -36,7 +39,8 @@ use Control for Tier 0, application/Services for Tier 1, and lab for Tier 2;
 the [network map](../networking/README.md) owns VLAN and firewall design.
 Sharing Proxmox hosts does not create physical isolation between tiers.
 
-FreeIPA remains on two dedicated Tier 0 VMs. Offline root keys remain outside
+FreeIPA remains on two dedicated Tier 0 VMs and supplies directory federation
+to the IdP, as shown in the [identity view](../identity/README.md). Offline root keys remain outside
 the clusters. The protected infrastructure runner is a Tier 0 execution host,
 not a general build pod or a Tier 1 delivery controller.
 

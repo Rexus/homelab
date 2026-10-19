@@ -1,0 +1,16 @@
+{
+  "roles": {
+    "default": {"fill": "#f8fafc", "stroke": "#64748b", "color": "#1f2937"},
+    "boundary": {"fill": "#eef2f6", "stroke": "#64748b", "color": "#1f2937"},
+    "edge": {"fill": "#fce8ec", "stroke": "#9b4d67", "color": "#502638"},
+    "services": {"fill": "#e7f0fc", "stroke": "#4d719b", "color": "#203a5b"},
+    "control": {"fill": "#e2f3ed", "stroke": "#397366", "color": "#173f36"},
+    "runtime": {"fill": "#d9eeec", "stroke": "#4d7b77", "color": "#173f3e"},
+    "custody": {"fill": "#fff2d1", "stroke": "#926820", "color": "#584013"},
+    "data": {"fill": "#eeeafa", "stroke": "#78639b", "color": "#42325d"},
+    "actor": {"fill": "#edf0f3", "stroke": "#697682", "color": "#293642"},
+    "replicas": {"fill": "#f8fafc", "stroke": "#64748b", "color": "#1f2937", "stroke-dasharray": "5 4"}
+  },
+  "links": {"stroke": "#627581", "labelBackground": "#f8fafc"},
+  "charts": {"series": ["#218d7b", "#6e87be", "#9b852c"]}
+}

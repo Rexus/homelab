@@ -19,6 +19,7 @@ copies and application diagnostics do not replace that archive.
 ```mermaid
 block-beta
   columns 3
+  Owner["Owning tier"] LogPath["Logs and traces"] MetricPath["Metrics and alerts"]
   T2["Tier 2<br/>Workloads"]
   Collectors["Local collectors<br/>Bounded durable buffers"]
   AppScope["Application telemetry<br/>Tenant-scoped submissions"]
@@ -28,6 +29,13 @@ block-beta
   T0["Tier 0<br/>Protected foundation"]
   Evidence["Private security-log intake<br/>Restricted retained evidence"]
   Critical["Critical metrics and diagnostics<br/>Independent alert delivery"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Owner,LogPath,MetricPath,T2,T1,T0 boundary
+  class Collectors,AppScope,Analytics,Platform services
+  class Evidence,Critical control
 ```
 
 Every tier sends security/audit submissions to Tier 0. Ordinary application

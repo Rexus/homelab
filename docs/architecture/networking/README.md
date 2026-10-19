@@ -31,30 +31,40 @@ dependencies, controlled egress and privileged administration. Each connection
 below represents a named endpoint contract, not access to an entire zone.
 
 ```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":30,"rankSpacing":30},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Internet["Internet"]
-  AdminEntry["Approved administration entry"]
+  AdminEntry["Approved<br/>administration entry"]
   subgraph Edge["Edge / DMZ"]
     Clients["Tier 2: ordinary clients<br/>Separate client subnet"]
     Gateways["Tier 2: public ingress<br/>Outbound proxy/cache"]
-    Supply["Tier 1: build runners / mirrors<br/>Separate delivery_edge subnet"]
+    Supply["Tier 1: build runners<br/>Authoritative mirrors<br/>delivery_edge subnet"]
   end
   subgraph Application["Application / Services"]
-    Services["Shared services and workloads"]
+    Services["Shared services<br/>and workloads"]
   end
   subgraph Control["Control"]
-    Endpoints["Identity, trust and operations endpoints"]
-    Administration["Privileged administration"]
+    Endpoints["Identity, trust and<br/>operations endpoints"]
+    Administration["Privileged<br/>administration"]
   end
-  Internet -->|Published listeners| Gateways
-  Gateways -->|Named backend listeners| Services
-  Clients -->|Approved application listeners| Services
-  Services -->|Scoped service access| Endpoints
-  Services -->|Proxy or cache access| Gateways
-  Gateways -->|Approved upstreams| Internet
-  Supply -->|Approved upstreams| Internet
-  Supply -->|Scoped source / artifact access| Services
-  AdminEntry -->|Target-specific access| Administration
+  Internet -->|Published<br/>listeners| Gateways
+  Gateways -->|Named backend<br/>listeners| Services
+  Clients -->|Approved application<br/>listeners| Services
+  Services -->|Scoped service<br/>access| Endpoints
+  Services -->|Proxy or<br/>cache access| Gateways
+  Gateways -->|Approved<br/>upstreams| Internet
+  Supply -->|Approved<br/>upstreams| Internet
+  Supply -->|Scoped source /<br/>artifact access| Services
+  AdminEntry -->|Target-specific<br/>access| Administration
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Internet,AdminEntry actor
+  class Edge edge
+  class Application services
+  class Control control
 ```
 
 Ingress and egress are distinct functions, not necessarily one gateway service.

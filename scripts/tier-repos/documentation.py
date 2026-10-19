@@ -132,6 +132,9 @@ def copy_documentation(writer, prefix, upstream):
             content = notice + "\n" + content
         writer.write(target, content)
 
+    palette = "reference/diagrams/palette.json"
+    writer.write(f"{AUTO_DOCS}/{palette}", (upstream / "docs" / palette).read_bytes())
+
     redirect_moved_docs(writer, previous_paths)
 
     legacy = writer.root / "docs/generated/upstream"

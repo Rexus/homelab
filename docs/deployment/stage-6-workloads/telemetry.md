@@ -18,9 +18,15 @@ selected [Tier 1 telemetry interfaces](../stage-5-delivery/analytics.md).
 ## Step 1: Prepare local collection
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Runtime["Existing VMs / workload cluster"] --> Agents["New host agents / cluster collectors"]
   Apps["Application instrumentation"] --> Agents --> Queue["Bounded durable buffers"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Runtime,Apps,Agents services
+  class Queue data
 ```
 
 1. Identify source owners and required security, application, metric and trace streams.
@@ -32,10 +38,18 @@ flowchart LR
 ## Step 2: Connect the authorized destinations
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Collect["Tier 2 collection"] -->|Security / audit submissions| Evidence["Tier 0 protected intake"]
   Collect -->|Application logs / metrics / traces| Analytics["Tier 1 shared interfaces"]
   Owner["Application owner"] -->|Read own approved view| Analytics
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Collect,Analytics services
+  class Evidence control
+  class Owner actor
 ```
 
 1. Route security/audit events to scoped Tier 0 intake and ordinary application
@@ -47,10 +61,16 @@ flowchart LR
 ## Step 3: Verify buffering and reader isolation
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Source["Workload events during bounded outage"] --> Buffer["Local durable buffers"]
   Buffer -->|Replay after recovery| Backend["Tier 1 backends"]
   Backend --> View["Approved application read scope"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Source,Backend,View services
+  class Buffer data
 ```
 
 1. Interrupt Tier 1 connectivity and restart collectors. Verify replay, duplicate/gap

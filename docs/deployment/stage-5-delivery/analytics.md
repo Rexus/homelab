@@ -18,9 +18,15 @@ scoped ingestion identities, storage/backups and a selected delivery controller.
 ## Step 1: Prepare the investigation runtime
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Runtime["Existing Tier 1 platform cluster"] --> New["Selected observability workloads<br/>Persistent storage and backups"]
   Alternative["Optional dedicated Tier 1 VMs"] -. Replaces cluster hosting .-> New
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  class Runtime,New services
+  class Alternative boundary
 ```
 
 1. Reuse the [platform cluster](procedures/platform-cluster.md) and its selected delivery
@@ -35,11 +41,19 @@ flowchart LR
 ## Step 2: Deploy scoped ingestion and backends
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Evidence["Tier 0 protected evidence"] -->|Approved projections only| Logs["Tier 1 log / trace analytics"]
   Workloads["Approved workload telemetry"] --> Ingest["Authenticated ingestion and queues"]
   Ingest --> Logs
   Ingest --> Metrics["Shared metrics and application rules"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Evidence control
+  class Logs,Ingest,Metrics services
+  class Workloads actor
 ```
 
 1. Deploy the selected backend/ingestion components through reviewed project manifests
@@ -56,11 +70,21 @@ flowchart LR
 ## Step 3: Publish and verify read-only views
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Auth["Identity provider"] -->|Authenticate| UI["Tier 1 investigation views"]
   App["Application owner"] -->|Authorized application scope| UI
   Security["Authorized security reader"] -->|Approved security scope| UI
   UI --> Copies["Scoped searchable copies<br/>No Tier 0 archive administration"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Auth control
+  class UI services
+  class App,Security actor
+  class Copies data
 ```
 
 1. Configure federation, separately tested break-glass access, per-application and

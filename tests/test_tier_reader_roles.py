@@ -75,10 +75,12 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertIn(f"({target})", overview)
         layers = overview.split("## Layered model\n", 1)[1].split("## Tiered model\n", 1)[0]
         tiers = overview.split("## Tiered model\n", 1)[1].split("## Tier and zone view\n", 1)[0]
-        self.assertIn("flowchart LR", layers)
-        self.assertIn("Edge --- Application --- Control", layers)
-        self.assertIn("flowchart TB", tiers)
-        self.assertIn("T2 --- T1 --- T0", tiers)
+        self.assertIn("block-beta\n  columns 3", layers)
+        self.assertLess(layers.index('Edge["'), layers.index('Application["'))
+        self.assertLess(layers.index('Application["'), layers.index('Control["'))
+        self.assertIn("block-beta\n  columns 1", tiers)
+        self.assertLess(tiers.index('T2["'), tiers.index('T1["'))
+        self.assertLess(tiers.index('T1["'), tiers.index('T0["'))
         for domain in ("networking", "compute", "identity", "cryptography", "delivery", "operations"):
             content = (root / domain / "README.md").read_text()
             self.assertIn("```mermaid", content, domain)
@@ -92,7 +94,8 @@ class ReaderRoles(TierRepositoryTestCase):
         overview = (root / "README.md").read_text()
         capability_map = overview.split("## Functional structure\n", 1)[1].split(
             "## How the platform works together\n", 1)[0]
-        self.assertIn("block-beta\n  columns 4", capability_map)
+        self.assertIn("block-beta\n  columns 5", capability_map)
+        self.assertIn('Control["Control"]:2', capability_map)
         for ordered in (('T2["Tier 2', 'T1["Tier 1', 'T0["Tier 0'),
                         ('Edge["Edge', 'Application["Application', 'Control["Control')):
             positions = [capability_map.index(label) for label in ordered]

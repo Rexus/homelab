@@ -25,6 +25,7 @@ the end, and links back to the architecture it implements.
 | 6: Workload provisioning | Approved Tier 2 runtime, applications and scoped collection | Tier 2 definitions; Tier 0 execution | [Workload provisioning](stage-6-workloads/README.md), [collection](stage-6-workloads/telemetry.md) |
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Base["Foundation prerequisites<br/>Proxmox, networks, access and approved templates"]
   Base --> Logs["1. Protected logging<br/>Independent Tier 0 evidence"]
@@ -33,6 +34,13 @@ flowchart TB
   Runtime --> Control["4. Control services<br/>Federation, secrets, inventory and critical alerts"]
   Control --> Delivery["5. Delivery and handover<br/>Shared services, analytics and protected execution"]
   Delivery --> Workloads["6. Workloads<br/>Scoped delivery, collection and application views"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Base boundary
+  class Logs,Trust,Runtime,Control control
+  class Delivery,Workloads services
 ```
 
 For a new installation, follow this order. Existing infrastructure can satisfy a

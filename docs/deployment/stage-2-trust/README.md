@@ -19,6 +19,7 @@ existing qualified authorities remain valid. The runtime installer does not perf
 3. [Enable and verify routine issuance](#step-3-enable-and-verify-routine-issuance)
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Bootstrap["Privileged workstation / bootstrap VM"]
   subgraph Offline["ceremony: separately controlled offline custody"]
@@ -33,6 +34,13 @@ flowchart TB
   end
   Bootstrap -->|Provision and configure| Issuer
   Ceremony -. "Transfer signed intermediate certificate; no network route" .-> Issuer
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Bootstrap actor
+  class Offline,Root,Ceremony,Hardware custody
+  class Crypto,Issuer control
 ```
 
 ## Step 1: Prepare issuer and key custody

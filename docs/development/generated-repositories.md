@@ -168,6 +168,7 @@ Terraform and Ansible consume the **same** inventory and group vars. Terraform
 does not generate a second inventory after provisioning.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Inputs["Owning tier: inventory and group vars"] --> TF["Terraform guest resolution"]
   Inputs --> Ansible["Ansible configuration"]
@@ -175,6 +176,13 @@ flowchart LR
   Shared["Shared: sizes, image/platform references, baseline helpers"] --> TF
   Shared --> Ansible
   Services["Owning tier: service playbooks and roles"] --> Ansible
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  class Inputs,Hardware data
+  class TF,Ansible,Services services
+  class Shared boundary
 ```
 
 | File in the owning tier | Responsibility |

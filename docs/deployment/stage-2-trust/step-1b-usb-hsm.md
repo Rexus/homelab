@@ -56,6 +56,7 @@ application state and backup recovery before changing the existing key/provider 
 ## Default deployment
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Prepare["1. Provision the selected Tier 0 service pool<br/>Apply OS baseline"]
   Integrate["2. Integrate signing application and local devices<br/>Select co-hosted endpoint/failover"]
@@ -72,6 +73,15 @@ flowchart TB
   Consumers["Authorized Tier 0/1/2 consumers"] -->|Scoped API| Endpoint
   Recovery["Separate offline backup custody"]
   A -. Authorized backup / restore .-> Recovery
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Prepare,Integrate,Accept,T0,Endpoint control
+  class A,B replicas
+  class Consumers actor
+  class Recovery custody
 ```
 
 Only the first step is supplied as a VM/baseline workflow. The completed design

@@ -180,6 +180,20 @@ be relabelled as a deployed-system pass.
 
 ## Repeat cadence
 
+Diagram review, 2026-10-19: all **65 Mermaid diagrams** render in light and dark themes
+with Mermaid 11.17.2 (**130 renders**). Placement views use six block grids; interaction
+views retain flowcharts and the existing sequence. Reviewed overview sheets and detailed
+figures at 1100px; key placement/containment views also render at 760px without canvas
+clipping. Identity coordinates verify Tier 2 above Tier 1 above the Tier 0 boundary,
+with enrolled hosts to its left. Dense diagrams still require zoom at narrow widths.
+
+The 129-case offline run passed 125 cases; one old literal signing-edge assertion needed
+the new wrapped/dashed form, and three native invocations used stale local fixture paths.
+All four cases passed on recheck: **16 PKI/logging/diagram tests**, then **27 final
+documentation/diagram tests**, zero skipped. This is combined evidence, not a single clean
+129-case run. The new palette asset follows managed auto-docs refresh/preservation rules;
+no live acceptance box is satisfied by diagram or repository tests.
+
 Archive-choice review, 2026-10-19: the full 124-case run exposed two new-option navigation
 gaps. After correcting branch metadata and checklist links, **all 46 affected tests passed,
 zero skipped**; the other 78 cases passed in the full run. Coverage includes both archive
@@ -198,7 +212,7 @@ behavior, not qualification of the documented EL 10/syslog-ng 4.8+ deployment ta
 Native PKI tests used `PKI_CONFIG_REPOSITORY` at `0aa2db093e6f0573dd296c69c98c0e61d03bdf48`,
 `PKI_CLCA_REPOSITORY` at `d560135cf4bbdc1916fa4c5545012085b96d4a21`,
 `PKI_HAPROXY_BINARY` and `SYSLOG_NG_TEST_BINARY`/`SYSLOG_NG_TEST_MODULE_PATH`.
-No diagrams changed; the earlier 64-diagram render remains historical evidence.
+Those earlier changes did not alter diagrams; the 64-diagram render remains historical evidence.
 No live infrastructure acceptance box above is satisfied by these results.
 
 From an upstream checkout on Linux/WSL with the documented test tools/collections:

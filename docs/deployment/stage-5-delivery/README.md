@@ -34,6 +34,7 @@ The selected delivery platform deploys shared applications; Tier 0 remains on Fl
 Choose Argo CD application GitOps or Spinnaker release pipelines before enabling delivery.
 
 ```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":30,"rankSpacing":40},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Bootstrap["Bootstrap workstation / VM"]
   Identity["Tier 0 Keycloak"]
@@ -41,17 +42,27 @@ flowchart TB
     Git["GitLab<br/>Source control + CI"]
     Registry["Harbor<br/>OCI registry"]
     Delivery["Delivery choice<br/>A: Argo CD / B: Spinnaker"]
-    Fleet["Optional Rancher / Fleet<br/>Tier 1/2 workload-cluster management"]
-    Delivery -->|Approved application revisions| Git
+    Fleet["Optional Rancher / Fleet<br/>Tier 1/2 workload-cluster<br/>management"]
+    Delivery -->|Approved application<br/>revisions| Git
   end
-  Builds["Tier 1 DMZ / delivery_edge<br/>General build runners and authoritative mirrors"]
+  Builds["Tier 1 DMZ / delivery_edge<br/>General build runners<br/>Authoritative mirrors"]
   Edge["Tier 2 DMZ / external_edge<br/>Public load balancers"]
-  Git -->|Build jobs| Builds -->|Publish artifacts| Registry
-  Edge -->|Approved application listeners| Git
-  Bootstrap -->|Provision cluster and initial delivery| Platform
-  Identity -->|OIDC| Git
-  Identity -->|OIDC| Registry
-  Identity -->|OIDC| Fleet
+  Git -->|Build jobs| Builds -->|Publish<br/>artifacts| Registry
+  Edge -->|Approved application<br/>listeners| Git
+  Bootstrap ~~~ Edge
+  Bootstrap -->|Provision cluster<br/>and initial delivery| Platform
+  Git -->|OIDC| Identity
+  Registry -->|OIDC| Identity
+  Fleet -->|OIDC| Identity
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  class Bootstrap actor
+  class Identity control
+  class Platform services
+  class Builds,Edge edge
 ```
 
 1. Create the [Tier 1 runtime](procedures/platform-cluster.md), using
@@ -77,6 +88,7 @@ Provision a hardened infrastructure runner as a Tier 0 management VM, outside th
 Tier 1 cluster. The bootstrap workstation remains available for independent recovery.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Git["Tier 1 GitLab<br/>Proposed infrastructure job"]
   Bootstrap["Bootstrap workstation / VM"]
@@ -91,6 +103,15 @@ flowchart TB
   Bootstrap -->|Provision and harden| Runner
   Runner --> PVE["Proxmox / cluster lifecycle"]
   Sources["Approved Git revisions and OCI artifacts"] -->|Read-only retrieval| Flux["Tier 0 Flux"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Git services
+  class Bootstrap actor
+  class Management,Gate,Runner,PVE,Flux control
+  class State,Sources data
 ```
 
 1. Implement the [protected execution policy](../../architecture/compute/provisioning.md)

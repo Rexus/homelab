@@ -31,11 +31,17 @@ Kubernetes cluster or hosted identity service exists. [1]
 ## Bring up the network
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Admin["Local privileged workstation"] --> Controller["Gateway / independent Network application"]
   Controller --> Switch["Adopted switch and optional APs"]
   Switch --> Hosts["Proxmox management and guest trunks"]
   Switch --> Clients["Separate ordinary-client networks"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Admin,Clients actor
+  class Controller,Switch,Hosts control
 ```
 
 1. Commission the gateway and Network application using the selected model's

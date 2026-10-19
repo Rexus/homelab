@@ -123,7 +123,7 @@ Example assumptions:
 | hybrid | private baseline plus public peak/offsite use averaging `€160/month` |
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"background": "#ffffff", "primaryColor": "#dbeafe", "primaryBorderColor": "#2563eb", "primaryTextColor": "#1f2937", "secondaryColor": "#dcfce7", "tertiaryColor": "#fff7ed", "lineColor": "#2563eb"}}}%%
+%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#218d7b,#6e87be,#9b852c"}}}}%%
 xychart-beta
   title "Illustrative 24-month cumulative cost"
   x-axis "Months" [0, 6, 12, 18, 24]
@@ -143,7 +143,7 @@ cloud carries the steady service baseline and normal business workload. Public
 cloud is used only for the horizontal scale-out window.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"background": "#ffffff", "primaryColor": "#dbeafe", "primaryBorderColor": "#2563eb", "primaryTextColor": "#1f2937", "secondaryColor": "#dcfce7", "tertiaryColor": "#fff7ed", "lineColor": "#2563eb"}}}%%
+%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#218d7b,#6e87be,#9b852c"}}}}%%
 xychart-beta
   title "Hybrid capacity for working-hours peaks"
   x-axis "Hour" [0, 4, 8, 12, 16, 20, 24]

@@ -31,9 +31,17 @@ Start with reviewed operator-driven jobs. Automatic self-service is an optional
 implementation of the same bounded contract, not a reason to give general CI credentials.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   User["Administrator / developer"] --> Request["Tier 2 request"]
   Request --> CI["Validate, plan and test"] --> Gate["Tier 0 approval and policy"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class User actor
+  class Request,CI services
+  class Gate control
 ```
 
 1. Record the workload owner, permitted templates, sizes, networks and quotas in
@@ -52,10 +60,18 @@ The protected runner creates the approved resources using the owning tier's inpu
 and state. Shared supplies reusable helpers, never workload inventory or resources.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Gate["Approved request"] --> Runner["Protected Tier 0 runner"]
   Runner <--> State["Protected tier-local IaC state"]
   Runner --> PVE["Proxmox API"] --> Runtime["Tier 2 VMs / Kubernetes nodes"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Gate,Runner,PVE control
+  class State data
+  class Runtime services
 ```
 
 1. Execute the reviewed tier-local definition and verify the intended network boundaries.
@@ -98,10 +114,16 @@ Approved application revisions are reconciled inside the owning cluster. Rancher
 can manage selected Tier 1/2 clusters, never Tier 0 infrastructure.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Source["Approved application revision"] --> GitOps["Scoped application delivery"]
   GitOps --> Apps["Tier 2 applications"]
   Runtime["Verified workload runtime"] --> Apps
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Source data
+  class GitOps,Apps,Runtime services
 ```
 
 1. Select [scoped delivery](../../architecture/delivery/controllers.md) from Tier 1

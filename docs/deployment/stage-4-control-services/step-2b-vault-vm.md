@@ -30,6 +30,7 @@ Use this guide after identity, DNS, and PKI are available to
 deploy Vault as the shared secret-platform service.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   A[Identity foundation ready] --> B[Terraform creates dedicated Vault VM]
   B --> C[Ansible Vault playbook]
@@ -37,14 +38,13 @@ flowchart TB
   D --> E[Operator init and unseal]
   E --> F[Test scoped access and recovery]
   F --> G[Move approved secrets into Vault]
-
-  classDef mgmtNode fill:#fed7aa,stroke:#c2410c,color:#1f2937
-  classDef buildNode fill:#dbeafe,stroke:#2563eb,color:#1f2937
-  classDef vaultNode fill:#bbf7d0,stroke:#15803d,color:#1f2937
-
-  class A,E mgmtNode
-  class B,C,G buildNode
-  class D,F vaultNode
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class A,E actor
+  class B,C,D,F control
+  class G data
 ```
 
 Figure: Vault is deployed after the identity and PKI layer exists and

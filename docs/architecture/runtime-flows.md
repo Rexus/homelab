@@ -28,15 +28,21 @@ sequenceDiagram
   participant Service as Published service
   participant IdP as Identity provider
   participant Directory as Directory authority
+  rect rgba(77, 113, 155, 0.12)
   Client->>Service: HTTPS application request
   Service-->>Client: Authentication required
+  end
+  rect rgba(57, 115, 102, 0.12)
   Client->>IdP: Authentication through selected OIDC flow
   IdP->>Directory: Configured LDAP user federation or identity lookup
   Directory-->>IdP: Authoritative identity information
   IdP-->>Client: Authentication response
+  end
+  rect rgba(77, 113, 155, 0.12)
   Client->>Service: Complete the selected login flow
   Service->>Service: Validate identity and apply local authorization
   Service-->>Client: Authorized application response
+  end
 ```
 
 The service endpoint may be reached through the shared edge proxy and application
@@ -64,6 +70,7 @@ selected promotion policy determines approved releases. The selected delivery
 controller changes only application resources within its granted authority.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Source["Reviewed source and desired state"]
   Build["General build runners"]
@@ -75,6 +82,11 @@ flowchart TB
   Controller -->|Retrieve approved revisions| Source
   Controller -->|Scoped application changes| Runtime
   Runtime -->|Pull approved runtime images| Registry
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Source,Registry data
+  class Build,Controller,Runtime services
 ```
 
 Tier 0 uses Flux. Tier 1 leaves Argo CD and Spinnaker as alternatives: GitOps
@@ -104,6 +116,7 @@ The bounded request interface is a design goal; the current operator workflows
 do not constitute an implemented self-service API.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Intent["Tier-owned definitions or bounded resource request"]
   Accept["Tier 0 acceptance and policy"]
@@ -117,6 +130,15 @@ flowchart TB
   Execute <-->|Serialized state access| State
   Execute -->|Sanitized outcome| Intent
   Recovery -.->|Independent execution when hosted tooling is unavailable| Execute
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Intent actor
+  class Accept,Execute,Platform control
+  class State data
+  class Recovery custody
 ```
 
 Tier 0 controls the acceptance policy, execution code and privileged credentials.
@@ -160,6 +182,7 @@ or restoration requirements.
 ### Persistent state and restoration
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Service["Service or cluster"]
   Data["Its selected persistent state"]
@@ -171,6 +194,13 @@ flowchart TB
   Copies -->|Selected restore input| Restore
   Inputs -->|Recovery prerequisites| Restore
   Restore -.->|Reconstruct authorized service state| Service
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Service,Restore services
+  class Data,Copies data
+  class Inputs custody
 ```
 
 The arrow from data to copies denotes the required backup result; the backup
@@ -183,6 +213,7 @@ their separate contracts.
 ### Visibility during normal operation and failure
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Producers["Authorized service and infrastructure producers"]
   Intake["Scoped telemetry intake"]
@@ -194,6 +225,15 @@ flowchart TB
   Backends -->|Scoped queries and alerts| Operators
   Independent -->|Check availability| Producers
   Independent -->|Independent failure alert| Operators
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Producers,Operators actor
+  class Intake services
+  class Backends data
+  class Independent control
 ```
 
 General shared telemetry may belong to Tier 1. All tiers submit security/audit

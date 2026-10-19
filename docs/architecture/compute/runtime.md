@@ -21,23 +21,21 @@ does not change the service's authority classification or transfer its resource
 definitions and state to another tier.
 
 ```mermaid
-flowchart TB
-  subgraph T2["Tier 2: workloads"]
-    Workloads["Workload VMs and cluster node VMs"]
-  end
-  subgraph T1["Tier 1: shared platform"]
-    Shared["Shared-service VMs and cluster node VMs"]
-  end
-  subgraph T0["Tier 0: trust and infrastructure control"]
-    Dedicated["Dedicated service and execution VMs"]
-    Cluster["Control-cluster node VMs"]
-  end
-  Workloads ~~~ Shared ~~~ Dedicated
-  Hosts["Proxmox hosts and approved resources"]
-  Workloads -->|Hosted on| Hosts
-  Shared -->|Hosted on| Hosts
-  Dedicated -->|Hosted on| Hosts
-  Cluster -->|Hosted on| Hosts
+block-beta
+  columns 3
+  Owner["Owning tier"] Runtime["Hosted service runtimes"]:2
+  T2["Tier 2<br/>Workloads"] Workloads["Workload VMs and cluster-node VMs"]:2
+  T1["Tier 1<br/>Shared platform"] Shared["Shared-service VMs and cluster-node VMs"]:2
+  T0["Tier 0<br/>Trust / infrastructure"]
+  Dedicated["Dedicated service<br/>and execution VMs"] Cluster["Control-cluster<br/>node VMs"]
+  Hosts["Hosting foundation for every row: Proxmox hosts and approved resources"]:3
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Owner,Runtime,T2,T1,T0 boundary
+  class Workloads,Shared services
+  class Dedicated,Cluster,Hosts control
 ```
 
 The rows describe placement and ownership, not network connectivity or a shared
@@ -78,6 +76,7 @@ Each service identifies its authoritative data, storage owner and backup path.
 No single storage backend is implied for every VM, cluster or service.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   VMData["Service data in VMs"]
   ClusterData["Service data in clusters"]
@@ -92,6 +91,13 @@ flowchart TB
   ClusterStorage -->|Defined service backup path| Backups
   Backups -->|Independent retention| Recovery
   Records -->|Independent retention| Recovery
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class VMData,ClusterData services
+  class VMStorage,ClusterStorage,Backups data
+  class Records,Recovery custody
 ```
 
 These are logical data responsibilities, not a prescribed backup product or a
