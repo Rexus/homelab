@@ -128,9 +128,9 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
    insecure = false
    ```
 
-   Template publication and Kubernetes roots already use this setting. An environment
-   variable cannot override a hard-coded `insecure = true`; remove the source-level
-   bypass as well as stale runner/environment exceptions. The pinned provider's SDK
+   All supplied roots now use this setting. Refresh preserves local project edits,
+   so review older/customized provider files rather than assuming they changed.
+   Remove source-level bypasses as well as stale runner/environment exceptions. The pinned provider's SDK
    path can retain an environment bypass even with explicit HCL `false`; clear both
    `PROXMOX_VE_INSECURE` and the legacy `PM_VE_INSECURE` from inherited settings. [2][8]
 
@@ -142,6 +142,11 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
 
    Remove the same overrides from ignored environment files and runner configuration;
    a shell unset does not prevent the deployment wrapper from loading them again.
+   Supplied Linux, template and Kubernetes provisioning entry points reject true or
+   malformed values before Terraform. Initialization and offline credential export do
+   not require an API bypass. Direct Terraform/Packer calls still need their own review.
+   No automatic insecure bootstrap flag is supplied; verified Proxmox CA trust is the
+   normal bootstrap path, independent of the future platform PKI.
 
    | Caller | Review |
    | --- | --- |

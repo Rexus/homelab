@@ -246,6 +246,13 @@ bash scripts/deploy.sh foundation --env test --env-file secrets/proxmox-test.env
 
 Useful options:
 
+All supplied Terraform roots verify Proxmox TLS. Provisioning entry points reject
+`PROXMOX_VE_INSECURE` and `PM_VE_INSECURE` values that enable or ambiguously request
+a bypass, including values loaded from the Linux wrapper's environment file.
+Install independently verified [bootstrap trust](../administration/compute/proxmox-tls.md)
+before planning; platform PKI is not required. Ansible-only work and local initialization
+do not need Proxmox API verification exceptions.
+
 | Option | Purpose |
 | --- | --- |
 | `--env NAME` | separate Ansible environment vars and separate local Terraform state |

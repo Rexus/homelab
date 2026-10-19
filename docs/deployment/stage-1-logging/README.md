@@ -19,6 +19,9 @@ Keycloak, Vault and Tier 1 analytics are not prerequisites.
 The IaC provisions hosts/disks, applies the OS baseline and installs a dedicated
 syslog-ng OSE receiver after storage and TLS preparation. Protected archive
 retention and HA are explicit project integration, not results of a successful apply.
+At Step 3, select [NAS-backed retention](step-3c-nas-archive.md) for a trusted-admin
+homelab or [retention locks](step-3d-retention-lock.md) for protection from privileged
+deletion. These are alternatives, not mandatory consecutive deployments.
 
 <a id="1-provision-the-bootstrap-receiver"></a>
 
@@ -100,7 +103,7 @@ flowchart LR
 | Receiver and source identities | Authenticated encrypted submission where supported; producer can append only to its assigned stream |
 | Bootstrap trust | Independently provisioned/pinned bootstrap trust and local credentials; do not wait for future PKI or disable certificate verification |
 | Network policy | Narrow source-to-intake rules from every tier; no producer route to archive query/admin APIs; bounded rate/message size |
-| Raw archive | Tier 0 custody, enforced protected retention, independent copies and keys; no producer overwrite/read/delete access |
+| Raw archive | Tier 0 custody, selected NAS/locked-retention model, independent copies and keys; no producer overwrite/read/delete access |
 | Offline format | Portable text/JSON Lines, source catalogue and integrity metadata on the data volume; tested reader kit and separately held recovery keys |
 | Backups | Include the separate data disk or use a verified archive-level backup; apply the [backup policy](../../administration/compute/backup-restore.md#backup-policy), not only VM snapshots |
 | Readers | Explicit system-administrator/security-reader roles; queries and exports audited; no general developer access to raw evidence |
@@ -130,7 +133,10 @@ flowchart LR
   Evidence -. Later approved copies .-> Search["Stage 5 Tier 1 analytics"]
 ```
 
-1. Establish retention, independent backups and separate reader/writer/custodian roles.
+1. Select [A: NAS snapshots/backups](step-3c-nas-archive.md) or
+   [B: retention locks](step-3d-retention-lock.md), then establish independent backups
+   and reader/writer/custodian credentials. One homelab operator may hold all roles
+   under A's trusted-admin assumption; record that boundary explicitly.
 2. Test offline inspection, restoration and denied access using the matrix below.
 3. Record the achieved [readiness](../readiness.md#readiness-levels) and residual gaps.
    Select [3b: redundant intake](step-3b-redundant-intake.md) before claiming HA or the
@@ -142,7 +148,7 @@ flowchart LR
 | Peak load and bounded outage | Queue/storage headroom remains within the target; exhaustion triggers independent alerts and the declared backpressure policy |
 | Tier 1, control cluster and SSO unavailable | Tier 0 intake, evidence investigation and independent recovery still work |
 | Only the log-data volume and offline kit survive | Authorized read-only inspection identifies sources and event times without Proxmox, FreeIPA, Vault, PBS or a search backend running |
-| Retention and restore | Locked evidence cannot be shortened/deleted early; approved reader and independent copy restore verified |
+| Retention and restore | A: writer cannot administer recovery snapshots/backups, trusted-admin risk and checkpoint lag recorded; B: protected versions cannot be deleted or shortened early; independent restore verified in both |
 
 Prove this with numbered synthetic events and source/receiver/archive counts,
 not just an open port or a successful Terraform apply. Record unavoidable source

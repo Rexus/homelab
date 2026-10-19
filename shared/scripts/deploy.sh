@@ -636,6 +636,19 @@ fi
 
 check_required_files
 load_env_file
+if [[ "$ansible_only" == false ]]; then
+  # Keep this small guard aligned with Kubernetes and standalone template publication.
+  for tls_option in PROXMOX_VE_INSECURE PM_VE_INSECURE; do
+    case "${!tls_option:-}" in
+      ''|0|f|F|false|False|FALSE) ;;
+      *)
+        echo "Refusing Proxmox TLS bypass: unset $tls_option and install approved API trust." >&2
+        echo "See docs/administration/compute/proxmox-tls.md." >&2
+        exit 1
+        ;;
+    esac
+  done
+fi
 export ANSIBLE_CONFIG="$ansible_dir/ansible.cfg"
 export ANSIBLE_ROLES_PATH="$ansible_dir/roles:$automation_root/ansible/roles${ANSIBLE_ROLES_PATH:+:$ANSIBLE_ROLES_PATH}"
 map_provider_env

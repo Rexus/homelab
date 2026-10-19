@@ -67,6 +67,7 @@ approved copies, with application-owner read scopes separate from security reade
 | Telemetry placement | A: dedicated VM services; B: cluster services; C: existing service | [Telemetry design](telemetry.md) keeps signal roles independent of placement |
 | Sharing | Central platform service; isolated project collectors/backends | Isolation follows access, retention and trust requirements |
 | Recovery target | Dedicated backup service; approved external target; protected offsite copy | Storage availability alone is not tested restore |
+| Log retention | NAS snapshots/backups with trusted administration; qualified retention locks | [Archive choices](log-retention.md) make deletion authority and growth recommendations explicit |
 | Workload runtime | Linux VMs, image-based Linux, Kubernetes applications | Definitions and inventory stay tier-local; runtime changes need explicit lifecycle ownership |
 | Workload execution | Reviewed operator action; bounded self-service | The latter needs the [request contract](../compute/provisioning.md), not unrestricted CI credentials |
 
@@ -92,6 +93,7 @@ A central dashboard alone is insufficient for independent failure detection.
 - [Runtime flows](../runtime-flows.md#data-visibility-and-recovery) connects service data, visibility and recovery across domains.
 - [Telemetry design](telemetry.md) expands collection, signal backends, retention and placement alternatives.
 - [Security logging](security-logging.md) owns append-only submission, segmented reads and the evidence durability contract.
+- [Log archive choices](log-retention.md) compares NAS-backed recovery with retention locks and explains role separation as access grows.
 - [Service boundaries](../service-boundaries.md) defines shared and isolated operational services.
 - [Workload request contract](../compute/provisioning.md) connects governance to privileged execution.
 - [Component allocation](../reference-platform.md#service-placement) locates inventory, cluster interfaces and supporting services.

@@ -94,6 +94,30 @@ class Observability(TierRepositoryTestCase):
         self.assertIn("offline reader/key kit", runbook)
         self.assertIn("RPO/RTO and pruning custodian", runbook)
 
+    def test_archive_choices_preserve_nas_limits_and_stronger_retention_as_an_option(self):
+        self.generate()
+        for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            design = (docs / "architecture/operations/log-retention.md").read_text()
+            self.assertIn("A: NAS snapshots and independent backups", design)
+            self.assertIn("B: Storage-enforced retention locks", design)
+            self.assertIn("One person holding several roles is acceptable", design)
+            self.assertIn("not evidence of WORM enforcement", design)
+            self.assertIn("## Review triggers", design)
+            stage = docs / "deployment/stage-1-logging"
+            overview = (stage / "README.md").read_text()
+            for option in ("step-3c-nas-archive.md", "step-3d-retention-lock.md"):
+                self.assertIn(option, overview)
+                self.assertIn(option, design)
+                content = (stage / option).read_text()
+                self.assertIn("**Automation boundary:**", content)
+                for step in range(1, 4):
+                    self.assertIn(f"## Step {step}:", content)
+            drill = (docs / "administration/logging-drill.md").read_text()
+            self.assertIn("not a passed prevention test", drill)
+        record = (self.root / "verify-tier-0/docs/administration/logging-evidence.md").read_text()
+        self.assertIn("Archive choice: A NAS-backed, B retention-locked, or combined", record)
+        self.assertIn("residual privileged-deletion risk", record)
+
     def test_refresh_preserves_existing_logging_and_analytics_decisions(self):
         self.generate()
         owned = {

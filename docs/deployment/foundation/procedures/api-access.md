@@ -78,15 +78,16 @@ maps `PROXMOX_API_URL`, `PROXMOX_API_TOKEN_ID`, and
 
 ## TLS gate
 
-**Before a live deployment:** inspect `terraform/deployments/<setup>/providers.tf`
-in the owning tier. Linux VM/LXC roots currently set `insecure = true`, disabling
-API certificate verification. The template publisher and Kubernetes roots set it to false.
-This is a security exception, not an accepted production default. [5]
+**Before a live deployment:** install independently verified API trust on the execution
+host and inspect `terraform/deployments/<setup>/providers.tf` in the owning tier.
+All supplied Linux, template and Kubernetes roots explicitly set `insecure = false`.
+Their provisioning entry points reject current/legacy insecure environment flags.
+Existing generated projects can retain local provider edits; review those explicitly. [5]
 
 The initial certificate trust can come from Proxmox's own cluster CA; platform PKI
 is not required first. Follow [bootstrap trust and PKI transition](../../../administration/compute/proxmox-tls.md)
-to install verified trust, use a matching endpoint name and remove the bypass from
-each provider. Installing a platform-issued certificate later does not automatically
+to install verified trust, use a matching endpoint name and remove any retained bypass
+from an older provider or runner. Installing a platform-issued certificate later does not automatically
 turn verification on. Do not treat a successful insecure plan as proof of server identity.
 Do not paste API tokens into commands or documents; follow the protected input paths below.
 

@@ -56,6 +56,18 @@ if [[ "$action" == init ]]; then
   exit 0
 fi
 
+# This bootstrap entry point intentionally works without the Shared repository.
+for tls_option in PROXMOX_VE_INSECURE PM_VE_INSECURE; do
+  case "${!tls_option:-}" in
+    ''|0|f|F|false|False|FALSE) ;;
+    *)
+      echo "Refusing Proxmox TLS bypass: unset $tls_option and install approved API trust." >&2
+      echo "See docs/administration/compute/proxmox-tls.md." >&2
+      exit 1
+      ;;
+  esac
+done
+
 if [[ "$action" == plan && ! -f "$catalog" ]]; then
   echo "Missing catalog: $catalog. Run init first." >&2
   exit 1

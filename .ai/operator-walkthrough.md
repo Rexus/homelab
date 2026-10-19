@@ -13,9 +13,10 @@ Proxmox, HSM, service deployment, failover or disaster restore was performed.
 
 The engineer can generate repositories and follow the foundation procedures, but
 cannot obtain the complete reference platform merely by running the supplied IaC.
-The first security gate is verified Proxmox API trust; Linux roots still need their
-documented TLS correction. Stage 1 is the first capability implementation stop:
-bootstrap certificates, source forwarding, locked retention and independent copies
+The first security gate is verified Proxmox API trust; all supplied Terraform roots
+now verify TLS, and provisioning entry points reject inherited insecure flags.
+Stage 1 is the first capability implementation stop:
+bootstrap certificates, source forwarding, selected archive retention and independent copies
 need a selected integration. Do not bypass that gate to declare a production PKI.
 
 Since the prior walkthrough, software PKI and public HTTPS have concrete recipes,
@@ -45,29 +46,40 @@ Package qualification and live acceptance remain distinct from supplied mechanis
 - [x] Use an ignored Python virtual environment for the generator dependency instructions.
 - [x] Reproduce and fix missing-role failures in direct PKI/scheduler commands; test the documented invocations.
 - [x] Connect edge publication and total-loss recovery to the new HTTPS and issuer-restore procedures.
+- [x] Separate NAS-backed trusted-admin retention from optional storage-enforced locks;
+  link both Stage 1 branches and record custody/review triggers in the evidence template.
 
-## Blocking work before claiming an end-to-end installation
+## Implemented priority mechanisms
 
-- [ ] **P1: Secure provider defaults.** Linux roots still hard-code `insecure = true`.
-  Implement and test verified-TLS defaults with an explicit, bounded bootstrap exception
-  only where required. Self-signed does not inherently require a bypass: the cluster CA
-  supports independent bootstrap trust. The [transition guide](../docs/administration/compute/proxmox-tls.md)
-  now covers trust, optional platform-PKI adoption, removal and recovery; runtime defaults
-  and live cutover/negative tests remain outstanding.
-- [ ] **P1: Logging integration.** Complete bootstrap trust, source forwarding, replicated
-  commit, protected retention, independent copies and audited reader access.
-  The `syslog` root now supplies VMs/disks, baseline and an isolated TLS receiver;
-  local files/queues do not implement protected retention or replicated commit. Complete
-  [Stage 1 acceptance](../docs/deployment/stage-1-logging/README.md#step-3-protect-and-verify-retained-evidence)
-  with real fault and restore evidence using the [repeatable drill](../docs/administration/logging-drill.md).
-  Isolated native process/TLS/crash tests do not satisfy this item; no deployed collector,
-  independent retained backup, SELinux-enforcing target or physical failure domain was
-  available for infrastructure fault/restore acceptance during the 2026-10-17 review.
-- [ ] **P1: Initial trust.** Native policy construction, explicit software key/CSR preparation,
-  offline root templates, token/CRL procedures, encrypted backup/clean-target restore and phased
-  FreeIPA installation are supplied; qualify the [CA checklist](ca-implementation.md).
-  Live policy denial, custody, audit forwarding, signing and restoration remain unproved.
-  Routine convergence creates no CA keys; no existing identity domain is migrated.
+- [x] **P1: Secure provider defaults (implementation).** All supplied Terraform roots explicitly
+  verify Proxmox TLS. Linux, Kubernetes and template entry points reject true or malformed
+  current/legacy insecure environment flags before Terraform. Bootstrap uses independently
+  verified Proxmox CA trust; no automatic verification bypass is needed.
+- [x] **P1: Initial trust (selected software implementation).** Native policy construction,
+  explicit key/CSR preparation, offline root templates, token/CRL procedures, encrypted
+  backup/clean-target restore and phased FreeIPA installation are supplied.
+  Optional HSM/internal-ACME work remains separate in the [CA checklist](ca-implementation.md).
+  This checks mechanism coverage, not package qualification or operational acceptance.
+
+## Remaining implementation before an end-to-end installation
+
+- [ ] **P1: Logging integration - sources.** Supply source forwarding and independent bootstrap
+  client trust for supported hosts/devices, including collector OS and CA events. The receiver
+  alone does not configure senders; record unsupported-device exceptions explicitly.
+- [ ] **P1: Logging integration - durable archive.** Select and implement the archive handoff,
+  replicated commit boundary, sender-release policy and outage/backpressure behavior.
+  Two independent receivers or TCP receipts alone do not implement this contract.
+- [ ] **P1: Logging integration - custody.** Implement protected retention, independent copies,
+  separate writer/reader/retention authority and audited reads. Keep app-owner query views
+  separate from authoritative Tier 0 evidence. The [NAS/locked alternatives](../docs/architecture/operations/log-retention.md)
+  are selected design/procedures, not installed archive integration. Under NAS custody,
+  one trusted person may hold all roles using separate credentials; strict WORM is optional.
+  These are missing mechanisms, not merely unrun tests.
+
+Secure provider defaults and the selected software-first Initial Trust mechanisms are
+supplied. Their live proof is tracked in the separate
+[manual verification list](operational-verification.md), not mixed with missing implementation.
+
 - [ ] **P1: Cluster API endpoint.** Supply a tested private endpoint recipe or a clearly
   verified existing prerequisite before cluster bootstrap. It must not require the public
   Tier 2 edge or the cluster it serves. Include DHCP/MAC reservations and bootstrap DNS/time.
@@ -111,6 +123,8 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Guest SDN | [Foundation 1c](../docs/deployment/foundation/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
 | Outbound cache | [Foundation 3b](../docs/deployment/foundation/step-3b-outbound-cache.md) | Supplied Squid/VIP recipe; independent bootstrap egress and declared transport limits |
 | Redundant logging | [Logging 3b](../docs/deployment/stage-1-logging/step-3b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
+| NAS-backed evidence | [Logging 3c](../docs/deployment/stage-1-logging/step-3c-nas-archive.md) | Trusted-admin alternative documented; transfer, snapshots/backups and audited access still need integration and live proof |
+| Retention-locked evidence | [Logging 3d](../docs/deployment/stage-1-logging/step-3d-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |
 | Replicated USB HSM | [Trust 1b](../docs/deployment/stage-2-trust/step-1b-usb-hsm.md) | Host pool and optional snippet only; provider/application/key readiness and endpoint require implementation |
 | Network HSM | [Trust 1c](../docs/deployment/stage-2-trust/step-1c-network-hsm.md) | Vendor commissioning/client/HA procedure required |
 | Single USB device | [Trust 1d](../docs/deployment/stage-2-trust/step-1d-single-usb.md) | Custody/backup procedure required; availability is not inferred from a token |
@@ -152,28 +166,31 @@ inspected. Every selected path still needs its own live acceptance evidence.
   first-use contracts; separate advanced direct-mesh storage and large cache-sizing material
   from the main path. Preserve old anchors and generated-project edits when moving content.
 
-## Live acceptance record
+## Manual operational verification
 
-Store sensitive evidence in the private project's runbook, not this public checklist.
+Follow the [manual verification list](operational-verification.md) for provider trust,
+Initial Trust and protected logging, then the wider walkthrough. It states prerequisites,
+pass conditions and evidence for each check. No live infrastructure was available for
+this preparation; all operational checks remain unchecked.
 
-- [ ] Cold-start gateway/controller, switches and the first server with only the offline kit.
-- [ ] Boot a disposable clone; verify SSH, DNS, time, network denials and backup restore.
-- [ ] Run test and production concurrently with non-overlapping allocations and separate state.
-- [ ] Repeat plans after Proxmox migration and after an approved host-failure exercise.
-- [ ] Disable Tier 1/2 and normal SSO; verify Tier 0 logging, administration and critical alerts.
-- [ ] Verify app-owner reads and rejected cross-app reads, deletion and archive/backup administration.
-- [ ] Restore one service and its data onto replacement hardware inside recorded RPO/RTO.
-- [ ] Read protected logs with infrastructure offline using only a preserved volume and reader/key kit.
-- [ ] Perform a clean-room total-loss recovery from independent copies; record every missing input.
-- [ ] Recheck user-visible functions, credentials, audit continuity and failure alarms after recovery.
+Keep private evidence in the generated project's administration records. The logging
+drill already has a seed-owned record; a source review or passing local test must never
+be relabelled as a deployed-system pass.
+
 
 ## Repeat cadence
 
-Latest rerun, 2026-10-18: **120 tests passed, zero skipped** in an isolated Linux/WSL
-copy. Coverage includes fresh-shell commands in source/generated docs, generator
-refresh/link contracts, native Terraform inputs, FreeIPA sequencing, policy construction,
-offline clca constraints, HAProxy parsing and loopback syslog-ng TLS/raw-record/crash recovery.
-The new command regression fails against the original guides and passes after correction.
+Archive-choice review, 2026-10-19: the full 124-case run exposed two new-option navigation
+gaps. After correcting branch metadata and checklist links, **all 46 affected tests passed,
+zero skipped**; the other 78 cases passed in the full run. Coverage includes both archive
+choices, source/generated navigation, formal language and preservation of project records.
+This archive-choice update changes documentation/templates, not receiver or storage runtime.
+
+Previous clean full run, 2026-10-18: **123 tests passed, zero skipped** in an isolated Linux/WSL
+copy. Coverage includes source/generated provider TLS defaults, environment-bypass rejection,
+manual-verification separation, fresh-shell documented commands, generator refresh/link contracts,
+native Terraform inputs, FreeIPA sequencing, policy construction, offline clca constraints,
+HAProxy parsing and loopback syslog-ng TLS/raw-record/crash recovery.
 
 Test tools: Python 3.12.3, Ansible core 2.21.5, Terraform 1.16.6, HAProxy 2.8.16 and
 syslog-ng 4.3.1 with matching extracted modules. The latter checks isolated engine

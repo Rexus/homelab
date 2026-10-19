@@ -24,7 +24,7 @@ and recorded failure, retention, access and recovery contracts.
 | Reader scopes | Review explicit security-reader/system-administrator groups; test that developers can read only their approved application copies |
 | Destructive permissions | Test direct update/delete, delete-by-query, index administration and backup deletion as a query user; all must be denied |
 | Investigation | Audit raw-evidence reads and exports; preserve original records and chain-of-custody metadata |
-| Retention | Verify enforced locks and approved expiry; receiver credentials cannot change retention or delete evidence |
+| Retention | Verify the [selected archive model](../architecture/operations/log-retention.md): NAS snapshot/backup coverage and custody, or effective version locks; collector credentials cannot administer either protection |
 | Keys and certificates | Rotate under a tested continuity plan; preserve trust, archived-data decryption and break-glass access |
 
 ## Maintenance and incidents
@@ -43,6 +43,13 @@ and recorded failure, retention, access and recovery contracts.
 When outage duration exceeds the declared buffer/failure envelope, follow the
 approved backpressure or fail-closed policy and record the incident. No finite
 buffer makes all sources lossless indefinitely.
+
+Under the NAS model, one homelab operator may hold reader and storage-administrator
+roles using separate credentials. Keep ordinary work and collector services out of
+the administrative role. Reassess this trust when granting another person access;
+separate storage/retention custody if needed, and use retention locks when privileged
+deletion itself must be prevented. Review snapshot lag, external backup completion
+and access-recording gaps explicitly; a read-only share does not audit its reads.
 
 ## Fault and restore evidence
 

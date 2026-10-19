@@ -10,7 +10,7 @@ working checkouts; Shared helpers do not own the tier deployments they execute.
 | --- | --- | --- |
 | Foundation | Proxmox, physical network, optional HA/SDN, firewall | Operator procedures; no complete host/network installer |
 | Foundation | Approved VM templates | Tier 0 publication root and local/CD commands; shared consumer references |
-| 1 | Protected security logging | Tier 0 VM/disk root, baseline and isolated syslog-ng TLS receiver with raw JSON records/reliable local queues; prepared mount/certificates required; replicated commit, retention locks, independent copies and audited reads remain project integration |
+| 1 | Protected security logging | Tier 0 VM/disk root, baseline and isolated syslog-ng TLS receiver with raw JSON records/reliable local queues; prepared mount/certificates required; forwarding, archive checkpoints, selected NAS snapshots/backups or retention locks, and audited reads remain project integration |
 | Foundation option | Optional software-supply cache | Tier 2 ordinary cache VMs, Squid/keepalived automation; independent bootstrap supply required |
 | 2 | Root/issuer trust and custody A/B | Tier 0 native runtime, pinned software policy builder, explicit encrypted-key/CSR recipe, offline clca examples, CLI/CRL scheduling and encrypted backup/clean-target restore recipes; package/runtime qualification, ceremonies, token activation, audit forwarding and live acceptance remain required; HSM and internal ACME are separate integrations |
 | 2 | C: Replicated USB services | Capacity-sized Tier 0 VM pool/baseline; two-host starter and opt-in backend scaffold. Application HA, devices, keys, readiness and VIP runtime remain operator integration |

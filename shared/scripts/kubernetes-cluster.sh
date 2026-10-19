@@ -34,6 +34,18 @@ if [[ "$action" == plan ]]; then
   # Never allow a failed re-plan, including a layout check, to leave an older apply target.
   rm -f "$plan"
 fi
+if [[ "$action" == plan || "$action" == apply ]]; then
+  for tls_option in PROXMOX_VE_INSECURE PM_VE_INSECURE; do
+    case "${!tls_option:-}" in
+      ''|0|f|F|false|False|FALSE) ;;
+      *)
+        echo "Refusing Proxmox TLS bypass: unset $tls_option and install approved API trust." >&2
+        echo "See docs/administration/compute/proxmox-tls.md." >&2
+        exit 1
+        ;;
+    esac
+  done
+fi
 bash "$repo_root/scripts/check-shared.sh"
 for legacy in terraform/talos terraform/deployments/talos; do
   for file in "$repo_root/$legacy/"*.tf "$repo_root/$legacy/"*.tfvars \

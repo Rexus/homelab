@@ -29,12 +29,15 @@ against compromise of connected systems. Test restoration, not only job success.
 | Recovery time objective (RTO) | Time to inspect evidence and restore each tier, including access to offsite media and keys |
 | Retention | Approved history and expiry per dataset; security-evidence retention also follows the [archive contract](../../architecture/operations/security-logging.md#protected-retention) |
 | Authority | Separate backup creation, restoration and pruning identities; query users and producers receive no backup deletion/admin credentials |
-| Independence | Copies and keys survive source-host/site loss and compromise; no shared delete authority over every copy |
+| Independence | Copies and keys survive the selected source-host/site loss and compromise envelope; collector/query credentials cannot delete every copy; trusted custodians are recorded explicitly |
 | Verification | Periodic isolated restore, offline log inspection and key-recovery test; record gaps or media-policy exceptions explicitly |
 
 Receiver replicas provide availability, not historical backups. RAID, same-pool
 snapshots and Tier 1 search copies do not substitute for independent recovery copies.
 Backups also do not turn a mutable archive into WORM storage.
+One homelab operator may hold several custody roles using separate credentials;
+the [log retention choices](../../architecture/operations/log-retention.md) distinguish
+that trusted-administrator model from enforced protection against privileged deletion.
 
 For PBS, use separate namespace-scoped client tokens with `DatastoreBackup`, not
 `DatastorePowerUser` or administrator roles. `Datastore.Backup` permits creation and

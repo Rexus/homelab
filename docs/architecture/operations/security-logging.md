@@ -50,7 +50,7 @@ Offline custody has no online logging route; authorized evidence transfer is a c
 | Receiver / archive writer | Create retained records through a narrow service identity | Retention-policy administration, broad query access, modifying retained versions |
 | Authorized system administrator / security reader | Read the approved security scope; export under policy | Routine modification/deletion of evidence; unlogged investigation |
 | Application owner / developer | Read approved copies of that application's logs | Other applications, raw infrastructure/audit records and archive administration |
-| Retention custodian | Govern approved retention and expiry with audited separation of duties | Unilateral early deletion or shortening a protected retention period |
+| Retention custodian | Govern approved retention/expiry under the selected custody model | Undocumented destructive authority; lock bypass where the chosen model forbids it |
 | Tier 1 analytics administrator | Operate searchable copies | Authority over the Tier 0 evidence archive |
 
 The reference publishes separately routed/indexed copies to Tier 1, with redaction
@@ -124,16 +124,17 @@ an event that a source never emitted or persisted.
 
 ## Protected retention
 
-Append-only service permissions are necessary but do not make a mutable VM disk
-immutable against root, storage or hypervisor administrators. Use independently
-enforced WORM/retention-lock storage and governed keys for the selected retention
-period; test overwrite, deletion and retention-shortening denial.
+Select [NAS-backed retention or storage-enforced locks](log-retention.md) according
+to the trusted-administrator boundary. A homelab may trust the same person with
+collector, NAS and recovery administration while using separate service/admin
+credentials. That is a valid declared model, not WORM protection.
 
-Object Lock is one implementation example. Governance and compliance modes offer
-different bypass powers; S3 API compatibility alone does not establish equivalent
-enforcement. [5] Hashes/signatures can expose alteration but do not prevent deletion.
-Hardware destruction, loss of encryption keys and correlated site loss remain
-separate threats requiring independent copies and recovery custody.
+Append-only permissions do not make a VM disk or ordinary NAS share immutable
+against its administrators. Protection from privileged deletion requires qualified
+retention locks and governed keys; Object Lock modes have different bypass
+powers. [5] Hashes/signatures detect alteration but do not prevent deletion.
+Independent backups, offline readability and denied producer/query deletion remain
+required under either choice. Failure and privilege limits must be recorded explicitly.
 
 ## Realization
 

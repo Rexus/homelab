@@ -25,6 +25,11 @@ Do not run fault commands on the only collector, archive, backup or surviving ev
 1. Complete the Tier 0 project-owned `docs/administration/logging-evidence.md` record.
    It is seeded for new/generated collections, including after refresh, but never
    overwritten. Existing locally deleted project records remain deleted.
+   Select [A: NAS-backed or B: retention-locked](../architecture/operations/log-retention.md).
+   Record trusted administrators and the selected copy/checkpoint boundary. For A,
+   measure snapshot/backup lag and test restoration from a checkpoint the share writer
+   cannot administer; do not label that result WORM or zero RPO. For B, require actual
+   version-lock enforcement. Neither choice waives producer/query access denials.
 2. Record exact product versions/configuration, source identities, failure domains,
    expected rate, tolerated outage, buffer capacity and fault/undo commands. Separate
    the **emitted** set from the **accepted** set: name the durable commit/replication
@@ -100,7 +105,7 @@ not silently removed or treated as exactly-once delivery.
 | Network or archive outage | Isolate only the approved test path; prove queues retain records until the required copy is protected and replay after recovery |
 | Bounded queue/storage exhaustion | Use a capped test volume/quota, never fill a live filesystem; observe independent alerts and the declared reject/backpressure policy |
 | Tier 1, cluster and SSO unavailable | Intake, authorized evidence reads and independent notifications continue within the selected failure envelope |
-| Unprivileged access | As producer/query roles, attempt forged source ownership, raw reads, overwrite, deletion and retention shortening; preserve the denials |
+| Unprivileged access | As producer/query roles, attempt forged ownership, raw reads, overwrite and deletion; deny snapshot/backup administration to the transfer identity; for B also prove retained-version deletion/shortening denial |
 
 For a systemd-managed disposable receiver, an example **process** fault is: [5]
 
@@ -159,6 +164,11 @@ Mark each required scenario Passed, Failed or Not tested. Approve only the demon
 failure envelope; an untested required case blocks acceptance. The checker's
 `records_match` result is deliberately separate from `fault_restore_acceptance`, which
 it cannot assess. Offline fixture tests validate the checker, not the logging system.
+
+For A, record privileged NAS/backup deletion as a trusted-administrator residual risk,
+not a passed prevention test. For B, a privileged identity that can bypass the selected
+retention requirement blocks that claim. A change in role holders or required deletion
+protection requires renewed acceptance, not just a renamed record.
 
 Return to [Stage 1 acceptance](../deployment/stage-1-logging/README.md#step-3-protect-and-verify-retained-evidence).
 Repeat after material transport, queue/flush, storage, backup, retention or identity changes.

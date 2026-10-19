@@ -64,7 +64,7 @@ does not cryptographically authenticate every device behind it.
 | Host isolation | Dedicated non-login service user, read-only system, limited bind capability and native SELinux labels/ports; policy remains enabled |
 | Network ACL | Narrow per-source host rules; no automatic removal of stale/pre-existing broader firewall rules; review gateway and host rules on source removal |
 | Local delivery | File flush per record, `fsync(yes)`, reliable disk buffer and flow control; storage/controller behavior still matters [2] |
-| Archive custody | Local files remain mutable by service/root/hypervisor; independent retention locks, copies, manifests, encryption and audited reads are project integrations |
+| Archive custody | Local files remain mutable by service/root/hypervisor; selected [NAS-backed or locked retention](../architecture/operations/log-retention.md), independent copies, manifests, encryption and audited reads are project integrations |
 | HA / quotas / analytics | No replication, multi-host commit, per-tenant filesystem quotas, external alerts or Tier 1 forwarding installed |
 
 Disk buffers are delivery queues, not replicated commit receipts or protected retention.

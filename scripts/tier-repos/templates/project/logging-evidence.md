@@ -8,9 +8,12 @@ Procedure: [logging fault and restore drill](${docs}/administration/logging-dril
 
 | Item | Recorded value |
 | --- | --- |
-| Date, owner and independent reviewer | TBD |
+| Date, operator and reviewer; record self-review for a single-operator lab | TBD |
 | Deployment revision and receiver/queue/archive versions | TBD |
 | Collector hosts, storage and independent failure domains | TBD |
+| Archive choice: A NAS-backed, B retention-locked, or combined | TBD |
+| Trusted administrators, separate credentials and residual privileged-deletion risk | TBD |
+| NAS snapshot/backup checkpoints and lag, or locked version/replica proof | TBD |
 | Source identities, forwarding transports and bootstrap trust | TBD |
 | Exact acceptance boundary and evidence of durable copies before source release | TBD |
 | Peak rate, outage duration, queue limits and exhaustion policy | TBD |
@@ -32,6 +35,7 @@ An unmet required scenario blocks acceptance; scope exclusions must not become i
 | Network/archive outage and bounded queue exhaustion | Not tested | TBD | TBD | TBD |
 | Independent notifications while Tier 1/SSO/cluster are unavailable | Not tested | TBD | TBD | TBD |
 | Producer/read-only-role deletion and retention-shortening denials | Not tested | TBD | TBD | TBD |
+| Archive-writer snapshot/backup administration denial; version-lock enforcement when B is selected | Not tested | TBD | TBD | TBD |
 | Offline inspection of a preserved data-volume copy | Not tested | TBD | TBD | TBD |
 | Clean-target restore from the independently protected backup | Not tested | TBD | TBD | TBD |
 
@@ -57,7 +61,10 @@ preserved references; matching hashes alone do not establish custody or prevent 
 | Original evidence unchanged; restored-copy reconciliation and access denials | TBD |
 | Unaccepted source gaps, accepted-record loss and residual threats | TBD |
 | Accepted capability / failure envelope, or rejection and follow-up owner | Not accepted |
+| Role/access growth or requirement change that triggers custody review | TBD |
 
 Do not place credentials, key material or raw security logs in this document or Git.
 Record protected evidence locations and approved summaries only. Repeat after changes
 to transport, queue/flush behavior, retention, storage, backup, credentials or failure domains.
+Under A, trusted NAS/backup administrators can delete their copies; record that risk,
+not WORM acceptance. Under B, test the actual retention mode and required replicas.

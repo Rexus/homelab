@@ -58,6 +58,7 @@ overview does not accumulate every possible optional box.
 | Artifact authority | Integrated registry, independent registry, or independent registry with distribution acceleration | [Artifacts](delivery/artifact-supply.md) |
 | Application delivery | Tier 0 Flux; unselected Tier 1 Argo CD or Spinnaker; scoped Tier 2 delivery | [Controller patterns](delivery/controllers.md) |
 | Operational visibility | Independent Tier 0 logging/critical monitoring; Tier 1 shared analytics; VM, cluster or existing runtime | [Telemetry](operations/telemetry.md), [protected evidence](operations/security-logging.md) |
+| Evidence retention | NAS snapshots and independent backups with trusted administrators; storage-enforced retention locks; combined local/locked copies | [Archive and custody choices](operations/log-retention.md) |
 | Resource changes | Reviewed protected operator execution or a separately implemented bounded request service | [Infrastructure control](compute/provisioning.md) |
 
 Selection is per component and decision, not one global option letter. Root-key
