@@ -29,41 +29,32 @@ deletion. These are alternatives, not mandatory consecutive deployments.
 ## Step 1: Provision the log host
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T0
-    columns 3
-    T0Title["Tier 0 / Control layer"]:3
-    block:Infrastructure
-      columns 1
-      InfraTitle["Existing network devices"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph T0["Tier 0 / Control layer"]
+    direction LR
+    subgraph Infrastructure["Existing network devices"]
       Devices["Gateway / switches<br/>Retain local logs"]
     end
-    space
-    block:PVE
-      columns 3
-      HostTitle["Existing Proxmox host"]:3
-      Template["Approved<br/>Linux template"]
-      space
-      VM["foundation-log-1<br/>New VM / OS disk"]
+    subgraph PVE["Existing Proxmox host"]
+      direction LR
       Host["Hypervisor logs<br/>Retain locally"]
-      space
+      Template["Approved<br/>Linux template"]
+      VM["foundation-log-1<br/>New VM / OS disk"]
       Data[("Local data disk<br/>Allocated, not mounted")]
+      Template -->|Clone| VM
+      VM -->|Attached disk| Data
     end
+    Infrastructure ~~~ PVE
   end
-  Template -- "Clone" --> VM
-  VM --> Data
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef heading fill:none,stroke:none,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T0,Infrastructure,PVE boundary
-  class T0Title,InfraTitle,HostTitle heading
+  class Infrastructure,PVE boundary
   class Template,Data data
-  class VM control
+  class T0,VM control
   class Devices,Host actor
 ```
 
@@ -118,44 +109,43 @@ record the bootstrap failure window rather than delaying intake for later servic
 ## Step 2: Enable protected collection
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 3
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
   Sources["Other approved producers<br/>Tier 1 / Tier 2 as added"]
-  space:2
-  block:T0:3
-    columns 3
-    T0Title["Tier 0 / Control layer"]:3
-    block:Infrastructure
-      columns 1
-      InfraTitle["Existing devices / access"]
-      Devices["Gateway / switches<br/>Device-native export"]
-      Admin["Authorized security reader"]
+  subgraph T0[" "]
+    direction TB
+    T0Title["Tier 0 / Control layer"]
+    %% Keep the heading above a content-sized placement group, independent of external links.
+    subgraph Placement[" "]
+      direction LR
+      subgraph Infrastructure["Existing devices / access"]
+        Devices["Gateway / switches<br/>Device-native export"]
+        Admin["Authorized security reader"]
+      end
+      subgraph PVE["Proxmox host / management subnet"]
+        Host["Hypervisor OS / audit logs"]
+        VM["foundation-log-1<br/>syslog-ng / TLS 6514"]
+        Records[("Local data disk<br/>JSONL / delivery queues")]
+        Host -->|TLS| VM
+        VM --> Records
+      end
+      Devices -->|Approved export| VM
+      Admin -->|Read / audit| Records
+      Infrastructure ~~~ PVE
     end
-    space
-    block:PVE
-      columns 1
-      HostTitle["Proxmox host / management subnet"]
-      Host["Hypervisor OS / audit logs"]
-      VM["foundation-log-1<br/>syslog-ng / TLS 6514"]
-      Records[("Local data disk<br/>JSONL / delivery queues")]
-    end
+    T0Title ~~~ Placement
   end
-  Sources -- "Scoped TLS" --> VM
-  Devices -- "Approved export" --> VM
-  Host -- "TLS" --> VM
-  VM --> Records
-  Admin -- "Read / audit" --> Records
+  Sources -->|Approved TLS intake| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef heading fill:none,stroke:none,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T0,Infrastructure,PVE boundary
-  class T0Title,InfraTitle,HostTitle heading
+  class Infrastructure,PVE boundary
   class Sources,Devices,Host,Admin actor
-  class VM control
+  class T0,VM control
+  class T0Title,Placement controlHeading
   class Records data
 ```
 
@@ -200,58 +190,52 @@ it without identity services or a cluster. A single collector still has a declar
 ## Step 3: Protect and verify retained evidence
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 3
-  space:2
-  block:T1
-    columns 1
-    T1Title["Tier 1 / later Stage 5"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart BT
+  subgraph T1["Tier 1 / later Stage 5"]
     Search["Scoped analytics<br/>Approved copies only"]
   end
-  block:T0:3
-    columns 3
-    T0Title["Tier 0 / Control layer"]:3
-    block:PVE
-      columns 1
-      HostTitle["Existing Proxmox host"]
-      VM["foundation-log-1<br/>Receiver / checkpoint job"]
-      Records[("Local data disk<br/>JSONL / queues")]
+  subgraph T0[" "]
+    direction TB
+    T0Title["Tier 0 / Control layer"]
+    subgraph Placement[" "]
+      direction LR
+      subgraph PVE["Existing Proxmox host"]
+        direction LR
+        VM["foundation-log-1<br/>Receiver / checkpoint job"]
+        Records[("Local data disk<br/>JSONL / queues")]
+        VM -->|Append| Records
+      end
+      subgraph NAS["Independent NAS / storage custody"]
+        direction LR
+        Evidence[("Create-only archive<br/>Chunks / manifests")]
+        Snapshots[("NAS-owned snapshots")]
+        Evidence --> Snapshots
+      end
+      PVE -->|SMB checkpoints| NAS
     end
-    space
-    block:NAS
-      columns 1
-      NASTitle["Independent NAS / storage custody"]
-      Evidence[("Create-only archive<br/>Chunks / manifests")]
-      Snapshots[("NAS-owned snapshots")]
-    end
+    T0Title ~~~ Placement
   end
-  block:Recovery:3
-    columns 3
-    RecoveryTitle["Independent recovery / separate credentials"]:3
+  subgraph Recovery["Independent recovery / separate credentials"]
+    direction LR
     Backup["Tier 0 recovery host<br/>logging_recovery group"]
-    space
     Copy[("Encrypted restic repository<br/>Independent storage")]
-    space:2
     Offline["Offline inspection kit<br/>Separately held keys"]
+    Backup -->|Backup| Copy
+    Copy -->|Restore| Offline
   end
-  VM -- "Append" --> Records
-  VM -- "SMB checkpoints" --> Evidence
-  Evidence --> Snapshots
-  Backup -- "Read-only NAS identity" --> Evidence
-  Backup -- "Backup" --> Copy
-  Copy -- "Restore" --> Offline
-  Evidence -. "Later approved copies" .-> Search
+  T0 -->|Read-only NAS archive pull| Recovery
+  T0 -. "Later approved copies" .-> T1
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef heading fill:none,stroke:none,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class T1,T0,PVE boundary
-  class T0Title,T1Title,HostTitle,NASTitle,RecoveryTitle heading
-  class VM control
+  class T1,PVE boundary
+  class T0,VM control
+  class T0Title,Placement controlHeading
   class Records,Evidence,Snapshots,Copy data
   class NAS,Recovery,Backup,Offline custody
   class Search services
@@ -259,7 +243,8 @@ block-beta
 
 The view expands the NAS main path: the NAS is not the receiver's live data disk,
 and recovery storage is outside the NAS/collector failure domain. The recovery host
-is Tier 0-owned but has independent credentials. Choice B replaces or supplements
+is Tier 0-owned but has independent credentials; its read-only pull carries archive
+data into the recovery boundary. Choice B replaces or supplements
 the NAS custody boundary with qualified retention-locked storage.
 
 1. Select [A: NAS snapshots/backups](step-3c-nas-archive.md) or

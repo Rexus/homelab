@@ -20,12 +20,19 @@ ownership. Deployment views show the capability added by a step, not a new archi
 | Which networks or layers contain it? | Block grid or nested flowchart | Edge / DMZ on the left, Application / Services in the middle, Control on the right |
 | What contains or consumes a service? | Nested flowchart | Trust boundary around zones; runtime and replica groups inside their actual owner |
 | How does a request proceed? | Flowchart or sequence | Arrows describe real interactions; sequence diagrams retain chronological order |
-| What does a deployment step add? | Nested block diagram | Retain tier, host/VM and storage boundaries; distinguish existing components from additions |
+| What does a deployment step add? | Content-sized nested flowchart | Retain tier, host/VM and storage boundaries; distinguish existing components from additions |
 
 Block diagrams support explicit placement through columns, spans and spaces. [1]
 Use them for matrices and placement maps. Keep a flowchart when routing and nested
 relationships are clearer there. Nested headings and subgraph directions still
 need a render check; source order alone does not prove the resulting layout.
+
+Do not use grid spacer cells or full-width heading rows to size unequal nested
+deployment groups. They can stretch unrelated rows and shrink readable labels.
+Use native subgraph titles and content-sized groups for these views; keep spacing
+small and verify the rendered bounds rather than treating successful parsing as acceptance.
+If external group links obscure a nested title, isolate the content direction in
+an unframed placement group and give the boundary a compact, unframed heading.
 
 Do not add traffic arrows merely to enforce placement. Invisible flowchart links
 may constrain layout, but convey no dependency. A layer sequence is not a firewall
@@ -49,7 +56,7 @@ the documentation tests compare those declarations with the palette.
 | Role | Treatment |
 | --- | --- |
 | Site, network or ownership boundary | Pale neutral enclosing box, solid border |
-| Boundary heading | Unframed first row inside its pale boundary, never a centred label over child boxes |
+| Boundary heading | Native title or content-sized unframed heading above its children, not a grid spacer row |
 | Edge / DMZ | Rose zone or capability |
 | Application / Services | Blue zone or capability |
 | Control | Green zone or capability |

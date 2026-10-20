@@ -31,10 +31,7 @@ class DiagramConventions(TierRepositoryTestCase):
     def test_palette_pairs_are_legible_on_light_and_dark_pages(self):
         palette = json.loads((UPSTREAM / "docs" / PALETTE).read_text())
         for role, style in palette["roles"].items():
-            backgrounds = [style["fill"]] if style["fill"] != "none" else [
-                parent["fill"] for parent in palette["roles"].values() if parent["fill"] != "none"]
-            for background in backgrounds:
-                self.assertGreaterEqual(contrast(style["color"], background), 4.5, role)
+            self.assertGreaterEqual(contrast(style["color"], style["fill"]), 4.5, role)
         for background in ("#ffffff", "#0d1117"):
             self.assertGreaterEqual(contrast(palette["links"]["stroke"], background), 3)
         for colour in palette["charts"]["series"]:
@@ -144,24 +141,24 @@ class DiagramConventions(TierRepositoryTestCase):
         steps = diagrams(root / "README.md")
         self.assertEqual(len(steps), 3)
         for code in steps:
-            self.assertIn("block-beta", code)
-            self.assertIn('block:T0', code)
-            self.assertIn('T0Title["Tier 0 / Control layer"]', code)
-            self.assertIn('block:PVE\n', code)
+            self.assertIn("flowchart", code)
+            self.assertIn('subgraph T0["', code)
+            self.assertIn('Tier 0 / Control layer', code)
+            self.assertIn('subgraph PVE["', code)
             self.assertIn('VM["foundation-log-1', code)
-            self.assertLess(code.index('block:T0'), code.index('block:PVE\n'))
-            self.assertLess(code.index('block:PVE\n'), code.index('VM["foundation-log-1'))
-            self.assertIn('classDef heading fill:none,stroke:none,color:#1f2937', code)
+            self.assertLess(code.index('subgraph T0['), code.index('subgraph PVE['))
+            self.assertLess(code.index('subgraph PVE['), code.index('VM["foundation-log-1'))
+            self.assertNotRegex(code, r'(?m)^\s*space(?::\d+)?(?:\s|$)')
         self.assertIn("Allocated, not mounted", steps[0])
         self.assertNotIn("foundation-log-2", steps[0])
-        self.assertIn('block:NAS\n', steps[2])
-        self.assertIn('block:Recovery:3\n', steps[2])
-        self.assertLess(steps[2].index('block:T1\n'), steps[2].index('block:T0'))
-        self.assertLess(steps[2].index('block:T0'), steps[2].index('block:Recovery'))
-        self.assertIn('Backup -- "Read-only NAS identity" --> Evidence', steps[2])
+        self.assertIn('subgraph NAS["', steps[2])
+        self.assertIn('subgraph Recovery["', steps[2])
+        self.assertLess(steps[2].index('subgraph T1['), steps[2].index('subgraph T0['))
+        self.assertLess(steps[2].index('subgraph T0['), steps[2].index('subgraph Recovery['))
+        self.assertIn('T0 -->|Read-only NAS archive pull| Recovery', steps[2])
         redundant = diagrams(root / "step-3b-redundant-intake.md")[0]
-        self.assertIn('block:PVE1\n', redundant)
-        self.assertIn('block:PVE2\n', redundant)
+        self.assertIn('subgraph PVE1["', redundant)
+        self.assertIn('subgraph PVE2["', redundant)
         self.assertIn('VM2["foundation-log-2 / optional', redundant)
         self.assertIn("Not installed by adding a VM", redundant)
         inventory = (UPSTREAM / "tier-0/ansible/inventory/hosts.yml.example").read_text()

@@ -14,51 +14,49 @@ add matching inventory/IP entries. Place receivers on distinct physical failure 
 Add further capacity as demand requires. Receiver count alone does not establish storage redundancy.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
   Sources["Approved producers / owning tiers<br/>Durable local queues"]
-  block:T0
-    columns 3
-    T0Title["Tier 0 / Control layer"]:3
-    block:PVE1
-      columns 1
-      Host1Title["Proxmox host A / failure domain A"]
-      VM1["foundation-log-1<br/>TLS receiver"]
-      Disk1[("Local data disk / queues")]
+  subgraph T0[" "]
+    direction TB
+    T0Title["Tier 0 / Control layer"]
+    subgraph Placement[" "]
+      direction LR
+      subgraph PVE1["Proxmox host A"]
+        direction LR
+        VM1["foundation-log-1<br/>TLS receiver"]
+        Disk1[("Local data disk / queues")]
+        VM1 --> Disk1
+      end
+      subgraph PVE2["Proxmox host B"]
+        direction LR
+        VM2["foundation-log-2 / optional<br/>TLS receiver"]
+        Disk2[("Separate local disk / queues")]
+        VM2 --> Disk2
+      end
+      PVE1 ~~~ PVE2
     end
-    space
-    block:PVE2
-      columns 1
-      Host2Title["Proxmox host B / failure domain B"]
-      VM2["foundation-log-2 / optional<br/>TLS receiver"]
-      Disk2[("Separate local disk / queues")]
-    end
+    T0Title ~~~ Placement
   end
-  block:Custody
-    columns 1
-    CustodyTitle["Independently protected archive / selected integration"]
+  subgraph Custody["Independent archive custody / selected integration"]
+    direction LR
     Commit["Required durable handoff<br/>Not installed by adding a VM"]
     Copies[("Retained copies / independent backup")]
+    Commit --> Copies
   end
-  Sources -- "Selected sender routing" --> VM1
-  Sources -- "Selected sender routing" --> VM2
-  VM1 --> Disk1
-  VM2 --> Disk2
-  Disk1 --> Commit
-  Disk2 --> Commit
-  Commit --> Copies
+  Sources -->|Selected sender routing| T0
+  T0 -->|Selected durable handoff| Custody
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef heading fill:none,stroke:none,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0,PVE1,PVE2 boundary
-  class T0Title,Host1Title,Host2Title,CustodyTitle heading
+  class PVE1,PVE2 boundary
   class Sources actor
-  class VM1,VM2 control
+  class T0,VM1,VM2 control
+  class T0Title,Placement controlHeading
   class Disk1,Disk2,Copies data
   class Custody,Commit custody
 ```
