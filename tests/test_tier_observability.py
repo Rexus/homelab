@@ -17,14 +17,16 @@ class Observability(TierRepositoryTestCase):
             self.assertIn("syslog", (tier / ".deployment-setups").read_text().splitlines())
             inventory = yaml.safe_load((tier / "ansible/inventory/hosts.yml.example").read_text())
             hosts = inventory["all"]["children"]["foundation_logging"]["hosts"]
-            self.assertEqual(set(hosts), {"foundation-log-1"})
+            self.assertEqual(set(hosts), {"log-1"})
             inputs = yaml.safe_load((tier / "ansible/group_vars/syslog.yml.example").read_text())
             self.assertEqual(set(inputs["platform_host_ips"]), set(hosts))
             root = tier / "terraform/deployments/syslog"
             hardware = (root / "terraform.tfvars.example").read_text()
             self.assertIn('network_zone_key = "management"', hardware)
             self.assertIn('interface     = "scsi1"', hardware)
-            self.assertIn('# "foundation-log-2"', hardware)
+            for name in hosts:
+                self.assertIn(f'  "{name}" = {{', hardware)
+            self.assertIn('# "log-2"', hardware)
             self.assertIn('source = "../../modules/environment_guests"', (root / "main.tf").read_text())
             for recipe in ("deployment/foundation-logging.yml", "maintenance/syslog.yml"):
                 plays = yaml.safe_load((tier / "ansible/playbooks" / recipe).read_text())
@@ -46,6 +48,11 @@ class Observability(TierRepositoryTestCase):
         for path in ("ansible/inventory/hosts.yml", "ansible/group_vars/syslog.yml",
                      "terraform/deployments/syslog/terraform.tfvars"):
             self.assertTrue((tier / path).is_file(), path)
+        inventory = yaml.safe_load((tier / "ansible/inventory/hosts.yml").read_text())
+        hosts = inventory["all"]["children"]["foundation_logging"]["hosts"]
+        inputs = yaml.safe_load((tier / "ansible/group_vars/syslog.yml").read_text())
+        self.assertEqual(set(hosts), {"log-1"})
+        self.assertEqual(set(inputs["platform_host_ips"]), set(hosts))
         self.assertFalse((tier / "terraform/deployments/foundation/terraform.tfvars").exists())
         self.assertFalse((self.root / "verify-shared/ansible/inventory").exists())
 
@@ -124,7 +131,15 @@ class Observability(TierRepositoryTestCase):
         self.generate()
         owned = {
             "verify-tier-0/.deployment-setups": "foundation\nvault\nhsm\n",
-            "verify-tier-0/ansible/group_vars/syslog.yml": "# Local receiver policy\n",
+            "verify-tier-0/ansible/inventory/hosts.yml": yaml.safe_dump({
+                "all": {"children": {"foundation_logging": {"hosts": {"foundation-log-1": {}}}}},
+            }),
+            "verify-tier-0/ansible/group_vars/syslog.yml": yaml.safe_dump({
+                "platform_host_ips": {"foundation-log-1": "10.10.10.30"},
+            }),
+            "verify-tier-0/terraform/deployments/syslog/terraform.tfvars": (
+                'vm_instances = { "foundation-log-1" = { vm_id = 264 } }\n'
+            ),
             "verify-tier-0/.terraform/state/syslog/prod/terraform.tfstate": '{"lineage":"local-logs"}\n',
             "verify-tier-1/terraform/deployments/observability/terraform.tfvars": '# Existing apm-1 resources\n',
             "verify-tier-1/ansible/inventory/hosts.yml": "all: {hosts: {apm-1: {}}}\n",
@@ -138,6 +153,9 @@ class Observability(TierRepositoryTestCase):
         self.generate("--refresh")
         for relative, content in owned.items():
             self.assertEqual((self.root / relative).read_text(), content, relative)
+        starter = self.root / "verify-tier-0/ansible/inventory/hosts.yml.example"
+        inventory = yaml.safe_load(starter.read_text())
+        self.assertEqual(set(inventory["all"]["children"]["foundation_logging"]["hosts"]), {"log-1"})
 
 
 if __name__ == "__main__":

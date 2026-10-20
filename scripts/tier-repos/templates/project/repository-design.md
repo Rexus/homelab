@@ -23,6 +23,9 @@ Retain the names and interfaces used in the parent domain views. Include externa
 providers and consumers at the boundary, with the owner and authority of each
 connection. Shared records describe the automation and reference-data contract;
 they do not claim deployed resources.
+Use stable capability and role labels in architecture. Put exact guest names and
+deployment progress in the linked deployment views, following the
+[diagram conventions](${docs}/development/diagrams.md#abstraction-and-implementation).
 
 | Platform function / domain | Owned component or contract | Supplied interface | Consumed dependency and owner |
 | --- | --- | --- | --- |

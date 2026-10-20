@@ -13,9 +13,9 @@ all:
       hosts: {}
     foundation_logging:
       hosts:
-        foundation-log-1: {}
+        log-1: {}
         # Required redundancy before accepting the HA security-logging contract.
-        # foundation-log-2: {}
+        # log-2: {}
     foundation:
       children:
         identity: null

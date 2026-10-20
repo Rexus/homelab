@@ -17,7 +17,8 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
                 self.assertIn(f'Root -.->|Signs subordinate CA<br/>certificate offline| {issuer}', design)
             self.assertIn('Vault remains a secret service', design)
             reference = (docs / 'architecture/reference-platform.md').read_text()
-            self.assertIn('OpenXPKI on ca-1', reference)
+            self.assertIn('OpenXPKI Community', reference)
+            self.assertIn('Infrastructure issuing CA<br/>Dedicated issuer runtime', reference)
             self.assertIn('Enrollment -->|Authenticated issuer interface| Issuer', reference)
             self.assertIn('FreeIPA identity CA', reference)
 

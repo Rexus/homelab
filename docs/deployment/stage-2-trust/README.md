@@ -19,29 +19,51 @@ existing qualified authorities remain valid. The runtime installer does not perf
 3. [Enable and verify routine issuance](#step-3-enable-and-verify-routine-issuance)
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Bootstrap["Privileged workstation / bootstrap VM"]
-  subgraph Offline["ceremony: separately controlled offline custody"]
+  subgraph Offline["Separate offline custody / manual ceremony"]
     Root["Offline root CA<br/>Root key and recovery material"]
-    Ceremony["Authorized signing ceremony"]
-    Root --- Ceremony
+    Ceremony["Existing ceremony environment"]
+    Root -. Authorized signing .-> Ceremony
   end
-  subgraph Crypto["cryptography: online Tier 0 services"]
-    Issuer["Issuing CA VM<br/>Online intermediate CA"]
-    Hardware["Optional HSM provider<br/>Single device or replicated service"]
-    Issuer -. Supported provider integration .-> Hardware
+  subgraph T0[" "]
+    direction TB
+    T0Title["Tier 0 / Control layer"]
+    subgraph PVE["Existing Proxmox / foundation root"]
+      direction LR
+      subgraph Crypto["cryptography network"]
+        Issuer["ca-1<br/>OpenXPKI runtime"]
+        Data[("scsi1 / CA data disk<br/>Manual mount and activation")]
+        Issuer -->|Attached disk| Data
+      end
+      subgraph Identity["identity network / configuration in Stage 3"]
+        Primary["idm-1<br/>Allocated VM only"]
+        Replica["idm-2<br/>Allocated VM only"]
+        Primary ~~~ Replica
+      end
+      Crypto ~~~ Identity
+    end
+    T0Title ~~~ PVE
   end
-  Bootstrap -->|Provision and configure| Issuer
-  Ceremony -. "Transfer signed intermediate certificate; no network route" .-> Issuer
+  Ceremony -. "Signed certificate transfer; no network route" .-> T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Bootstrap actor
-  class Offline,Root,Ceremony,Hardware custody
-  class Crypto,Issuer control
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class PVE,Crypto,Identity boundary
+  class Offline,Root,Ceremony custody
+  class T0,Issuer,Primary,Replica control
+  class T0Title controlHeading
+  class Data data
 ```
+
+**IaC:** Tier 0 [foundation guest definitions](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
+and [issuer recipe](../../../tier-0/ansible/playbooks/deployment/openxpki.yml).
+The unchanged starter root allocates all three VMs; directory configuration follows in Stage 3.
+The root ceremony, data mount and CA activation require the linked procedures.
+Hardware options replace software key custody; they are not additional default VMs.
 
 ## Step 1: Prepare issuer and key custody
 

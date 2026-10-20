@@ -6,9 +6,9 @@ logging_authority_requests: []
 #   profile: client
 #   csr: /protected/requests/pve01.csr
 #   key_sha256: <independently-verified-colon-separated-public-key-sha256>
-# - name: foundation-log-1
+# - name: log-1
 #   profile: server
-#   csr: /protected/requests/foundation-log-1.csr
+#   csr: /protected/requests/log-1.csr
 #   key_sha256: <independently-verified-colon-separated-public-key-sha256>
 #   san: ['DNS:logs.internal.example']
 logging_authority_revocations: []

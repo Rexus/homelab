@@ -9,7 +9,7 @@
 
 ## 1. Add capacity and failure domains
 
-Enable `foundation-log-2` in Tier 0's local `terraform/deployments/syslog/terraform.tfvars`;
+Enable `log-2` in Tier 0's local `terraform/deployments/syslog/terraform.tfvars`;
 add matching inventory/IP entries. Place receivers on distinct physical failure domains.
 Add further capacity as demand requires. Receiver count alone does not establish storage redundancy.
 
@@ -24,13 +24,13 @@ flowchart TB
       direction LR
       subgraph PVE1["Proxmox host A"]
         direction LR
-        VM1["foundation-log-1<br/>TLS receiver"]
+        VM1["log-1<br/>TLS receiver"]
         Disk1[("Local data disk / queues")]
         VM1 --> Disk1
       end
       subgraph PVE2["Proxmox host B"]
         direction LR
-        VM2["foundation-log-2 / optional<br/>TLS receiver"]
+        VM2["log-2 / optional<br/>TLS receiver"]
         Disk2[("Separate local disk / queues")]
         VM2 --> Disk2
       end
@@ -60,6 +60,12 @@ flowchart TB
   class Disk1,Disk2,Copies data
   class Custody,Commit custody
 ```
+
+**IaC:** Tier 0 [optional VM definition](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example),
+[inventory](../../../tier-0/ansible/inventory/hosts.yml.example) and
+[IP map](../../../tier-0/ansible/group_vars/syslog.yml.example).
+Both receivers use the same [receiver recipe](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml);
+sender failover and the stronger durable-handoff contract remain selected integrations.
 
 ## 2. Review and apply the same state root
 

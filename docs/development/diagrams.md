@@ -8,6 +8,7 @@ ownership. Deployment views show the capability added by a step, not a new archi
 ## Table of contents
 
 - [Layout](#layout)
+- [Abstraction and implementation](#abstraction-and-implementation)
 - [Boundaries and colour](#boundaries-and-colour)
 - [Verification](#verification)
 - [References](#references)
@@ -47,6 +48,36 @@ names for deployed guests. Show remote archives and independent recovery as
 separate boundaries, not another disk inside the receiver. An optional second
 host must be labelled optional; adding a replica does not imply replication or HA.
 
+Place direct links to the owning IaC beside each deployment view. Match guest labels
+to inventory and hardware keys, and mark existing prerequisites, manual commissioning
+and later integrations separately from the resources or configuration that the step installs.
+
+## Abstraction and implementation
+
+Use the same visual language throughout documentation, but keep the level of detail
+appropriate to the question. A capability is not a guest, and a deployment stage is not a namespace.
+
+| Document | Boxes represent | Connection to implementation |
+| --- | --- | --- |
+| Architecture overview/domain | Stable capabilities, authority and interfaces; for example, Tier 0 protected log services | Link to variants and realization guides; no inventory names, VMIDs or site addresses in diagrams |
+| Architecture variant/reference | A named hosting or product choice within the parent contract | State the choice explicitly; use roles, not site-specific instance names |
+| Deployment | Resources and configuration of the selected implementation, within their actual tier/host/runtime boundaries | Use exact starter inventory keys and replica counts; link inputs and executing code immediately below the diagram |
+| Administration | Existing services, data custody and the operation or failure being examined | Reference the selected deployment; distinguish a proposed change from existing resources |
+| Development/reference | Code ownership, input contracts or tool behavior | Link the files that implement the illustrated contract |
+
+Deployment captions identify **IaC**, **Manual**, **Integration** or **Workflow** scope.
+Use an explicit `Project integration` boundary for services without an installer;
+an empty manifest folder must not look like a deployed application. Existing and optional
+components are labelled in the picture, not only in surrounding prose. A VM baseline
+does not install the service shown inside a future integration boundary.
+
+One-to-one correspondence applies to the selected view: every deployed instance shown
+has a matching input, and every active instance in the illustrated starter root is accounted for.
+Linked alternatives are separate views, not extra components silently deployed together.
+Local configuration may change counts or names; the generated project's owned design
+records must describe those selections. Upstream diagrams describe the linked examples,
+not live-state discovery. Keep source, diagrams and contract tests in the same change.
+
 ## Boundaries and colour
 
 The [palette](../reference/diagrams/palette.json) defines reusable visual roles.
@@ -85,6 +116,8 @@ views rather than implying routes or permissions.
 
 1. Run `python -B -m unittest discover -s tests -p test_tier_diagrams.py` for palette,
    placement-source and generated-copy checks. These do not render Mermaid.
+   Also run `python -B -m unittest discover -s tests -p test_tier_deployment_views.py`
+   for diagram scope and inventory/input correspondence.
 2. Render changed fences with the target Markdown renderer or Mermaid CLI. [3]
    Check both light and dark themes on their corresponding page backgrounds.
 3. Inspect at the intended reading width: no clipped labels, colliding connectors,

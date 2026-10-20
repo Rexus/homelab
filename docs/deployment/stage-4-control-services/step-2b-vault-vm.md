@@ -30,22 +30,35 @@ Use this guide after identity, DNS, and PKI are available to
 deploy Vault as the shared secret-platform service.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  A[Identity foundation ready] --> B[Terraform creates dedicated Vault VM]
-  B --> C[Ansible Vault playbook]
-  C --> D[Vault service installed and sealed]
-  D --> E[Operator init and unseal]
-  E --> F[Test scoped access and recovery]
-  F --> G[Move approved secrets into Vault]
+  Operator["Authorized operator<br/>Manual initialization / unseal"]
+  subgraph T0["Tier 0 / Control"]
+    subgraph PVE["Existing Proxmox / cryptography network"]
+      VM["vault-1<br/>Vault installed / initially sealed"]
+      Data[("OS disk / local Raft data")]
+      VM --> Data
+    end
+  end
+  Operator -->|Verified TLS / authorized bootstrap| VM
+  Recovery["Independent share and backup custody"]
+  Operator -. Protected recovery material .-> Recovery
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class A,E actor
-  class B,C,D,F control
-  class G data
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class Operator actor
+  class T0,VM control
+  class PVE boundary
+  class Data data
+  class Recovery custody
 ```
+
+**IaC:** Tier 0 [VM inputs](../../../tier-0/terraform/deployments/vault/terraform.tfvars.example)
+and [Vault recipe](../../../tier-0/ansible/playbooks/deployment/vault-vm.yml).
+Initialization, unseal and independent share custody are manual operations after installation.
 
 Figure: Vault is deployed after the identity and PKI layer exists and
 becomes the handoff point from first-run secrets to the long-term secret

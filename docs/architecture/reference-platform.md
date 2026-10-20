@@ -34,7 +34,7 @@ placement. Physical host, storage and network failure domains are selected
 separately. Offline custody remains outside the connected platform.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph PVE["Proxmox: connected virtualization platform"]
     direction TB
@@ -94,7 +94,7 @@ controlled environment; a VM or VLAN label alone does not establish an air gap.
 | Directory authority (IdM) | FreeIPA primary and replica on two dedicated VMs, outside Kubernetes | [Identity authority](identity/README.md) |
 | Identity provider (IdP / SSO) | Keycloak inside the Tier 0 cluster, using the directory pair | [Service access](runtime-flows.md#service-access) |
 | Offline trust authority | Offline root CA, ceremony environment and root recovery material in separate custody | [Certificate hierarchy](#certificate-trust) |
-| Routine certificate issuance | OpenXPKI Community on Tier 0 `ca-1`, local database and portal, with selected key provider; separate FreeIPA identity CA | [Certificate authority](cryptography/certificate-authority.md) |
+| Routine certificate issuance | OpenXPKI Community on a dedicated Tier 0 issuer VM, local database and portal, with selected key provider; separate FreeIPA identity CA | [Certificate authority](cryptography/certificate-authority.md) |
 | Secrets | Vault inside the Tier 0 cluster; independent recovery/unseal material | [Secret service and seal](cryptography/vault-seal.md) |
 | Tier 0 cluster services | Flux, CNI, DNS, SOPS bootstrap inputs, storage, cert-manager, ingress and CloudNativePG HA | [Kubernetes topology](compute/kubernetes.md); separate cluster owners and state |
 | Inventory and scoped control UI | NetBox and Headlamp in Tier 0; bootstrap inputs retained independently | [Operations](operations/README.md) |
@@ -164,7 +164,7 @@ The offline root signs intermediate CA certificates during an authorized
 ceremony. Routine issuance and renewal use an online issuer, not the root.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph CER["ceremony: offline / separate custody"]
     Root["Offline root CA and root key"]
@@ -172,7 +172,7 @@ flowchart TB
     Root --- Ops
   end
   subgraph CRYPTO["cryptography: online issuing services"]
-    Issuer["Infrastructure issuing CA<br/>OpenXPKI on ca-1"]
+    Issuer["Infrastructure issuing CA<br/>Dedicated issuer runtime"]
     Provider["Selected software or hardware key provider"]
     Issuer -->|Supported signing integration| Provider
   end

@@ -42,6 +42,29 @@ the same pipeline can promote or copy images into Harbor.
 
 ## What this deploys
 
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph T1["Tier 1 / general build execution"]
+    subgraph PVE["Existing Proxmox / delivery_edge DMZ"]
+      Runner["runner-1<br/>Podman / GitLab Runner"]
+    end
+    Existing["Existing source control / OCI registry"]
+    Runner -->|Scoped jobs / artifact publication| Existing
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class T1,PVE boundary
+  class Runner edge
+  class Existing services
+```
+
+**IaC:** Tier 1 [runner inputs](../../../tier-1/terraform/deployments/podman-runner/terraform.tfvars.example)
+and [runner recipe](../../../tier-1/ansible/playbooks/deployment/podman-runner.yml).
+Registration requires explicit local credentials; this runner has no Tier 0 authority.
+
 This path has dedicated IaC:
 
 | Repository / system | Path or setting | Responsibility |

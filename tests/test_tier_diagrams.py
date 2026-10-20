@@ -5,6 +5,8 @@ import json
 import re
 import unittest
 
+import yaml
+
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
@@ -138,6 +140,14 @@ class DiagramConventions(TierRepositoryTestCase):
 
     def test_logging_steps_keep_deployment_boundaries_and_inventory_names(self):
         root = UPSTREAM / "docs/deployment/stage-1-logging"
+        tier = UPSTREAM / "tier-0"
+        inventory = yaml.safe_load((tier / "ansible/inventory/hosts.yml.example").read_text())
+        hosts = inventory["all"]["children"]["foundation_logging"]["hosts"]
+        self.assertEqual(len(hosts), 1)
+        guest = next(iter(hosts))
+        hardware = (tier / "terraform/deployments/syslog/terraform.tfvars.example").read_text()
+        self.assertIn(f'  "{guest}" = {{', hardware)
+        defaults = yaml.safe_load((tier / "ansible/roles/syslog_ng/defaults/main.yml").read_text())
         steps = diagrams(root / "README.md")
         self.assertEqual(len(steps), 3)
         for code in steps:
@@ -145,25 +155,60 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertIn('subgraph T0["', code)
             self.assertIn('Tier 0 / Control layer', code)
             self.assertIn('subgraph PVE["', code)
-            self.assertIn('VM["foundation-log-1', code)
+            self.assertIn(f'VM["{guest}<br/>', code)
             self.assertLess(code.index('subgraph T0['), code.index('subgraph PVE['))
-            self.assertLess(code.index('subgraph PVE['), code.index('VM["foundation-log-1'))
+            self.assertLess(code.index('subgraph PVE['), code.index(f'VM["{guest}<br/>'))
             self.assertNotRegex(code, r'(?m)^\s*space(?::\d+)?(?:\s|$)')
         self.assertIn("Allocated, not mounted", steps[0])
-        self.assertNotIn("foundation-log-2", steps[0])
+        self.assertIn('interface     = "scsi1"', hardware)
+        self.assertIn('scsi1 / local data disk', steps[0])
+        self.assertIn(f'TLS {defaults["syslog_ng_tls_port"]}', steps[1])
+        self.assertNotIn("log-2", steps[0])
         self.assertIn('subgraph NAS["', steps[2])
+        self.assertIn('Existing NAS / independent custody', steps[2])
         self.assertIn('subgraph Recovery["', steps[2])
+        self.assertIn('Existing Tier 0 recovery host', steps[2])
         self.assertLess(steps[2].index('subgraph T1['), steps[2].index('subgraph T0['))
         self.assertLess(steps[2].index('subgraph T0['), steps[2].index('subgraph Recovery['))
         self.assertIn('T0 -->|Read-only NAS archive pull| Recovery', steps[2])
         redundant = diagrams(root / "step-3b-redundant-intake.md")[0]
         self.assertIn('subgraph PVE1["', redundant)
         self.assertIn('subgraph PVE2["', redundant)
-        self.assertIn('VM2["foundation-log-2 / optional', redundant)
+        self.assertIn(f'VM1["{guest}<br/>', redundant)
+        self.assertIn('VM2["log-2 / optional', redundant)
+        self.assertIn('# "log-2"', hardware)
         self.assertIn("Not installed by adding a VM", redundant)
         inventory = (UPSTREAM / "tier-0/ansible/inventory/hosts.yml.example").read_text()
-        for name in ("foundation-log-1", "foundation-log-2"):
+        for name in (guest, "log-2"):
             self.assertIn(name, inventory)
+
+    def test_logging_diagrams_link_to_the_owning_iac_at_each_step(self):
+        root = UPSTREAM / "docs/deployment/stage-1-logging"
+        recipes = "../../../tier-0/ansible/playbooks/deployment/"
+        expected = {
+            "README.md": [
+                ["../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example",
+                 "../../../tier-0/ansible/inventory/hosts.yml.example"],
+                [recipes + "foundation-logging.yml", recipes + "logging-producers.yml",
+                 "../../../shared/ansible/roles/log_forwarder/tasks/main.yml"],
+                [recipes + "logging-archive.yml", recipes + "logging-backup.yml"],
+            ],
+            "step-3b-redundant-intake.md": [[
+                "../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example",
+                "../../../tier-0/ansible/inventory/hosts.yml.example",
+                "../../../tier-0/ansible/group_vars/syslog.yml.example",
+                recipes + "foundation-logging.yml",
+            ]],
+        }
+        for filename, steps in expected.items():
+            document = root / filename
+            captions = re.findall(r"```\s+\*\*IaC:\*\*(.*?)(?:\n\s*\n|$)",
+                                  document.read_text(), re.DOTALL)
+            self.assertEqual(len(captions), len(steps), filename)
+            for caption, paths in zip(captions, steps):
+                for path in paths:
+                    self.assertIn(f"]({path})", caption)
+                    self.assertTrue((document.parent / path).is_file(), path)
 
 
 if __name__ == "__main__":

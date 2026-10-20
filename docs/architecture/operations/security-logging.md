@@ -18,27 +18,35 @@ can investigate raw evidence. Producers cannot read, edit or delete it.
 ## Authority and flow
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Sources["Tier 0 / 1 / 2<br/>Durable local queues"] -->|Submit only| Intake
-  subgraph T0["Tier 0 / Control"]
-    Intake["Restricted intake<br/>Identity and quotas"]
-    Evidence["Retained evidence<br/>Append-only submission"]
-    Intake -->|Durable handoff| Evidence
-    Readers["Authorized security readers"] -->|Audited reads| Evidence
-  end
-  Evidence -. Approved projection .-> Search["Tier 1 scoped copies"]
-  Developer["Application owner"] -->|Own app only| Search
+block-beta
+  columns 3
+  Owner["Owning tier"] Function["Log services"] Access["Authority"]
+  T2["Tier 2<br/>Workloads"]
+  Sources["Local producers / queues"]
+  Developer["Submit approved streams<br/>Read own approved app view"]
+  T1["Tier 1<br/>Shared analytics"]
+  Search["Scoped searchable copies"]
+  Query["Query approved copies<br/>No raw-evidence authority"]
+  T0["Tier 0<br/>Control"]
+  Logging["Protected intake / retained evidence"]
+  Readers["Audited security-reader access<br/>Producers submit only"]
+  space Retention["Independent retained copies"] Custodians["Separate retention custody"]
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class Sources,Readers,Developer actor
-  class T0 control
-  class Evidence data
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  class Owner,Function,Access,T2,T1,T0 boundary
+  class Sources,Developer,Query actor
+  class Logging,Readers control
+  class Retention,Custodians data
   class Search services
 ```
+
+Every tier submits approved security records to Tier 0. Tier 1 receives only
+approved projections; application owners read their own scope there. This is an
+authority map, not a prescribed VM count, storage product or connectivity allow rule.
 
 Submission rights are not filesystem, database or object-store credentials.
 Receivers validate authenticated source identity, stamp tier/project ownership,

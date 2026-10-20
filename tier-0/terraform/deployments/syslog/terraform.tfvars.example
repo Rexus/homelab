@@ -5,7 +5,7 @@
 # Neither installs archive replication or protected retention.
 
 vm_instances = {
-  "foundation-log-1" = {
+  "log-1" = {
     vm_id            = 264
     size             = "small"
     storage_class    = "local"
@@ -20,7 +20,7 @@ vm_instances = {
   }
   # Bootstrap starts with one host. Enable this on a different physical host,
   # with matching inventory/IP entries, before accepting security-logging HA.
-  # "foundation-log-2" = {
+  # "log-2" = {
   #   vm_id             = 265
   #   proxmox_node_name = "pve02"
   #   size              = "small"

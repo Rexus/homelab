@@ -34,36 +34,45 @@ The selected delivery platform deploys shared applications; Tier 0 remains on Fl
 Choose Argo CD application GitOps or Spinnaker release pipelines before enabling delivery.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":30,"rankSpacing":40},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Bootstrap["Bootstrap workstation / VM"]
-  Identity["Tier 0 Keycloak"]
-  subgraph Platform["Tier 1 Kubernetes / application network"]
-    Git["GitLab<br/>Source control + CI"]
-    Registry["Harbor<br/>OCI registry"]
-    Delivery["Delivery choice<br/>A: Argo CD / B: Spinnaker"]
-    Fleet["Optional Rancher / Fleet<br/>Tier 1/2 workload-cluster<br/>management"]
-    Delivery -->|Approved application<br/>revisions| Git
+  subgraph T1[" "]
+    direction TB
+    T1Title["Tier 1 / Application / Services"]
+    subgraph PVE["Existing Proxmox cluster"]
+      direction TB
+      subgraph Platform["Kubernetes / application network"]
+        direction LR
+        CP1["platform-k8ctl-1"]
+        CP2["platform-k8ctl-2"]
+        CP3["platform-k8ctl-3"]
+        CP1 ~~~ CP2 ~~~ CP3
+      end
+      subgraph Apps["Project integration / application starters only"]
+        Git["GitLab / Harbor"]
+        Delivery["Unselected Argo CD or Spinnaker<br/>Optional Rancher / Fleet"]
+        Git ~~~ Delivery
+      end
+      Platform ~~~ Apps
+    end
+    T1Title ~~~ PVE
   end
-  Builds["Tier 1 DMZ / delivery_edge<br/>General build runners<br/>Authoritative mirrors"]
-  Edge["Tier 2 DMZ / external_edge<br/>Public load balancers"]
-  Git -->|Build jobs| Builds -->|Publish<br/>artifacts| Registry
-  Edge -->|Approved application<br/>listeners| Git
-  Bootstrap ~~~ Edge
-  Bootstrap -->|Provision cluster<br/>and initial delivery| Platform
-  Git -->|OIDC| Identity
-  Registry -->|OIDC| Identity
-  Fleet -->|OIDC| Identity
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  class Bootstrap actor
-  class Identity control
-  class Platform services
-  class Builds,Edge edge
+  classDef servicesHeading fill:#e7f0fc,stroke:#e7f0fc,color:#203a5b
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  class T1,Platform,CP1,CP2,CP3 services
+  class T1Title servicesHeading
+  class PVE boundary
+  class Apps replicas
 ```
+
+**IaC:** Tier 1 [cluster inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.tfvars.example)
+and [cluster entry point](../../../tier-1/scripts/kubernetes-cluster.sh).
+The [Tier 1 application starters](../../../tier-1/clusters/tier1/platform/kustomization.yaml)
+do not install the dashed group. General runners and mirrors require a selected option or project implementation.
+The [Tier 2 edge view](procedures/edge-proxy.md#default-deployment) shows the separate public-entry deployment.
 
 1. Create the [Tier 1 runtime](procedures/platform-cluster.md), using
    `bash scripts/kubernetes-cluster.sh init` from its root. Review its own inventory,
@@ -88,16 +97,20 @@ Provision a hardened infrastructure runner as a Tier 0 management VM, outside th
 Tier 1 cluster. The bootstrap workstation remains available for independent recovery.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Git["Tier 1 GitLab<br/>Proposed infrastructure job"]
+  subgraph T1["Tier 1 / existing delivery"]
+    Git["GitLab<br/>Proposed infrastructure job"]
+  end
   Bootstrap["Bootstrap workstation / VM"]
-  subgraph Management["Tier 0 / management network"]
+  subgraph Management["Tier 0 / Control / management network"]
+    subgraph Integration["Project integration / no runner or controller installer"]
     Gate["Tier 0 authorization<br/>Approved code and artifacts"]
     Runner["Protected infrastructure runner VM"]
     State["Protected tier-local IaC state"]
     Gate --> Runner
     Runner <--> State
+    end
   end
   Git --> Gate
   Bootstrap -->|Provision and harden| Runner
@@ -108,11 +121,17 @@ flowchart TB
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   class Git services
   class Bootstrap actor
   class Management,Gate,Runner,PVE,Flux control
   class State,Sources data
+  class Integration replicas
 ```
+
+**Integration:** implement the Tier 0 [protected execution contract](../../architecture/compute/provisioning.md).
+The existing [Shared executor](../../../shared/scripts/deploy.sh) runs reviewed tier-local code;
+it does not deploy the dashed runner/controller group or its authorization policy.
 
 1. Implement the [protected execution policy](../../architecture/compute/provisioning.md)
    and scope credentials to approved operations. General-runner automation is not a

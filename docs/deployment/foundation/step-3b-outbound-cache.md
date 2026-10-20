@@ -48,6 +48,43 @@ upstream.
 
 ## Default deployment
 
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  Clients["Approved existing clients"]
+  subgraph T2["Tier 2 / Edge / external_edge"]
+    direction LR
+    VIP["Configured cache VIP<br/>One active owner"]
+    subgraph PVE["Existing Proxmox / cache VMs"]
+      direction TB
+      A["cache-1<br/>Squid / keepalived"]
+      B["cache-2<br/>Squid / keepalived"]
+      DA[("scsi1 / cache data")]
+      DB[("scsi1 / cache data")]
+      A --> DA
+      B --> DB
+    end
+    VIP -. Preferred owner / failover .-> PVE
+  end
+  Upstream["Approved existing upstreams"]
+  Clients -->|Proxy requests| T2
+  T2 -->|Allowed destinations| Upstream
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class T2,VIP,A,B edge
+  class PVE boundary
+  class DA,DB data
+  class Clients,Upstream actor
+```
+
+**IaC:** Tier 2 [cache inputs](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example)
+and [cache recipe](../../../tier-2/ansible/playbooks/deployment/outbound-cache.yml).
+The pair and attached disks are created; clients, upstreams and physical networking already exist.
+The VIP fails over; it does not replicate cache data or balance both VMs concurrently.
+
 | Component | Terraform default | Inventory entry | Network / storage | Purpose |
 | --- | --- | --- | --- | --- |
 | caches | `cache-1`, `cache-2` active | present by default | `external_edge` | controlled outbound web access |

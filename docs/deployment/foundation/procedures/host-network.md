@@ -75,7 +75,7 @@ introduce bonds, separate storage and jumbo frames only after that path is verif
 The diagram below is an expanded option, not a minimum hardware requirement.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Switches["Managed switches or upstream fabric"]
   subgraph Fabric["Fabric path"]
@@ -112,6 +112,11 @@ flowchart LR
   class Switches,FabricBond,FabricBridge,StorageBond,StorageBridge,Management,QuorumPrimary,QuorumSecondary control
   class Storage,CephPublic,CephCluster data
 ```
+
+**Manual:** this host attachment example is configured on the existing Tier 0 Proxmox hosts.
+The [shared platform profile](../../../../shared/config/platform.tfvars) and
+[Tier 0 network inputs](../../../../tier-0/terraform/common.tfvars.example)
+reference prepared bridges; guest Terraform does not create these bonds or host fabrics.
 
 Figure: one strong clustered Proxmox pattern is to keep normal platform VLANs
 on a fabric bond and bridge, and keep Ceph plus a second Corosync path on a

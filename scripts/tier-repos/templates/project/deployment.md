@@ -25,6 +25,10 @@ Add local instructions under the relevant capability folder, such as
 resulting design. Keep options beside it, for example `step-1b-usb-hsm.md`, stating
 the decision, changed deployment and return point. Link upstream procedures instead
 of copying them.
+Follow the [diagram contract](${docs}/development/diagrams.md#abstraction-and-implementation):
+draw the selected local guest names/counts and link their inputs and execution code.
+Mark existing, manual and project-integration components separately. Update local
+views with local IaC changes; refreshed auto-docs still describe upstream examples.
 
 Record input locations, commands, rollback and evidence; keep credentials outside
 these records. Use [administration](../administration/README.md) for recurring

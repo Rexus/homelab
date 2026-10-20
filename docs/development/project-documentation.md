@@ -101,6 +101,8 @@ The [whole-platform reference](../architecture/README.md),
 [runtime flows](../architecture/runtime-flows.md) illustrate this reading path.
 Architecture diagrams describe the intended completed configuration. Deployment
 stage diagrams describe intermediate results and the steps that connect them.
+Follow the [diagram contract](diagrams.md#abstraction-and-implementation): project
+deployment pictures track local IaC selections; auto-docs track upstream examples.
 
 ## Design document contents
 

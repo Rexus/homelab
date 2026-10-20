@@ -16,37 +16,39 @@ a reachable bootstrap source and independent credentials.
 2. [Create the Kubernetes cluster](#step-2-create-the-kubernetes-cluster)
 3. [Establish the basic platform](#step-3-establish-the-basic-platform)
 
+## Step 1: Deploy the directory pair
+
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Bootstrap["Bootstrap workstation / VM<br/>Terraform + Ansible + cluster tooling"]
-  subgraph Identity["identity: dedicated VMs"]
-    Primary["FreeIPA primary<br/>LDAP, Kerberos, DNS"]
-    Replica["FreeIPA replica"]
-    Primary <-->|Replication| Replica
+  subgraph T0[" "]
+    direction TB
+    T0Title["Tier 0 / Control layer"]
+    subgraph PVE["Existing Proxmox hosts"]
+      direction TB
+      subgraph Identity["identity network / dedicated VMs"]
+        direction LR
+        Primary["idm-1<br/>FreeIPA primary"]
+        Replica["idm-2<br/>FreeIPA replica"]
+        Primary <-->|Replication| Replica
+      end
+      ExistingCA["ca-1<br/>Existing issuer / unchanged"]
+      Identity ~~~ ExistingCA
+    end
+    T0Title ~~~ PVE
   end
-  subgraph Cluster["control_cluster: Tier 0 Kubernetes"]
-    Nodes["Three schedulable control planes<br/>Optional workers; currently Talos"]
-    Network["CNI and cluster DNS"]
-    Flux["Flux + SOPS bootstrap secrets"]
-    Base["Storage, cert-manager, ingress<br/>CloudNativePG HA"]
-    Nodes --> Network --> Flux --> Base
-  end
-  Bootstrap -->|Create and configure directory| Primary
-  Bootstrap -->|Create and bootstrap cluster| Nodes
-  Source["Reachable bootstrap Git / OCI source"] --> Flux
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Bootstrap actor
-  class Identity,Cluster control
-  class DirectoryPair replicas
-  class Source,Base data
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  class T0,Primary,Replica,ExistingCA control
+  class T0Title controlHeading
+  class PVE,Identity boundary
 ```
 
-## Step 1: Deploy the directory pair
+**IaC:** Tier 0 [foundation inputs](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example) and
+[directory recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml).
+Directory VMs may already be allocated by Stage 2; retain the existing CA and all state.
 
 Follow the [FreeIPA procedure](procedures/freeipa.md). Add the identity VMs to the
 Tier 0 [foundation root](../../../tier-0/terraform/deployments/foundation/)
@@ -63,6 +65,34 @@ once their prerequisites exist. Preserve independent administrative credentials.
 
 ## Step 2: Create the Kubernetes cluster
 
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / Control layer"]
+    subgraph PVE["Existing Proxmox hosts / control_cluster network"]
+      direction LR
+      CP1["k8ctl-1<br/>Talos control plane"]
+      CP2["k8ctl-2<br/>Talos control plane"]
+      CP3["k8ctl-3<br/>Talos control plane"]
+      CP1 ~~~ CP2 ~~~ CP3
+    end
+    API["Existing independent API endpoint<br/>Load balancing / DHCP reservations"]
+    API -->|TCP 6443| PVE
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  class T0,API control
+  class PVE runtime
+  class CP1,CP2,CP3 boundary
+```
+
+**IaC:** Tier 0 [Kubernetes inputs](../../../tier-0/terraform/deployments/kubernetes/terraform.tfvars.example)
+and [cluster entry point](../../../tier-0/scripts/kubernetes-cluster.sh) create these three VMs and bootstrap Kubernetes.
+The API endpoint, DHCP reservations and approved node template already exist.
+No workers are active in this starter; application and add-on manifests are separate inputs.
+
 Follow the [common cluster procedure](procedures/kubernetes.md), then the current
 [Talos Terraform implementation](procedures/talos-terraform.md). Set the tier-local
 inventory, endpoint and state in Tier 0's
@@ -75,6 +105,43 @@ New-cluster inputs provide three schedulable control planes and no workers.
 Additional workers are an explicit capacity choice; existing clusters retain their local nodes.
 
 ## Step 3: Establish the basic platform
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  Source["Existing bootstrap Git / OCI source"]
+  subgraph T0[" "]
+    direction TB
+    T0Title["Tier 0 / Control layer"]
+    subgraph Cluster["Existing Kubernetes / k8ctl-1, k8ctl-2, k8ctl-3"]
+      direction TB
+      subgraph Project["Project integration / cluster starters only"]
+        direction LR
+        Network["CNI, storage and ingress selection"]
+        Flux["Flux / SOPS"]
+        Base["cert-manager / CloudNativePG"]
+        Network ~~~ Flux ~~~ Base
+      end
+    end
+    T0Title ~~~ Cluster
+  end
+  Source -. Bootstrap source integration .-> T0
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  class T0 control
+  class T0Title controlHeading
+  class Cluster runtime
+  class Project replicas
+  class Source actor
+```
+
+**Integration:** Tier 0 [cluster starters](../../../tier-0/clusters/tier0/kustomization.yaml)
+contain no installer for the dashed add-on group. Supply reviewed manifests and bootstrap Flux explicitly.
+The Kubernetes root retains its configured node-OS network defaults until the selected CNI is deliberately integrated.
 
 Follow the [foundation checklist](procedures/kubernetes.md#cluster-foundation) in
 dependency order: networking, Flux, SOPS/bootstrap secrets, storage, certificates/ingress

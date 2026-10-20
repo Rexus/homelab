@@ -18,15 +18,15 @@ The optional cache branch uses `<prefix>-tier-2` instead.
 3. [Publish and test VM templates](#step-3-publish-and-test-vm-templates)
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Admin["Privileged workstation<br/>Local Git, Terraform / OpenTofu, Ansible"]
   State["Protected IaC state<br/>Bootstrap credentials and backups"]
-  subgraph Physical["Physical infrastructure"]
+  subgraph Physical["Tier 0 / Control / manually prepared infrastructure"]
     Network["Network equipment<br/>VLANs and firewall"]
     PVE["Proxmox<br/>Compute and storage"]
     Templates["Approved Linux and Kubernetes node templates"]
-    Bootstrap["Optional bootstrap / recovery VM<br/>management network"]
+    Bootstrap["Optional operator-provided bootstrap VM<br/>management network / no installer"]
     Network --- PVE
     PVE --> Templates --> Bootstrap
   end
@@ -41,6 +41,13 @@ flowchart TB
   class State,Templates data
   class Physical,Network,PVE,Bootstrap control
 ```
+
+**Manual:** host installation, switches, VLANs, storage and the optional bootstrap VM.
+**IaC:** Tier 0 [template publisher](../../../tier-0/scripts/proxmox-templates.sh)
+uses [publication inputs](../../../tier-0/templates/proxmox.yml.example) and
+[publication resources](../../../tier-0/terraform/deployments/templates/main.tf).
+Shared [consumer references](../../../shared/templates/proxmox-catalog.tfvars) select approved templates;
+they do not create guests or install the physical foundation.
 
 <a id="step-1-prepare-compute-and-templates"></a>
 

@@ -21,7 +21,7 @@ the observed cluster. Recovery copies remain available independently of the
 services and dashboards that normally manage them.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Runtime["Hosts, clusters and applications"] -->|Approved signals| Collectors["Telemetry and security collectors"]
   Collectors -->|Route by signal and policy| Stores["Metrics, traces, logs and audit stores"]

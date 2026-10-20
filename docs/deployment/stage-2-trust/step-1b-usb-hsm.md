@@ -56,33 +56,45 @@ application state and backup recovery before changing the existing key/provider 
 ## Default deployment
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Prepare["1. Provision the selected Tier 0 service pool<br/>Apply OS baseline"]
-  Integrate["2. Integrate signing application and local devices<br/>Select co-hosted endpoint/failover"]
-  Accept["3. Verify policy, device/host failures and independent restore"]
-  Prepare --> Integrate --> Accept
-  subgraph T0["Result: private Tier 0 cryptography service"]
-    Endpoint["Logical private service endpoint<br/>Co-hosted on hsm-1..hsm-N"]
-    A["hsm-1: signing service + local HSM<br/>E3: local proxy and VIP agent"]
-    B["hsm-2..hsm-N: replica per host<br/>Local HSM and selected endpoint functions"]
-    Endpoint --> A
-    Endpoint --> B
+  subgraph T0["Tier 0 / Control / cryptography network"]
+    subgraph HostA["Existing Proxmox host pve01"]
+      A["hsm-1<br/>VM / OS baseline only"]
+      USB1["USB HSM<br/>Manual passthrough"]
+      A -. Selected device integration .-> USB1
+    end
+    subgraph HostB["Existing Proxmox host pve02"]
+      B["hsm-2<br/>VM / OS baseline only"]
+      USB2["USB HSM<br/>Manual passthrough"]
+      B -. Selected device integration .-> USB2
+    end
+    subgraph Service["Project integration / not installed by hsm setup"]
+      Endpoint["Signing runtime / key policy<br/>Selected co-hosted endpoint"]
+    end
+    HostA ~~~ HostB
+    A -. Application integration .-> Endpoint
+    B -. Application integration .-> Endpoint
   end
-  Accept --> T0
-  Consumers["Authorized Tier 0/1/2 consumers"] -->|Scoped API| Endpoint
   Recovery["Separate offline backup custody"]
-  A -. Authorized backup / restore .-> Recovery
+  Service -. Authorized backup / restore .-> Recovery
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Prepare,Integrate,Accept,T0,Endpoint control
-  class A,B replicas
-  class Consumers actor
-  class Recovery custody
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  class T0,A,B control
+  class HostA,HostB boundary
+  class Service replicas
+  class USB1,USB2,Recovery custody
 ```
+
+**IaC:** Tier 0 [HSM starter inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example),
+[inventory](../../../tier-0/ansible/inventory/hosts.yml.example) and
+[baseline recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml).
+Exactly two VMs are active in the example; add further replicas deliberately.
+Devices, the dashed application group and backup custody are separate integration work.
 
 Only the first step is supplied as a VM/baseline workflow. The completed design
 requires the remaining integration and acceptance work. An issuer replica may

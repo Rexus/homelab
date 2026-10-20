@@ -52,6 +52,38 @@ configuration for loopback-only HTTP-01 serving.
 
 ## Rehearse then enable production
 
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  Authority["Existing public ACME authority"]
+  subgraph T2["Tier 2 / Edge / public HTTPS option"]
+    Controller["Existing Ansible controller<br/>Private order state / renewal timer"]
+    subgraph PVE["Existing Proxmox / external_edge VMs"]
+      direction LR
+      A["edge-lb-1<br/>HAProxy / local HTTP-01"]
+      B["edge-lb-2<br/>HAProxy / local HTTP-01"]
+      C["edge-lb-3<br/>HAProxy / local HTTP-01"]
+      A ~~~ B ~~~ C
+    end
+    Controller -->|Challenges / verified PEM deployment| PVE
+  end
+  Controller -->|Account / certificate orders| Authority
+  Authority -->|HTTP-01 validation via configured VIP| PVE
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class T2,A,B,C edge
+  class PVE boundary
+  class Controller,Authority actor
+```
+
+**IaC:** Tier 2 [public HTTPS inputs](../../../tier-2/ansible/group_vars/public-https.yml.example),
+[certificate recipe](../../../tier-2/ansible/playbooks/maintenance/public-certificates.yml) and
+[controller timer recipe](../../../tier-2/ansible/playbooks/deployment/public-certificate-schedule.yml).
+These configure existing edge hosts/controller, not new VMs, DNS, origins or a public CA.
+The [edge deployment view](../stage-5-delivery/procedures/edge-proxy.md#default-deployment) owns the guest resources.
+
 From the Tier 2 repository, reconcile the HTTP bootstrap edge:
 
 ```bash

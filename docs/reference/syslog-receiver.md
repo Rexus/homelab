@@ -7,11 +7,27 @@ receiver inputs. Shared supplies only baseline/execution code. Deployment is in
 
 ## Contents
 
+- [Guest identity](#guest-identity)
 - [Inputs](#inputs)
 - [Files and records](#files-and-records)
 - [Runtime boundaries](#runtime-boundaries)
 - [Validation](#validation)
 - [References](#references)
+
+## Guest identity
+
+The starter uses `log-1`, with optional `log-2`, as stable logical keys in Tier 0's
+`vm_instances`, Ansible inventory and `platform_host_ips`. Environment prefixes or
+suffixes come from `ansible/group_vars/all.yml`; deployment stages are not guest-name prefixes.
+`syslog` remains the deployment/state entry point. The existing `foundation_logging`
+Ansible group and recipe paths remain compatible selectors, not a deployed namespace.
+
+Existing installations keep their current keys, including earlier `foundation-log-1`
+and `foundation-log-2` selections. Terraform uses map keys to identify module instances;
+changing a key is not merely changing a display label. [3] Refresh preserves local
+inventory, inputs and state; it does not rename live guests or move state.
+Any deliberate rename also requires review of DNS, TLS identities, producer stream
+names and collector archive paths. Preserve historical evidence and credentials.
 
 ## Inputs
 
@@ -98,3 +114,4 @@ Sources checked 2026-10-17.
 
 1. [syslog-ng macros, raw messages and TLS peer metadata](https://syslog-ng.github.io/admin-guide/110_Template_and_rewrite/000_Customize_message_format/004_Macros_of_syslog-ng.html)
 2. [syslog-ng file flush, disk buffering and persistence constraints](https://syslog-ng.github.io/admin-guide/070_Destinations/040_File/000_File_destination_options.html)
+3. [Terraform instance identity with `for_each`](https://developer.hashicorp.com/terraform/language/meta-arguments/for_each)

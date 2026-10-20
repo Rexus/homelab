@@ -29,7 +29,7 @@ size alone does not select the controller.
 ## Authority and ownership
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Approved["Approved revisions and artifacts"] --> F["Tier 0 Flux"]
   F --> Control["Tier 0 control services"]

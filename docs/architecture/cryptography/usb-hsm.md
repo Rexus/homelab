@@ -26,7 +26,7 @@ valid where its outage and recovery contract is sufficient.
 ## Topology
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   T2["Tier 2<br/>Explicitly authorized consumers"]
   T1["Tier 1 Kubernetes<br/>Authorized service clients"]

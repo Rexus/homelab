@@ -51,6 +51,41 @@ not a mandatory VM for every logical component.
 
 ## IaC defaults
 
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T1["Tier 1 / optional observability VM realization"]
+    subgraph PVE["Existing Proxmox / VM baseline only"]
+      direction LR
+      subgraph Intake["telemetry_gateway / security_telemetry networks"]
+        OT["telemetry-1"]
+        Sys["syslog-1"]
+        OT ~~~ Sys
+      end
+      subgraph Services["observability network"]
+        Metrics["metrics-1"]
+        Logs["logs-1"]
+        UI["telemetry-ui-1"]
+        Metrics ~~~ Logs ~~~ UI
+      end
+      subgraph Storage["storage network"]
+        Archive["archive-1<br/>Operational exports only"]
+      end
+      Intake ~~~ Services ~~~ Storage
+    end
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class T1,OT,Sys,Metrics,Logs,UI,Archive services
+  class PVE,Intake,Services,Storage boundary
+```
+
+**IaC:** Tier 1 [VM inputs](../../../tier-1/terraform/deployments/observability/terraform.tfvars.example)
+and [host recipe](../../../tier-1/ansible/playbooks/deployment/telemetry-hosts.yml).
+All six active VMs receive baseline only. No arrows imply an installed ingestion pipeline;
+product setup and further replicas remain project integration. Tier 0 evidence stays outside this deployment.
+
 | Repository | IaC location inside that repository | Supplied behavior |
 | --- | --- | --- |
 | Tier 1 | [terraform/deployments/observability/](../../../tier-1/terraform/deployments/observability/) | Creates the VM foundations |

@@ -7,7 +7,7 @@ partitions through the vendor's supported client and transport.
 ## Components and boundaries
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Consumers["Approved issuer / signing service"] --> Client["Vendor client<br/>Authorized partition access"]
   Client --> H1["HSM partition A"]

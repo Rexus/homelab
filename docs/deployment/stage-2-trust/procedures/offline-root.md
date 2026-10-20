@@ -44,7 +44,7 @@ the only copy of authoritative CA state.
 ## Step 2: Authorize subordinate signing
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Requests["Online issuer or FreeIPA CSR<br/>Approved public-key fingerprint"] -->|Controlled media| Ceremony["Offline root ceremony<br/>Review identity and constraints"]
   Ceremony -->|Signed subordinate certificate and public chain| Return["Verified return handoff"]
@@ -57,6 +57,10 @@ flowchart LR
   class Ceremony custody
   class Online control
 ```
+
+**Workflow:** authorized offline CSR/signature handoff, not a routed connection or VM installer.
+Tier 0 [offline ceremony templates](../../../../tier-0/templates/) provide supporting material;
+the custody environment, approval and physical transfer remain manual.
 
 1. Receive and inspect the infrastructure issuer CSR. Verify its approved public key,
    identity, requested scope and provider ownership through an independent record.

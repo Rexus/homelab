@@ -31,7 +31,7 @@ Start with reviewed operator-driven jobs. Automatic self-service is an optional
 implementation of the same bounded contract, not a reason to give general CI credentials.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   User["Administrator / developer"] --> Request["Tier 2 request"]
   Request --> CI["Validate, plan and test"] --> Gate["Tier 0 approval and policy"]
@@ -43,6 +43,10 @@ flowchart LR
   class Request,CI services
   class Gate control
 ```
+
+**Workflow:** reviewed request handling, not a deployed controller.
+Tier 2 [workload inputs](../../../tier-2/terraform/deployments/lab/terraform.tfvars.example)
+feed a [Shared plan executor](../../../shared/scripts/deploy.sh); automated Tier 0 authorization remains project integration.
 
 1. Record the workload owner, permitted templates, sizes, networks and quotas in
    the [Tier 2 repository](../../paths/tier-2/README.md).
@@ -60,19 +64,50 @@ The protected runner creates the approved resources using the owning tier's inpu
 and state. Shared supplies reusable helpers, never workload inventory or resources.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Gate["Approved request"] --> Runner["Protected Tier 0 runner"]
-  Runner <--> State["Protected tier-local IaC state"]
-  Runner --> PVE["Proxmox API"] --> Runtime["Tier 2 VMs / Kubernetes nodes"]
+  subgraph T2["Tier 2 / alternative runtime selections"]
+    subgraph PVE["Existing Proxmox cluster"]
+      subgraph Cluster["A: kubernetes root / lab network"]
+        direction LR
+        CP1["workload-k8ctl-1"]
+        CP2["workload-k8ctl-2"]
+        CP3["workload-k8ctl-3"]
+        CP1 ~~~ CP2 ~~~ CP3
+      end
+      subgraph Guests["B: lab root / application network"]
+        direction LR
+        VM["lab-1<br/>Linux VM"]
+        CT["support-1<br/>LXC container"]
+        VM ~~~ CT
+      end
+      Cluster ~~~ Guests
+    end
+  end
+  subgraph T0["Tier 0 / authorized execution"]
+    Runner["Existing privileged workstation<br/>or project-supplied protected runner"]
+    State[("Protected tier-local state")]
+    Runner <--> State
+  end
+  T2 ~~~ T0
+  Runner -->|Approved API operations| PVE
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class Gate,Runner,PVE control
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  class T0,Runner control
+  class PVE,Guests boundary
   class State data
-  class Runtime services
+  class T2,Cluster,CP1,CP2,CP3,VM,CT services
 ```
+
+**IaC:** Tier 2 [Kubernetes inputs](../../../tier-2/terraform/deployments/kubernetes/terraform.tfvars.example)
+and [cluster entry point](../../../tier-2/scripts/kubernetes-cluster.sh), or
+[VM/LXC inputs](../../../tier-2/terraform/deployments/lab/terraform.tfvars.example)
+and [lab recipe](../../../tier-2/ansible/playbooks/deployment/lab-vms.yml).
+A and B are independent roots, not one command that creates both; choose the required runtime.
+The [Shared executor](../../../shared/scripts/deploy.sh) consumes Tier 2 inventory/state, never owns them.
 
 1. Execute the reviewed tier-local definition and verify the intended network boundaries.
 2. For a workload cluster, reuse the [common Kubernetes procedure](../stage-3-identity-runtime/procedures/kubernetes.md)
@@ -114,17 +149,29 @@ Approved application revisions are reconciled inside the owning cluster. Rancher
 can manage selected Tier 1/2 clusters, never Tier 0 infrastructure.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
-  Source["Approved application revision"] --> GitOps["Scoped application delivery"]
-  GitOps --> Apps["Tier 2 applications"]
-  Runtime["Verified workload runtime"] --> Apps
+  Source["Existing approved application source"]
+  subgraph T2["Tier 2 / existing workload runtime"]
+    subgraph Project["Project integration / application starters only"]
+      GitOps["Selected scoped application delivery"]
+      Apps["Reviewed application workloads"]
+      GitOps --> Apps
+    end
+  end
+  Source -->|Approved revisions| GitOps
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   class Source data
-  class GitOps,Apps,Runtime services
+  class T2,GitOps,Apps services
+  class Project replicas
 ```
+
+**Integration:** Tier 2 [cluster starter](../../../tier-2/clusters/tier2/kustomization.yaml)
+and [workload definitions](../../../tier-2/workloads/) receive project manifests.
+Provisioning the runtime does not install the dashed application group or a delivery controller.
 
 1. Select [scoped delivery](../../architecture/delivery/controllers.md) from Tier 1
    or an independently owned local controller. Deploy application manifests with

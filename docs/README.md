@@ -37,6 +37,8 @@ administration folders for project-owned records. The architecture repository's
 
 Architecture defines the result and its boundaries. Deployment realizes it;
 development changes its implementation; administration maintains its guarantees.
+All views follow the [diagram conventions](development/diagrams.md#abstraction-and-implementation):
+architecture names capabilities; deployment names the selected instances and links their IaC.
 
 <a id="recommended-path"></a>
 <a id="architecture-and-design"></a>

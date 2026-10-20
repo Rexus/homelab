@@ -21,18 +21,34 @@ installer. Product configuration/manifests and their execution recipe remain pro
 ## Step 1: Prepare the monitoring runtime
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
-  Existing["Existing Tier 0 log intake<br/>Protected evidence"] --- Host["Existing independent Tier 0 host<br/>Monitoring capacity selected"]
-  Cluster["Tier 0 cluster being observed"] -. Must not host its only outage detector .-> Host
+  subgraph T0["Tier 0 / Control"]
+    subgraph PVE["Existing Proxmox hosts"]
+      Existing["log-1<br/>Existing protected intake"]
+      Cluster["Existing Tier 0 Kubernetes"]
+    end
+    subgraph Project["Project integration / outside observed cluster"]
+      Host["Selected independent monitoring runtime<br/>No monitoring setup supplied"]
+    end
+    PVE ~~~ Project
+  end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   class Existing data
-  class Host control
+  class T0,Host control
   class Cluster services
+  class PVE boundary
+  class Project replicas
 ```
+
+**Integration:** Tier 0 [existing log-host inputs](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example)
+and [cluster starters](../../../tier-0/clusters/tier0/kustomization.yaml) provide context only.
+No additional monitoring VM or product is created by these entry points; select and implement its runtime.
 
 1. Select an existing independent host or provision reviewed Tier 0 capacity.
    Reuse the log VM only after evaluating capacity and the shared failure domain;
@@ -48,19 +64,38 @@ flowchart LR
 ## Step 2: Add critical health and history
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
-  Sources["Hosts, storage, network<br/>Log queues and control APIs"] --> Metrics["Tier 0 critical metric history"]
-  Agents["Netdata agents"] --> Parent["Tier 0 live diagnostics"]
-  Metrics --> Rules["Local rule evaluation"]
+  subgraph T0["Tier 0 / Control"]
+    subgraph Existing["Existing infrastructure / protected logging"]
+      Sources["Hosts, storage and control APIs<br/>log-1 queues / capacity"]
+    end
+    subgraph Project["Project integration / selected independent runtime"]
+      Agents["Netdata agents"]
+      Parent["Live diagnostics"]
+      Metrics["Critical metric history"]
+      Rules["Local rule evaluation"]
+      Agents --> Parent
+      Metrics --> Rules
+    end
+    Sources -->|Selected signal exporters| Project
+  end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   class Sources,Agents actor
   class Metrics data
-  class Parent,Rules control
+  class T0,Parent,Rules control
+  class Existing boundary
+  class Project replicas
 ```
+
+**Integration:** Tier 0 [cluster starters](../../../tier-0/clusters/tier0/kustomization.yaml)
+contain no installer for the dashed agents, diagnostics or metric services.
+Supply project roles/manifests for the selected independent runtime; the existing receiver recipe installs none of them.
 
 1. Select a small dataset: host/storage/network health, source coverage, receiver queues,
    evidence writes/replication, capacity, certificate expiry and cluster/API availability.
@@ -75,19 +110,34 @@ flowchart LR
 ## Step 3: Enable and verify independent alerts
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
-  Rules["Tier 0 local rules"] --> Routing["Independent notification delivery"] --> Admin["Authorized administrators"]
-  Watch["External heartbeat / watchdog"] -->|Collector or monitoring host missing| Admin
-  T1["Tier 1 unavailable"] -. No required dependency .-> Rules
+  subgraph T0["Tier 0 / Control"]
+    subgraph Project["Project integration / selected monitoring runtime"]
+      Rules["Local rules"] --> Routing["Independent notification client"]
+    end
+    Log["log-1<br/>Existing archive watchdog"]
+  end
+  subgraph External["Existing external notification service"]
+    Watch["Heartbeat / dead-man checks"]
+    Admin["Authorized administrators"]
+    Watch -->|Missing heartbeat| Admin
+  end
+  Routing -->|Minimal alert payloads| Admin
+  Log -->|Configured heartbeat| Watch
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class Rules,Routing,Watch control
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  class T0,Rules,Routing,Watch,Log control
   class Admin actor
-  class T1 services
+  class Project replicas
 ```
+
+**Integration:** implement monitoring rules/routing separately.
+The existing Tier 0 [archive job](../../../tier-0/ansible/playbooks/deployment/logging-archive.yml)
+can call its configured external watchdog, but does not install that external service or the dashed rule engine.
 
 1. Configure local evaluation and notification routing, such as Alertmanager, with
    independent credentials and an approved external notification path. Keep alert payloads

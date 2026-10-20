@@ -26,6 +26,39 @@ so healthy traffic is spread while every VIP can still fail over.
 
 ## Default deployment
 
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  Clients["Existing external / internal clients"]
+  subgraph T2["Tier 2 / Edge / external_edge"]
+    direction LR
+    VIP["Configured VIP set<br/>Preferred owners / failover"]
+    subgraph PVE["Existing Proxmox / edge VMs"]
+      direction LR
+      A["edge-lb-1<br/>HAProxy / keepalived"]
+      B["edge-lb-2<br/>HAProxy / keepalived"]
+      C["edge-lb-3<br/>HAProxy / keepalived"]
+      A ~~~ B ~~~ C
+    end
+    VIP -. Address ownership .-> PVE
+  end
+  Backends["Existing approved application origins<br/>Only after listener configuration"]
+  Clients -->|Selected published listeners| T2
+  T2 -->|Configured verified backends| Backends
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class T2,VIP,A,B,C edge
+  class PVE boundary
+  class Clients,Backends actor
+```
+
+**IaC:** Tier 2 [edge inputs](../../../../tier-2/terraform/deployments/edge/terraform.tfvars.example)
+and [edge recipe](../../../../tier-2/ansible/playbooks/deployment/edge-proxy.yml).
+The starter creates three VMs and configures the VIP/service machinery, but has no application listeners enabled.
+The drawn client/backend traffic exists only after reviewed listener, TLS and firewall configuration.
+
 | Component | Terraform default | Inventory entry | Network key | Purpose |
 | --- | --- | --- | --- | --- |
 | edge load balancers | `edge-lb-1`, `edge-lb-2`, `edge-lb-3` active | present by default | `external_edge` | public ingress and application load balancing |

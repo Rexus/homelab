@@ -31,20 +31,20 @@ dependencies, controlled egress and privileged administration. Each connection
 below represents a named endpoint contract, not access to an entire zone.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":30,"rankSpacing":30},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Internet["Internet"]
   AdminEntry["Approved<br/>administration entry"]
   subgraph Edge["Edge / DMZ"]
-    Clients["Tier 2: ordinary clients<br/>Separate client subnet"]
-    Gateways["Tier 2: public ingress<br/>Outbound proxy/cache"]
-    Supply["Tier 1: build runners<br/>Authoritative mirrors<br/>delivery_edge subnet"]
+    Clients["Tier 2: clients<br/>Separate subnet"]
+    Gateways["Tier 2: public ingress<br/>Outbound cache"]
+    Supply["Tier 1: build runners<br/>Authoritative mirrors"]
   end
   subgraph Application["Application / Services"]
     Services["Shared services<br/>and workloads"]
   end
   subgraph Control["Control"]
-    Endpoints["Identity, trust and<br/>operations endpoints"]
+    Endpoints["Identity / trust<br/>Operations"]
     Administration["Privileged<br/>administration"]
   end
   Internet -->|Published<br/>listeners| Gateways

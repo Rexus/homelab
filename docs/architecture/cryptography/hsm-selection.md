@@ -47,7 +47,7 @@ dependencies. Application-state backups accompany the selected key-recovery meth
 ### A: Software
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Consumers["Authorized consumers"] -->|Certificate or signing requests| Service
   subgraph Host["Authorized online host"]
@@ -74,7 +74,7 @@ hardware isolation. [1]
 ### B: Single USB
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Consumers["Authorized consumers"] -->|Certificate or signing requests| Service
   subgraph Host["Authorized online host"]
@@ -102,7 +102,7 @@ application state, not on the presence of a replacement device alone. [2][3]
 ### C: Replicated USB gateways
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Consumers["Authorized consumers"] -->|Certificate or signing requests| Service["Issuer or signing service"]
   Service -->|Validated application routing| GatewayA
@@ -139,7 +139,7 @@ or Tier 1/2 runtimes are not prerequisites.
 ### D: Network HSM
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Consumers["Authorized consumers"] -->|Certificate or signing requests| Service["Issuer or signing service"]
   Service -->|Supported provider integration| Client["Authorized vendor client"]

@@ -25,7 +25,7 @@ the end, and links back to the architecture it implements.
 | 6: Workload provisioning | Approved Tier 2 runtime, applications and scoped collection | Tier 2 definitions; Tier 0 execution | [Workload provisioning](stage-6-workloads/README.md), [collection](stage-6-workloads/telemetry.md) |
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Base["Foundation prerequisites<br/>Proxmox, networks, access and approved templates"]
   Base --> Logs["1. Protected logging<br/>Independent Tier 0 evidence"]
@@ -42,6 +42,9 @@ flowchart TB
   class Logs,Trust,Runtime,Control control
   class Delivery,Workloads services
 ```
+
+**Workflow:** this is the capability sequence, not a resource or network diagram.
+The [IaC capability map](#iac-capability-map) links each entry point to its selected deployment view.
 
 For a new installation, follow this order. Existing infrastructure can satisfy a
 stage's verified prerequisites; a stage number is not a tier, network or state boundary.
@@ -114,9 +117,11 @@ design. Stages realize parts of it; [readiness](readiness.md) records what is ve
 
 ## Implementation scope
 
+Deployment views name starter guests and link their owning inputs and executing code.
+Existing prerequisites, manual work and project integration are marked separately;
+follow the [diagram contract](../development/diagrams.md#abstraction-and-implementation).
 The [support map](../reference/implementation-support.md) distinguishes supplied
-automation from project integration. A diagram is not a claim that every component
-has an installer. Current wrappers call `terraform`; Terraform / OpenTofu is the
+automation from project integration. Current wrappers call `terraform`; Terraform / OpenTofu is the
 design choice, not a claim of a validated OpenTofu drop-in workflow.
 
 Continue with [administration](../administration/README.md) for recurring operation

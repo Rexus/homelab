@@ -40,8 +40,8 @@ flowchart LR
       direction LR
       Host["Hypervisor logs<br/>Retain locally"]
       Template["Approved<br/>Linux template"]
-      VM["foundation-log-1<br/>New VM / OS disk"]
-      Data[("Local data disk<br/>Allocated, not mounted")]
+      VM["log-1<br/>New VM / OS disk"]
+      Data[("scsi1 / local data disk<br/>Allocated, not mounted")]
       Template -->|Clone| VM
       VM -->|Attached disk| Data
     end
@@ -58,9 +58,13 @@ flowchart LR
   class Devices,Host actor
 ```
 
+**IaC:** Tier 0 [VM/disk definitions](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example)
+and [inventory](../../../tier-0/ansible/inventory/hosts.yml.example).
+Proxmox, network devices and the approved template already exist; this step does not create them.
+
 Tier 0 is the ownership boundary; **Stage 1** is the deployment capability, not Tier 1.
 The main path adds one VM. The [redundant-intake option](step-3b-redundant-intake.md)
-adds `foundation-log-2` on a different physical host; it does not automatically provide HA.
+adds `log-2` on a different physical host; it does not automatically provide HA.
 
 Before this VM exists, retain persistent local host logs and supported device buffers
 from first boot. Preserve and import/export those records when intake is ready, retaining
@@ -93,10 +97,13 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    bash scripts/deploy.sh syslog --terraform-only
    ```
 
-Edit the local files seeded from examples. The starter creates `foundation-log-1`
+Edit the local files seeded from examples. The starter creates `log-1`
 outside Kubernetes with an OS disk and a separate log-data disk. This Terraform-only
 step does not configure the receiver or format/mount that disk. Size storage from measured rate/retention,
 not from the starter's example capacity.
+
+Existing installations retain their current logical host keys, credentials and archive
+identities on refresh; see the [guest identity contract](../../reference/syslog-receiver.md#guest-identity).
 
 **Result:** a reachable log host and allocated data disk, not yet a working collector.
 An existing independently operated receiver is also valid.
@@ -124,7 +131,7 @@ flowchart TB
       end
       subgraph PVE["Proxmox host / management subnet"]
         Host["Hypervisor OS / audit logs"]
-        VM["foundation-log-1<br/>syslog-ng / TLS 6514"]
+        VM["log-1<br/>syslog-ng / TLS 6514"]
         Records[("Local data disk<br/>JSONL / delivery queues")]
         Host -->|TLS| VM
         VM --> Records
@@ -148,6 +155,11 @@ flowchart TB
   class T0Title,Placement controlHeading
   class Records data
 ```
+
+**IaC:** Tier 0 [receiver recipe](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml)
+and [producer recipe](../../../tier-0/ansible/playbooks/deployment/logging-producers.yml).
+The reusable sender implementation is [Shared's `log_forwarder`](../../../shared/ansible/roles/log_forwarder/tasks/main.yml);
+each tier retains its own inventory and source selections.
 
 1. Follow [receiver setup, Steps 1-3](receiver.md): prepare the data mount,
    [independent producer trust](producer-trust.md) and source catalogue, then run the Tier 0 recipe. It leaves the
@@ -202,11 +214,11 @@ flowchart BT
       direction LR
       subgraph PVE["Existing Proxmox host"]
         direction LR
-        VM["foundation-log-1<br/>Receiver / checkpoint job"]
+        VM["log-1<br/>Receiver / checkpoint job"]
         Records[("Local data disk<br/>JSONL / queues")]
         VM -->|Append| Records
       end
-      subgraph NAS["Independent NAS / storage custody"]
+      subgraph NAS["Existing NAS / independent custody"]
         direction LR
         Evidence[("Create-only archive<br/>Chunks / manifests")]
         Snapshots[("NAS-owned snapshots")]
@@ -218,7 +230,7 @@ flowchart BT
   end
   subgraph Recovery["Independent recovery / separate credentials"]
     direction LR
-    Backup["Tier 0 recovery host<br/>logging_recovery group"]
+    Backup["Existing Tier 0 recovery host<br/>logging_recovery group"]
     Copy[("Encrypted restic repository<br/>Independent storage")]
     Offline["Offline inspection kit<br/>Separately held keys"]
     Backup -->|Backup| Copy
@@ -240,6 +252,11 @@ flowchart BT
   class NAS,Recovery,Backup,Offline custody
   class Search services
 ```
+
+**IaC:** Tier 0 [archive recipe](../../../tier-0/ansible/playbooks/deployment/logging-archive.yml)
+and [backup recipe](../../../tier-0/ansible/playbooks/deployment/logging-backup.yml) configure existing hosts.
+NAS accounts/snapshots and the independent recovery disk are prepared separately;
+Tier 1 analytics is a later capability, not installed by these recipes.
 
 The view expands the NAS main path: the NAS is not the receiver's live data disk,
 and recovery storage is outside the NAS/collector failure domain. The recovery host

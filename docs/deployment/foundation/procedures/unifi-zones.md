@@ -31,7 +31,7 @@ Kubernetes cluster or hosted identity service exists. [1]
 ## Bring up the network
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Admin["Local privileged workstation"] --> Controller["Gateway / independent Network application"]
   Controller --> Switch["Adopted switch and optional APs"]
@@ -43,6 +43,11 @@ flowchart LR
   class Admin,Clients actor
   class Controller,Switch,Hosts control
 ```
+
+**Manual:** controller adoption, switch ports and VLAN/firewall configuration below.
+The [network inputs](../../../../shared/config/platform.tfvars) are references consumed by guest IaC,
+not a UniFi controller or switch installer. Ordinary clients remain Tier 2 / Edge;
+controller and physical-network administration remain Tier 0 / Control.
 
 1. Commission the gateway and Network application using the selected model's
    procedure. Adopt switches/APs over a working management network before changing

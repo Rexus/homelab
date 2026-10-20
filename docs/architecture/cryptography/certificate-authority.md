@@ -19,10 +19,10 @@ replacement for this issuer.
 ## Trust hierarchy
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Root["Offline root CA<br/>Separate custody; clca reference"]
-  Infrastructure["Infrastructure issuing CA<br/>OpenXPKI on ca-1"]
+  Infrastructure["Infrastructure issuing CA<br/>Dedicated issuer runtime"]
   Identity["Identity issuing CA<br/>FreeIPA primary and CA replica"]
   Services["Infrastructure and workload certificates"]
   Hosts["FreeIPA host, service and identity certificates"]
@@ -64,7 +64,7 @@ retains independently tested recovery access.
 ## Enrollment and publication
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Operator["Authorized<br/>certificate operator"] -->|Request, approve<br/>renew, revoke| Portal["Tier 0<br/>CA portal"]
   Clusters["Tier 0 / 1 / 2 cert-manager<br/>Separate authorized identities"] -->|ACME| Bridge["Enrollment adapter<br/>acme2certifier reference"]

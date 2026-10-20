@@ -19,30 +19,52 @@ The telemetry VM option uses `<prefix>-tier-1` instead.
 4. [Establish independent monitoring](#step-4-establish-independent-monitoring)
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph Existing["Existing Tier 0 prerequisites"]
-    direction LR
-    Directory["FreeIPA primary + replica<br/>Dedicated VMs"]
-    Issuer["Issuing CA<br/>Optional HSM gateway"]
-    Base["Flux, cert-manager, storage<br/>CloudNativePG HA"]
-    Directory ~~~ Issuer ~~~ Base
+  subgraph T0[" "]
+    direction TB
+    T0Title["Tier 0 / Control layer"]
+    subgraph Placement[" "]
+      direction LR
+      subgraph Existing["Existing dedicated VMs"]
+        Directory["idm-1 / idm-2<br/>Directory"]
+        Issuer["ca-1<br/>Issuer"]
+        Log["log-1<br/>Log intake"]
+      end
+      subgraph Cluster["Existing Tier 0 Kubernetes"]
+        direction TB
+        Base["Existing platform services"]
+        subgraph Added["Project integration / starters only"]
+          direction LR
+          Keycloak["Keycloak / IdP"]
+          Vault["Vault / secrets"]
+          Ops["NetBox / Headlamp"]
+          Keycloak ~~~ Vault ~~~ Ops
+        end
+        Base -. Reviewed project manifests .-> Added
+      end
+      Existing -->|LDAP federation| Cluster
+    end
+    T0Title ~~~ Placement
   end
-  subgraph Added["New Tier 0 Kubernetes workloads"]
-    direction LR
-    Keycloak["Keycloak<br/>Directory federation, OIDC / MFA"]
-    Vault["Vault<br/>Secrets / supported PKI integration"]
-    Ops["NetBox, Headlamp<br/>Inventory and scoped cluster access"]
-    Keycloak ~~~ Vault ~~~ Ops
-  end
-  Existing -->|Flux deploys reviewed service manifests| Added
-  Existing --> Monitoring["Independent Tier 0 monitoring<br/>Critical history and external alerts"]
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   class Existing boundary
-  class Added,Monitoring control
+  class T0,Directory,Issuer,Log control
+  class T0Title,Placement controlHeading
+  class Cluster runtime
+  class Added replicas
 ```
+
+**Integration:** Tier 0 [application starters](../../../tier-0/clusters/tier0/applications/kustomization.yaml)
+are project-owned placeholders, not installers for the dashed group.
+Supply and review the manifests before Flux can reconcile these applications.
+The [Vault VM alternative](step-2b-vault-vm.md) replaces, rather than duplicates, the cluster Vault instance.
+Independent monitoring is a separate [selected integration](monitoring.md), not an installed workload here.
 
 | Existing interface | New consumer |
 | --- | --- |

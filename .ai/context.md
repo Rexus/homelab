@@ -123,6 +123,13 @@ This file keeps durable context for AI-assisted work across sessions.
   syslog setup provisions VMs/disks and installs Tier 0's isolated syslog-ng OSE receiver after
   explicit data-mount UUID, client catalogue and independent TLS preparation; OS logger is untouched;
   local JSON records/reliable queues are not HA, protected retention or independent backup integration
+- receiver starter names are `log-1` and optional `log-2`, never deployment-stage prefixes;
+  retain existing local guest/state/TLS/archive identities on refresh rather than renaming them;
+  deployment diagrams link to owning IaC and distinguish new resources from existing/manual prerequisites
+- apply one diagram language across docs: architecture uses stable capabilities/roles without guest keys;
+  deployment uses exact starter instances and counts, linked inputs and executing code;
+  explicitly bound manual/existing/project integration rather than implying an empty starter installs services;
+  workflow and acceptance diagrams describe actions, not additional infrastructure
 - retain local logs from first boot; central intake precedes PKI/FreeIPA and Kubernetes;
   portable evidence and an independent reader/key kit support offline data-volume inspection
 - critical-data recovery follows 3-2-1 with independent offline/immutable custody;

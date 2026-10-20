@@ -49,6 +49,9 @@ Only designs with meaningful internal differences need another page or diagram.
 The capability map places services by **owning tier** vertically and **security
 layer** horizontally. Boxes name capabilities, not products, VMs or clusters.
 Domain views expand those boxes into their components and hosting arrangements.
+These names remain valid across implementation choices: protected log services stay
+Tier 0-owned whether a site selects one receiver, redundant intake or existing storage.
+Instance names, counts and commands belong to the selected deployment, not this map.
 
 ```mermaid
 block-beta

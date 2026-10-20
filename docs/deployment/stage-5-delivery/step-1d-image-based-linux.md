@@ -118,26 +118,36 @@ rollback behavior are tested.
 ## Reference workflow
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Source[Git repo<br/>Containerfile and policy] --> GitLab[GitLab CI<br/>build bootc image]
-  GitLab --> GitLabRegistry[GitLab registry<br/>first internal image source]
-  GitLabRegistry -. reviewed candidate .-> Approved[Approved image source<br/>local recovery copy]
-  Approved --> Template[Tier 0 bootc template builder]
-  GitLabRegistry --> Updates[bootc update path<br/>early promoted tag]
-  GitLabRegistry -. optional promotion .-> Harbor[Harbor option<br/>scan, retain, promote]
-  Harbor -. if selected .-> Updates
-  Template --> Proxmox[Proxmox templates<br/>rhel-10-immu-tmpl]
-  Proxmox -. approved release .-> VMs[Workload clones<br/>bootc hosts]
-  Updates --> VMs
+  subgraph T1["Tier 1 / existing delivery services"]
+    Source["Reviewed Containerfile / policy"]
+    CI["Existing CI and OCI registry"]
+    Source --> CI
+  end
+  Approved["Approved image / independent recovery copy"]
+  subgraph T0["Tier 0 / template lifecycle"]
+    subgraph PVE["Existing Proxmox / application network"]
+      Template["rhel-10-immu-tmpl<br/>Builder VM, then template"]
+    end
+  end
+  CI -. Review and promotion .-> Approved
+  Approved -->|Selected bootc image| Template
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Source,GitLabRegistry,Approved,Harbor data
-  class GitLab,Updates,VMs services
-  class Template,Proxmox control
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  class Source,Approved data
+  class T1,CI services
+  class T0,Template control
+  class PVE boundary
 ```
+
+**IaC:** Tier 0 [builder inputs](../../../tier-0/terraform/deployments/immutable-template/terraform.tfvars.example)
+and [builder recipe](../../../tier-0/ansible/playbooks/deployment/immutable-template.yml).
+The same guest becomes a template after explicit verification; this does not create workload clones.
+CI/image publication is an existing prerequisite or project integration, not installed by the builder recipe.
 
 Figure: this workflow uses GitLab for the build and initial registry. Harbor is
 an optional promotion destination, not a required next stage. Other approved
