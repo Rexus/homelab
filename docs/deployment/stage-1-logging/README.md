@@ -30,18 +30,46 @@ deletion. These are alternatives, not mandatory consecutive deployments.
 
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Template["Existing approved Linux template"] --> VM["New Tier 0 log VM<br/>VM and disk allocation"]
-  VM --> Data["Separate log-data volume<br/>Not formatted or mounted by the starter"]
-  Local["Existing local host/device logs"] -. Retain until intake is ready .-> VM
+block-beta
+  columns 1
+  block:T0
+    columns 3
+    T0Title["Tier 0 / Control layer"]:3
+    block:Infrastructure
+      columns 1
+      InfraTitle["Existing network devices"]
+      Devices["Gateway / switches<br/>Retain local logs"]
+    end
+    space
+    block:PVE
+      columns 3
+      HostTitle["Existing Proxmox host"]:3
+      Template["Approved<br/>Linux template"]
+      space
+      VM["foundation-log-1<br/>New VM / OS disk"]
+      Host["Hypervisor logs<br/>Retain locally"]
+      space
+      Data[("Local data disk<br/>Allocated, not mounted")]
+    end
+  end
+  Template -- "Clone" --> VM
+  VM --> Data
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef heading fill:none,stroke:none,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class T0,Infrastructure,PVE boundary
+  class T0Title,InfraTitle,HostTitle heading
   class Template,Data data
   class VM control
-  class Local actor
+  class Devices,Host actor
 ```
+
+Tier 0 is the ownership boundary; **Stage 1** is the deployment capability, not Tier 1.
+The main path adds one VM. The [redundant-intake option](step-3b-redundant-intake.md)
+adds `foundation-log-2` on a different physical host; it does not automatically provide HA.
 
 Before this VM exists, retain persistent local host logs and supported device buffers
 from first boot. Preserve and import/export those records when intake is ready, retaining
@@ -91,18 +119,43 @@ record the bootstrap failure window rather than delaying intake for later servic
 
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Sources["Existing infrastructure sources<br/>Durable local queues"] -->|Scoped append submissions| Intake
-  subgraph New["Tier 0 collection added"]
-    Intake["TLS receiver<br/>Independent trust and credentials"] --> Records["Local JSON Lines<br/>Separate data volume"]
+block-beta
+  columns 3
+  Sources["Other approved producers<br/>Tier 1 / Tier 2 as added"]
+  space:2
+  block:T0:3
+    columns 3
+    T0Title["Tier 0 / Control layer"]:3
+    block:Infrastructure
+      columns 1
+      InfraTitle["Existing devices / access"]
+      Devices["Gateway / switches<br/>Device-native export"]
+      Admin["Authorized security reader"]
+    end
+    space
+    block:PVE
+      columns 1
+      HostTitle["Proxmox host / management subnet"]
+      Host["Hypervisor OS / audit logs"]
+      VM["foundation-log-1<br/>syslog-ng / TLS 6514"]
+      Records[("Local data disk<br/>JSONL / delivery queues")]
+    end
   end
-  Admin["Authorized security reader"] -->|Scoped read| Records
+  Sources -- "Scoped TLS" --> VM
+  Devices -- "Approved export" --> VM
+  Host -- "TLS" --> VM
+  VM --> Records
+  Admin -- "Read / audit" --> Records
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef heading fill:none,stroke:none,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Sources,Admin actor
-  class New,Intake control
+  class T0,Infrastructure,PVE boundary
+  class T0Title,InfraTitle,HostTitle heading
+  class Sources,Devices,Host,Admin actor
+  class VM control
   class Records data
 ```
 
@@ -148,21 +201,66 @@ it without identity services or a cluster. A single collector still has a declar
 
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Intake["Existing Tier 0 intake"] --> Evidence["Protected evidence<br/>Governed retention"]
-  Evidence --> Copy["Independent recovery copies<br/>Separate deletion authority"]
-  Copy --> Offline["Offline inspection<br/>Reader kit and separately held keys"]
-  Evidence -. Later approved copies .-> Search["Stage 5 Tier 1 analytics"]
+block-beta
+  columns 3
+  space:2
+  block:T1
+    columns 1
+    T1Title["Tier 1 / later Stage 5"]
+    Search["Scoped analytics<br/>Approved copies only"]
+  end
+  block:T0:3
+    columns 3
+    T0Title["Tier 0 / Control layer"]:3
+    block:PVE
+      columns 1
+      HostTitle["Existing Proxmox host"]
+      VM["foundation-log-1<br/>Receiver / checkpoint job"]
+      Records[("Local data disk<br/>JSONL / queues")]
+    end
+    space
+    block:NAS
+      columns 1
+      NASTitle["Independent NAS / storage custody"]
+      Evidence[("Create-only archive<br/>Chunks / manifests")]
+      Snapshots[("NAS-owned snapshots")]
+    end
+  end
+  block:Recovery:3
+    columns 3
+    RecoveryTitle["Independent recovery / separate credentials"]:3
+    Backup["Tier 0 recovery host<br/>logging_recovery group"]
+    space
+    Copy[("Encrypted restic repository<br/>Independent storage")]
+    space:2
+    Offline["Offline inspection kit<br/>Separately held keys"]
+  end
+  VM -- "Append" --> Records
+  VM -- "SMB checkpoints" --> Evidence
+  Evidence --> Snapshots
+  Backup -- "Read-only NAS identity" --> Evidence
+  Backup -- "Backup" --> Copy
+  Copy -- "Restore" --> Offline
+  Evidence -. "Later approved copies" .-> Search
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef heading fill:none,stroke:none,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class Intake control
-  class Evidence data
-  class Copy,Offline custody
+  class T1,T0,PVE boundary
+  class T0Title,T1Title,HostTitle,NASTitle,RecoveryTitle heading
+  class VM control
+  class Records,Evidence,Snapshots,Copy data
+  class NAS,Recovery,Backup,Offline custody
   class Search services
 ```
+
+The view expands the NAS main path: the NAS is not the receiver's live data disk,
+and recovery storage is outside the NAS/collector failure domain. The recovery host
+is Tier 0-owned but has independent credentials. Choice B replaces or supplements
+the NAS custody boundary with qualified retention-locked storage.
 
 1. Select [A: NAS snapshots/backups](step-3c-nas-archive.md) or
    [B: retention locks](step-3d-retention-lock.md), then establish independent backups

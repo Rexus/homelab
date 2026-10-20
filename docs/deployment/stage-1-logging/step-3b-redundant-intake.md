@@ -15,19 +15,52 @@ Add further capacity as demand requires. Receiver count alone does not establish
 
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Queue["Source durable queues"] --> A["Receiver A<br/>Failure domain A"]
-  Queue --> B["Receiver B<br/>Failure domain B"]
-  A --> Commit["Verified durable archive handoff"]
-  B --> Commit
-  Commit --> Copies["Independently protected copies"]
+block-beta
+  columns 1
+  Sources["Approved producers / owning tiers<br/>Durable local queues"]
+  block:T0
+    columns 3
+    T0Title["Tier 0 / Control layer"]:3
+    block:PVE1
+      columns 1
+      Host1Title["Proxmox host A / failure domain A"]
+      VM1["foundation-log-1<br/>TLS receiver"]
+      Disk1[("Local data disk / queues")]
+    end
+    space
+    block:PVE2
+      columns 1
+      Host2Title["Proxmox host B / failure domain B"]
+      VM2["foundation-log-2 / optional<br/>TLS receiver"]
+      Disk2[("Separate local disk / queues")]
+    end
+  end
+  block:Custody
+    columns 1
+    CustodyTitle["Independently protected archive / selected integration"]
+    Commit["Required durable handoff<br/>Not installed by adding a VM"]
+    Copies[("Retained copies / independent backup")]
+  end
+  Sources -- "Selected sender routing" --> VM1
+  Sources -- "Selected sender routing" --> VM2
+  VM1 --> Disk1
+  VM2 --> Disk2
+  Disk1 --> Commit
+  Disk2 --> Commit
+  Commit --> Copies
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef heading fill:none,stroke:none,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Queue actor
-  class A,B,Commit control
-  class Copies custody
+  class T0,PVE1,PVE2 boundary
+  class T0Title,Host1Title,Host2Title,CustodyTitle heading
+  class Sources actor
+  class VM1,VM2 control
+  class Disk1,Disk2,Copies data
+  class Custody,Commit custody
 ```
 
 ## 2. Review and apply the same state root

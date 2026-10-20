@@ -2,6 +2,7 @@
   "roles": {
     "default": {"fill": "#f8fafc", "stroke": "#64748b", "color": "#1f2937"},
     "boundary": {"fill": "#eef2f6", "stroke": "#64748b", "color": "#1f2937"},
+    "heading": {"fill": "none", "stroke": "none", "color": "#1f2937"},
     "edge": {"fill": "#fce8ec", "stroke": "#9b4d67", "color": "#502638"},
     "services": {"fill": "#e7f0fc", "stroke": "#4d719b", "color": "#203a5b"},
     "control": {"fill": "#e2f3ed", "stroke": "#397366", "color": "#173f36"},

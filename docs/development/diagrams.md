@@ -20,7 +20,7 @@ ownership. Deployment views show the capability added by a step, not a new archi
 | Which networks or layers contain it? | Block grid or nested flowchart | Edge / DMZ on the left, Application / Services in the middle, Control on the right |
 | What contains or consumes a service? | Nested flowchart | Trust boundary around zones; runtime and replica groups inside their actual owner |
 | How does a request proceed? | Flowchart or sequence | Arrows describe real interactions; sequence diagrams retain chronological order |
-| What does a deployment step add? | Small flowchart | Existing components distinguished from the added capability |
+| What does a deployment step add? | Nested block diagram | Retain tier, host/VM and storage boundaries; distinguish existing components from additions |
 
 Block diagrams support explicit placement through columns, spans and spaces. [1]
 Use them for matrices and placement maps. Keep a flowchart when routing and nested
@@ -34,6 +34,12 @@ allow rule, and tiers are ownership boundaries rather than a network path.
 Use short, wrapped labels. Separate dense placement and interaction questions
 instead of shrinking one diagram until its text becomes unreadable.
 
+Deployment steps keep the physical and runtime context visible: the owning tier
+contains the actual Proxmox hosts, VMs and attached local volumes. Use inventory
+names for deployed guests. Show remote archives and independent recovery as
+separate boundaries, not another disk inside the receiver. An optional second
+host must be labelled optional; adding a replica does not imply replication or HA.
+
 ## Boundaries and colour
 
 The [palette](../reference/diagrams/palette.json) defines reusable visual roles.
@@ -43,6 +49,7 @@ the documentation tests compare those declarations with the palette.
 | Role | Treatment |
 | --- | --- |
 | Site, network or ownership boundary | Pale neutral enclosing box, solid border |
+| Boundary heading | Unframed first row inside its pale boundary, never a centred label over child boxes |
 | Edge / DMZ | Rose zone or capability |
 | Application / Services | Blue zone or capability |
 | Control | Green zone or capability |
