@@ -14,13 +14,19 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
                              'Enterprise-only', 'acme2certifier', 'DataVault', 'missing signing identity'):
                 self.assertIn(expected, design)
             for issuer in ('Infrastructure', 'Identity'):
-                self.assertIn(f'Root -.->|Signs subordinate CA<br/>certificate offline| {issuer}', design)
+                self.assertIn(f'Root -.-> {issuer}', design)
+            self.assertIn('block:T0', design)
+            self.assertIn('Authorized subordinate signing; no network route', design)
             self.assertIn('Vault remains a secret service', design)
             reference = (docs / 'architecture/reference-platform.md').read_text()
             self.assertIn('OpenXPKI Community', reference)
-            self.assertIn('Infrastructure issuing CA<br/>Dedicated issuer runtime', reference)
-            self.assertIn('Enrollment -->|Authenticated issuer interface| Issuer', reference)
-            self.assertIn('FreeIPA identity CA', reference)
+            self.assertIn('cryptography/README.md#completed-design', reference)
+            self.assertIn('cryptography/certificate-authority.md#enrollment-and-publication', reference)
+            self.assertIn('FreeIPA retains its own identity CA', design)
+            overview = (docs / 'architecture/cryptography/README.md').read_text()
+            self.assertIn('Optional application CA', overview)
+            self.assertIn('Optional lab CA', overview)
+            self.assertIn('do not automatically chain to', overview)
 
     def test_guides_name_actual_iac_and_controlled_integration_gates(self):
         self.generate()

@@ -8,16 +8,34 @@ partitions through the vendor's supported client and transport.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Consumers["Approved issuer / signing service"] --> Client["Vendor client<br/>Authorized partition access"]
-  Client --> H1["HSM partition A"]
-  Client --> H2["HSM partition B<br/>Optional vendor HA member"]
-  Admin["Separate custody administration"] -. "Partition policy and recovery" .-> H1
-  Admin -. "Partition policy and recovery" .-> H2
+block-beta
+  columns 1
+  block:T0
+    columns 2
+    T0Title["Tier 0 / protected cryptography"]:2
+    block:Runtime
+      columns 1
+      Consumers["Authorized runtime<br/>Issuer / signing service"]
+      Client["Vendor client / partition identity"]
+    end
+    block:Appliances
+      columns 1
+      H1["Private appliance<br/>Selected HSM partition"]
+      H2["Optional vendor HA member"]
+    end
+    Admin["Offline recovery custody / separate administration<br/>Approved backups, wrapping and domain material"]:2
+  end
+  Consumers --> Client
+  Client --> H1
+  Client --> H2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Consumers,Client control
+  class T0,Runtime control
+  class T0Title controlHeading
+  class Appliances boundary
   class H1,H2,Admin custody
 ```
 

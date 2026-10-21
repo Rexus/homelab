@@ -25,28 +25,45 @@ authorization boundary.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Source["Tier 1: source control"] -->|Build definitions| Build["Tier 1 DMZ: general build runners"]
-  Supply["Approved packages and image supply"] -->|Build inputs| Build
-  Build -->|Publish under artifact policy| Registry["Registry authority"]
-  Source -->|Approved revisions| Delivery["Selected application delivery controller"]
-  Registry -->|Approved images| Runtime["Cluster and host runtimes"]
-  Registry -->|Optional acceleration| Distribution["Distribution layer"]
-  Distribution -->|Approved image pulls| Runtime
-  Delivery -->|Scoped application changes| Apps["Application services"]
-  Runtime -->|Run| Apps
-  Clients["Tier 2 DMZ: ordinary clients"] -->|Named HTTPS listeners| Edge["Tier 2 DMZ: public edge proxy"]
-  Edge -->|Approved service endpoints| Apps
-  Source -->|Infrastructure proposals| Gate["Tier 0 authorization and execution"]
+block-beta
+  columns 1
+  block:T2
+    columns 3
+    T2Title["Tier 2 / Edge and workload services"]:3
+    Clients["Ordinary clients"]
+    Edge["Public edge proxy<br/>Ordinary outbound cache"]
+    Apps["Workload applications"]
+  end
+  block:T1
+    columns 3
+    T1Title["Tier 1 / shared delivery"]:3
+    Build["DMZ / build runners<br/>Authoritative mirrors"]
+    Source["Source control<br/>Artifact registry"]
+    Delivery["Application delivery<br/>Shared service runtimes"]
+  end
+  block:T0
+    columns 3
+    T0Title["Tier 0 / independent infrastructure control"]:3
+    Bootstrap["Bootstrap / recovery<br/>Retained code and images"]
+    Gate["Protected execution<br/>Template publication"]
+    Flux["Control-service GitOps<br/>Approved sources only"]
+  end
+  Clients --> Edge
+  Build --> Source
+  Source --> Delivery
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef servicesHeading fill:#e7f0fc,stroke:#e7f0fc,color:#203a5b
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Source,Registry,Delivery,Runtime,Distribution,Apps services
-  class Build,Edge edge
-  class Gate control
-  class Supply,Clients actor
+  class T2,T1,Apps,Source,Delivery services
+  class T2Title,T1Title servicesHeading
+  class Clients,Edge,Build edge
+  class T0,Gate,Flux control
+  class T0Title controlHeading
+  class Bootstrap actor
 ```
 
 Registry interfaces also supply approved OS images and template inputs to host

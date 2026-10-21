@@ -17,25 +17,48 @@ copies and application diagnostics do not replace that archive.
 ## Flow and interfaces
 
 ```mermaid
-block-beta
-  columns 3
-  Owner["Owning tier"] LogPath["Logs and traces"] MetricPath["Metrics and alerts"]
-  T2["Tier 2<br/>Workloads"]
-  Collectors["Local collectors<br/>Bounded durable buffers"]
-  AppScope["Application telemetry<br/>Tenant-scoped submissions"]
-  T1["Tier 1<br/>Shared observability"]
-  Analytics["Approved log copies / traces<br/>Scoped investigation"]
-  Platform["Shared metric history<br/>Platform / application alerts"]
-  T0["Tier 0<br/>Protected foundation"]
-  Evidence["Private security-log intake<br/>Restricted retained evidence"]
-  Critical["Critical metrics and diagnostics<br/>Independent alert delivery"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T2["Tier 2 / workloads"]
+    Agents["Host / cluster collectors<br/>Bounded local queues"]
+  end
+  subgraph T1["Tier 1 / shared investigation"]
+    direction LR
+    Ingest["Scoped ingestion"]
+    Analytics["Log / trace search<br/>Shared metrics and alerts"]
+    Views["Tenant-scoped read views"]
+    Ingest --> Analytics --> Views
+  end
+  subgraph T0["Tier 0 / protected visibility"]
+    direction LR
+    subgraph Intake["Outside the observed cluster"]
+      Receiver["Security-log receivers"]
+      Evidence[("Local retained evidence")]
+      Receiver --> Evidence
+    end
+    subgraph Monitoring["Independent critical monitoring"]
+      Critical["Critical history / diagnostics"]
+      Alerts["Rule evaluation / external alerts"]
+      Critical --> Alerts
+    end
+    Intake ~~~ Monitoring
+  end
+  T2 -->|Application telemetry| T1
+  T2 -->|Security / audit submissions| T0
+  T1 -->|Security / audit submissions| T0
+  Notify["Independent notification destination"]
+  T0 -->|Independent alerts| Notify
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Owner,LogPath,MetricPath,T2,T1,T0 boundary
-  class Collectors,AppScope,Analytics,Platform services
-  class Evidence,Critical control
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class T2,T1 services
+  class T0 control
+  class Intake,Monitoring boundary
+  class Evidence data
+  class Notify actor
 ```
 
 Every tier sends security/audit submissions to Tier 0. Ordinary application
@@ -60,7 +83,7 @@ select local metric retention/evaluation without duplicating central analytics.
 | Metrics history | VictoriaMetrics | Small Tier 0 critical dataset; separate Tier 1 shared backend [3] |
 | Rule evaluation and notification | vmalert and Alertmanager | Tier 0 evaluates against its local dataset and uses independent notification delivery; Tier 1 owns platform/application alerts [4] |
 | Logs, traces and application investigation | OpenSearch HA and Dashboards | One Tier 1 platform with supported ingestion pipelines; trace analytics includes Data Prepper [5] |
-| Syslog and security evidence | rsyslog or another supported receiver; protected archive | Tier 0 authority; source/queue/retention contracts are defined separately in [security logging](security-logging.md) |
+| Syslog and security evidence | syslog-ng OSE receiver reference; protected archive | Tier 0 authority; source/queue/retention contracts are defined separately in [security logging](security-logging.md) |
 
 The examples are interchangeable only after their required protocol and operational
 contracts are verified. A separate SigNoZ/ClickHouse, Grafana, Loki, Tempo or Zabbix

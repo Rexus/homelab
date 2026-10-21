@@ -106,8 +106,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn("block-beta\n  columns 3", layers)
         for code in (overview[0], overview[2],
                      diagrams(root / "compute/kubernetes.md")[0],
-                     diagrams(root / "compute/runtime.md")[0],
-                     diagrams(root / "operations/telemetry.md")[0]):
+                     diagrams(root / "compute/runtime.md")[0]):
             self.assertIn("block-beta", code)
             order = [code.index(f'T{tier}["') for tier in (2, 1, 0)]
             self.assertEqual(order, sorted(order))
@@ -116,11 +115,39 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertLess(layers.index('Edge["'), layers.index('Application["'))
         self.assertLess(layers.index('Application["'), layers.index('Control["'))
         identity = diagrams(root / "identity/README.md")[0]
-        self.assertIn('subgraph T0["Tier 0 / Control layer"]', identity)
+        self.assertIn('T0Title["Tier 0 / Control layer"]', identity)
         self.assertIn("T2 ~~~ T1", identity)
-        self.assertIn("T1 ~~~ Services", identity)
+        self.assertIn("T1 -->|OIDC to the IdP| T0", identity)
         self.assertIn("class Cluster runtime", identity)
-        self.assertIn("Hosts -->|DNS, LDAP and Kerberos| Directory", identity)
+        self.assertLess(identity.index('subgraph Cluster['), identity.index('subgraph Directory['))
+        self.assertIn("Cluster -->|Protected LDAP federation| Directory", identity)
+
+    def test_domain_views_group_authority_and_separate_offline_custody(self):
+        root = UPSTREAM / "docs/architecture"
+        for name in ("cryptography/README.md", "delivery/README.md", "delivery/controllers.md"):
+            code = diagrams(root / name)[0]
+            self.assertIn("block-beta", code, name)
+            order = [code.index(f"block:T{tier}") for tier in (2, 1, 0)]
+            self.assertEqual(order, sorted(order), name)
+            self.assertEqual(code.count("block:T0"), 1, name)
+        crypto = diagrams(root / "cryptography/README.md")[0]
+        self.assertLess(crypto.index("block:T0"), crypto.index('Root["'))
+        self.assertGreater(crypto.index('Root["'), crypto.index('Identity["'))
+        self.assertIn("Root -.-> Issuer", crypto)
+        self.assertIn("Root -.-> Identity", crypto)
+        for name in ("cryptography/hsm-selection.md", "cryptography/network-hsm.md",
+                     "cryptography/vault-seal.md"):
+            for code in diagrams(root / name):
+                self.assertIn("block:T0", code, name)
+                self.assertRegex(code, r'(?i)offline (?:recovery|backup) custody', name)
+        telemetry = diagrams(root / "operations/telemetry.md")[0]
+        for tier in (2, 1):
+            self.assertIn(f"T{tier} -->|Security / audit submissions| T0", telemetry)
+        self.assertIn('subgraph Intake["Outside the observed cluster"]', telemetry)
+        retention = diagrams(root / "operations/log-retention.md")[0]
+        self.assertIn('subgraph T0["', retention)
+        self.assertIn("Intake -->|Verified checkpoints| Protection", retention)
+        self.assertIn("Storage -->|Backup| Recovery", retention)
 
     def test_charts_and_sequence_keep_theme_aware_text(self):
         root = UPSTREAM / "docs/architecture"

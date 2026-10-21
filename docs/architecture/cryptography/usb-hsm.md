@@ -47,12 +47,12 @@ flowchart TB
     C0 --> Endpoint
     Endpoint --> S1
     Endpoint --> S2
+    Backup["Offline backup custody<br/>Online-key recovery, not the root CA"]
+    H1 -. Authorized recovery transfer .-> Backup
   end
   T1 ~~~ C0
   T1 -->|Authenticated, policy-scoped API| Endpoint
   T2 -->|Authenticated, policy-scoped API| Endpoint
-  Backup["Separate offline backup custody<br/>Online-key recovery, not the root CA"]
-  H1 -. Authorized recovery transfer .-> Backup
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36

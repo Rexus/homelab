@@ -108,8 +108,8 @@ class ReaderRoles(TierRepositoryTestCase):
         identity = (root / "identity/README.md").read_text()
         for expected in ("## Terminology", "Identity and access management (IAM)",
                          "LDAP user federation", "Identity brokering", "Tier 0 / Control layer",
-                         "Dedicated primary VM", "Dedicated replica VM", "Tier 0 Kubernetes",
-                         "T2 -->|OIDC integration| IdP", "T1 -->|OIDC integration| IdP"):
+                         "Directory primary", "Directory replica", "control_cluster network",
+                         "T2 -->|OIDC to the IdP| T0", "T1 -->|OIDC to the IdP| T0"):
             self.assertIn(expected, identity)
         self.assertNotRegex(identity, r"\bIAP\b")
         self.assertNotIn("identity broker", (root / "runtime-flows.md").read_text().lower())

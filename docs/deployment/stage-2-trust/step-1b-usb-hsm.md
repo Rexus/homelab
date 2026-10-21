@@ -59,33 +59,43 @@ application state and backup recovery before changing the existing key/provider 
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph T0["Tier 0 / Control / cryptography network"]
-    subgraph HostA["Existing Proxmox host pve01"]
-      A["hsm-1<br/>VM / OS baseline only"]
-      USB1["USB HSM<br/>Manual passthrough"]
-      A -. Selected device integration .-> USB1
+    direction TB
+    subgraph Hosts["Existing Proxmox hosts"]
+      direction LR
+      subgraph HostA["Existing Proxmox host pve01"]
+        direction TB
+        A["hsm-1<br/>VM / OS baseline only"]
+        USB1["USB HSM<br/>Manual passthrough"]
+        A -. Selected device integration .-> USB1
+      end
+      subgraph HostB["Existing Proxmox host pve02"]
+        direction TB
+        B["hsm-2<br/>VM / OS baseline only"]
+        USB2["USB HSM<br/>Manual passthrough"]
+        B -. Selected device integration .-> USB2
+      end
+      HostA ~~~ HostB
     end
-    subgraph HostB["Existing Proxmox host pve02"]
-      B["hsm-2<br/>VM / OS baseline only"]
-      USB2["USB HSM<br/>Manual passthrough"]
-      B -. Selected device integration .-> USB2
+    subgraph Added[" "]
+      direction LR
+      subgraph Service["Project integration / not installed"]
+        Endpoint["Signing runtime / key policy<br/>Selected co-hosted endpoint"]
+      end
+      Recovery["Separate offline backup custody"]
+      Service -. Authorized backup / restore .-> Recovery
     end
-    subgraph Service["Project integration / not installed by hsm setup"]
-      Endpoint["Signing runtime / key policy<br/>Selected co-hosted endpoint"]
-    end
-    HostA ~~~ HostB
-    A -. Application integration .-> Endpoint
-    B -. Application integration .-> Endpoint
+    Hosts -. Selected service integration .-> Added
   end
-  Recovery["Separate offline backup custody"]
-  Service -. Authorized backup / restore .-> Recovery
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   class T0,A,B control
   class HostA,HostB boundary
+  class Added,Hosts controlHeading
   class Service replicas
   class USB1,USB2,Recovery custody
 ```

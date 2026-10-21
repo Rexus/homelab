@@ -48,22 +48,28 @@ dependencies. Application-state backups accompany the selected key-recovery meth
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Consumers["Authorized consumers"] -->|Certificate or signing requests| Service
-  subgraph Host["Authorized online host"]
-    Service["Issuer or signing service"] -->|Supported provider interface| Provider["Software key store or provider"]
+block-beta
+  columns 1
+  block:T0
+    columns 2
+    T0Title["Tier 0 / platform key protection"]:2
+    block:Host
+      columns 1
+      HostTitle["Authorized service host"]
+      Service["Issuer / signing service"]
+    end
+    Provider["Software key store<br/>or software provider"]
+    Recovery["Offline recovery custody / independently held backups<br/>Not an online root CA"]:2
   end
-  subgraph Custody["Separate recovery custody"]
-    Recovery["Protected key backups and recovery material"]
-  end
-  Recovery -. "Authorized restore" .-> Provider
+  Service --> Provider
+  Recovery -.-> Provider
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Consumers actor
-  class Host control
-  class Custody,Recovery custody
+  class T0,Host control
+  class T0Title,HostTitle controlHeading
+  class Provider,Recovery custody
 ```
 
 Key custody shares the host's compromise boundary. This arrangement has one
@@ -75,23 +81,28 @@ hardware isolation. [1]
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Consumers["Authorized consumers"] -->|Certificate or signing requests| Service
-  subgraph Host["Authorized online host"]
-    Service["Issuer or signing service"] -->|Local provider integration| Client["Device client"]
+block-beta
+  columns 1
+  block:T0
+    columns 2
+    T0Title["Tier 0 / platform key protection"]:2
+    block:Host
+      columns 1
+      HostTitle["Authorized host / local USB"]
+      Service["Issuer / signing service"]
+    end
+    Provider["Single local USB HSM"]
+    Recovery["Offline recovery custody / independently held backups<br/>Not an online root CA"]:2
   end
-  Client -->|Host-local USB| Token["Single hardware token"]
-  subgraph Custody["Separate recovery custody"]
-    Recovery["Permitted device backup and recovery material"]
-  end
-  Recovery -. "Supported authorized restore" .-> Token
+  Service --> Provider
+  Recovery -.-> Provider
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Consumers actor
-  class Host control
-  class Custody,Recovery,Token custody
+  class T0,Host control
+  class T0Title,HostTitle controlHeading
+  class Provider,Recovery custody
 ```
 
 The local token supplies the key-custody boundary; the host still owns application
@@ -103,28 +114,36 @@ application state, not on the presence of a replacement device alone. [2][3]
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Consumers["Authorized consumers"] -->|Certificate or signing requests| Service["Issuer or signing service"]
-  Service -->|Validated application routing| GatewayA
-  Service -->|Validated application routing| GatewayB
-  subgraph HostA["Independent host A"]
-    GatewayA["Gateway service A"] -->|Host-local USB| TokenA["Local hardware token A"]
+block-beta
+  columns 1
+  block:T0
+    columns 2
+    T0Title["Tier 0 / replicated USB service"]:2
+    block:HostA
+      columns 1
+      GatewayA["Signing service / host A<br/>Co-hosted private endpoint"]
+      TokenA["Local USB HSM"]
+    end
+    block:HostB
+      columns 1
+      GatewayB["Signing replicas / hosts 2..N<br/>Co-hosted private endpoint"]
+      TokenB["One local USB HSM per host"]
+    end
+    Recovery["Offline backup custody / key and wrapping material"]:2
   end
-  subgraph HostB["Additional independent hosts: 2..N"]
-    GatewayB["Gateway replica per host"] -->|Host-local USB| TokenB["One local hardware token per host"]
-  end
-  subgraph Custody["Separate recovery custody"]
-    Recovery["Approved key backups and wrapping material"]
-  end
-  Recovery -. "Authorized recovery transfer" .-> TokenA
-  Recovery -. "Authorized recovery transfer" .-> TokenB
+  GatewayA --> TokenA
+  GatewayB --> TokenB
+  Recovery -.-> HostA
+  Recovery -.-> HostB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Consumers actor
-  class Service,HostA,HostB control
-  class Custody,Recovery,TokenA,TokenB custody
+  class T0 control
+  class T0Title controlHeading
+  class HostA,HostB replicas
+  class TokenA,TokenB,Recovery custody
 ```
 
 The service routes operations through a supported application integration; each
@@ -140,23 +159,35 @@ or Tier 1/2 runtimes are not prerequisites.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Consumers["Authorized consumers"] -->|Certificate or signing requests| Service["Issuer or signing service"]
-  Service -->|Supported provider integration| Client["Authorized vendor client"]
-  Client -->|Partition access| PartitionA["Appliance A: selected partition"]
-  Client -->|Optional vendor-supported HA| PartitionB["Appliance B: compatible partition"]
-  subgraph Custody["Separate custody administration and recovery"]
-    Recovery["Approved backups and wrapping or domain material"]
+block-beta
+  columns 1
+  block:T0
+    columns 2
+    T0Title["Tier 0 / network key service"]:2
+    block:Host
+      columns 1
+      Service["Authorized service host<br/>Issuer / signing service"]
+      Client["Vendor client"]
+    end
+    block:Appliances
+      columns 1
+      PartitionA["Selected HSM partition"]
+      PartitionB["Optional vendor HA member"]
+    end
+    Recovery["Offline recovery custody / backups and domain material"]:2
   end
-  Recovery -. "Vendor-supported restore" .-> PartitionA
-  Recovery -. "Vendor-supported restore" .-> PartitionB
+  Service --> Client
+  Client --> PartitionA
+  Client --> PartitionB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Consumers actor
-  class Service,Client control
-  class PartitionA,PartitionB,Custody,Recovery custody
+  class T0,Host control
+  class T0Title controlHeading
+  class Appliances boundary
+  class PartitionA,PartitionB,Recovery custody
 ```
 
 Custody resides in the selected appliance partitions, with client authorization

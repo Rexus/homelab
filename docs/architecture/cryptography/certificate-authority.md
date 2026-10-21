@@ -18,24 +18,35 @@ replacement for this issuer.
 
 ## Trust hierarchy
 
+The [cryptography overview](README.md#completed-design) owns the cross-tier trust
+map, including optional application and lab authorities. This view expands the
+two Tier 0 issuers under the infrastructure root.
+
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Root["Offline root CA<br/>Separate custody; clca reference"]
-  Infrastructure["Infrastructure issuing CA<br/>Dedicated issuer runtime"]
-  Identity["Identity issuing CA<br/>FreeIPA primary and CA replica"]
-  Services["Infrastructure and workload certificates"]
-  Hosts["FreeIPA host, service and identity certificates"]
-  Root -.->|Signs subordinate CA<br/>certificate offline| Infrastructure
-  Root -.->|Signs subordinate CA<br/>certificate offline| Identity
+block-beta
+  columns 1
+  block:T0
+    columns 2
+    T0Title["Tier 0 / CA authority and custody"]:2
+    Services["Infrastructure certificates"]
+    Hosts["Host / identity certificates"]
+    Infrastructure["Infrastructure issuing CA<br/>Dedicated issuer runtime"]
+    Identity["Identity issuing CA<br/>Replicated directory runtime"]
+    Root["Offline root CA / separate custody<br/>Authorized subordinate signing; no network route"]:2
+  end
   Infrastructure --> Services
   Identity --> Hosts
+  Root -.-> Infrastructure
+  Root -.-> Identity
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class T0 control
+  class T0Title controlHeading
   class Root custody
-  class Infrastructure,Identity control
   class Services,Hosts services
 ```
 

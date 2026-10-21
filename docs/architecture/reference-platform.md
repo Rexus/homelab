@@ -7,7 +7,7 @@ The [deployment stages](../deployment/README.md) realize this result; their
 order does not determine the structure of this document.
 
 This view expands the services in the [capability map](README.md#functional-structure) into one
-reference placement across all three tiers and separate custody. The
+reference placement across all three tiers, including separately isolated Tier 0 custody. The
 [runtime relationships](runtime-flows.md) connect those components during
 normal service use, change and recovery. [Domain designs](README.md#technical-domains)
 expand their internals; [variants](variants.md) record alternative realizations.
@@ -31,50 +31,48 @@ selections. A product name or replica count does not settle those choices.
 Proxmox hosts the connected VMs and clusters across all tiers. Tiers identify
 authority and resource ownership; VM and cluster boundaries identify runtime
 placement. Physical host, storage and network failure domains are selected
-separately. Offline custody remains outside the connected platform.
+separately. Offline custody remains Tier 0-owned but outside the connected platform.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph PVE["Proxmox: connected virtualization platform"]
-    direction TB
-    subgraph T2["Tier 2: edge and workloads"]
-      direction LR
-      Edge["DMZ<br/>Public load balancers<br/>Ordinary outbound caches"]
-      Workloads["Services<br/>Project clusters and VMs<br/>Applications / development / labs"]
-      Edge ~~~ Workloads
-    end
-    subgraph T1["Tier 1: shared delivery"]
-      direction LR
-      Supply["DMZ<br/>General build runners<br/>Authoritative mirrors"]
-      Delivery["Services cluster<br/>Source control / registry<br/>General CI"]
-      WorkloadManagement["Services<br/>Scoped workload-cluster<br/>management"]
-      Analytics["Services<br/>Approved log copies<br/>Traces / metrics"]
-      Supply ~~~ Delivery ~~~ WorkloadManagement ~~~ Analytics
-    end
-    subgraph T0["Tier 0: infrastructure and trust"]
-      direction LR
-      M["Management VMs<br/>Runner / IaC state<br/>Recovery tools"]
-      I["Directory authority<br/>Dedicated VM pair"]
-      K["Control cluster<br/>IdP / secrets<br/>Inventory / visibility"]
-      C["Online issuer<br/>Selected key provider"]
-      Evidence["Independent log intake<br/>Protected evidence<br/>Critical monitoring / alerts"]
-      M ~~~ I ~~~ K ~~~ C ~~~ Evidence
-    end
-    T2 ~~~ T1 ~~~ T0
+  subgraph T2["Tier 2 / edge and workloads"]
+    direction LR
+    Edge["DMZ / public edge<br/>Clients / outbound caches"]
+    Workloads["Services / project runtimes<br/>Applications and labs"]
+    Edge ~~~ Workloads
   end
-  Offline["Separate custody<br/>Offline root / ceremony environment / recovery media"]
-  T0 ~~~ Offline
+  subgraph T1["Tier 1 / shared delivery"]
+    direction LR
+    Supply["DMZ / build runners<br/>Authoritative mirrors"]
+    Delivery["Services / source and artifacts<br/>Scoped delivery / investigation"]
+    Supply ~~~ Delivery
+  end
+  subgraph T0["Tier 0 / infrastructure and trust"]
+    direction TB
+    subgraph Online["Connected Proxmox hosts / networks"]
+      direction LR
+      M["Lifecycle<br/>Runner / IaC state"]
+      K["Control cluster<br/>IdP / secrets / inventory"]
+      Evidence["Log evidence<br/>Critical monitoring"]
+      I["Directory pair"]
+      C["Issuer / key provider"]
+      M ~~~ K ~~~ Evidence ~~~ I ~~~ C
+    end
+    Offline["Offline custody / root CA, ceremony and recovery media"]
+    Online ~~~ Offline
+  end
+  T2 ~~~ T1 ~~~ T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class PVE,T2,T1,T0 boundary
+  class Online boundary
+  class T2,T1,Workloads,Delivery services
   class Edge,Supply edge
-  class Delivery,WorkloadManagement,Analytics,Workloads services
-  class M,I,K,C,Evidence control
+  class T0,M,K,Evidence,I,C control
   class Offline custody
 ```
 
@@ -162,36 +160,12 @@ for the acceptance policy and state handover.
 
 The offline root signs intermediate CA certificates during an authorized
 ceremony. Routine issuance and renewal use an online issuer, not the root.
+Signed certificates move through controlled handoffs; there is no network route to root custody.
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph CER["ceremony: offline / separate custody"]
-    Root["Offline root CA and root key"]
-    Ops["Authorized signing and recovery ceremony"]
-    Root --- Ops
-  end
-  subgraph CRYPTO["cryptography: online issuing services"]
-    Issuer["Infrastructure issuing CA<br/>Dedicated issuer runtime"]
-    Provider["Selected software or hardware key provider"]
-    Issuer -->|Supported signing integration| Provider
-  end
-  Ops -. "Transfer signed intermediate certificate; no network route" .-> Issuer
-  Ops -. "Separate signed subordinate certificate" .-> IdentityCA["FreeIPA identity CA<br/>Primary and CA replica"]
-  CM0["Tier 0 cert-manager"] -->|Issue / renew| Enrollment["Authorized enrollment adapter"]
-  CM1["Tier 1 cert-manager"] -->|Issue / renew| Enrollment
-  CM2["Tier 2 cert-manager"] -->|Issue / renew| Enrollment
-  Enrollment -->|Authenticated issuer interface| Issuer
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class CER,Root,Ops custody
-  class CRYPTO,Issuer,Provider,IdentityCA control
-  class Enrollment services
-  class CM0,CM1,CM2 actor
-```
+The [cross-tier trust map](cryptography/README.md#completed-design) places offline
+custody and infrastructure authority in Tier 0. The [CA hierarchy](cryptography/certificate-authority.md#trust-hierarchy)
+expands its sibling infrastructure and identity issuers; [enrollment and publication](cryptography/certificate-authority.md#enrollment-and-publication)
+shows tier-local clients using the authorized online interfaces.
 
 The [CA design](cryptography/certificate-authority.md) owns the OpenXPKI portal,
 Community ACME adapter and separate FreeIPA certificate inventory. OpenXPKI is the

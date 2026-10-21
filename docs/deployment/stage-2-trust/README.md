@@ -20,42 +20,41 @@ existing qualified authorities remain valid. The runtime installer does not perf
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph Offline["Separate offline custody / manual ceremony"]
-    Root["Offline root CA<br/>Root key and recovery material"]
-    Ceremony["Existing ceremony environment"]
-    Root -. Authorized signing .-> Ceremony
-  end
-  subgraph T0[" "]
-    direction TB
-    T0Title["Tier 0 / Control layer"]
+flowchart BT
+  subgraph T0["Tier 0 / Control and offline custody"]
+    direction BT
+    subgraph Offline["Separate offline custody / manual ceremony"]
+      direction LR
+      Root["Offline root CA<br/>Root key and recovery material"]
+      Ceremony["Existing ceremony environment"]
+      Root -. Authorized signing .-> Ceremony
+    end
     subgraph PVE["Existing Proxmox / foundation root"]
       direction LR
       subgraph Crypto["cryptography network"]
+        direction TB
         Issuer["ca-1<br/>OpenXPKI runtime"]
         Data[("scsi1 / CA data disk<br/>Manual mount and activation")]
         Issuer -->|Attached disk| Data
       end
       subgraph Identity["identity network / configuration in Stage 3"]
+        direction LR
         Primary["idm-1<br/>Allocated VM only"]
         Replica["idm-2<br/>Allocated VM only"]
         Primary ~~~ Replica
       end
       Crypto ~~~ Identity
     end
-    T0Title ~~~ PVE
+    Offline -. "Signed certificate transfer; no network route" .-> PVE
   end
-  Ceremony -. "Signed certificate transfer; no network route" .-> T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class PVE,Crypto,Identity boundary
   class Offline,Root,Ceremony custody
   class T0,Issuer,Primary,Replica control
-  class T0Title controlHeading
   class Data data
 ```
 

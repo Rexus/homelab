@@ -21,23 +21,44 @@ remains separately controlled, and signing and secret-service startup protection
 retain independent provider choices.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph Offline["Separate offline custody"]
-    Root["Root CA and authorized ceremony"]
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+block-beta
+  columns 1
+  block:T2
+    columns 2
+    T2Title["Tier 2 / workloads and isolated labs"]:2
+    Workloads["Certificate / secret consumers"]
+    LabCA["Optional lab CA<br/>Lab-only trust"]
   end
-  Root -. "Signed intermediate transfer; no network route" .-> Issuer
-  Certificates["Certificate consumers and cert-manager"] -->|Issue and renew| Issuer["Online intermediate issuer"]
-  Issuer -->|Supported signing integration| Signing["Selected key provider"]
-  Clients["Authorized secret consumers"] -->|Scoped secret API| Secrets["Secret service"]
-  Secrets -->|Selected seal and recovery mechanism| Seal["Protected startup material"]
+  block:T1
+    columns 2
+    T1Title["Tier 1 / shared services"]:2
+    Enrollment["Enrollment clients<br/>Scoped infrastructure requests"]
+    AppCA["Optional application CA<br/>Shared application trust"]
+  end
+  block:T0
+    columns 3
+    T0Title["Tier 0 / Control / infrastructure trust and secrets"]:3
+    Secrets["Secret service<br/>Separate seal"]
+    Issuer["Infrastructure issuer<br/>Selected signing provider"]
+    Identity["Identity issuer<br/>Directory CA"]
+    Root["Offline custody / root CA and recovery material<br/>Authorized ceremony; no routed connection"]:3
+  end
+  Root -.-> Issuer
+  Root -.-> Identity
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Offline,Root,Seal custody
-  class Issuer,Signing,Secrets control
-  class Certificates,Clients actor
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef servicesHeading fill:#e7f0fc,stroke:#e7f0fc,color:#203a5b
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  class T2,T1 services
+  class T0 control
+  class Root custody
+  class AppCA,LabCA replicas
+  class T2Title,T1Title servicesHeading
+  class T0Title controlHeading
 ```
 
 This view separates functions; a selected product can implement more than one.
@@ -47,6 +68,19 @@ service. The [CA design](certificate-authority.md) expands policy, portal, enrol
 and publication without merging those responsibilities.
 Root and online keys can use different custody providers, while the secret-service
 seal remains a separate integration.
+
+Dashed arrows show offline certificate signing, not network routes.
+Each tier's infrastructure clients enroll directly with Tier 0's online issuer;
+Tier 1 is not an enrollment proxy for Tier 2. Secret consumers use separately
+authorized APIs. The [enrollment view](certificate-authority.md#enrollment-and-publication)
+expands those online paths without overlaying them on the placement map.
+Tier 1 enrollment clients do not hold infrastructure CA signing keys.
+
+Application-specific trust can instead use a shared Tier 1 CA or a lab-local Tier 2 CA.
+These optional authorities do not automatically chain to, or gain the permissions of,
+the infrastructure root. Their trust stores, allowed names, keys and recovery remain
+scoped to their consumers. Any cross-signing or subordinate delegation requires a
+separate policy and path-constraint review; neither is installed by these examples.
 
 ## Components and interfaces
 
@@ -58,7 +92,7 @@ seal remains a separate integration.
 | Secret service | Stores/delivers credentials with scoped authorization, audit and independent recovery |
 | Seal/unseal mechanism | Protects secret-service startup material; distinct from the certificate-signing backend |
 
-The [certificate design](../reference-platform.md#certificate-trust) shows
+The [enrollment design](certificate-authority.md#enrollment-and-publication) shows
 consumer-to-issuer relationships. A gateway cannot become a signing backend merely
 by being reachable; the application needs supported provider integration.
 
@@ -106,7 +140,6 @@ does not establish the required isolation, recovery or compliance properties.
 - [Hardware migration](hardware-migration.md) defines software-to-HSM rollover and recovery.
 - [YubiHSM performance](../../reference/yubihsm-performance.md) records vendor benchmark timings and limits.
 - [Runtime flows](../runtime-flows.md#certificate-and-secret-consumption) connects certificate and secret consumers across domains.
-- [Certificate hierarchy](../reference-platform.md#certificate-trust) connects issuing services to tier-local consumers.
 - [Certificate authority](certificate-authority.md) expands the sibling issuers, portal, enrollment and publication.
 - [Key-protection options A-D](hsm-selection.md) compares custody boundaries and supported interfaces.
 - [Replicated USB gateways](usb-hsm.md) and [network HSMs](network-hsm.md) expand the selected hardware arrangement.

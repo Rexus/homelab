@@ -250,6 +250,14 @@ This file keeps durable context for AI-assisted work across sessions.
   Edge/Services/Control left-to-right; use block grids for placement and nested flowcharts
   for interfaces; validate the shared palette and render both light and dark themes
 - make it easy to do right: avoid encoding tier, zone, VLAN, and IP into names
+- use one outer box per tier; foundational authority sits lower or farther right;
+  directory authority sits to the right of the Tier 0 Kubernetes runtime
+- aim for a rendered 4:3 figure with readable labels and room for adjacent page text;
+  rearrange or split content rather than add blank padding or force every flow into that ratio
+- offline custody is at the bottom inside Tier 0 ownership, outside connected runtimes;
+  authority containment never implies a network route or shared physical administration
+- Tier 1 enrollment clients use Tier 0 infrastructure issuance; optional application CAs
+  can be shared in Tier 1 or local to a Tier 2 lab without automatic infrastructure trust
 
 ## Working rules
 

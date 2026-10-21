@@ -19,12 +19,12 @@ ownership. Deployment views show the capability added by a step, not a new archi
 | --- | --- | --- |
 | Where does a capability belong? | `block-beta` | Explicit columns, spans and empty cells; Tier 2 above Tier 1 above Tier 0 |
 | Which networks or layers contain it? | Block grid or nested flowchart | Edge / DMZ on the left, Application / Services in the middle, Control on the right |
-| What contains or consumes a service? | Nested flowchart | Trust boundary around zones; runtime and replica groups inside their actual owner |
+| What contains or consumes a service? | Grouped block view or nested flowchart | Trust boundary around zones; runtime and replica groups inside their actual owner |
 | How does a request proceed? | Flowchart or sequence | Arrows describe real interactions; sequence diagrams retain chronological order |
 | What does a deployment step add? | Content-sized nested flowchart | Retain tier, host/VM and storage boundaries; distinguish existing components from additions |
 
 Block diagrams support explicit placement through columns, spans and spaces. [1]
-Use them for matrices and placement maps. Keep a flowchart when routing and nested
+Use them for placement maps and compact hosting views. Keep a flowchart when routing and nested
 relationships are clearer there. Nested headings and subgraph directions still
 need a render check; source order alone does not prove the resulting layout.
 
@@ -41,6 +41,23 @@ allow rule, and tiers are ownership boundaries rather than a network path.
 
 Use short, wrapped labels. Separate dense placement and interaction questions
 instead of shrinking one diagram until its text becomes unreadable.
+
+Aim for a rendered width-to-height ratio near **4:3**, suitable for a figure and
+its explanation on the same book or printed page. This is a composition target,
+not a fixed canvas: rearrange or split dense views rather than stretch the image,
+add empty padding or shrink labels. Small workflows can remain naturally wider.
+Review the rendered figure, not only its source, at the intended reading size.
+
+Use one enclosing boundary per tier in a view; place that tier's zones and runtimes
+inside it. More foundational or privileged dependencies belong lower or farther right:
+for example, Kubernetes to the left of directory authority. Clients enter from Tier 2
+above or from an external access area on the left. An Edge-facing privileged bootstrap
+entry does not acquire Tier 2 ownership or a public administrative listener.
+
+Offline root and recovery custody belong at the bottom inside Tier 0's ownership
+boundary, but outside connected runtime/Proxmox boundaries. This is not another routed
+zone or a formal negative-numbered tier. Signed-object transfers point upward from
+custody; chronological ceremony/enrollment workflows can retain their natural sequence.
 
 Deployment steps keep the physical and runtime context visible: the owning tier
 contains the actual Proxmox hosts, VMs and attached local volumes. Use inventory

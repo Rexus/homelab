@@ -100,31 +100,51 @@ Tier 1 cluster. The bootstrap workstation remains available for independent reco
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph T1["Tier 1 / existing delivery"]
-    Git["GitLab<br/>Proposed infrastructure job"]
+    Git["GitLab / proposed infrastructure job"]
+    Sources["Approved Git revisions / OCI artifacts"]
+    Git ~~~ Sources
   end
-  Bootstrap["Bootstrap workstation / VM"]
-  subgraph Management["Tier 0 / Control / management network"]
-    subgraph Integration["Project integration / no runner or controller installer"]
-    Gate["Tier 0 authorization<br/>Approved code and artifacts"]
-    Runner["Protected infrastructure runner VM"]
-    State["Protected tier-local IaC state"]
-    Gate --> Runner
-    Runner <--> State
-    end
+  subgraph T0["Tier 0 / protected infrastructure control"]
+    direction LR
+      subgraph Entry["Privileged entry / Edge-facing access"]
+        Bootstrap["Existing bootstrap workstation / VM"]
+      end
+      subgraph ControlArea[" "]
+        direction TB
+      subgraph Management["Control / management network"]
+        direction TB
+        subgraph Integration["Project integration / not installed"]
+          direction LR
+          Runner["Protected runner VM<br/>Tier 0 authorization"]
+          State[("Tier-local state")]
+          Runner <--> State
+        end
+        PVE["Existing Proxmox / cluster lifecycle"]
+        Integration -->|Approved lifecycle| PVE
+      end
+      subgraph Cluster["Existing Tier 0 Kubernetes"]
+        Flux["Existing Flux<br/>Approved read-only sources"]
+      end
+      Management ~~~ Cluster
+      end
+      Entry -->|Recovery| ControlArea
   end
-  Git --> Gate
-  Bootstrap -->|Provision and harden| Runner
-  Runner --> PVE["Proxmox / cluster lifecycle"]
-  Sources["Approved Git revisions and OCI artifacts"] -->|Read-only retrieval| Flux["Tier 0 Flux"]
+  T1 -->|Proposals / separately authorized source retrieval| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class Git services
+  class T1,Git services
+  class T0,Management,Runner,PVE control
+  class ControlArea controlHeading
+  class Cluster runtime
+  class Entry edge
   class Bootstrap actor
-  class Management,Gate,Runner,PVE,Flux control
   class State,Sources data
   class Integration replicas
 ```

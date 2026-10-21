@@ -29,6 +29,8 @@ vm_instances = {
   #   network_zone_key = "telemetry_gateway"
   #   tags             = ["otel-collector", "internal", "always-on", "platform"]
   # }
+  # Tier 1 approved-copy processing host; baseline only, not protected intake.
+  # Tier 0 log-1 / optional log-2 retain authoritative security/audit evidence.
   "syslog-1" = {
     vm_id            = 262
     size             = "small"

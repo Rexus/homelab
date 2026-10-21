@@ -14,6 +14,11 @@ Run repository scripts from this root; paths below are repository-relative.
 software supply and recovery targets. Run the supplied VM workflow from Tier 1.
 Protected security logging is already established in
 [Tier 0](../stage-1-logging/README.md); these VMs do not take its custody.
+**Not another protected receiver:** `syslog-1` is a Tier 1 processing-host example
+for approved copies and operational logs. `log-1` and optional `log-2` remain the
+Tier 0 security/audit receivers. The six-VM starter installs no telemetry products;
+an existing ingestion service can replace this processing role. Select only the
+needed hosts before the first apply; existing deployments need a deliberate migration.
 The main later path is the [shared observability platform](../stage-5-delivery/analytics.md),
 not a mandatory VM for every logical component.
 
@@ -59,7 +64,7 @@ flowchart TB
       direction LR
       subgraph Intake["telemetry_gateway / security_telemetry networks"]
         OT["telemetry-1"]
-        Sys["syslog-1"]
+        Sys["syslog-1<br/>Copy processing only"]
         OT ~~~ Sys
       end
       subgraph Services["observability network"]

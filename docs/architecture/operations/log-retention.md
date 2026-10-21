@@ -17,6 +17,52 @@ identity, segmented reads and the accepted-record durability contract.
 
 ## Choose the protection boundary
 
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart BT
+  subgraph T1["Tier 1 / scoped investigation"]
+    Search["Approved projections / read-only application views"]
+  end
+  subgraph T0["Tier 0 / retained security evidence"]
+    direction TB
+    subgraph Intake["Collector runtime / outside Kubernetes"]
+      Receiver["Authenticated append intake"]
+      Local[("Local evidence disk")]
+      Receiver --> Local
+    end
+    subgraph Protection["Independent storage and recovery custody"]
+      direction LR
+      subgraph Storage["Archive / select A, B or both"]
+        direction LR
+        NAS[("A: NAS archive<br/>Storage-owned snapshots")]
+        Locked[("B: Locked objects<br/>Qualified retention enforcement")]
+        NAS ~~~ Locked
+      end
+      subgraph Recovery["Independent recovery custody"]
+        Copies["Off-device / off-site copies<br/>Portable reader kit<br/>Separately held keys"]
+      end
+      Storage -->|Backup| Recovery
+    end
+    Intake -->|Verified checkpoints| Protection
+  end
+  T0 -->|Approved copies only / no raw archive authority| T1
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class T1 services
+  class T0 control
+  class Intake,Storage,Protection boundary
+  class Local,NAS,Locked data
+  class Recovery,Copies custody
+```
+
+Storage custody remains Tier 0-owned even when the NAS serves other datasets.
+The two archive targets are alternatives, not mandatory duplicate destinations.
+Copy approval and read authorization do not grant archive deletion or retention control.
+
 | Choice | A: NAS snapshots and independent backups | B: Storage-enforced retention locks |
 | --- | --- | --- |
 | Suitable starting point | Homelab or small trusted operator team | Environments requiring protection from privileged deletion |

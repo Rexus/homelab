@@ -11,7 +11,7 @@ are a separate consumer integration, not a consequence of choosing a seal patter
 ## Table of contents
 
 - [Pattern choices](#pattern-choices)
-- [Transit dependency](#transit-dependency)
+- [Seal placement](#seal-placement)
 - [Recovery contract](#recovery-contract)
 - [Realization](#realization)
 - [References](#references)
@@ -37,25 +37,53 @@ upgrades applied by the existing role. Device choice is independent:
 
 <a id="recommended-oss-architecture"></a>
 
-## Transit dependency
+<a id="transit-dependency"></a>
+
+## Seal placement
+
+The selected runtime can be the Tier 0 cluster or a dedicated secret-service host.
+The provider group shows alternatives, not two simultaneously required services:
+S1 has no online seal provider; S2 uses A; S3 uses its qualified native provider.
+Solid arrows are dependencies; the dashed link is authorized offline recovery.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Custody["Independent recovery custody<br/>Optional hardware protection"] -. "Authorized recovery" .-> A["Unseal service A<br/>Transit only"]
-  A -->|Scoped unseal interface| B["Main secret service B"]
-  B --> Consumers["Authorized consumers"]
+block-beta
+  columns 1
+  block:T0
+    columns 2
+    T0Title["Tier 0 / secret-service startup and recovery"]:2
+    block:Runtime
+      columns 1
+      B["Main secret service B<br/>Selected control runtime"]
+      Data["Persistent service state"]
+    end
+    block:Provider
+      columns 1
+      A["S2: Transit service A<br/>Independent unseal provider"]
+      Hardware["S3: Qualified native provider"]
+    end
+    Custody["Offline recovery custody<br/>S1: Shamir shares; S2/S3: independent recovery material"]:2
+  end
+  B --> Data
+  B --> A
+  B --> Hardware
+  Custody -.-> B
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Custody custody
-  class A,B control
-  class Consumers actor
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class T0,Provider control
+  class T0Title controlHeading
+  class Runtime runtime
+  class Data data
+  class Custody,Hardware custody
 ```
 
 A has a narrowly scoped purpose, audit and independent recovery. B's restart
-depends on A, so A cannot depend on B's secrets or unavailable hosted platform.
+depends on A under S2, so A cannot depend on B's secrets or unavailable hosted platform.
 Hardware protecting A's recovery material is a proposed custody integration;
 the repository does not implement it.
 

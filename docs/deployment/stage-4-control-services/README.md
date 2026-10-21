@@ -26,24 +26,30 @@ flowchart TB
     T0Title["Tier 0 / Control layer"]
     subgraph Placement[" "]
       direction LR
-      subgraph Existing["Existing dedicated VMs"]
-        Directory["idm-1 / idm-2<br/>Directory"]
-        Issuer["ca-1<br/>Issuer"]
-        Log["log-1<br/>Log intake"]
-      end
       subgraph Cluster["Existing Tier 0 Kubernetes"]
         direction TB
         Base["Existing platform services"]
         subgraph Added["Project integration / starters only"]
-          direction LR
+          direction TB
           Keycloak["Keycloak / IdP"]
           Vault["Vault / secrets"]
           Ops["NetBox / Headlamp"]
-          Keycloak ~~~ Vault ~~~ Ops
+          Keycloak ~~~ Ops
+          Vault ~~~ Ops
         end
         Base -. Reviewed project manifests .-> Added
       end
-      Existing -->|LDAP federation| Cluster
+      subgraph Existing["Existing dedicated control VMs"]
+        direction TB
+        subgraph Identity["identity network / directory authority"]
+          Directory["idm-1 / idm-2<br/>FreeIPA"]
+        end
+        Issuer["ca-1<br/>Issuer"]
+        Log["log-1<br/>Log intake"]
+        Issuer ~~~ Identity
+        Log ~~~ Identity
+      end
+      Cluster -->|LDAP<br/>federation| Existing
     end
     T0Title ~~~ Placement
   end
@@ -53,7 +59,7 @@ flowchart TB
   classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class Existing boundary
+  class Existing,Identity boundary
   class T0,Directory,Issuer,Log control
   class T0Title,Placement controlHeading
   class Cluster runtime
