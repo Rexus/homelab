@@ -1,6 +1,7 @@
 # Scoped workload collection
 
-Connect workload signals to the existing evidence and analytics capabilities.
+Connect logs, metrics and distributed traces to the existing Observability capability,
+and security/audit records directly to Tier 0 Security Logging and Audit.
 This adds lightweight collection, not another full observability stack per cluster.
 
 **Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
@@ -64,7 +65,7 @@ flowchart TB
     OTel["Project integration / OTel collection"]
     Owner["Application owner"]
   end
-  subgraph T1["Tier 1 / project-integrated analytics"]
+  subgraph T1["Tier 1 / project-integrated Observability"]
     Analytics["Approved application views / telemetry intake"]
   end
   subgraph T0["Tier 0 / existing protected intake"]

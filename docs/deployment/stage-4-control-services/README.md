@@ -7,7 +7,7 @@ provider (IdP), secrets, inventory documentation and operational tools.
 **Prerequisites:** accepted [identity and runtime](../stage-3-identity-runtime/README.md),
 service storage/backups and independent recovery inputs.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-The telemetry VM option uses `<prefix>-tier-1` instead.
+The dedicated observability VM alternative uses `<prefix>-tier-1` instead.
 **Design:** [identity](../../architecture/identity/README.md),
 [secrets](../../architecture/cryptography/README.md) and [operations](../../architecture/operations/README.md).
 
@@ -103,8 +103,9 @@ unseal/recovery material. It does not use CloudNativePG as its storage backend.
 [2c: seal integration](step-2c-seal-integration.md) changes unseal/recovery, not PKI signing.
 
 Add NetBox with its database/cache dependencies and Headlamp with scoped permissions.
-The optional [2d: Tier 1 telemetry VMs](step-2d-telemetry-vm.md) prepares an alternative
-runtime for later shared analytics, not the independent Tier 0 monitoring capability.
+The optional [2d: dedicated observability VMs](step-2d-telemetry-vm.md) prepares separate
+gateway, metrics and search hosts instead of the normal Tier 1 Kubernetes workloads.
+It does not supply independent Tier 0 monitoring or install the observability products.
 
 NetBox documents inventory. It never supplies the inventory needed to bootstrap
 its own platform. Test backups and restoration before other tiers depend on these services.
@@ -124,7 +125,7 @@ Follow the [monitoring deployment](monitoring.md): prepare its independent runti
 add critical history/diagnostics, then enable and test external alerts. Each step
 shows what is added to the existing Tier 0 logging foundation.
 
-Required cluster-loss detection stays outside the observed cluster. Shared analytics
+Required cluster-loss detection stays outside the observed cluster. Observability
 is a separate [Stage 5 capability](../stage-5-delivery/analytics.md), not a prerequisite
 for Tier 0 investigation or alerting.
 

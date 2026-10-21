@@ -1,120 +1,77 @@
 # Copy to: terraform/deployments/observability/terraform.tfvars
-# Replace every value before use.
-# Setup guide: docs/deployment/stage-4-control-services/step-2d-telemetry-vm.md
-# Shared values live in ../../common.tfvars.
-# Optional VM realization, not the main Kubernetes observability deployment.
-# Tier 0 owns foundational receivers and authoritative security evidence.
-# These VMs receive approved copies/operational data; they are not immutable custody.
-
-# Optional: override the shared default Linux VM template for this setup or
-# environment overlay, for example when testing another supported distro.
-# default_linux_vm_template_id = 111
+# Guide: docs/deployment/stage-4-control-services/step-2d-telemetry-vm.md
+# Optional dedicated-VM alternative to the Tier 1 Kubernetes observability workloads.
+# Separate gateway, metrics and search roles scale independently.
+# Terraform and the Ansible recipe create VMs and OS baseline only.
+# Product services, replication, query routing and UI remain runtime integration.
+# Protected syslog/audit intake and archive stay in Tier 0.
+# Existing sites must migrate deliberately; never replace live inputs with this example.
 
 vm_instances = {
-  # Keys match the stable logical host names in the Ansible inventory.
-  # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
-  "telemetry-1" = {
-    vm_id            = 260
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 40
-    network_zone_key = "telemetry_gateway"
-    tags             = ["otel-collector", "internal", "always-on", "platform"]
+  # Keys match the tier-local Ansible inventory and platform_host_ips.
+  # Initial placement is not a persistent Proxmox anti-affinity rule.
+  "otel-1" = {
+    vm_id             = 260
+    proxmox_node_name = "pve01"
+    size              = "small"
+    storage_class     = "local"
+    disk_size_gb      = 40
+    network_zone_key  = "observability"
+    tags              = ["otel-collector", "internal", "always-on", "platform"]
   }
-  # "telemetry-2" = {
-  #   vm_id            = 261
-  #   size             = "small"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 40
-  #   network_zone_key = "telemetry_gateway"
-  #   tags             = ["otel-collector", "internal", "always-on", "platform"]
-  # }
-  # Tier 1 approved-copy processing host; baseline only, not protected intake.
-  # Tier 0 log-1 / optional log-2 retain authoritative security/audit evidence.
-  "syslog-1" = {
-    vm_id            = 262
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 100
-    network_zone_key = "security_telemetry"
-    tags             = ["syslog", "restricted", "always-on", "security"]
+  "otel-2" = {
+    vm_id             = 261
+    proxmox_node_name = "pve02"
+    size              = "small"
+    storage_class     = "local"
+    disk_size_gb      = 40
+    network_zone_key  = "observability"
+    tags              = ["otel-collector", "internal", "always-on", "platform"]
   }
-  # "syslog-2" = {
-  #   vm_id            = 263
-  #   size             = "small"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 100
-  #   network_zone_key = "security_telemetry"
-  #   tags             = ["syslog", "restricted", "always-on", "security"]
-  # }
-  # Optional lower-tier Netdata parent only when separately justified.
-  # The foundational parent belongs to Tier 0, not this setup.
-  # "health-1" = {
-  #   vm_id            = 270
-  #   size             = "medium"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 100
-  #   network_zone_key = "observability"
-  #   tags             = ["netdata", "internal", "always-on", "platform"]
-  # }
   "metrics-1" = {
-    vm_id            = 400
-    size             = "large"
-    storage_class    = "shared"
-    disk_size_gb     = 500
-    network_zone_key = "observability"
-    tags             = ["victoriametrics", "internal", "always-on", "platform"]
+    vm_id             = 400
+    proxmox_node_name = "pve01"
+    size              = "large"
+    storage_class     = "local"
+    disk_size_gb      = 500
+    network_zone_key  = "observability"
+    tags              = ["victoriametrics", "internal", "always-on", "platform"]
   }
-  # Legacy alternative: SigNoZ/ClickHouse is not part of the reference stack.
-  # Existing deployments keep their local inputs/state; do not remove live hosts on refresh.
-  # "apm-1" = {
-  #   vm_id            = 401
-  #   size             = "large"
-  #   storage_class    = "shared"
-  #   disk_size_gb     = 1000
-  #   network_zone_key = "observability"
-  #   tags             = ["signoz", "clickhouse", "internal", "always-on", "apps"]
-  # }
-  "logs-1" = {
-    vm_id            = 410
-    size             = "large"
-    storage_class    = "shared"
-    disk_size_gb     = 1000
-    network_zone_key = "observability"
-    tags             = ["opensearch", "restricted", "always-on", "security"]
+  "metrics-2" = {
+    vm_id             = 401
+    proxmox_node_name = "pve02"
+    size              = "large"
+    storage_class     = "local"
+    disk_size_gb      = 500
+    network_zone_key  = "observability"
+    tags              = ["victoriametrics", "internal", "always-on", "platform"]
   }
-  # "logs-2" = {
-  #   vm_id            = 411
-  #   size             = "large"
-  #   storage_class    = "shared"
-  #   disk_size_gb     = 1000
-  #   network_zone_key = "observability"
-  #   tags             = ["opensearch", "restricted", "always-on", "security"]
-  # }
-  # "logs-3" = {
-  #   vm_id            = 412
-  #   size             = "large"
-  #   storage_class    = "shared"
-  #   disk_size_gb     = 1000
-  #   network_zone_key = "observability"
-  #   tags             = ["opensearch", "restricted", "always-on", "security"]
-  # }
-  "telemetry-ui-1" = {
-    vm_id            = 271
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 40
-    network_zone_key = "observability"
-    tags             = ["opensearch-dashboards", "internal", "always-on", "platform"]
+  "search-1" = {
+    vm_id             = 410
+    proxmox_node_name = "pve01"
+    size              = "large"
+    storage_class     = "local"
+    disk_size_gb      = 1000
+    network_zone_key  = "observability"
+    tags              = ["opensearch", "internal", "always-on", "platform"]
   }
-  "archive-1" = {
-    # Operational exports only; never the authoritative Tier 0 security archive.
-    vm_id            = 272
-    size             = "small"
-    storage_class    = "local"
-    disk_size_gb     = 40
-    network_zone_key = "storage"
-    tags             = ["restricted", "always-on", "security"]
+  "search-2" = {
+    vm_id             = 411
+    proxmox_node_name = "pve02"
+    size              = "large"
+    storage_class     = "local"
+    disk_size_gb      = 1000
+    network_zone_key  = "observability"
+    tags              = ["opensearch", "internal", "always-on", "platform"]
+  }
+  "search-3" = {
+    vm_id             = 412
+    proxmox_node_name = "pve03"
+    size              = "large"
+    storage_class     = "local"
+    disk_size_gb      = 1000
+    network_zone_key  = "observability"
+    tags              = ["opensearch", "internal", "always-on", "platform"]
   }
 }
 

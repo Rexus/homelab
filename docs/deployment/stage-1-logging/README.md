@@ -1,7 +1,8 @@
 # Stage 1: Protected logging
 
 Deploy independent Tier 0 log intake before PKI, FreeIPA or Kubernetes. This capability
-retains security/syslog/audit evidence now; monitoring and searchable copies extend it later.
+provides **Security Logging and Audit** for traceability and recovery. Later
+[Observability](../stage-5-delivery/analytics.md) adds operational diagnosis, not evidence custody.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 Run repository scripts from this root; Shared is execution code, not an evidence owner.
@@ -314,4 +315,4 @@ Do not move Tier 1 observability state or reuse a VM under two states.
 at its recorded readiness, before PKI or identity. Add sources as each tier appears.
 Continue with [Stage 2: Cryptographic trust](../stage-2-trust/README.md).
 Later [monitoring](../stage-4-control-services/monitoring.md) and
-[shared analytics](../stage-5-delivery/analytics.md) extend visibility without replacing the archive.
+[Observability](../stage-5-delivery/analytics.md) extend visibility without replacing the archive.

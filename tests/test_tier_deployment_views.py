@@ -60,7 +60,7 @@ class DeploymentViews(unittest.TestCase):
             ("stage-3-identity-runtime/README.md", 1, "tier-0", "kubernetes", ["talos_control_plane"]),
             ("stage-4-control-services/step-2b-vault-vm.md", 0, "tier-0", "vault", ["vault"]),
             ("stage-4-control-services/step-2d-telemetry-vm.md", 0, "tier-1", "observability",
-             ["telemetry_gateways", "security_telemetry", "observability", "archive"]),
+             ["observability"]),
             ("stage-5-delivery/README.md", 0, "tier-1", "kubernetes", ["talos_control_plane"]),
             ("stage-5-delivery/step-1b-source-control-vm.md", 0, "tier-1", "development",
              ["development_platform"]),

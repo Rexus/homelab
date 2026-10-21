@@ -1,5 +1,6 @@
-"""Foundational evidence stays Tier 0-owned; shared analytics does not replace it."""
+"""Tier 1 Observability scales independently without owning Tier 0 evidence."""
 
+import re
 import shutil
 import subprocess
 import unittest
@@ -10,6 +11,48 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 class Observability(TierRepositoryTestCase):
+    def test_source_and_generated_vm_alternative_separates_roles_without_syslog(self):
+        self.generate()
+        expected = {"otel-1", "otel-2", "metrics-1", "metrics-2",
+                    "search-1", "search-2", "search-3"}
+        for collection, prefix in ((UPSTREAM, ""), (self.root, "verify-")):
+            tier = collection / f"{prefix}tier-1"
+            groups = yaml.safe_load((tier / "ansible/inventory/hosts.yml.example").read_text())["all"]["children"]
+            self.assertEqual(set(groups["observability"]["hosts"]), expected)
+            for legacy in ("telemetry_gateways", "security_telemetry", "archive"):
+                self.assertNotIn(legacy, groups)
+                self.assertNotIn(legacy, groups["guests"]["children"])
+            inputs = yaml.safe_load((tier / "ansible/group_vars/observability.yml.example").read_text())
+            self.assertEqual(set(inputs["platform_host_ips"]), expected)
+            self.assertEqual(len(set(inputs["platform_host_ips"].values())), len(expected))
+            hardware = (tier / "terraform/deployments/observability/terraform.tfvars.example").read_text()
+            self.assertEqual(set(re.findall(r'^  "([^"]+)" = \{', hardware, re.MULTILINE)), expected)
+            self.assertEqual(hardware.count('network_zone_key  = "observability"'), len(expected))
+            self.assertEqual(hardware.count('storage_class     = "local"'), len(expected))
+            self.assertIn('proxmox_node_name = "pve03"', hardware)
+            for recipe in ("deployment/telemetry-hosts.yml", "maintenance/observability.yml"):
+                plays = yaml.safe_load((tier / "ansible/playbooks" / recipe).read_text())
+                self.assertEqual(plays[0]["roles"], ["baseline"])
+                self.assertIn("observability", plays[0]["hosts"].split(":"))
+
+    def test_kubernetes_first_design_and_runtime_gap_are_explicit(self):
+        self.generate()
+        for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            design = (docs / "architecture/operations/telemetry.md").read_text()
+            for expected in ("logs, metrics and distributed traces", "Security Logging and Audit",
+                             "do **not** have equal resource needs", "existing Tier 1 Kubernetes cluster",
+                             "included initially", "readers must have no update/delete",
+                             "Tier 1 index deletion never deletes Tier 0 originals"):
+                self.assertIn(expected, design)
+            deployment = (docs / "deployment/stage-5-delivery/analytics.md").read_text()
+            for expected in ("OpenSearch is included initially", "empty integration starter",
+                             "writes to both", "replica shards", "complete worker/physical-host loss",
+                             "no archive write/delete, retention or backup powers"):
+                self.assertIn(expected, deployment)
+        for tier in (UPSTREAM / "tier-1", self.root / "verify-tier-1"):
+            starter = yaml.safe_load((tier / "clusters/tier1/platform/observability/kustomization.yaml").read_text())
+            self.assertFalse(starter.get("resources"))
+
     def test_source_and_generated_logging_are_tier_zero_owned(self):
         self.generate()
         for collection, prefix in ((UPSTREAM, ""), (self.root, "verify-")):
@@ -141,8 +184,18 @@ class Observability(TierRepositoryTestCase):
                 'vm_instances = { "foundation-log-1" = { vm_id = 264 } }\n'
             ),
             "verify-tier-0/.terraform/state/syslog/prod/terraform.tfstate": '{"lineage":"local-logs"}\n',
-            "verify-tier-1/terraform/deployments/observability/terraform.tfvars": '# Existing apm-1 resources\n',
-            "verify-tier-1/ansible/inventory/hosts.yml": "all: {hosts: {apm-1: {}}}\n",
+            "verify-tier-1/terraform/deployments/observability/terraform.tfvars": (
+                'vm_instances = { "logs-1" = { vm_id = 262 } }\n'
+            ),
+            "verify-tier-1/ansible/inventory/hosts.yml": (
+                "all: {children: {security_telemetry: {hosts: {syslog-1: {}, logs-1: {}}}}}\n"
+            ),
+            "verify-tier-1/ansible/group_vars/observability.yml": (
+                "platform_host_ips: {syslog-1: 10.20.31.10, logs-1: 10.20.31.11}\n"
+            ),
+            "verify-tier-1/terraform/common.tfvars": 'network_zones = { security_telemetry = {} }\n',
+            "verify-tier-1/.terraform/state/observability/prod/terraform.tfstate": '{"lineage":"local-telemetry"}\n',
+            "verify-tier-1/README.md": "# Local platform and observability\n",
             "verify-tier-0/docs/deployment/README.md": "# Local logging acceptance\n",
             "verify-architecture/docs/administration/recovery.md": "# Local offline logging runbook\n",
         }

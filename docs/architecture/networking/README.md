@@ -187,9 +187,8 @@ Additional networks are introduced only when needed:
 
 | Network key | Reference VLAN | Use |
 | --- | --- | --- |
-| `observability` | 130 | telemetry backends and dashboards in Services |
-| `telemetry_gateway` | 230 | scoped telemetry intake in Services |
-| `security_telemetry` | 231 | Tier 1 processing/intake, not authoritative Tier 0 evidence custody |
+| `observability` | 130 | optional VM observability backends and gateways in Services; Kubernetes uses its selected cluster network |
+| `telemetry_gateway` | 230 | optional separate gateway network when intake isolation is required; not another security archive |
 | `corosync` | 20 | non-routed Proxmox quorum fabric |
 | `ceph_public` | 21 | non-routed storage client fabric; not public Internet |
 | `ceph_cluster` | 22 | non-routed storage replication fabric |

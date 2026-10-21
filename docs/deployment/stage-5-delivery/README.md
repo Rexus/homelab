@@ -25,7 +25,7 @@ code, not delivery-service inventory or infrastructure state; see [repository lo
 
 1. [Deploy shared delivery services](#step-1-deploy-shared-delivery-services)
 2. [Enable protected execution](#step-2-enable-protected-execution)
-3. [Deploy shared investigation](#step-3-deploy-shared-investigation)
+3. [Deploy Observability](#step-3-deploy-observability)
 
 ## Step 1: Deploy shared delivery services
 
@@ -165,12 +165,15 @@ it does not deploy the dashed runner/controller group or its authorization polic
 **Result:** routine infrastructure changes use the protected runner under Tier 0 authority.
 Source control coordinates them, while GitOps separately reconciles approved applications.
 
-## Step 3: Deploy shared investigation
+<a id="step-3-deploy-shared-investigation"></a>
 
-Follow the [analytics deployment](analytics.md): prepare the selected runtime,
-deploy scoped ingestion/backends, then publish and verify read-only views.
-Its diagrams show how Tier 1 adds searchable copies and shared metric history
-without taking custody of Tier 0 evidence or foundation alerts.
+## Step 3: Deploy Observability
+
+Follow the [Observability deployment](analytics.md): prepare capacity in the Tier 1
+cluster, deploy separate signal pipelines and backends, then verify scoped views.
+OpenSearch is included from the start alongside OpenTelemetry and VictoriaMetrics.
+Logs, metrics and distributed traces support diagnosis without taking custody of
+Tier 0 security evidence or independent foundation alerts.
 
 This capability can be deployed once the Step 1 platform is ready; it does not
 have to wait for protected-runner handover when those dependencies are already verified.

@@ -64,7 +64,7 @@ Hardware expense, node count and successful VM creation do not establish a level
 | Identity | Identity/runtime; control services | Replication, scoped federation, denied access, replica/IdP loss and lost-credential recovery |
 | Traffic and delivery | Compute foundation; delivery and handover | Scoped publication/pulls, promotion, rollback, endpoint failover and recovery artifacts |
 | Protected logging | Stage 1; sources added with each tier | Numbered-event accounting, declared durable checkpoint, receiver/host loss, selected NAS-custody or retention-lock checks, segmented reads and independent restore |
-| Monitoring and analytics | Critical monitoring in control services; shared analytics with the Tier 1 platform | Independent foundation alerts, approved projections, scoped application queries and bounded queue replay |
+| Independent monitoring and Observability | Tier 0 outage visibility; separate Tier 1 Kubernetes workloads for logs, metrics and traces | Independent alerts, replicated backends, scoped queries, approved copies and tested queue replay/restore |
 
 The directory and identity provider, or issuer and seal provider, may have different readiness.
 Each stage records acceptance and operational handover; later stages do not postpone basic protection and

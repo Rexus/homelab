@@ -17,24 +17,6 @@ network_zones = {
     cidr_ipv4    = "10.20.30.0/24"
     gateway_ipv4 = "10.20.30.1"
   }
-  storage = {
-    bridge       = "stor"
-    vlan_id      = null
-    cidr_ipv4    = "10.20.40.0/24"
-    gateway_ipv4 = "10.20.40.1"
-  }
-  telemetry_gateway = {
-    bridge       = "tgw"
-    vlan_id      = null
-    cidr_ipv4    = "10.20.31.0/24"
-    gateway_ipv4 = "10.20.31.1"
-  }
-  security_telemetry = {
-    bridge       = "sectel"
-    vlan_id      = null
-    cidr_ipv4    = "10.20.32.0/24"
-    gateway_ipv4 = "10.20.32.1"
-  }
   delivery_edge = {
     bridge       = "vmbr0"
     vlan_id      = 321

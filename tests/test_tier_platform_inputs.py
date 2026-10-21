@@ -34,8 +34,7 @@ class PlatformInputs(TierRepositoryTestCase):
     def test_only_tier_specific_networks_and_overrides_remain_local(self):
         expected = {
             "tier-0": {"management", "identity", "cryptography"},
-            "tier-1": {"delivery_edge", "observability", "storage",
-                       "telemetry_gateway", "security_telemetry"},
+            "tier-1": {"delivery_edge", "observability"},
             "tier-2": {"external_edge"},
         }
         profile = (UPSTREAM / "shared/config/platform.tfvars").read_text()

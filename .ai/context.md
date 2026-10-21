@@ -138,12 +138,12 @@ This file keeps durable context for AI-assisted work across sessions.
   explicitly authorized administrator/security roles read raw evidence, and retention custody is separate
 - Tier 1 holds approved searchable projections with per-application developer scopes, never raw archive authority;
   trusted source attribution, index permissions and read auditing enforce segmentation, not UI tenants alone
-- reference observability is Tier 0 critical monitoring/Netdata parent plus Tier 1 OpenSearch/Data Prepper,
-  shared VictoriaMetrics/alerting and Tier 2 collectors; no default SigNoZ/ClickHouse or full per-tier stack
+- independent Tier 0 critical monitoring/Netdata parent complements Tier 1 Observability and Tier 2
+  collectors; no default SigNoZ/ClickHouse or full per-tier stack
 - one receiver is bootstrap only; HA acceptance specifies durable acknowledgement/replication semantics,
   independent failure domains, bounded queues and protected retention; UDP and source-loss gaps stay explicit
 - each stage has a main README with numbered local steps, diagrams, a capability result,
-  and links to the static architecture; named monitoring/analytics/collection deployments
+  and links to the static architecture; named monitoring/Observability/collection deployments
   belong to their owning stages, not one cross-stage procedure
 - deployment guides name the working generated repository and upstream source directory near the top;
   IaC tables distinguish tier-owned inputs/resources from Shared helper implementations;
@@ -258,6 +258,16 @@ This file keeps durable context for AI-assisted work across sessions.
   authority containment never implies a network route or shared physical administration
 - Tier 1 enrollment clients use Tier 0 infrastructure issuance; optional application CAs
   can be shared in Tier 1 or local to a Tier 2 lab without automatic infrastructure trust
+- prefer native Kubernetes deployments when product support, storage, capacity and recovery qualify;
+  a container image alone is insufficient; bootstrap and independent outage visibility stay external
+- Observability uses logs, metrics and distributed traces; Security Logging and Audit is the
+  earlier Tier 0 traceability/evidence capability, not the same as distributed tracing
+- Tier 1 Observability uses the existing Kubernetes cluster with separately scalable Collector,
+  VictoriaMetrics, Data Prepper, OpenSearch and UI workloads; OpenSearch is included initially
+- no all-in-one observability VM default or second Tier 1 syslog/archive; dedicated VM alternatives
+  separate otel-N, metrics-N and search-N roles; their recipe supplies hosts/baseline only
+- OpenSearch indexes approved scoped copies, without Tier 0 write/delete/retention/backup authority;
+  document/field read filters do not revoke write privileges; product manifests remain integration work
 
 ## Working rules
 

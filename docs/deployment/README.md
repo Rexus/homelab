@@ -21,7 +21,7 @@ the end, and links back to the architecture it implements.
 | 2: Cryptographic trust | Offline root custody and an online issuing service | Tier 0 | [Trust](stage-2-trust/README.md) |
 | 3: Identity and Kubernetes | Dedicated directory pair and the Tier 0 cluster with basic platform services | Tier 0 | [Identity and Kubernetes](stage-3-identity-runtime/README.md) |
 | 4: Control services | Federated access, secrets, inventory documentation and independent monitoring | Tier 0 | [Control services](stage-4-control-services/README.md), [monitoring](stage-4-control-services/monitoring.md) |
-| 5: Delivery and handover | Source control, artifacts, builds, shared analytics and protected infrastructure execution | Tier 1 platform; Tier 2 edge; Tier 0 execution | [Delivery and handover](stage-5-delivery/README.md), [analytics](stage-5-delivery/analytics.md) |
+| 5: Delivery and handover | Source control, artifacts, builds, Observability and protected infrastructure execution | Tier 1 platform; Tier 2 edge; Tier 0 execution | [Delivery and handover](stage-5-delivery/README.md), [Observability](stage-5-delivery/analytics.md) |
 | 6: Workload provisioning | Approved Tier 2 runtime, applications and scoped collection | Tier 2 definitions; Tier 0 execution | [Workload provisioning](stage-6-workloads/README.md), [collection](stage-6-workloads/telemetry.md) |
 
 ```mermaid
@@ -68,7 +68,7 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Tier 1 | `kubernetes` | Stage 5: shared platform cluster | [Platform runtime](stage-5-delivery/procedures/platform-cluster.md) |
 | Tier 1 | `development` | Stage 5 option: source-control VM | [Source-control VM](stage-5-delivery/step-1b-source-control-vm.md) |
 | Tier 1 | `podman-runner` | Stage 5 option: general build runner | [Build runner](stage-5-delivery/step-1c-podman-runner.md) |
-| Tier 1 | `observability` | Stage 5 option: shared analytics VM foundations | [Analytics](stage-5-delivery/analytics.md), [VM recipe](stage-4-control-services/step-2d-telemetry-vm.md) |
+| Tier 1 | `observability` | Optional dedicated-VM foundations instead of Kubernetes workloads; baseline only | [Observability](stage-5-delivery/analytics.md), [VM recipe](stage-4-control-services/step-2d-telemetry-vm.md) |
 | Tier 2 | `cache` | Optional prerequisite: outbound software access | [Cache deployment](foundation/step-3b-outbound-cache.md) |
 | Tier 2 | `edge` | Stages 5/6: public service entry | [Edge deployment](stage-5-delivery/procedures/edge-proxy.md) |
 | Tier 2 | `kubernetes` | Stage 6: workload cluster | [Workload runtime](stage-6-workloads/README.md#step-2-provision-the-workload-runtime) |

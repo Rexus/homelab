@@ -6,7 +6,7 @@ prerequisite for the earlier collector.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** accepted [protected logging](../stage-1-logging/README.md), approved
-runtime/storage and independent recovery inputs. Tier 1 analytics is not required.
+runtime/storage and independent recovery inputs. Tier 1 Observability is not required.
 **Design:** [telemetry composition](../../architecture/operations/telemetry.md).
 
 ## Main path
@@ -159,5 +159,5 @@ can call its configured external watchdog, but does not install that external se
 | Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common OS preparation, not inventory, state or alert authority |
 
 Return to [Stage 4 acceptance](README.md#capability-available). Later
-[Tier 1 analytics](../stage-5-delivery/analytics.md) adds shared investigation without
+[Tier 1 Observability](../stage-5-delivery/analytics.md) adds shared diagnosis without
 taking ownership of foundation alerts or protected evidence.

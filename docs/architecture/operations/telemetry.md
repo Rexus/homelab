@@ -1,17 +1,22 @@
-# Telemetry design
+# Observability and telemetry
 
-Telemetry combines independent Tier 0 visibility, one shared Tier 1 investigation
-platform and lightweight Tier 2 collection. It does not require a complete stack
-in every tier. Protected syslog and audit evidence belong to Tier 0; searchable
-copies and application diagnostics do not replace that archive.
+Observability uses **logs, metrics and distributed traces** to understand and
+diagnose the running system. These are telemetry signals, not three mandatory
+agents or VMs. A Collector can handle separate signal pipelines. [1]
+
+**Security Logging and Audit** is the earlier Tier 0 capability: protected evidence
+for accountability, investigation and recovery. Its primary purpose is traceability;
+distributed tracing instead follows requests through services. Tier 1 observability
+does not replace that evidence or acquire Tier 0 administrative authority.
 
 ## Table of contents
 
 - [Flow and interfaces](#flow-and-interfaces)
-- [Reference components](#reference-components)
-- [Deployment units](#deployment-units)
-- [Placement variants](#placement-variants)
-- [Failure and retention requirements](#failure-and-retention-requirements)
+- [Components and placement](#components-and-placement)
+- [Independent scaling](#independent-scaling)
+- [Availability and recovery](#availability-and-recovery)
+- [Read boundaries](#read-boundaries)
+- [Realization](#realization)
 - [References](#references)
 
 ## Flow and interfaces
@@ -19,143 +24,144 @@ copies and application diagnostics do not replace that archive.
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph T2["Tier 2 / workloads"]
-    Agents["Host / cluster collectors<br/>Bounded local queues"]
+  subgraph T2["Tier 2 / applications"]
+    Apps["Application logs / metrics / traces"]
   end
-  subgraph T1["Tier 1 / shared investigation"]
-    direction LR
-    Ingest["Scoped ingestion"]
-    Analytics["Log / trace search<br/>Shared metrics and alerts"]
-    Views["Tenant-scoped read views"]
-    Ingest --> Analytics --> Views
-  end
-  subgraph T0["Tier 0 / protected visibility"]
-    direction LR
-    subgraph Intake["Outside the observed cluster"]
-      Receiver["Security-log receivers"]
-      Evidence[("Local retained evidence")]
-      Receiver --> Evidence
+  subgraph T1["Tier 1 / Observability"]
+    direction TB
+    subgraph Cluster["Platform Kubernetes / separate workloads"]
+      Gateway["Telemetry gateways"]
+      Metrics["Metrics backend<br/>Metrics query UI"]
+      Search["Log / trace search<br/>Analysis UI"]
+      Gateway -->|Metrics| Metrics
+      Gateway -->|Application logs / traces| Search
     end
-    subgraph Monitoring["Independent critical monitoring"]
-      Critical["Critical history / diagnostics"]
-      Alerts["Rule evaluation / external alerts"]
-      Critical --> Alerts
-    end
-    Intake ~~~ Monitoring
   end
-  T2 -->|Application telemetry| T1
+  subgraph T0["Tier 0 / Security Logging and Audit"]
+    direction LR
+    Evidence["Protected log intake / archive<br/>Restricted original evidence"]
+    Critical["Independent health / alerts"]
+    Evidence ~~~ Critical
+  end
+  T2 -->|OTLP / approved telemetry| T1
   T2 -->|Security / audit submissions| T0
   T1 -->|Security / audit submissions| T0
-  Notify["Independent notification destination"]
-  T0 -->|Independent alerts| Notify
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   class T2,T1 services
-  class T0 control
-  class Intake,Monitoring boundary
-  class Evidence data
-  class Notify actor
+  class Cluster runtime
+  class T0,Evidence,Critical control
 ```
 
-Every tier sends security/audit submissions to Tier 0. Ordinary application
-telemetry goes to Tier 1; Tier 0 exports approved evidence/metric copies without
-depending on their delivery. Tier 1/2 can submit
-to narrow Tier 0 logging endpoints; they cannot query raw evidence or administer
-the receivers. Submission endpoints are segregated from management APIs, with
-source authentication, quotas and trusted provenance. The
-[security-logging design](security-logging.md) owns archive access and durability.
+Application telemetry goes to Tier 1. Critical syslog and audit submissions from
+every tier go directly to Tier 0; there is no second Tier 1 critical-syslog service.
+Approved Tier 0 projections can be indexed for scoped search, never edited back
+into the original archive. [Security logging](security-logging.md) owns that contract.
 
-Tier 0 collection, local investigation, rule evaluation and notifications remain
-usable without Tier 1, OpenSearch or normal SSO. Tier 2 normally retains collection
-during Tier 1 outages, not independent querying or alerts. A critical workload may
-select local metric retention/evaluation without duplicating central analytics.
+Correlation uses trusted service/resource identity, timestamps and request/trace IDs.
+It does not require unrestricted database-to-database access. OTLP is the telemetry
+transport, not a promise that every backend accepts the same protocol. [1][2]
 
-## Reference components
+## Components and placement
 
-| Function | Reference examples | Interface or purpose |
+| Function | Reference | Placement |
 | --- | --- | --- |
-| Collection/routing | OpenTelemetry Collector | Supported agent/gateway pipelines; persistent exporter queues require explicit storage and retry configuration [1] |
-| Foundational live diagnostics | Netdata agents and a Tier 0 parent | Native child/parent streaming, not an OTLP forwarding path [2] |
-| Metrics history | VictoriaMetrics | Small Tier 0 critical dataset; separate Tier 1 shared backend [3] |
-| Rule evaluation and notification | vmalert and Alertmanager | Tier 0 evaluates against its local dataset and uses independent notification delivery; Tier 1 owns platform/application alerts [4] |
-| Logs, traces and application investigation | OpenSearch HA and Dashboards | One Tier 1 platform with supported ingestion pipelines; trace analytics includes Data Prepper [5] |
-| Syslog and security evidence | syslog-ng OSE receiver reference; protected archive | Tier 0 authority; source/queue/retention contracts are defined separately in [security logging](security-logging.md) |
+| Agent and gateway collection | OpenTelemetry Collector; separate pipelines for logs, metrics and traces | Tier-local agents; replicated Tier 1 gateways [2] |
+| Metrics storage and querying | VictoriaMetrics with native VMUI; supported query frontend | Independent Tier 1 stateful workloads [3] |
+| Log/trace processing and search | Data Prepper and OpenSearch | Independent Tier 1 ingestion/search workloads, included initially [4] |
+| Analysis UI | OpenSearch Dashboards | Separate stateless Tier 1 workload; not another log store [4] |
+| Rules and notification | vmalert and Alertmanager where selected | Shared application alerts in Tier 1; critical alerts remain independent in Tier 0 |
+| Foundation diagnostics | Netdata agents and a Tier 0 parent | Outside the observed cluster when required for cluster-loss detection [5] |
+| Original security evidence | syslog-ng OSE receivers and protected archive | Tier 0; independent of Tier 1 Kubernetes |
 
-The examples are interchangeable only after their required protocol and operational
-contracts are verified. A separate SigNoZ/ClickHouse, Grafana, Loki, Tempo or Zabbix
-deployment is not part of this reference. Existing alternatives remain valid after
-their interfaces, authorization and recovery contract are selected explicitly.
+The normal runtime is the existing Tier 1 Kubernetes cluster. Collector,
+VictoriaMetrics and OpenSearch have documented Kubernetes/operator deployment
+paths. That supports the placement choice, not an automatic production-readiness
+claim. Qualify releases, components, storage and upgrade/failure behavior. [6][7][8]
 
-Netdata's native streaming and local dashboard are not an automatically self-hosted
-enterprise fleet portal. Cloud-backed bearer authentication is not independent
-recovery access. The selected release must be tested without Cloud/SSO, with
-private access controls and a separately tested administrative recovery path. [2][6]
-A Tier 0 parent primarily serves foundation diagnostics; lower-tier streaming
-requires explicit intake approval and does not grant users a Tier 0 dashboard.
+Netdata uses native child/parent streaming, not the OTLP gateway path. A
+separate SigNoZ/ClickHouse, Grafana, Loki or Tempo deployment is not required.
+Other products remain explicit alternatives, not additional default stacks.
 
-## Deployment units
+## Independent scaling
 
-| Owner | Logical unit | Hosting boundary |
+The components do **not** have equal resource needs. Kubernetes consolidation
+shares a substrate, not one all-in-one application or one fixed VM resource ratio.
+
+| Workload | Main capacity drivers | Scale independently |
 | --- | --- | --- |
-| Tier 0 | Security-log intake and retained evidence | Starts outside Kubernetes; receiver redundancy and protected storage are separate from a single VM |
-| Tier 0 | Foundation monitoring | Netdata parent, critical metric history, evaluator and alert routing may be grouped; required cluster-outage detection remains outside that cluster |
-| Tier 1 | Shared observability | OpenSearch/Dashboards and ingestion; shared metrics/evaluation/routing in the platform cluster or selected VM alternative |
-| Each tier | Local collectors and exporters | Host agents or cluster workloads with scoped credentials; no central database in every workload cluster |
+| Collector gateways | Signal rate, transformations, memory and queue pressure | Gateway replicas/resources; preserve metric single-writer and stateful routing rules [2] |
+| Metrics backend | Active series, sample rate, query load, retention and disk I/O | Metrics storage/compute and query capacity |
+| Search backend | JVM heap, shards, indexing, query load and disk I/O | Search node pools, shards and storage; retain quorum and replicas |
+| Ingestion and UIs | Processing throughput versus interactive query/session load | Separate Data Prepper and UI resources/replicas |
 
-These are lifecycle groups, not one VM per box. Replicas, persistence, resource
-limits and physical failure domains still follow measured capacity and availability.
-The two metrics stores serve different failure contracts, not duplicate full datasets.
+Give each workload its own resource budget, persistence, scheduling and scaling
+policy. Reserve backend capacity and protect cluster control services; the compact
+schedulable control-plane starter is not evidence of spare search capacity.
+Use dedicated worker pools or stronger isolation when interference requires it.
 
-## Placement variants
-
-| Option | Shape | Consequence |
-| --- | --- | --- |
-| A | Dedicated VM collectors/backends | Independent service lifecycle and explicit host/network placement |
-| B | Cluster-native services | Shared platform lifecycle; external monitoring still needed for cluster loss |
-| C | Existing telemetry service | Interface, retention and recovery verified without duplicate backends |
-
-Central and project-isolated instances are both valid. Isolation is justified by
-air gaps, operator access, high-risk data or retention/deletion requirements.
-Project/environment attributes support separation in a shared service but do not
-replace authorization. The reference combines A for foundational log intake with
-B for shared analytics; it is not a choice between one globally shared VM stack
-and one globally shared Kubernetes stack. Tier 0 evidence remains protected in
-every variant, including when approved copies are searchable in Tier 1.
-
-<a id="maturity-and-realization"></a>
-
-## Failure and retention requirements
-
-| Failure | Required behavior |
-| --- | --- |
-| Tier 1 / OpenSearch unavailable | Tier 0 logging, critical history and alert delivery continue; remote copies queue only within defined capacity |
-| Tier 0 cluster unavailable | External log intake and required cluster-loss detection remain available |
-| Netdata parent unavailable | Supported agents retain configured local collection/history; centralized diagnostics may be unavailable |
-| Tier 2 isolated | Collection can buffer within limits; normal shared querying and alerts may be unavailable |
-| Identity provider unavailable | Tested privileged local access remains; no assumption that SSO sessions always survive |
-| Collector disk full or retry limit reached | Visible failure and an explicit loss/backpressure policy; a persistent queue is not an unlimited archive [1] |
-
-Tier 0 outages can still interrupt higher-tier foundational dependencies. Local
-telemetry survives only where its compute, storage and credential dependencies survive.
-
-Deployment begins with [foundational syslog](../../deployment/stage-1-logging/README.md),
-then adds [independent monitoring](../../deployment/stage-4-control-services/monitoring.md),
-[shared analytics](../../deployment/stage-5-delivery/analytics.md) and
-[workload collection](../../deployment/stage-6-workloads/telemetry.md).
 The [VM alternative](../../deployment/stage-4-control-services/step-2d-telemetry-vm.md)
-provides host foundations only. Product installation and integrations remain project work.
+also separates gateway, metrics and search roles. Co-hosting them in identical VMs
+couples CPU, memory, I/O, maintenance and horizontal scaling, so it is not the reference.
+
+## Availability and recovery
+
+| Boundary | Required design |
+| --- | --- |
+| Gateways | Multiple instances, authenticated endpoints, bounded durable queues and tested endpoint failover; two pods alone do not prove safe replay [2] |
+| Metrics | Replicate writes to both independent stores and fail reads over only to usable, sufficiently caught-up copies; do not split writes across single-node stores [3] |
+| Search | Three cluster-manager-eligible nodes for one-node quorum tolerance, replica shards and independent failure domains [9] |
+| Placement | Spread replicas across physical failure domains, not only Kubernetes VM names; validate persistent-volume failure behavior |
+| Backups | Independently retained restore points; service replicas are not backup |
+| Loss limits | Declare queue capacity, accepted tail loss and recovery time; no zero-loss guarantee from OTLP acknowledgement or replica count |
+
+A failure must leave sufficient surviving capacity, not just a running process.
+Catch-up, rolling upgrades, resource exhaustion and restoration are acceptance cases.
+A persistent queue depends on its volume surviving and on retry/exporter behavior. [10]
+
+Tier 0 visibility stays usable without Tier 1, OpenSearch or normal SSO.
+Tier 2 normally retains collection during Tier 1 outages, not independent querying or alerts.
+
+## Read boundaries
+
+OpenSearch can index approved application logs and scoped security projections.
+The export identity has no Tier 0 write/delete, retention or backup authority.
+Restrict what crosses the tier boundary before ingestion; Tier 1 search administration
+must not enlarge its source scope.
+
+Index permissions, document-level security and field-level security define reader
+access. Document/field filters do not remove separately granted write privileges;
+readers must have no update/delete or index-management permissions. [11][12]
+Tier 1 index deletion never deletes Tier 0 originals. Dashboard tenants alone
+are not the data-authorization boundary.
+
+## Realization
+
+[Security Logging and Audit](../../deployment/stage-1-logging/README.md) comes first.
+[Independent monitoring](../../deployment/stage-4-control-services/monitoring.md)
+keeps foundation visibility outside cluster outages.
+[Observability deployment](../../deployment/stage-5-delivery/analytics.md)
+adds gateways, both backends and UIs together; [workload collection](../../deployment/stage-6-workloads/telemetry.md)
+connects applications.
+
+The cluster folders are project integration starters; the VM recipe supplies
+hosts/baseline only. Neither currently installs or qualifies this product stack.
 
 ## References
 
-Sources checked 2026-10-16. Use documentation matching the selected releases.
+Sources checked 2026-10-21; qualify documentation against selected releases.
 
-1. [OpenTelemetry Collector resiliency](https://opentelemetry.io/docs/collector/resiliency/)
-2. [Netdata parent-child reference](https://learn.netdata.cloud/docs/netdata-parents/parent-child-configuration-reference)
-3. [VictoriaMetrics Prometheus integration](https://docs.victoriametrics.com/victoriametrics/integrations/prometheus/)
-4. [vmalert evaluation and notification integration](https://docs.victoriametrics.com/victoriametrics/vmalert/)
-5. [OpenSearch trace analytics and Data Prepper](https://docs.opensearch.org/latest/observing-your-data/trace/getting-started/)
-6. [Netdata Agent access controls](https://learn.netdata.cloud/docs/netdata-agent/configuration/securing-agents/)
+1. [OpenTelemetry signals](https://opentelemetry.io/docs/concepts/signals/)
+2. [Collector gateway deployment and single-writer rules](https://opentelemetry.io/docs/collector/deploy/gateway/)
+3. [VictoriaMetrics single-node HA and VMUI](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/)
+4. [OpenSearch trace analytics and Data Prepper](https://docs.opensearch.org/latest/observing-your-data/trace/getting-started/)
+5. [Netdata child/parent streaming](https://learn.netdata.cloud/docs/netdata-parents/parent-child-configuration-reference)
+6. [OpenTelemetry Kubernetes Operator](https://opentelemetry.io/docs/platforms/kubernetes/operator/)
+7. [VictoriaMetrics Kubernetes Operator](https://docs.victoriametrics.com/operator/)
+8. [OpenSearch Kubernetes Operator](https://docs.opensearch.org/latest/install-and-configure/install-opensearch/operator/index/)
+9. [OpenSearch voting and quorum](https://docs.opensearch.org/latest/tuning-your-cluster/discovery-cluster-formation/voting-quorums/)
+10. [Collector resiliency](https://opentelemetry.io/docs/collector/resiliency/)
+11. [OpenSearch document-level security](https://docs.opensearch.org/latest/security/access-control/document-level-security/)
+12. [OpenSearch field-level security](https://docs.opensearch.org/latest/security/access-control/field-level-security/)

@@ -143,7 +143,9 @@ class DiagramConventions(TierRepositoryTestCase):
         telemetry = diagrams(root / "operations/telemetry.md")[0]
         for tier in (2, 1):
             self.assertIn(f"T{tier} -->|Security / audit submissions| T0", telemetry)
-        self.assertIn('subgraph Intake["Outside the observed cluster"]', telemetry)
+        self.assertIn('subgraph T0["Tier 0 / Security Logging and Audit"]', telemetry)
+        self.assertIn('Critical["Independent health / alerts"]', telemetry)
+        self.assertIn('subgraph Cluster["Platform Kubernetes / separate workloads"]', telemetry)
         retention = diagrams(root / "operations/log-retention.md")[0]
         self.assertIn('subgraph T0["', retention)
         self.assertIn("Intake -->|Verified checkpoints| Protection", retention)

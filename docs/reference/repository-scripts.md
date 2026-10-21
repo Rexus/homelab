@@ -283,7 +283,7 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 | `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../deployment/foundation/step-3b-outbound-cache.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-5-delivery/step-1b-source-control-vm.md) |
 | `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-4-control-services/step-2b-vault-vm.md) |
-| `observability` | Tier 1 optional VM foundations for shared telemetry/copies, not raw evidence custody | [Observability VM alternative](../deployment/stage-4-control-services/step-2d-telemetry-vm.md) |
+| `observability` | Optional Tier 1 gateway, metrics and search VMs; OS baseline only, not the Kubernetes product deployment or Tier 0 evidence | [Observability VM alternative](../deployment/stage-4-control-services/step-2d-telemetry-vm.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../deployment/stage-5-delivery/step-1c-podman-runner.md) |
 | `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../deployment/stage-5-delivery/step-1d-image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/foundation/procedures/enterprise-linux-template.md) |

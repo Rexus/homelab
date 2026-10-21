@@ -21,8 +21,7 @@ class NetworkInputs(TierRepositoryTestCase):
                              "gateway_ipv4": "192.0.2.126"}
         for tier, setup, private_keys in (
             ("tier-0", "foundation", {"management", "identity", "cryptography"}),
-            ("tier-1", "development", {"observability", "storage", "telemetry_gateway",
-                                        "security_telemetry", "delivery_edge"}),
+            ("tier-1", "development", {"observability", "delivery_edge"}),
             ("tier-2", "lab", {"external_edge"}),
         ):
             repo = self.root / f"verify-{tier}"

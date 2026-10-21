@@ -1,7 +1,8 @@
 ---
 # Operations: telemetry host baseline only.
 # Recipe mapping: docs/administration/ansible-recipes.md
-- name: Apply system control host baseline
+# Legacy groups remain selectable for existing local inventories, not new syslog services.
+- name: Apply observability host baseline
   hosts: telemetry_gateways:security_telemetry:observability:archive
   become: true
   roles:

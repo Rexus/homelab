@@ -12,25 +12,16 @@ all:
     development_platform:
       hosts:
         git-1: {}
-    telemetry_gateways:
-      hosts:
-        telemetry-1: {}
-    security_telemetry:
-      hosts:
-        # Tier 1 processing; protected evidence intake belongs to Tier 0.
-        syslog-1: {}
     observability:
       hosts:
-        # Optional non-foundational parent; enable only with matching hardware/IP inputs.
-        # health-1: {}
+        # Dedicated-VM alternative only; normal services use the Tier 1 cluster.
+        otel-1: {}
+        otel-2: {}
         metrics-1: {}
-        # Legacy alternative, not the OpenSearch reference pipeline.
-        # apm-1: {}
-        logs-1: {}
-        telemetry-ui-1: {}
-    archive:
-      hosts:
-        archive-1: {}
+        metrics-2: {}
+        search-1: {}
+        search-2: {}
+        search-3: {}
     podman_runner:
       hosts:
         runner-1: {}
@@ -51,9 +42,6 @@ all:
     guests:
       children:
         development_platform: null
-        telemetry_gateways: null
-        security_telemetry: null
         observability: null
-        archive: null
         podman_runner: null
         identity_providers: null

@@ -36,7 +36,8 @@ These services give later projects a common base:
 | identity | one user and group authority for operators, services, and automation |
 | PKI | trusted certificates for internal TLS, mTLS, service identity, and device identity |
 | secret platform | one controlled place for long-lived secrets, tokens, and service credentials |
-| observability and syslog | Tier 0 evidence custody and critical visibility; Tier 1 approved search copies and scoped application diagnostics |
+| Security Logging and Audit | Tier 0 protected evidence and traceability; submission does not grant read or deletion rights |
+| Observability | Tier 1 operational logs, metrics and distributed traces; approved evidence copies and scoped diagnostics |
 
 This is not only convenience. It also removes many weak defaults:
 
@@ -58,7 +59,8 @@ In the architecture model, that means:
 | PKI | private certificate hierarchy for internal services |
 | user hardware keys | optional OTP, PIV, FIDO2, or similar hardening for privileged users |
 | secret platform | secret storage and later dynamic credential paths |
-| telemetry | operational control, audit visibility, metrics, logs, and traces |
+| Security Logging and Audit | retained security evidence with governed reads and independent recovery |
+| Observability | operational diagnosis using logs, metrics and distributed traces |
 | cryptographic hardening | stronger protection for selected CA, seal, or signing keys |
 
 The path is still optional. With an existing domain, DNS, PKI, secret

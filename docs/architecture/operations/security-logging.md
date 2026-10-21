@@ -5,6 +5,11 @@ Tier 1 dashboard service. All tiers submit approved records through restricted
 intake. Only explicitly authorized system-administrator/security-reader roles
 can investigate raw evidence. Producers cannot read, edit or delete it.
 
+**Security Logging and Audit** provides traceability and recoverable evidence.
+[Observability](telemetry.md) diagnoses the running system using logs, metrics
+and distributed traces. Request tracing is not audit traceability, and searchable
+copies do not replace retained originals.
+
 ## Table of contents
 
 - [Authority and flow](#authority-and-flow)
@@ -24,7 +29,7 @@ block-beta
   T2["Tier 2<br/>Workloads"]
   Sources["Local producers / queues"]
   Developer["Submit approved streams<br/>Read own approved app view"]
-  T1["Tier 1<br/>Shared analytics"]
+  T1["Tier 1<br/>Observability"]
   Search["Scoped searchable copies"]
   Query["Query approved copies<br/>No raw-evidence authority"]
   T0["Tier 0<br/>Control"]
@@ -57,7 +62,7 @@ a compromised workload from exhausting the privileged evidence path.
 System, authentication, infrastructure-change and audit records from every tier
 follow this protected path. Application-log retention is selected per stream;
 approved developer copies can be published without granting raw-archive access.
-Metrics and traces use the separate [telemetry design](telemetry.md).
+Operational logs, metrics and distributed traces use the separate [telemetry design](telemetry.md).
 Offline custody has no online logging route; authorized evidence transfer is a ceremony operation.
 
 ## Segmented access
@@ -170,7 +175,7 @@ alternative under the same contract; the choice does not establish reliability s
 The [receiver contract](../../reference/syslog-receiver.md) and
 [pipeline contract](../../reference/logging-pipeline.md) distinguish local collection,
 asynchronous NAS custody and stronger HA integration. [Monitoring](../../deployment/stage-4-control-services/monitoring.md)
-adds critical health and alerts; [shared analytics](../../deployment/stage-5-delivery/analytics.md)
+adds critical health and alerts; [Observability](../../deployment/stage-5-delivery/analytics.md)
 adds approved search copies. [Logging administration](../../administration/security-logging.md)
 owns recurring access, gap, capacity and restore checks. The receiver does not
 claim a lossless or immutable archive.

@@ -4,6 +4,11 @@ Each tier has an independent Kubernetes API, etcd quorum, administrative
 credentials and lifecycle state. Tiers separate authority; worker pools organize
 capacity within that authority. Talos is the supplied node OS, not the design goal.
 
+Prefer Kubernetes for services with a documented native deployment path when
+storage, resource isolation, upgrades and recovery can meet their requirements.
+A container image alone is not a supported deployment model. Keep bootstrap,
+offline custody and outage visibility independent of the clusters they recover.
+
 ## Table of contents
 
 - [Cluster boundaries](#cluster-boundaries)
@@ -49,12 +54,17 @@ not a general build pod or a Tier 1 delivery controller.
 | Cluster | Compact reference | Optional worker pools |
 | --- | --- | --- |
 | Tier 0 | Three schedulable control planes; no initial workers | Additional trusted control-service capacity |
-| Tier 1 | Three control planes; scheduling enabled for the compact start | Infrastructure, stateful, compute; observability when justified |
+| Tier 1 | Three control planes; scheduling enabled for the compact start | Separately budgeted infrastructure, metrics, search and compute capacity |
 | Tier 2 | Three control planes; scheduling enabled for the compact start | Development, testing and lab |
 
 Tier 1/2 can instead use dedicated workers with control-plane scheduling disabled.
 This is an explicit capacity choice, not an automatic transition. Tier 0 remains
 compact unless its trusted services justify additional workers.
+
+[Observability](../operations/telemetry.md) uses native Kubernetes workloads with
+independent gateway, metrics, search and UI scaling. Qualify backend capacity before
+deployment; three small schedulable control planes are not a search-storage budget.
+Use dedicated worker pools when storage or resource contention requires separation.
 
 Pools use labels and workload selectors/affinity. Taints with matching tolerations
 reserve nodes; a toleration alone does not force a workload onto that pool. [1]

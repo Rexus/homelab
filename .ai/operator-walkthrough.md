@@ -116,9 +116,12 @@ supplied. Their live proof is tracked in the separate
 - [ ] **P1: Control applications.** Implement and verify the selected IdP, inventory
   application, cluster interface and cluster-based secret service, including scoped roles,
   data dependencies, audit forwarding and backups. The Vault VM alternative is a different runtime.
-- [ ] **P1: Monitoring and analytics.** Supply the selected product recipes, critical
-  external alerts and read-only application views. Test missing signals, blocked deletion,
-  forged ownership and Tier 1 outages; reference diagrams are not configured controls.
+- [ ] **P1: Independent monitoring and Observability.** Supply native Tier 1 Kubernetes
+  product manifests/values for Collector gateways, VictoriaMetrics, Data Prepper,
+  OpenSearch and UIs; the current starter is empty. Budget/scale each workload separately.
+  Configure replicated writes, query failover, search quorum/shards and restore paths.
+  Keep Tier 0 evidence and critical external alerts independent. Test scoped read-only
+  copies, forged ownership and outages; diagrams are not configured controls.
 - [ ] **P1: Protected execution.** Implement the approved Tier 0 runner/controller path
   before delegated provisioning. General runner registration and source-control branch
   protection must not be treated as that authorization boundary.
@@ -158,7 +161,7 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Manual cluster | [Runtime 2b](../docs/deployment/stage-3-identity-runtime/step-2b-manual-cluster.md) | Valid alternative lifecycle owner; adoption/restore distinct from fresh bootstrap |
 | Vault VM | [Control 2b](../docs/deployment/stage-4-control-services/step-2b-vault-vm.md) | Supplied host/service recipe; initialization, authorization, audit forwarding and restore remain explicit |
 | Seal choice | [Control 2c](../docs/deployment/stage-4-control-services/step-2c-seal-integration.md) | Shamir/Transit/PKCS#11 capability and edition checks; no automatic migration |
-| Telemetry VMs | [Control 2d](../docs/deployment/stage-4-control-services/step-2d-telemetry-vm.md) | Early Tier 1 runtime alternative; not a substitute for Tier 0 monitoring |
+| Observability VMs | [Control 2d](../docs/deployment/stage-4-control-services/step-2d-telemetry-vm.md) | Separate-role fallback to Tier 1 Kubernetes; baseline only, not Tier 0 monitoring |
 | Operator hardware authentication | [Control 3b](../docs/deployment/stage-4-control-services/step-3b-hardware-authentication.md) | Enrollment and lost-token recovery are manual; retain break-glass access |
 | Source-control VM | [Delivery 1b](../docs/deployment/stage-5-delivery/step-1b-source-control-vm.md) | Supplied container recipe; pin image, prepare TLS and verify product backup/restore |
 | General build runner | [Delivery 1c](../docs/deployment/stage-5-delivery/step-1c-podman-runner.md) | Supplied host recipe; registration/credentials/trust required; no Tier 0 authority |
@@ -209,6 +212,16 @@ be relabelled as a deployed-system pass.
 
 
 ## Repeat cadence
+
+Observability review, 2026-10-21: **152 tests: 123 passed, 29 tool-dependent skips**
+in a fresh Linux scratch copy. A separate **12-test native Terraform/Ansible run passed,
+zero skipped**, covering source/generated inventory resolution, network references,
+local key validation and playbook syntax; it overlaps the full suite, not an additional
+12 unique cases. HCL formatting and `git diff --check` passed. Changed observability
+figures render in light/dark themes at desktop and narrower reading widths.
+The design is Kubernetes-first with separate workload budgets and OpenSearch initially;
+the product starter remains empty. No runtime installation, failure/restore qualification,
+GitHub visual acceptance or manual operational box is satisfied by these checks.
 
 Logging installation, 2026-10-19: **142 full regression tests passed, zero skipped**;
 after final probe-credential/audit changes, **37 affected tests passed, zero skipped**.

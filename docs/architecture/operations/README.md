@@ -16,39 +16,47 @@ These capabilities cover the whole [platform architecture](../README.md).
 
 ## Completed design
 
-Operational visibility combines service telemetry with failure detection outside
-the observed cluster. Recovery copies remain available independently of the
-services and dashboards that normally manage them.
+Observability diagnoses the running system using logs, metrics and distributed
+traces. Security Logging and Audit preserves protected evidence. Independent
+failure detection and recovery remain usable when operational dashboards fail.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Runtime["Hosts, clusters and applications"] -->|Approved signals| Collectors["Telemetry and security collectors"]
-  Collectors -->|Route by signal and policy| Stores["Metrics, traces, logs and audit stores"]
-  Operators["Authorized operators"] -->|Scoped queries| Stores
-  Stores -->|Archive and recovery copies| Recovery["Independent recovery targets"]
-  Runtime -->|Service backups| Recovery
-  External["Independent failure detection"] -->|Health checks| Runtime
-  External -->|Failure alerts| Alerts["External alert delivery"]
-  Stores -->|Owned alert rules| Alerts
+  subgraph T2["Tier 2 / workloads"]
+    Producers["Applications / local collection"]
+  end
+  subgraph T1["Tier 1 / Observability"]
+    subgraph Cluster["Platform Kubernetes / separate workloads"]
+      direction LR
+      Collection["Telemetry gateways"]
+      Backends["Metrics / log and trace search<br/>Scoped queries and UIs"]
+      Collection -->|Logs / metrics / traces| Backends
+    end
+  end
+  subgraph T0["Tier 0 / independent control visibility"]
+    direction LR
+    Evidence["Security Logging and Audit<br/>Protected intake / original evidence"]
+    Health["Independent health checks<br/>External alert delivery"]
+    Evidence ~~~ Health
+  end
+  T2 -->|Application telemetry| T1
+  T2 -->|Security / audit submissions| T0
+  T1 -->|Security / audit submissions| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Runtime,Collectors services
-  class Stores data
-  class Recovery custody
-  class External,Alerts control
-  class Operators actor
+  class T2,T1 services
+  class Cluster runtime
+  class T0,Evidence,Health control
 ```
 
 NetBox documents approved inventory; Headlamp supplies scoped cluster operations.
 Their interfaces complement telemetry without replacing tier-local bootstrap inputs
 or independent recovery records. General telemetry can be Tier 1-owned; Tier 0
 control visibility has an independently recoverable path. Syslog and audit evidence
-from every tier remain in protected Tier 0 custody; shared analytics receives only
+from every tier remain in protected Tier 0 custody; Observability receives only
 approved copies, with application-owner read scopes separate from security readers.
 
 ## Components and interfaces
@@ -59,7 +67,8 @@ approved copies, with application-owner read scopes separate from security reade
 | Cluster interface | Expose scoped cluster operations; not blanket infrastructure administration |
 | Telemetry collectors | Receive, normalize and route signals under approved access policy |
 | Protected log intake | Accept all tiers' security submissions without granting archive queries, editing or deletion |
-| Signal backends | Store metrics, traces, logs and audit records according to purpose and retention |
+| Observability backends | Store operational logs, metrics, traces and approved evidence copies; no authority over Tier 0 originals |
+| Security evidence archive | Retain original security/audit records under Tier 0 custody, independently recoverable |
 | Recovery storage | Retain backups and restore evidence outside the service being recovered |
 | Workload governance | Isolate consumers and authorize changes without transferring Tier 0 control |
 
@@ -76,7 +85,7 @@ approved copies, with application-owner read scopes separate from security reade
 
 | Decision | Alternatives | Consequence |
 | --- | --- | --- |
-| Telemetry placement | A: dedicated VM services; B: cluster services; C: existing service | [Telemetry design](telemetry.md) keeps signal roles independent of placement |
+| Observability placement | Native Kubernetes workloads; separate-role VMs or an existing service as alternatives | [Telemetry design](telemetry.md) separates resource/scaling budgets and retains Tier 0 outage independence |
 | Sharing | Central platform service; isolated project collectors/backends | Isolation follows access, retention and trust requirements |
 | Recovery target | Dedicated backup service; approved external target; protected offsite copy | Storage availability alone is not tested restore |
 | Log retention | NAS snapshots/backups with trusted administration; qualified retention locks | [Archive choices](log-retention.md) make deletion authority and growth recommendations explicit |
@@ -114,7 +123,7 @@ A central dashboard alone is insufficient for independent failure detection.
 
 Implementation procedures: [foundational logging](../../deployment/stage-1-logging/README.md),
 [independent monitoring](../../deployment/stage-4-control-services/monitoring.md),
-[shared analytics](../../deployment/stage-5-delivery/analytics.md),
+[Observability](../../deployment/stage-5-delivery/analytics.md),
 [operational services](../../deployment/stage-4-control-services/README.md#step-2-deploy-operational-services)
 and [operational acceptance](../../deployment/stage-4-control-services/README.md#step-3-integrate-access-and-recovery).
 Recurring work belongs in [administration](../../administration/README.md).

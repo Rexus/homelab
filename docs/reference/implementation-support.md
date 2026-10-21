@@ -19,8 +19,8 @@ working checkouts; Shared helpers do not own the tier deployments they execute.
 | 3/5/6 | Independent cluster nodes/bootstrap | Each tier owns a Kubernetes Terraform root, currently Talos; compact three-control-plane examples and optional pool labels; no autoscaler |
 | 3/4 | Cluster add-ons and control services | Tier-owned cluster starters; application manifests and service integration remain project work |
 | 4 | Dedicated secret-service VM | Tier 0 Vault root/role; Shamir reference; no automatic Transit/PKCS#11 migration |
-| 5; can prepare earlier | Telemetry VM pattern | Tier 1 observability hosts/baseline; collectors/backends need service automation |
-| 4/5/6 | Independent monitoring and shared analytics | Tier 0 critical monitoring, Tier 1 OpenSearch/metrics and Tier 2 collection are design/project integration; no complete product stack installer |
+| 5; can prepare earlier | Dedicated observability VM alternative | Separate Tier 1 gateway, metrics and search hosts/baseline; no product installer |
+| 4/5/6 | Independent monitoring and Observability | Tier 0 critical monitoring stays independent; Tier 1 Kubernetes observability includes OpenSearch initially. Product workloads, access policy and Tier 2 collection remain project integration |
 | 5 | Delivery controller | Tier 0 uses Flux; Tier 1 Argo CD/Spinnaker are unselected design options, not supplied installers |
 | 5 | Source control and general runners | Tier 1 setups and deployment recipes; registry/mirror variants need project integration |
 | 5/6 | Public edge | Tier 2 HAProxy/keepalived plus opt-in native HTTP-01, staging/production separation, verified origin TLS and controller renewal timer; real domain, SELinux/network behavior, failover/renewal and independent alert acceptance remain operator work |
