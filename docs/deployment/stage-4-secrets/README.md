@@ -1,20 +1,25 @@
-# Stage 4: Control services
+# Stage 4: Secrets
 
-Deploy the Tier 0 operational applications into the accepted Kubernetes platform.
-FreeIPA and the issuing CA remain dedicated external services; Flux adds the identity
-provider (IdP), secrets, inventory documentation and operational tools.
+Establish the Tier 0 secret service, its audit trail and independent recovery custody.
+Then add the inventory and administration tools that support platform operation.
+FreeIPA, the issuer and the identity provider already exist.
 
-**Prerequisites:** accepted [identity and runtime](../stage-3-identity-runtime/README.md),
+**Prerequisites:** accepted [Identity](../stage-3-identity/README.md),
 service storage/backups and independent recovery inputs.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-The dedicated observability VM alternative uses `<prefix>-tier-1` instead.
 **Design:** [identity](../../architecture/identity/README.md),
 [secrets](../../architecture/cryptography/README.md) and [operations](../../architecture/operations/README.md).
 
+<a id="step-1-deploy-identity-federation"></a>
+
+Identity federation and the OIDC provider are established in
+[Identity, Step 4](../stage-3-identity/README.md#step-4-deploy-identity-federation).
+This stage integrates secret-service and operator access with that provider.
+
 ## Main path
 
-1. [Deploy identity federation](#step-1-deploy-identity-federation)
-2. [Deploy operational services](#step-2-deploy-operational-services)
+1. [Deploy the secret service](#step-1-deploy-the-secret-service)
+2. [Add operational tools](#step-2-add-operational-tools)
 3. [Integrate access and recovery](#step-3-integrate-access-and-recovery)
 4. [Establish independent monitoring](#step-4-establish-independent-monitoring)
 
@@ -29,25 +34,26 @@ flowchart TB
       subgraph Cluster["Existing Tier 0 Kubernetes"]
         direction TB
         Base["Existing platform services"]
+        Keycloak["Existing Keycloak / IdP"]
         subgraph Added["Project integration / starters only"]
           direction TB
-          Keycloak["Keycloak / IdP"]
           Vault["Vault / secrets"]
           Ops["NetBox / Headlamp"]
-          Keycloak ~~~ Ops
           Vault ~~~ Ops
         end
         Base -. Reviewed project manifests .-> Added
       end
       subgraph Existing["Existing dedicated control VMs"]
-        direction TB
+        direction LR
         subgraph Identity["identity network / directory authority"]
-          Directory["idm-1 / idm-2<br/>FreeIPA"]
+          direction TB
+          Primary["idm-1<br/>FreeIPA primary"]
+          Replica["idm-2<br/>FreeIPA replica"]
+          Primary <-->|Replication| Replica
         end
         Issuer["ca-1<br/>Issuer"]
         Log["log-1<br/>Log intake"]
-        Issuer ~~~ Identity
-        Log ~~~ Identity
+        Log ~~~ Identity ~~~ Issuer
       end
       Cluster -->|LDAP<br/>federation| Existing
     end
@@ -60,7 +66,7 @@ flowchart TB
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   class Existing,Identity boundary
-  class T0,Directory,Issuer,Log control
+  class T0,Primary,Replica,Issuer,Log control
   class T0Title,Placement controlHeading
   class Cluster runtime
   class Added replicas
@@ -69,43 +75,36 @@ flowchart TB
 **Integration:** Tier 0 [application starters](../../../tier-0/clusters/tier0/applications/kustomization.yaml)
 are project-owned placeholders, not installers for the dashed group.
 Supply and review the manifests before Flux can reconcile these applications.
-The [Vault VM alternative](step-2b-vault-vm.md) replaces, rather than duplicates, the cluster Vault instance.
+The [Vault VM alternative](step-1b-vault-vm.md) replaces, rather than duplicates, the cluster Vault instance.
 Independent monitoring is a separate [selected integration](monitoring.md), not an installed workload here.
 
 | Existing interface | New consumer |
 | --- | --- |
-| FreeIPA directory | Keycloak federation |
-| CloudNativePG | Keycloak and NetBox databases |
+| Existing Keycloak / OIDC | Secret-service and operator-tool access where supported |
+| CloudNativePG | NetBox database |
 | Issuing CA | cert-manager requests; Vault integration only through a supported provider |
 | Cluster API | Headlamp with scoped RBAC |
 
-## Step 1: Deploy identity federation
+<a id="step-2-deploy-operational-services"></a>
 
-Add reviewed Keycloak manifests in Tier 0's
-[clusters/tier0/applications/keycloak/](../../../tier-0/clusters/tier0/applications/keycloak/).
-Configure its database,
-TLS and FreeIPA federation; verify group mappings before granting administrative
-roles. The directory remains independent of the IdP.
-
-The source folders are editable starters, not complete application installers.
-Service manifests and integration remain project work; see the
-[support map](../../reference/implementation-support.md).
-
-## Step 2: Deploy operational services
+## Step 1: Deploy the secret service
 
 Keep control-service manifests in Tier 0's
 [clusters/tier0/applications/](../../../tier-0/clusters/tier0/applications/),
-not in Shared. These paths are starters for project integration.
+not in Shared. These paths are starters for project integration,
+not complete application installers; see the [support map](../../reference/implementation-support.md).
 
 Deploy Vault with its own persistent storage, initialization, audit and protected
 unseal/recovery material. It does not use CloudNativePG as its storage backend.
-**Alternative:** [2b: dedicated Vault VM](step-2b-vault-vm.md) replaces the cluster instance.
-[2c: seal integration](step-2c-seal-integration.md) changes unseal/recovery, not PKI signing.
+**Alternative:** [1b: dedicated Vault VM](step-1b-vault-vm.md) replaces the cluster instance.
+[1c: seal integration](step-1c-seal-integration.md) changes unseal/recovery, not PKI signing.
+
+Verify TLS, initialization, scoped access, protected audit forwarding and restore
+before storing service credentials. Keep unseal/recovery material outside Vault.
+
+## Step 2: Add operational tools
 
 Add NetBox with its database/cache dependencies and Headlamp with scoped permissions.
-The optional [2d: dedicated observability VMs](step-2d-telemetry-vm.md) prepares separate
-gateway, metrics and search hosts instead of the normal Tier 1 Kubernetes workloads.
-It does not supply independent Tier 0 monitoring or install the observability products.
 
 NetBox documents inventory. It never supplies the inventory needed to bootstrap
 its own platform. Test backups and restoration before other tiers depend on these services.
@@ -126,14 +125,15 @@ add critical history/diagnostics, then enable and test external alerts. Each ste
 shows what is added to the existing Tier 0 logging foundation.
 
 Required cluster-loss detection stays outside the observed cluster. Observability
-is a separate [Stage 5 capability](../stage-5-delivery/analytics.md), not a prerequisite
+is a separate [Stage 6 capability](../stage-6-observability/README.md), not a prerequisite
 for Tier 0 investigation or alerting.
 
 ## Capability available
 
-**Result:** the control services in the
+**Result:** the secret service in the
 [reference platform](../../architecture/reference-platform.md#service-placement)
-provide federated access, secrets, inventory documentation and visibility.
+provides scoped secret access, auditing and independent unseal/recovery.
+Supporting inventory, administration and monitoring integrations are recorded separately.
 Record access, backup/restore and external failure-detection evidence.
 
 Continue with [Stage 5: Delivery and handover](../stage-5-delivery/README.md).

@@ -53,13 +53,13 @@ configuration for loopback-only HTTP-01 serving.
 ## Rehearse then enable production
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Authority["Existing public ACME authority"]
   subgraph T2["Tier 2 / Edge / public HTTPS option"]
     Controller["Existing Ansible controller<br/>Private order state / renewal timer"]
     subgraph PVE["Existing Proxmox / external_edge VMs"]
-      direction LR
+      direction TB
       A["edge-lb-1<br/>HAProxy / local HTTP-01"]
       B["edge-lb-2<br/>HAProxy / local HTTP-01"]
       C["edge-lb-3<br/>HAProxy / local HTTP-01"]

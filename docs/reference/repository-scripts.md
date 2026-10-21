@@ -40,7 +40,7 @@ these shared implementations.
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
 | `tier-0/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
 | `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../administration/logging-drill.md); no faults or service changes |
-| `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports credentials; currently Talos | [Kubernetes cluster](../deployment/stage-3-identity-runtime/procedures/kubernetes.md) |
+| `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports credentials; currently Talos | [Kubernetes cluster](../deployment/stage-3-identity/procedures/kubernetes.md) |
 
 ## Cheat sheet
 
@@ -78,7 +78,7 @@ Template publication uses the separate
 not `deploy.sh`. It uses provider-native environment variables, a local image
 catalog, and its own state; it never configures a Talos guest through Ansible.
 
-Each tier's independent Kubernetes cluster currently uses the [Talos implementation](../deployment/stage-3-identity-runtime/procedures/talos-terraform.md)
+Each tier's independent Kubernetes cluster currently uses the [Talos implementation](../deployment/stage-3-identity/procedures/talos-terraform.md)
 and `bash scripts/kubernetes-cluster.sh init` from its own root. It owns a separate state
 root, uses tier-local inventory, and does not use the Linux setup/environment wrapper.
 
@@ -277,13 +277,13 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 
 | Setup | What it targets | Start with |
 | --- | --- | --- |
-| `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../deployment/stage-3-identity-runtime/procedures/freeipa.md) |
+| `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../deployment/stage-3-identity/procedures/freeipa.md) |
 | `syslog` | Tier 0 VMs/disks, baseline and isolated TLS receiver after mount/certificate preparation; not an HA/WORM installer | [Foundational logging](../deployment/stage-1-logging/README.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-5-delivery/procedures/edge-proxy.md) |
 | `cache` | shared cache pair or larger set for controlled outbound access | [Cache path](../deployment/foundation/step-3b-outbound-cache.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-5-delivery/step-1b-source-control-vm.md) |
-| `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-4-control-services/step-2b-vault-vm.md) |
-| `observability` | Optional Tier 1 gateway, metrics and search VMs; OS baseline only, not the Kubernetes product deployment or Tier 0 evidence | [Observability VM alternative](../deployment/stage-4-control-services/step-2d-telemetry-vm.md) |
+| `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-4-secrets/step-1b-vault-vm.md) |
+| `observability` | Optional Tier 1 gateway, metrics and search VMs; OS baseline only, not the Kubernetes product deployment or Tier 0 evidence | [Observability VM alternative](../deployment/stage-6-observability/step-1b-dedicated-vms.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../deployment/stage-5-delivery/step-1c-podman-runner.md) |
 | `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../deployment/stage-5-delivery/step-1d-image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/foundation/procedures/enterprise-linux-template.md) |
@@ -421,4 +421,4 @@ consistent.
 - [Local setup](../development/local-setup.md)
 - [Infrastructure automation layout](../development/code-layout.md)
 - [Environment variable conventions](environment-variables.md)
-- [Identity foundation path](../deployment/stage-3-identity-runtime/procedures/freeipa.md)
+- [Identity foundation path](../deployment/stage-3-identity/procedures/freeipa.md)

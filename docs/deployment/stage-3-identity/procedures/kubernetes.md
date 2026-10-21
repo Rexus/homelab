@@ -116,7 +116,7 @@ Tier 0 uses Flux `dependsOn` with readiness/health checks for controllers, custo
 resources, and consumers. Tier 1 uses the selected tool's dependency and health gates.
 A Kustomize `resources` list does not enforce readiness or deployment phases. [4]
 
-Continue with [Tier 0 control services](../../stage-4-control-services/README.md)
+Continue with [Tier 0 identity federation](../README.md#step-4-deploy-identity-federation)
 or the [Tier 1](../../../paths/tier-1/README.md) / [Tier 2 checklist](../../../paths/tier-2/README.md).
 Shared procedures do not justify copying Tier 0 credentials or privileges into another tier.
 

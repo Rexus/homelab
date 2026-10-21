@@ -21,7 +21,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - public cluster entry points are `terraform/deployments/kubernetes/` and
   `scripts/kubernetes-cluster.sh`; retain existing Talos state, inventory, provider,
   and credential contracts. The old script delegates; old roots require deliberate migration
-- `docs/deployment/stage-3-identity-runtime/procedures/kubernetes.md` owns cluster choices and common readiness;
+- `docs/deployment/stage-3-identity/procedures/kubernetes.md` owns cluster choices and common readiness;
   its `talos-terraform.md` sibling and stage's `step-2b-manual-cluster.md` own implementation procedures
 - all three tiers own a Kubernetes root, inventory/IP map, state and credentials;
   shared/scripts/kubernetes-cluster.sh is execution only, with tier-local shortcuts
@@ -117,8 +117,9 @@ This file keeps durable context for AI-assisted work across sessions.
 - delegated provisioning is a design goal, not an implemented controller or API;
   its authoritative contract is docs/architecture/compute/provisioning.md
 - docs/deployment/foundation/ contains unnumbered host/network/access/template prerequisites;
-  docs/deployment/README.md indexes six capability stages: protected logging, cryptographic trust,
-  identity and Kubernetes, control services, delivery and handover, and workload provisioning
+  docs/deployment/README.md indexes seven capability stages: protected logging, cryptographic trust,
+  Identity (directory, cluster foundation and federation), Secrets, delivery and handover,
+  Observability, and workload provisioning
 - protected syslog/audit intake starts in Stage 1 on independent Tier 0 VMs;
   syslog setup provisions VMs/disks and installs Tier 0's isolated syslog-ng OSE receiver after
   explicit data-mount UUID, client catalogue and independent TLS preparation; OS logger is untouched;
@@ -262,6 +263,9 @@ This file keeps durable context for AI-assisted work across sessions.
   a container image alone is insufficient; bootstrap and independent outage visibility stay external
 - Observability uses logs, metrics and distributed traces; Security Logging and Audit is the
   earlier Tier 0 traceability/evidence capability, not the same as distributed tracing
+- Identity federation belongs to Stage 3: Identity; Stage 4: Secrets begins with Vault/audit/recovery.
+  Stage folders use capability names, not implementation/runtime suffixes.
+- Observability has its own Stage 6 after Secrets and the Tier 1 runtime; workload provisioning is Stage 7
 - Tier 1 Observability uses the existing Kubernetes cluster with separately scalable Collector,
   VictoriaMetrics, Data Prepper, OpenSearch and UI workloads; OpenSearch is included initially
 - no all-in-one observability VM default or second Tier 1 syslog/archive; dedicated VM alternatives

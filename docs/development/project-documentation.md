@@ -162,7 +162,7 @@ or prove that a site has deployed it; implementation coverage remains in the
 | Change implementation | Review, validation and adoption procedures | [Code layout](code-layout.md) |
 | Operate and recover | Maintenance, custodians and restore evidence | [Administration](../administration/README.md) |
 
-Deployment starters separate foundation prerequisites from six capability stages,
+Deployment starters separate foundation prerequisites from seven capability stages,
 from protected logging to workload provisioning.
 A repository records consumed prerequisites where another tier owns the work;
 listing a stage or step does not transfer ownership.

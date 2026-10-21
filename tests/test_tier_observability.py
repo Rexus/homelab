@@ -44,7 +44,7 @@ class Observability(TierRepositoryTestCase):
                              "included initially", "readers must have no update/delete",
                              "Tier 1 index deletion never deletes Tier 0 originals"):
                 self.assertIn(expected, design)
-            deployment = (docs / "deployment/stage-5-delivery/analytics.md").read_text()
+            deployment = (docs / "deployment/stage-6-observability/README.md").read_text()
             for expected in ("OpenSearch is included initially", "empty integration starter",
                              "writes to both", "replica shards", "complete worker/physical-host loss",
                              "no archive write/delete, retention or backup powers"):
@@ -113,7 +113,7 @@ class Observability(TierRepositoryTestCase):
                 self.assertIn(expected, telemetry)
             foundation = (docs / "deployment/foundation/README.md").read_text()
             self.assertIn("Stage 1: Protected logging", foundation)
-            later = (docs / "deployment/stage-5-delivery/analytics.md").read_text()
+            later = (docs / "deployment/stage-6-observability/README.md").read_text()
             self.assertIn("An app owner receives an application-log view", later)
             logging_stage = (docs / "deployment/stage-1-logging/README.md").read_text()
             self.assertIn("declared durability limits", logging_stage)

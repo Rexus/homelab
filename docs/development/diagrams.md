@@ -39,6 +39,22 @@ Do not add traffic arrows merely to enforce placement. Invisible flowchart links
 may constrain layout, but convey no dependency. A layer sequence is not a firewall
 allow rule, and tiers are ownership boundaries rather than a network path.
 
+Stack peer instances within a service boundary when that reduces width, for example
+a directory primary above its replica. Keep larger service boundaries in their
+intended left-to-right order; replica alignment need not mean one long horizontal row.
+
+Place administrators and readers to the left of the systems they access. A query
+arrow enters the system; an unsolicited alert or heartbeat can correctly travel
+right-to-left. Keep independent critical monitoring to the right of observed systems,
+and keep human recipients outside external notification-service boundaries.
+Earlier deployment alone does not establish greater authority: verify actual
+bootstrap/recovery dependencies before using foundational placement.
+
+Within one tier, review the consumer/provider pair, not only the arrow direction.
+Place a delivery controller left of its authoritative inputs, and the control cluster
+left of dedicated infrastructure execution. Input delivery can point left while
+scoped requests point right. Keep explicitly chronological workflows in sequence.
+
 Use short, wrapped labels. Separate dense placement and interaction questions
 instead of shrinking one diagram until its text becomes unreadable.
 
@@ -47,6 +63,11 @@ its explanation on the same book or printed page. This is a composition target,
 not a fixed canvas: rearrange or split dense views rather than stretch the image,
 add empty padding or shrink labels. Small workflows can remain naturally wider.
 Review the rendered figure, not only its source, at the intended reading size.
+
+Wrap long chronological workflows into a serpentine (snake) layout: left-to-right,
+down, then right-to-left, repeating as needed. Use numbered steps and arrows at row
+turns so the continuation is unambiguous. Keep rows compact instead of shrinking a
+single long strip. This is a sequence convention, not a reversal of tier/layer placement.
 
 Use one enclosing boundary per tier in a view; place that tier's zones and runtimes
 inside it. More foundational or privileged dependencies belong lower or farther right:

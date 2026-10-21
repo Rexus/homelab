@@ -2,7 +2,7 @@
 
 Use explicit node definitions for capacity and Kubernetes scheduling controls for
 placement. [Topology design](../../architecture/compute/kubernetes.md) defines the
-boundaries; [cluster provisioning](../../deployment/stage-3-identity-runtime/procedures/talos-terraform.md)
+boundaries; [cluster provisioning](../../deployment/stage-3-identity/procedures/talos-terraform.md)
 owns hardware, inventory and state. No autoscaler or rolling node-upgrade controller is supplied.
 
 ## Table of contents

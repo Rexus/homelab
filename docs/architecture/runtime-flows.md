@@ -214,27 +214,46 @@ their separate contracts.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Producers["Authorized service and infrastructure producers"]
-  Intake["Scoped telemetry intake"]
-  Backends["Appropriate metrics, log, trace and audit stores"]
+flowchart LR
   Operators["Authorized operations and response"]
-  Independent["Failure detection outside the observed service"]
-  Producers -->|Signals| Intake
-  Intake -->|Selected routing and retention| Backends
-  Backends -->|Scoped queries and alerts| Operators
-  Independent -->|Check availability| Producers
-  Independent -->|Independent failure alert| Operators
+  subgraph T1["Tier 1 / Observability"]
+    Views["Approved operational views<br/>Scoped logs / metrics / traces"]
+  end
+  Operators -->|Scoped read queries| T1
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Producers,Operators actor
-  class Intake services
-  class Backends data
-  class Independent control
+  class Operators actor
+  class T1,Views services
 ```
+
+Operator access enters from the left; result delivery is not an administrative
+request in the opposite direction. Security-event submission and original-evidence
+custody follow the separate protected logging path.
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart RL
+  subgraph T0["Tier 0 / independent critical monitoring"]
+    Independent["Failure detection<br/>Outside the observed service"]
+  end
+  Producers["Observed services / infrastructure"]
+  External["Independent notification path"]
+  Operators["Authorized operations and response"]
+  Independent -->|Availability checks| Producers
+  Independent -->|Minimal failure alerts| External
+  External -->|Notifications| Operators
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Producers,External services
+  class Operators actor
+  class T0,Independent control
+```
+
+Critical detection stays to the right of the systems it checks. Actual check and
+notification traffic can travel left; arrow direction does not set criticality.
 
 General shared telemetry may belong to Tier 1. All tiers submit security/audit
 records to [protected Tier 0 logging](operations/security-logging.md); Tier 1

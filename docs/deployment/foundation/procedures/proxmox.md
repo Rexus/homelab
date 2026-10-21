@@ -51,7 +51,7 @@ Use the Proxmox platform layer for:
 - [API setup](api-access.md)
 - [Host networking](host-network.md)
 - [Cluster, HA, and Terraform placement](../step-1b-cluster-ha.md)
-- [Kubernetes clusters](../../stage-3-identity-runtime/procedures/kubernetes.md)
+- [Kubernetes clusters](../../stage-3-identity/procedures/kubernetes.md)
 - [Hardening baseline](../../../administration/compute/hardening.md)
 
 ## First deployment order

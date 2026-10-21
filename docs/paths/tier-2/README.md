@@ -17,7 +17,7 @@ Keep clients, public edge and Tier 1 build/supply hosts in separate subnets.
 
 For an independent Kubernetes workload runtime, use this tier's
 `terraform/deployments/kubernetes/` and `bash scripts/kubernetes-cluster.sh init`.
-Follow the [common cluster procedure](../../deployment/stage-3-identity-runtime/procedures/kubernetes.md),
+Follow the [common cluster procedure](../../deployment/stage-3-identity/procedures/kubernetes.md),
 then record [scoped application delivery](../../architecture/delivery/controllers.md).
 The Linux `lab` workflow below is a separate VM option, not the cluster installer.
 
@@ -57,7 +57,7 @@ same inventory; no separate shared inventory is required.
 ## Navigation
 
 - [Inventory and automation layout](../../development/code-layout.md)
-- [Workload provisioning stage](../../deployment/stage-6-workloads/README.md)
+- [Workload provisioning stage](../../deployment/stage-7-workloads/README.md)
 - [VM placement and Proxmox HA](../../deployment/foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
 - [Delivery stage](../../deployment/stage-5-delivery/README.md#step-2-enable-protected-execution)
 - [Project conventions and recovery records](../../development/project-documentation.md)

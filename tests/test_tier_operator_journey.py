@@ -36,8 +36,8 @@ class OperatorJourney(TierRepositoryTestCase):
         guides = (
             ("foundation/step-3b-outbound-cache.md", "cache", ""),
             ("stage-5-delivery/procedures/edge-proxy.md", "edge", ""),
-            ("stage-4-control-services/step-2b-vault-vm.md", "vault", ""),
-            ("stage-3-identity-runtime/procedures/freeipa.md", "foundation", ""),
+            ("stage-4-secrets/step-1b-vault-vm.md", "vault", ""),
+            ("stage-3-identity/procedures/freeipa.md", "foundation", ""),
             ("stage-5-delivery/step-1b-source-control-vm.md", "development", " --env test"),
             ("stage-5-delivery/step-1c-podman-runner.md", "podman-runner", " --env test"),
             ("stage-5-delivery/step-1d-image-based-linux.md", "immutable-template", " --env test"),
@@ -54,10 +54,10 @@ class OperatorJourney(TierRepositoryTestCase):
                 self.assertEqual(positions, sorted(positions), relative)
                 for block in re.findall(r"```bash\n(.*?)```", content, re.DOTALL):
                     self.assertFalse(apply + " --plan-only" in block and apply + "\n" in block, relative)
-            vault = (docs / "deployment/stage-4-control-services/step-2b-vault-vm.md").read_text()
+            vault = (docs / "deployment/stage-4-secrets/step-1b-vault-vm.md").read_text()
             self.assertLess(vault.index("export VAULT_ADDR VAULT_CACERT"), vault.index("vault status"))
             self.assertLess(vault.index("vault login"), vault.index("vault audit enable"))
-            identity = (docs / "deployment/stage-3-identity-runtime/procedures/freeipa.md").read_text()
+            identity = (docs / "deployment/stage-3-identity/procedures/freeipa.md").read_text()
             self.assertIn("same context/state used for the issuer", identity)
 
     def test_hidden_follow_up_covers_every_branch_without_entering_generated_docs(self):

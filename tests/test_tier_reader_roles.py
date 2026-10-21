@@ -27,9 +27,9 @@ class ReaderRoles(TierRepositoryTestCase):
             for relative, owner in (
                 ("foundation/step-3b-outbound-cache.md", "tier-2"),
                 ("stage-2-trust/step-1b-usb-hsm.md", "tier-0"),
-                ("stage-3-identity-runtime/procedures/freeipa.md", "tier-0"),
-                ("stage-4-control-services/step-2b-vault-vm.md", "tier-0"),
-                ("stage-4-control-services/step-2d-telemetry-vm.md", "tier-1"),
+                ("stage-3-identity/procedures/freeipa.md", "tier-0"),
+                ("stage-4-secrets/step-1b-vault-vm.md", "tier-0"),
+                ("stage-6-observability/step-1b-dedicated-vms.md", "tier-1"),
                 ("stage-5-delivery/step-1b-source-control-vm.md", "tier-1"),
                 ("stage-5-delivery/step-1c-podman-runner.md", "tier-1"),
                 ("stage-5-delivery/step-1d-image-based-linux.md", "tier-0"),
@@ -153,15 +153,15 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertIn("Required readiness", deployment)
             self.assertIn("deployment/readiness.md", deployment)
             self.assertIn("Selected variant / local procedure", deployment)
-            for stage in ("stage-1-logging", "stage-2-trust", "stage-3-identity-runtime",
-                          "stage-4-control-services", "stage-5-delivery", "stage-6-workloads"):
+            for stage in ("stage-1-logging", "stage-2-trust", "stage-3-identity",
+                          "stage-4-secrets", "stage-5-delivery", "stage-6-observability", "stage-7-workloads"):
                 self.assertIn(f"{stage}/README.md", deployment)
             self.assertIn("../architecture/README.md", deployment)
             self.assertIn("do not transfer resource or state ownership", deployment)
         reference = self.root / "verify-architecture/docs/auto-docs/deployment"
         self.assertEqual(sorted(path.parent.name for path in reference.glob("stage-*/README.md")),
-                         ["stage-1-logging", "stage-2-trust", "stage-3-identity-runtime",
-                          "stage-4-control-services", "stage-5-delivery", "stage-6-workloads"])
+                         ["stage-1-logging", "stage-2-trust", "stage-3-identity",
+                          "stage-4-secrets", "stage-5-delivery", "stage-6-observability", "stage-7-workloads"])
         for old in ("stages", "compute", "cryptography", "identity", "network", "delivery", "operations"):
             self.assertFalse((reference / old).exists(), old)
         architecture = self.root / "verify-architecture/docs/architecture"

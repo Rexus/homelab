@@ -5,7 +5,7 @@ perspective of a software engineer with newly installed servers and UniFi switch
 This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
 
-**Scope:** clone, generation, foundation, all six stages and adjacent options,
+**Scope:** clone, generation, foundation, all seven stages and adjacent options,
 ordinary users, applications, maintenance, expansion and total-loss recovery.
 **Evidence boundary:** source/generator review and offline tests; no live gateway,
 Proxmox, HSM, service deployment, failover or disaster restore was performed.
@@ -112,7 +112,7 @@ supplied. Their live proof is tracked in the separate
   Tier 2 edge or the cluster it serves. Include DHCP/MAC reservations and bootstrap DNS/time.
 - [ ] **P1: Cluster services.** Add release-pinned delivery, decryption, persistence,
   certificate/ingress and database manifests with health/dependency gates. Empty Kustomize
-  directories do not implement the [cluster foundation](../docs/deployment/stage-3-identity-runtime/procedures/kubernetes.md#cluster-foundation).
+  directories do not implement the [cluster foundation](../docs/deployment/stage-3-identity/procedures/kubernetes.md#cluster-foundation).
 - [ ] **P1: Control applications.** Implement and verify the selected IdP, inventory
   application, cluster interface and cluster-based secret service, including scoped roles,
   data dependencies, audit forwarding and backups. The Vault VM alternative is a different runtime.
@@ -145,10 +145,11 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Foundation | [Preparation](../docs/deployment/foundation/README.md) | Network, access, templates and recovery precede capability deployment; live commissioning required |
 | Logging | [Stage 1](../docs/deployment/stage-1-logging/README.md) | Linux/NAS recipes supplied; actual NAS custody, devices, bounded-loss fault and restore acceptance outstanding |
 | Trust | [Stage 2](../docs/deployment/stage-2-trust/README.md) | Software PKI and file/journal forwarding supplied; qualify packages, actual CA audit scope, ceremonies and live acceptance; hardware remains integration |
-| Identity/runtime | [Stage 3](../docs/deployment/stage-3-identity-runtime/README.md) | Directory recipe and new-cluster lifecycle supplied; endpoint/add-ons still required |
-| Control services | [Stage 4](../docs/deployment/stage-4-control-services/README.md) | Cluster services are starters; independent monitoring has its own path |
+| Identity | [Stage 3](../docs/deployment/stage-3-identity/README.md) | Directory recipe and new-cluster lifecycle supplied; endpoint/add-ons and federation manifests still required |
+| Secrets | [Stage 4](../docs/deployment/stage-4-secrets/README.md) | Secret-service and supporting cluster integrations are starters; independent monitoring has its own path |
 | Delivery | [Stage 5](../docs/deployment/stage-5-delivery/README.md) | VM alternatives supplied; controller, registry and protected execution require selected integrations |
-| Workloads | [Stage 6](../docs/deployment/stage-6-workloads/README.md) | VM/cluster resources and opt-in public HTTPS supplied; application manifests, policies, alerts and live publication acceptance remain project work |
+| Observability | [Stage 6](../docs/deployment/stage-6-observability/README.md) | Separate capability after control and platform runtime; Kubernetes product starter is empty, with dedicated-VM baseline as an alternative |
+| Workloads | [Stage 7](../docs/deployment/stage-7-workloads/README.md) | VM/cluster resources and opt-in public HTTPS supplied; application manifests, policies, alerts and live publication acceptance remain project work |
 | Proxmox HA | [Foundation 1b](../docs/deployment/foundation/step-1b-cluster-ha.md) | Quorum/storage/fencing separate from VM creation; physical failure tests outstanding |
 | Guest SDN | [Foundation 1c](../docs/deployment/foundation/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
 | Outbound cache | [Foundation 3b](../docs/deployment/foundation/step-3b-outbound-cache.md) | Supplied Squid/VIP recipe; independent bootstrap egress and declared transport limits |
@@ -158,11 +159,11 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Replicated USB HSM | [Trust 1b](../docs/deployment/stage-2-trust/step-1b-usb-hsm.md) | Host pool and optional snippet only; provider/application/key readiness and endpoint require implementation |
 | Network HSM | [Trust 1c](../docs/deployment/stage-2-trust/step-1c-network-hsm.md) | Vendor commissioning/client/HA procedure required |
 | Single USB device | [Trust 1d](../docs/deployment/stage-2-trust/step-1d-single-usb.md) | Custody/backup procedure required; availability is not inferred from a token |
-| Manual cluster | [Runtime 2b](../docs/deployment/stage-3-identity-runtime/step-2b-manual-cluster.md) | Valid alternative lifecycle owner; adoption/restore distinct from fresh bootstrap |
-| Vault VM | [Control 2b](../docs/deployment/stage-4-control-services/step-2b-vault-vm.md) | Supplied host/service recipe; initialization, authorization, audit forwarding and restore remain explicit |
-| Seal choice | [Control 2c](../docs/deployment/stage-4-control-services/step-2c-seal-integration.md) | Shamir/Transit/PKCS#11 capability and edition checks; no automatic migration |
-| Observability VMs | [Control 2d](../docs/deployment/stage-4-control-services/step-2d-telemetry-vm.md) | Separate-role fallback to Tier 1 Kubernetes; baseline only, not Tier 0 monitoring |
-| Operator hardware authentication | [Control 3b](../docs/deployment/stage-4-control-services/step-3b-hardware-authentication.md) | Enrollment and lost-token recovery are manual; retain break-glass access |
+| Manual cluster | [Runtime 2b](../docs/deployment/stage-3-identity/step-2b-manual-cluster.md) | Valid alternative lifecycle owner; adoption/restore distinct from fresh bootstrap |
+| Vault VM | [Secrets 1b](../docs/deployment/stage-4-secrets/step-1b-vault-vm.md) | Supplied host/service recipe; initialization, authorization, audit forwarding and restore remain explicit |
+| Seal choice | [Secrets 1c](../docs/deployment/stage-4-secrets/step-1c-seal-integration.md) | Shamir/Transit/PKCS#11 capability and edition checks; no automatic migration |
+| Observability VMs | [Observability 1b](../docs/deployment/stage-6-observability/step-1b-dedicated-vms.md) | Separate-role fallback to Tier 1 Kubernetes; baseline only, not Tier 0 monitoring |
+| Operator hardware authentication | [Secrets 3b](../docs/deployment/stage-4-secrets/step-3b-hardware-authentication.md) | Enrollment and lost-token recovery are manual; retain break-glass access |
 | Source-control VM | [Delivery 1b](../docs/deployment/stage-5-delivery/step-1b-source-control-vm.md) | Supplied container recipe; pin image, prepare TLS and verify product backup/restore |
 | General build runner | [Delivery 1c](../docs/deployment/stage-5-delivery/step-1c-podman-runner.md) | Supplied host recipe; registration/credentials/trust required; no Tier 0 authority |
 | Image-based Linux | [Delivery 1d](../docs/deployment/stage-5-delivery/step-1d-image-based-linux.md) | Conversion is distro/product-specific; retain source image and test rollback |
@@ -212,6 +213,42 @@ be relabelled as a deployed-system pass.
 
 
 ## Repeat cadence
+
+Stage capability naming, 2026-10-21: **163 tests: 134 passed, 29 tool-dependent skips**
+in a fresh Linux scratch copy. Stage 3 is Identity, including directory authority,
+the supporting cluster foundation and Keycloak/OIDC federation. Stage 4 is Secrets,
+starting with Vault/audit/recovery and its renamed 1b/1c options. Removed the empty
+retired workload directory: source and fresh generated trees contain exactly seven
+uniquely numbered stages. Refresh redirects unchanged old guides, while preserving
+local edits/deletions and project-owned records. New federation figures distinguish
+existing services from an unimplemented IdP integration; no installer or live
+acceptance is implied by the reorganization. Changed figures render in both themes
+at desktop and 760px reading widths; hosted review remains separate.
+
+Dependency-placement and compactness review, 2026-10-21: inventoried all **74 diagrams**
+and rendered their baseline in both themes (**148 renders**). Corrected same-tier
+source/controller, cluster/dedicated-control, foundation/add-on and runner/source
+placement. The Vault operator now enters from the left, with recovery custody below
+and outside its connected runtime. Tier 1 application starters are contained inside
+Kubernetes, not beside it. Selected control-plane and edge replicas stack vertically;
+protected state stacks below its runner without changing instance counts or ownership.
+The **161-test** offline suite passed **132 tests, with 29 tool-dependent skips**.
+New tests guard declared placement; separate Mermaid 11.17.2 coordinate checks confirm
+the actual dependency order, tier stacking, compact peers and runtime containment on
+light/dark pages at desktop and 760px widths. Chronological workflows, alerts and
+signal-delivery arrows retain their real semantics. No infrastructure was changed;
+hosted rendering and live acceptance remain separate.
+
+Capability-stage and layout review, 2026-10-21: **154 tests: 125 passed, 29 tool-dependent skips**
+in a fresh Linux scratch copy. Observability now has its own Stage 6 after control
+services and the Tier 1 runtime; workloads move to Stage 7. Source/generated navigation,
+managed-document redirects and local ownership preservation pass the offline suite.
+Changed figures render with Mermaid 11.17.2 in light/dark themes at desktop and 760px
+reading widths. Rendered coordinates confirm stacked directory peers, infrastructure
+CA placement right of IdM, and administrators left of the protected alert runtime and
+outside its external notification service. Heartbeats retain their actual direction.
+Global diagram goals and the local diagram guide record these conventions.
+No product installer, live acceptance or hosted-renderer parity is established by this review.
 
 Observability review, 2026-10-21: **152 tests: 123 passed, 29 tool-dependent skips**
 in a fresh Linux scratch copy. A separate **12-test native Terraform/Ansible run passed,

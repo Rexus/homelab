@@ -30,45 +30,42 @@ size alone does not select the controller.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T2
-    columns 3
-    T2Title["Tier 2 / application targets"]:3
+flowchart TB
+  subgraph T2["Tier 2 / application targets"]
+    direction LR
     Workload["Approved applications"]
     Local["Optional local controller"]
     Scope["Application-scoped access"]
+    Workload ~~~ Local ~~~ Scope
   end
-  block:T1
-    columns 3
-    T1Title["Tier 1 / shared application delivery"]:3
-    Release["Approved source / artifacts"]
-    D["Selected controller<br/>Argo CD or Spinnaker"]
+  subgraph T1["Tier 1 / shared application delivery"]
+    direction RL
     Platform["Tier 1 applications"]
+    D["Selected controller<br/>Argo CD or Spinnaker"]
+    Release["Approved source / artifacts"]
+    Release -->|Approved inputs| D
+    D -->|Scoped changes| Platform
   end
-  block:T0
-    columns 3
-    T0Title["Tier 0 / independently recoverable control"]:3
-    Approved["Retained approved sources"]
-    F["Flux"]
+  subgraph T0["Tier 0 / independently recoverable control"]
+    direction RL
     Control["Control services"]
+    F["Flux"]
+    Approved["Retained approved sources"]
+    Approved -->|Approved inputs| F
+    F -->|Scoped changes| Control
   end
-  Release --> D
-  D --> Platform
-  Approved --> F
-  F --> Control
+  T2 ~~~ T1 ~~~ T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef servicesHeading fill:#e7f0fc,stroke:#e7f0fc,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class T2,T1 services
-  class T2Title,T1Title servicesHeading
   class T0,F,Control control
-  class T0Title controlHeading
   class Release,Approved data
 ```
+
+Applications sit left of their controller; authoritative source inputs sit to its
+right. Arrows show input delivery and scoped changes, not increasing authority.
 
 Tier 1 delivery has no Tier 0 Kubernetes credentials, Proxmox credentials or
 authority over infrastructure state. Infrastructure requests use the separate
@@ -93,7 +90,7 @@ replacement for target authorization. [1][2]
 ## Realization
 
 [Stage 5](../../deployment/stage-5-delivery/README.md) provisions the platform runtime
-and integrates the selected delivery option. [Cluster foundation](../../deployment/stage-3-identity-runtime/procedures/kubernetes.md#cluster-foundation)
+and integrates the selected delivery option. [Cluster foundation](../../deployment/stage-3-identity/procedures/kubernetes.md#cluster-foundation)
 defines the shared readiness gates. Tier 1/2 manifests remain project-owned starters;
 neither Argo CD nor Spinnaker installation is supplied.
 

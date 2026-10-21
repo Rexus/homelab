@@ -113,7 +113,7 @@ Maintain that metadata once in the [shared consumer catalog](../../reference/tem
 **Scope:** this placement contract covers QEMU VMs, not the LXC module. The
 reviewed container provider reads a node-specific path; do not assume the same
 external-migration behavior for LXC. [6] Talos clones need their own resources,
-not the Linux cloud-init module; see [Talos bootstrap](../stage-3-identity-runtime/step-2b-manual-cluster.md).
+not the Linux cloud-init module; see [Talos bootstrap](../stage-3-identity/step-2b-manual-cluster.md).
 
 Complete the [API TLS gate](procedures/api-access.md#tls-gate) before live deployment;
 cluster membership does not establish trusted API certificates.

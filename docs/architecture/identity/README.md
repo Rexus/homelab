@@ -55,13 +55,13 @@ flowchart TB
     subgraph Placement[" "]
       direction LR
       subgraph Cluster["Kubernetes / control_cluster network"]
-        direction LR
+        direction TB
         IdP["Identity provider<br/>IdP / SSO"]
         Data[("IdP state")]
         IdP --> Data
       end
       subgraph Directory["Directory authority / identity network"]
-        direction LR
+        direction TB
         Primary["Directory primary"] <--> Replica["Directory replica"]
       end
       Cluster -->|Protected LDAP federation| Directory
@@ -157,8 +157,8 @@ A server's key custody does not by itself provide strong user authentication.
 
 ## Realization
 
-Implementation procedures: [directory authority](../../deployment/stage-3-identity-runtime/procedures/freeipa.md)
-and [IdP integration](../../deployment/stage-4-control-services/README.md#step-1-deploy-identity-federation).
+Implementation procedures: [directory authority](../../deployment/stage-3-identity/procedures/freeipa.md)
+and [IdP integration](../../deployment/stage-3-identity/README.md#step-4-deploy-identity-federation).
 Windows integration is an explicit project option, not a supplied domain installer.
 
 ## References

@@ -1,11 +1,12 @@
-# Stage 6: Workload provisioning
+# Stage 7: Workload provisioning
 
 Provide a repeatable, approved workflow for Tier 2 VMs and applications. Requests are
 validated and authorized before infrastructure execution; workload GitOps remains
 separate from hypervisor and cluster lifecycle authority.
 
 **Prerequisites:** accepted [delivery and protected execution](../stage-5-delivery/README.md),
-scoped credentials, protected state and tested recovery.
+accepted [Observability interfaces](../stage-6-observability/README.md), scoped
+credentials, protected state and tested recovery.
 **Owners:** Tier 2 workload definitions; Tier 0 privileged execution.
 
 ## Working repositories
@@ -31,10 +32,19 @@ Start with reviewed operator-driven jobs. Automatic self-service is an optional
 implementation of the same bounded contract, not a reason to give general CI credentials.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  User["Administrator / developer"] --> Request["Tier 2 request"]
-  Request --> CI["Validate, plan and test"] --> Gate["Tier 0 approval and policy"]
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+block-beta
+  columns 5
+  User["Administrator<br/>Developer"]:2
+  space
+  Request["1. Tier 2 request<br/>Owner / resource<br/>limits"]:2
+  space:5
+  Gate["3. Tier 0 approval<br/>Infrastructure<br/>policy"]:2
+  space
+  CI["2. Validate<br/>Plan and test"]:2
+  User --> Request
+  Request --> CI
+  CI --> Gate
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
@@ -110,7 +120,7 @@ A and B are independent roots, not one command that creates both; choose the req
 The [Shared executor](../../../shared/scripts/deploy.sh) consumes Tier 2 inventory/state, never owns them.
 
 1. Execute the reviewed tier-local definition and verify the intended network boundaries.
-2. For a workload cluster, reuse the [common Kubernetes procedure](../stage-3-identity-runtime/procedures/kubernetes.md)
+2. For a workload cluster, reuse the [common Kubernetes procedure](../stage-3-identity/procedures/kubernetes.md)
    with the tier-local `terraform/deployments/kubernetes/` root and
    `bash scripts/kubernetes-cluster.sh init`. The current installer uses Talos;
    it does not deploy applications, policies or an autoscaler.

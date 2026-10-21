@@ -217,7 +217,7 @@ Shared never owns inventory, guest network assignments, Terraform resources, or 
 Common non-secret infrastructure references follow the [platform input contract](../reference/platform-inputs.md).
 The Kubernetes implementation currently uses Talos and each owning tier's inventory, but
 not Ansible guest configuration. Its
-[separate root and command](../deployment/stage-3-identity-runtime/procedures/talos-terraform.md) consume Talos groups
+[separate root and command](../deployment/stage-3-identity/procedures/talos-terraform.md) consume Talos groups
 and IP reservations, with state at `.terraform/state/talos/terraform.tfstate`.
 
 NetBox or another inventory application is a Stage 4 documentation service.
@@ -429,7 +429,7 @@ If template-builder inputs and state still belong to Tier 1, also complete the
 separate [template ownership migration](../administration/compute/template-lifecycle.md#existing-collections).
 
 Existing inventories and owned READMEs are never merged. For the new Talos root,
-follow [initialization](../deployment/stage-3-identity-runtime/procedures/talos-terraform.md#configure) and add its groups
+follow [initialization](../deployment/stage-3-identity/procedures/talos-terraform.md#configure) and add its groups
 to Tier 0's existing inventory. Empty legacy `bootstrap/proxmox/` and
 `bootstrap/talos/` starters remain preserved; retire them after review. Customized
 roots with live resources require explicit state/resource adoption, not a second

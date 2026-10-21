@@ -46,6 +46,7 @@ the same pipeline can promote or copy images into Harbor.
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   subgraph T1["Tier 1 / general build execution"]
+    direction LR
     subgraph PVE["Existing Proxmox / delivery_edge DMZ"]
       Runner["runner-1<br/>Podman / GitLab Runner"]
     end

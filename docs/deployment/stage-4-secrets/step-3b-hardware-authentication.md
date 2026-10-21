@@ -160,7 +160,7 @@ passwords from becoming the normal delegated credential between systems.
 
 ## Read more
 
-- [Identity foundation path](../stage-3-identity-runtime/procedures/freeipa.md)
+- [Identity foundation path](../stage-3-identity/procedures/freeipa.md)
 - [Windows and AD support](../../architecture/identity/windows-integration.md)
 - [Shared services model](../../architecture/service-boundaries.md)
 - [Secret strategy](../../administration/secret-handling/strategy.md)

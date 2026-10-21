@@ -124,7 +124,7 @@ class DiagramConventions(TierRepositoryTestCase):
 
     def test_domain_views_group_authority_and_separate_offline_custody(self):
         root = UPSTREAM / "docs/architecture"
-        for name in ("cryptography/README.md", "delivery/README.md", "delivery/controllers.md"):
+        for name in ("cryptography/README.md", "delivery/README.md"):
             code = diagrams(root / name)[0]
             self.assertIn("block-beta", code, name)
             order = [code.index(f"block:T{tier}") for tier in (2, 1, 0)]
@@ -135,6 +135,9 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertGreater(crypto.index('Root["'), crypto.index('Identity["'))
         self.assertIn("Root -.-> Issuer", crypto)
         self.assertIn("Root -.-> Identity", crypto)
+        controllers = diagrams(root / "delivery/controllers.md")[0]
+        self.assertIn("T2 ~~~ T1 ~~~ T0", controllers)
+        self.assertEqual(controllers.count('subgraph T0["'), 1)
         for name in ("cryptography/hsm-selection.md", "cryptography/network-hsm.md",
                      "cryptography/vault-seal.md"):
             for code in diagrams(root / name):
@@ -210,6 +213,34 @@ class DiagramConventions(TierRepositoryTestCase):
         inventory = (UPSTREAM / "tier-0/ansible/inventory/hosts.yml.example").read_text()
         for name in (guest, "log-2"):
             self.assertIn(name, inventory)
+
+    def test_directory_peers_stack_and_issuers_remain_foundational(self):
+        root = UPSTREAM / "docs"
+        identity = diagrams(root / "architecture/identity/README.md")[0]
+        self.assertIn('subgraph Directory["Directory authority / identity network"]\n        direction TB', identity)
+        self.assertIn('Primary["Directory primary"] <--> Replica["Directory replica"]', identity)
+        trust = diagrams(root / "deployment/stage-2-trust/README.md")[0]
+        self.assertLess(trust.index('subgraph Identity['), trust.index('subgraph Crypto['))
+        self.assertIn('Identity ~~~ Crypto', trust)
+        directory = diagrams(root / "deployment/stage-3-identity/README.md")[0]
+        self.assertIn('subgraph PVE["Existing Proxmox hosts"]\n      direction LR', directory)
+        self.assertIn('Identity ~~~ ExistingCA', directory)
+        control = diagrams(root / "deployment/stage-4-secrets/README.md")[0]
+        self.assertIn('Log ~~~ Identity ~~~ Issuer', control)
+        self.assertIn('Primary <-->|Replication| Replica', control)
+
+    def test_queries_enter_from_readers_and_alerts_retain_real_flow(self):
+        root = UPSTREAM / "docs"
+        access = diagrams(root / "deployment/stage-6-observability/README.md")[2]
+        self.assertIn('flowchart LR', access)
+        self.assertIn('Reader -->|Read-only queries| T1', access)
+        self.assertNotIn('Read-only results| Reader', access)
+        alerts = diagrams(root / "deployment/stage-4-secrets/monitoring.md")[2]
+        self.assertIn('flowchart RL', alerts)
+        self.assertIn('Watch -->|Missing heartbeat alert| Admin', alerts)
+        self.assertIn('Log -->|Configured heartbeat| Watch', alerts)
+        external = re.search(r'subgraph External\[.*?\n  end', alerts, re.DOTALL)[0]
+        self.assertNotIn('Admin[', external)
 
     def test_logging_diagrams_link_to_the_owning_iac_at_each_step(self):
         root = UPSTREAM / "docs/deployment/stage-1-logging"

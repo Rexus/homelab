@@ -38,19 +38,17 @@ block-beta
     columns 3
     T1Title["Tier 1 / shared delivery"]:3
     Build["DMZ / build runners<br/>Authoritative mirrors"]
-    Source["Source control<br/>Artifact registry"]
     Delivery["Application delivery<br/>Shared service runtimes"]
+    Source["Source control<br/>Artifact registry"]
   end
   block:T0
     columns 3
     T0Title["Tier 0 / independent infrastructure control"]:3
     Bootstrap["Bootstrap / recovery<br/>Retained code and images"]
-    Gate["Protected execution<br/>Template publication"]
     Flux["Control-service GitOps<br/>Approved sources only"]
+    Gate["Protected execution<br/>Template publication"]
   end
   Clients --> Edge
-  Build --> Source
-  Source --> Delivery
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef servicesHeading fill:#e7f0fc,stroke:#e7f0fc,color:#203a5b
@@ -65,6 +63,10 @@ block-beta
   class T0Title controlHeading
   class Bootstrap actor
 ```
+
+The Tier 1 source authority sits to the right of its delivery consumers. This view
+shows placement and client entry; [controller patterns](controllers.md)
+shows the separate approved-input and scoped-change flows.
 
 Registry interfaces also supply approved OS images and template inputs to host
 consumers. Tier 0 retains independent recovery copies and controls trusted template

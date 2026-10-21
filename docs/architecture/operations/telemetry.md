@@ -102,7 +102,7 @@ policy. Reserve backend capacity and protect cluster control services; the compa
 schedulable control-plane starter is not evidence of spare search capacity.
 Use dedicated worker pools or stronger isolation when interference requires it.
 
-The [VM alternative](../../deployment/stage-4-control-services/step-2d-telemetry-vm.md)
+The [VM alternative](../../deployment/stage-6-observability/step-1b-dedicated-vms.md)
 also separates gateway, metrics and search roles. Co-hosting them in identical VMs
 couples CPU, memory, I/O, maintenance and horizontal scaling, so it is not the reference.
 
@@ -140,10 +140,10 @@ are not the data-authorization boundary.
 ## Realization
 
 [Security Logging and Audit](../../deployment/stage-1-logging/README.md) comes first.
-[Independent monitoring](../../deployment/stage-4-control-services/monitoring.md)
+[Independent monitoring](../../deployment/stage-4-secrets/monitoring.md)
 keeps foundation visibility outside cluster outages.
-[Observability deployment](../../deployment/stage-5-delivery/analytics.md)
-adds gateways, both backends and UIs together; [workload collection](../../deployment/stage-6-workloads/telemetry.md)
+[Observability deployment](../../deployment/stage-6-observability/README.md)
+adds gateways, both backends and UIs together; [workload collection](../../deployment/stage-7-workloads/telemetry.md)
 connects applications.
 
 The cluster folders are project integration starters; the VM recipe supplies

@@ -27,7 +27,7 @@ block-beta
   T2["Tier 2<br/>Workloads"] Workloads["Workload VMs and cluster-node VMs"]:2
   T1["Tier 1<br/>Shared platform"] Shared["Shared-service VMs and cluster-node VMs"]:2
   T0["Tier 0<br/>Trust / infrastructure"]
-  Dedicated["Dedicated service<br/>and execution VMs"] Cluster["Control-cluster<br/>node VMs"]
+  Cluster["Control-cluster<br/>node VMs"] Dedicated["Dedicated service<br/>and execution VMs"]
   Hosts["Hosting foundation for every row: Proxmox hosts and approved resources"]:3
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
@@ -137,5 +137,5 @@ copies and local administrative execution remain available.
 - Parent: [compute and cluster platform](README.md).
 - Whole system: [reference platform](../reference-platform.md), [runtime flows](../runtime-flows.md) and [variant model](../variants.md).
 - Interfaces: [networking](../networking/README.md), [infrastructure control](provisioning.md) and [tier ownership](../tier-ownership.md).
-- Realization: [host/image foundation](../../deployment/foundation/README.md#step-1-prepare-compute-and-templates) and [cluster foundation](../../deployment/stage-3-identity-runtime/README.md#step-2-create-the-kubernetes-cluster).
+- Realization: [host/image foundation](../../deployment/foundation/README.md#step-1-prepare-compute-and-templates) and [cluster foundation](../../deployment/stage-3-identity/README.md#step-2-create-the-kubernetes-cluster).
 - Acceptance and implementation coverage: [deployment readiness](../../deployment/readiness.md).

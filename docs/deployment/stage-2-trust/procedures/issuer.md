@@ -108,7 +108,7 @@ decisions. Community's native ACME is Enterprise-only; acme2certifier requires a
 separately qualified authenticated RPC adapter. RPC, ACME, SCEP and other enrollment
 routes are denied by this initial Apache configuration. [4][5]
 
-Stage 3 uses the [external FreeIPA flow](../../stage-3-identity-runtime/procedures/freeipa.md#external-ca-integration-gate)
+Stage 3 uses the [external FreeIPA flow](../../stage-3-identity/procedures/freeipa.md#external-ca-integration-gate)
 for a sibling identity CA. Existing domains are never recreated or rechained by refresh.
 
 ## IaC ownership

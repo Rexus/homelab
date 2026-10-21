@@ -1,7 +1,7 @@
 # Deploy a fresh software-backed PKI
 
 Build an offline root, an OpenXPKI infrastructure issuer and a sibling FreeIPA CA.
-Public websites use [Let's Encrypt at the edge](../../stage-6-workloads/public-https.md),
+Public websites use [Let's Encrypt at the edge](../../stage-7-workloads/public-https.md),
 not this private root. Root keys never enter a connected hypervisor.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
@@ -126,7 +126,7 @@ make preparation pass; recover a partial CSR operation with that same key.
 
 ## Complete identity and acceptance
 
-Use the [two-phase FreeIPA installation](../../stage-3-identity-runtime/procedures/freeipa.md).
+Use the [two-phase FreeIPA installation](../../stage-3-identity/procedures/freeipa.md).
 Sign its CSR in a separate root ceremony using the same subordinate constraints.
 Complete the primary before installing the CA-enabled replica. This is a sibling
 issuer, not a leaf issued through the TLS-server portal.

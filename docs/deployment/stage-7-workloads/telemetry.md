@@ -7,7 +7,7 @@ This adds lightweight collection, not another full observability stack per clust
 **Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
 Other tiers apply the same routing contract using their own inventories and credentials.
 **Prerequisites:** approved runtime, [Tier 0 intake](../stage-1-logging/README.md) and the
-selected [Tier 1 telemetry interfaces](../stage-5-delivery/analytics.md).
+selected [Tier 1 telemetry interfaces](../stage-6-observability/README.md).
 **Design:** [telemetry boundaries](../../architecture/operations/telemetry.md).
 
 ## Main path
@@ -139,4 +139,4 @@ this verification view creates no new service or host.
 | Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Reusable host preparation only |
 
 **Result:** approved signals reach their scoped destinations without granting workload
-users evidence deletion authority. Return to [Stage 6 acceptance](README.md#capability-available).
+users evidence deletion authority. Return to [Stage 7 acceptance](README.md#capability-available).

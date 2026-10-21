@@ -60,11 +60,12 @@ Hardware expense, node count and successful VM creation do not establish a level
 | Capability | First integration | Evidence for acceptance |
 | --- | --- | --- |
 | Compute | Compute foundation; identity/runtime | Approved guests and APIs work; selected node/storage failures and independent restore are tested |
-| Cryptography | Cryptographic trust; control services | Authorized/denied signing, state/session correctness, host/USB loss, selected VIP partition behavior, Tier 1/2 independence and offline restore |
-| Identity | Identity/runtime; control services | Replication, scoped federation, denied access, replica/IdP loss and lost-credential recovery |
+| Cryptography | Cryptographic trust; Secrets | Authorized/denied signing, state/session correctness, host/USB loss, selected VIP partition behavior, Tier 1/2 independence and offline restore |
+| Identity | Identity; service-specific access integration | Replication, scoped federation, denied access, replica/IdP loss and lost-credential recovery |
 | Traffic and delivery | Compute foundation; delivery and handover | Scoped publication/pulls, promotion, rollback, endpoint failover and recovery artifacts |
 | Protected logging | Stage 1; sources added with each tier | Numbered-event accounting, declared durable checkpoint, receiver/host loss, selected NAS-custody or retention-lock checks, segmented reads and independent restore |
-| Independent monitoring and Observability | Tier 0 outage visibility; separate Tier 1 Kubernetes workloads for logs, metrics and traces | Independent alerts, replicated backends, scoped queries, approved copies and tested queue replay/restore |
+| Independent monitoring | Stage 4: Tier 0 outage visibility | Required failures produce alerts without the observed cluster, Tier 1 or normal SSO |
+| Observability | Stage 6: separate Tier 1 workloads for logs, metrics and traces | Replicated backends, scoped queries, approved copies and tested queue replay/restore |
 
 The directory and identity provider, or issuer and seal provider, may have different readiness.
 Each stage records acceptance and operational handover; later stages do not postpone basic protection and

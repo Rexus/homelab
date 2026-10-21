@@ -37,7 +37,7 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
                              'extra-disk input', 'Debian 12', '2028-06-30', 'openxpki_required_state_paths'):
                 self.assertIn(expected, issuer)
             self.assertNotIn('bash scripts/deploy.sh openxpki', issuer)
-            identity = (docs / 'deployment/stage-3-identity-runtime/procedures/freeipa.md').read_text()
+            identity = (docs / 'deployment/stage-3-identity/procedures/freeipa.md').read_text()
             for expected in ('## External CA integration gate', 'two-phase install',
                              'ipareplica_setup_ca: true', 'ipaserver_external_ca'):
                 self.assertIn(expected, identity)

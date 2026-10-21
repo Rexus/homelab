@@ -111,7 +111,7 @@ Supply project roles/manifests for the selected independent runtime; the existin
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
+flowchart RL
   subgraph T0["Tier 0 / Control"]
     subgraph Project["Project integration / selected monitoring runtime"]
       Rules["Local rules"] --> Routing["Independent notification client"]
@@ -120,9 +120,9 @@ flowchart LR
   end
   subgraph External["Existing external notification service"]
     Watch["Heartbeat / dead-man checks"]
-    Admin["Authorized administrators"]
-    Watch -->|Missing heartbeat| Admin
   end
+  Admin["Authorized administrators"]
+  Watch -->|Missing heartbeat alert| Admin
   Routing -->|Minimal alert payloads| Admin
   Log -->|Configured heartbeat| Watch
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
@@ -130,7 +130,8 @@ flowchart LR
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T0,Rules,Routing,Watch,Log control
+  class T0,Rules,Routing,Log control
+  class External,Watch services
   class Admin actor
   class Project replicas
 ```
@@ -138,6 +139,8 @@ flowchart LR
 **Integration:** implement monitoring rules/routing separately.
 The existing Tier 0 [archive job](../../../tier-0/ansible/playbooks/deployment/logging-archive.yml)
 can call its configured external watchdog, but does not install that external service or the dashed rule engine.
+The protected runtime stays on the right; heartbeat and alert traffic travels left
+through the external service to administrators outside that service boundary.
 
 1. Configure local evaluation and notification routing, such as Alertmanager, with
    independent credentials and an approved external notification path. Keep alert payloads
@@ -159,5 +162,5 @@ can call its configured external watchdog, but does not install that external se
 | Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common OS preparation, not inventory, state or alert authority |
 
 Return to [Stage 4 acceptance](README.md#capability-available). Later
-[Tier 1 Observability](../stage-5-delivery/analytics.md) adds shared diagnosis without
+[Tier 1 Observability](../stage-6-observability/README.md) adds shared diagnosis without
 taking ownership of foundation alerts or protected evidence.

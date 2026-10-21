@@ -27,14 +27,14 @@ so healthy traffic is spread while every VIP can still fail over.
 ## Default deployment
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Clients["Existing external / internal clients"]
   subgraph T2["Tier 2 / Edge / external_edge"]
     direction LR
     VIP["Configured VIP set<br/>Preferred owners / failover"]
     subgraph PVE["Existing Proxmox / edge VMs"]
-      direction LR
+      direction TB
       A["edge-lb-1<br/>HAProxy / keepalived"]
       B["edge-lb-2<br/>HAProxy / keepalived"]
       C["edge-lb-3<br/>HAProxy / keepalived"]
@@ -160,7 +160,7 @@ bash scripts/deploy.sh edge
 
 ## Verify before publication
 
-For a browser-facing website, use the [public HTTPS procedure](../../stage-6-workloads/public-https.md)
+For a browser-facing website, use the [public HTTPS procedure](../../stage-7-workloads/public-https.md)
 for HTTP-01, trusted public certificates, verified origin TLS and scheduled renewal.
 The generic edge recipe does not select or obtain those certificates on its own.
 

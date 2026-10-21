@@ -71,8 +71,8 @@ block-beta
   space:2 Analytics["Observability<br/>Logs / metrics / traces"] space:2
   T0["Tier 0<br/>Infrastructure / trust"]
   space:2
-  IdM["Directory authority<br/>IdM"] IdP["Identity provider<br/>IdP / SSO"]
-  space:3 PKI["Certificate issuance<br/>PKI"] Secrets["Secrets management"]
+  IdP["Identity provider<br/>IdP / SSO"] IdM["Directory authority<br/>IdM"]
+  space:3 Secrets["Secrets management"] PKI["Certificate issuance<br/>PKI"]
   space:3 Infrastructure["Infrastructure control"] Operations["Inventory and<br/>control visibility"]
   space:3 Evidence["Protected log intake<br/>Security / audit evidence"]:2
   Custodians["Tier 0 custody"]

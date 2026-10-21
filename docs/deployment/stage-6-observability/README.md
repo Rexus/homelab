@@ -1,4 +1,4 @@
-# Observability
+# Stage 6: Observability
 
 Deploy operational visibility for **logs, metrics and distributed traces** in the
 existing Tier 1 Kubernetes cluster. OpenSearch is included initially, alongside
@@ -9,8 +9,10 @@ evidence. Observability adds diagnosis and scoped queries; it cannot modify that
 or administer Tier 0.
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
-**Prerequisites:** accepted platform runtime, backend worker capacity, persistent
-storage/backups, source identities and selected Tier 1 delivery controller.
+**Prerequisites:** accepted [Tier 1 platform runtime](../stage-5-delivery/README.md),
+[secrets and recovery access](../stage-4-secrets/README.md),
+backend worker capacity, persistent storage/backups and source identities.
+Equivalent verified existing services can satisfy these contracts.
 **Design:** [signals, placement, independent scaling and availability](../../architecture/operations/telemetry.md).
 **Coverage:** the cluster directory is still an empty integration starter.
 The following steps define the required deployment, not an existing product installer.
@@ -53,7 +55,7 @@ flowchart TB
 It contains no workloads. The [cluster inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.tfvars.example)
 supply the underlying runtime, not this application stack.
 
-1. Reuse the [platform cluster](procedures/platform-cluster.md); do not create another
+1. Reuse the [platform cluster](../stage-5-delivery/procedures/platform-cluster.md); do not create another
    Linux VM fleet alongside it. Argo CD or Spinnaker remains the project's delivery choice.
 2. Reserve separate gateway, metrics, search, processing and UI resources. Protect API/etcd
    capacity; add or size backend workers through the tier-owned cluster inputs when needed.
@@ -66,7 +68,7 @@ Use the documented [Collector operator](https://opentelemetry.io/docs/platforms/
 Store reviewed manifests/values in the Tier 1 starter, then reconcile with its selected controller.
 No single umbrella all-in-one workload is required.
 
-**Alternative:** [dedicated VMs](../stage-4-control-services/step-2d-telemetry-vm.md)
+**Alternative:** [1b: dedicated VMs](step-1b-dedicated-vms.md)
 replace the relevant hosting selection; they are not extra default capacity.
 
 <a id="step-2-deploy-scoped-ingestion-and-backends"></a>
@@ -143,42 +145,35 @@ Tier 0 independent monitoring remains available if this entire cluster fails.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart BT
-  subgraph T0["Tier 0 / original security evidence"]
-    direction LR
-    Evidence["Protected log archive"]
-    Export["Approved scope / redaction"]
-    Evidence --> Export
-  end
+flowchart LR
+  Reader["Application owner / authorized security reader"]
   subgraph T1["Tier 1 / Observability"]
-    subgraph Project["Project integration / read authorization"]
-      direction LR
-      Copies["OpenSearch / approved copies"]
-      UI["Dashboards / scoped results"]
-      Metrics["VMUI / metrics results"]
-      Copies --> UI
-      UI ~~~ Metrics
+    subgraph Cluster["Existing platform Kubernetes"]
+      subgraph Project["Project integration / read authorization"]
+        direction TB
+        Search["Dashboards<br/>Scoped log / trace views"]
+        Metrics["VMUI<br/>Scoped metrics queries"]
+        Search ~~~ Metrics
+      end
     end
   end
-  Reader["Application owner / authorized security reader"]
-  T0 -->|Approved copies only| T1
-  T1 -->|Read-only results| Reader
+  Reader -->|Read-only queries| T1
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T0,Evidence,Export control
-  class T1,UI,Metrics services
-  class Copies data
+  class T1,Search,Metrics services
+  class Cluster runtime
   class Project replicas
   class Reader actor
 ```
 
 **Integration:** supply Tier 1 [query and access configuration](../../../tier-1/clusters/tier1/platform/observability/kustomization.yaml).
-The picture shows approved copy/result flow, not a Tier 1 mount or write path into the archive.
-Tier 0 export/redaction remains separately authorized.
+This view shows query interfaces; backend placement and replica counts remain as
+defined in Step 2. Readers enter from the left and query Tier 1 only. Tier 0 originals are outside
+this query view: no archive mount or write path is granted. Export/redaction remains
+separately authorized in Tier 0 before an approved copy reaches OpenSearch.
 
 1. Authorize and redact exports in Tier 0 before transfer. The export identity receives
    only its approved scope; it has no archive write/delete, retention or backup powers.
@@ -204,6 +199,14 @@ Changing or deleting a search copy does not change the original retained log.
 | Tier 1 | [terraform/deployments/observability/](../../../tier-1/terraform/deployments/observability/) | Explicit VM alternative only |
 | Tier 0 | [protected logging](../stage-1-logging/README.md) | Original evidence and approved export boundary |
 
-Return to [Stage 5 acceptance](README.md#capability-available), then connect
-[workload collection](../stage-6-workloads/telemetry.md). Do not add another
-syslog archive or Netdata parent to Tier 1 merely because a UI needs log visibility.
+## Capability available
+
+**Result:** the [Observability design](../../architecture/operations/telemetry.md)
+provides operational logs, metrics, distributed traces and scoped read-only views,
+with the selected redundancy, recovery and loss limits demonstrated.
+Original security evidence and independent foundation alerts remain Tier 0-owned.
+
+Record deployment and acceptance evidence; the empty starter does not meet this gate.
+Continue with [Stage 7: Workload provisioning](../stage-7-workloads/README.md)
+and its [collection path](../stage-7-workloads/telemetry.md). Do not add a second
+syslog archive merely because an operational UI needs approved log visibility.

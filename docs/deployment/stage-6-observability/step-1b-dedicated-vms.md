@@ -1,12 +1,12 @@
-# Step 2d: Dedicated observability VMs
+# Step 1b: Dedicated observability VMs
 
-**Normal path:** [Observability in Tier 1 Kubernetes](../stage-5-delivery/analytics.md).
+**Normal path:** [Observability in Tier 1 Kubernetes](README.md).
 **Change:** use dedicated VMs instead of the Kubernetes workloads.
 It separates resource profiles; it does not combine all products into identical VMs.
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
-**Branch from:** [Step 2](README.md#step-2-deploy-operational-services) of control services
-when preparing the runtime early, or [Observability, Step 1](../stage-5-delivery/analytics.md#step-1-prepare-the-runtime).
+**Branch from:** [Step 1](README.md#step-1-prepare-the-runtime) when choosing the runtime.
+**Return:** [Step 2](README.md#step-2-deploy-the-signal-pipelines) to integrate the services.
 **Design:** [signals, scaling and availability](../../architecture/operations/telemetry.md).
 **Coverage:** VM creation and OS baseline only; no product or HA-runtime installer.
 
@@ -107,7 +107,7 @@ separation through the selected [cluster policy](../foundation/step-1b-cluster-h
 
 ## Step 3: Integrate and accept the services
 
-Follow [Observability, Steps 2 and 3](../stage-5-delivery/analytics.md#step-2-deploy-the-signal-pipelines)
+Follow [Observability, Steps 2 and 3](README.md#step-2-deploy-the-signal-pipelines)
 with project-owned service automation for these hosts instead of cluster workloads.
 
 1. Install independently sized gateways, replicated metrics and the search cluster.

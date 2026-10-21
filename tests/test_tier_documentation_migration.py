@@ -54,7 +54,17 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "deployment/stage-0-foundation/README.md", "deployment/stage-1-trust/usb-hsm.md",
                     "deployment/stage-1-foundation/README.md",
                     "deployment/stage-1-foundation/procedures/syslog.md",
-                    "deployment/stage-4-control-services/procedures/observability.md"]
+                    "deployment/stage-4-control-services/procedures/observability.md",
+                    "deployment/stage-5-delivery/analytics.md",
+                    "deployment/stage-4-control-services/step-2d-telemetry-vm.md",
+                    "deployment/stage-6-workloads/README.md",
+                    "deployment/stage-6-workloads/telemetry.md",
+                    "deployment/stage-6-workloads/public-https.md",
+                    "deployment/stage-3-identity-runtime/README.md",
+                    "deployment/stage-3-identity-runtime/procedures/kubernetes.md",
+                    "deployment/stage-4-control-services/README.md",
+                    "deployment/stage-4-control-services/step-2b-vault-vm.md",
+                    "deployment/stage-4-control-services/step-2c-seal-integration.md"]
         for old in examples:
             relative = f"docs/auto-docs/{old}"
             path = repo / relative

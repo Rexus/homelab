@@ -2,7 +2,7 @@
 
 Deploy independent Tier 0 log intake before PKI, FreeIPA or Kubernetes. This capability
 provides **Security Logging and Audit** for traceability and recovery. Later
-[Observability](../stage-5-delivery/analytics.md) adds operational diagnosis, not evidence custody.
+[Observability](../stage-6-observability/README.md) adds operational diagnosis, not evidence custody.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 Run repository scripts from this root; Shared is execution code, not an evidence owner.
@@ -205,7 +205,7 @@ it without identity services or a cluster. A single collector still has a declar
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart BT
-  subgraph T1["Tier 1 / later Stage 5"]
+  subgraph T1["Tier 1 / later Stage 6"]
     Search["Scoped analytics<br/>Approved copies only"]
   end
   subgraph T0[" "]
@@ -314,5 +314,5 @@ Do not move Tier 1 observability state or reuse a VM under two states.
 **Result:** protected logging realizes the [evidence design](../../architecture/operations/security-logging.md)
 at its recorded readiness, before PKI or identity. Add sources as each tier appears.
 Continue with [Stage 2: Cryptographic trust](../stage-2-trust/README.md).
-Later [monitoring](../stage-4-control-services/monitoring.md) and
-[Observability](../stage-5-delivery/analytics.md) extend visibility without replacing the archive.
+Later [monitoring](../stage-4-secrets/monitoring.md) and
+[Observability](../stage-6-observability/README.md) extend visibility without replacing the archive.

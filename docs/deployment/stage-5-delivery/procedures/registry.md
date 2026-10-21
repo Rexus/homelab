@@ -32,7 +32,7 @@ the repository does not supply a complete Harbor/Dragonfly installer.
 | Existing approved service | Verify the same endpoint, policy and recovery requirements without creating another registry |
 
 These are alternatives, not a mandatory GitLab-to-Harbor-to-Dragonfly sequence.
-A new Tier 1 cluster reuses the [common cluster procedure](../../stage-3-identity-runtime/procedures/kubernetes.md)
+A new Tier 1 cluster reuses the [common cluster procedure](../../stage-3-identity/procedures/kubernetes.md)
 with tier-local inputs and state. Do not retire the bootstrap artifact source until
 the new path and independent recovery have been accepted.
 

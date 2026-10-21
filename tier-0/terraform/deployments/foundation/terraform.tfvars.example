@@ -1,7 +1,7 @@
 # Copy to: terraform/deployments/foundation/terraform.tfvars
 # Optionally copy to terraform.<env>.tfvars only for environment overrides.
 # Replace every value before use.
-# Setup guide: docs/deployment/stage-3-identity-runtime/procedures/freeipa.md
+# Setup guide: docs/deployment/stage-3-identity/procedures/freeipa.md
 # Tier network inputs live in ../../common.tfvars; the shared helper loads platform/image references.
 
 # Optional: override the shared default Linux VM template for this setup or

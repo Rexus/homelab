@@ -40,8 +40,8 @@ block-beta
     columns 3
     T0Title["Tier 0 / Control / infrastructure trust and secrets"]:3
     Secrets["Secret service<br/>Separate seal"]
-    Issuer["Infrastructure issuer<br/>Selected signing provider"]
     Identity["Identity issuer<br/>Directory CA"]
+    Issuer["Infrastructure issuer<br/>Selected signing provider"]
     Root["Offline custody / root CA and recovery material<br/>Authorized ceremony; no routed connection"]:3
   end
   Root -.-> Issuer
@@ -148,6 +148,6 @@ does not establish the required isolation, recovery or compliance properties.
 ## Realization
 
 Implementation procedures: [trust and custody](../../deployment/stage-2-trust/README.md#step-1-prepare-issuer-and-key-custody)
-and [secret-service integration](../../deployment/stage-4-control-services/README.md#step-2-deploy-operational-services).
+and [secret-service integration](../../deployment/stage-4-secrets/README.md#step-1-deploy-the-secret-service).
 Device operations remain authorized procedures; the existing hsm automation supplies
 hosts and baseline only.

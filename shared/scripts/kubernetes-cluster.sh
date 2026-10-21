@@ -7,13 +7,13 @@ umask 077
 
 if [[ $# == 1 && "$1" == --help ]]; then
   echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials}"
-  echo "Current implementation: Talos. Reference: docs/deployment/stage-3-identity-runtime/procedures/kubernetes.md"
+  echo "Current implementation: Talos. Reference: docs/deployment/stage-3-identity/procedures/kubernetes.md"
   exit 0
 fi
 
 if [[ $# != 1 || ! "$1" =~ ^(init|plan|apply|credentials)$ ]]; then
   echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials}" >&2
-  echo "Current implementation: Talos. Reference: docs/deployment/stage-3-identity-runtime/procedures/kubernetes.md" >&2
+  echo "Current implementation: Talos. Reference: docs/deployment/stage-3-identity/procedures/kubernetes.md" >&2
   exit 1
 fi
 action="$1"

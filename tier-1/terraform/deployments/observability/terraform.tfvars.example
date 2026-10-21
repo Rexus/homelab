@@ -1,5 +1,5 @@
 # Copy to: terraform/deployments/observability/terraform.tfvars
-# Guide: docs/deployment/stage-4-control-services/step-2d-telemetry-vm.md
+# Guide: docs/deployment/stage-6-observability/step-1b-dedicated-vms.md
 # Optional dedicated-VM alternative to the Tier 1 Kubernetes observability workloads.
 # Separate gateway, metrics and search roles scale independently.
 # Terraform and the Ansible recipe create VMs and OS baseline only.

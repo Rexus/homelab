@@ -1,8 +1,8 @@
-# Stage 3: Identity and Kubernetes
+# Stage 3: Identity
 
-Provide the dedicated directory pair and the Tier 0 Kubernetes foundation. Ansible
-configures FreeIPA on VMs; cluster tooling establishes Kubernetes, then Flux and basic
-platform services. Keycloak and operational applications arrive in the next stage.
+Establish directory authority and federated service authentication. Ansible configures
+FreeIPA on dedicated VMs; the Tier 0 Kubernetes foundation hosts the identity provider.
+Cluster bootstrap and basic services precede the Keycloak/OIDC integration.
 
 **Prerequisites:** approved compute, templates, certificate trust, software supply,
 a reachable bootstrap source and independent credentials.
@@ -15,6 +15,7 @@ a reachable bootstrap source and independent credentials.
 1. [Deploy the directory pair](#step-1-deploy-the-directory-pair)
 2. [Create the Kubernetes cluster](#step-2-create-the-kubernetes-cluster)
 3. [Establish the basic platform](#step-3-establish-the-basic-platform)
+4. [Deploy identity federation](#step-4-deploy-identity-federation)
 
 ## Step 1: Deploy the directory pair
 
@@ -25,9 +26,9 @@ flowchart TB
     direction TB
     T0Title["Tier 0 / Control layer"]
     subgraph PVE["Existing Proxmox hosts"]
-      direction TB
+      direction LR
       subgraph Identity["identity network / dedicated VMs"]
-        direction LR
+        direction TB
         Primary["idm-1<br/>FreeIPA primary"]
         Replica["idm-2<br/>FreeIPA replica"]
         Primary <-->|Replication| Replica
@@ -69,8 +70,9 @@ once their prerequisites exist. Preserve independent administrative credentials.
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph T0["Tier 0 / Control layer"]
+    direction LR
     subgraph PVE["Existing Proxmox hosts / control_cluster network"]
-      direction LR
+      direction TB
       CP1["k8ctl-1<br/>Talos control plane"]
       CP2["k8ctl-2<br/>Talos control plane"]
       CP3["k8ctl-3<br/>Talos control plane"]
@@ -120,7 +122,7 @@ flowchart TB
         Network["CNI, storage and ingress selection"]
         Flux["Flux / SOPS"]
         Base["cert-manager / CloudNativePG"]
-        Network ~~~ Flux ~~~ Base
+        Base ~~~ Flux ~~~ Network
       end
     end
     T0Title ~~~ Cluster
@@ -155,11 +157,70 @@ Supply reviewed manifests, verify reconciliation,
 decryption, persistence, TLS and database health, and start backups as state appears.
 Flux requires a reachable source with independent credentials, not merely a local checkout.
 
+## Step 4: Deploy identity federation
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0[" "]
+    direction TB
+    T0Title["Tier 0 / Control layer"]
+    subgraph Placement[" "]
+      direction LR
+      subgraph Cluster["Existing Tier 0 Kubernetes"]
+        direction TB
+        subgraph Added["Project integration<br/>Not installed"]
+          Keycloak["Keycloak / IdP"]
+        end
+        Data[("Existing CloudNativePG<br/>Identity-provider database")]
+        Keycloak -->|Database access| Data
+      end
+      subgraph Identity["Existing dedicated VMs / identity network"]
+        direction TB
+        Primary["idm-1<br/>FreeIPA primary"]
+        Replica["idm-2<br/>FreeIPA replica"]
+        Primary <-->|Replication| Replica
+      end
+      Cluster -->|Protected LDAP federation| Identity
+    end
+    T0Title ~~~ Placement
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  class T0,Keycloak,Primary,Replica control
+  class T0Title,Placement controlHeading
+  class Cluster runtime
+  class Identity boundary
+  class Data data
+  class Added replicas
+```
+
+**Integration:** Tier 0 [Keycloak manifests](../../../tier-0/clusters/tier0/applications/keycloak/kustomization.yaml)
+are an empty starter, not an installer. The existing directory comes from the
+[FreeIPA recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml);
+the database must pass [Step 3 readiness](#step-3-establish-the-basic-platform) first.
+
+Add reviewed Keycloak manifests with its database, TLS and FreeIPA federation.
+Configure OIDC clients, group mappings and scoped service roles; verify permitted
+and denied logins before granting administrative access. Each consumer retains
+its own authorization. The directory remains independent of the IdP.
+
+Retain bootstrap credentials and test recovery without normal directory or IdP login.
+Later stages register their service-specific clients against this identity provider;
+they do not deploy another provider. Service manifests and integration remain project
+work; see the [support map](../../reference/implementation-support.md).
+
 ## Capability available
 
-**Result:** replicated directory services and a Kubernetes runtime ready for the
-control applications in the [reference platform](../../architecture/reference-platform.md#service-placement).
-Neither bootstrap nor recovery requires Keycloak, Vault, GitLab or Harbor.
+**Result:** replicated directory services, a federated identity provider and the
+supporting Kubernetes platform realize the
+[identity design](../../architecture/identity/README.md). Bootstrap and recovery
+remain independent of normal Keycloak login, Vault, GitLab and Harbor.
 
-Record directory, cluster and backup checks. Continue with
-[Stage 4: Control services](../stage-4-control-services/README.md).
+Record directory, federation, cluster and backup checks. Continue with
+[Stage 4: Secrets](../stage-4-secrets/README.md).

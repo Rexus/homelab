@@ -4,7 +4,7 @@ Provide shared source control, artifact supply and build execution, then hand ro
 infrastructure work to a separate protected Tier 0 runner. Delivery coordinates changes;
 it does not gain authority over Tier 0 merely by hosting the repositories.
 
-**Prerequisites:** accepted [control services](../stage-4-control-services/README.md),
+**Prerequisites:** accepted [Secrets](../stage-4-secrets/README.md),
 approved templates, tier-local inputs and an independent bootstrap/recovery environment.
 **Owners:** Tier 1 delivery services; Tier 2 public edge; Tier 0 privileged infrastructure execution.
 
@@ -25,7 +25,6 @@ code, not delivery-service inventory or infrastructure state; see [repository lo
 
 1. [Deploy shared delivery services](#step-1-deploy-shared-delivery-services)
 2. [Enable protected execution](#step-2-enable-protected-execution)
-3. [Deploy Observability](#step-3-deploy-observability)
 
 ## Step 1: Deploy shared delivery services
 
@@ -34,28 +33,30 @@ The selected delivery platform deploys shared applications; Tier 0 remains on Fl
 Choose Argo CD application GitOps or Spinnaker release pipelines before enabling delivery.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph T1[" "]
+  subgraph T1["Tier 1 / Application / Services"]
     direction TB
-    T1Title["Tier 1 / Application / Services"]
     subgraph PVE["Existing Proxmox cluster"]
       direction TB
       subgraph Platform["Kubernetes / application network"]
         direction LR
-        CP1["platform-k8ctl-1"]
-        CP2["platform-k8ctl-2"]
-        CP3["platform-k8ctl-3"]
-        CP1 ~~~ CP2 ~~~ CP3
+        subgraph Apps["Project integration / application starters only"]
+          direction TB
+          Delivery["Unselected Argo CD or Spinnaker<br/>Optional Rancher / Fleet"]
+          Git["GitLab / Harbor"]
+          Delivery ~~~ Git
+        end
+        subgraph Nodes["Cluster node VMs"]
+          direction TB
+          CP1["platform-k8ctl-1"]
+          CP2["platform-k8ctl-2"]
+          CP3["platform-k8ctl-3"]
+          CP1 ~~~ CP2 ~~~ CP3
+        end
+        Apps ~~~ Nodes
       end
-      subgraph Apps["Project integration / application starters only"]
-        Git["GitLab / Harbor"]
-        Delivery["Unselected Argo CD or Spinnaker<br/>Optional Rancher / Fleet"]
-        Git ~~~ Delivery
-      end
-      Platform ~~~ Apps
     end
-    T1Title ~~~ PVE
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
@@ -63,7 +64,6 @@ flowchart TB
   classDef servicesHeading fill:#e7f0fc,stroke:#e7f0fc,color:#203a5b
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   class T1,Platform,CP1,CP2,CP3 services
-  class T1Title servicesHeading
   class PVE boundary
   class Apps replicas
 ```
@@ -97,7 +97,7 @@ Provision a hardened infrastructure runner as a Tier 0 management VM, outside th
 Tier 1 cluster. The bootstrap workstation remains available for independent recovery.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph T1["Tier 1 / existing delivery"]
     Git["GitLab / proposed infrastructure job"]
@@ -110,22 +110,22 @@ flowchart TB
         Bootstrap["Existing bootstrap workstation / VM"]
       end
       subgraph ControlArea[" "]
-        direction TB
+        direction LR
+      subgraph Cluster["Existing Tier 0 Kubernetes"]
+        Flux["Existing Flux<br/>Approved read-only sources"]
+      end
       subgraph Management["Control / management network"]
         direction TB
         subgraph Integration["Project integration / not installed"]
-          direction LR
+          direction TB
           Runner["Protected runner VM<br/>Tier 0 authorization"]
           State[("Tier-local state")]
           Runner <--> State
         end
         PVE["Existing Proxmox / cluster lifecycle"]
-        Integration -->|Approved lifecycle| PVE
+        Runner -->|Approved lifecycle| PVE
       end
-      subgraph Cluster["Existing Tier 0 Kubernetes"]
-        Flux["Existing Flux<br/>Approved read-only sources"]
-      end
-      Management ~~~ Cluster
+      Cluster ~~~ Management
       end
       Entry -->|Recovery| ControlArea
   end
@@ -166,17 +166,7 @@ it does not deploy the dashed runner/controller group or its authorization polic
 Source control coordinates them, while GitOps separately reconciles approved applications.
 
 <a id="step-3-deploy-shared-investigation"></a>
-
-## Step 3: Deploy Observability
-
-Follow the [Observability deployment](analytics.md): prepare capacity in the Tier 1
-cluster, deploy separate signal pipelines and backends, then verify scoped views.
-OpenSearch is included from the start alongside OpenTelemetry and VictoriaMetrics.
-Logs, metrics and distributed traces support diagnosis without taking custody of
-Tier 0 security evidence or independent foundation alerts.
-
-This capability can be deployed once the Step 1 platform is ready; it does not
-have to wait for protected-runner handover when those dependencies are already verified.
+<a id="step-3-deploy-observability"></a>
 
 ## Capability available
 
@@ -184,4 +174,4 @@ The delivery and execution portions of the
 [reference platform](../../architecture/reference-platform.md#access-and-automation)
 are operational. Execution has moved from the workstation; resource and state ownership
 have not moved between tiers. Continue with
-[Stage 6: Workload provisioning](../stage-6-workloads/README.md).
+[Stage 6: Observability](../stage-6-observability/README.md), then workload provisioning.

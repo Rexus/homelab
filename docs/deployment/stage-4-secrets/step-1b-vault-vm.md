@@ -1,13 +1,13 @@
-# Step 2b: Vault on a dedicated VM
+# Step 1b: Vault on a dedicated VM
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 Run repository scripts from this root; paths below are repository-relative.
 
 <a id="vault-foundation-deployment"></a>
 
-**Branch from:** [Step 2](README.md#step-2-deploy-operational-services), instead of deploying the cluster instance.
+**Branch from:** [Step 1](README.md#step-1-deploy-the-secret-service), instead of deploying the cluster instance.
 **Change:** Use the supplied VM-based secret-service deployment.
-**Return:** [Step 2](README.md#step-2-deploy-operational-services) to continue with the remaining control services and access checks.
+**Return:** [Step 1](README.md#step-1-deploy-the-secret-service) for secret-service acceptance before the operational tools and access checks.
 
 **Design:** [secret-service responsibilities](../../architecture/cryptography/README.md).
 
@@ -31,18 +31,20 @@ deploy Vault as the shared secret-platform service.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
+flowchart LR
   Operator["Authorized operator<br/>Manual initialization / unseal"]
   subgraph T0["Tier 0 / Control"]
+    direction BT
+    Recovery["Independent share and backup custody"]
     subgraph PVE["Existing Proxmox / cryptography network"]
+      direction TB
       VM["vault-1<br/>Vault installed / initially sealed"]
       Data[("OS disk / local Raft data")]
       VM --> Data
     end
+    Recovery -. Manual unseal / recovery transfer .-> PVE
   end
-  Operator -->|Verified TLS / authorized bootstrap| VM
-  Recovery["Independent share and backup custody"]
-  Operator -. Protected recovery material .-> Recovery
+  Operator -->|Verified TLS / authorized bootstrap| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -232,7 +234,7 @@ with the security docs instead of extending this deployment guide:
 
 ## Read more
 
-- [Identity foundation path](../stage-3-identity-runtime/procedures/freeipa.md)
+- [Identity foundation path](../stage-3-identity/procedures/freeipa.md)
 - [Shared services model](../../architecture/service-boundaries.md)
 - [Windows and AD support](../../architecture/identity/windows-integration.md)
 - [Deployment readiness](../readiness.md)

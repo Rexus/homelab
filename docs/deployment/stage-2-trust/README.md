@@ -31,19 +31,19 @@ flowchart BT
     end
     subgraph PVE["Existing Proxmox / foundation root"]
       direction LR
+      subgraph Identity["identity network / configuration in Stage 3"]
+        direction TB
+        Primary["idm-1<br/>Allocated VM only"]
+        Replica["idm-2<br/>Allocated VM only"]
+        Primary ~~~ Replica
+      end
       subgraph Crypto["cryptography network"]
         direction TB
         Issuer["ca-1<br/>OpenXPKI runtime"]
         Data[("scsi1 / CA data disk<br/>Manual mount and activation")]
         Issuer -->|Attached disk| Data
       end
-      subgraph Identity["identity network / configuration in Stage 3"]
-        direction LR
-        Primary["idm-1<br/>Allocated VM only"]
-        Replica["idm-2<br/>Allocated VM only"]
-        Primary ~~~ Replica
-      end
-      Crypto ~~~ Identity
+      Identity ~~~ Crypto
     end
     Offline -. "Signed certificate transfer; no network route" .-> PVE
   end
@@ -61,6 +61,8 @@ flowchart BT
 **IaC:** Tier 0 [foundation guest definitions](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
 and [issuer recipe](../../../tier-0/ansible/playbooks/deployment/openxpki.yml).
 The unchanged starter root allocates all three VMs; directory configuration follows in Stage 3.
+The issuer is configured first and drawn to the right; the FreeIPA CA remains its
+sibling under the offline root, not a subordinate of the infrastructure issuer.
 The root ceremony, data mount and CA activation require the linked procedures.
 Hardware options replace software key custody; they are not additional default VMs.
 
@@ -128,4 +130,4 @@ it must not acquire ceremony authority.
 **Result:** certificate trust and online issuance are operational according to the
 [cryptography design](../../architecture/cryptography/README.md), independently of the
 future cluster. Record recovery evidence and continue with
-[Stage 3: Identity and Kubernetes](../stage-3-identity-runtime/README.md).
+[Stage 3: Identity](../stage-3-identity/README.md).

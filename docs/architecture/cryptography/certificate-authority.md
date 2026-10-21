@@ -29,10 +29,10 @@ block-beta
   block:T0
     columns 2
     T0Title["Tier 0 / CA authority and custody"]:2
-    Services["Infrastructure certificates"]
     Hosts["Host / identity certificates"]
-    Infrastructure["Infrastructure issuing CA<br/>Dedicated issuer runtime"]
+    Services["Infrastructure certificates"]
     Identity["Identity issuing CA<br/>Replicated directory runtime"]
+    Infrastructure["Infrastructure issuing CA<br/>Dedicated issuer runtime"]
     Root["Offline root CA / separate custody<br/>Authorized subordinate signing; no network route"]:2
   end
   Infrastructure --> Services

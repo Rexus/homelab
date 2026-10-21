@@ -21,11 +21,11 @@ Use this path when the private cloud needs an application runtime layer above
 the Proxmox VM foundation.
 
 For installation and node-OS choices, follow the common
-[Kubernetes cluster guide](../../stage-3-identity-runtime/procedures/kubernetes.md).
+[Kubernetes cluster guide](../../stage-3-identity/procedures/kubernetes.md).
 Use the [Tier 1 checklist](../../../paths/tier-1/README.md) for platform services or the
 [Tier 0 checklist](../../../paths/tier-0/README.md) for the independent control cluster.
 This page explains application-platform choices. Every tier has its own
-[Kubernetes Terraform root](../../stage-3-identity-runtime/procedures/talos-terraform.md), currently implemented
+[Kubernetes Terraform root](../../stage-3-identity/procedures/talos-terraform.md), currently implemented
 with Talos; GitOps and cluster-service
 directories remain starters rather than a complete platform installer.
 
@@ -78,7 +78,7 @@ without the normal delivery service. Never register Tier 0 as a Tier 1 delivery 
 
 ## Cluster foundation
 
-Follow the common [cluster foundation checklist](../../stage-3-identity-runtime/procedures/kubernetes.md#cluster-foundation)
+Follow the common [cluster foundation checklist](../../stage-3-identity/procedures/kubernetes.md#cluster-foundation)
 for networking, reconciliation, secrets, persistence, TLS, and databases.
 It applies to all tiers independently of node OS and owns the readiness gates.
 Then continue with the [Tier 1 service checklist](../../../paths/tier-1/README.md).
@@ -88,4 +88,4 @@ Then continue with the [Tier 1 service checklist](../../../paths/tier-1/README.m
 - [Delivery stage](../README.md#step-2-enable-protected-execution)
 - [Private cloud model](../../../architecture/private-cloud.md)
 - [Shared services model](../../../architecture/service-boundaries.md)
-- [Telemetry procedure](../../stage-4-control-services/step-2d-telemetry-vm.md)
+- [Telemetry procedure](../../stage-6-observability/step-1b-dedicated-vms.md)

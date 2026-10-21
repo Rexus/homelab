@@ -42,14 +42,14 @@ def tier_readme(writer, tier, prefix, setups):
         "```bash\n"
         "bash scripts/kubernetes-cluster.sh init\n"
         "```\n\n"
-        f"Follow the [cluster procedure]({docs}/deployment/stage-3-identity-runtime/procedures/talos-terraform.md)\n"
+        f"Follow the [cluster procedure]({docs}/deployment/stage-3-identity/procedures/talos-terraform.md)\n"
         "to configure, plan, deploy and verify. Cluster manifests are starters, not installed services.\n"
         f"Record the [delivery choice]({docs}/architecture/delivery/controllers.md) separately;\n"
         "Tier 1 does not inherit Tier 0 Flux automatically.\n"
     )
     if tier == "tier-0":
         prerequisites = (
-            f"Follow the [six-capability deployment checklist]({docs}/paths/tier-0/README.md#deployment-order).\n"
+            f"Follow the [seven-capability deployment checklist]({docs}/paths/tier-0/README.md#deployment-order).\n"
             f"Verify [foundation prerequisites]({docs}/deployment/foundation/README.md) first; "
             "numbered stages add platform capabilities.\n\n"
             f"Prepare [Proxmox hosts]({docs}/deployment/foundation/procedures/proxmox.md#first-deployment-order)\n"
@@ -74,15 +74,15 @@ def tier_readme(writer, tier, prefix, setups):
             "```bash\n"
             "bash scripts/kubernetes-cluster.sh init\n"
             "```\n\n"
-            f"Follow the [Kubernetes guide]({docs}/deployment/stage-3-identity-runtime/procedures/kubernetes.md) and its\n"
-            f"current [Talos implementation]({docs}/deployment/stage-3-identity-runtime/procedures/talos-terraform.md) to review\n"
+            f"Follow the [Kubernetes guide]({docs}/deployment/stage-3-identity/procedures/kubernetes.md) and its\n"
+            f"current [Talos implementation]({docs}/deployment/stage-3-identity/procedures/talos-terraform.md) to review\n"
             "inventory, hardware, and cluster settings, then plan and apply. The node OS\n"
             "is an implementation choice; other OS installers are not included.\n"
             "Keycloak is a later service in this cluster.\n"
             "FreeIPA runs on two dedicated VMs through\n"
             "the Linux `foundation` setup, outside Kubernetes. The Linux\n"
             "helper does not create the cluster or install Keycloak.\n"
-            f"The [externally signed CA flow]({docs}/deployment/stage-3-identity-runtime/procedures/freeipa.md#external-ca-integration-gate)\n"
+            f"The [externally signed CA flow]({docs}/deployment/stage-3-identity/procedures/freeipa.md#external-ca-integration-gate)\n"
             "uses explicit CSR/pause and signed-certificate completion phases; offline signing remains separate.\n"
         )
     owned_template(writer, "readmes/tier.md", "README.md", prefix=prefix,

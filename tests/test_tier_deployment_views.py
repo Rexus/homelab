@@ -55,11 +55,11 @@ class DeploymentViews(unittest.TestCase):
             ("stage-2-trust/README.md", 0, "tier-0", "foundation",
              ["issuing_ca", "identity_primary", "identity_replicas"]),
             ("stage-2-trust/step-1b-usb-hsm.md", 0, "tier-0", "hsm", ["hsm_gateways"]),
-            ("stage-3-identity-runtime/README.md", 0, "tier-0", "foundation",
+            ("stage-3-identity/README.md", 0, "tier-0", "foundation",
              ["issuing_ca", "identity_primary", "identity_replicas"]),
-            ("stage-3-identity-runtime/README.md", 1, "tier-0", "kubernetes", ["talos_control_plane"]),
-            ("stage-4-control-services/step-2b-vault-vm.md", 0, "tier-0", "vault", ["vault"]),
-            ("stage-4-control-services/step-2d-telemetry-vm.md", 0, "tier-1", "observability",
+            ("stage-3-identity/README.md", 1, "tier-0", "kubernetes", ["talos_control_plane"]),
+            ("stage-4-secrets/step-1b-vault-vm.md", 0, "tier-0", "vault", ["vault"]),
+            ("stage-6-observability/step-1b-dedicated-vms.md", 0, "tier-1", "observability",
              ["observability"]),
             ("stage-5-delivery/README.md", 0, "tier-1", "kubernetes", ["talos_control_plane"]),
             ("stage-5-delivery/step-1b-source-control-vm.md", 0, "tier-1", "development",
@@ -68,8 +68,8 @@ class DeploymentViews(unittest.TestCase):
             ("stage-5-delivery/step-1d-image-based-linux.md", 0, "tier-0", "immutable-template",
              ["immutable_template_builders"]),
             ("stage-5-delivery/procedures/edge-proxy.md", 0, "tier-2", "edge", ["edge_load_balancers"]),
-            ("stage-6-workloads/README.md", 1, "tier-2", "kubernetes", ["talos_control_plane"]),
-            ("stage-6-workloads/README.md", 1, "tier-2", "lab", ["lab"]),
+            ("stage-7-workloads/README.md", 1, "tier-2", "kubernetes", ["talos_control_plane"]),
+            ("stage-7-workloads/README.md", 1, "tier-2", "lab", ["lab"]),
             ("foundation/step-3b-outbound-cache.md", 0, "tier-2", "cache", ["cache"]),
         ]
         selections = {}
@@ -95,11 +95,11 @@ class DeploymentViews(unittest.TestCase):
 
     def test_unimplemented_services_are_not_drawn_as_installed_products(self):
         cases = [
-            ("stage-3-identity-runtime/README.md", "tier-0/clusters/tier0/infrastructure/cni"),
-            ("stage-4-control-services/README.md", "tier-0/clusters/tier0/applications/keycloak"),
+            ("stage-3-identity/README.md", "tier-0/clusters/tier0/infrastructure/cni"),
+            ("stage-4-secrets/README.md", "tier-0/clusters/tier0/applications/keycloak"),
             ("stage-5-delivery/README.md", "tier-1/clusters/tier1/platform/source-control"),
-            ("stage-5-delivery/analytics.md", "tier-1/clusters/tier1/platform/observability"),
-            ("stage-6-workloads/README.md", "tier-2/clusters/tier2"),
+            ("stage-6-observability/README.md", "tier-1/clusters/tier1/platform/observability"),
+            ("stage-7-workloads/README.md", "tier-2/clusters/tier2"),
         ]
         for relative, starter in cases:
             document = DOCS / "deployment" / relative

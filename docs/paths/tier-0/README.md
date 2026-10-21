@@ -16,7 +16,7 @@ Tier 1 or Tier 2. Start here for a new installation.
 Record [project conventions](../../development/project-documentation.md#start-with-project-values)
 and prepare [local tools](../../development/local-setup.md) first.
 Verify the unnumbered [foundation prerequisites](../../deployment/foundation/README.md),
-then follow the [six capability stages](../../deployment/README.md).
+then follow the [seven capability stages](../../deployment/README.md).
 Each stage's README explains its numbered steps with diagrams and acceptance checks;
 options branch from the relevant decision and return to the main path.
 
@@ -24,10 +24,11 @@ options branch from the relevant decision and return to the main path.
 | --- | --- | --- |
 | **1: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1-3](../../deployment/stage-1-logging/README.md) |
 | **2: Cryptographic trust** | Offline root and online issuer; optional hardware protection | [Trust](../../deployment/stage-2-trust/README.md) |
-| **3: Identity and Kubernetes** | Dedicated FreeIPA pair and control cluster | [Identity and Kubernetes](../../deployment/stage-3-identity-runtime/README.md) |
-| **4: Control services** | Keycloak, Vault, NetBox, Headlamp and independent alerts | [Control services](../../deployment/stage-4-control-services/README.md), [monitoring](../../deployment/stage-4-control-services/monitoring.md) |
+| **3: Identity** | Dedicated FreeIPA pair, control-cluster foundation and Keycloak/OIDC | [Identity](../../deployment/stage-3-identity/README.md) |
+| **4: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../deployment/stage-4-secrets/README.md), [monitoring](../../deployment/stage-4-secrets/monitoring.md) |
 | **5: Delivery and handover** | Protected Tier 0 runner; Tier 1 owns delivery services | [Delivery and handover](../../deployment/stage-5-delivery/README.md) |
-| **6: Workload provisioning** | Approve and execute infrastructure requests | [Workload provisioning](../../deployment/stage-6-workloads/README.md) |
+| **6: Observability** | Authorize scoped evidence copies; Tier 1 owns operational backends and UIs | [Observability](../../deployment/stage-6-observability/README.md) |
+| **7: Workload provisioning** | Approve and execute infrastructure requests | [Workload provisioning](../../deployment/stage-7-workloads/README.md) |
 
 Select optional [HA](../../deployment/foundation/step-1b-cluster-ha.md) and
 [SDN](../../deployment/foundation/step-1c-sdn.md) before important guests.
@@ -57,9 +58,9 @@ After the trust stage, initialize the Kubernetes control cluster:
 bash scripts/kubernetes-cluster.sh init
 ```
 
-Follow the [common Kubernetes procedure](../../deployment/stage-3-identity-runtime/procedures/kubernetes.md)
-and [current Talos implementation](../../deployment/stage-3-identity-runtime/procedures/talos-terraform.md)
-to configure, plan, and deploy. The [identity VM guide](../../deployment/stage-3-identity-runtime/procedures/freeipa.md)
+Follow the [common Kubernetes procedure](../../deployment/stage-3-identity/procedures/kubernetes.md)
+and [current Talos implementation](../../deployment/stage-3-identity/procedures/talos-terraform.md)
+to configure, plan, and deploy. The [identity VM guide](../../deployment/stage-3-identity/procedures/freeipa.md)
 covers the separate FreeIPA pair. Linux setup commands use tier-local inventory
 and state; they do not bootstrap Kubernetes or install cluster services.
 Replace `homelab` in paths if another prefix was selected.
