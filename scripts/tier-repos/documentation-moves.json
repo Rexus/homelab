@@ -246,5 +246,6 @@
   "deployment/stage-4-control-services/monitoring.md": "deployment/stage-4-secrets/monitoring.md",
   "deployment/stage-4-control-services/step-2b-vault-vm.md": "deployment/stage-4-secrets/step-1b-vault-vm.md",
   "deployment/stage-4-control-services/step-2c-seal-integration.md": "deployment/stage-4-secrets/step-1c-seal-integration.md",
-  "deployment/stage-4-control-services/step-3b-hardware-authentication.md": "deployment/stage-4-secrets/step-3b-hardware-authentication.md"
+  "deployment/stage-4-control-services/step-3b-hardware-authentication.md": "deployment/stage-4-secrets/step-3b-hardware-authentication.md",
+  "architecture/cryptography/hardware-migration.md": "administration/cryptography/hardware-migration.md"
 }

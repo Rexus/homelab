@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+umask 077
 
 if [[ $# == 1 && ( "$1" == --help || "$1" == -h ) ]]; then
   echo "Usage: bash ${BASH_SOURCE[0]} {init|plan|apply}"

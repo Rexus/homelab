@@ -34,6 +34,7 @@ prepared data storage, production configuration bundle and authorized custodians
    Set `ca-1`'s per-guest `template_vm_id`, extra data disk, `issuing_ca` inventory
    entry and foundation IP. For a new Stage 2 installation, the desired guest map
    may contain only `ca-1`; later add the identity pair to this **same state**.
+   The unchanged starter includes all three guests; it is not an issuer-only plan.
    Never remove an already-managed guest to match a stage label.
 3. Review and provision, without running the identity recipe:
 

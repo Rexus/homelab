@@ -1,6 +1,7 @@
 # Deploy a fresh software-backed PKI
 
-Build an offline root, an OpenXPKI infrastructure issuer and a sibling FreeIPA CA.
+Build an offline root and an OpenXPKI infrastructure issuer in Stage 2.
+Stage 3 adds the sibling FreeIPA CA using that root; it is not installed by this procedure.
 Public websites use [Let's Encrypt at the edge](../../stage-7-workloads/public-https.md),
 not this private root. Root keys never enter a connected hypervisor.
 
@@ -15,7 +16,7 @@ owning generated repository. Existing authorities need migration, not this proce
 - [Build the private policy bundle](#build-the-private-policy-bundle)
 - [Install and prepare the issuing key](#install-and-prepare-the-issuing-key)
 - [Sign and activate](#sign-and-activate)
-- [Complete identity and acceptance](#complete-identity-and-acceptance)
+- [Accept the issuer and continue](#accept-the-issuer-and-continue)
 - [References](#references)
 
 ## Decisions and recovery kit
@@ -37,7 +38,7 @@ Manual renewal uses a new CSR through the same approval workflow.
 
 Software encryption does not prevent a compromised running CA host from signing.
 Restrict host administration and qualify the
-[hardware migration path](../../../architecture/cryptography/hardware-migration.md).
+[hardware migration path](../../../administration/cryptography/hardware-migration.md).
 
 ## Build the private policy bundle
 
@@ -124,17 +125,25 @@ make preparation pass; recover a partial CSR operation with that same key.
    [issuer recipe](issuer.md#step-3-activate-and-accept-issuance), then complete
    [native token activation](issuer-token.md). Starting services is not token import.
 
-## Complete identity and acceptance
+<a id="complete-identity-and-acceptance"></a>
 
-Use the [two-phase FreeIPA installation](../../stage-3-identity/procedures/freeipa.md).
+## Accept the issuer and continue
+
+Before accepting Stage 2, pass the selected
+[CA acceptance tests](../../../administration/cryptography/certificate-authority.md#acceptance-evidence),
+including [independent restoration](../../../administration/cryptography/issuer-recovery.md).
+Record the issuer's readiness before continuing to
+[Stage 3: Identity](../../stage-3-identity/README.md).
+
+In Stage 3, use the [two-phase FreeIPA installation](../../stage-3-identity/procedures/freeipa.md).
 Sign its CSR in a separate root ceremony using the same subordinate constraints.
 Complete the primary before installing the CA-enabled replica. This is a sibling
 issuer, not a leaf issued through the TLS-server portal.
 
-Before production, pass every [CA acceptance test](../../../administration/cryptography/certificate-authority.md#acceptance-evidence),
-including [independent restoration](../../../administration/cryptography/issuer-recovery.md).
-Deploy the public edge separately and prove wrong-chain/hostname rejection,
-renewal, VIP failover and [security alerts](../../../administration/cryptography/security-controls.md).
+Public edge deployment is separate later work, not a Stage 2 acceptance dependency.
+When publishing public services, follow the
+[HTTPS deployment](../../stage-7-workloads/public-https.md) for origin trust, renewal
+and failover, and retain [independent security alerts](../../../administration/cryptography/security-controls.md).
 
 ## References
 

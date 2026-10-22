@@ -45,11 +45,16 @@ class DeploymentPaths(TierRepositoryTestCase):
             stages = sorted(root.glob("stage-*/README.md"))
             self.assertEqual(stages[0].parent.name, "stage-1-logging")
             self.assertFalse((root / "stage-1-foundation").exists())
-            for relative in ("stage-1-logging/README.md", "stage-4-secrets/monitoring.md",
-                             "stage-6-observability/README.md", "stage-7-workloads/telemetry.md"):
+            expected_steps = {
+                "stage-1-logging/README.md": ["1", "2", "3"],
+                "stage-4-secrets/monitoring.md": ["1", "2", "3"],
+                "stage-6-observability/README.md": ["1", "2", "3", "4"],
+                "stage-7-workloads/telemetry.md": ["1", "2", "3"],
+            }
+            for relative, expected in expected_steps.items():
                 content = (root / relative).read_text()
                 steps = re.findall(r"(?m)^## Step (\d+):", content)
-                self.assertEqual(steps, ["1", "2", "3"], relative)
+                self.assertEqual(steps, expected, relative)
                 sections = re.split(r"(?m)^## Step \d+:", content)[1:]
                 for section in sections:
                     self.assertIn("```mermaid", section, relative)

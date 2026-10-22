@@ -202,7 +202,8 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn('Existing Tier 0 recovery host', steps[2])
         self.assertLess(steps[2].index('subgraph T1['), steps[2].index('subgraph T0['))
         self.assertLess(steps[2].index('subgraph T0['), steps[2].index('subgraph Recovery['))
-        self.assertIn('T0 -->|Read-only NAS archive pull| Recovery', steps[2])
+        self.assertIn('    subgraph Recovery[', steps[2])
+        self.assertIn('Placement -->|Read-only NAS archive pull| Recovery', steps[2])
         redundant = diagrams(root / "step-3b-redundant-intake.md")[0]
         self.assertIn('subgraph PVE1["', redundant)
         self.assertIn('subgraph PVE2["', redundant)
@@ -231,7 +232,7 @@ class DiagramConventions(TierRepositoryTestCase):
 
     def test_queries_enter_from_readers_and_alerts_retain_real_flow(self):
         root = UPSTREAM / "docs"
-        access = diagrams(root / "deployment/stage-6-observability/README.md")[2]
+        access = diagrams(root / "deployment/stage-6-observability/README.md")[3]
         self.assertIn('flowchart LR', access)
         self.assertIn('Reader -->|Read-only queries| T1', access)
         self.assertNotIn('Read-only results| Reader', access)

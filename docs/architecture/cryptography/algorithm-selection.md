@@ -85,7 +85,8 @@ key-establishment group and traffic cipher. [2][7][8]
 Record key purpose, algorithm, size, provider, owner, creation/expiry, consumer
 compatibility, recovery location and replacement procedure in the private project.
 Rotate leaf keys through their certificate workflow. Change a CA identity only
-through the documented rollover or [hardware migration](hardware-migration.md).
+through the documented rollover or
+[hardware migration procedure](../../administration/cryptography/hardware-migration.md).
 
 Review this baseline when standards or vendor support change, a weakness is published,
 or the protected data lifetime changes. A short certificate lifetime does not erase

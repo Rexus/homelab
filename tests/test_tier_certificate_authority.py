@@ -52,7 +52,18 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
         variables = yaml.safe_load((UPSTREAM / 'tier-0/ansible/group_vars/foundation.yml.example').read_text())
         self.assertNotIn('ipaserver_external_ca', variables)
         self.assertTrue(variables['ipareplica_setup_ca'])
-        self.assertEqual(variables['foundation_freeipa_ca_mode'], 'internal')
+        self.assertEqual(variables['foundation_freeipa_ca_mode'], 'external')
+
+    def test_refresh_keeps_existing_internal_identity_inputs_without_rechaining(self):
+        self.generate()
+        variables = self.root / 'verify-tier-0/ansible/group_vars/foundation.yml'
+        variables.write_text('foundation_freeipa_ca_mode: internal\n')
+        self.generate('--refresh')
+        self.assertEqual(yaml.safe_load(variables.read_text())['foundation_freeipa_ca_mode'], 'internal')
+        example = variables.with_suffix('.yml.example')
+        self.assertEqual(yaml.safe_load(example.read_text())['foundation_freeipa_ca_mode'], 'external')
+        recipe = (UPSTREAM / 'tier-0/ansible/playbooks/deployment/identity-freeipa.yml').read_text()
+        self.assertIn("foundation_freeipa_ca_mode | default('internal')", recipe)
 
     def test_generated_owned_design_and_hidden_checklist_keep_their_boundaries(self):
         self.generate()

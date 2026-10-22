@@ -163,4 +163,7 @@ through the external service to administrators outside that service boundary.
 
 Return to [Stage 4 acceptance](README.md#capability-available). Later
 [Tier 1 Observability](../stage-6-observability/README.md) adds shared diagnosis without
-taking ownership of foundation alerts or protected evidence.
+taking ownership of foundation alerts or protected evidence. Its
+[infrastructure-monitoring step](../stage-6-observability/infrastructure-monitoring.md)
+expands Netdata diagnostics and Proxmox/BMC coverage; Tier 0 retains local collection,
+credentials and critical alerts when Tier 1 is unavailable.

@@ -5,6 +5,11 @@ the capability to deploy and follow its main README from Step 1 onward.
 Each stage explains the main path with diagrams, names the capability available at
 the end, and links back to the architecture it implements.
 
+**Before starting:** this is not yet a complete automated installation. Read the
+[first-six-stage coverage](../reference/implementation-support.md#first-six-stages)
+to identify supplied workflows, manual prerequisites and missing integrations.
+The diagrams describe accepted outcomes, not proof that every pictured product is installed by the kit.
+
 ## Table of contents
 
 - [Deployment stages](#deployment-stages)
@@ -22,7 +27,7 @@ the end, and links back to the architecture it implements.
 | 3: Identity | Directory authority and federated OIDC access on the Tier 0 platform | Tier 0 | [Identity](stage-3-identity/README.md) |
 | 4: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-4-secrets/README.md), [monitoring](stage-4-secrets/monitoring.md) |
 | 5: Delivery and handover | Source control, artifacts, builds and protected infrastructure execution | Tier 1 platform; Tier 2 edge; Tier 0 execution | [Delivery and handover](stage-5-delivery/README.md) |
-| 6: Observability | Operational logs, metrics, distributed traces and scoped queries | Tier 1; approved evidence copies from Tier 0 | [Observability](stage-6-observability/README.md) |
+| 6: Observability | Netdata diagnostics, infrastructure health, logs, metrics, traces and scoped queries | Tier 1; Tier 0-owned infrastructure collection and approved exports | [Observability](stage-6-observability/README.md) |
 | 7: Workload provisioning | Approved Tier 2 runtime, applications and scoped collection | Tier 2 definitions; Tier 0 execution | [Workload provisioning](stage-7-workloads/README.md), [collection](stage-7-workloads/telemetry.md) |
 
 ```mermaid

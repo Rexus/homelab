@@ -113,6 +113,8 @@ A central dashboard alone is insufficient for independent failure detection.
 
 - [Runtime flows](../runtime-flows.md#data-visibility-and-recovery) connects service data, visibility and recovery across domains.
 - [Telemetry design](telemetry.md) expands collection, signal backends, retention and placement alternatives.
+- [Infrastructure coverage](telemetry.md#infrastructure-coverage) includes live diagnostics,
+  virtualization, BMC sensors, storage and network health without moving Tier 0 authority.
 - [Security logging](security-logging.md) owns append-only submission, segmented reads and the evidence durability contract.
 - [Log archive choices](log-retention.md) compares NAS-backed recovery with retention locks and explains role separation as access grows.
 - [Service boundaries](../service-boundaries.md) defines shared and isolated operational services.

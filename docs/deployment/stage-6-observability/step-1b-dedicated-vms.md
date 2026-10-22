@@ -107,11 +107,14 @@ separation through the selected [cluster policy](../foundation/step-1b-cluster-h
 
 ## Step 3: Integrate and accept the services
 
-Follow [Observability, Steps 2 and 3](README.md#step-2-deploy-the-signal-pipelines)
+Follow [Observability, Steps 2-4](README.md#step-2-deploy-the-signal-pipelines)
 with project-owned service automation for these hosts instead of cluster workloads.
 
 1. Install independently sized gateways, replicated metrics and the search cluster.
    Configure UI/processing placement without silently co-locating resource-heavy backends.
+   Select explicit Netdata parent capacity and tier-local agents using the
+   [infrastructure-monitoring guide](infrastructure-monitoring.md); these seven VM
+   definitions do not allocate or install a separate diagnostics runtime.
 2. Verify endpoint failover, metric write replication, search quorum/shard copies,
    source authentication, queues, backups and independent restoration.
 3. Test scoped reads and deny mutations of Tier 0 evidence. Record accepted loss and

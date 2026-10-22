@@ -7,6 +7,9 @@ FreeIPA, the issuer and the identity provider already exist.
 **Prerequisites:** accepted [Identity](../stage-3-identity/README.md),
 service storage/backups and independent recovery inputs.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+**Automation:** cluster Vault, NetBox and Headlamp are empty application starters;
+independent monitoring also needs integration. The Vault VM alternative supplies a
+service recipe. See [coverage](../../reference/implementation-support.md#first-six-stages).
 **Design:** [identity](../../architecture/identity/README.md),
 [secrets](../../architecture/cryptography/README.md) and [operations](../../architecture/operations/README.md).
 
@@ -130,7 +133,7 @@ for Tier 0 investigation or alerting.
 
 ## Capability available
 
-**Result:** the secret service in the
+**Result:** after service installation and acceptance, the secret service in the
 [reference platform](../../architecture/reference-platform.md#service-placement)
 provides scoped secret access, auditing and independent unseal/recovery.
 Supporting inventory, administration and monitoring integrations are recorded separately.

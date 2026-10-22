@@ -96,7 +96,10 @@ class DeploymentViews(unittest.TestCase):
     def test_unimplemented_services_are_not_drawn_as_installed_products(self):
         cases = [
             ("stage-3-identity/README.md", "tier-0/clusters/tier0/infrastructure/cni"),
-            ("stage-4-secrets/README.md", "tier-0/clusters/tier0/applications/keycloak"),
+            ("stage-3-identity/README.md", "tier-0/clusters/tier0/applications/keycloak"),
+            ("stage-4-secrets/README.md", "tier-0/clusters/tier0/applications/vault"),
+            ("stage-4-secrets/README.md", "tier-0/clusters/tier0/applications/netbox"),
+            ("stage-4-secrets/README.md", "tier-0/clusters/tier0/applications/headlamp"),
             ("stage-5-delivery/README.md", "tier-1/clusters/tier1/platform/source-control"),
             ("stage-6-observability/README.md", "tier-1/clusters/tier1/platform/observability"),
             ("stage-7-workloads/README.md", "tier-2/clusters/tier2"),

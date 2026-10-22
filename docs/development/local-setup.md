@@ -143,6 +143,10 @@ any backups before deployment. The repository does not try to merge YAML, HCL,
 and dotenv content automatically.
 
 Keep live secrets out of Git.
+Initializers and deployment entry points use `umask 077` for newly created local
+inputs, backups and working files. This does not tighten existing file permissions
+or replace a Windows ACL review; restrict access to existing secrets/state and test
+encrypted off-host recovery separately.
 
 ## Read more
 

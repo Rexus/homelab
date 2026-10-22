@@ -1,7 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-# FreeIPA stays on the Tier 0 foundation VMs; its identity broker runs here.
+# Empty service starters: Stage 3 Keycloak; Stage 4 Vault and operational tools.
+# FreeIPA stays on the Tier 0 foundation VMs; no identity provider is installed here yet.
 - keycloak
 - vault
 - headlamp

@@ -75,6 +75,8 @@ This file keeps durable context for AI-assisted work across sessions.
   Software-first setup has a separately approved encrypted-key/CSR recipe and offline clca templates
 - FreeIPA supports external CSR/pause/completion and an explicit CA replica; live custody,
   signing and recovery qualification remain manual operational verification.
+  Fresh foundation examples select external sibling-CA mode; existing internal-mode
+  local inputs are preserved, and changing their mode is not an installed-domain migration.
   The selected Linux/NAS logging path now supplies forwarding and protected-copy jobs;
   actual NAS custody and live fault/access/restore results remain manual qualification.
 - Log archive alternatives are NAS-managed snapshots/independent backups with trusted
@@ -225,6 +227,8 @@ This file keeps durable context for AI-assisted work across sessions.
 - docs/deployment/readiness.md owns capability progress and acceptance; the deployment index owns stages
 - use direct IT-domain directories, not intermediate system-design/subsystem-design indexes
 - design records contain required guarantees, never stage-based states or current readiness
+- hardware signing-custody rollover is an administration procedure, not an architecture page;
+  implementation-support.md#first-six-stages owns the concise installer-coverage verdict
 - readiness is independent per capability, and option letters are not a ranking or CLI flags
 - cryptography supports software, single USB, replicated USB and network-HSM designs;
   service seals are separate choices; do not imply every option has an installer
@@ -268,6 +272,10 @@ This file keeps durable context for AI-assisted work across sessions.
 - Observability has its own Stage 6 after Secrets and the Tier 1 runtime; workload provisioning is Stage 7
 - Tier 1 Observability uses the existing Kubernetes cluster with separately scalable Collector,
   VictoriaMetrics, Data Prepper, OpenSearch and UI workloads; OpenSearch is included initially
+- Netdata is also part of Stage 6: tier-local children, Tier 1 parents/live diagnostics and
+  explicit metric bridging. Proxmox/BMC pollers and credentials remain Tier 0-owned;
+  approved metrics may flow to Tier 1, never raw control access or Tier 0 Functions.
+  The independent Tier 0 Netdata parent/critical alerts remain outside observed clusters.
 - no all-in-one observability VM default or second Tier 1 syslog/archive; dedicated VM alternatives
   separate otel-N, metrics-N and search-N roles; their recipe supplies hosts/baseline only
 - OpenSearch indexes approved scoped copies, without Tier 0 write/delete/retention/backup authority;
@@ -289,6 +297,10 @@ This file keeps durable context for AI-assisted work across sessions.
 - lower-numbered tiers must recover without higher-numbered tiers; normal
   consumers use scoped service endpoints, while offline custody supplies transfers
 - keep Packer, Terraform, and Ansible responsibilities separate
+- the Shared baseline implements proxy settings, timezone and IPv6 policy only;
+  SSH/NTP/firewall/audit are verified template/OS or service requirements, not unused baseline switches
+- initializers and deployment entry points use umask 077 for new local files and backups;
+  existing files and Windows ACLs need separate permission checks
 - preserve a high-security baseline by default
 - use compact numeric citations like `[1]` for non-trivial external claims in
   docs

@@ -27,7 +27,7 @@ options branch from the relevant decision and return to the main path.
 | **3: Identity** | Dedicated FreeIPA pair, control-cluster foundation and Keycloak/OIDC | [Identity](../../deployment/stage-3-identity/README.md) |
 | **4: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../deployment/stage-4-secrets/README.md), [monitoring](../../deployment/stage-4-secrets/monitoring.md) |
 | **5: Delivery and handover** | Protected Tier 0 runner; Tier 1 owns delivery services | [Delivery and handover](../../deployment/stage-5-delivery/README.md) |
-| **6: Observability** | Authorize scoped evidence copies; Tier 1 owns operational backends and UIs | [Observability](../../deployment/stage-6-observability/README.md) |
+| **6: Observability** | Own Proxmox/BMC collectors and credentials; export approved metrics/evidence copies to Tier 1 | [Infrastructure monitoring](../../deployment/stage-6-observability/infrastructure-monitoring.md) |
 | **7: Workload provisioning** | Approve and execute infrastructure requests | [Workload provisioning](../../deployment/stage-7-workloads/README.md) |
 
 Select optional [HA](../../deployment/foundation/step-1b-cluster-ha.md) and

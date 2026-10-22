@@ -1,3 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# Project integration only: Netdata, Collector, metrics, search and access policy.
+# Upstream guide: docs/deployment/stage-6-observability/README.md
+# Proxmox/BMC collection and credentials remain in Tier 0.
 resources: []

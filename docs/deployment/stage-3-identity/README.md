@@ -7,6 +7,9 @@ Cluster bootstrap and basic services precede the Keycloak/OIDC integration.
 **Prerequisites:** approved compute, templates, certificate trust, software supply,
 a reachable bootstrap source and independent credentials.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+**Automation:** FreeIPA and cluster VM/bootstrap workflows are supplied. The independent
+API endpoint must already exist; cluster add-ons and Keycloak are project integration,
+not installed services. See [coverage](../../reference/implementation-support.md#first-six-stages).
 **Design:** [identity authority](../../architecture/identity/README.md) and
 [cluster runtime](../../architecture/compute/README.md).
 
@@ -156,6 +159,9 @@ Tier 0's [clusters/tier0/](../../../tier-0/clusters/tier0/) add-on folders are s
 Supply reviewed manifests, verify reconciliation,
 decryption, persistence, TLS and database health, and start backups as state appears.
 Flux requires a reachable source with independent credentials, not merely a local checkout.
+Also qualify node and API audit forwarding to Tier 0 before acceptance; the
+[security-event gate](procedures/kubernetes.md#cluster-foundation) is separate from
+the add-on subset drawn above and is not installed by the cluster Terraform root.
 
 ## Step 4: Deploy identity federation
 
@@ -217,7 +223,8 @@ work; see the [support map](../../reference/implementation-support.md).
 
 ## Capability available
 
-**Result:** replicated directory services, a federated identity provider and the
+**Result:** after the selected integrations and acceptance checks, replicated directory services,
+a federated identity provider and the
 supporting Kubernetes platform realize the
 [identity design](../../architecture/identity/README.md). Bootstrap and recovery
 remain independent of normal Keycloak login, Vault, GitLab and Harbor.

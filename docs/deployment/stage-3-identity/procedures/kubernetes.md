@@ -100,6 +100,7 @@ These are dependency gates, not merely YAML list order:
 | 4. Persistence | Storage driver/classes and backup destination | A disposable claim binds, survives pod recreation, and has a tested recovery path |
 | 5. TLS and entry points | Certificate automation and ingress; cert-manager with an available issuer | Controller/webhook readiness, certificate issuance, and intended network access pass [2] |
 | 6. Database | PostgreSQL operator; CloudNativePG, database instances, and backups | Required CRDs/operator, claims, database connections, and backup access work before applications [3] |
+| 7. Security events | Selected node and Kubernetes API audit forwarding to Tier 0 | Approved OS/API events reach protected intake with source identity; a logging DaemonSet or API audit policy is not supplied by the VM/bootstrap root |
 
 CNI must work before expecting GitOps controllers and ordinary pods to be
 healthy. Follow the chosen implementation's networking bootstrap procedure;

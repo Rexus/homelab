@@ -80,6 +80,10 @@ platform.
 - local copies of the example files exist before editing
 - the current Vault role does not generate the first Vault certificate, key, or
   CA file automatically
+- gateway and host-firewall policy permits only approved consumers/operators to
+  the configured API listener (`8200/tcp` in the example); additional Raft peers
+  need their selected cluster listener (`8201/tcp`). The role and Shared baseline
+  do not install those network rules; follow the [firewall rollout](../foundation/procedures/firewall-rollout.md).
 
 <a id="what-you-configure"></a>
 

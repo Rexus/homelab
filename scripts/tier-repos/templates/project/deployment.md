@@ -12,7 +12,7 @@ Existing services can satisfy verified prerequisites.
 | 3: Identity | Record directory, cluster foundation, federation and OIDC integration | Pending review | [Identity](${docs}/deployment/stage-3-identity/README.md) |
 | 4: Secrets | Record secret storage, auditing, unseal/recovery and supporting control integrations | Pending review | [Secrets](${docs}/deployment/stage-4-secrets/README.md), [monitoring](${docs}/deployment/stage-4-secrets/monitoring.md) |
 | 5: Delivery and handover | Record shared delivery and protected execution handover | Pending review | [Delivery and handover](${docs}/deployment/stage-5-delivery/README.md) |
-| 6: Observability | Record separate workload budgets, replicated backends and scoped read-only views | Pending review | [Observability](${docs}/deployment/stage-6-observability/README.md) |
+| 6: Observability | Record Netdata, Proxmox/BMC coverage, separate workload budgets, replicated backends and scoped reads | Pending review | [Observability](${docs}/deployment/stage-6-observability/README.md) |
 | 7: Workload provisioning | Record the approved workload lifecycle | Pending review | [Workload provisioning](${docs}/deployment/stage-7-workloads/README.md) |
 
 Only work owned by this repository is executed here. Other steps record consumed

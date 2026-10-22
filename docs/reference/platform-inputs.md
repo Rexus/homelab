@@ -9,6 +9,7 @@ each tier owns its specific networks, guest selections and overrides.
 - [Input ownership](#input-ownership)
 - [Loading and overrides](#loading-and-overrides)
 - [Local SSH access](#local-ssh-access)
+- [OS baseline boundary](#os-baseline-boundary)
 - [Existing collections](#existing-collections)
 
 ## Input ownership
@@ -88,6 +89,24 @@ do not protect files already tracked or added with `git add -f`; review the
 staged diff and enable the project's secret-scanning policy before pushing.
 Public keys can appear in cloud-init and Terraform state; protect state and
 plans even though a public key is not a private credential.
+
+## OS baseline boundary
+
+Shared's [baseline role](../../shared/ansible/roles/baseline/tasks/main.yml) manages
+repository/shell proxy settings, timezone and the selected IPv6 sysctl policy.
+It is not a full security, time-synchronization or service-installation role.
+
+SSH access policy, NTP/chrony, host-firewall rules and audit collection must be
+prepared and verified through approved templates/OS configuration and the relevant
+service procedures. Service-specific roles add only their implemented controls;
+an installed listener does not imply a permitted or safely restricted network path.
+
+Former `baseline_manage_packages`, `baseline_manage_ssh`,
+`baseline_disable_password_auth`, `baseline_permit_root_login`,
+`baseline_manage_firewall` and `baseline_ntp_enabled` settings had no implementing
+tasks. Removing these unused defaults does not alter an existing machine or harden
+it. Existing local copies of those values must not be counted as enforced controls.
+Verify effective SSH, time, firewall and audit behavior before accepting a host.
 
 ## Existing collections
 

@@ -10,6 +10,8 @@ Run repository scripts from this root; Shared is execution code, not an evidence
 **Prerequisites:** verified [foundation](../foundation/README.md): approved Linux templates, Control networking, local tools/state,
 independent bootstrap credentials and protected storage. Kubernetes, FreeIPA,
 Keycloak, Vault and Tier 1 analytics are not prerequisites.
+**Automation:** the Linux/NAS main-path mechanisms are supplied; prepared storage,
+NAS custody and live acceptance remain required. See [coverage](../../reference/implementation-support.md#first-six-stages).
 
 ## Main path
 
@@ -214,30 +216,30 @@ flowchart BT
     subgraph Placement[" "]
       direction LR
       subgraph PVE["Existing Proxmox host"]
-        direction LR
+        direction TB
         VM["log-1<br/>Receiver / checkpoint job"]
         Records[("Local data disk<br/>JSONL / queues")]
         VM -->|Append| Records
       end
       subgraph NAS["Existing NAS / independent custody"]
-        direction LR
+        direction TB
         Evidence[("Create-only archive<br/>Chunks / manifests")]
         Snapshots[("NAS-owned snapshots")]
         Evidence --> Snapshots
       end
       PVE -->|SMB checkpoints| NAS
     end
+    subgraph Recovery["Independent recovery / separate credentials"]
+      direction LR
+      Backup["Existing Tier 0 recovery host<br/>logging_recovery group"]
+      Copy[("Encrypted restic repository<br/>Independent storage")]
+      Offline["Offline inspection kit<br/>Separately held keys"]
+      Backup -->|Backup| Copy
+      Copy -->|Restore| Offline
+    end
     T0Title ~~~ Placement
+    Placement -->|Read-only NAS archive pull| Recovery
   end
-  subgraph Recovery["Independent recovery / separate credentials"]
-    direction LR
-    Backup["Existing Tier 0 recovery host<br/>logging_recovery group"]
-    Copy[("Encrypted restic repository<br/>Independent storage")]
-    Offline["Offline inspection kit<br/>Separately held keys"]
-    Backup -->|Backup| Copy
-    Copy -->|Restore| Offline
-  end
-  T0 -->|Read-only NAS archive pull| Recovery
   T0 -. "Later approved copies" .-> T1
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
@@ -262,7 +264,8 @@ Tier 1 analytics is a later capability, not installed by these recipes.
 The view expands the NAS main path: the NAS is not the receiver's live data disk,
 and recovery storage is outside the NAS/collector failure domain. The recovery host
 is Tier 0-owned but has independent credentials; its read-only pull carries archive
-data into the recovery boundary. Choice B replaces or supplements
+data into the recovery boundary. That group remains inside the Tier 0 ownership
+box, not inside the receiver's runtime or NAS custody. Choice B replaces or supplements
 the NAS custody boundary with qualified retention-locked storage.
 
 1. Select [A: NAS snapshots/backups](step-3c-nas-archive.md) or

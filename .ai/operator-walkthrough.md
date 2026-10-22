@@ -1,6 +1,6 @@
 # Operator walkthrough checklist
 
-Rechecked 2026-10-19 against `20efefb` and the handoff corrections below, from the
+Rechecked 2026-10-22 against the current worktree and the handoff corrections below, from the
 perspective of a software engineer with newly installed servers and UniFi switches.
 This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
@@ -35,6 +35,12 @@ cluster endpoints/add-ons, control applications and protected delegated executio
 need implementations. Household/team use and a complete first-app restore remain the
 outcome gaps below. A clean offline suite does not close those gaps.
 
+The [first-six-stage coverage](../docs/reference/implementation-support.md#first-six-stages)
+now gives the installation verdict before a reader starts. Stage 3's private API
+endpoint must already exist, then Step 3 is the first missing main-path application
+installation. Stages 4-6 do not become installed merely because their cluster
+directories exist. No live acceptance box is checked by this consistency review.
+
 ## Corrected reading and execution gaps
 
 - [x] Make the front door distinguish runnable workflows from integration starters.
@@ -68,6 +74,17 @@ outcome gaps below. A clean offline suite does not close those gaps.
 - [x] Clarify the independent producer-authority handoff instead of assuming the software
   PKI's TLS-server profile also issues logging client certificates.
 - [x] Align remaining IdP wording and the image-builder's shared-catalog comment with their authoritative contracts.
+- [x] Align fresh FreeIPA inputs with the sibling-CA design; preserve existing internal-mode local inputs.
+- [x] Keep Stage 2 issuer acceptance separate from Stage 3 identity and later public-edge deployment.
+- [x] Move the numbered hardware-rollover procedure into administration and preserve managed-guide redirects.
+- [x] Disclose installer coverage before each of the first six main paths; make the delivery outcome conditional.
+- [x] Correct the observability VM return path to Steps 2-4 and disclose missing Netdata capacity/installation.
+- [x] Check the moved Stage 3 IdP and actual Stage 4 Vault/NetBox/Headlamp starters against deployment figures.
+- [x] Default newly initialized local files/backups and deployment working files to private permissions;
+  existing file access, Windows ACLs and off-host recovery still require manual verification.
+- [x] Remove unused baseline SSH/package/firewall/NTP switches and disclose the implemented baseline scope.
+- [x] Keep new-host security logging early; add explicit directory/delivery handoffs and a cluster audit gate.
+- [x] Keep the logging recovery host/copies inside Tier 0 ownership while retaining separate failure/custody boundaries.
 
 ## Implemented priority mechanisms
 
@@ -111,14 +128,17 @@ supplied. Their live proof is tracked in the separate
   verified existing prerequisite before cluster bootstrap. It must not require the public
   Tier 2 edge or the cluster it serves. Include DHCP/MAC reservations and bootstrap DNS/time.
 - [ ] **P1: Cluster services.** Add release-pinned delivery, decryption, persistence,
-  certificate/ingress and database manifests with health/dependency gates. Empty Kustomize
+  certificate/ingress, database and node/API audit-forwarding manifests with health/dependency gates. Empty Kustomize
   directories do not implement the [cluster foundation](../docs/deployment/stage-3-identity/procedures/kubernetes.md#cluster-foundation).
 - [ ] **P1: Control applications.** Implement and verify the selected IdP, inventory
   application, cluster interface and cluster-based secret service, including scoped roles,
   data dependencies, audit forwarding and backups. The Vault VM alternative is a different runtime.
 - [ ] **P1: Independent monitoring and Observability.** Supply native Tier 1 Kubernetes
-  product manifests/values for Collector gateways, VictoriaMetrics, Data Prepper,
-  OpenSearch and UIs; the current starter is empty. Budget/scale each workload separately.
+  product manifests/values for Netdata, Collector gateways, VictoriaMetrics, Data Prepper,
+  OpenSearch and UIs; the current starter is empty. Add Tier 0 Proxmox/BMC collectors,
+  read-only credentials, source coverage and approved metric bridges as described in
+  [infrastructure monitoring](../docs/deployment/stage-6-observability/infrastructure-monitoring.md).
+  Qualify Netdata parent failover/persistence and node-OS permissions; budget each workload separately.
   Configure replicated writes, query failover, search quorum/shards and restore paths.
   Keep Tier 0 evidence and critical external alerts independent. Test scoped read-only
   copies, forged ownership and outages; diagrams are not configured controls.
@@ -134,6 +154,11 @@ supplied. Their live proof is tracked in the separate
 - [ ] **P1: Exposure acceptance.** Verify gateway, host and workload enforcement, actual
   TLS/listeners, IPv4/IPv6, VPN and same-subnet isolation before opening any service externally.
   A firewall design or Ansible baseline is not an attack-resistance certification.
+- [ ] **P1: Host security baseline.** Supply or qualify template/OS policy for SSH,
+  time synchronization, host firewall and audit services. The common baseline currently
+  manages proxies, timezone and IPv6 only; removed unused defaults enforced no controls.
+  Vault/source-control listeners still need approved host/gateway rules. Verify effective
+  controls before accepting hosts; documentation and a true-valued setting are not enforcement.
 
 ## Paths reviewed
 
@@ -190,6 +215,10 @@ inspected. Every selected path still needs its own live acceptance evidence.
   secrets and state, so cloning the private repositories alone is not a disaster recovery.
 - [ ] **P2: Secret scanning.** Select a project enforcement mechanism for staged content,
   CI output and artifacts; `.gitignore` does not prevent forced additions or tracked secrets.
+- [ ] **P2: Provider qualification.** Nine of the sixteen Terraform deployment roots
+  have no tracked provider lock file. Qualify and retain their resolved versions before
+  operational use. Schema validation passed with existing locks preserved and missing
+  locks generated only in scratch; this does not freeze future fresh installations.
 - [ ] **P2: Cache hardening variants.** Implement client authentication or TLS/mTLS listener
   only for a selected requirement, with support/acceptance documented; keep the HTTP proxy
   reference's limits visible and avoid implying TLS interception is required.
@@ -213,6 +242,27 @@ be relabelled as a deployed-system pass.
 
 
 ## Repeat cadence
+
+Full consistency review, 2026-10-22: **170 native regression tests: 168 passed,
+2 tool-dependent skips**, in a fresh Linux scratch copy. Skipped the offline clca
+fixture and rsyslog sender outage/restart fixture; they are not new acceptance proof.
+The run covered source/generated ownership and navigation, Terraform input resolution,
+Ansible syntax and FreeIPA phase orchestration, native PKI policy/TLS/CRL behavior,
+syslog-ng TLS/raw identity/crash restart, HAProxy parsing and restic backup/clean restore.
+After final handoff/diagram changes, **45 affected tests passed, zero skipped**;
+these overlap the full suite rather than adding unique cases.
+
+All **16 Terraform deployment roots** passed provider-schema validation; existing
+locks were retained, with missing locks resolved only in scratch. All three cluster
+roots passed their **24 mocked plan tests**. No real infrastructure plan/apply ran.
+All **76 Mermaid figures** rendered in both themes (**152 renders**). Reviewed
+contact sheets and rerendered the corrected logging figures at desktop and 760px;
+coordinate checks confirm tier order and Tier 0 recovery custody outside the
+collector/NAS runtimes. The audit corrected reader handoffs, misplaced hardware
+administration, fresh FreeIPA CA mode, private-file defaults and no-op baseline
+controls. The coverage map now discloses missing installers before each main path.
+Live product qualification, fault/access/restore acceptance and GitHub renderer
+parity remain unverified; no operational box is checked by this review.
 
 Stage capability naming, 2026-10-21: **163 tests: 134 passed, 29 tool-dependent skips**
 in a fresh Linux scratch copy. Stage 3 is Identity, including directory authority,

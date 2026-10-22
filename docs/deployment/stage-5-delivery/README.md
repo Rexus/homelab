@@ -6,7 +6,11 @@ it does not gain authority over Tier 0 merely by hosting the repositories.
 
 **Prerequisites:** accepted [Secrets](../stage-4-secrets/README.md),
 approved templates, tier-local inputs and an independent bootstrap/recovery environment.
-**Owners:** Tier 1 delivery services; Tier 2 public edge; Tier 0 privileged infrastructure execution.
+**Working repositories:** `<prefix>-tier-1` for delivery, `<prefix>-tier-2` for public edge,
+and `<prefix>-tier-0` for privileged infrastructure execution (source: matching `tier-N/`).
+**Automation:** cluster nodes and the linked VM/edge options are supplied. Cluster
+applications, registry and protected execution require project integration;
+see [coverage](../../reference/implementation-support.md#first-six-stages).
 
 ## Working repositories
 
@@ -81,6 +85,8 @@ The [Tier 2 edge view](procedures/edge-proxy.md#default-deployment) shows the se
 2. Deploy GitLab, [Harbor or another registry](procedures/registry.md), general runners
    and Rancher/Fleet where needed. Product manifests and integration remain project work.
 3. Configure Keycloak OIDC, scoped roles and [Tier 2 edge access](procedures/edge-proxy.md).
+   Register new hosts/services with [protected logging](../stage-1-logging/sources.md)
+   before general CI use; cluster-native collectors remain integration work.
    Test repository retrieval, artifact publication/pulls and general CI jobs.
 
 **Alternatives:** [1b: source-control VM](step-1b-source-control-vm.md),
@@ -170,8 +176,9 @@ Source control coordinates them, while GitOps separately reconciles approved app
 
 ## Capability available
 
-The delivery and execution portions of the
+Accept this stage only after the selected delivery and execution portions of the
 [reference platform](../../architecture/reference-platform.md#access-and-automation)
-are operational. Execution has moved from the workstation; resource and state ownership
-have not moved between tiers. Continue with
+are operational and their recovery/access tests pass. A design contract or empty
+starter does not transfer execution from the workstation. After an accepted handover,
+resource and state ownership have not moved between tiers. Continue with
 [Stage 6: Observability](../stage-6-observability/README.md), then workload provisioning.

@@ -137,7 +137,6 @@ does not establish the required isolation, recovery or compliance properties.
 
 - [Algorithm selection](algorithm-selection.md) separates hashes, signatures, encryption and practical key sizes.
 - [Post-quantum readiness](post-quantum.md) distinguishes migration planning from qualified PQC deployment.
-- [Hardware migration](hardware-migration.md) defines software-to-HSM rollover and recovery.
 - [YubiHSM performance](../../reference/yubihsm-performance.md) records vendor benchmark timings and limits.
 - [Runtime flows](../runtime-flows.md#certificate-and-secret-consumption) connects certificate and secret consumers across domains.
 - [Certificate authority](certificate-authority.md) expands the sibling issuers, portal, enrollment and publication.
@@ -151,3 +150,6 @@ Implementation procedures: [trust and custody](../../deployment/stage-2-trust/RE
 and [secret-service integration](../../deployment/stage-4-secrets/README.md#step-1-deploy-the-secret-service).
 Device operations remain authorized procedures; the existing hsm automation supplies
 hosts and baseline only.
+For an existing software issuer, follow the administration
+[hardware migration procedure](../../administration/cryptography/hardware-migration.md)
+for controlled rollover and recovery.

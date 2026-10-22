@@ -10,6 +10,9 @@ protected recovery storage and authorized custodians. The reference selects Open
 Community as the permanent infrastructure issuer and clca for offline root operations;
 existing qualified authorities remain valid. The runtime installer does not perform root ceremonies or token activation.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+**Automation:** software issuer/key/policy and recovery mechanisms are supplied;
+ceremonies, token activation and acceptance remain controlled operations. Hardware and
+ACME variants need integration; see [coverage](../../reference/implementation-support.md#first-six-stages).
 **Design:** [certificate authority](../../architecture/cryptography/certificate-authority.md).
 
 ## Main path
@@ -127,7 +130,7 @@ it must not acquire ceremony authority.
 
 ## Capability available
 
-**Result:** certificate trust and online issuance are operational according to the
+**Result:** after acceptance, certificate trust and online issuance are operational according to the
 [cryptography design](../../architecture/cryptography/README.md), independently of the
 future cluster. Record recovery evidence and continue with
 [Stage 3: Identity](../stage-3-identity/README.md).

@@ -20,6 +20,7 @@ or recovery dependencies requires a design review before execution.
 | Add cluster capacity and reserve worker pools | [Kubernetes pools](compute/kubernetes-pools.md) |
 | Maintain signing gateways and key replicas | [USB HSM maintenance](cryptography/usb-hsm.md) |
 | Maintain CA policy, publication and recovery | [Certificate authority operations](cryptography/certificate-authority.md) |
+| Change an existing issuer's signing custody | [Hardware migration](cryptography/hardware-migration.md) |
 | Verify security evidence, reader scopes and durability | [Security logging](security-logging.md) |
 | Exercise collector failures and independent restoration | [Logging drill](logging-drill.md) |
 | Protect bootstrap and runtime secrets | [Secret strategy](secret-handling/strategy.md), [Ansible Vault](secret-handling/ansible-vault.md) |

@@ -20,10 +20,10 @@ The checks below concern design coverage, not equivalence of every historical se
 | Software token, single USB, replicated USB, enterprise network HSM [2] | [Custody A-D](../architecture/cryptography/hsm-selection.md) | [Trust-stage branches](../deployment/stage-2-trust/README.md#step-1-prepare-issuer-and-key-custody) |
 | Shamir, independent Transit, Vault Enterprise PKCS#11, OpenBao evaluation [2] | [Seal patterns](../architecture/cryptography/vault-seal.md) | [Seal integration](../deployment/stage-4-secrets/step-1c-seal-integration.md) |
 | Existing identity; dedicated authority; optional hardware authentication and Windows integration [3] | [Identity](../architecture/identity/README.md) | Identity and Secrets stages; no new mandatory AD deployment |
-| Bridges or SDN; host/storage-fabric choices [4] | [Compute](../architecture/compute/README.md), [network](../architecture/networking/README.md) | Step 1 host network and optional HA |
-| Direct software access, cache, mirrors or offline sources; shared/isolated egress [5] | [Traffic and delivery](../architecture/delivery/README.md) | Step 1 approved supply, optional cache |
-| VM source control, registry alternatives, runner and image-based Linux [6] | [Delivery](../architecture/delivery/README.md), [artifact supply](../architecture/delivery/artifact-supply.md) | Step 5 options; image publication remains Tier 0 |
-| Shared or isolated telemetry, multiple signal backends [1] | [Telemetry](../architecture/operations/telemetry.md) | Step 4 host or cluster integration; Step 6 assurance |
+| Bridges or SDN; host/storage-fabric choices [4] | [Compute](../architecture/compute/README.md), [network](../architecture/networking/README.md) | Unnumbered [foundation](../deployment/foundation/README.md), including optional HA/SDN |
+| Direct software access, cache, mirrors or offline sources; shared/isolated egress [5] | [Traffic and delivery](../architecture/delivery/README.md) | Foundation software supply and optional cache |
+| VM source control, registry alternatives, runner and image-based Linux [6] | [Delivery](../architecture/delivery/README.md), [artifact supply](../architecture/delivery/artifact-supply.md) | Stage 5 options; image publication remains Tier 0 |
+| Shared or isolated telemetry, multiple signal backends [1] | [Telemetry](../architecture/operations/telemetry.md) | Stage 4 independent Tier 0 monitoring; Stage 6 Observability; Stage 7 workload collection |
 | Private, hybrid and tenant-platform comparisons [7] | [Private-cloud model](../architecture/private-cloud.md), [service boundaries](../architecture/service-boundaries.md) | Proxmox remains the implemented hypervisor; external services need explicit contracts |
 
 ## Support boundaries

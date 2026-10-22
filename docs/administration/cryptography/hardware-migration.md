@@ -4,8 +4,9 @@ Prefer a new HSM-generated issuing key and controlled CA rollover. Moving an
 existing software key into hardware cannot erase earlier software copies or prove
 that it was never exported. Keep the offline root and online issuer independent.
 
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** accepted software deployment, tested recovery and selected
-[USB/network custody](hsm-selection.md). Hardware signing is a separately qualified
+[USB/network custody](../../architecture/cryptography/hsm-selection.md). Hardware signing is a separately qualified
 integration, not an enabled feature of the software recipe.
 
 ## Contents
@@ -65,7 +66,7 @@ destroy obsolete material only under the approved retention/ceremony policy.
 
 ## References
 
-Sources checked 2026-10-18.
+Sources checked 2026-10-22.
 
 1. [YubiHSM command and algorithm capabilities](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-cmd-reference.html)
 2. [OpenXPKI native crypto/token configuration](https://github.com/openxpki/openxpki-config/blob/community/QUICKSTART.md)

@@ -48,6 +48,11 @@ image, repository access and protected bootstrap passwords.
    bash scripts/deploy.sh foundation --terraform-only
    ```
 
+Before the CA/realm installation, register both hosts through
+[Stage 1 source forwarding](../../stage-1-logging/sources.md). Verify their OS
+security events at Tier 0, then add the actual identity/audit files as they appear.
+The FreeIPA recipe does not install the separate log-forwarding role.
+
 | Tier 0 input | Configuration |
 | --- | --- |
 | `terraform/deployments/foundation/terraform.tfvars` | Guest hardware, image IDs, storage, placement and identity network |
@@ -73,7 +78,7 @@ operator actions. [1]
 
 | Local setting | Required value / behavior |
 | --- | --- |
-| `foundation_freeipa_ca_mode` | `external` for a new reference deployment; default `internal` preserves the existing alternative |
+| `foundation_freeipa_ca_mode` | Fresh examples select `external`; existing local `internal` inputs and the recipe's legacy fallback remain supported |
 | `foundation_freeipa_external_phase` | `csr`, then `complete`; the CSR phase never checks incomplete services or installs replicas |
 | `foundation_freeipa_csr_directory` | Protected controller handoff directory; default ignored `secrets/identity` |
 | `foundation_freeipa_external_cert_files` | Absolute controller paths to the approved identity CA certificate and root/chain |
@@ -154,7 +159,7 @@ for a disposable rehearsal; never create another state owner for the live issuer
 
 ## References
 
-Sources checked 2026-10-17.
+Sources checked 2026-10-22.
 
 1. [FreeIPA Ansible server role: two-phase external signing](https://github.com/freeipa/ansible-freeipa/blob/master/roles/ipaserver/README.md)
 2. [FreeIPA Ansible replica role: explicit CA setup](https://github.com/freeipa/ansible-freeipa/blob/master/roles/ipareplica/README.md)

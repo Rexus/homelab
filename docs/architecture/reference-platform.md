@@ -97,7 +97,7 @@ controlled environment; a VM or VLAN label alone does not establish an air gap.
 | Tier 0 cluster services | Flux, CNI, DNS, SOPS bootstrap inputs, storage, cert-manager, ingress and CloudNativePG HA | [Kubernetes topology](compute/kubernetes.md); separate cluster owners and state |
 | Inventory and scoped control UI | NetBox and Headlamp in Tier 0; bootstrap inputs retained independently | [Operations](operations/README.md) |
 | Security evidence | Tier 0 private receivers and protected archive; all tiers submit, only authorized administrator/security roles read raw evidence | [Security logging](operations/security-logging.md) |
-| Independent monitoring and Observability | Tier 0 critical health/alerts and Netdata diagnostics; separate Tier 1 Kubernetes gateway, metrics, OpenSearch and UI workloads; Tier 2 collection | [Telemetry](operations/telemetry.md) |
+| Independent monitoring and Observability | Tier 0 critical alerts, Netdata and Proxmox/BMC collection; separate Tier 1 Kubernetes Netdata, gateway, metrics, OpenSearch and UI workloads; Tier 2 collection | [Telemetry](operations/telemetry.md) |
 | Source and artifacts | GitLab and Harbor in the Tier 1 platform cluster | [Artifact authority and delivery](delivery/artifact-supply.md) |
 | General builds and mirrors | Tier 1 DMZ runners and authoritative mirrors using scoped source/artifact access | [Application delivery](runtime-flows.md#application-delivery) |
 | Application delivery | Tier 0 Flux; Tier 1 Argo CD or Spinnaker remains unselected | [Delivery controller patterns](delivery/controllers.md) |

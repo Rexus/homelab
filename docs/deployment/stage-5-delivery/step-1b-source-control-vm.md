@@ -182,6 +182,9 @@ design:
 
 Use the DNS name from `gitlab_external_url`. Do not use `localhost` as the
 GitLab hostname.
+Apply scoped gateway and host-firewall rules through the
+[firewall rollout](../foundation/procedures/firewall-rollout.md); container port
+publication and the Shared baseline do not install those rules.
 
 ## Operations
 
@@ -198,7 +201,9 @@ Maintenance notes:
 - Back up `/srv/gitlab` before upgrades.
 - Pin the GitLab image tag before production use.
 - Keep runners on separate hosts when build workloads become noisy.
-- Route logs and metrics into the system-control path when observability exists.
+- Send OS/security/audit events to [Tier 0 protected logging](../stage-1-logging/sources.md)
+  from installation; do not wait for Observability. Operational application logs
+  and metrics later use [Stage 6](../stage-6-observability/README.md) under approved scopes.
 
 For the first login, retrieve the initial root password from the container:
 

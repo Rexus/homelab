@@ -39,9 +39,16 @@ Do not add traffic arrows merely to enforce placement. Invisible flowchart links
 may constrain layout, but convey no dependency. A layer sequence is not a firewall
 allow rule, and tiers are ownership boundaries rather than a network path.
 
-Stack peer instances within a service boundary when that reduces width, for example
-a directory primary above its replica. Keep larger service boundaries in their
-intended left-to-right order; replica alignment need not mean one long horizontal row.
+Compact boundaries from the inside out: stack the smallest peer boxes vertically
+when that reduces width and whitespace, for example a directory primary above its
+replica or diagnostic components inside one runtime. Keep labels and connectors
+readable and larger service boundaries in their intended left-to-right order;
+not every child group needs a horizontal row.
+
+When physical hosting is in scope, show Proxmox/hypervisor hosts as the foundation:
+beneath their hosted systems in a hosting view, or to the right of dependent
+services in an interaction view. Do not move the host left merely because it
+produces metrics; the actual telemetry can flow left toward a collector.
 
 Place administrators and readers to the left of the systems they access. A query
 arrow enters the system; an unsolicited alert or heartbeat can correctly travel
