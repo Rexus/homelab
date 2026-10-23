@@ -28,18 +28,18 @@ class DiagramDependencies(unittest.TestCase):
         self.assertIn("T2 ~~~ T1 ~~~ T0", code)
 
     def test_cluster_foundation_and_runner_providers_keep_declared_order(self):
-        runtime = diagrams(DOCS / "deployment/stage-3-identity/README.md")[2]
+        runtime = diagrams(DOCS / "deployment/stage-4-kubernetes/README.md")[1]
         self.assertIn("Base ~~~ Flux ~~~ Network", runtime)
-        runner = diagrams(DOCS / "deployment/stage-5-delivery/step-1c-podman-runner.md")[0]
+        runner = diagrams(DOCS / "deployment/stage-7-delivery/step-1c-podman-runner.md")[0]
         self.assertIn('subgraph T1["Tier 1 / general build execution"]\n    direction LR', runner)
         self.assertIn("Runner -->|Scoped jobs / artifact publication| Existing", runner)
 
     def test_control_plane_and_edge_peers_stack_without_changing_instance_counts(self):
         cases = [
-            ("stage-3-identity/README.md", 1, "PVE", "CP1 ~~~ CP2 ~~~ CP3"),
-            ("stage-5-delivery/README.md", 0, "Nodes", "CP1 ~~~ CP2 ~~~ CP3"),
-            ("stage-5-delivery/procedures/edge-proxy.md", 0, "PVE", "A ~~~ B ~~~ C"),
-            ("stage-7-workloads/public-https.md", 0, "PVE", "A ~~~ B ~~~ C"),
+            ("stage-4-kubernetes/README.md", 0, "PVE", "CP1 ~~~ CP2 ~~~ CP3"),
+            ("stage-7-delivery/README.md", 0, "Nodes", "CP1 ~~~ CP2 ~~~ CP3"),
+            ("stage-7-delivery/procedures/edge-proxy.md", 0, "PVE", "A ~~~ B ~~~ C"),
+            ("stage-9-workloads/public-https.md", 0, "PVE", "A ~~~ B ~~~ C"),
         ]
         for path, index, group, peers in cases:
             with self.subTest(document=path):
@@ -48,13 +48,13 @@ class DiagramDependencies(unittest.TestCase):
                 self.assertIn(peers, code)
 
     def test_platform_starters_are_inside_the_runtime_they_extend(self):
-        code = diagrams(DOCS / "deployment/stage-5-delivery/README.md")[0]
+        code = diagrams(DOCS / "deployment/stage-7-delivery/README.md")[0]
         self.assertRegex(code, r'subgraph Platform\["[^\n]+\n\s+direction LR\n\s+subgraph Apps\[')
         self.assertIn("Apps ~~~ Nodes", code)
         self.assertIn("Delivery ~~~ Git", code)
 
     def test_execution_is_right_of_the_cluster_and_bootstrap_stays_left(self):
-        code = diagrams(DOCS / "deployment/stage-5-delivery/README.md")[1]
+        code = diagrams(DOCS / "deployment/stage-7-delivery/README.md")[1]
         self.assertLess(code.index('subgraph Entry['), code.index('subgraph ControlArea['))
         self.assertIn('subgraph ControlArea[" "]\n        direction LR', code)
         self.assertIn("Cluster ~~~ Management", code)
@@ -63,7 +63,7 @@ class DiagramDependencies(unittest.TestCase):
         self.assertIn("Runner -->|Approved lifecycle| PVE", code)
 
     def test_vault_operator_is_external_and_recovery_is_below_connected_runtime(self):
-        code = diagrams(DOCS / "deployment/stage-4-secrets/step-1b-vault-vm.md")[0]
+        code = diagrams(DOCS / "deployment/stage-6-secrets/step-1b-vault-vm.md")[0]
         self.assertIn("flowchart LR", code)
         self.assertLess(code.index('Operator["'), code.index('subgraph T0['))
         self.assertIn('subgraph T0["Tier 0 / Control"]\n    direction BT', code)
@@ -73,10 +73,10 @@ class DiagramDependencies(unittest.TestCase):
 
     def test_long_workflows_wrap_rows_without_changing_chronology(self):
         cases = [
-            ("README.md", ("Base", "Logs", "Runtime", "Trust", "Control", "Delivery",
-                           "Workloads", "Visibility"),
-             ("Base", "Logs", "Trust", "Runtime", "Control", "Delivery", "Visibility", "Workloads")),
-            ("stage-7-workloads/README.md", ("User", "Request", "Gate", "CI"),
+            ("README.md", ("Base", "Intake", "Trust", "Logs", "Runtime", "Identity", "Delivery",
+                           "Control", "Visibility", "Workloads"),
+             ("Base", "Intake", "Logs", "Trust", "Runtime", "Identity", "Control", "Delivery", "Visibility", "Workloads")),
+            ("stage-9-workloads/README.md", ("User", "Request", "Gate", "CI"),
              ("User", "Request", "CI", "Gate")),
         ]
         for path, placement, sequence in cases:

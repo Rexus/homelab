@@ -26,7 +26,7 @@ class StageContracts(TierRepositoryTestCase):
             boundary = (docs / "reference/platform-inputs.md").read_text()
             self.assertIn("## OS baseline boundary", boundary)
             self.assertIn("not a full security", boundary)
-            cluster = (docs / "deployment/stage-3-identity/procedures/kubernetes.md").read_text()
+            cluster = (docs / "deployment/stage-4-kubernetes/procedures/kubernetes.md").read_text()
             self.assertIn("7. Security events", cluster)
             self.assertIn("API audit policy is not supplied", cluster)
 
@@ -49,20 +49,20 @@ class StageContracts(TierRepositoryTestCase):
                          "shared/scripts/kubernetes-cluster.sh"):
             self.assertIn("umask 077", (UPSTREAM / relative).read_text())
 
-    def test_first_six_stages_disclose_automation_before_the_numbered_path(self):
+    def test_all_stages_disclose_automation_before_the_numbered_path(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            stages = sorted((docs / "deployment").glob("stage-*/README.md"))[:6]
-            self.assertEqual(len(stages), 6)
+            stages = sorted((docs / "deployment").glob("stage-*/README.md"))
+            self.assertEqual(len(stages), 9)
             for stage in stages:
                 content = stage.read_text()
                 opening = content.split("## Main path", 1)[0]
                 self.assertIn("**Automation:**", opening, str(stage))
-                self.assertIn("implementation-support.md#first-six-stages", opening, str(stage))
+                self.assertIn("implementation-support.md#stage-coverage", opening, str(stage))
             support = (docs / "reference/implementation-support.md").read_text()
-            summary = support.split("## First six stages", 1)[1].split("## Detailed coverage", 1)[0]
+            summary = support.split("## Stage coverage", 1)[1].split("## Detailed coverage", 1)[0]
             self.assertIn("not yet an end-to-end installer", summary)
-            self.assertIn("Stage 3, Step 3", summary)
+            self.assertIn("Stage 4, Step 2", summary)
             for stage in stages:
                 self.assertIn(f"deployment/{stage.parent.name}/README.md", summary)
             self.assertIn("empty manifests do not meet a stage gate", " ".join(summary.split()))
@@ -70,15 +70,15 @@ class StageContracts(TierRepositoryTestCase):
     def test_software_issuer_path_hands_off_later_work_without_backwards_dependencies(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            software = (docs / "deployment/stage-2-trust/procedures/software-pki.md").read_text()
+            software = (docs / "deployment/stage-3-trust/procedures/software-pki.md").read_text()
             self.assertIn('id="complete-identity-and-acceptance"', software)
             self.assertIn("## Accept the issuer and continue", software)
-            self.assertIn("In Stage 3", software)
-            self.assertIn("not a Stage 2 acceptance dependency", software)
+            self.assertIn("In Stage 5", software)
+            self.assertIn("not a Stage 3 acceptance dependency", software)
             migration = docs / "administration/cryptography/hardware-migration.md"
             self.assertTrue(migration.is_file())
             self.assertFalse((docs / "architecture/cryptography/hardware-migration.md").exists())
             self.assertIn("## Qualify and roll over", migration.read_text())
-            alternative = (docs / "deployment/stage-6-observability/step-1b-dedicated-vms.md").read_text()
+            alternative = (docs / "deployment/stage-8-observability/step-1b-dedicated-vms.md").read_text()
             self.assertIn("Observability, Steps 2-4", alternative)
             self.assertIn("do not allocate or install a separate diagnostics runtime", alternative)

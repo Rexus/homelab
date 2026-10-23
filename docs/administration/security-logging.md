@@ -2,7 +2,7 @@
 
 **Owner:** Tier 0 for protected evidence; each tier owns its producers.
 **Design:** [security logging](../architecture/operations/security-logging.md).
-**Prerequisites:** accepted [receiver/archive integration](../deployment/stage-1-logging/README.md)
+**Prerequisites:** accepted [receiver/archive integration](../deployment/stage-2-logging/README.md)
 and recorded failure, retention, access and recovery contracts.
 
 ## Table of contents

@@ -178,7 +178,7 @@ algorithms remain separate acceptance requirements.
 
 ## Implementation
 
-The [deployment branch](../../deployment/stage-2-trust/step-1b-usb-hsm.md) provisions
+The [deployment branch](../../deployment/stage-3-trust/step-1b-usb-hsm.md) provisions
 the selected VMs and OS baseline; two are enabled in the starter. It does not
 install signing software, configure USB passthrough, replicate keys or install
 a VIP. Optional `ingress.yml` renders an

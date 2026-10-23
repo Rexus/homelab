@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/hsm.yml
 # Replace every value before use.
-# Guide: docs/deployment/stage-2-trust/step-1b-usb-hsm.md
+# Guide: docs/deployment/stage-3-trust/step-1b-usb-hsm.md
 
 platform_host_ips:
   # Capacity-sized Tier 0 service pool; any VIP/proxy is co-hosted here.

@@ -94,7 +94,7 @@ envelope, accepted-event boundary, queue limits and any source-side gaps explici
 **Implementation:** the selected software-first path is supplied; package/runtime and
 security behavior still need live qualification. Hardware custody, internal automated
 ACME and public edge HTTPS are separate selections, not hidden bootstrap requirements.
-**Procedures:** [software PKI](../docs/deployment/stage-2-trust/procedures/software-pki.md),
+**Procedures:** [software PKI](../docs/deployment/stage-3-trust/procedures/software-pki.md),
 [CA operations](../docs/administration/cryptography/certificate-authority.md).
 **Coverage and variants:** [CA implementation checklist](ca-implementation.md).
 
@@ -106,7 +106,7 @@ ACME and public edge HTTPS are separate selections, not hidden bootstrap require
 - [ ] **TRUST-2: Custody and hierarchy.** Rehearse root initialization/restore and subordinate
   signing with disposable material. Pass when approved keys, constraints, issuer fingerprints
   and infrastructure chain match; the root remains offline and no routine rerun creates
-  replacement keys. Verify the sibling identity chain when its Stage 3 CA is added.
+  replacement keys. Verify the sibling identity chain when its Stage 5 CA is added.
   Keep ceremony approval and transfer records independently.
 - [ ] **TRUST-3: Policy and revocation.** Submit approved and forbidden requests with real
   requester/approver identities. Pass when unauthorized SANs/profiles/CA requests and
@@ -119,11 +119,11 @@ ACME and public edge HTTPS are separate selections, not hidden bootstrap require
   issuance/CRL signing resume, and observed RPO/RTO meet policy. Never run both restored writers.
   Rehearse a compatible application/configuration/schema upgrade and rollback without
   rewinding issuance or revocation history.
-- [ ] **TRUST-5: Identity replica (Stage 3).** Complete the external FreeIPA CSR/sign/import flow and
+- [ ] **TRUST-5: Identity replica (Stage 5).** Complete the external FreeIPA CSR/sign/import flow and
   explicitly CA-enabled replica. Pass when both hosts issue under the same expected identity
   CA, directory/DNS replication work and loss of either host is tolerated. Two healthy VMs
-  or LDAP replication alone do not prove this. This extends trust in Stage 3; it is not
-  a prerequisite for accepting the independent Stage 2 issuer.
+  or LDAP replication alone do not prove this. This extends trust in Stage 5; it is not
+  a prerequisite for accepting the independent Stage 3 issuer.
 
 ## Wider walkthrough
 

@@ -217,10 +217,10 @@ Shared never owns inventory, guest network assignments, Terraform resources, or 
 Common non-secret infrastructure references follow the [platform input contract](../reference/platform-inputs.md).
 The Kubernetes implementation currently uses Talos and each owning tier's inventory, but
 not Ansible guest configuration. Its
-[separate root and command](../deployment/stage-3-identity/procedures/talos-terraform.md) consume Talos groups
+[separate root and command](../deployment/stage-4-kubernetes/procedures/talos-terraform.md) consume Talos groups
 and IP reservations, with state at `.terraform/state/talos/terraform.tfstate`.
 
-NetBox or another inventory application is a Stage 4 documentation service.
+NetBox or another inventory application is a Stage 6 documentation service.
 Recovery uses local tier inputs and operator-held material without querying it.
 An exported inventory snapshot can be reviewed into a tier later; the generator
 does not implement a live inventory-application integration.
@@ -282,7 +282,7 @@ bash ../homelab-shared/scripts/init-local-files.sh --setup syslog
 
 Replace `homelab` if another prefix was selected. Edit the initialized local files
 and confirm network placement and permissions, then review a plan from that directory.
-This uses the same base context as [Stage 1 logging](../deployment/stage-1-logging/README.md).
+This uses the same base context as [Stage 2 logging](../deployment/stage-2-logging/README.md).
 For a disposable environment, retain the same `--env` on every command and complete
 [environment isolation](../reference/repository-scripts.md#environment-isolation) first.
 
@@ -290,7 +290,7 @@ For a disposable environment, retain the same `--env` on every command and compl
 bash ../homelab-shared/scripts/deploy.sh syslog --plan-only
 ```
 
-After reviewing the plan, follow Stage 1's separate provisioning, storage/TLS
+After reviewing the plan, follow Stage 2's separate provisioning, storage/TLS
 preparation and Ansible steps. Do not run the full receiver recipe on an unprepared disk.
 The existing [script options](../reference/repository-scripts.md) apply in every tier.
 In a private source checkout, start in `tier-0/` and use
@@ -429,7 +429,7 @@ If template-builder inputs and state still belong to Tier 1, also complete the
 separate [template ownership migration](../administration/compute/template-lifecycle.md#existing-collections).
 
 Existing inventories and owned READMEs are never merged. For the new Talos root,
-follow [initialization](../deployment/stage-3-identity/procedures/talos-terraform.md#configure) and add its groups
+follow [initialization](../deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure) and add its groups
 to Tier 0's existing inventory. Empty legacy `bootstrap/proxmox/` and
 `bootstrap/talos/` starters remain preserved; retire them after review. Customized
 roots with live resources require explicit state/resource adoption, not a second

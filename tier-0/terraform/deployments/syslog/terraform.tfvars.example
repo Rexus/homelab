@@ -1,5 +1,5 @@
 # Copy to: terraform/deployments/syslog/terraform.tfvars
-# Guide: docs/deployment/stage-1-logging/README.md
+# Guide: docs/deployment/stage-2-logging/README.md
 # Tier 0 owns protected log intake; shared supplies only sizes and platform/image references.
 # Terraform owns VMs/disks; Tier 0 Ansible installs the receiver after mount/TLS preparation.
 # Neither installs archive replication or protected retention.

@@ -228,8 +228,8 @@ Its catalog, approved offline artifacts, and optional CI starter live under
 Each Kubernetes cluster has its own tier-local root at `terraform/deployments/kubernetes/`
 and `scripts/kubernetes-cluster.sh`. It currently uses Talos inventory groups/IPs
 and native configuration rather than the Linux setup helper. Start with the
-[cluster guide](../deployment/stage-3-identity/procedures/kubernetes.md); use the
-[Talos implementation](../deployment/stage-3-identity/procedures/talos-terraform.md) for exact inputs and state.
+[cluster guide](../deployment/stage-4-kubernetes/procedures/kubernetes.md); use the
+[Talos implementation](../deployment/stage-4-kubernetes/procedures/talos-terraform.md) for exact inputs and state.
 
 Tier-local VM roots remain workload definitions with separate state. Tier 0 owns
 hardware-facing control and the future delegated execution service; no state

@@ -63,7 +63,8 @@ data "talos_machine_configuration" "node" {
   machine_secrets    = talos_machine_secrets.cluster.machine_secrets
   talos_version      = var.cluster.talos_version
   kubernetes_version = var.cluster.kubernetes_version
-  config_patches = [yamlencode({
+  # Native patches keep proxy, DNS/time and mirror policy in this cluster's inputs.
+  config_patches = concat([yamlencode({
     machine = {
       install    = { disk = "/dev/sda", image = var.cluster.installer_image }
       network    = { hostname = each.key }
@@ -76,7 +77,7 @@ data "talos_machine_configuration" "node" {
         serviceSubnets = [var.cluster.service_cidr]
       }
     }
-  })]
+  })], var.machine_config_patches)
 }
 
 resource "talos_machine_configuration_apply" "node" {

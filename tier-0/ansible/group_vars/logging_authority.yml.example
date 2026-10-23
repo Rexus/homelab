@@ -1,5 +1,5 @@
 # Pass explicitly with -e @ansible/group_vars/logging_authority.yml on the signing host.
-# Guide: docs/deployment/stage-1-logging/producer-trust.md
+# Guide: docs/deployment/stage-2-logging/producer-trust.md
 logging_authority_initialize: false
 logging_authority_requests: []
 # - name: pve01

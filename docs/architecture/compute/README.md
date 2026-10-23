@@ -115,5 +115,5 @@ Architecture drill-down: [service runtimes and infrastructure](runtime.md),
 [complete reference platform](../reference-platform.md).
 
 Implementation procedures: [host/image foundation](../../deployment/foundation/README.md#step-1-prepare-compute-and-templates)
-and [cluster foundation](../../deployment/stage-3-identity/README.md#step-2-create-the-kubernetes-cluster).
+and the [Kubernetes capability](../../deployment/stage-4-kubernetes/README.md).
 The current cluster installer uses Talos; each cluster has its own owner and state.

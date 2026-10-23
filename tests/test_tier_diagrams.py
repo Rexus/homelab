@@ -171,7 +171,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn("rect rgba(", sequence)
 
     def test_logging_steps_keep_deployment_boundaries_and_inventory_names(self):
-        root = UPSTREAM / "docs/deployment/stage-1-logging"
+        root = UPSTREAM / "docs/deployment/stage-2-logging"
         tier = UPSTREAM / "tier-0"
         inventory = yaml.safe_load((tier / "ansible/inventory/hosts.yml.example").read_text())
         hosts = inventory["all"]["children"]["foundation_logging"]["hosts"]
@@ -220,23 +220,23 @@ class DiagramConventions(TierRepositoryTestCase):
         identity = diagrams(root / "architecture/identity/README.md")[0]
         self.assertIn('subgraph Directory["Directory authority / identity network"]\n        direction TB', identity)
         self.assertIn('Primary["Directory primary"] <--> Replica["Directory replica"]', identity)
-        trust = diagrams(root / "deployment/stage-2-trust/README.md")[0]
+        trust = diagrams(root / "deployment/stage-3-trust/README.md")[0]
         self.assertLess(trust.index('subgraph Identity['), trust.index('subgraph Crypto['))
         self.assertIn('Identity ~~~ Crypto', trust)
-        directory = diagrams(root / "deployment/stage-3-identity/README.md")[0]
+        directory = diagrams(root / "deployment/stage-5-identity/README.md")[0]
         self.assertIn('subgraph PVE["Existing Proxmox hosts"]\n      direction LR', directory)
         self.assertIn('Identity ~~~ ExistingCA', directory)
-        control = diagrams(root / "deployment/stage-4-secrets/README.md")[0]
+        control = diagrams(root / "deployment/stage-6-secrets/README.md")[0]
         self.assertIn('Log ~~~ Identity ~~~ Issuer', control)
         self.assertIn('Primary <-->|Replication| Replica', control)
 
     def test_queries_enter_from_readers_and_alerts_retain_real_flow(self):
         root = UPSTREAM / "docs"
-        access = diagrams(root / "deployment/stage-6-observability/README.md")[3]
+        access = diagrams(root / "deployment/stage-8-observability/README.md")[3]
         self.assertIn('flowchart LR', access)
         self.assertIn('Reader -->|Read-only queries| T1', access)
         self.assertNotIn('Read-only results| Reader', access)
-        alerts = diagrams(root / "deployment/stage-4-secrets/monitoring.md")[2]
+        alerts = diagrams(root / "deployment/stage-6-secrets/monitoring.md")[2]
         self.assertIn('flowchart RL', alerts)
         self.assertIn('Watch -->|Missing heartbeat alert| Admin', alerts)
         self.assertIn('Log -->|Configured heartbeat| Watch', alerts)
@@ -244,7 +244,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertNotIn('Admin[', external)
 
     def test_logging_diagrams_link_to_the_owning_iac_at_each_step(self):
-        root = UPSTREAM / "docs/deployment/stage-1-logging"
+        root = UPSTREAM / "docs/deployment/stage-2-logging"
         recipes = "../../../tier-0/ansible/playbooks/deployment/"
         expected = {
             "README.md": [

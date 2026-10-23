@@ -37,6 +37,9 @@ class TierClusters(TierRepositoryTestCase):
         self.assertIn("../../../../verify-shared/config/guest-sizes.json", main)
         self.assertNotIn("shared/terraform", main)
         self.assertIn('prevent_destroy = true', (root / "machines.tf").read_text())
+        self.assertIn('var.machine_config_patches', (root / "machines.tf").read_text())
+        self.assertIn('variable "machine_config_patches"', (root / "variables.tf").read_text())
+        self.assertIn('machine_config_patches = []', (root / "terraform.tfvars.example").read_text())
         self.assertTrue((repo / "scripts/kubernetes-cluster.sh").is_file())
         self.assertIn('allow_scheduling_on_control_planes = true',
                       (root / "terraform.tfvars.example").read_text())

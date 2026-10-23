@@ -6,7 +6,7 @@ A successful VM apply, open port or matching file alone is not evidence of loggi
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`). Shared supplies the
 stateless record checker; Tier 0 owns the system, test inputs and evidence.
-**Prerequisites:** functioning [Stage 1 collection](../deployment/stage-1-logging/README.md),
+**Prerequisites:** functioning [Stage 2 collection](../deployment/stage-2-logging/README.md),
 an independently recoverable backup, reader/key kit, authorized custodian and disposable
 fault targets. The supplied receiver alone does not satisfy the independent archive,
 retention and HA prerequisites.
@@ -104,7 +104,7 @@ not silently removed or treated as exactly-once delivery.
 | --- | --- |
 | Healthy control | All expected records arrive with valid source identity; establish the normal latency and count baseline |
 | Abrupt receiver process loss | Kill the approved disposable receiver process without a graceful flush; observe restart/replay and reconcile accepted records |
-| Physical host/power loss | Remove one approved failure domain under the [redundant-intake contract](../deployment/stage-1-logging/step-3b-redundant-intake.md); a guest reboot is not this test |
+| Physical host/power loss | Remove one approved failure domain under the [redundant-intake contract](../deployment/stage-2-logging/step-3b-redundant-intake.md); a guest reboot is not this test |
 | Network or archive outage | Isolate only the approved test path; measure spool/replay and NAS/backup lag. Main path retains within its configured buffers, not until application-level archive acknowledgement; reconcile and report the exposed tail |
 | Bounded queue/storage exhaustion | Use a capped test volume/quota, never fill a live filesystem; observe independent alerts and the declared reject/backpressure policy |
 | Tier 1, cluster and SSO unavailable | Intake, authorized evidence reads and independent notifications continue within the selected failure envelope |
@@ -173,7 +173,7 @@ not a passed prevention test. For B, a privileged identity that can bypass the s
 retention requirement blocks that claim. A change in role holders or required deletion
 protection requires renewed acceptance, not just a renamed record.
 
-Return to [Stage 1 acceptance](../deployment/stage-1-logging/README.md#step-3-protect-and-verify-retained-evidence).
+Return to [Stage 2 acceptance](../deployment/stage-2-logging/README.md#step-3-protect-and-verify-retained-evidence).
 Repeat after material transport, queue/flush, storage, backup, retention or identity changes.
 
 ## References

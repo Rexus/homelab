@@ -8,7 +8,7 @@ development and administration maintain it.
 | Intent | Start here | Contains |
 | --- | --- | --- |
 | Understand the design | [Architecture](architecture/README.md) | Whole platform, integrated reference, domain diagrams and detailed variants |
-| Build the platform | [Deployment](deployment/README.md) | Foundation prerequisites, seven capability stages, numbered steps and adjacent options |
+| Build the platform | [Deployment](deployment/README.md) | Foundation prerequisites and numbered capability stages, including software intake and Kubernetes |
 | Change the code | [Development](development/README.md) | Local tooling, IaC structure, repository generation and review |
 | Operate the platform | [Administration](administration/README.md) | Maintenance, backups, recovery and secret handling |
 | Work from one repository | [Repository paths](paths/README.md) | Short Tier 0, Tier 1, Tier 2 and shared checklists |

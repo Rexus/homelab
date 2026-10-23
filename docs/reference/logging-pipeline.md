@@ -3,7 +3,7 @@
 The NAS main path supplies host forwarding, independent producer trust, create-only
 checkpoints, audited filesystem views and an independently executed encrypted backup.
 It does not supply replicated intake, NAS firmware administration or a search service.
-Start with [Stage 1](../deployment/stage-1-logging/README.md), not these implementation details.
+Start with [Stage 2](../deployment/stage-2-logging/README.md), not these implementation details.
 
 ## Contents
 

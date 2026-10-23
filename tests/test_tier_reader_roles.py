@@ -20,20 +20,21 @@ class ReaderRoles(TierRepositoryTestCase):
                 link = re.search(rf"\[{name}/\]\(([^)]+)\)", index)[1]
                 expected = UPSTREAM / name if root == source else self.root / f"verify-{name}"
                 self.assertEqual((root / link).resolve(), expected)
-            for document in [*root.glob("stage-*/**/*.md"), *root.glob("foundation/**/*.md")]:
+            for document in [*root.glob("stage-*/**/*.md"), *root.glob("foundation/**/*.md"),
+                             *root.glob("stage-1-software-intake/**/*.md")]:
                 opening = "\n".join(document.read_text(encoding="utf-8").splitlines()[:22])
                 self.assertRegex(opening, r"\*\*Working repositor(?:y|ies):\*\*|## Working repositories", str(document))
                 self.assertIn("<prefix>-tier-", opening, str(document))
             for relative, owner in (
-                ("foundation/step-3b-outbound-cache.md", "tier-2"),
-                ("stage-2-trust/step-1b-usb-hsm.md", "tier-0"),
-                ("stage-3-identity/procedures/freeipa.md", "tier-0"),
-                ("stage-4-secrets/step-1b-vault-vm.md", "tier-0"),
-                ("stage-6-observability/step-1b-dedicated-vms.md", "tier-1"),
-                ("stage-5-delivery/step-1b-source-control-vm.md", "tier-1"),
-                ("stage-5-delivery/step-1c-podman-runner.md", "tier-1"),
-                ("stage-5-delivery/step-1d-image-based-linux.md", "tier-0"),
-                ("stage-5-delivery/procedures/edge-proxy.md", "tier-2"),
+                ("stage-1-software-intake/proxy-cache.md", "tier-2"),
+                ("stage-3-trust/step-1b-usb-hsm.md", "tier-0"),
+                ("stage-5-identity/procedures/freeipa.md", "tier-0"),
+                ("stage-6-secrets/step-1b-vault-vm.md", "tier-0"),
+                ("stage-8-observability/step-1b-dedicated-vms.md", "tier-1"),
+                ("stage-7-delivery/step-1b-source-control-vm.md", "tier-1"),
+                ("stage-7-delivery/step-1c-podman-runner.md", "tier-1"),
+                ("stage-7-delivery/step-1d-image-based-linux.md", "tier-0"),
+                ("stage-7-delivery/procedures/edge-proxy.md", "tier-2"),
             ):
                 content = (root / relative).read_text(encoding="utf-8")
                 self.assertIn(f"**Working repository:** `<prefix>-{owner}`", content)
@@ -153,15 +154,15 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertIn("Required readiness", deployment)
             self.assertIn("deployment/readiness.md", deployment)
             self.assertIn("Selected variant / local procedure", deployment)
-            for stage in ("stage-1-logging", "stage-2-trust", "stage-3-identity",
-                          "stage-4-secrets", "stage-5-delivery", "stage-6-observability", "stage-7-workloads"):
+            for stage in ("stage-1-software-intake", "stage-2-logging", "stage-3-trust", "stage-4-kubernetes", "stage-5-identity",
+                          "stage-6-secrets", "stage-7-delivery", "stage-8-observability", "stage-9-workloads"):
                 self.assertIn(f"{stage}/README.md", deployment)
             self.assertIn("../architecture/README.md", deployment)
             self.assertIn("do not transfer resource or state ownership", deployment)
         reference = self.root / "verify-architecture/docs/auto-docs/deployment"
         self.assertEqual(sorted(path.parent.name for path in reference.glob("stage-*/README.md")),
-                         ["stage-1-logging", "stage-2-trust", "stage-3-identity",
-                          "stage-4-secrets", "stage-5-delivery", "stage-6-observability", "stage-7-workloads"])
+                         ["stage-1-software-intake", "stage-2-logging", "stage-3-trust", "stage-4-kubernetes", "stage-5-identity",
+                          "stage-6-secrets", "stage-7-delivery", "stage-8-observability", "stage-9-workloads"])
         for old in ("stages", "compute", "cryptography", "identity", "network", "delivery", "operations"):
             self.assertFalse((reference / old).exists(), old)
         architecture = self.root / "verify-architecture/docs/architecture"

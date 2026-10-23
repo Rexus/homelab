@@ -112,8 +112,8 @@ key does not become a root CA, and HSM presence alone proves neither recovery no
 
 ## Realization
 
-[The Secrets stage](../../deployment/stage-4-secrets/README.md#step-1-deploy-the-secret-service) integrates the
-secret service using [the selected seal procedure](../../deployment/stage-4-secrets/step-1c-seal-integration.md).
+[The Secrets stage](../../deployment/stage-6-secrets/README.md#step-1-deploy-the-secret-service) integrates the
+secret service using [the selected seal procedure](../../deployment/stage-6-secrets/step-1c-seal-integration.md).
 Administration owns subsequent recovery and rotation; architecture records the
 dependency and custody contract.
 

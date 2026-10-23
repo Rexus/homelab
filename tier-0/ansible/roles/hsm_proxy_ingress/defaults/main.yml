@@ -1,5 +1,5 @@
 ---
-# Scaffold only. See docs/deployment/stage-2-trust/step-1b-usb-hsm.md.
+# Scaffold only. See docs/deployment/stage-3-trust/step-1b-usb-hsm.md.
 hsm_proxy_ingress_enabled: false
 hsm_proxy_ingress_application_ha_validated: false
 hsm_proxy_ingress_readiness_validated: false

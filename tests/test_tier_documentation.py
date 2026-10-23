@@ -66,14 +66,14 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         publisher = "bash scripts/proxmox-templates.sh init"
         setup = "bash ../verify-shared/scripts/init-local-files.sh"
         self.assertIn("Templates before VMs", tier0)
-        self.assertIn("seven-capability deployment checklist", tier0)
+        self.assertIn("capability deployment checklist", tier0)
         self.assertIn("deployment/foundation/README.md", tier0)
-        self.assertIn("deployment/stage-1-logging/README.md", tier0)
-        self.assertIn("deployment/stage-2-trust/README.md", tier0)
+        self.assertIn("deployment/stage-2-logging/README.md", tier0)
+        self.assertIn("deployment/stage-3-trust/README.md", tier0)
         self.assertIn("FreeIPA runs on two dedicated VMs", tier0)
         self.assertIn("Keycloak is a later service in this cluster", tier0)
-        self.assertIn("deployment/stage-3-identity/procedures/talos-terraform.md", tier0)
-        self.assertIn("deployment/stage-3-identity/procedures/kubernetes.md", tier0)
+        self.assertIn("deployment/stage-4-kubernetes/procedures/talos-terraform.md", tier0)
+        self.assertIn("deployment/stage-4-kubernetes/README.md", tier0)
         self.assertIn("Kubernetes control cluster", tier0)
         self.assertIn("current [Talos implementation]", tier0)
         self.assertLess(tier0.index(publisher), tier0.index("bash scripts/kubernetes-cluster.sh init"))
@@ -146,33 +146,34 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertTrue((architecture / f"paths/{tier}/README.md").is_file())
         for tier in ("tier-0", "tier-1"):
             path = (architecture / f"paths/{tier}/README.md").read_text()
-            self.assertIn("../../deployment/stage-3-identity/procedures/kubernetes.md", path)
+            self.assertIn("../../deployment/stage-4-kubernetes/procedures/kubernetes.md", path)
         tier0 = (architecture / "paths/tier-0/README.md").read_text()
         self.assertLess(tier0.index("cluster-ha.md"), tier0.index("template-lifecycle.md"))
         self.assertLess(tier0.index("step-1c-sdn.md"), tier0.index("template-lifecycle.md"))
-        self.assertLess(tier0.index("template-lifecycle.md"), tier0.index("kubernetes.md"))
-        self.assertIn("operator-run bootstrap", (architecture / "deployment/stage-3-identity/step-2b-manual-cluster.md").read_text())
-        for step in range(1, 7):
+        quickstart = tier0.split("## Getting started", 1)[1].split("## Navigation", 1)[0]
+        self.assertLess(quickstart.index("template-lifecycle.md"), quickstart.index("kubernetes-cluster.sh init"))
+        self.assertIn("operator-run bootstrap", (architecture / "deployment/stage-4-kubernetes/step-1b-manual-cluster.md").read_text())
+        for step in range(1, 10):
             self.assertIn(f"**{step}:", tier0)
         bootstrap = (architecture / "deployment/README.md").read_text()
         self.assertIn("foundation/README.md", bootstrap)
-        self.assertIn("stage-1-logging/README.md", bootstrap)
+        self.assertIn("stage-2-logging/README.md", bootstrap)
         self.assertIn("Terraform / OpenTofu", bootstrap)
         self.assertIn("Current wrappers call `terraform`", bootstrap)
-        foundation = (architecture / "deployment/stage-3-identity/procedures/kubernetes.md").read_text()
+        foundation = (architecture / "deployment/stage-4-kubernetes/procedures/kubernetes.md").read_text()
         for component in ("CNI", "Flux", "SOPS", "Storage", "cert-manager", "ingress", "CloudNativePG"):
             self.assertIn(component, foundation)
         self.assertIn("Immutable AlmaLinux or another node OS", foundation)
         self.assertIn("not a multi-OS installer", foundation)
-        application = (architecture / "deployment/stage-5-delivery/procedures/platform-cluster.md").read_text()
+        application = (architecture / "deployment/stage-7-delivery/procedures/platform-cluster.md").read_text()
         self.assertIn("kubernetes.md#cluster-foundation", application)
         self.assertNotIn("| 1. Networking |", application)
 
-    def test_seven_capabilities_have_numbered_main_paths_and_adjacent_options(self):
+    def test_nine_capabilities_have_numbered_main_paths_and_adjacent_options(self):
         self.generate("--repo", "architecture")
         docs = self.root / "verify-architecture/docs/auto-docs"
         stages = sorted((docs / "deployment").glob("stage-*/README.md"))
-        self.assertEqual(len(stages), 7)
+        self.assertEqual(len(stages), 9)
         index = (docs / "deployment/README.md").read_text()
         project = (self.root / "verify-architecture/docs/deployment/README.md").read_text()
         for number, stage in enumerate(stages, 1):
@@ -195,22 +196,24 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                 self.assertIn("**Change:**", text, option)
                 self.assertIn("Return", text, option)
                 self.assertIn(f"({option.name})", content, option)
-        logging, trust, runtime, control, delivery, observability, workloads = (
+        intake, logging, trust, cluster, identity, control, delivery, observability, workloads = (
             stage.read_text(encoding="utf-8") for stage in stages
         )
         foundation = (docs / "deployment/foundation/README.md").read_text()
         self.assertIn("not itself a reachable Flux source", " ".join(foundation.split()))
         self.assertIn("## Step 1: Provision the log host", logging)
         self.assertIn("Hardware protection", trust)
-        self.assertIn("FreeIPA stays outside Kubernetes", runtime)
-        self.assertIn("kubernetes.md#cluster-foundation", runtime)
+        self.assertIn("FreeIPA stays outside Kubernetes", identity)
+        self.assertIn("kubernetes.md#cluster-foundation", cluster)
+        self.assertIn("## Step 1: Deploy the policy proxy and cache", intake)
+        self.assertIn("## Step 3: Verify operation and recovery", cluster)
         self.assertIn("not complete application installers", control)
         self.assertIn("not sufficient authorization", delivery)
         self.assertIn("not a shipped controller", workloads)
-        self.assertIn("# Stage 6: Observability", observability)
+        self.assertIn("# Stage 8: Observability", observability)
         self.assertIn("step-1b-dedicated-vms.md", observability)
         self.assertNotIn("step-2d-telemetry-vm.md", control)
-        hardware = (stages[1].parent / "step-1b-usb-hsm.md").read_text()
+        hardware = (stages[2].parent / "step-1b-usb-hsm.md").read_text()
         self.assertIn("OS baseline", hardware)
         self.assertIn("not a native HSM cluster", hardware)
         self.assertEqual(hardware.count("```mermaid"), 1)
@@ -246,7 +249,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         readme = self.root / "verify-tier-0/README.md"
         documents = {
             "paths/README.md": "choose-your-repository",
-            "deployment/stage-3-identity/procedures/freeipa.md": "what-you-configure",
+            "deployment/stage-5-identity/procedures/freeipa.md": "what-you-configure",
             "deployment/README.md": "day-2-service-sequence",
         }
         content = "# Project deployment guide\n" + "\n".join(

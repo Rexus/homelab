@@ -65,7 +65,7 @@ The selected application must support its partition's mechanisms and access mode
 The design specifies behavior for member/client loss, rejected operations and
 independent restore. No certification is inferred from the word HSM.
 
-The [network HSM procedure](../../deployment/stage-2-trust/step-1c-network-hsm.md)
+The [network HSM procedure](../../deployment/stage-3-trust/step-1c-network-hsm.md)
 owns installation and acceptance steps.
 
 ## References

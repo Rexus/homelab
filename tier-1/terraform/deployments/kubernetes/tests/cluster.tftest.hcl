@@ -1,6 +1,12 @@
 mock_provider "proxmox" {}
 mock_provider "talos" {}
 
+# Only local secrets/configuration generation uses the real provider below.
+# All VM and remote Talos operations remain mocked or explicitly overridden.
+provider "talos" {
+  alias = "native"
+}
+
 variables {
   inventory_path  = "tests/fixtures/hosts.yml"
   group_vars_path = "tests/fixtures/talos.yml"
@@ -163,4 +169,42 @@ run "reject_template_without_source" {
     }
   }
   expect_failures = [terraform_data.configuration]
+}
+
+run "native_restricted_network_configuration" {
+  command = apply
+  providers = {
+    proxmox = proxmox
+    talos   = talos.native
+  }
+  # Never contact nodes: only the provider's local key/config generators run.
+  override_resource { target = talos_machine_configuration_apply.node }
+  override_resource { target = talos_machine_bootstrap.cluster }
+  override_resource { target = talos_cluster_kubeconfig.cluster }
+  variables {
+    machine_config_patches = [yamlencode({
+      machine = {
+        env = {
+          http_proxy  = "http://cache.example.com:3128"
+          https_proxy = "http://cache.example.com:3128"
+          no_proxy    = "127.0.0.1,localhost,192.0.2.0/24,10.244.0.0/16,10.96.0.0/12,.example.com,.svc,.cluster.local"
+        }
+        network = { nameservers = ["192.0.2.53"] }
+        time    = { servers = ["192.0.2.123"] }
+      }
+      }), yamlencode({
+      apiVersion   = "v1alpha1"
+      kind         = "RegistryMirrorConfig"
+      name         = "registry.k8s.io"
+      endpoints    = [{ url = "https://registry.example.com" }]
+      skipFallback = true
+    })]
+  }
+  # tests/test_tier_kubernetes_config.py checks the native multi-document output.
+}
+
+run "reject_empty_machine_patch" {
+  command = plan
+  variables { machine_config_patches = [" "] }
+  expect_failures = [var.machine_config_patches]
 }

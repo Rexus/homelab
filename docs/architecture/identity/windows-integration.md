@@ -64,9 +64,9 @@ Use those limitations as the reason this remains an optional path.[2][3][4]
 
 ## Read more
 
-- [Identity foundation path](../../deployment/stage-3-identity/procedures/freeipa.md)
-- [Hardware-backed user authentication](../../deployment/stage-4-secrets/step-3b-hardware-authentication.md)
-- [Vault foundation deployment](../../deployment/stage-4-secrets/step-1b-vault-vm.md)
+- [Identity foundation path](../../deployment/stage-5-identity/procedures/freeipa.md)
+- [Hardware-backed user authentication](../../deployment/stage-6-secrets/step-3b-hardware-authentication.md)
+- [Vault foundation deployment](../../deployment/stage-6-secrets/step-1b-vault-vm.md)
 - [Deployment readiness](../../deployment/readiness.md)
 - [Design decision log](../../decisions/README.md)
 

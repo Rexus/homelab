@@ -5,8 +5,8 @@ intrusion, stop botnets or repair a compromised endpoint. Defend against behavio
 and exposure, not an attacker's claimed nationality. No configuration guarantees
 that man-in-the-middle attacks are impossible.
 
-**Prerequisites:** [private PKI](../../deployment/stage-2-trust/procedures/software-pki.md),
-[public HTTPS](../../deployment/stage-7-workloads/public-https.md), accepted
+**Prerequisites:** [private PKI](../../deployment/stage-3-trust/procedures/software-pki.md),
+[public HTTPS](../../deployment/stage-9-workloads/public-https.md), accepted
 [protected logging](../security-logging.md) and named incident responders.
 
 ## Contents

@@ -29,8 +29,6 @@ http_access deny manager
 http_access allow localhost
 {% if effective_allowed_domains.values | length > 0 %}
 http_access allow localnet allowed_update_domains
-{% else %}
-http_access allow localnet
 {% endif %}
 http_access deny all
 

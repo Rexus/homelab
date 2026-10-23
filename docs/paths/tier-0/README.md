@@ -16,19 +16,22 @@ Tier 1 or Tier 2. Start here for a new installation.
 Record [project conventions](../../development/project-documentation.md#start-with-project-values)
 and prepare [local tools](../../development/local-setup.md) first.
 Verify the unnumbered [foundation prerequisites](../../deployment/foundation/README.md),
-then follow the [seven capability stages](../../deployment/README.md).
+then follow the [numbered capability stages](../../deployment/README.md), beginning
+with [Software intake](../../deployment/stage-1-software-intake/README.md).
 Each stage's README explains its numbered steps with diagrams and acceptance checks;
 options branch from the relevant decision and return to the main path.
 
 | Stage | Tier 0 responsibility | Walkthrough |
 | --- | --- | --- |
-| **1: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1-3](../../deployment/stage-1-logging/README.md) |
-| **2: Cryptographic trust** | Offline root and online issuer; optional hardware protection | [Trust](../../deployment/stage-2-trust/README.md) |
-| **3: Identity** | Dedicated FreeIPA pair, control-cluster foundation and Keycloak/OIDC | [Identity](../../deployment/stage-3-identity/README.md) |
-| **4: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../deployment/stage-4-secrets/README.md), [monitoring](../../deployment/stage-4-secrets/monitoring.md) |
-| **5: Delivery and handover** | Protected Tier 0 runner; Tier 1 owns delivery services | [Delivery and handover](../../deployment/stage-5-delivery/README.md) |
-| **6: Observability** | Own Proxmox/BMC collectors and credentials; export approved metrics/evidence copies to Tier 1 | [Infrastructure monitoring](../../deployment/stage-6-observability/infrastructure-monitoring.md) |
-| **7: Workload provisioning** | Approve and execute infrastructure requests | [Workload provisioning](../../deployment/stage-7-workloads/README.md) |
+| **1: Software intake** | Configure approved consumers; Tier 2 owns the ordinary proxy/cache | [Software intake](../../deployment/stage-1-software-intake/README.md) |
+| **2: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1-3](../../deployment/stage-2-logging/README.md) |
+| **3: Cryptographic trust** | Offline root and online issuer; optional hardware protection | [Trust](../../deployment/stage-3-trust/README.md) |
+| **4: Kubernetes** | Control-cluster lifecycle, basic platform, node/API logging and recovery | [Kubernetes, Steps 1-3](../../deployment/stage-4-kubernetes/README.md) |
+| **5: Identity** | Dedicated FreeIPA pair and Keycloak/OIDC on the accepted cluster | [Identity](../../deployment/stage-5-identity/README.md) |
+| **6: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../deployment/stage-6-secrets/README.md), [monitoring](../../deployment/stage-6-secrets/monitoring.md) |
+| **7: Delivery and handover** | Protected Tier 0 runner; Tier 1 owns delivery services | [Delivery and handover](../../deployment/stage-7-delivery/README.md) |
+| **8: Observability** | Own Proxmox/BMC collectors and credentials; export approved metrics/evidence copies to Tier 1 | [Infrastructure monitoring](../../deployment/stage-8-observability/infrastructure-monitoring.md) |
+| **9: Workload provisioning** | Approve and execute infrastructure requests | [Workload provisioning](../../deployment/stage-9-workloads/README.md) |
 
 Select optional [HA](../../deployment/foundation/step-1b-cluster-ha.md) and
 [SDN](../../deployment/foundation/step-1c-sdn.md) before important guests.
@@ -48,7 +51,8 @@ to configure, plan, publish, and test images. Tier 0 approves references in the
 [shared catalog](../../reference/template-catalog.md); other tiers consume them.
 Verified existing templates are valid. No hosted CI or cluster is required.
 
-After templates, establish [foundational syslog](../../deployment/stage-1-logging/README.md)
+After templates, accept [software intake](../../deployment/stage-1-software-intake/README.md),
+then establish [foundational syslog](../../deployment/stage-2-logging/README.md)
 with the Tier 0 `syslog` setup. Prepare storage/TLS before installing its isolated
 receiver, then follow its producer, NAS checkpoint and independent-backup recipes.
 NAS snapshots/access custody and live acceptance remain commissioning gates; HA is a separate selection.
@@ -58,9 +62,9 @@ After the trust stage, initialize the Kubernetes control cluster:
 bash scripts/kubernetes-cluster.sh init
 ```
 
-Follow the [common Kubernetes procedure](../../deployment/stage-3-identity/procedures/kubernetes.md)
-and [current Talos implementation](../../deployment/stage-3-identity/procedures/talos-terraform.md)
-to configure, plan, and deploy. The [identity VM guide](../../deployment/stage-3-identity/procedures/freeipa.md)
+Follow the [common Kubernetes procedure](../../deployment/stage-4-kubernetes/procedures/kubernetes.md)
+and [current Talos implementation](../../deployment/stage-4-kubernetes/procedures/talos-terraform.md)
+to configure, plan, and deploy. The [identity VM guide](../../deployment/stage-5-identity/procedures/freeipa.md)
 covers the separate FreeIPA pair. Linux setup commands use tier-local inventory
 and state; they do not bootstrap Kubernetes or install cluster services.
 Replace `homelab` in paths if another prefix was selected.

@@ -20,12 +20,12 @@ class HSMEndpoint(TierRepositoryTestCase):
                        "Vault's managed-key integration", "not inside the USB devices",
                        "## Capacity and replica count", "not a fixed limit", "Frontend and network capacity"):
             self.assertIn(phrase, design)
-        deployment = (UPSTREAM / "docs/deployment/stage-2-trust/step-1b-usb-hsm.md").read_text()
+        deployment = (UPSTREAM / "docs/deployment/stage-3-trust/step-1b-usb-hsm.md").read_text()
         for phrase in ("1. Prepare the service hosts", "2. Integrate the application and endpoint",
                        "3. Verify the complete service", "USB device lost", "Tier 1 and Tier 2",
                        "Independent restore", "hsm_proxy_ingress_enabled"):
             self.assertIn(phrase, deployment)
-        single = (UPSTREAM / "docs/deployment/stage-2-trust/step-1d-single-usb.md").read_text()
+        single = (UPSTREAM / "docs/deployment/stage-3-trust/step-1d-single-usb.md").read_text()
         self.assertIn("step-1b-usb-hsm.md", single)
         self.assertIn("do not bring offline root custody online", single)
         vm_inputs = (UPSTREAM / "tier-0/terraform/deployments/hsm/terraform.tfvars.example").read_text()

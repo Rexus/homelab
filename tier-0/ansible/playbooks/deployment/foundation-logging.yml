@@ -1,5 +1,5 @@
 ---
-# Stage 1: docs/deployment/stage-1-logging/README.md
+# Stage 2: docs/deployment/stage-2-logging/README.md
 # Requires prepared storage and independent TLS; no filesystem creation or archive locking.
 - name: Deploy independent Tier 0 log receivers
   hosts: foundation_logging

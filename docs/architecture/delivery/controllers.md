@@ -89,8 +89,8 @@ replacement for target authorization. [1][2]
 
 ## Realization
 
-[Stage 5](../../deployment/stage-5-delivery/README.md) provisions the platform runtime
-and integrates the selected delivery option. [Cluster foundation](../../deployment/stage-3-identity/procedures/kubernetes.md#cluster-foundation)
+[Stage 7](../../deployment/stage-7-delivery/README.md) provisions the platform runtime
+and integrates the selected delivery option. [Cluster foundation](../../deployment/stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation)
 defines the shared readiness gates. Tier 1/2 manifests remain project-owned starters;
 neither Argo CD nor Spinnaker installation is supplied.
 

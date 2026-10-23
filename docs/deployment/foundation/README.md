@@ -7,7 +7,6 @@ it passes these checks. Foundation is not a numbered capability stage.
 **Prerequisites:** physical hosts, network equipment, approved installation sources
 and a privileged workstation with independent console access.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-The optional cache branch uses `<prefix>-tier-2` instead.
 **Design:** [compute](../../architecture/compute/README.md) and
 [network boundaries](../../architecture/networking/README.md).
 
@@ -68,7 +67,7 @@ Apply the [firewall policy](procedures/firewall-rollout.md), using the
 and denied paths; cluster membership alone is not evidence of HA.
 
 Keep persistent local host logs from first boot and export network-device logs where
-supported. Preserve these early records until the Stage 1 collector can receive them;
+supported. Preserve these early records until the Stage 2 collector can receive them;
 central collection must not wait for FreeIPA or Kubernetes.
 
 ## Step 2: Protect provisioning access and state
@@ -83,6 +82,9 @@ Keep code, tools and recovery credentials outside the systems being created.
 A bootstrap VM is optional. It cannot replace recovery access outside Proxmox.
 Software supply must work independently of future platform services; an existing
 mirror or approved offline artifacts are valid inputs.
+Select the [software-intake design](../../architecture/delivery/software-intake.md):
+controlled proxy access can serve connected clients in every tier, while retained
+mirrors or offline copies provide independent approved content.
 
 ## Step 3: Publish and test VM templates
 
@@ -101,8 +103,9 @@ Boot disposable clones and verify disks, network and access before creating serv
 VMs. Back up and restore a disposable clone, including every required data disk,
 through the [backup procedure](../../administration/compute/backup-restore.md#quick-steps)
 before important guests depend on that path.
-Optional [3b: outbound cache](step-3b-outbound-cache.md) can be introduced after
-its VM prerequisites exist; it remains Tier 2-owned and cannot be its own bootstrap dependency.
+After its VM prerequisites exist, deploy the separate
+[Software intake capability](../stage-1-software-intake/README.md) when controlled update
+access is needed. Keep its initial software supply independent of the cache being deployed.
 
 Before the later Kubernetes stage starts Flux, provide a reachable approved Git or OCI
 source with independent credentials. A local checkout is not itself a reachable Flux source.
@@ -116,6 +119,7 @@ network boundaries, realizing the compute portion of the
 [reference platform](../../architecture/reference-platform.md#service-placement).
 
 Record template boot, network allow/deny and state-restore evidence. Begin numbered
-deployment with [Stage 1: Protected logging](../stage-1-logging/README.md), before PKI,
-FreeIPA or Kubernetes. Logging can start as soon as one approved Linux template is ready;
+deployment with [Stage 1: Software intake](../stage-1-software-intake/README.md),
+then [Stage 2: Protected logging](../stage-2-logging/README.md), before PKI,
+FreeIPA or Kubernetes. Logging can start as soon as one approved Linux template and supply path are ready;
 it does not wait for every optional foundation variant.

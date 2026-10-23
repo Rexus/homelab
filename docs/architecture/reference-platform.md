@@ -222,13 +222,13 @@ Detailed variants link to their own realization procedures inside the domains.
 | Finished function | Contributing deployment guides |
 | --- | --- |
 | Infrastructure, network attachment and approved templates | [Compute foundation](../deployment/foundation/README.md) |
-| Offline trust and online issuance | [Cryptographic trust](../deployment/stage-2-trust/README.md) |
-| Directory, identity federation and the supporting cluster platform | [Identity](../deployment/stage-3-identity/README.md) |
-| Protected syslog and audit evidence | [Foundational logging](../deployment/stage-1-logging/README.md) |
-| Secrets, recovery custody and supporting control integrations | [Secrets](../deployment/stage-4-secrets/README.md) |
-| Observability and scoped application diagnostics | [Tier 1 Observability](../deployment/stage-6-observability/README.md) |
-| Shared delivery, published endpoints and protected execution handover | [Delivery and handover](../deployment/stage-5-delivery/README.md) |
-| Approved project runtimes and application reconciliation | [Workload provisioning](../deployment/stage-7-workloads/README.md) |
+| Offline trust and online issuance | [Cryptographic trust](../deployment/stage-3-trust/README.md) |
+| Directory, identity federation and the supporting cluster platform | [Identity](../deployment/stage-5-identity/README.md) |
+| Protected syslog and audit evidence | [Foundational logging](../deployment/stage-2-logging/README.md) |
+| Secrets, recovery custody and supporting control integrations | [Secrets](../deployment/stage-6-secrets/README.md) |
+| Observability and scoped application diagnostics | [Tier 1 Observability](../deployment/stage-8-observability/README.md) |
+| Shared delivery, published endpoints and protected execution handover | [Delivery and handover](../deployment/stage-7-delivery/README.md) |
+| Approved project runtimes and application reconciliation | [Workload provisioning](../deployment/stage-9-workloads/README.md) |
 
 The [support map](../reference/implementation-support.md) distinguishes supplied
 automation from project integration. [Readiness](../deployment/readiness.md)

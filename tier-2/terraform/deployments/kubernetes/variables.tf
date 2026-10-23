@@ -37,6 +37,17 @@ variable "cluster" {
   }
 }
 
+variable "machine_config_patches" {
+  description = "Ordered native Talos YAML/JSON patches applied after the base configuration on every node."
+  type        = list(string)
+  default     = []
+  sensitive   = true
+  validation {
+    condition     = alltrue([for patch in var.machine_config_patches : length(trimspace(patch)) > 0])
+    error_message = "Machine configuration patches must not be empty; use [] for the unmodified base configuration."
+  }
+}
+
 variable "nodes" {
   description = "Tier-owned VM hardware keyed by Talos inventory hostname; MACs must have DHCP reservations."
   type = map(object({

@@ -360,7 +360,7 @@ of the old template before enabling the replacement step.
 
 - [Proxmox planning guidelines](../../../reference/proxmox-conventions.md)
 - [Proxmox reference platform](proxmox.md)
-- [Image-based Linux path](../../stage-5-delivery/step-1d-image-based-linux.md)
+- [Image-based Linux path](../../stage-7-delivery/step-1d-image-based-linux.md)
 - [Infrastructure automation layout](../../../development/code-layout.md)
 - [Deployment readiness](../../readiness.md)
 - [Environment variable conventions](../../../reference/environment-variables.md)

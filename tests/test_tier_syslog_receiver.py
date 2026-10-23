@@ -24,7 +24,8 @@ class ReceiverContract(TierRepositoryTestCase):
         generated = self.root / "verify-tier-0/ansible/roles/syslog_ng"
         for path in ROLE.rglob('*'):
             if path.is_file():
-                self.assertEqual(path.read_bytes(), (generated / path.relative_to(ROLE)).read_bytes())
+                # Payloads are text; generation normalizes Windows checkout line endings.
+                self.assertEqual(path.read_text(), (generated / path.relative_to(ROLE)).read_text())
         for other in ("verify-shared", "verify-tier-1", "verify-tier-2"):
             self.assertFalse((self.root / other / "ansible/roles/syslog_ng").exists())
         defaults = yaml.safe_load((ROLE / "defaults/main.yml").read_text())

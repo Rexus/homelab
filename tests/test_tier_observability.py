@@ -44,7 +44,7 @@ class Observability(TierRepositoryTestCase):
                              "included initially", "readers must have no update/delete",
                              "Tier 1 index deletion never deletes Tier 0 originals"):
                 self.assertIn(expected, design)
-            deployment = (docs / "deployment/stage-6-observability/README.md").read_text()
+            deployment = (docs / "deployment/stage-8-observability/README.md").read_text()
             for expected in ("OpenSearch is included initially", "empty integration starter",
                              "writes to both", "replica shards", "complete worker/physical-host loss",
                              "no archive write/delete, retention or backup powers"):
@@ -112,10 +112,10 @@ class Observability(TierRepositoryTestCase):
                              "not independent querying or alerts", "separate SigNoZ/ClickHouse"):
                 self.assertIn(expected, telemetry)
             foundation = (docs / "deployment/foundation/README.md").read_text()
-            self.assertIn("Stage 1: Protected logging", foundation)
-            later = (docs / "deployment/stage-6-observability/README.md").read_text()
+            self.assertIn("Stage 2: Protected logging", foundation)
+            later = (docs / "deployment/stage-8-observability/README.md").read_text()
             self.assertIn("An app owner receives an application-log view", later)
-            logging_stage = (docs / "deployment/stage-1-logging/README.md").read_text()
+            logging_stage = (docs / "deployment/stage-2-logging/README.md").read_text()
             self.assertIn("declared durability limits", logging_stage)
             self.assertIn("independent encrypted backups", logging_stage)
             self.assertIn("lossless HA", logging_stage)
@@ -129,7 +129,7 @@ class Observability(TierRepositoryTestCase):
             for expected in ("## Offline-readable evidence", "UTF-8 JSON Lines",
                              "independently held recovery kit", "no retention or backup authority"):
                 self.assertIn(expected, logging)
-            procedure = (docs / "deployment/stage-1-logging/README.md").read_text()
+            procedure = (docs / "deployment/stage-2-logging/README.md").read_text()
             self.assertIn("before PKI and FreeIPA", procedure)
             self.assertIn("Only the log-data volume and offline kit survive", procedure)
             operations = (docs / "administration/security-logging.md").read_text()
@@ -155,7 +155,7 @@ class Observability(TierRepositoryTestCase):
             self.assertIn("One person holding several roles is acceptable", design)
             self.assertIn("not evidence of WORM enforcement", design)
             self.assertIn("## Review triggers", design)
-            stage = docs / "deployment/stage-1-logging"
+            stage = docs / "deployment/stage-2-logging"
             overview = (stage / "README.md").read_text()
             for option in ("step-3c-nas-archive.md", "step-3d-retention-lock.md"):
                 self.assertIn(option, overview)

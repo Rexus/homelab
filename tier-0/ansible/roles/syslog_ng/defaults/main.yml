@@ -1,5 +1,5 @@
 ---
-# Stage 1 receiver contract: docs/reference/syslog-receiver.md
+# Stage 2 receiver contract: docs/reference/syslog-receiver.md
 syslog_ng_data_mount: /srv/security-logging
 syslog_ng_data_uuid: ""
 syslog_ng_min_free_mb: 2048

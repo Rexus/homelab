@@ -120,7 +120,7 @@ Only the approved metric projection crosses into Tier 1 history/query services.
 That derived copy is intentional; it is not another hardware poller, a raw Tier 0
 diagnostic view or a failover parent for Tier 0. Configure each domain's own recovery.
 
-The [infrastructure monitoring deployment](../../deployment/stage-6-observability/infrastructure-monitoring.md)
+The [infrastructure monitoring deployment](../../deployment/stage-8-observability/infrastructure-monitoring.md)
 selects host versus API collection, sensor support and acceptance tests. Device
 coverage is explicit: an absent or stale sensor is unknown, not evidence of health.
 
@@ -142,7 +142,7 @@ policy. Reserve backend capacity and protect cluster control services; the compa
 schedulable control-plane starter is not evidence of spare search capacity.
 Use dedicated worker pools or stronger isolation when interference requires it.
 
-The [VM alternative](../../deployment/stage-6-observability/step-1b-dedicated-vms.md)
+The [VM alternative](../../deployment/stage-8-observability/step-1b-dedicated-vms.md)
 also separates gateway, metrics and search roles. Co-hosting them in identical VMs
 couples CPU, memory, I/O, maintenance and horizontal scaling, so it is not the reference.
 
@@ -180,12 +180,12 @@ are not the data-authorization boundary.
 
 ## Realization
 
-[Security Logging and Audit](../../deployment/stage-1-logging/README.md) comes first.
-[Independent monitoring](../../deployment/stage-4-secrets/monitoring.md)
+[Security Logging and Audit](../../deployment/stage-2-logging/README.md) comes first.
+[Independent monitoring](../../deployment/stage-6-secrets/monitoring.md)
 keeps foundation visibility outside cluster outages.
-[Observability deployment](../../deployment/stage-6-observability/README.md)
+[Observability deployment](../../deployment/stage-8-observability/README.md)
 adds Netdata diagnostics, infrastructure coverage, gateways, both backends and UIs;
-[workload collection](../../deployment/stage-7-workloads/telemetry.md)
+[workload collection](../../deployment/stage-9-workloads/telemetry.md)
 connects applications.
 
 The cluster folders are project integration starters; the VM recipe supplies

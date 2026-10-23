@@ -131,7 +131,7 @@ CA or overwrite issuance/revocation state. Image rollback is not database rollba
 An existing independently operated CA, another qualified issuer or Enterprise native
 ACME can satisfy the same outward contract. Selecting one changes the integration,
 not tier ownership or root custody. The reference OS/package exception and Community
-boundaries belong to the [issuer deployment contract](../../deployment/stage-2-trust/procedures/issuer.md).
+boundaries belong to the [issuer deployment contract](../../deployment/stage-3-trust/procedures/issuer.md).
 The [support map](../../reference/implementation-support.md) records installer coverage;
 [CA operations](../../administration/cryptography/certificate-authority.md) owns maintenance evidence.
 

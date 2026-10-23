@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/cache.yml
 # Replace every value before use.
-# Guide: docs/deployment/foundation/step-3b-outbound-cache.md
+# Guide: docs/deployment/stage-1-software-intake/proxy-cache.md
 
 platform_host_ips:
   cache-1: 10.30.30.20
@@ -94,7 +94,8 @@ cache_squid_allowed_cidrs:
   - 192.168.0.0/16
 
 # First use case: controlled repository/update access for restricted systems.
-# Replace with the software-source domains your environment actually allows.
+# Replace with approved repository endpoints. CONNECT forwards HTTPS without caching.
+# One policy applies to all allowed CIDRs; this is not per-tier package approval.
 cache_squid_allowed_domains:
   - .almalinux.org
   - .rockylinux.org
@@ -144,7 +145,7 @@ cache_squid_refresh_patterns:
 
 # Optional upstream proxy when Squid must chain through another egress proxy.
 # Leave unset for direct outbound access from the cache nodes. For disconnected
-# or air-gapped clients, point allowed repository domains at internal mirrors
+# clients, point allowed repository domains at internal mirrors
 # or offline repos and use this only if those mirrors are reached through
 # another proxy.
 # cache_squid_upstream_proxy: upstream-proxy.example.com

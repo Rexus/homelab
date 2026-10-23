@@ -43,7 +43,7 @@ commands use tier-local code and shared helpers with local inputs. Substitute
 the prefix if customized. Each README is a developer-owned starter template.
 
 The [deployment checklist](docs/paths/tier-0/README.md#deployment-order) leads
-from foundation prerequisites through protected logging, trust, identity, Kubernetes,
+from foundation prerequisites through software intake, protected logging, trust, Kubernetes, identity,
 shared services and controlled automation. Each capability has a numbered deployment path.
 Select [domain patterns](docs/architecture/README.md#technical-domains) in each generated
 repo's `docs/architecture/README.md`; keep procedures under `docs/deployment/`,
@@ -77,7 +77,7 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 | Run, plan, or destroy | [Repository scripts](docs/reference/repository-scripts.md) |
 | Find implementation files | [Automation layout](docs/development/code-layout.md) |
 | Handle secrets | [Secret strategy](docs/administration/secret-handling/strategy.md) |
-| Deploy private PKI and public HTTPS | [Software-backed PKI](docs/deployment/stage-2-trust/procedures/software-pki.md) |
+| Deploy private PKI and public HTTPS | [Software-backed PKI](docs/deployment/stage-3-trust/procedures/software-pki.md) |
 
 ## Repository Structure
 

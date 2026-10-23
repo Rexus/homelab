@@ -146,8 +146,8 @@ does not establish the required isolation, recovery or compliance properties.
 
 ## Realization
 
-Implementation procedures: [trust and custody](../../deployment/stage-2-trust/README.md#step-1-prepare-issuer-and-key-custody)
-and [secret-service integration](../../deployment/stage-4-secrets/README.md#step-1-deploy-the-secret-service).
+Implementation procedures: [trust and custody](../../deployment/stage-3-trust/README.md#step-1-prepare-issuer-and-key-custody)
+and [secret-service integration](../../deployment/stage-6-secrets/README.md#step-1-deploy-the-secret-service).
 Device operations remain authorized procedures; the existing hsm automation supplies
 hosts and baseline only.
 For an existing software issuer, follow the administration

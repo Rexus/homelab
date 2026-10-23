@@ -78,6 +78,7 @@ Example rules, using addresses from the local plan:
 | `apps-to-dns` | approved app subnets | DNS server IPs | TCP and UDP `53` |
 | `apps-to-login` | approved app hosts | identity provider VIP | TCP `443` when deployed with HTTPS |
 | `apps-to-cache` | approved app hosts | cache VIP | TCP `3128` for the reference proxy |
+| `control-to-update-supply` | selected Tier 0 update clients | approved proxy VIP or internal mirror IPs | proxy TCP `3128`, or selected repository HTTP/HTTPS listener; no reverse administration |
 | `clients-to-web` | Tier 2 client subnet | published application VIPs | configured HTTPS listener |
 | `runner-to-source` | Tier 1 DMZ runner IPs | approved source/registry endpoints | configured HTTPS listener |
 | `sources-to-security-logs` | registered producers/relays from each tier | Tier 0 log-intake IPs only | selected authenticated submission listener; not archive read/admin APIs |

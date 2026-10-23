@@ -1,6 +1,6 @@
 # Copy to: terraform/deployments/podman-runner/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/deployment/stage-5-delivery/step-1c-podman-runner.md
+# Setup guide: docs/deployment/stage-7-delivery/step-1c-podman-runner.md
 # Shared values live in ../../common.tfvars.
 
 # Optional: override the shared default Linux VM template for this setup or

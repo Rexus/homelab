@@ -9,15 +9,15 @@ approved image IDs and titles; keep only workload selections and service tags he
 
 ## Deployment order
 
-For public application access, deploy the [edge load-balancer set](../../deployment/stage-5-delivery/procedures/edge-proxy.md)
-with the `edge` setup. The optional [outbound cache](../../deployment/foundation/step-3b-outbound-cache.md)
+For public application access, deploy the [edge load-balancer set](../../deployment/stage-7-delivery/procedures/edge-proxy.md)
+with the `edge` setup. Early [software intake](../../deployment/stage-1-software-intake/README.md)
 uses `cache`. Both run from this repository with its own inventory and state.
 Client VLANs are network-policy references, not provisioned server guests.
 Keep clients, public edge and Tier 1 build/supply hosts in separate subnets.
 
 For an independent Kubernetes workload runtime, use this tier's
 `terraform/deployments/kubernetes/` and `bash scripts/kubernetes-cluster.sh init`.
-Follow the [common cluster procedure](../../deployment/stage-3-identity/procedures/kubernetes.md),
+Follow the [common cluster procedure](../../deployment/stage-4-kubernetes/procedures/kubernetes.md),
 then record [scoped application delivery](../../architecture/delivery/controllers.md).
 The Linux `lab` workflow below is a separate VM option, not the cluster installer.
 
@@ -57,7 +57,7 @@ same inventory; no separate shared inventory is required.
 ## Navigation
 
 - [Inventory and automation layout](../../development/code-layout.md)
-- [Workload provisioning stage](../../deployment/stage-7-workloads/README.md)
+- [Workload provisioning stage](../../deployment/stage-9-workloads/README.md)
 - [VM placement and Proxmox HA](../../deployment/foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
-- [Delivery stage](../../deployment/stage-5-delivery/README.md#step-2-enable-protected-execution)
+- [Delivery stage](../../deployment/stage-7-delivery/README.md#step-2-enable-protected-execution)
 - [Project conventions and recovery records](../../development/project-documentation.md)

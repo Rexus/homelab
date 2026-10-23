@@ -1,7 +1,7 @@
 # USB HSM gateway maintenance
 
 Operate the selected [USB HSM gateway pattern](../../architecture/cryptography/usb-hsm.md)
-after completing [deployment and acceptance](../../deployment/stage-2-trust/step-1b-usb-hsm.md).
+after completing [deployment and acceptance](../../deployment/stage-3-trust/step-1b-usb-hsm.md).
 These are operator checks, not automated device-lifecycle recipes.
 
 The protected Tier 0 runner may maintain gateway VMs and software. Key
@@ -53,7 +53,7 @@ When changing key material:
 5. Verify key identity, authorization, application state and readiness before returning traffic.
 
 Use the selected device's supported process from the
-[implementation references](../../deployment/stage-2-trust/step-1b-usb-hsm.md#references).
+[implementation references](../../deployment/stage-3-trust/step-1b-usb-hsm.md#references).
 Do not treat the offline backup device as a routine active peer.
 
 ## Routine checks

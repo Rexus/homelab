@@ -56,11 +56,11 @@ Flux must also be supplied without first depending on Flux reconciliation.
 Do not use the not-yet-deployed Vault instance as the only way to obtain the
 key or credentials needed to deploy it.
 
-Vault arrives with Stage 4 Secrets for the long-term secret-platform role. SOPS can remain
+Vault arrives with Stage 6 Secrets for the long-term secret-platform role. SOPS can remain
 the small encrypted bootstrap/recovery channel; it is not replaced merely
 because Vault exists. Enable external-secret consumers only after their backend
 and authentication path work. The kit does not configure SOPS or these
-integrations automatically; see the [cluster foundation checklist](../../deployment/stage-3-identity/procedures/kubernetes.md#cluster-foundation).
+integrations automatically; see the [cluster foundation checklist](../../deployment/stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation).
 
 ## Secret-platform deployment milestone
 
@@ -72,7 +72,7 @@ Once the shared identity, DNS, and PKI prerequisites are ready:
 - treat Ansible Vault and plain environment variables as fallback bootstrap
   mechanisms, not the long-term system of record
 
-Read more in [Vault foundation deployment](../../deployment/stage-4-secrets/step-1b-vault-vm.md).
+Read more in [Vault foundation deployment](../../deployment/stage-6-secrets/step-1b-vault-vm.md).
 
 ## Secret-platform operating target
 

@@ -157,8 +157,8 @@ A server's key custody does not by itself provide strong user authentication.
 
 ## Realization
 
-Implementation procedures: [directory authority](../../deployment/stage-3-identity/procedures/freeipa.md)
-and [IdP integration](../../deployment/stage-3-identity/README.md#step-4-deploy-identity-federation).
+Implementation procedures: [directory authority](../../deployment/stage-5-identity/procedures/freeipa.md)
+and [IdP integration](../../deployment/stage-5-identity/README.md#step-2-deploy-identity-federation).
 Windows integration is an explicit project option, not a supplied domain installer.
 
 ## References

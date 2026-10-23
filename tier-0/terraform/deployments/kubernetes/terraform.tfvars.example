@@ -1,6 +1,11 @@
 # Cluster-owned hardware/configuration. This root does not load Linux common.tfvars.
 # IP reservations are in ansible/group_vars/talos.yml, hosts in ansible/inventory/hosts.yml.
 # Set the image ID from the shared approved catalog, and pin matching releases/schematic.
+# Configure native proxy/DNS/time or approved mirrors before denying direct egress.
+# Reference: docs/deployment/stage-4-kubernetes/procedures/talos-terraform.md#controlled-image-access
+# Linux common.tfvars and Ansible proxy settings do not apply to these nodes.
+machine_config_patches = []
+
 template_vm_id = 9102
 cluster = {
   name               = "control"

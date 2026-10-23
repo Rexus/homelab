@@ -62,8 +62,8 @@ recovery runbook. Template publication alone is not a successful cluster test.
 
 ## Cluster bootstrap
 
-Use the [Talos Kubernetes implementation](../../stage-3-identity/procedures/talos-terraform.md) for the control-cluster VMs,
-machine configuration, and bootstrap. The [manual Talos procedure](../../stage-3-identity/step-2b-manual-cluster.md)
+Use the [Talos Kubernetes implementation](../../stage-4-kubernetes/procedures/talos-terraform.md) for the control-cluster VMs,
+machine configuration, and bootstrap. The [manual Talos procedure](../../stage-4-kubernetes/step-1b-manual-cluster.md)
 remains available for Tier 1 or operator-run installation.
 The same procedure applies to Tier 1 with different inputs and a separate state owner.
 

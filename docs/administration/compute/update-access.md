@@ -10,8 +10,13 @@ environments where Proxmox hosts, template builders, or restricted networks
 should use the same repository/cache proxy as other managed systems.
 
 The cache service itself is owned by the
-[cache path](../../deployment/foundation/step-3b-outbound-cache.md). This guide only shows how
+[Software intake capability](../../deployment/stage-1-software-intake/README.md). This guide only shows how
 Proxmox-facing workflows can consume that proxy.
+
+The [software-intake design](../../architecture/delivery/software-intake.md)
+defines approved sources, internal HTTP mirror choices and independent recovery.
+This configures client downloads; it does not install a mirror, schedule updates
+or grant the Tier 2 cache administrative access to Proxmox.
 
 ## Proxy endpoint
 
@@ -177,7 +182,7 @@ sudo dnf \
 
 ## Read more
 
-- [Cache path](../../deployment/foundation/step-3b-outbound-cache.md)
+- [Software intake](../../deployment/stage-1-software-intake/README.md)
 - [Enterprise Linux template](../../deployment/foundation/procedures/enterprise-linux-template.md)
 - [Proxmox hardening baseline](hardening.md)
 - [Proxmox datacenter configuration](https://pve.proxmox.com/pve-docs/datacenter.cfg.5.html)

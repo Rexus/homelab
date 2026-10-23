@@ -11,7 +11,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
     def test_source_and_generated_guides_cover_netdata_and_hardware(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            stage = docs / "deployment/stage-6-observability"
+            stage = docs / "deployment/stage-8-observability"
             overview = (stage / "README.md").read_text()
             self.assertEqual(re.findall(r"(?m)^## Step (\d+):", overview), ["1", "2", "3", "4"])
             self.assertIn('id="step-3-publish-and-verify-read-only-views"', overview)
@@ -45,7 +45,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
             groups = yaml.safe_load(inventory.read_text())["all"]["children"]
             self.assertIn("hypervisors", groups)
             self.assertFalse((collection / f"{prefix}shared/ansible/inventory").exists())
-            overview = (docs / "deployment/stage-6-observability/README.md").read_text()
+            overview = (docs / "deployment/stage-8-observability/README.md").read_text()
             code = re.findall(r"```mermaid\n(.*?)```", overview, re.DOTALL)[2]
             for expected in ('subgraph T1[', 'subgraph T0[', "Existing platform Kubernetes",
                              "project integration", "Existing / manually inventoried",

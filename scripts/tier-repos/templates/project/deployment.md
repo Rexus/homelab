@@ -7,13 +7,15 @@ Existing services can satisfy verified prerequisites.
 | Stage | Selected variant / local procedure | Acceptance evidence | Reference |
 | --- | --- | --- | --- |
 | Foundation prerequisites | Record hosts, networks, templates, provisioning access and independent recovery | Pending review | [Foundation](${docs}/deployment/foundation/README.md) |
-| 1: Protected logging | Record collector deployment, protected evidence, offline inspection and selected failure contract | Pending review | [Logging](${docs}/deployment/stage-1-logging/README.md) |
-| 2: Cryptographic trust | Record root custody and issuer selection | Pending review | [Trust](${docs}/deployment/stage-2-trust/README.md) |
-| 3: Identity | Record directory, cluster foundation, federation and OIDC integration | Pending review | [Identity](${docs}/deployment/stage-3-identity/README.md) |
-| 4: Secrets | Record secret storage, auditing, unseal/recovery and supporting control integrations | Pending review | [Secrets](${docs}/deployment/stage-4-secrets/README.md), [monitoring](${docs}/deployment/stage-4-secrets/monitoring.md) |
-| 5: Delivery and handover | Record shared delivery and protected execution handover | Pending review | [Delivery and handover](${docs}/deployment/stage-5-delivery/README.md) |
-| 6: Observability | Record Netdata, Proxmox/BMC coverage, separate workload budgets, replicated backends and scoped reads | Pending review | [Observability](${docs}/deployment/stage-6-observability/README.md) |
-| 7: Workload provisioning | Record the approved workload lifecycle | Pending review | [Workload provisioning](${docs}/deployment/stage-7-workloads/README.md) |
+| 1: Software intake | Record approved sources, early proxy/cache, later repository/OCI services and target-tier patch authority | Pending review | [Software intake](${docs}/deployment/stage-1-software-intake/README.md) |
+| 2: Protected logging | Record collector deployment, protected evidence, offline inspection and selected failure contract | Pending review | [Logging](${docs}/deployment/stage-2-logging/README.md) |
+| 3: Cryptographic trust | Record root custody and issuer selection | Pending review | [Trust](${docs}/deployment/stage-3-trust/README.md) |
+| 4: Kubernetes | Record the cluster owner, bootstrap, add-ons, audit forwarding and recovery | Pending review | [Kubernetes](${docs}/deployment/stage-4-kubernetes/README.md) |
+| 5: Identity | Record directory, federation and OIDC integration on the accepted cluster | Pending review | [Identity](${docs}/deployment/stage-5-identity/README.md) |
+| 6: Secrets | Record secret storage, auditing, unseal/recovery and supporting control integrations | Pending review | [Secrets](${docs}/deployment/stage-6-secrets/README.md), [monitoring](${docs}/deployment/stage-6-secrets/monitoring.md) |
+| 7: Delivery and handover | Record shared delivery and protected execution handover | Pending review | [Delivery and handover](${docs}/deployment/stage-7-delivery/README.md) |
+| 8: Observability | Record Netdata, Proxmox/BMC coverage, separate workload budgets, replicated backends and scoped reads | Pending review | [Observability](${docs}/deployment/stage-8-observability/README.md) |
+| 9: Workload provisioning | Record the approved workload lifecycle | Pending review | [Workload provisioning](${docs}/deployment/stage-9-workloads/README.md) |
 
 Only work owned by this repository is executed here. Other steps record consumed
 dependencies and their owners; stage and step numbers do not transfer resource or state ownership.
@@ -22,7 +24,7 @@ to locate reference IaC. Each local procedure records its working repository and
 repository-relative input/code paths, including any Shared helper it calls.
 
 Add local instructions under the relevant capability folder, such as
-`stage-2-trust/`. Its README explains numbered steps with diagrams and the
+`stage-3-trust/`. Its README explains numbered steps with diagrams and the
 resulting design. Keep options beside it, for example `step-1b-usb-hsm.md`, stating
 the decision, changed deployment and return point. Link upstream procedures instead
 of copying them.

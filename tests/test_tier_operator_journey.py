@@ -19,14 +19,14 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("unifi-zones.md#bring-up-the-network", foundation)
             host = (docs / "deployment/foundation/procedures/proxmox.md").read_text()
             handoff = next(line for line in host.splitlines() if line.startswith("| 8."))
-            self.assertIn("stage-1-logging/README.md", handoff)
+            self.assertIn("stage-2-logging/README.md", handoff)
             self.assertNotIn("freeipa.md", handoff)
             network = (docs / "deployment/foundation/procedures/unifi-zones.md").read_text()
             for expected in ("## Bring up the network", "switch alone is not", "controller",
                              "native/untagged", "control_cluster"):
                 self.assertIn(expected.lower(), network.lower())
             for relative in ("README.md", "receiver.md"):
-                logging = (docs / "deployment/stage-1-logging" / relative).read_text()
+                logging = (docs / "deployment/stage-2-logging" / relative).read_text()
                 self.assertIn("software-pki.md#decisions-and-recovery-kit", logging)
                 self.assertIn("client-auth", logging)
                 self.assertIn("independent producer authority", logging)
@@ -34,13 +34,13 @@ class OperatorJourney(TierRepositoryTestCase):
     def test_service_walkthroughs_initialize_plan_review_then_deploy(self):
         self.generate()
         guides = (
-            ("foundation/step-3b-outbound-cache.md", "cache", ""),
-            ("stage-5-delivery/procedures/edge-proxy.md", "edge", ""),
-            ("stage-4-secrets/step-1b-vault-vm.md", "vault", ""),
-            ("stage-3-identity/procedures/freeipa.md", "foundation", ""),
-            ("stage-5-delivery/step-1b-source-control-vm.md", "development", " --env test"),
-            ("stage-5-delivery/step-1c-podman-runner.md", "podman-runner", " --env test"),
-            ("stage-5-delivery/step-1d-image-based-linux.md", "immutable-template", " --env test"),
+            ("stage-1-software-intake/proxy-cache.md", "cache", ""),
+            ("stage-7-delivery/procedures/edge-proxy.md", "edge", ""),
+            ("stage-6-secrets/step-1b-vault-vm.md", "vault", ""),
+            ("stage-5-identity/procedures/freeipa.md", "foundation", ""),
+            ("stage-7-delivery/step-1b-source-control-vm.md", "development", " --env test"),
+            ("stage-7-delivery/step-1c-podman-runner.md", "podman-runner", " --env test"),
+            ("stage-7-delivery/step-1d-image-based-linux.md", "immutable-template", " --env test"),
         )
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup, environment in guides:
@@ -54,10 +54,10 @@ class OperatorJourney(TierRepositoryTestCase):
                 self.assertEqual(positions, sorted(positions), relative)
                 for block in re.findall(r"```bash\n(.*?)```", content, re.DOTALL):
                     self.assertFalse(apply + " --plan-only" in block and apply + "\n" in block, relative)
-            vault = (docs / "deployment/stage-4-secrets/step-1b-vault-vm.md").read_text()
+            vault = (docs / "deployment/stage-6-secrets/step-1b-vault-vm.md").read_text()
             self.assertLess(vault.index("export VAULT_ADDR VAULT_CACERT"), vault.index("vault status"))
             self.assertLess(vault.index("vault login"), vault.index("vault audit enable"))
-            identity = (docs / "deployment/stage-3-identity/procedures/freeipa.md").read_text()
+            identity = (docs / "deployment/stage-5-identity/procedures/freeipa.md").read_text()
             self.assertIn("same context/state used for the issuer", identity)
 
     def test_hidden_follow_up_covers_every_branch_without_entering_generated_docs(self):
@@ -118,7 +118,7 @@ class OperatorJourney(TierRepositoryTestCase):
                   ("step-1d-image-based-linux.md", "immutable-template", "immutable_template"))
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup, stem in guides:
-                content = (docs / "deployment/stage-5-delivery" / relative).read_text()
+                content = (docs / "deployment/stage-7-delivery" / relative).read_text()
                 plan = content.index(f"bash scripts/deploy.sh {setup} --env test --plan-only")
                 for path in (f"terraform/deployments/{setup}/terraform.test.tfvars",
                              f"ansible/group_vars/{stem}.test.yml"):
@@ -162,5 +162,5 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("state as before", guide)
             entry = (docs / "deployment/foundation/procedures/api-access.md").read_text()
             self.assertIn(relative, entry)
-            trust = (docs / "deployment/stage-2-trust/README.md").read_text()
+            trust = (docs / "deployment/stage-3-trust/README.md").read_text()
             self.assertIn(relative + "#step-2-adopt-the-platform-pki", trust)

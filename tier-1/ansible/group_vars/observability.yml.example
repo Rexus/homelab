@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/observability.yml
 # Optional VM alternative; Kubernetes is the normal observability deployment.
-# Guide: docs/deployment/stage-6-observability/step-1b-dedicated-vms.md
+# Guide: docs/deployment/stage-8-observability/step-1b-dedicated-vms.md
 
 platform_host_ips:
   otel-1: 10.20.30.10

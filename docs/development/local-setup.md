@@ -153,7 +153,7 @@ encrypted off-host recovery separately.
 - [Environment variable conventions](../reference/environment-variables.md)
 - [Repository scripts](../reference/repository-scripts.md)
 - [Secret strategy](../administration/secret-handling/strategy.md)
-- [Identity foundation path](../deployment/stage-3-identity/procedures/freeipa.md)
+- [Identity foundation path](../deployment/stage-5-identity/procedures/freeipa.md)
 - [Windows and AD support](../architecture/identity/windows-integration.md)
 - [Deployment readiness](../deployment/readiness.md)
 - [Proxmox reference platform](../deployment/foundation/procedures/proxmox.md)

@@ -36,7 +36,7 @@ can satisfy prerequisites after their interfaces and recovery have been verified
 Apply these levels independently to each deployed capability. The selected design
 defines its required guarantees; deployment records whether they have been met.
 These levels describe project acceptance. They do not indicate that the kit supplies
-an installer: check [implementation coverage](../reference/implementation-support.md#first-six-stages) separately.
+an installer: check [implementation coverage](../reference/implementation-support.md#stage-coverage) separately.
 
 | Level | Deployment status | Required evidence |
 | --- | --- | --- |
@@ -62,12 +62,14 @@ Hardware expense, node count and successful VM creation do not establish a level
 | Capability | First integration | Evidence for acceptance |
 | --- | --- | --- |
 | Compute | Compute foundation; identity/runtime | Approved guests and APIs work; selected node/storage failures and independent restore are tested |
+| Kubernetes | Stage 4; later tier-local cluster deployments | Expected nodes, endpoint, add-on/audit gates and independent original-state recovery are accepted before applications |
 | Cryptography | Cryptographic trust; Secrets | Authorized/denied signing, state/session correctness, host/USB loss, selected VIP partition behavior, Tier 1/2 independence and offline restore |
 | Identity | Identity; service-specific access integration | Replication, scoped federation, denied access, replica/IdP loss and lost-credential recovery |
-| Traffic and delivery | Compute foundation; delivery and handover | Scoped publication/pulls, promotion, rollback, endpoint failover and recovery artifacts |
-| Protected logging | Stage 1; sources added with each tier | Numbered-event accounting, declared durable checkpoint, receiver/host loss, selected NAS-custody or retention-lock checks, segmented reads and independent restore |
-| Independent monitoring | Stage 4: Tier 0 outage visibility | Required failures produce alerts without the observed cluster, Tier 1 or normal SSO |
-| Observability | Stage 6: infrastructure diagnostics and separate Tier 1 signal workloads | Netdata failover/source coverage, replicated backends, scoped queries, approved copies and tested replay/restore |
+| Software intake | Early capability; later retained repositories and OCI extension | Approved pulls, denied bypass/destinations, actual cache behavior, retained content and independent recovery |
+| Traffic and delivery | Delivery and handover | Scoped publication/pulls, promotion, rollback, endpoint failover and recovery artifacts |
+| Protected logging | Stage 2; sources added with each tier | Numbered-event accounting, declared durable checkpoint, receiver/host loss, selected NAS-custody or retention-lock checks, segmented reads and independent restore |
+| Independent monitoring | Stage 6: Tier 0 outage visibility | Required failures produce alerts without the observed cluster, Tier 1 or normal SSO |
+| Observability | Stage 8: infrastructure diagnostics and separate Tier 1 signal workloads | Netdata failover/source coverage, replicated backends, scoped queries, approved copies and tested replay/restore |
 
 The directory and identity provider, or issuer and seal provider, may have different readiness.
 Each stage records acceptance and operational handover; later stages do not postpone basic protection and

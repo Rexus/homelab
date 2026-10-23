@@ -282,7 +282,7 @@ PROXMOX_API_TOKEN_SECRET=replace-with-the-token-secret
 
 The Linux deployment wrapper combines the separate ID and secret for the
 Terraform provider. Tier 0's native [template publisher](../../../administration/compute/template-lifecycle.md)
-and [Kubernetes command](../../stage-3-identity/procedures/talos-terraform.md#configure) instead consume exported
+and [Kubernetes command](../../stage-4-kubernetes/procedures/talos-terraform.md#configure) instead consume exported
 `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` (`user@realm!token=secret`);
 they do not load `.env.local` or map the Linux wrapper's aliases.
 

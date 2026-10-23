@@ -2,7 +2,7 @@
 
 Tier 0 owns `ansible/roles/syslog_ng/`, the `foundation_logging` inventory and
 receiver inputs. Shared supplies only baseline/execution code. Deployment is in
-[Stage 1 receiver setup](../deployment/stage-1-logging/receiver.md); the
+[Stage 2 receiver setup](../deployment/stage-2-logging/receiver.md); the
 [evidence design](../architecture/operations/security-logging.md) owns retention and trust boundaries.
 
 ## Contents

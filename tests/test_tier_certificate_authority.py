@@ -31,17 +31,17 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
     def test_guides_name_actual_iac_and_controlled_integration_gates(self):
         self.generate()
         for docs in (UPSTREAM / 'docs', self.root / 'verify-architecture/docs/auto-docs'):
-            issuer = (docs / 'deployment/stage-2-trust/procedures/issuer.md').read_text()
+            issuer = (docs / 'deployment/stage-3-trust/procedures/issuer.md').read_text()
             for expected in ('<prefix>-tier-0', 'deployment/openxpki.yml', 'template_vm_id',
                              'foundation --plan-only', 'foundation --terraform-only',
                              'extra-disk input', 'Debian 12', '2028-06-30', 'openxpki_required_state_paths'):
                 self.assertIn(expected, issuer)
             self.assertNotIn('bash scripts/deploy.sh openxpki', issuer)
-            identity = (docs / 'deployment/stage-3-identity/procedures/freeipa.md').read_text()
+            identity = (docs / 'deployment/stage-5-identity/procedures/freeipa.md').read_text()
             for expected in ('## External CA integration gate', 'two-phase install',
                              'ipareplica_setup_ca: true', 'ipaserver_external_ca'):
                 self.assertIn(expected, identity)
-            offline = (docs / 'deployment/stage-2-trust/procedures/offline-root.md').read_text()
+            offline = (docs / 'deployment/stage-3-trust/procedures/offline-root.md').read_text()
             self.assertIn('Keep `root_ca` empty', offline)
             self.assertIn('clca does not support concurrent writers', offline)
             operations = (docs / 'administration/cryptography/certificate-authority.md').read_text()

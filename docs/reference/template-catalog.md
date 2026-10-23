@@ -41,8 +41,8 @@ settings, host inventory, or Terraform state.
    Keep lifecycle tags such as `tier-0` and `template` out of consumer image tags.
 4. Set `default_linux_vm_template_id` to the approved Linux ID when ready for
    consumers to adopt it. Talos references are listed too, but cannot be used by
-   the Linux VM module; use the [Talos Kubernetes implementation](../deployment/stage-3-identity/procedures/talos-terraform.md) or the
-   [manual procedure](../deployment/stage-3-identity/step-2b-manual-cluster.md).
+   the Linux VM module; use the [Talos Kubernetes implementation](../deployment/stage-4-kubernetes/procedures/talos-terraform.md) or the
+   [manual procedure](../deployment/stage-4-kubernetes/step-1b-manual-cluster.md).
 5. Review and version the shared change, then review plans in consuming tiers.
    Changing the selected source template may replace VMs; pin existing guests
    with `template_vm_id` when they must stay on their current revision.

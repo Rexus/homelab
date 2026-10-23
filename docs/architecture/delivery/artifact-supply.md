@@ -4,6 +4,10 @@ Source control owns definitions and proposed changes. The registry owns promoted
 artifacts. A distribution layer accelerates pulls but is not the authority for
 which artifact is approved.
 
+[Controlled software intake](software-intake.md) covers repository proxy/cache
+access, retained mirrors and offline supply, including updates consumed by Tier 0.
+An HTTP cache is not an OCI registry or a release-promotion authority.
+
 ## Components and variants
 
 ```mermaid
@@ -45,7 +49,7 @@ Harbor's cluster HA pattern depends on external ingress, database/cache and arti
 storage readiness; increasing application replicas alone is insufficient. [2]
 Recovery copies for Tier 0 remain independent of the delivery platform.
 
-[Registry integration](../../deployment/stage-5-delivery/procedures/registry.md)
+[Registry integration](../../deployment/stage-7-delivery/procedures/registry.md)
 owns implementation and acceptance.
 
 ## References

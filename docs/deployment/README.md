@@ -2,11 +2,13 @@
 
 Verify the unnumbered [foundation prerequisites](foundation/README.md), then choose
 the capability to deploy and follow its main README from Step 1 onward.
+Start with [Software intake](stage-1-software-intake/README.md), using verified
+existing supply where appropriate. Foundation only requires an available bootstrap source.
 Each stage explains the main path with diagrams, names the capability available at
 the end, and links back to the architecture it implements.
 
 **Before starting:** this is not yet a complete automated installation. Read the
-[first-six-stage coverage](../reference/implementation-support.md#first-six-stages)
+[stage coverage](../reference/implementation-support.md#stage-coverage)
 to identify supplied workflows, manual prerequisites and missing integrations.
 The diagrams describe accepted outcomes, not proof that every pictured product is installed by the kit.
 
@@ -22,13 +24,15 @@ The diagrams describe accepted outcomes, not proof that every pictured product i
 
 | Stage | Capability available | Working repository | Walkthrough |
 | --- | --- | --- | --- |
-| 1: Protected logging | Independent collection, protected evidence and offline investigation | Tier 0 | [Protected logging](stage-1-logging/README.md) |
-| 2: Cryptographic trust | Offline root custody and an online issuing service | Tier 0 | [Trust](stage-2-trust/README.md) |
-| 3: Identity | Directory authority and federated OIDC access on the Tier 0 platform | Tier 0 | [Identity](stage-3-identity/README.md) |
-| 4: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-4-secrets/README.md), [monitoring](stage-4-secrets/monitoring.md) |
-| 5: Delivery and handover | Source control, artifacts, builds and protected infrastructure execution | Tier 1 platform; Tier 2 edge; Tier 0 execution | [Delivery and handover](stage-5-delivery/README.md) |
-| 6: Observability | Netdata diagnostics, infrastructure health, logs, metrics, traces and scoped queries | Tier 1; Tier 0-owned infrastructure collection and approved exports | [Observability](stage-6-observability/README.md) |
-| 7: Workload provisioning | Approved Tier 2 runtime, applications and scoped collection | Tier 2 definitions; Tier 0 execution | [Workload provisioning](stage-7-workloads/README.md), [collection](stage-7-workloads/telemetry.md) |
+| 1: Software intake | Controlled repository access, then retained repository/OCI extensions | Tier 2 proxy/cache; tier-local consumers; later Tier 1 content services | [Software intake](stage-1-software-intake/README.md) |
+| 2: Protected logging | Independent collection, protected evidence and offline investigation | Tier 0 | [Protected logging](stage-2-logging/README.md) |
+| 3: Cryptographic trust | Offline root custody and an online issuing service | Tier 0 | [Trust](stage-3-trust/README.md) |
+| 4: Kubernetes | Independently bootstrapped Tier 0 cluster and basic platform | Tier 0 | [Kubernetes](stage-4-kubernetes/README.md) |
+| 5: Identity | Directory authority and federated OIDC access | Tier 0 | [Identity](stage-5-identity/README.md) |
+| 6: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-6-secrets/README.md), [monitoring](stage-6-secrets/monitoring.md) |
+| 7: Delivery and handover | Source control, repository/OCI extensions, builds and protected execution | Tier 1 platform; Tier 2 edge; Tier 0 execution | [Delivery and handover](stage-7-delivery/README.md) |
+| 8: Observability | Netdata diagnostics, infrastructure health, logs, metrics, traces and scoped queries | Tier 1; Tier 0-owned infrastructure collection and approved exports | [Observability](stage-8-observability/README.md) |
+| 9: Workload provisioning | Approved Tier 2 runtime, applications and scoped collection | Tier 2 definitions; Tier 0 execution | [Workload provisioning](stage-9-workloads/README.md), [collection](stage-9-workloads/telemetry.md) |
 
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -36,23 +40,29 @@ block-beta
   columns 5
   Base["Foundation prerequisites<br/>Hosts, access and templates"]:2
   space
-  Logs["1. Protected logging<br/>Independent Tier 0 evidence"]:2
+  Intake["1. Software intake<br/>Controlled update access"]:2
   space:5
-  Runtime["3. Identity<br/>Directory / federation / platform"]:2
+  Trust["3. Cryptographic trust<br/>Offline custody and issuance"]:2
   space
-  Trust["2. Cryptographic trust<br/>Offline custody and issuance"]:2
+  Logs["2. Protected logging<br/>Independent Tier 0 evidence"]:2
   space:5
-  Control["4. Secrets<br/>Secret service / audit / recovery"]:2
+  Runtime["4. Kubernetes<br/>Control cluster / basic platform"]:2
   space
-  Delivery["5. Delivery and handover<br/>Platform / protected execution"]:2
+  Identity["5. Identity<br/>Directory / federation"]:2
   space:5
-  Workloads["7. Workloads<br/>Scoped delivery and collection"]:2
+  Delivery["7. Delivery and handover<br/>Artifacts / protected execution"]:2
   space
-  Visibility["6. Observability<br/>Logs / metrics / traces / queries"]:2
-  Base --> Logs
+  Control["6. Secrets<br/>Secret service / audit / recovery"]:2
+  space:5
+  Visibility["8. Observability<br/>Logs / metrics / traces / queries"]:2
+  space
+  Workloads["9. Workloads<br/>Scoped delivery and collection"]:2
+  Base --> Intake
+  Intake --> Logs
   Logs --> Trust
   Trust --> Runtime
-  Runtime --> Control
+  Runtime --> Identity
+  Identity --> Control
   Control --> Delivery
   Delivery --> Visibility
   Visibility --> Workloads
@@ -60,8 +70,10 @@ block-beta
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   class Base boundary
-  class Logs,Trust,Runtime,Control control
+  class Intake edge
+  class Logs,Trust,Runtime,Identity,Control control
   class Delivery,Visibility,Workloads services
 ```
 
@@ -70,6 +82,8 @@ The [IaC capability map](#iac-capability-map) links each entry point to its sele
 
 For a new installation, follow this order. Existing infrastructure can satisfy a
 stage's verified prerequisites; a stage number is not a tier, network or state boundary.
+Software intake begins with controlled update access; its later repository and
+OCI extensions connect to Stage 7 while bootstrap supply remains independent.
 
 ## IaC capability map
 
@@ -81,20 +95,20 @@ use their dedicated scripts. Every command runs from the named repository root.
 | --- | --- | --- | --- |
 | Tier 0 | `templates` | Foundation: approved source images | [Publication](../administration/compute/template-lifecycle.md#local-workflow) |
 | Tier 0 | `template-refresh` | Foundation or maintenance: Linux image refresh | [Linux templates](foundation/procedures/enterprise-linux-template.md) |
-| Tier 0 | `syslog` | Stage 1: independent log hosts | [Protected logging, Steps 1-3](stage-1-logging/README.md) |
-| Tier 0 | `foundation` | Stages 2/3: issuer and directory VM resources | [Trust](stage-2-trust/README.md), [directory deployment](stage-3-identity/procedures/freeipa.md) |
-| Tier 0 | `hsm` | Stage 2 option: signing-service host pool | [USB HSM option](stage-2-trust/step-1b-usb-hsm.md) |
-| Tier 0 | `kubernetes` | Stage 3: control cluster | [Cluster deployment](stage-3-identity/procedures/talos-terraform.md) |
-| Tier 0 | `vault` | Stage 4 option: dedicated secrets VM | [Vault VM option](stage-4-secrets/step-1b-vault-vm.md) |
-| Tier 0 | `immutable-template` | Stage 5 option: image-based Linux builds | [Image-based Linux](stage-5-delivery/step-1d-image-based-linux.md) |
-| Tier 1 | `kubernetes` | Stage 5: shared platform cluster | [Platform runtime](stage-5-delivery/procedures/platform-cluster.md) |
-| Tier 1 | `development` | Stage 5 option: source-control VM | [Source-control VM](stage-5-delivery/step-1b-source-control-vm.md) |
-| Tier 1 | `podman-runner` | Stage 5 option: general build runner | [Build runner](stage-5-delivery/step-1c-podman-runner.md) |
-| Tier 1 | `observability` | Stage 6 alternative: dedicated VM foundations; baseline only | [Observability](stage-6-observability/README.md), [VM recipe](stage-6-observability/step-1b-dedicated-vms.md) |
-| Tier 2 | `cache` | Optional prerequisite: outbound software access | [Cache deployment](foundation/step-3b-outbound-cache.md) |
-| Tier 2 | `edge` | Stages 5/7: public service entry | [Edge deployment](stage-5-delivery/procedures/edge-proxy.md) |
-| Tier 2 | `kubernetes` | Stage 7: workload cluster | [Workload runtime](stage-7-workloads/README.md#step-2-provision-the-workload-runtime) |
-| Tier 2 | `lab` | Stage 7: workload VM/LXC resources | [Workload runtime](stage-7-workloads/README.md#step-2-provision-the-workload-runtime) |
+| Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1-3](stage-2-logging/README.md) |
+| Tier 0 | `foundation` | Stages 3/5: issuer and directory VM resources | [Trust](stage-3-trust/README.md), [directory deployment](stage-5-identity/procedures/freeipa.md) |
+| Tier 0 | `hsm` | Stage 3 option: signing-service host pool | [USB HSM option](stage-3-trust/step-1b-usb-hsm.md) |
+| Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1-3](stage-4-kubernetes/README.md) |
+| Tier 0 | `vault` | Stage 6 option: dedicated secrets VM | [Vault VM option](stage-6-secrets/step-1b-vault-vm.md) |
+| Tier 0 | `immutable-template` | Stage 7 option: image-based Linux builds | [Image-based Linux](stage-7-delivery/step-1d-image-based-linux.md) |
+| Tier 1 | `kubernetes` | Stage 7: shared platform cluster | [Platform runtime](stage-7-delivery/procedures/platform-cluster.md) |
+| Tier 1 | `development` | Stage 7 option: source-control VM | [Source-control VM](stage-7-delivery/step-1b-source-control-vm.md) |
+| Tier 1 | `podman-runner` | Stage 7 option: general build runner | [Build runner](stage-7-delivery/step-1c-podman-runner.md) |
+| Tier 1 | `observability` | Stage 8 alternative: dedicated VM foundations; baseline only | [Observability](stage-8-observability/README.md), [VM recipe](stage-8-observability/step-1b-dedicated-vms.md) |
+| Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 1](stage-1-software-intake/README.md#step-1-deploy-the-policy-proxy-and-cache) |
+| Tier 2 | `edge` | Stages 7/9: public service entry | [Edge deployment](stage-7-delivery/procedures/edge-proxy.md) |
+| Tier 2 | `kubernetes` | Stage 9: workload cluster | [Workload runtime](stage-9-workloads/README.md#step-2-provision-the-workload-runtime) |
+| Tier 2 | `lab` | Stage 9: workload VM/LXC resources | [Workload runtime](stage-9-workloads/README.md#step-2-provision-the-workload-runtime) |
 
 Entry points are not one-to-one with stages: the Tier 0 `foundation` root plans all
 selected issuer/directory guests together; service configuration follows its stage.

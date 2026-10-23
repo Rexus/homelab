@@ -22,7 +22,7 @@
     fail_msg: >-
       The receiver supports EL 10, a prepared dedicated mount with its expected UUID,
       an explicit IPv4 bind address, client catalogue and independent TLS files.
-      Follow docs/deployment/stage-1-logging/receiver.md. No disk is formatted by this role.
+      Follow docs/deployment/stage-2-logging/receiver.md. No disk is formatted by this role.
 
 - name: Validate server-owned source namespaces
   ansible.builtin.assert:

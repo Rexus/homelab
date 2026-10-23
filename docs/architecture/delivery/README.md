@@ -98,7 +98,7 @@ service instance.
 
 | Decision | Alternatives | Consequence |
 | --- | --- | --- |
-| Software supply | A: existing approved egress; B: caching proxy; C: mirrors/offline content | A cache is not an offline mirror and cannot fetch unreachable content |
+| Software supply | Existing approved supply; policy proxy/cache; retained mirrors; offline content | [Software intake](software-intake.md) separates destination policy, caching and retained approval |
 | Endpoint resilience | Existing ingress; proxy pair/set with owned VIPs | Failover and backend health require separate evidence; VIP count does not imply load balancing |
 | Source-control runtime | Dedicated VM; cluster service; existing platform | Lifecycle and data recovery differ, while source/approval interfaces remain |
 | Artifact service | A: integrated registry; B: independent registry; C: registry plus distribution acceleration | [Artifact supply design](artifact-supply.md) separates authority from delivery |
@@ -129,6 +129,7 @@ is justified by capacity requirements, not by an assumed product progression.
 
 ## Detailed views
 
+- [Controlled software intake](software-intake.md) connects approved update sources to all tiers without granting administration.
 - [Controller patterns](controllers.md) compares GitOps reconciliation and release-pipeline orchestration.
 - [Artifact supply](artifact-supply.md) expands integrated, independent and accelerated registry designs.
 - [Infrastructure execution](../compute/provisioning.md) details the Tier 0 acceptance, credential and state boundary.
@@ -137,6 +138,6 @@ is justified by capacity requirements, not by an assumed product progression.
 
 ## Realization
 
-Implementation procedures: [independent software supply](../../deployment/foundation/README.md#step-2-protect-provisioning-access-and-state)
-and [hosted delivery](../../deployment/stage-5-delivery/README.md#step-1-deploy-shared-delivery-services).
+Implementation procedures: [software intake](../../deployment/stage-1-software-intake/README.md)
+and [hosted delivery](../../deployment/stage-7-delivery/README.md#step-1-deploy-shared-delivery-services).
 Procedure reuse does not transfer service ownership between tiers.

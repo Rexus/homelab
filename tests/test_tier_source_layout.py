@@ -146,6 +146,9 @@ class SourceLayout(TierRepositoryTestCase):
     def test_source_shortcuts_initialize_only_the_owning_tier(self):
         self.generate()
         for name in ("shared", *TIERS):
+            for path in (UPSTREAM / name / "scripts").glob("*.sh"):
+                self.assertNotIn(b"\r\n", path.read_bytes(), str(path))
+        for name in ("shared", *TIERS):
             (self.root / f"verify-{name}").rename(self.root / name)
         env = dict(os.environ)
         env.pop("DEPLOYMENT_REPO_DIR", None)

@@ -1,6 +1,6 @@
 # Copy to: terraform/deployments/hsm/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/deployment/stage-2-trust/step-1b-usb-hsm.md
+# Setup guide: docs/deployment/stage-3-trust/step-1b-usb-hsm.md
 # Shared values live in ../../common.tfvars.
 
 hsm_variant = "hardware"

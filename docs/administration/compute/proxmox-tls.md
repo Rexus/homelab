@@ -21,7 +21,7 @@ Linux/WSL tooling with OpenSSL, curl and `ca-certificates`, and a change window.
 - [References](#references)
 
 For a new installation, complete Steps 1 and 3 during foundation. Revisit Steps 2
-and 3 after [cryptographic trust](../../deployment/stage-2-trust/README.md) if the
+and 3 after [cryptographic trust](../../deployment/stage-3-trust/README.md) if the
 selected policy replaces the API certificate. Existing installations with bypassed
 verification can use the same cutover; installing a certificate alone does not
 change the provider setting.
@@ -89,7 +89,7 @@ promote that exception into normal provisioning or hosted CI. [2][5]
 ## Step 2: Adopt the platform PKI
 
 Skip this step when the verified Proxmox CA remains the selected API trust.
-Otherwise, after Stage 2 issuance is accepted:
+Otherwise, after Stage 3 issuance is accepted:
 
 1. Approve node/API names, renewal ownership and a rollback certificate. Distribute
    the verified platform root to callers **before** changing the server certificate,
@@ -171,7 +171,7 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
 3. Run each caller's existing **plan-only** workflow from its owning tier, with the
    same inputs, environment and state as before. See [deployment commands](../../reference/repository-scripts.md#run-a-deployment),
    [template plans](template-lifecycle.md#local-workflow) and
-   [cluster plans](../../deployment/stage-3-identity/procedures/talos-terraform.md#plan-and-deploy).
+   [cluster plans](../../deployment/stage-4-kubernetes/procedures/talos-terraform.md#plan-and-deploy).
    Certificate cutover needs no VM replacement, state migration or fresh bootstrap.
    Stop on unrelated resource changes. In a disposable TLS test, confirm an
    untrusted CA and a wrong hostname are rejected before recording acceptance.

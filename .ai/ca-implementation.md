@@ -7,7 +7,7 @@ This file tracks code coverage and optional integrations, not deployed-system ac
 
 Parent: [operator walkthrough](operator-walkthrough.md).
 Design: [certificate authority](../docs/architecture/cryptography/certificate-authority.md).
-Deployment: [software-first PKI](../docs/deployment/stage-2-trust/procedures/software-pki.md).
+Deployment: [software-first PKI](../docs/deployment/stage-3-trust/procedures/software-pki.md).
 
 ## Selected boundaries
 

@@ -70,7 +70,7 @@ Copy approval and read authorization do not grant archive deletion or retention 
 | Protection | Storage-owned snapshots plus an independently recoverable backup | Locked object versions for an approved retention period, plus independent recovery copies |
 | Trusted authority | NAS/backup administrators can ultimately delete their copies | Depends on lock mode, storage operator and key/account custody |
 | Principal limit | Not immutable against NAS/backup administration; snapshot/backup lag exposes a tail | Does not protect unavailable/deleted keys, every provider failure or records not yet committed |
-| Reference deployment | [3c: NAS-backed archive](../../deployment/stage-1-logging/step-3c-nas-archive.md) | [3d: Retention-locked archive](../../deployment/stage-1-logging/step-3d-retention-lock.md) |
+| Reference deployment | [3c: NAS-backed archive](../../deployment/stage-2-logging/step-3c-nas-archive.md) | [3d: Retention-locked archive](../../deployment/stage-2-logging/step-3d-retention-lock.md) |
 
 **Recommendation:** use A when trusted storage administration and a measured
 recovery-point objective are acceptable. Use B when deletion by a privileged
@@ -133,7 +133,7 @@ coverage rather than assuming a new lock protects previously mutable records.
 
 ## Realization
 
-Select A or B at [Stage 1, Step 3](../../deployment/stage-1-logging/README.md#step-3-protect-and-verify-retained-evidence).
+Select A or B at [Stage 2, Step 3](../../deployment/stage-2-logging/README.md#step-3-protect-and-verify-retained-evidence).
 [Logging administration](../../administration/security-logging.md) owns recurring
 checks; the [fault/restore drill](../../administration/logging-drill.md) records the
 chosen protection boundary and its demonstrated limits. Implementation coverage

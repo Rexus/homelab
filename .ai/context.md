@@ -21,10 +21,12 @@ This file keeps durable context for AI-assisted work across sessions.
 - public cluster entry points are `terraform/deployments/kubernetes/` and
   `scripts/kubernetes-cluster.sh`; retain existing Talos state, inventory, provider,
   and credential contracts. The old script delegates; old roots require deliberate migration
-- `docs/deployment/stage-3-identity/procedures/kubernetes.md` owns cluster choices and common readiness;
-  its `talos-terraform.md` sibling and stage's `step-2b-manual-cluster.md` own implementation procedures
+- `docs/deployment/stage-4-kubernetes/procedures/kubernetes.md` owns cluster choices and common readiness;
+  its `talos-terraform.md` sibling and stage's `step-1b-manual-cluster.md` own implementation procedures
 - all three tiers own a Kubernetes root, inventory/IP map, state and credentials;
   shared/scripts/kubernetes-cluster.sh is execution only, with tier-local shortcuts
+- tier-local machine_config_patches supplies native Talos proxy, DNS/time and registry documents;
+  default [] preserves existing behavior, not restricted-network readiness; Linux proxy inputs do not apply
 - new cluster examples use three schedulable control planes with optional workers;
   existing configs default to disabled control-plane scheduling; never remove live workers to match examples
 - pool inputs emit node-pool labels; authorized Kubernetes operations own worker taints;
@@ -83,7 +85,7 @@ This file keeps durable context for AI-assisted work across sessions.
   administrators, or qualified retention locks when privileged deletion must be prevented.
   One homelab operator may hold all roles with separate credentials; same-person custody
   is explicit, not WORM. Growth/access changes trigger review, not an automatic cloud dependency.
-  docs/architecture/operations/log-retention.md owns this choice; Stage 1 options 3c/3d guide it.
+  docs/architecture/operations/log-retention.md owns this choice; Stage 2 options 3c/3d guide it.
 - Logging implementation: Shared owns stateless `log_forwarder`; tier inventories,
   source keys/cursors and selectors stay local. Tier 0 owns reviewed-CSR signing,
   receiver, create-only NAS checkpoints, audited application filesystem views and
@@ -119,10 +121,12 @@ This file keeps durable context for AI-assisted work across sessions.
 - delegated provisioning is a design goal, not an implemented controller or API;
   its authoritative contract is docs/architecture/compute/provisioning.md
 - docs/deployment/foundation/ contains unnumbered host/network/access/template prerequisites;
-  docs/deployment/README.md indexes seven capability stages: protected logging, cryptographic trust,
-  Identity (directory, cluster foundation and federation), Secrets, delivery and handover,
-  Observability, and workload provisioning
-- protected syslog/audit intake starts in Stage 1 on independent Tier 0 VMs;
+  docs/deployment/README.md indexes nine numbered capabilities: software intake, protected logging,
+  cryptographic trust, Kubernetes, Identity, Secrets, delivery and handover, Observability and workloads
+- Stage 4 owns control-cluster bootstrap and common add-on/audit/recovery gates;
+  Stage 5 owns dedicated directory VMs and federation on the existing cluster;
+  independent bootstrap DNS/time/credentials avoid a Kubernetes/identity dependency cycle
+- protected syslog/audit intake starts in Stage 2 on independent Tier 0 VMs;
   syslog setup provisions VMs/disks and installs Tier 0's isolated syslog-ng OSE receiver after
   explicit data-mount UUID, client catalogue and independent TLS preparation; OS logger is untouched;
   local JSON records/reliable queues are not HA, protected retention or independent backup integration
@@ -167,6 +171,17 @@ This file keeps durable context for AI-assisted work across sessions.
   DMZ membership never allows peer access or unsolicited WAN publication
 - authoritative mirrors and general Internet-facing build runners remain Tier 1 / DMZ,
   using the separate delivery_edge subnet; they hold no Tier 0 credentials
+- controlled software intake is documented in docs/architecture/delivery/software-intake.md;
+  Squid/VIP supplies the existing explicit proxy/cache, not a mirror or patch controller
+- software intake is a separate early capability at docs/deployment/stage-1-software-intake/,
+  not a foundation option; it is numbered Stage 1 and
+  the later Stage 7 Harbor/OCI path extends this capability without becoming a bootstrap dependency
+- connected Tier 0 clients may initiate approved update pulls without granting lower-tier
+  administration; retain independent bootstrap/recovery artifacts and block direct WAN bypass
+- internal HTTP mirrors are an explicit signed-content option, not a global TLS exception;
+  transparent proxying does not decrypt HTTPS, and Windows update protocols need qualification
+- multi-distro repository management and patch scheduling are requested capabilities;
+  Pulp is under evaluation, not selected/installed; Windows is outside the current intake scope
 - privileged jump hosts, bootstrap VMs and infrastructure runners remain Tier 0 / Control;
   any remote perimeter entry is isolated from the privileged session host
 - public edge never carries Tier 0 admin/control API or foundational signing/recovery traffic;
@@ -228,7 +243,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - use direct IT-domain directories, not intermediate system-design/subsystem-design indexes
 - design records contain required guarantees, never stage-based states or current readiness
 - hardware signing-custody rollover is an administration procedure, not an architecture page;
-  implementation-support.md#first-six-stages owns the concise installer-coverage verdict
+  implementation-support.md#stage-coverage owns the concise installer-coverage verdict
 - readiness is independent per capability, and option letters are not a ranking or CLI flags
 - cryptography supports software, single USB, replicated USB and network-HSM designs;
   service seals are separate choices; do not imply every option has an installer
@@ -267,12 +282,12 @@ This file keeps durable context for AI-assisted work across sessions.
   a container image alone is insufficient; bootstrap and independent outage visibility stay external
 - Observability uses logs, metrics and distributed traces; Security Logging and Audit is the
   earlier Tier 0 traceability/evidence capability, not the same as distributed tracing
-- Identity federation belongs to Stage 3: Identity; Stage 4: Secrets begins with Vault/audit/recovery.
+- Identity federation belongs to Stage 5: Identity; Stage 6: Secrets begins with Vault/audit/recovery.
   Stage folders use capability names, not implementation/runtime suffixes.
-- Observability has its own Stage 6 after Secrets and the Tier 1 runtime; workload provisioning is Stage 7
+- Observability has its own Stage 8 after Secrets and the Tier 1 runtime; workload provisioning is Stage 9
 - Tier 1 Observability uses the existing Kubernetes cluster with separately scalable Collector,
   VictoriaMetrics, Data Prepper, OpenSearch and UI workloads; OpenSearch is included initially
-- Netdata is also part of Stage 6: tier-local children, Tier 1 parents/live diagnostics and
+- Netdata is also part of Stage 8: tier-local children, Tier 1 parents/live diagnostics and
   explicit metric bridging. Proxmox/BMC pollers and credentials remain Tier 0-owned;
   approved metrics may flow to Tier 1, never raw control access or Tier 0 Functions.
   The independent Tier 0 Netdata parent/critical alerts remain outside observed clusters.

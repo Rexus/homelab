@@ -123,9 +123,9 @@ A central dashboard alone is insufficient for independent failure detection.
 
 ## Realization
 
-Implementation procedures: [foundational logging](../../deployment/stage-1-logging/README.md),
-[independent monitoring](../../deployment/stage-4-secrets/monitoring.md),
-[Observability](../../deployment/stage-6-observability/README.md),
-[operational tools](../../deployment/stage-4-secrets/README.md#step-2-add-operational-tools)
-and [operational acceptance](../../deployment/stage-4-secrets/README.md#step-3-integrate-access-and-recovery).
+Implementation procedures: [foundational logging](../../deployment/stage-2-logging/README.md),
+[independent monitoring](../../deployment/stage-6-secrets/monitoring.md),
+[Observability](../../deployment/stage-8-observability/README.md),
+[operational tools](../../deployment/stage-6-secrets/README.md#step-2-add-operational-tools)
+and [operational acceptance](../../deployment/stage-6-secrets/README.md#step-3-integrate-access-and-recovery).
 Recurring work belongs in [administration](../../administration/README.md).

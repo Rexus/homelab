@@ -65,7 +65,13 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "deployment/stage-4-control-services/README.md",
                     "deployment/stage-4-control-services/step-2b-vault-vm.md",
                     "deployment/stage-4-control-services/step-2c-seal-integration.md",
-                    "architecture/cryptography/hardware-migration.md"]
+                    "architecture/cryptography/hardware-migration.md",
+                    "deployment/foundation/step-3b-outbound-cache.md",
+                    "deployment/software-intake/README.md",
+                    "deployment/stage-1-logging/README.md",
+                    "deployment/stage-3-identity/README.md",
+                    "deployment/stage-3-identity/procedures/kubernetes.md",
+                    "deployment/stage-3-identity/step-2b-manual-cluster.md"]
         for old in examples:
             relative = f"docs/auto-docs/{old}"
             path = repo / relative
@@ -98,7 +104,7 @@ class DocumentationMigration(TierRepositoryTestCase):
         self.assertIn("(../README.md)", (repo / "docs/auto-docs" / examples[5]).read_text())
         self.assertIn("(../../compute/README.md)", (repo / "docs/auto-docs" / examples[6]).read_text())
         for old, target in ((examples[7], "foundation/README.md"),
-                            (examples[8], "stage-2-trust/step-1b-usb-hsm.md")):
+                            (examples[8], "stage-3-trust/step-1b-usb-hsm.md")):
             pointer_text = (repo / "docs/auto-docs" / old).read_text()
             self.assertIn(f"(../{target})", pointer_text)
             self.assertIn('id="stable-anchor"', pointer_text)

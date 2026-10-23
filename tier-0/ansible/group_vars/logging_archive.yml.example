@@ -1,5 +1,5 @@
 # Pass explicitly with -e @ansible/group_vars/logging_archive.yml.
-# Guide: docs/deployment/stage-1-logging/step-3c-nas-archive.md
+# Guide: docs/deployment/stage-2-logging/step-3c-nas-archive.md
 logging_archive_source: ""  # //nas.internal.example/security-logs
 logging_archive_marker: ""  # independently commissioned .logging-target contents
 logging_archive_snapshot_contract: ""  # private runbook/owner, interval and tested recovery window

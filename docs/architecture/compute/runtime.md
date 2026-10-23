@@ -137,5 +137,5 @@ copies and local administrative execution remain available.
 - Parent: [compute and cluster platform](README.md).
 - Whole system: [reference platform](../reference-platform.md), [runtime flows](../runtime-flows.md) and [variant model](../variants.md).
 - Interfaces: [networking](../networking/README.md), [infrastructure control](provisioning.md) and [tier ownership](../tier-ownership.md).
-- Realization: [host/image foundation](../../deployment/foundation/README.md#step-1-prepare-compute-and-templates) and [cluster foundation](../../deployment/stage-3-identity/README.md#step-2-create-the-kubernetes-cluster).
+- Realization: [host/image foundation](../../deployment/foundation/README.md#step-1-prepare-compute-and-templates) and [Kubernetes capability](../../deployment/stage-4-kubernetes/README.md).
 - Acceptance and implementation coverage: [deployment readiness](../../deployment/readiness.md).

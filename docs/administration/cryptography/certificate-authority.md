@@ -7,7 +7,7 @@ replace FreeIPA's certificate administration or the secret service.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`) owns project runbooks,
 approved configuration and acceptance records, not private CA state in Git.
 **Design:** [certificate authority](../../architecture/cryptography/certificate-authority.md).
-**Prerequisites:** completed [issuer integration](../../deployment/stage-2-trust/procedures/issuer.md),
+**Prerequisites:** completed [issuer integration](../../deployment/stage-3-trust/procedures/issuer.md),
 independent access, application-consistent backups and authorized custodians.
 The supplied read-only maintenance recipe checks native services, configuration and
 the local backend API. It does not perform issuance, backup, restore or upgrades.
