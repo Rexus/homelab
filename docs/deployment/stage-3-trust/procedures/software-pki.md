@@ -2,7 +2,7 @@
 
 Build an offline root and an OpenXPKI infrastructure issuer in Stage 3.
 Stage 5 adds the sibling FreeIPA CA using that root; it is not installed by this procedure.
-Public websites use [Let's Encrypt at the edge](../../stage-9-workloads/public-https.md),
+Public websites use [Let's Encrypt at the edge](../../stage-10-lab-environments/public-https.md),
 not this private root. Root keys never enter a connected hypervisor.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
@@ -142,7 +142,7 @@ issuer, not a leaf issued through the TLS-server portal.
 
 Public edge deployment is separate later work, not a Stage 3 acceptance dependency.
 When publishing public services, follow the
-[HTTPS deployment](../../stage-9-workloads/public-https.md) for origin trust, renewal
+[HTTPS deployment](../../stage-10-lab-environments/public-https.md) for origin trust, renewal
 and failover, and retain [independent security alerts](../../../administration/cryptography/security-controls.md).
 
 ## References

@@ -1,0 +1,47 @@
+---
+- name: Require source fetch and reconciliation of the approved commit
+  ansible.builtin.include_tasks: health.yml
+  vars:
+    cluster_platform_health:
+      api_version: "{{ flux_resource.api_version }}"
+      kind: "{{ flux_resource.kind }}"
+      name: platform
+      namespace: flux-system
+      condition: Ready
+      revision: "{{ cluster_platform_flux_commit }}"
+  loop:
+    - {api_version: source.toolkit.fluxcd.io/v1, kind: GitRepository}
+    - {api_version: kustomize.toolkit.fluxcd.io/v1, kind: Kustomization}
+  loop_control:
+    loop_var: flux_resource
+
+- name: Require the canary in the current reconciled resource inventory
+  ansible.builtin.assert:
+    that:
+      - >-
+        ('flux-system_' ~ cluster_platform_flux_canary_name ~ '__Secret') in
+        (cluster_platform_observed.resources[0].status.get('inventory', {}).get('entries', [])
+          | map(attribute='id') | list)
+    fail_msg: Include the reviewed SOPS-encrypted canary in the selected source, not only a pre-existing Secret.
+
+- name: Require the expected SOPS-decrypted canary without disclosing Secret data
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_platform_kubeconfig }}"
+    context: "{{ cluster_platform_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    name: "{{ cluster_platform_flux_canary_name }}"
+    namespace: flux-system
+  register: cluster_platform_canary
+  vars:
+    canary: "{{ (cluster_platform_canary.resources | default([]) | first) | default({}) }}"
+  until:
+    - cluster_platform_canary.resources | default([]) | length == 1
+    - cluster_platform_flux_canary_key in canary.get('data', {})
+    - >-
+      canary.get('data', {}).get(cluster_platform_flux_canary_key, '') | b64decode | hash('sha256') ==
+      cluster_platform_flux_canary_sha256
+  retries: "{{ cluster_platform_health_retries }}"
+  delay: "{{ cluster_platform_health_delay }}"
+  no_log: true

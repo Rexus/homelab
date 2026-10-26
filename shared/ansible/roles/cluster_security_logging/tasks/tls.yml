@@ -1,0 +1,81 @@
+---
+- name: Read the operator-owned node identity
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_security_logging_kubeconfig }}"
+    context: "{{ cluster_security_logging_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: "{{ cluster_security_logging_namespace }}"
+    name: "{{ security_logging_node.tls_secret }}"
+  register: security_logging_existing_secret
+  when: not cluster_security_logging_manage_secrets | bool
+  no_log: true
+
+- name: Require an existing identity when Secrets are independently managed
+  ansible.builtin.assert:
+    that:
+      - security_logging_existing_secret.resources | length == 1
+      - "['ca.crt', 'tls.crt', 'tls.key'] | difference(security_logging_existing_secret.resources[0].get('data', {})) | length == 0"
+  when: not cluster_security_logging_manage_secrets | bool
+  no_log: true
+
+- name: Select explicitly supplied or existing leaf material without writing keys locally
+  ansible.builtin.set_fact:
+    security_logging_material: >-
+      {{ cluster_security_logging_secrets.get(cluster_security_logging_namespace ~ '/' ~ security_logging_node.tls_secret, {})
+         if cluster_security_logging_manage_secrets | bool else
+         dict(security_logging_existing_secret.resources[0].data.keys() | zip(
+           security_logging_existing_secret.resources[0].data.values() | map('b64decode'))) }}
+  no_log: true
+
+- name: Require only the public CA and current client leaf/key fields
+  ansible.builtin.assert:
+    that:
+      - "['ca.crt', 'tls.crt', 'tls.key'] | difference(security_logging_material.keys()) | length == 0"
+      - "security_logging_material.keys() | difference(['ca.crt', 'tls.crt', 'tls.key']) | length == 0"
+      - security_logging_material.values() | select('equalto', '') | list | length == 0
+    fail_msg: Supply a public trust bundle and a matching client-auth leaf/key; no CA private key is accepted.
+  no_log: true
+
+- name: Inspect the collector client certificate
+  community.crypto.x509_certificate_info:
+    content: "{{ security_logging_material['tls.crt'] }}"
+    valid_at: {now: '+0s'}
+  register: security_logging_leaf
+  no_log: true
+
+- name: Inspect the collector private key
+  community.crypto.openssl_privatekey_info:
+    content: "{{ security_logging_material['tls.key'] }}"
+  register: security_logging_key
+  no_log: true
+
+- name: Inspect the independent public trust anchor
+  community.crypto.x509_certificate_info:
+    content: "{{ security_logging_material['ca.crt'] }}"
+    valid_at: {now: '+0s'}
+  register: security_logging_ca
+  no_log: true
+
+- name: Refuse expired, CA, wrong-purpose, wrong-node or mismatched client identities
+  ansible.builtin.assert:
+    that:
+      - security_logging_leaf.valid_at.now
+      - "'CA:TRUE' not in security_logging_leaf.basic_constraints | default([], true)"
+      - security_logging_leaf.subject.commonName == security_logging_node.stream
+      - security_logging_leaf.public_key == security_logging_key.public_key
+      - "'TLS Web Client Authentication' in security_logging_leaf.extended_key_usage | default([], true)"
+      - security_logging_ca.valid_at.now
+      - "'CA:TRUE' in security_logging_ca.basic_constraints | default([], true)"
+    fail_msg: Client leaf must match this node stream, key, current validity and client-auth purpose.
+  no_log: true
+
+- name: Clear transient private material from role facts
+  ansible.builtin.set_fact:
+    security_logging_material: {}
+    security_logging_leaf: {}
+    security_logging_key: {}
+    security_logging_ca: {}
+    security_logging_existing_secret: {}
+  no_log: true

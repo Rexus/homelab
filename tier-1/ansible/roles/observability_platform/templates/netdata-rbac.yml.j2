@@ -1,0 +1,19 @@
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata: {name: {{ observability_netdata_namespace }}-diagnostics}
+  rules:
+    - apiGroups: ['']
+      resources: [pods, services, nodes, nodes/metrics, nodes/stats, namespaces]
+      verbs: [get, list, watch]
+    - apiGroups: [apps]
+      resources: [deployments, replicasets, statefulsets, daemonsets]
+      verbs: [get, list, watch]
+    - apiGroups: [batch]
+      resources: [jobs, cronjobs]
+      verbs: [get, list, watch]
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata: {name: {{ observability_netdata_namespace }}-diagnostics}
+  roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: {{ observability_netdata_namespace }}-diagnostics}
+  subjects:
+    - {kind: ServiceAccount, name: netdata-1, namespace: {{ selected_namespace }}}

@@ -1,0 +1,65 @@
+fullnameOverride: keycloak
+replicas: {{ control_applications_keycloak_replicas }}
+podManagementPolicy: Parallel
+command: [/opt/keycloak/bin/kc.sh]
+args: [start]
+serviceAccount:
+  automountServiceAccountToken: false
+database:
+  vendor: postgres
+  hostname: keycloak-db-rw
+  port: 5432
+  database: keycloak
+  username: keycloak
+  existingSecret: keycloak-db
+  existingSecretKey: password
+cache:
+  stack: default
+proxy:
+  enabled: true
+  mode: xforwarded
+  http: {enabled: false}
+http:
+  relativePath: /
+  managementRelativePath: /
+  internalScheme: HTTP
+health: {enabled: true}
+metrics: {enabled: true}
+ingress: {enabled: false}
+service:
+  annotations:
+    traefik.ingress.kubernetes.io/service.serversscheme: https
+    traefik.ingress.kubernetes.io/service.serverstransport: keycloak-control-applications@kubernetescrd
+extraEnv: |
+  - {name: KC_LOG_CONSOLE_OUTPUT, value: json}
+  - {name: KC_SPI_EVENTS_LISTENER__JBOSS_LOGGING__SUCCESS_LEVEL, value: info}
+  - {name: KC_SPI_EVENTS_LISTENER__JBOSS_LOGGING__ERROR_LEVEL, value: warn}
+  - {name: KC_HOSTNAME, value: {{ ('https://' ~ control_applications_hosts.keycloak) | to_json }}}
+  - {name: KC_HTTPS_CERTIFICATE_FILE, value: /tls/tls.crt}
+  - {name: KC_HTTPS_CERTIFICATE_KEY_FILE, value: /tls/tls.key}
+  - {name: KC_HTTP_MANAGEMENT_SCHEME, value: http}
+  - {name: KC_TRUSTSTORE_PATHS, value: /trust/freeipa}
+  - name: KC_DB_URL
+    value: "jdbc:postgresql://keycloak-db-rw:5432/keycloak?sslmode=verify-full&sslrootcert=/trust/db/ca.crt"
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    valueFrom: {secretKeyRef: {name: keycloak-bootstrap, key: username}}
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    valueFrom: {secretKeyRef: {name: keycloak-bootstrap, key: password}}
+extraVolumes: |
+  - {name: tls, secret: {secretName: keycloak-tls}}
+  - {name: freeipa-ca, secret: {secretName: freeipa-ca}}
+  - {name: db-ca, secret: {secretName: keycloak-db-ca}}
+extraVolumeMounts: |
+  - {name: tls, mountPath: /tls, readOnly: true}
+  - {name: freeipa-ca, mountPath: /trust/freeipa, readOnly: true}
+  - {name: db-ca, mountPath: /trust/db, readOnly: true}
+podDisruptionBudget: {maxUnavailable: 1}
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  capabilities: {drop: [ALL]}
+  seccompProfile: {type: RuntimeDefault}
+resources:
+  requests: {cpu: 500m, memory: 1Gi}
+  limits: {memory: 2Gi}

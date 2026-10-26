@@ -1,0 +1,9 @@
+[stream]
+  enabled = no
+[{{ infrastructure_monitoring_child_key or '00000000-0000-4000-8000-000000000000' }}]
+  enabled = yes
+  allow from = {{ infrastructure_monitoring_allow_from }}
+  default memory mode = dbengine
+  health enabled by default = yes
+  enable replication = yes
+  replication period = 1d

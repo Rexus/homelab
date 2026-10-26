@@ -1,0 +1,31 @@
+---
+values:
+  fullnameOverride: cloudnative-pg
+  replicaCount: 1
+  crds:
+    create: true
+after:
+{% if cluster_platform_database_enabled | bool %}
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: {{ cluster_platform_database_namespace | to_json }}
+  - apiVersion: postgresql.cnpg.io/v1
+    kind: Cluster
+    metadata:
+      name: {{ cluster_platform_database_name | to_json }}
+      namespace: {{ cluster_platform_database_namespace | to_json }}
+    spec:
+      instances: {{ cluster_platform_database_instances | int }}
+      imageName: {{ cluster_platform_database_image | to_json }}
+      enableSuperuserAccess: false
+      bootstrap:
+        initdb:
+          database: app
+          owner: app
+      storage:
+        storageClass: {{ cluster_platform_storage_class | to_json }}
+        size: {{ cluster_platform_database_size | to_json }}
+{% else %}
+  []
+{% endif %}

@@ -1,0 +1,8 @@
+---
+# Use a separately approved host, outside all observed clusters and protected log VMs.
+- name: Render or install independent Tier 0 monitoring
+  hosts: "{{ infrastructure_monitoring_hosts | default('infrastructure_monitoring') }}"
+  gather_facts: false
+  become: "{{ infrastructure_monitoring_action | default('render') == 'apply' }}"
+  roles:
+    - infrastructure_monitoring

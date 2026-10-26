@@ -1,0 +1,11 @@
+---
+- name: Require the optional PostgreSQL cluster to become Ready
+  ansible.builtin.include_tasks: health.yml
+  vars:
+    cluster_platform_health:
+      api_version: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: "{{ cluster_platform_database_name }}"
+      namespace: "{{ cluster_platform_database_namespace }}"
+      condition: Ready
+  when: cluster_platform_database_enabled | bool

@@ -1,0 +1,25 @@
+---
+# Local Tier 1 application inputs; not a Terraform setup or shared inventory.
+# Guide: docs/deployment/stage-9-development/README.md
+development_platform_action: render
+development_platform_components: [gitlab]
+development_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
+development_platform_gitlab_version: REPLACE_WITH_EXACT_CHART_VERSION
+development_platform_runner_version: REPLACE_WITH_EXACT_RUNNER_CHART_VERSION
+development_platform_host: gitlab.internal.example.com
+development_platform_domain: internal.example.com
+development_platform_ingress_class: REPLACE_WITH_ACCEPTED_INGRESS_CLASS
+development_platform_database_host: REPLACE_WITH_POSTGRESQL_HOST
+development_platform_redis_host: REPLACE_WITH_REDIS_HOST
+development_platform_gitaly_host: REPLACE_WITH_GITALY_HOST
+development_platform_oidc_issuer: https://sso.internal.example.com/realms/platform
+# Tier 1 only. Pin compatible non-root build and runner-helper images by digest.
+development_platform_runner_image: REPLACE_WITH_APPROVED_IMAGE_DIGEST
+development_platform_runner_helper_image: REPLACE_WITH_MATCHING_HELPER_IMAGE_DIGEST
+# Explicit GitLab/artifact/proxy endpoints only; never Control or arbitrary LAN ranges.
+development_platform_runner_allowed_cidrs: []
+# Tier 1 Kubernetes service/backend API addresses for the manager, not job pods.
+development_platform_runner_api_cidrs: []
+# Vault/secret-controller ownership is the default. For explicit bootstrap
+# provisioning use manage_secrets=true and an encrypted/private extra-vars file.
+development_platform_manage_secrets: false

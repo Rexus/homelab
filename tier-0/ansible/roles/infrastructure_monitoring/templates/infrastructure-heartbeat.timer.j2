@@ -1,0 +1,11 @@
+[Unit]
+Description=Independent infrastructure detector schedule
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+Persistent=true
+Unit=infrastructure-heartbeat.service
+
+[Install]
+WantedBy=timers.target

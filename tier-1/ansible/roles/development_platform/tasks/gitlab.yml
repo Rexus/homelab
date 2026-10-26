@@ -1,0 +1,41 @@
+---
+- name: Resolve GitLab release from the authoritative values template
+  ansible.builtin.set_fact:
+    development_platform_release:
+      name: gitlab
+      namespace: "{{ development_platform_namespace }}"
+      chart: gitlab
+      version: "{{ development_platform_gitlab_version }}"
+      values: "{{ lookup('ansible.builtin.template', 'gitlab-values.yml.j2') | from_yaml }}"
+    development_platform_required_secrets:
+      - {name: gitlab-root, keys: [password]}
+      - {name: gitlab-postgresql, keys: [password]}
+      - {name: gitlab-postgresql-tls, keys: [tls.crt, tls.key, ca.crt]}
+      - {name: gitlab-redis, keys: [password]}
+      - {name: gitlab-gitaly, keys: [token]}
+      - {name: gitlab-shell-auth, keys: [secret]}
+      - {name: gitlab-storage, keys: [connection]}
+      - {name: gitlab-backup-storage, keys: [config]}
+      - {name: gitlab-oidc, keys: [provider]}
+      - {name: gitlab-tls, keys: [tls.crt, tls.key], type: kubernetes.io/tls}
+      - {name: "{{ development_platform_ca_secret }}", keys: [ca.crt]}
+
+- name: Prepare and check GitLab secrets
+  ansible.builtin.include_tasks: secrets.yml
+
+- name: Check configured OIDC provider against the selected identity authority
+  ansible.builtin.assert:
+    that:
+      - provider.name == 'openid_connect'
+      - provider.args.issuer == development_platform_oidc_issuer
+      - provider.args.uid_field == 'sub'
+      - provider.args.discovery | bool
+      - provider.args.client_options.redirect_uri == 'https://' ~ development_platform_host ~ '/users/auth/openid_connect/callback'
+  vars:
+    provider: "{{ (oidc.resources[0].data.provider | b64decode | from_yaml) }}"
+    oidc: "{{ development_platform_secret_checks.results | selectattr('item.name', 'equalto', 'gitlab-oidc') | first }}"
+  when: development_platform_action == 'apply'
+  no_log: true
+
+- name: Render or apply GitLab
+  ansible.builtin.include_tasks: release.yml

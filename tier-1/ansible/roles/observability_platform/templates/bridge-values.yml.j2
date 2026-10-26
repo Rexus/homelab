@@ -1,0 +1,45 @@
+fullnameOverride: netdata-metrics
+mode: deployment
+replicaCount: 1
+image: {repository: otel/opentelemetry-collector-contrib, tag: 0.163.2}
+command: {name: otelcol-contrib}
+resources:
+{{ observability_resources.collector | to_nice_yaml | indent(2, true) }}
+clusterRole: {create: false}
+extraVolumes: [{name: tls, secret: {secretName: gateway-client-tls}}]
+extraVolumeMounts: [{name: tls, mountPath: /tls, readOnly: true}]
+ports:
+  otlp: {enabled: false}
+  otlp-http: {enabled: false}
+  jaeger-compact: {enabled: false}
+  jaeger-grpc: {enabled: false}
+  jaeger-thrift: {enabled: false}
+  zipkin: {enabled: false}
+config:
+  receivers:
+    otlp: null
+    jaeger: null
+    zipkin: null
+    prometheus:
+      config:
+        scrape_configs:
+          - job_name: platform-netdata
+            scrape_interval: 30s
+            scheme: https
+            metrics_path: /api/v1/allmetrics
+            params: {format: [prometheus], help: ['no'], allhosts: ['yes']}
+            tls_config: {ca_file: /tls/ca.crt}
+            static_configs:
+              - targets: ['{{ observability_netdata_scrape_parent }}.{{ observability_netdata_namespace }}-{{ observability_netdata_scrape_parent[-1] }}.svc:19999']
+            metric_relabel_configs:
+              - {source_labels: [__name__], regex: {{ observability_netdata_scrape_metrics | join('|') | to_json }}, action: keep}
+  exporters:
+    debug: null
+    otlp:
+      endpoint: otel-gateway:4317
+      tls: {ca_file: /tls/ca.crt, cert_file: /tls/tls.crt, key_file: /tls/tls.key}
+  service:
+    pipelines:
+      logs: null
+      traces: null
+      metrics: {receivers: [prometheus], processors: [memory_limiter, batch], exporters: [otlp]}

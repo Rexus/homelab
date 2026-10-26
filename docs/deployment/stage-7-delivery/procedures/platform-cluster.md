@@ -26,8 +26,8 @@ Use the [Tier 1 checklist](../../../paths/tier-1/README.md) for platform service
 [Tier 0 checklist](../../../paths/tier-0/README.md) for the independent control cluster.
 This page explains application-platform choices. Every tier has its own
 [Kubernetes Terraform root](../../stage-4-kubernetes/procedures/talos-terraform.md), currently implemented
-with Talos; GitOps and cluster-service
-directories remain starters rather than a complete platform installer.
+with Talos. The native basic-platform installer supplies selected add-ons; application
+directories remain tier-owned delivery targets rather than automatically installed services.
 
 ## Dependency direction
 
@@ -68,10 +68,10 @@ RBAC, and policy are not enough.
 ## Delivery selection
 
 Record [A: Argo CD or B: Spinnaker](../../../architecture/delivery/controllers.md) in the
-project architecture before installation. Follow the selected product's official
-installation procedure with pinned manifests/images, then configure sources,
-scoped destinations/accounts, RBAC/OIDC and secret handling. No controller installer
-is supplied. Do not bootstrap Tier 1 Flux simply because Tier 0 uses it.
+project architecture before installation. Use the [native delivery installer](delivery-installer.md)
+with explicit controller selection, pinned charts/images, scoped destinations/accounts,
+RBAC/OIDC and secret handling. Spinnaker requires a complete reviewed local Kustomize
+overlay. Tier 0's Flux remains independently owned.
 
 Test approved delivery, rejected targets, health gates, rollback and recovery
 without the normal delivery service. Never register Tier 0 as a Tier 1 delivery target.
@@ -80,12 +80,46 @@ without the normal delivery service. Never register Tier 0 as a Tier 1 delivery 
 
 Follow the common [cluster foundation checklist](../../stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation)
 for networking, reconciliation, secrets, persistence, TLS, and databases.
-It applies to all tiers independently of node OS and owns the readiness gates.
+Use the same [native basic-platform procedure](../../stage-4-kubernetes/procedures/basic-platform.md)
+from the **Tier 1 repository**, with its own
+[playbook](../../../../tier-1/ansible/playbooks/deployment/cluster-platform.yml) and
+[inputs](../../../../tier-1/ansible/group_vars/cluster_platform.yml.example).
+Shared's `cluster_platform` role executes the add-ons; Tier 1 owns their selection,
+values, cluster credentials and resources. No add-on code is copied between tiers.
+
+Copy `ansible/group_vars/cluster_platform.yml.example` to its ignored `.yml`
+counterpart and configure Tier 1's kubeconfig/context, exact chart pins, image access,
+storage and issuer prerequisites. Retain Tier 1's explicit component selection:
+
+```yaml
+cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg, barman_cloud]
+```
+
+**Omit Flux in Tier 1.** Tier 0 retains its independent Flux installation; choose
+Argo CD or Spinnaker for Tier 1 application delivery after basic-platform acceptance.
+From Tier 1, render and review:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/cluster-platform.yml \
+  -e @ansible/group_vars/cluster_platform.yml
+```
+
+With accepted inputs and the explicit Tier 1 context, apply the same selection:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/cluster-platform.yml \
+  -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=apply
+```
+
+The common procedure owns add-on prerequisites and readiness gates, including the
+distinction between installing CloudNativePG and creating an application database.
 Then continue with the [Tier 1 service checklist](../../../paths/tier-1/README.md).
 
 ## Read more
 
-- [Delivery stage](../README.md#step-2-enable-protected-execution)
+- [Delivery stage](../README.md#step-2-select-and-qualify-delivery)
 - [Private cloud model](../../../architecture/private-cloud.md)
 - [Shared services model](../../../architecture/service-boundaries.md)
 - [Telemetry procedure](../../stage-8-observability/step-1b-dedicated-vms.md)

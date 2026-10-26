@@ -1,0 +1,125 @@
+fullnameOverride: {{ instance }}
+nameOverride: {{ instance }}
+rbac: {create: false, pspEnabled: false}
+serviceAccount: {create: true, name: {{ instance }}}
+replicaCount: 1
+image: {tag: v2.12.2, pullPolicy: IfNotPresent}
+initContainersImage: {tag: '3.22.2', pullPolicy: IfNotPresent}
+ingress: {enabled: false}
+sd: {child: {enabled: false}}
+otel-collector: {enabled: false}
+netdataOpentelemetry: {enabled: false}
+parent:
+  enabled: true
+  hostname: {{ instance }}
+  claiming: {enabled: false}
+  env: {DO_NOT_TRACK: '1'}
+  nodeSelector:
+{{ observability_node_selector | combine({observability_topology_key: domain}) | to_nice_yaml | indent(4, true) }}
+  resources:
+{{ observability_resources.netdata | to_nice_yaml | indent(4, true) }}
+  database: {persistence: true, storageclass: {{ observability_storage_class }}, volumesize: {{ observability_netdata_size }}}
+  alarms: {persistence: true, storageclass: {{ observability_storage_class }}, volumesize: 1Gi}
+  extraVolumes: [{name: tls, secret: {secretName: {{ instance }}-tls}}]
+  extraVolumeMounts: [{name: tls, mountPath: /tls, readOnly: true}]
+  configs:
+    health: {enabled: false}
+    netdata:
+      enabled: true
+      path: /etc/netdata/netdata.conf
+      data: |
+        [global]
+          hostname = {{ instance }}
+        [db]
+          mode = dbengine
+          dbengine tier 0 retention time = 7d
+        [web]
+          bind to = *:19999^SSL=force
+          ssl certificate = /tls/tls.crt
+          ssl key = /tls/tls.key
+          allow connections from = localhost {{ observability_netdata_allow_from }}
+          allow dashboard from = localhost {{ observability_netdata_allow_from }}
+          allow streaming from = {{ observability_netdata_allow_from }}
+          allow mcp from = localhost
+          allow management from = localhost
+          allow netdata.conf from = localhost
+        [health]
+          enabled = no
+        [plugins]
+          cgroups = no
+          apps = no
+          proc = no
+          go.d = no
+          python.d = no
+          journal-view = no
+    stream:
+      enabled: true
+      storedType: secret
+      path: /etc/netdata/stream.conf
+      data: |
+        [stream]
+          enabled = yes
+          destination = {{ 'netdata-2.' ~ observability_netdata_namespace ~ '-2' if instance == 'netdata-1' else 'netdata-1.' ~ observability_netdata_namespace ~ '-1' }}.svc:19999:SSL
+          api key = {{ observability_netdata_peer_key }}
+          ssl skip certificate verification = no
+          CAfile = /tls/ca.crt
+        [{{ observability_netdata_child_key }}]
+          enabled = yes
+          allow from = {{ observability_netdata_allow_from }}
+          default memory mode = dbengine
+          health enabled by default = no
+          enable replication = yes
+          replication period = 1d
+        [{{ observability_netdata_peer_key }}]
+          enabled = yes
+          allow from = {{ observability_netdata_allow_from }}
+          default memory mode = dbengine
+          health enabled by default = no
+          enable replication = yes
+          replication period = 1d
+{% for agent in ['child', 'k8sState'] %}
+{{ agent }}:
+  enabled: {{ (instance == 'netdata-1') | lower }}
+  claiming: {enabled: false}
+  env: {DO_NOT_TRACK: '1'}
+  resources:
+{{ observability_resources.netdata | to_nice_yaml | indent(4, true) }}
+  extraVolumes: [{name: tls, secret: {secretName: netdata-1-tls}}]
+  extraVolumeMounts: [{name: tls, mountPath: /tls, readOnly: true}]
+  configs:
+    stream:
+      enabled: true
+      storedType: secret
+      path: /etc/netdata/stream.conf
+      data: |
+        [stream]
+          enabled = yes
+          destination = netdata-1.{{ observability_netdata_namespace }}-1.svc:19999:SSL netdata-2.{{ observability_netdata_namespace }}-2.svc:19999:SSL
+          api key = {{ observability_netdata_child_key }}
+          ssl skip certificate verification = no
+          CAfile = /tls/ca.crt
+{% if agent == 'child' %}
+    go.d:
+      enabled: true
+      path: /etc/netdata/go.d.conf
+      data: |
+        default_run: no
+        modules:
+          k8s_kubelet: yes
+    kubeproxy: {enabled: false}
+    kubelet:
+      enabled: true
+      path: /etc/netdata/go.d/k8s_kubelet.conf
+      data: |
+        jobs:
+          - name: local
+            url: https://${env:MY_NODE_NAME}:10250/metrics
+            tls_ca: /tls/kubelet-ca.crt
+            tls_skip_verify: false
+            bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+  hostNetwork: false
+  dnsPolicy: ClusterFirst
+{% else %}
+  storageclass: {{ observability_storage_class }}
+{% endif %}
+{% endfor %}

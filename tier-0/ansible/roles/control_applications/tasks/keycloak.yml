@@ -1,0 +1,79 @@
+---
+- name: Configure the existing identity authority using native Keycloak modules
+  no_log: true
+  module_defaults:
+    group/community.general.keycloak:
+      auth_keycloak_url: "https://{{ control_applications_hosts.keycloak }}"
+      auth_realm: "{{ control_applications_keycloak_auth.get('auth_realm', 'master') }}"
+      auth_username: "{{ control_applications_keycloak_auth.auth_username }}"
+      auth_password: "{{ control_applications_keycloak_auth.auth_password }}"
+      validate_certs: true
+  block:
+    - name: Converge the human federation realm without public self-registration
+      community.general.keycloak_realm:
+        realm: "{{ control_applications_keycloak_realm }}"
+        enabled: true
+        ssl_required: all
+        registration_allowed: false
+        reset_password_allowed: false
+        login_with_email_allowed: false
+        duplicate_emails_allowed: false
+        brute_force_protected: true
+        events_enabled: true
+        events_listeners: [jboss-logging]
+        admin_events_enabled: true
+        admin_events_details_enabled: false
+        state: present
+
+    - name: Federate external FreeIPA over verified LDAPS in read-only mode
+      community.general.keycloak_user_federation:
+        realm: "{{ control_applications_keycloak_realm }}"
+        name: freeipa
+        provider_id: ldap
+        provider_type: org.keycloak.storage.UserStorageProvider
+        state: present
+        remove_unspecified_mappers: false
+        config:
+          enabled: "true"
+          vendor: other
+          connectionUrl: "{{ control_applications_ldap_url }}"
+          usersDn: "{{ control_applications_ldap_users_dn }}"
+          bindDn: "{{ control_applications_ldap_bind_dn }}"
+          bindCredential: "{{ control_applications_ldap_bind_password }}"
+          authType: simple
+          editMode: READ_ONLY
+          importEnabled: "true"
+          syncRegistrations: "false"
+          usernameLDAPAttribute: uid
+          rdnLDAPAttribute: uid
+          uuidLDAPAttribute: ipaUniqueID
+          userObjectClasses: inetOrgPerson,organizationalPerson
+          searchScope: "2"
+          pagination: "true"
+          useTruststoreSpi: always
+          trustEmail: "false"
+          fullSyncPeriod: "-1"
+          changedSyncPeriod: "-1"
+        mappers:
+          - name: freeipa-groups
+            providerId: group-ldap-mapper
+            providerType: org.keycloak.storage.ldap.mappers.LDAPStorageMapper
+            config:
+              groups.dn: "{{ control_applications_ldap_groups_dn }}"
+              group.name.ldap.attribute: cn
+              group.object.classes: groupOfNames
+              membership.ldap.attribute: member
+              membership.attribute.type: DN
+              membership.user.ldap.attribute: uid
+              mode: READ_ONLY
+              user.roles.retrieve.strategy: LOAD_GROUPS_BY_MEMBER_ATTRIBUTE
+              preserve.group.inheritance: "true"
+
+- name: Verify the selected realm discovery issuer
+  ansible.builtin.uri:
+    url: "{{ control_applications_oidc_issuer }}/.well-known/openid-configuration"
+    validate_certs: true
+    ca_path: "{{ control_applications_https_ca_path | default(omit, true) }}"
+    return_content: true
+  register: control_applications_realm_health
+  failed_when: control_applications_realm_health.json.issuer != control_applications_oidc_issuer

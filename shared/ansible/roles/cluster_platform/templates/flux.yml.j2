@@ -1,0 +1,52 @@
+---
+values:
+  installCRDs: true
+  imageAutomationController:
+    create: false
+  imageReflectionController:
+    create: false
+  sourceController:
+    create: true
+  kustomizeController:
+    create: true
+  helmController:
+    create: true
+  notificationController:
+    create: true
+required_secrets:
+  - name: {{ cluster_platform_flux_git_secret | to_json }}
+    keys: {{ cluster_platform_flux_git_secret_keys | to_json }}
+  - name: {{ cluster_platform_flux_age_secret | to_json }}
+    keys: [{{ cluster_platform_flux_age_key | to_json }}]
+after:
+  - apiVersion: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    metadata:
+      name: platform
+      namespace: flux-system
+    spec:
+      interval: 1m
+      url: {{ cluster_platform_flux_url | to_json }}
+      ref:
+        commit: {{ cluster_platform_flux_commit | to_json }}
+      secretRef:
+        name: {{ cluster_platform_flux_git_secret | to_json }}
+  - apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    metadata:
+      name: platform
+      namespace: flux-system
+    spec:
+      interval: 5m
+      retryInterval: 1m
+      timeout: 5m
+      path: {{ cluster_platform_flux_path | to_json }}
+      prune: false
+      wait: true
+      sourceRef:
+        kind: GitRepository
+        name: platform
+      decryption:
+        provider: sops
+        secretRef:
+          name: {{ cluster_platform_flux_age_secret | to_json }}

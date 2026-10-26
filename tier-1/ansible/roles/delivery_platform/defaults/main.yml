@@ -1,0 +1,51 @@
+---
+delivery_platform_action: render
+delivery_platform_kubeconfig: ""
+delivery_platform_context: ""
+delivery_platform_output: "{{ playbook_dir }}/../../../secrets/delivery-platform"
+delivery_platform_controller: ""
+delivery_platform_install_harbor: true
+delivery_platform_ingress_class: ""
+delivery_platform_oidc_issuer: ""
+delivery_platform_oidc_ca_pem: ""
+delivery_platform_ca_path: ""
+delivery_platform_manage_secrets: false
+delivery_platform_secrets: {}
+
+delivery_platform_harbor_version: ""
+delivery_platform_harbor_namespace: harbor
+delivery_platform_harbor_host: ""
+delivery_platform_harbor_storage_class: ""
+delivery_platform_harbor_database_password: ""
+delivery_platform_harbor_volumes:
+  registry: 50Gi
+  jobservice: 1Gi
+  database: 5Gi
+  redis: 1Gi
+  trivy: 5Gi
+
+delivery_platform_argocd_version: ""
+delivery_platform_argocd_namespace: argocd
+delivery_platform_argocd_host: ""
+delivery_platform_argocd_client_id: argocd
+delivery_platform_argocd_admin_group: ""
+delivery_platform_argocd_reader_group: ""
+delivery_platform_argocd_repositories: []
+delivery_platform_argocd_repository_certificates: {}
+delivery_platform_argocd_destinations: []
+
+delivery_platform_spinnaker_namespace: spinnaker
+delivery_platform_spinnaker_host: ""
+delivery_platform_spinnaker_overlay: ""
+delivery_platform_repository_root: "{{ playbook_dir }}/../../.."
+delivery_platform_spinnaker_review_sha256: ""
+delivery_platform_spinnaker_required_secrets: []
+delivery_platform_spinnaker_deployments:
+  - clouddriver
+  - deck
+  - echo
+  - fiat
+  - front50
+  - gate
+  - orca
+  - rosco

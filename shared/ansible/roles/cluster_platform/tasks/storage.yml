@@ -1,0 +1,27 @@
+---
+- name: Require the selected storage class
+  ansible.builtin.include_tasks: health.yml
+  vars:
+    cluster_platform_health:
+      api_version: storage.k8s.io/v1
+      kind: StorageClass
+      name: "{{ cluster_platform_storage_class }}"
+
+- name: Read the selected class provisioner
+  ansible.builtin.set_fact:
+    cluster_platform_storage_provisioner: "{{ cluster_platform_observed.resources[0].provisioner }}"
+
+- name: Require CSI storage and the selected NFS driver when installed here
+  ansible.builtin.assert:
+    that:
+      - not cluster_platform_storage_provisioner.startswith('kubernetes.io/')
+      - cluster_platform_storage_provider != 'nfs' or cluster_platform_storage_provisioner == 'nfs.csi.k8s.io'
+    fail_msg: The selected class must use a registered CSI driver; class existence does not qualify persistence.
+
+- name: Require the selected native CSI driver registration
+  ansible.builtin.include_tasks: health.yml
+  vars:
+    cluster_platform_health:
+      api_version: storage.k8s.io/v1
+      kind: CSIDriver
+      name: "{{ cluster_platform_storage_provisioner }}"

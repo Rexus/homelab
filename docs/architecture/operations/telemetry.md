@@ -185,11 +185,13 @@ are not the data-authorization boundary.
 keeps foundation visibility outside cluster outages.
 [Observability deployment](../../deployment/stage-8-observability/README.md)
 adds Netdata diagnostics, infrastructure coverage, gateways, both backends and UIs;
-[workload collection](../../deployment/stage-9-workloads/telemetry.md)
+[workload collection](../../deployment/stage-10-lab-environments/telemetry.md)
 connects applications.
 
-The cluster folders are project integration starters; the VM recipe supplies
-hosts/baseline only. Neither currently installs or qualifies this product stack.
+Tier-owned native release inputs realize this design. Project GitOps folders are
+adoption points, not a second owner of directly installed releases. Alternative
+VM runtimes and operational qualification remain distinct from the Kubernetes realization;
+the [implementation map](../../reference/implementation-support.md) records that boundary.
 
 ## References
 

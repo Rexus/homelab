@@ -1,0 +1,31 @@
+---
+- name: Validate independent monitoring inputs
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Prepare private controller output
+  ansible.builtin.file:
+    path: "{{ infrastructure_monitoring_output }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+
+- name: Render native monitoring configuration without installing services
+  ansible.builtin.template:
+    src: "{{ item.source }}"
+    dest: "{{ infrastructure_monitoring_output }}/{{ item.name }}"
+    mode: "0600"
+  loop:
+    - {source: netdata.conf.j2, name: netdata.conf}
+    - {source: stream.conf.j2, name: stream.conf}
+    - {source: redfish.conf.j2, name: redfish.conf}
+    - {source: prometheus.conf.j2, name: prometheus.conf}
+    - {source: pve.yml.j2, name: pve.yml}
+    - {source: collector.yml.j2, name: collector.yml}
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Install independent monitoring on the approved host
+  ansible.builtin.include_tasks: install.yml
+  when: infrastructure_monitoring_action == 'apply'

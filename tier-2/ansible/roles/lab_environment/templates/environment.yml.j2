@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ lab_environment_name }}
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: budget
+  namespace: {{ lab_environment_name }}
+spec:
+  hard: {{ lab_environment_quota | to_json }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: container-limits
+  namespace: {{ lab_environment_name }}
+spec:
+  limits:
+    - type: Container
+      default: {{ lab_environment_resources.limits | to_json }}
+      defaultRequest: {{ lab_environment_resources.requests | to_json }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: {{ lab_environment_name }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: application-ingress
+  namespace: {{ lab_environment_name }}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: lab-app}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ lab_environment_ingress_namespace }}
+      ports: [{protocol: TCP, port: {{ lab_environment_port | int }}}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: application-reader
+  namespace: {{ lab_environment_name }}
+rules:
+  - apiGroups: ['', apps]
+    resources: [pods, pods/log, services, deployments, replicasets, events]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: application-reader
+  namespace: {{ lab_environment_name }}
+subjects:
+  - kind: Group
+    name: {{ lab_environment_owner_group | to_json }}
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: application-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: lab-app
+  namespace: {{ lab_environment_name }}
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lab-app
+  namespace: {{ lab_environment_name }}
+spec:
+  replicas: {{ lab_environment_replicas | int }}
+  selector:
+    matchLabels: {app.kubernetes.io/name: lab-app}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: lab-app}
+    spec:
+      serviceAccountName: lab-app
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ lab_environment_uid | int }}
+        seccompProfile: {type: RuntimeDefault}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels: {app.kubernetes.io/name: lab-app}
+      containers:
+        - name: app
+          image: {{ lab_environment_image | to_json }}
+          ports: [{name: http, containerPort: {{ lab_environment_port | int }}}]
+          resources: {{ lab_environment_resources | to_json }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+          livenessProbe:
+            httpGet: {path: /, port: http}
+          volumeMounts:
+            - {name: temporary, mountPath: /tmp}
+      volumes:
+        - name: temporary
+          emptyDir: {sizeLimit: 64Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lab-app
+  namespace: {{ lab_environment_name }}
+spec:
+  type: ClusterIP
+  selector: {app.kubernetes.io/name: lab-app}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lab-app
+  namespace: {{ lab_environment_name }}
+spec:
+  ingressClassName: {{ lab_environment_ingress_class | to_json }}
+  tls:
+    - hosts: [{{ lab_environment_host | to_json }}]
+      secretName: {{ lab_environment_tls_secret | to_json }}
+  rules:
+    - host: {{ lab_environment_host | to_json }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: lab-app, port: {name: http}}

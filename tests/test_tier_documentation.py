@@ -153,7 +153,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         quickstart = tier0.split("## Getting started", 1)[1].split("## Navigation", 1)[0]
         self.assertLess(quickstart.index("template-lifecycle.md"), quickstart.index("kubernetes-cluster.sh init"))
         self.assertIn("operator-run bootstrap", (architecture / "deployment/stage-4-kubernetes/step-1b-manual-cluster.md").read_text())
-        for step in range(1, 10):
+        for step in range(1, 11):
             self.assertIn(f"**{step}:", tier0)
         bootstrap = (architecture / "deployment/README.md").read_text()
         self.assertIn("foundation/README.md", bootstrap)
@@ -169,11 +169,12 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("kubernetes.md#cluster-foundation", application)
         self.assertNotIn("| 1. Networking |", application)
 
-    def test_nine_capabilities_have_numbered_main_paths_and_adjacent_options(self):
+    def test_ten_capabilities_have_numbered_main_paths_and_adjacent_options(self):
         self.generate("--repo", "architecture")
         docs = self.root / "verify-architecture/docs/auto-docs"
-        stages = sorted((docs / "deployment").glob("stage-*/README.md"))
-        self.assertEqual(len(stages), 9)
+        stages = sorted((docs / "deployment").glob("stage-*/README.md"),
+                        key=lambda path: int(path.parent.name.split("-")[1]))
+        self.assertEqual(len(stages), 10)
         index = (docs / "deployment/README.md").read_text()
         project = (self.root / "verify-architecture/docs/deployment/README.md").read_text()
         for number, stage in enumerate(stages, 1):
@@ -196,7 +197,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                 self.assertIn("**Change:**", text, option)
                 self.assertIn("Return", text, option)
                 self.assertIn(f"({option.name})", content, option)
-        intake, logging, trust, cluster, identity, control, delivery, observability, workloads = (
+        intake, logging, trust, cluster, identity, control, delivery, observability, development, workloads = (
             stage.read_text(encoding="utf-8") for stage in stages
         )
         foundation = (docs / "deployment/foundation/README.md").read_text()
@@ -207,8 +208,10 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("kubernetes.md#cluster-foundation", cluster)
         self.assertIn("## Step 1: Deploy the policy proxy and cache", intake)
         self.assertIn("## Step 3: Verify operation and recovery", cluster)
-        self.assertIn("not complete application installers", control)
-        self.assertIn("not sufficient authorization", delivery)
+        self.assertIn("control-applications.yml", control)
+        self.assertIn("control_applications.yml.example", control)
+        self.assertIn("Stage 9", delivery)
+        self.assertIn("Direct CI explicitly trusts", development)
         self.assertIn("not a shipped controller", workloads)
         self.assertIn("# Stage 8: Observability", observability)
         self.assertIn("step-1b-dedicated-vms.md", observability)
@@ -218,7 +221,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("not a native HSM cluster", hardware)
         self.assertEqual(hardware.count("```mermaid"), 1)
         self.assertIn("step-1b-usb-hsm.md", project)
-        self.assertIn("protected execution handover", project)
+        self.assertIn("direct-CI trust, Vault and original-state handover", project)
         design = (docs / "architecture/reference-platform.md").read_text()
         self.assertIn("not a claim that every service is automated", design)
         self.assertIn("no network route", design)

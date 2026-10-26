@@ -1,0 +1,13 @@
+concurrent = 1
+check_interval = 5
+[[runners]]
+  name = "tier0-iac"
+  url = {{ infrastructure_runner_gitlab_url | to_json }}
+  token = {{ infrastructure_runner_token | to_json }}
+  tls-ca-file = "/etc/gitlab-runner/ca.crt"
+  executor = "shell"
+  shell = "bash"
+  builds_dir = "/var/lib/gitlab-runner/builds"
+  cache_dir = "/var/lib/gitlab-runner/cache"
+  limit = 1
+  request_concurrency = 1

@@ -29,8 +29,9 @@ class DiagramDependencies(unittest.TestCase):
 
     def test_cluster_foundation_and_runner_providers_keep_declared_order(self):
         runtime = diagrams(DOCS / "deployment/stage-4-kubernetes/README.md")[1]
-        self.assertIn("Base ~~~ Flux ~~~ Network", runtime)
-        runner = diagrams(DOCS / "deployment/stage-7-delivery/step-1c-podman-runner.md")[0]
+        self.assertIn("Apps ~~~ Reconcile ~~~ NodeServices", runtime)
+        self.assertIn('subgraph Existing["Independent existing prerequisites"]', runtime)
+        runner = diagrams(DOCS / "deployment/stage-9-development/step-2b-podman-runner.md")[0]
         self.assertIn('subgraph T1["Tier 1 / general build execution"]\n    direction LR', runner)
         self.assertIn("Runner -->|Scoped jobs / artifact publication| Existing", runner)
 
@@ -39,7 +40,7 @@ class DiagramDependencies(unittest.TestCase):
             ("stage-4-kubernetes/README.md", 0, "PVE", "CP1 ~~~ CP2 ~~~ CP3"),
             ("stage-7-delivery/README.md", 0, "Nodes", "CP1 ~~~ CP2 ~~~ CP3"),
             ("stage-7-delivery/procedures/edge-proxy.md", 0, "PVE", "A ~~~ B ~~~ C"),
-            ("stage-9-workloads/public-https.md", 0, "PVE", "A ~~~ B ~~~ C"),
+            ("stage-10-lab-environments/public-https.md", 0, "PVE", "A ~~~ B ~~~ C"),
         ]
         for path, index, group, peers in cases:
             with self.subTest(document=path):
@@ -47,20 +48,21 @@ class DiagramDependencies(unittest.TestCase):
                 self.assertRegex(code, rf'subgraph {group}\["[^\n]+\n\s+direction TB')
                 self.assertIn(peers, code)
 
-    def test_platform_starters_are_inside_the_runtime_they_extend(self):
+    def test_controller_option_and_nodes_are_inside_the_runtime_they_extend(self):
         code = diagrams(DOCS / "deployment/stage-7-delivery/README.md")[0]
-        self.assertRegex(code, r'subgraph Platform\["[^\n]+\n\s+direction LR\n\s+subgraph Apps\[')
-        self.assertIn("Apps ~~~ Nodes", code)
-        self.assertIn("Delivery ~~~ Git", code)
+        self.assertRegex(code, r'subgraph PVE\["[^\n]+\n\s+direction LR\n\s+subgraph Added\[')
+        self.assertIn("Added ~~~ Nodes", code)
+        self.assertIn("A: Argo CD", code)
+        self.assertIn("or B: Spinnaker", code)
 
-    def test_execution_is_right_of_the_cluster_and_bootstrap_stays_left(self):
-        code = diagrams(DOCS / "deployment/stage-7-delivery/README.md")[1]
-        self.assertLess(code.index('subgraph Entry['), code.index('subgraph ControlArea['))
-        self.assertIn('subgraph ControlArea[" "]\n        direction LR', code)
-        self.assertIn("Cluster ~~~ Management", code)
-        self.assertIn('subgraph Integration["Project integration / not installed"]\n          direction TB', code)
+    def test_execution_is_right_of_the_cluster_and_recovery_stays_outside_hosting(self):
+        code = diagrams(DOCS / "deployment/stage-9-development/README.md")[-1]
+        self.assertLess(code.index('subgraph T1['), code.index('subgraph T0['))
+        self.assertLess(code.index('subgraph Execution['), code.index('subgraph Services['))
+        self.assertIn("T1 ~~~ T0 ~~~ Recovery", code)
         self.assertIn("Runner <--> State", code)
-        self.assertIn("Runner -->|Approved lifecycle| PVE", code)
+        self.assertIn("Git -->|Accepted project jobs| T0", code)
+        self.assertIn("iac-1 / gitlab-runner", code)
 
     def test_vault_operator_is_external_and_recovery_is_below_connected_runtime(self):
         code = diagrams(DOCS / "deployment/stage-6-secrets/step-1b-vault-vm.md")[0]
@@ -73,16 +75,16 @@ class DiagramDependencies(unittest.TestCase):
 
     def test_long_workflows_wrap_rows_without_changing_chronology(self):
         cases = [
-            ("README.md", ("Base", "Intake", "Trust", "Logs", "Runtime", "Identity", "Delivery",
-                           "Control", "Visibility", "Workloads"),
-             ("Base", "Intake", "Logs", "Trust", "Runtime", "Identity", "Control", "Delivery", "Visibility", "Workloads")),
-            ("stage-9-workloads/README.md", ("User", "Request", "Gate", "CI"),
+            ("README.md", ("Base", "Intake", "Logs", "Identity", "Runtime", "Trust", "Control",
+                           "Delivery", "Visibility", "Workloads", "Development"),
+             ("Base", "Intake", "Logs", "Trust", "Runtime", "Identity", "Control", "Delivery", "Visibility", "Development", "Workloads")),
+            ("stage-10-lab-environments/README.md", ("User", "Request", "Gate", "CI"),
              ("User", "Request", "CI", "Gate")),
         ]
         for path, placement, sequence in cases:
             with self.subTest(document=path):
                 code = diagrams(DOCS / "deployment" / path)[0]
-                self.assertIn("block-beta\n  columns 5", code)
+                self.assertIn(f"block-beta\n  columns {3 if path == 'README.md' else 5}", code)
                 positions = [code.index(f'{name}["') for name in placement]
                 self.assertEqual(positions, sorted(positions))
                 for first, second in zip(sequence, sequence[1:]):

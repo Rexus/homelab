@@ -33,8 +33,13 @@ class AnsibleOwnership(TierRepositoryTestCase):
         for play in health:
             self.assertNotIn("roles", play)
             for task in play["tasks"]:
-                self.assertFalse(task["changed_when"])
-                self.assertIn(task["ansible.builtin.command"]["argv"], [["ipactl", "status"], ["ipa", "ping"]])
+                for probe in task.get('block', [task]):
+                    self.assertFalse(probe["changed_when"])
+                    if 'ansible.builtin.command' in probe:
+                        self.assertIn(probe["ansible.builtin.command"]["argv"],
+                                      [["ipactl", "status"], ["ipa", "ping"]])
+                if 'block' in task:
+                    self.assertTrue(task['always'])
         cache = yaml.safe_load((UPSTREAM / "tier-2/ansible/playbooks/maintenance/cache.yml").read_text())
         self.assertEqual(cache[0]["roles"], ["cache_proxy"])
         self.assertNotIn("tasks", cache[0])
@@ -56,7 +61,8 @@ class AnsibleOwnership(TierRepositoryTestCase):
         self.generate()
         shared = self.root / "verify-shared"
         self.assertEqual({p.name for p in (shared / "ansible/roles").iterdir()},
-                         {"baseline", "shared", "log_forwarder"})
+                         {"baseline", "shared", "log_forwarder", "helm_release", "kubernetes_applications",
+                          "cluster_platform", "cluster_security_logging"})
         self.assertEqual({p.name for p in (shared / "ansible/playbooks").iterdir()},
                          {"control-node.yml", "site.yml", "reset-known-hosts.yml"})
         self.assertFalse((shared / "terraform").exists())
@@ -70,9 +76,12 @@ class AnsibleOwnership(TierRepositoryTestCase):
         expected_roles = {
             "tier-0": {"hsm_proxy_ingress", "immutable_template", "proxmox_host", "proxmox_template_replace",
                        "template_refresh", "vault", "syslog_ng", "openxpki", "openxpki_bundle",
-                       "logging_authority", "logging_archive", "logging_backup"},
-            "tier-1": {"gitlab_container", "podman_runner"},
-            "tier-2": {"cache_proxy", "edge_load_balancer", "public_certificates", "public_certificate_schedule"},
+                       "logging_authority", "logging_archive", "logging_backup", "infrastructure_runner",
+                       "control_applications", "infrastructure_monitoring"},
+            "tier-1": {"gitlab_container", "podman_runner", "development_platform", "delivery_platform",
+                       "observability_platform"},
+            "tier-2": {"cache_proxy", "edge_load_balancer", "public_certificates", "public_certificate_schedule",
+                       "lab_environment", "workload_telemetry"},
         }
         for tier in TIERS:
             repo = self.root / f"verify-{tier}"

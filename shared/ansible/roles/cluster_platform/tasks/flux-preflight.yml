@@ -1,0 +1,33 @@
+---
+- name: Require a reviewed immutable Git revision and independent bootstrap keys
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_flux_source_approved | bool
+      - cluster_platform_flux_url is match('^(https://[^/@\s]+/|ssh://[^\s]+@[^/\s]+/)[^\s]+$')
+      - "'REPLACE' not in cluster_platform_flux_url"
+      - cluster_platform_flux_commit is match('^([a-f0-9]{40}|[a-f0-9]{64})$')
+      - cluster_platform_flux_path is match('^\./[a-zA-Z0-9_./-]+$')
+      - "'..' not in cluster_platform_flux_path"
+      - cluster_platform_flux_git_secret != cluster_platform_flux_age_secret
+      - cluster_platform_flux_age_key is match('^[a-zA-Z0-9_.-]+\.agekey$')
+      - cluster_platform_flux_canary_sha256 is match('^[a-f0-9]{64}$')
+      - >-
+        (cluster_platform_flux_url.startswith('https://') and
+         ['username', 'password'] | difference(cluster_platform_flux_git_secret_keys) | length == 0) or
+        (cluster_platform_flux_url.startswith('ssh://') and
+         ['identity', 'identity.pub', 'known_hosts'] | difference(cluster_platform_flux_git_secret_keys) | length == 0)
+    fail_msg: Approve independent Git, pin its commit, and configure Git/SOPS Secrets plus an encrypted canary.
+
+- name: Validate Flux Kubernetes object and Secret key names
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+  loop:
+    - "{{ cluster_platform_flux_git_secret }}"
+    - "{{ cluster_platform_flux_age_secret }}"
+    - "{{ cluster_platform_flux_canary_name }}"
+
+- name: Validate the acceptance canary key
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_flux_canary_key is match('^[a-zA-Z0-9_.-]+$')

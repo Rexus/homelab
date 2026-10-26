@@ -1,0 +1,19 @@
+[global]
+  hostname = {{ inventory_hostname }}
+[db]
+  mode = dbengine
+  dbengine tier 0 retention size = {{ infrastructure_monitoring_history_size_mb }}MiB
+  dbengine tier 0 retention time = {{ infrastructure_monitoring_history_days }}d
+[web]
+  bind to = {{ infrastructure_monitoring_listen_address }}:19999^SSL=force
+  ssl certificate = /etc/netdata/private/tls.crt
+  ssl key = /etc/netdata/private/tls.key
+  allow connections from = localhost {{ infrastructure_monitoring_allow_from }}
+  allow dashboard from = localhost
+  allow management from = localhost
+  allow netdata.conf from = localhost
+[health]
+  enabled = yes
+[plugins]
+  go.d = yes
+  journal-view = no

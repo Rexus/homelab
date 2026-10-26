@@ -57,6 +57,9 @@ Before starting, have:
   CIDRs. Provide DNS, time, and image access before this cluster exists.
 
 The fast path below uses **DHCP reservations** and the generated default CNI.
+For the platform's Cilium selection, change the generated node configurations to
+the [CNI/proxy/KubePrism settings](procedures/basic-platform.md#prepare-talos)
+before applying them; the linked Terraform heredoc contains the native YAML.
 For static addressing, generate and review separate per-node configurations;
 never apply one static address to every node. For restricted networks, prepare
 image mirrors and discovery/network settings using the matching Talos release
@@ -164,12 +167,16 @@ export KUBECONFIG="$CLUSTER_DIR/kubeconfig"
   talosctl config endpoint "${CONTROL_PLANES[@]}"
   talosctl config node "${CONTROL_PLANES[0]}"
   talosctl bootstrap --nodes "${CONTROL_PLANES[0]}"
-  talosctl health
   talosctl kubeconfig "$KUBECONFIG"
   kubectl get nodes -o wide
   kubectl get pods -A
 )
 ```
+
+When CNI is disabled for Cilium, install [networking](procedures/basic-platform.md#render-and-apply)
+before expecting node readiness or a successful `talosctl health`. The API and
+exported kubeconfig must already work. With networking installed, run `talosctl health`
+and continue the checks below.
 
 If health checks time out after bootstrap was accepted, troubleshoot networking,
 images, and node state; do not simply run bootstrap again. In a new shell, set
@@ -187,11 +194,12 @@ For HA, perform the [Proxmox failure checks](../foundation/step-1b-cluster-ha.md
 and verify Kubernetes quorum/API availability separately. A VM restart alone
 does not prove cluster or application availability.
 
-For Tier 0, install Flux using its [generic Git bootstrap procedure][4], with the owning
-repository and GitOps path from the table above. Review its commit/push actions,
-credentials, and controller permissions before running it. The starter
-Kustomizations do not install Flux or the named services. Keep reviewed local
-controller manifests and images for Tier 0 recovery without hosted source control.
+For Tier 0, prepare the [Cilium node settings](procedures/basic-platform.md#prepare-talos)
+before bootstrap, then use the [native basic platform installer](procedures/basic-platform.md)
+and its [Flux/SOPS procedure](procedures/flux-sops.md). The starter Kustomizations
+do not install Flux or the named services. The alternative [Flux CLI bootstrap][4]
+has commit/push side effects and needs separate review and a single controller owner.
+Keep reviewed controller manifests and images for recovery without hosted source control.
 
 Tier 1 selects [Argo CD or Spinnaker](../../architecture/delivery/controllers.md)
 separately. Tier 2 consumes scoped delivery or a local controller. Do not copy

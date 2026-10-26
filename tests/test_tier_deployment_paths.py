@@ -10,19 +10,20 @@ class DeploymentPaths(TierRepositoryTestCase):
         self.generate()
         expected = ["stage-1-software-intake", "stage-2-logging", "stage-3-trust", "stage-4-kubernetes",
                     "stage-5-identity", "stage-6-secrets",
-                    "stage-7-delivery", "stage-8-observability", "stage-9-workloads"]
+                    "stage-7-delivery", "stage-8-observability", "stage-9-development", "stage-10-lab-environments"]
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             root = docs / "deployment"
-            directories = sorted(path.name for path in root.glob("stage-*") if path.is_dir())
+            directories = sorted((path.name for path in root.glob("stage-*") if path.is_dir()),
+                                 key=lambda name: int(name.split("-")[1]))
             self.assertEqual(directories, expected)
             numbers = [int(name.split("-")[1]) for name in directories]
-            self.assertEqual(numbers, list(range(1, 10)))
+            self.assertEqual(numbers, list(range(1, 11)))
             identity = (root / "stage-5-identity/README.md").read_text()
             secrets = (root / "stage-6-secrets/README.md").read_text()
             self.assertTrue(identity.startswith("# Stage 5: Identity\n"))
             self.assertTrue(secrets.startswith("# Stage 6: Secrets\n"))
             federation = identity.split("## Step 2: Deploy identity federation", 1)[1]
-            for term in ("applications/keycloak/", "OIDC clients", "FreeIPA federation", "**Integration:**"):
+            for term in ("control-applications.yml", "OIDC clients", "FreeIPA federation", "**IaC:**"):
                 self.assertIn(term, federation)
             self.assertIn("## Step 1: Deploy the secret service", secrets)
             self.assertIn("Keycloak[\"Existing Keycloak / IdP\"]", secrets)
@@ -44,22 +45,26 @@ class DeploymentPaths(TierRepositoryTestCase):
             self.assertIn("not a numbered capability stage", foundation)
             self.assertNotIn("## Step 4: Establish protected logging", foundation)
             self.assertIn("stage-2-logging/README.md", foundation)
-            stages = sorted(root.glob("stage-*/README.md"))
+            stages = sorted(root.glob("stage-*/README.md"), key=lambda path: int(path.parent.name.split("-")[1]))
             self.assertEqual(stages[0].parent.name, "stage-1-software-intake")
             self.assertFalse((root / "stage-1-foundation").exists())
             expected_steps = {
                 "stage-2-logging/README.md": ["1", "2", "3"],
                 "stage-6-secrets/monitoring.md": ["1", "2", "3"],
                 "stage-8-observability/README.md": ["1", "2", "3", "4"],
-                "stage-9-workloads/telemetry.md": ["1", "2", "3"],
+                "stage-10-lab-environments/telemetry.md": ["1", "2", "3"],
             }
             for relative, expected in expected_steps.items():
                 content = (root / relative).read_text()
                 steps = re.findall(r"(?m)^## Step (\d+):", content)
                 self.assertEqual(steps, expected, relative)
                 sections = re.split(r"(?m)^## Step \d+:", content)[1:]
-                for section in sections:
-                    self.assertIn("```mermaid", section, relative)
+                self.assertIn("```mermaid", content, relative)
+                # Installation/verification substeps reuse their one selected topology;
+                # resource-growth overviews explain each changed realization separately.
+                if relative != "stage-10-lab-environments/telemetry.md":
+                    for section in sections:
+                        self.assertIn("```mermaid", section, relative)
                 self.assertIn("**Working repository:**", content, relative)
                 self.assertIn("**Prerequisites:**", content, relative)
             logging = stages[1].read_text()
@@ -85,7 +90,7 @@ class DeploymentPaths(TierRepositoryTestCase):
                 tier = collection / f"{prefix}tier-{number}"
                 setups = set((tier / ".deployment-setups").read_text().splitlines()) | {"kubernetes"}
                 if number == 0:
-                    setups.add("templates")
+                    setups.update({"templates", "ci-auth"})
                 expected.update((str(number), setup) for setup in setups)
                 for setup in setups:
                     self.assertTrue((tier / "terraform/deployments" / setup / "main.tf").is_file())
@@ -103,7 +108,7 @@ class DeploymentPaths(TierRepositoryTestCase):
             for action in ("init", "plan", "apply", "credentials"):
                 self.assertIn(f"bash scripts/kubernetes-cluster.sh {action}", cluster)
             for expected in ("independent DNS/time", "private", "API endpoint outside this cluster",
-                             "project integration", "node/API audit forwarding", "etcd",
+                             "cluster-security-logging.yml", "security-logging.md", "etcd",
                              "../stage-5-identity/README.md", "step-1b-manual-cluster.md"):
                 self.assertIn(expected, cluster)
             self.assertEqual(re.findall(r"(?m)^## Step (\d+):", identity), ["1", "2"])

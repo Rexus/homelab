@@ -1,0 +1,8 @@
+---
+kube_apps_action: render
+kube_apps_kubeconfig: ""
+kube_apps_context: ""
+kube_apps_output: ""
+kube_apps_releases: []
+kube_apps_manage_secrets: false
+kube_apps_secrets: {}

@@ -26,7 +26,7 @@ class ClusterPlacement(TierRepositoryTestCase):
                 self.assertRegex(main, r"proxmox_template_catalog\s*=\s*var.proxmox_template_catalog")
                 self.assertRegex(main.split('module "lxcs"')[1], r"vlan_id\s*=\s*each.value.vlan_id")
                 count += 1
-        self.assertEqual(count, 12)
+        self.assertEqual(count, 13)
         for tier in ("tier-0", "tier-1", "tier-2"):
             vm = (self.root / f"verify-{tier}/terraform/modules/vm/main.tf").read_text()
             self.assertIn("ignore_changes = [node_name]", vm)

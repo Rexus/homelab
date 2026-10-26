@@ -1,3 +1,6 @@
+# Project-owned delivery target, not a second installer/reconciler.
+# Install via Tier 1 ansible/playbooks/deployment/development-platform.yml;
+# docs/deployment/stage-9-development/procedures/gitlab.md owns the handover.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources: []

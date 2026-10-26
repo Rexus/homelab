@@ -6,8 +6,11 @@ FreeIPA on dedicated VMs; the accepted Tier 0 Kubernetes platform hosts the iden
 **Prerequisites:** accepted [Kubernetes platform](../stage-4-kubernetes/README.md),
 approved compute/templates, certificate trust, software supply and independent credentials.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Automation:** the dedicated FreeIPA recipe is supplied; Keycloak is an application
-starter, not an installed service. See [coverage](../../reference/implementation-support.md#stage-coverage).
+**Automation:** the dedicated FreeIPA recipe and
+[native Keycloak installer](procedures/keycloak.md) are supplied. Render, apply and
+service acceptance are separate operations.
+See [stage coverage](../../reference/implementation-support.md#stage-coverage) for
+prerequisites, optional variants and live acceptance.
 **Design:** [identity authority](../../architecture/identity/README.md) and
 [cluster runtime](../../architecture/compute/README.md).
 
@@ -77,10 +80,10 @@ flowchart TB
       direction LR
       subgraph Cluster["Existing Tier 0 Kubernetes"]
         direction TB
-        subgraph Added["Project integration<br/>Not installed"]
-          Keycloak["Keycloak / IdP"]
+        subgraph Added["Native Helm / after apply"]
+          Keycloak["keycloak / IdP x2"]
         end
-        Data[("Existing CloudNativePG<br/>Identity-provider database")]
+        Data[("keycloak-db / PostgreSQL x3<br/>WAL / base backups")]
         Keycloak -->|Database access| Data
       end
       subgraph Identity["Existing dedicated VMs / identity network"]
@@ -108,22 +111,31 @@ flowchart TB
   class Added replicas
 ```
 
-**Integration:** Tier 0 [Keycloak manifests](../../../tier-0/clusters/tier0/applications/keycloak/kustomization.yaml)
-are an empty starter, not an installer. The existing directory comes from the
-[FreeIPA recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml);
-the database must pass [Kubernetes platform readiness](../stage-4-kubernetes/README.md#step-2-establish-the-basic-platform) first.
+**IaC:** Tier 0 [control-application recipe](../../../tier-0/ansible/playbooks/deployment/control-applications.yml),
+[product role](../../../tier-0/ansible/roles/control_applications/) and
+[example inputs](../../../tier-0/ansible/group_vars/control_applications.yml.example).
+The picture shows the selected post-apply realization, not a verified live installation.
+The existing directory comes from the [FreeIPA recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml).
+CNPG and its Barman plugin must be available before the recipe creates the application database.
 
-Add reviewed Keycloak manifests with its database, TLS and FreeIPA federation.
-Configure OIDC clients, group mappings and scoped service roles; verify permitted
+Follow the [Keycloak procedure](procedures/keycloak.md) to render and install its
+database, TLS and FreeIPA federation. Configure OIDC clients, group mappings and scoped service roles; verify permitted
 and denied logins before granting administrative access. Each consumer retains
 its own authorization. The directory remains independent of the IdP.
 
 Retain bootstrap credentials and test recovery without normal directory or IdP login.
+Then configure [Kubernetes API human SSO](procedures/kubernetes-sso.md) using the
+selected native Talos patch and serial rollout. Preserve X509/Talos recovery and
+accept certificate access during an issuer outage before enabling Headlamp.
 Later stages register their service-specific clients against this identity provider;
-they do not deploy another provider. Service manifests and integration remain project
-work; see the [support map](../../reference/implementation-support.md).
+they do not deploy another provider. The empty Flux application starter is not a
+second reconciliation owner for the supplied Helm installation.
 
 ## Capability available
+
+Apply the [service SSO gate](procedures/service-sso.md) to every later supported
+service and review early administrative logins. Human SSO never replaces workload
+identity, application authorization or independent recovery credentials.
 
 **Result:** after the selected integrations and acceptance checks, replicated directory services,
 a federated identity provider and the

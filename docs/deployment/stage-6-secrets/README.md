@@ -7,9 +7,12 @@ FreeIPA, the issuer and the identity provider already exist.
 **Prerequisites:** accepted [Identity](../stage-5-identity/README.md),
 service storage/backups and independent recovery inputs.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Automation:** cluster Vault, NetBox and Headlamp are empty application starters;
-independent monitoring also needs integration. The Vault VM alternative supplies a
-service recipe. See [coverage](../../reference/implementation-support.md#stage-coverage).
+**Automation:** [native cluster installers](procedures/control-applications.md)
+supply Vault, NetBox, Headlamp and their supporting state. Initialization/unseal,
+recovery custody and acceptance remain explicit. Independent monitoring has its own path.
+The Vault VM alternative supplies a service recipe.
+See [stage coverage](../../reference/implementation-support.md#stage-coverage) for
+commissioning and live qualification boundaries.
 **Design:** [identity](../../architecture/identity/README.md),
 [secrets](../../architecture/cryptography/README.md) and [operations](../../architecture/operations/README.md).
 
@@ -38,27 +41,22 @@ flowchart TB
         direction TB
         Base["Existing platform services"]
         Keycloak["Existing Keycloak / IdP"]
-        subgraph Added["Project integration / starters only"]
+        subgraph Added["Native installation / after apply"]
           direction TB
-          Vault["Vault / secrets"]
-          Ops["NetBox / Headlamp"]
+          Vault["vault x3<br/>Raft / audit PVCs"]
+          Ops["netbox / headlamp x1 each<br/>netbox-db x3 / cache x1"]
           Vault ~~~ Ops
         end
-        Base -. Reviewed project manifests .-> Added
+        Base -. Native installation prerequisites .-> Added
       end
       subgraph Existing["Existing dedicated control VMs"]
-        direction LR
-        subgraph Identity["identity network / directory authority"]
-          direction TB
-          Primary["idm-1<br/>FreeIPA primary"]
-          Replica["idm-2<br/>FreeIPA replica"]
-          Primary <-->|Replication| Replica
-        end
-        Issuer["ca-1<br/>Issuer"]
-        Log["log-1<br/>Log intake"]
-        Log ~~~ Identity ~~~ Issuer
+        direction TB
+        Identity["idm-1 / idm-2<br/>FreeIPA pair / identity network"]
+        Log["log-1 / protected intake"]
+        Issuer["ca-1 / issuer"]
+        Identity ~~~ Log ~~~ Issuer
       end
-      Cluster -->|LDAP<br/>federation| Existing
+      Cluster -->|IdP LDAPS| Existing
     end
     T0Title ~~~ Placement
   end
@@ -68,16 +66,19 @@ flowchart TB
   classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class Existing,Identity boundary
-  class T0,Primary,Replica,Issuer,Log control
+  class Existing boundary
+  class T0,Identity,Issuer,Log control
   class T0Title,Placement controlHeading
   class Cluster runtime
   class Added replicas
 ```
 
-**Integration:** Tier 0 [application starters](../../../tier-0/clusters/tier0/applications/kustomization.yaml)
-are project-owned placeholders, not installers for the dashed group.
-Supply and review the manifests before Flux can reconcile these applications.
+**IaC:** Tier 0 [control-application recipe](../../../tier-0/ansible/playbooks/deployment/control-applications.yml),
+[product role](../../../tier-0/ansible/roles/control_applications/) and
+[example inputs](../../../tier-0/ansible/group_vars/control_applications.yml.example)
+install the added group after explicit prerequisite gates. The picture shows configured
+placement, not a verified live service. Empty Flux application starters are not a
+second reconciliation owner for these Helm releases.
 The [Vault VM alternative](step-1b-vault-vm.md) replaces, rather than duplicates, the cluster Vault instance.
 Independent monitoring is a separate [selected integration](monitoring.md), not an installed workload here.
 
@@ -92,13 +93,12 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
 
 ## Step 1: Deploy the secret service
 
-Keep control-service manifests in Tier 0's
-[clusters/tier0/applications/](../../../tier-0/clusters/tier0/applications/),
-not in Shared. These paths are starters for project integration,
-not complete application installers; see the [support map](../../reference/implementation-support.md).
+Use the Tier 0 [application inputs and native recipe](procedures/control-applications.md).
+Product configuration stays in Tier 0; Shared owns reusable execution.
 
-Deploy Vault with its own persistent storage, initialization, audit and protected
-unseal/recovery material. It does not use CloudNativePG as its storage backend.
+Follow [Vault on Kubernetes](procedures/vault-kubernetes.md) for Raft storage,
+native audit forwarding, human OIDC and the operator initialization/unseal ceremony.
+Vault does not use CloudNativePG as its storage backend.
 **Alternative:** [1b: dedicated Vault VM](step-1b-vault-vm.md) replaces the cluster instance.
 [1c: seal integration](step-1c-seal-integration.md) changes unseal/recovery, not PKI signing.
 
@@ -107,7 +107,12 @@ before storing service credentials. Keep unseal/recovery material outside Vault.
 
 ## Step 2: Add operational tools
 
-Add NetBox with its database/cache dependencies and Headlamp with scoped permissions.
+Select NetBox and Headlamp in the [control-application procedure](procedures/control-applications.md).
+The recipe creates/gates the CNPG database and backup resources before NetBox Helm,
+supplies a persistent TLS cache, and binds only selected human groups to namespace
+view access in Headlamp. Complete the native
+[Stage 5 API OIDC integration](../stage-5-identity/procedures/kubernetes-sso.md),
+including certificate access during issuer outage, before accepting Headlamp access.
 
 NetBox documents inventory. It never supplies the inventory needed to bootstrap
 its own platform. Test backups and restoration before other tiers depend on these services.
@@ -133,10 +138,13 @@ for Tier 0 investigation or alerting.
 
 ## Capability available
 
+Apply the [service SSO gate](../stage-5-identity/procedures/service-sso.md) to human
+access; preserve tested independent recovery before retiring bootstrap logins.
+
 **Result:** after service installation and acceptance, the secret service in the
 [reference platform](../../architecture/reference-platform.md#service-placement)
 provides scoped secret access, auditing and independent unseal/recovery.
 Supporting inventory, administration and monitoring integrations are recorded separately.
 Record access, backup/restore and external failure-detection evidence.
 
-Continue with [Stage 7: Delivery and handover](../stage-7-delivery/README.md).
+Continue with [Stage 7: Delivery](../stage-7-delivery/README.md).

@@ -38,9 +38,9 @@ class OperatorJourney(TierRepositoryTestCase):
             ("stage-7-delivery/procedures/edge-proxy.md", "edge", ""),
             ("stage-6-secrets/step-1b-vault-vm.md", "vault", ""),
             ("stage-5-identity/procedures/freeipa.md", "foundation", ""),
-            ("stage-7-delivery/step-1b-source-control-vm.md", "development", " --env test"),
-            ("stage-7-delivery/step-1c-podman-runner.md", "podman-runner", " --env test"),
-            ("stage-7-delivery/step-1d-image-based-linux.md", "immutable-template", " --env test"),
+            ("stage-9-development/step-1b-source-control-vm.md", "development", " --env test"),
+            ("stage-9-development/step-2b-podman-runner.md", "podman-runner", " --env test"),
+            ("stage-9-development/step-2c-image-based-linux.md", "immutable-template", " --env test"),
         )
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup, environment in guides:
@@ -114,11 +114,11 @@ class OperatorJourney(TierRepositoryTestCase):
     def test_named_test_guides_edit_the_files_that_override_base_settings(self):
         self.generate("--repo", "architecture")
         guides = (("step-1b-source-control-vm.md", "development", "development"),
-                  ("step-1c-podman-runner.md", "podman-runner", "podman_runner"),
-                  ("step-1d-image-based-linux.md", "immutable-template", "immutable_template"))
+                  ("step-2b-podman-runner.md", "podman-runner", "podman_runner"),
+                  ("step-2c-image-based-linux.md", "immutable-template", "immutable_template"))
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup, stem in guides:
-                content = (docs / "deployment/stage-7-delivery" / relative).read_text()
+                content = (docs / "deployment/stage-9-development" / relative).read_text()
                 plan = content.index(f"bash scripts/deploy.sh {setup} --env test --plan-only")
                 for path in (f"terraform/deployments/{setup}/terraform.test.tfvars",
                              f"ansible/group_vars/{stem}.test.yml"):

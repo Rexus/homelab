@@ -1,0 +1,37 @@
+---
+- name: Require a pinned registry and explicit persistent storage
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_harbor_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - delivery_platform_harbor_storage_class | length > 0
+      - delivery_platform_harbor_storage_class != '-'
+      - delivery_platform_harbor_database_password | length >= 20
+      - delivery_platform_harbor_volumes.keys() | sort == ['database', 'jobservice', 'redis', 'registry', 'trivy']
+    fail_msg: Pin Harbor, select provisioned persistent storage and supply a private database password.
+  no_log: true
+
+- name: Check every selected persistent volume size
+  ansible.builtin.assert:
+    that:
+      - item is match('^[1-9][0-9]*(Mi|Gi|Ti)$')
+  loop: "{{ delivery_platform_harbor_volumes.values() | list }}"
+
+- name: Select the authoritative registry values and credential references
+  ansible.builtin.set_fact:
+    delivery_platform_releases: >-
+      {{ delivery_platform_releases + [{
+        'name': 'harbor', 'namespace': delivery_platform_harbor_namespace,
+        'repository': 'https://helm.goharbor.io', 'chart': 'harbor',
+        'version': delivery_platform_harbor_version,
+        'values': lookup('ansible.builtin.template', 'harbor-values.yml.j2') | from_yaml,
+        'required_secrets': [
+          {'name': 'harbor-tls', 'keys': ['tls.crt', 'tls.key'], 'type': 'kubernetes.io/tls'},
+          {'name': 'harbor-ca', 'keys': ['ca.crt']},
+          {'name': 'harbor-admin', 'keys': ['HARBOR_ADMIN_PASSWORD']},
+          {'name': 'harbor-credentials',
+           'keys': ['secretKey', 'secret', 'JOBSERVICE_SECRET', 'REGISTRY_HTTP_SECRET', 'CSRF_KEY',
+                    'REGISTRY_PASSWD', 'REGISTRY_HTPASSWD']},
+          {'name': 'harbor-token', 'keys': ['tls.crt', 'tls.key'], 'type': 'kubernetes.io/tls'},
+          {'name': 'harbor-oidc', 'keys': ['config.json']}
+        ]}] }}
+  no_log: true

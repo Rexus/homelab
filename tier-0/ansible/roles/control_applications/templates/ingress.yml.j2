@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ product }}
+  namespace: {{ product }}
+  annotations: {{ ({'traefik.ingress.kubernetes.io/router.entrypoints': 'websecure', 'traefik.ingress.kubernetes.io/router.tls': 'true'} | combine(control_applications_ingress_annotations[product])) | to_json }}
+spec:
+  ingressClassName: {{ control_applications_ingress_class | to_json }}
+  tls:
+    - hosts: [{{ control_applications_hosts[product] | to_json }}]
+      secretName: {{ product }}-tls
+  rules:
+    - host: {{ control_applications_hosts[product] | to_json }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ {'keycloak': 'keycloak-http', 'vault': 'vault-active', 'netbox': 'netbox', 'headlamp': 'headlamp'}[product] }}
+                port:
+                  number: {{ {'keycloak': 8443, 'vault': 8200, 'netbox': 80, 'headlamp': 80}[product] }}

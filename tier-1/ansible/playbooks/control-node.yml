@@ -2,7 +2,25 @@
 - name: Check Tier 1 deployment tooling
   ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
   vars:
+    control_node_collection_catalog:
+      ansible.utils:
+        name: ansible.utils
+        version: '>=6.0.0,<7.0.0'
+        os_packages:
+          RedHat: [python3-netaddr]
+          Debian: [python3-netaddr]
+      kubernetes.core:
+        name: kubernetes.core
+        version: '>=6.6.0,<7.0.0'
+        os_packages:
+          RedHat: []
+          Debian: []
     control_node_setup_collection_names:
+      cluster-platform: [kubernetes.core]
+      cluster-security-logging: [kubernetes.core, ansible.utils, community.crypto]
+      delivery-platform: [kubernetes.core]
+      observability-platform: [kubernetes.core, ansible.utils]
+      development-platform: [kubernetes.core, ansible.utils]
       development: [community.general, ansible.posix]
       observability: [community.general, ansible.posix]
       podman-runner: [community.general, ansible.posix]

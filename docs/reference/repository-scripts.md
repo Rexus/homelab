@@ -38,9 +38,10 @@ these shared implementations.
 | `scripts/init-tier-repos.sh` | generates tier-owned inputs and shared automation | to generate the repo set |
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
+| `shared/scripts/gitlab-iac.sh` | executes explicitly trusted CI with Vault ID tokens and private saved plans | [Stage 9 handover](../deployment/stage-9-development/procedures/handover.md); not a tenant request API |
 | `tier-0/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
 | `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../administration/logging-drill.md); no faults or service changes |
-| `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports credentials; currently Talos | [Kubernetes cluster](../deployment/stage-4-kubernetes/procedures/kubernetes.md) |
+| `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports private credentials/plan JSON; currently Talos | [Kubernetes cluster](../deployment/stage-4-kubernetes/procedures/kubernetes.md) |
 
 ## Cheat sheet
 
@@ -64,6 +65,8 @@ Omit `--env <env>` for production.
 | Refresh local files from examples | `bash scripts/init-local-files.sh --overwrite` |
 | Remove generated backup files | `bash scripts/init-local-files.sh --clean-backups` |
 | Plan an environment deployment | `bash scripts/deploy.sh <setup> --env <env> --plan-only` |
+| Save a private reviewed plan | `bash scripts/deploy.sh <setup> --plan-only --plan-file .terraform/plans/review.tfplan` |
+| Apply that exact plan once | `bash scripts/deploy.sh <setup> --plan-file .terraform/plans/review.tfplan` |
 | Deploy an environment | `bash scripts/deploy.sh <setup> --env <env>` |
 | Deploy production | `bash scripts/deploy.sh <setup>` |
 | Deploy without Terraform prompt | `bash scripts/deploy.sh <setup> --env <env> --auto-approve` |
@@ -81,6 +84,23 @@ catalog, and its own state; it never configures a Talos guest through Ansible.
 Each tier's independent Kubernetes cluster currently uses the [Talos implementation](../deployment/stage-4-kubernetes/procedures/talos-terraform.md)
 and `bash scripts/kubernetes-cluster.sh init` from its own root. It owns a separate state
 root, uses tier-local inventory, and does not use the Linux setup/environment wrapper.
+`export-plan` writes the existing saved plan as sensitive JSON under `secrets/talos/`
+using that same backend and working-data context. It does not apply the plan. The
+[Kubernetes SSO procedure](../deployment/stage-5-identity/procedures/kubernetes-sso.md)
+uses this private export for its guarded serial rollout; never publish it as a CI artifact.
+
+Saved Linux plans are confined to the owning tier's `.terraform/plans/` directory,
+bound to setup, environment and original state path, and consumed after successful apply.
+They contain sensitive data: no Git or CI artifacts. A failed replan invalidates
+the old plan. Terraform also enforces plan/state freshness at apply time.
+The private context also fingerprints ordered inputs, Ansible configuration and
+Shared automation. An unchanged retry after successful Terraform but failed Ansible
+resumes configuration only; altered inputs require a new reviewed plan.
+Use the same `--env` and state/backend configuration for both commands.
+
+Tier 0's `terraform/deployments/ci-auth/` configures Vault JWT roles/policies with
+native Terraform, not the Proxmox helper. GitLab uses the Tier 1 native
+Ansible/Helm recipe. See [Stage 9](../deployment/stage-9-development/README.md).
 
 ## Initialize tier repositories
 
@@ -281,11 +301,11 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 | `syslog` | Tier 0 VMs/disks, baseline and isolated TLS receiver after mount/certificate preparation; not an HA/WORM installer | [Foundational logging](../deployment/stage-2-logging/README.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-7-delivery/procedures/edge-proxy.md) |
 | `cache` | shared cache pair or larger set for controlled outbound access | [Software intake](../deployment/stage-1-software-intake/README.md) |
-| `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-7-delivery/step-1b-source-control-vm.md) |
+| `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-9-development/step-1b-source-control-vm.md) |
 | `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-6-secrets/step-1b-vault-vm.md) |
 | `observability` | Optional Tier 1 gateway, metrics and search VMs; OS baseline only, not the Kubernetes product deployment or Tier 0 evidence | [Observability VM alternative](../deployment/stage-8-observability/step-1b-dedicated-vms.md) |
-| `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../deployment/stage-7-delivery/step-1c-podman-runner.md) |
-| `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../deployment/stage-7-delivery/step-1d-image-based-linux.md) |
+| `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../deployment/stage-9-development/step-2b-podman-runner.md) |
+| `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../deployment/stage-9-development/step-2c-image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/foundation/procedures/enterprise-linux-template.md) |
 | `hsm` | USB or software HSM gateway deployment pattern | [USB HSM active-active blueprint](../deployment/stage-3-trust/step-1b-usb-hsm.md) |
 | `lab` | general-purpose lab guests | this reference and the local inventory |

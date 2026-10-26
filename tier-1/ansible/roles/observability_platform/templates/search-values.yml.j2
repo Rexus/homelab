@@ -1,0 +1,58 @@
+clusterName: opensearch
+nodeGroup: nodes
+fullnameOverride: opensearch
+masterService: opensearch
+replicas: {{ observability_search_replicas }}
+roles: [cluster_manager, data, ingest]
+image: {tag: '3.9.0'}
+opensearchJavaOpts: -Xms2g -Xmx2g
+resources:
+{{ observability_resources.search | to_nice_yaml | indent(2, true) }}
+antiAffinity: hard
+antiAffinityTopologyKey: {{ observability_topology_key }}
+podManagementPolicy: Parallel
+maxUnavailable: 1
+sysctlInit: {enabled: false}
+sysctlVmMaxMapCount: 262144
+rbac: {create: false, automountServiceAccountToken: false}
+persistence:
+  enabled: true
+  storageClass: {{ observability_storage_class }}
+  size: {{ observability_search_size }}
+  enableInitChown: false
+extraEnvs:
+  - {name: DISABLE_INSTALL_DEMO_CONFIG, value: 'true'}
+secretMounts:
+  - {name: tls, secretName: search-tls, path: /usr/share/opensearch/config/tls}
+  - {name: oidc, secretName: oidc-ca, path: /usr/share/opensearch/config/oidc}
+config:
+  opensearch.yml: |
+    cluster.name: opensearch
+    network.host: 0.0.0.0
+{% if observability_search_bootstrap %}
+    cluster.initial_cluster_manager_nodes:
+{% for ordinal in range(observability_search_replicas | int) %}
+      - opensearch-{{ ordinal }}
+{% endfor %}
+{% endif %}
+    plugins.security.ssl.transport.pemcert_filepath: tls/tls.crt
+    plugins.security.ssl.transport.pemkey_filepath: tls/tls.key
+    plugins.security.ssl.transport.pemtrustedcas_filepath: tls/ca.crt
+    plugins.security.ssl.transport.enforce_hostname_verification: true
+    plugins.security.ssl.http.enabled: true
+    plugins.security.ssl.http.pemcert_filepath: tls/tls.crt
+    plugins.security.ssl.http.pemkey_filepath: tls/tls.key
+    plugins.security.ssl.http.pemtrustedcas_filepath: tls/ca.crt
+    plugins.security.ssl.http.clientauth_mode: OPTIONAL
+    plugins.security.allow_unsafe_democertificates: false
+    plugins.security.allow_default_init_securityindex: false
+    plugins.security.nodes_dn: {{ observability_search_node_dns | to_json }}
+    plugins.security.authcz.admin_dn: {{ observability_search_admin_dns | to_json }}
+    plugins.security.audit.type: internal_opensearch
+securityConfig:
+  enabled: true
+  internalUsersSecret: search-users
+  config:
+    dataComplete: false
+    data:
+{{ lookup('ansible.builtin.template', 'search-policy.yml.j2') | indent(6, true) }}

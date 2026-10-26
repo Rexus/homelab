@@ -1,0 +1,25 @@
+---
+- name: Assemble product values and native resources
+  ansible.builtin.set_fact:
+    cluster_platform_product: "{{ lookup('ansible.builtin.template', cluster_platform_component ~ '.yml.j2') | from_yaml }}"
+    cluster_platform_chart: "{{ cluster_platform_catalog[cluster_platform_component] }}"
+  no_log: true
+
+- name: Append a complete shared application contract
+  ansible.builtin.set_fact:
+    cluster_platform_releases: >-
+      {{ cluster_platform_releases + [{
+        'name': cluster_platform_chart.name,
+        'namespace': cluster_platform_chart.namespace,
+        'repository': cluster_platform_repositories.get(cluster_platform_component, cluster_platform_chart.repository),
+        'chart': cluster_platform_chart.chart,
+        'version': cluster_platform_versions[cluster_platform_component],
+        'values': cluster_platform_product['values'] | combine(
+          cluster_platform_values.get(cluster_platform_component, {}), recursive=True),
+        'namespace_labels': cluster_platform_product.get('namespace_labels', {}),
+        'required_secrets': cluster_platform_product.get('required_secrets', []),
+        'before': cluster_platform_product.get('before', []),
+        'after': cluster_platform_product.get('after', []),
+        'component': cluster_platform_component
+      }] }}
+  no_log: true

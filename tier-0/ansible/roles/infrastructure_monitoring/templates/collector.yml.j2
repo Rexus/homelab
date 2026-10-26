@@ -1,0 +1,36 @@
+extensions:
+  file_storage: {directory: /var/lib/otelcol, create_directory: true}
+  health_check: {endpoint: '127.0.0.1:13133'}
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: foundation-netdata
+          scrape_interval: 30s
+          scheme: https
+          metrics_path: /api/v1/allmetrics
+          params: {format: [prometheus], help: ['no'], allhosts: ['yes']}
+          tls_config: {ca_file: /tls/ca.crt}
+          static_configs:
+            - targets: ['{{ infrastructure_monitoring_listen_address }}:19999']
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: {{ infrastructure_monitoring_export_metrics | join('|') | to_json }}
+              action: keep
+            - target_label: source
+              replacement: foundation
+            - regex: '__name__|{{ infrastructure_monitoring_export_labels | join("|") }}'
+              action: labelkeep
+processors:
+  memory_limiter: {check_interval: 1s, limit_mib: 768, spike_limit_mib: 128}
+  batch: {send_batch_size: 1024, timeout: 5s}
+exporters:
+  otlp:
+    endpoint: {{ (infrastructure_monitoring_export_endpoint or 'render-only.invalid:4317') | to_json }}
+    tls: {ca_file: /tls/ca.crt, cert_file: /tls/export.crt, key_file: /tls/export.key}
+    sending_queue: {enabled: true, storage: file_storage, queue_size: 10000}
+    retry_on_failure: {enabled: true, max_elapsed_time: 0s}
+service:
+  extensions: [file_storage, health_check]
+  pipelines:
+    metrics: {receivers: [prometheus], processors: [memory_limiter, batch], exporters: [otlp]}

@@ -1,0 +1,113 @@
+---
+observability_action: render
+observability_kubeconfig: ""
+observability_context: ""
+observability_output: "{{ playbook_dir }}/../../../secrets/observability-platform"
+observability_namespace: observability
+observability_netdata_namespace: netdata
+observability_manage_secrets: false
+observability_secrets: {}
+observability_prepper_auth: {username: render-only, password: render-only}
+observability_prepper_search_auth: {username: data-prepper, password: render-only}
+observability_search_users_checksum: render-only
+observability_storage_class: ""
+observability_topology_key: infrastructure.example.org/physical-host
+observability_failure_domains: []
+observability_node_selector: {}
+observability_telemetry_cidrs: []
+observability_operator_namespace: operations
+observability_egress: []
+# Each egress grant: {cidr: 192.0.2.5/32, ports: [443]} for database/API/kubelet only.
+observability_netdata_host_access_approved: false
+observability_network_policy_verified: false
+observability_search_kernel_verified: false
+observability_grafana_database_host: grafana-db-rw:5432
+observability_database_image: ghcr.io/cloudnative-pg/postgresql:17.6
+observability_database_size: 20Gi
+observability_backup_destination: ""
+observability_backup_endpoint: ""
+observability_backup_retention: 30d
+observability_grafana_url: ""
+observability_dashboards_url: ""
+observability_oidc_issuer: ""
+observability_oidc_dashboards_client_id: observability-dashboards
+observability_oidc_grafana_client_id: observability-grafana
+observability_oidc_operator_group: platform-observability-readers
+observability_search_node_dns: []
+observability_search_admin_dns: []
+observability_gateway_replicas: 2
+observability_metrics_node_port: 30317
+observability_prepper_replicas: 2
+observability_search_replicas: 3
+# Enable only to create a new cluster; remove its initial-manager list after acceptance.
+observability_search_bootstrap: false
+observability_ui_replicas: 2
+observability_metrics_retention: 30d
+observability_metrics_size: 100Gi
+observability_search_size: 100Gi
+observability_netdata_size: 30Gi
+observability_queue_size: 10Gi
+observability_queue_batches: 10000
+# Promotion is explicit after a copy has caught up; process health is insufficient.
+observability_metrics_read_members: [metrics-1]
+observability_log_scopes: []
+# Each scope: {name: application-a, port: 4400, node_port: 30400, kind: application|projection,
+#              reader_backend_roles: [application-a-readers]}.
+observability_metrics_client_ca_secret: metrics-clients-ca
+observability_netdata_scrape_parent: netdata-1
+observability_netdata_scrape_metrics: []
+observability_netdata_child_key: ""
+observability_netdata_peer_key: ""
+observability_netdata_allow_from: ""
+observability_charts:
+  metrics:
+    repository: https://victoriametrics.github.io/helm-charts
+    chart: victoria-metrics-single
+    version: 0.50.0
+  query:
+    repository: https://victoriametrics.github.io/helm-charts
+    chart: victoria-metrics-auth
+    version: 0.45.0
+  collector:
+    repository: https://open-telemetry.github.io/opentelemetry-helm-charts
+    chart: opentelemetry-collector
+    version: 0.177.0
+  netdata:
+    repository: https://netdata.github.io/helmchart
+    chart: netdata
+    version: 3.7.177
+  search:
+    repository: https://opensearch-project.github.io/helm-charts
+    chart: opensearch
+    version: 3.9.0
+  prepper:
+    repository: https://opensearch-project.github.io/helm-charts
+    chart: data-prepper
+    version: 0.3.1
+  dashboards:
+    repository: https://opensearch-project.github.io/helm-charts
+    chart: opensearch-dashboards
+    version: 3.9.0
+  grafana:
+    repository: https://grafana-community.github.io/helm-charts
+    chart: grafana
+    version: 14.1.0
+observability_resources:
+  metrics:
+    requests: {cpu: "1", memory: 2Gi}
+    limits: {cpu: "4", memory: 8Gi}
+  collector:
+    requests: {cpu: 500m, memory: 1Gi}
+    limits: {cpu: "2", memory: 2Gi}
+  search:
+    requests: {cpu: "2", memory: 4Gi}
+    limits: {cpu: "4", memory: 4Gi}
+  prepper:
+    requests: {cpu: "1", memory: 2Gi}
+    limits: {cpu: "4", memory: 4Gi}
+  netdata:
+    requests: {cpu: 500m, memory: 1Gi}
+    limits: {cpu: "2", memory: 4Gi}
+  ui:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: "2", memory: 1Gi}

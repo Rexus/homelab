@@ -1,0 +1,19 @@
+---
+# Stage 5/6 product configuration; run from the Tier 0 repository root.
+- name: Render or install Tier 0 control applications
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - ../../group_vars/control_applications.yml
+  tasks:
+    - name: Select the product installation or post-identity API integration
+      ansible.builtin.assert:
+        that:
+          - control_applications_operation | default('applications') in ['applications', 'kubernetes_sso']
+
+    - name: Run the selected owner workflow
+      ansible.builtin.include_role:
+        name: control_applications
+        tasks_from: "{{ 'kubernetes-sso' if control_applications_operation | default('applications') == 'kubernetes_sso' else 'main' }}"

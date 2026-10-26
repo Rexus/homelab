@@ -30,6 +30,8 @@ def tier_readme(writer, tier, prefix, setups):
     ]
     if tier == "tier-0":
         deployments[:0] = [
+            "| `ci-auth` | [main.tf](terraform/deployments/ci-auth/main.tf) "
+            "| [Vault CI guide](" + docs + "/deployment/stage-9-development/procedures/vault-ci.md) |",
             "| `templates` | [main.tf](terraform/deployments/templates/main.tf) "
             "| [image recipes](templates/proxmox.yml.example) |",
         ]
@@ -86,6 +88,13 @@ def tier_readme(writer, tier, prefix, setups):
             "helper does not create the cluster or install Keycloak.\n"
             f"The [externally signed CA flow]({docs}/deployment/stage-5-identity/procedures/freeipa.md#external-ca-integration-gate)\n"
             "uses explicit CSR/pause and signed-certificate completion phases; offline signing remains separate.\n"
+        )
+    elif tier == "tier-1":
+        prerequisites += (
+            f"\nAfter [Delivery]({docs}/deployment/stage-7-delivery/README.md) and Observability,\n"
+            f"follow [Stage 9: Development platform]({docs}/deployment/stage-9-development/README.md).\n"
+            "Its native Helm recipe installs GitLab and on-demand Kubernetes job runners.\n"
+            "External data services are prerequisites; the Linux VM quick start below is an alternative.\n"
         )
     owned_template(writer, "readmes/tier.md", "README.md", prefix=prefix,
                    tier_title=tier.replace("-", " ").title(), purpose=descriptions[tier],

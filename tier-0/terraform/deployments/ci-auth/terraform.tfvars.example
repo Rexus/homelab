@@ -1,0 +1,13 @@
+# This root configures Vault, not Proxmox. Run from Tier 0 with independently authorized Vault access.
+accept_trusted_ci = false
+gitlab_issuer    = "https://gitlab.internal.example.com"
+vault_audience  = "https://vault.internal.example.com"
+projects = {
+  tier0-infrastructure = {
+    project_id   = "REPLACE_WITH_NUMERIC_PROJECT_ID"
+    namespace_id = "REPLACE_WITH_NUMERIC_NAMESPACE_ID"
+    branch       = "main"
+    secret_path  = "kv/data/ci/tier0"
+    runner_cidrs = ["10.10.10.50/32"]
+  }
+}

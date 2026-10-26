@@ -13,8 +13,11 @@ but never targets, credentials or state.
 [Stage 8 signal pipelines](README.md#step-2-deploy-the-signal-pipelines), approved
 source inventory, TLS trust, firewall policy and physical failure-domain mapping.
 **Design:** [coverage and ownership](../../architecture/operations/telemetry.md#infrastructure-coverage).
-**Automation boundary:** product roles, chart values, collection jobs and export policies
-remain project integration. No command in the current starter installs them.
+**Automation:** the [Tier 0 role](../../../tier-0/ansible/roles/infrastructure_monitoring/)
+installs its independent Netdata parent, Redfish jobs, loopback Proxmox exporter and optional
+allowlisted metric bridge. The [Tier 1 role](../../../tier-1/ansible/roles/observability_platform/)
+owns cluster diagnostics and both metrics copies. The cluster starter remains empty; no command
+in that starter installs these products. Use the dedicated playbooks in each tier.
 
 ## Main path
 
@@ -47,15 +50,16 @@ remain project integration. No command in the current starter installs them.
 
 ## Step 2: Connect diagnostics and metric history
 
-1. Add reviewed, pinned Netdata chart values [5] under Tier 1's
-   [observability directory](../../../tier-1/clusters/tier1/platform/observability/kustomization.yaml).
+1. Review pinned Netdata values [5] in Tier 1's
+   [service role](../../../tier-1/ansible/roles/observability_platform/templates/netdata-values.yml.j2).
    Select node children, cluster-state collection and parents; review host mounts,
    capabilities and node-OS compatibility. Keep optional duplicate OTLP/log collection
    disabled unless separately selected. This path does not add a security-log receiver.
 2. Configure at least two Tier 1 parents with separate identities, data volumes and
    physical failure domains. Configure child endpoint failover and supported parent
    synchronization; increasing the chart's default single parent replica count is not
-   sufficient. Size history for the accepted outage/catch-up window. [5][6]
+   sufficient. The role supplies separate namespaces and native Secret configuration.
+   Size history for the accepted outage/catch-up window. [5][6]
    Retain the independent Tier 0 parent and critical rules outside the observed cluster;
    Tier 0 child streams do not automatically gain a Tier 1 destination.
 3. Configure an explicit Prometheus metric bridge [7]: Tier 0-owned Collectors scrape

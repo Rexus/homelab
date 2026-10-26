@@ -1,0 +1,6 @@
+---
+helm_release_action: render
+helm_release_kubeconfig: ""
+helm_release_context: ""
+helm_release_output: ""
+helm_release_spec: {}

@@ -1,0 +1,99 @@
+---
+- name: Require source ownership and explicit monitoring scope
+  ansible.builtin.assert:
+    that:
+      - infrastructure_monitoring_action in ['render', 'apply']
+      - inventory_hostname not in ['log-1', 'log-2']
+      - infrastructure_monitoring_history_size_mb | int > 0
+      - infrastructure_monitoring_history_days | int > 0
+      - infrastructure_monitoring_export_endpoint | length == 0 or infrastructure_monitoring_export_metrics | length > 0
+      - infrastructure_monitoring_export_labels | length > 0
+      - "'source' in infrastructure_monitoring_export_labels"
+      - infrastructure_monitoring_export_endpoint is not search('^http://')
+    fail_msg: Select an independent monitoring host and an explicit metric projection; protected log hosts stay separate.
+
+- name: Validate literal exported metric and label names
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-zA-Z_][a-zA-Z0-9_:]*$')
+    fail_msg: Use exact approved metric and label names, not wildcard exports.
+  loop: "{{ infrastructure_monitoring_export_metrics + infrastructure_monitoring_export_labels }}"
+
+- name: Validate explicit Proxmox API targets
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9-]*$')
+      - item.host is match('^[a-zA-Z0-9.-]+$')
+      - item.credential is match('^[a-z][a-z0-9-]*$')
+    fail_msg: Proxmox targets and credential modules must be fixed by Tier 0 inventory.
+  loop: "{{ infrastructure_monitoring_pve_targets }}"
+
+- name: Validate native Redfish TLS jobs
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9-]*$')
+      - item.url is match('^https://[^/]+/redfish/v1/?$')
+      - item.username | length > 0
+      - item.password_file is match('^[a-zA-Z0-9_-]+$')
+    fail_msg: Use explicit HTTPS Redfish endpoints and a local private password reference.
+  loop: "{{ infrastructure_monitoring_redfish_targets }}"
+
+- name: Gather host platform only for installation
+  ansible.builtin.setup:
+    gather_subset: [min]
+  when: infrastructure_monitoring_action == 'apply'
+
+- name: Require a supported independent runtime and private recovery inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - infrastructure_monitoring_outside_observed_clusters | bool
+      - infrastructure_monitoring_read_only_credentials_verified | bool
+      - infrastructure_monitoring_packages | length >= 2
+      - infrastructure_monitoring_health_rules | length > 0
+      - infrastructure_monitoring_child_key is match('^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$')
+      - infrastructure_monitoring_child_key != '00000000-0000-4000-8000-000000000000'
+      - infrastructure_monitoring_allow_from | length > 0
+      - infrastructure_monitoring_allow_from != '*'
+      - "['tls.crt', 'tls.key', 'ca.crt', 'health_alarm_notify.conf'] | difference(infrastructure_monitoring_private_files.keys()) | length == 0"
+      - not infrastructure_monitoring_heartbeat_enabled or 'heartbeat.curl' in infrastructure_monitoring_private_files
+    fail_msg: Use a reviewed RedHat-family host, exact Netdata packages, local TLS, native rules and independent alerts.
+  when: infrastructure_monitoring_action == 'apply'
+  no_log: true
+
+- name: Constrain private file ownership to the monitoring directory
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+      - "'..' not in item.key"
+  loop: "{{ infrastructure_monitoring_private_files | dict2items }}"
+  no_log: true
+
+- name: Require version-pinned Netdata packages
+  ansible.builtin.assert:
+    that:
+      - item is match('^netdata[a-z0-9-]*-[0-9]+\.[0-9]+\.[0-9]+[^ *]*$')
+  loop: "{{ infrastructure_monitoring_packages }}"
+
+- name: Require a reviewed immutable exporter image when polling Proxmox
+  ansible.builtin.assert:
+    that:
+      - infrastructure_monitoring_pve_image is match('^[^\s]+@sha256:[a-f0-9]{64}$')
+      - item.credential in infrastructure_monitoring_pve_credentials
+      - infrastructure_monitoring_pve_credentials[item.credential].user | length > 0
+      - infrastructure_monitoring_pve_credentials[item.credential].token_name | length > 0
+      - infrastructure_monitoring_pve_credentials[item.credential].token_value | length > 0
+  loop: "{{ infrastructure_monitoring_pve_targets }}"
+  when: infrastructure_monitoring_action == 'apply'
+  no_log: true
+
+- name: Require local-only credentials for each BMC and for metric export
+  ansible.builtin.assert:
+    that:
+      - item in infrastructure_monitoring_private_files
+      - infrastructure_monitoring_private_files[item] | length > 0
+  loop: >-
+    {{ (infrastructure_monitoring_redfish_targets | map(attribute='password_file') | list)
+       + (['export.crt', 'export.key'] if infrastructure_monitoring_export_endpoint | length > 0 else []) }}
+  when: infrastructure_monitoring_action == 'apply'
+  no_log: true

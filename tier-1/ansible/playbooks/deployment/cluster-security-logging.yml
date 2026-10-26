@@ -1,0 +1,10 @@
+---
+# Use explicit tier-owned -e @group_vars/cluster_security_logging.yml inputs.
+- name: Configure Kubernetes node and audit event forwarding
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - cluster_security_logging

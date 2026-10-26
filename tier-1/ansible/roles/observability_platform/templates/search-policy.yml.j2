@@ -1,0 +1,85 @@
+config.yml:
+  _meta: {type: config, config_version: 2}
+  config:
+    dynamic:
+      http: {anonymous_auth_enabled: false}
+      authc:
+        openid_auth_domain:
+          http_enabled: true
+          transport_enabled: false
+          order: 0
+          http_authenticator:
+            type: openid
+            challenge: false
+            config:
+              subject_key: sub
+              roles_key: groups
+              openid_connect_url: {{ (observability_oidc_issuer ~ '/.well-known/openid-configuration') | to_json }}
+              required_audience: {{ observability_oidc_dashboards_client_id | to_json }}
+              required_issuer: {{ observability_oidc_issuer | to_json }}
+              openid_connect_idp:
+                enable_ssl: true
+                verify_hostnames: true
+                pemtrustedcas_filepath: /usr/share/opensearch/config/oidc/ca.crt
+          authentication_backend: {type: noop}
+        basic_internal_auth_domain:
+          http_enabled: true
+          transport_enabled: false
+          order: 1
+          http_authenticator: {type: basic, challenge: false}
+          authentication_backend: {type: intern}
+roles.yml:
+  _meta: {type: roles, config_version: 2}
+  ingest:
+    cluster_permissions: [cluster_monitor, 'indices:admin/template/get', 'indices:admin/template/put']
+    index_permissions:
+      - index_patterns:
+{% for scope in observability_log_scopes %}
+          - '{{ scope.kind }}-{{ scope.name }}-*'
+{% endfor %}
+        allowed_actions: [create_index, index, 'indices:data/write/bulk*', 'indices:admin/mapping/put']
+  kibana_server:
+    reserved: true
+    cluster_permissions: [cluster_monitor, cluster_composite_ops, 'indices:admin/template*']
+    index_permissions:
+      - index_patterns: ['.kibana*', '.opensearch_dashboards*']
+        allowed_actions: [indices_all]
+  kibana_user:
+    cluster_permissions: [cluster_composite_ops_ro]
+    index_permissions:
+      - index_patterns: ['.kibana*', '.opensearch_dashboards*']
+        allowed_actions: [read]
+    tenant_permissions:
+      - tenant_patterns: [global_tenant]
+        allowed_actions: [kibana_all_read]
+{% for scope in observability_log_scopes %}
+  read_{{ scope.name }}:
+    cluster_permissions: [cluster_composite_ops_ro]
+    index_permissions:
+      - index_patterns: ['{{ scope.kind }}-{{ scope.name }}-*']
+        allowed_actions: [read]
+{% endfor %}
+roles_mapping.yml:
+  _meta: {type: rolesmapping, config_version: 2}
+  ingest: {users: [data-prepper]}
+  kibana_server: {users: [dashboards-server]}
+  kibana_user:
+    backend_roles:
+{% for scope in observability_log_scopes %}
+{% for role in scope.reader_backend_roles %}
+      - {{ role | to_json }}
+{% endfor %}
+{% endfor %}
+{% for scope in observability_log_scopes %}
+  read_{{ scope.name }}:
+    backend_roles: {{ scope.reader_backend_roles | to_json }}
+{% endfor %}
+action_groups.yml:
+  _meta: {type: actiongroups, config_version: 2}
+tenants.yml:
+  _meta: {type: tenants, config_version: 2}
+nodes_dn.yml:
+  _meta: {type: nodesdn, config_version: 2}
+allowlist.yml:
+  _meta: {type: allowlist, config_version: 2}
+  config: {enabled: false}

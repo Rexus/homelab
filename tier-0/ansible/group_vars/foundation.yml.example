@@ -9,6 +9,8 @@ platform_host_ips:
   ca-1: 10.20.21.10
 
 foundation_freeipa_enabled: true
+# FreeIPA requires IPv6 localhost even when the site routes only IPv4.
+baseline_disable_ipv6: false
 # Fresh reference deployments use the offline-root-signed sibling CA: run csr,
 # sign offline, then select complete. Existing local internal-mode inputs remain
 # unchanged; switching an installed domain's mode is not a migration procedure.

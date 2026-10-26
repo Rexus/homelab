@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: otel-agent
+  namespace: {{ workload_telemetry_namespace }}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/instance: otel-agent}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {}
+      ports: [{protocol: TCP, port: 4317}]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to:
+{% for cidr in workload_telemetry_gateway_cidrs %}
+        - ipBlock: {cidr: {{ cidr | to_json }}}
+{% endfor %}
+      ports:
+{% for port in workload_telemetry_gateway_ports %}
+        - {protocol: TCP, port: {{ port | int }}}
+{% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: application-to-otel
+  namespace: {{ workload_telemetry_namespace }}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: lab-app}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/instance: otel-agent}
+      ports: [{protocol: TCP, port: 4317}]
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]

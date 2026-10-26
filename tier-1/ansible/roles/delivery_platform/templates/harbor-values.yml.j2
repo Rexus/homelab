@@ -1,0 +1,58 @@
+# Tier 1 owns this single-instance registry and its persistent data.
+expose:
+  type: ingress
+  tls:
+    enabled: true
+    certSource: secret
+    secret: {secretName: harbor-tls}
+  ingress:
+    className: {{ delivery_platform_ingress_class | to_json }}
+    hosts: {core: {{ delivery_platform_harbor_host | to_json }}}
+externalURL: {{ ('https://' ~ delivery_platform_harbor_host) | to_json }}
+existingSecretAdminPassword: harbor-admin
+existingSecretAdminPasswordKey: HARBOR_ADMIN_PASSWORD
+existingSecretSecretKey: harbor-credentials
+caBundleSecretName: harbor-ca
+internalTLS: {enabled: true, certSource: auto}
+updateStrategy: {type: Recreate}
+persistence:
+  enabled: true
+  resourcePolicy: keep
+  persistentVolumeClaim:
+{% for name, size in delivery_platform_harbor_volumes.items() if name != 'jobservice' %}
+    {{ name }}:
+      storageClass: {{ delivery_platform_harbor_storage_class | to_json }}
+      accessMode: ReadWriteOnce
+      size: {{ size | to_json }}
+{% endfor %}
+    jobservice:
+      jobLog:
+        storageClass: {{ delivery_platform_harbor_storage_class | to_json }}
+        accessMode: ReadWriteOnce
+        size: {{ delivery_platform_harbor_volumes.jobservice | to_json }}
+database:
+  type: internal
+  internal:
+    password: {{ delivery_platform_harbor_database_password | to_json }}
+redis: {type: internal}
+core:
+  replicas: 1
+  existingSecret: harbor-credentials
+  secretName: harbor-token
+  existingXsrfSecret: harbor-credentials
+  existingXsrfSecretKey: CSRF_KEY
+  extraEnvVars:
+    - name: CONFIG_OVERWRITE_JSON
+      valueFrom:
+        secretKeyRef: {name: harbor-oidc, key: config.json}
+jobservice:
+  replicas: 1
+  existingSecret: harbor-credentials
+  existingSecretKey: JOBSERVICE_SECRET
+registry:
+  replicas: 1
+  existingSecret: harbor-credentials
+  existingSecretKey: REGISTRY_HTTP_SECRET
+  credentials:
+    existingSecret: harbor-credentials
+trivy: {enabled: true}

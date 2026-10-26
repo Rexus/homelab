@@ -1,0 +1,21 @@
+---
+- name: Require the configured issuer to become Ready
+  ansible.builtin.include_tasks: health.yml
+  vars:
+    cluster_platform_health:
+      api_version: cert-manager.io/v1
+      kind: ClusterIssuer
+      name: "{{ cluster_platform_issuer_name }}"
+      condition: Ready
+  when: cluster_platform_issuer_spec | length > 0
+
+- name: Require successful issuance for the optional DNS names
+  ansible.builtin.include_tasks: health.yml
+  vars:
+    cluster_platform_health:
+      api_version: cert-manager.io/v1
+      kind: Certificate
+      name: platform-issuance-probe
+      namespace: cert-manager
+      condition: Ready
+  when: cluster_platform_certificate_dns_names | length > 0

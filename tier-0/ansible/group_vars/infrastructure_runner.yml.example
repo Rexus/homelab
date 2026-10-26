@@ -1,0 +1,13 @@
+---
+# Privileged execution, never a general build runner.
+# Guide: docs/deployment/stage-9-development/procedures/infrastructure-runner.md
+platform_host_ips:
+  iac-1: 10.10.10.50
+infrastructure_runner_trust_ci_control_plane: false
+infrastructure_runner_gitlab_url: https://gitlab.internal.example.com
+infrastructure_runner_version: REPLACE_WITH_APPROVED_PACKAGE_VERSION
+infrastructure_runner_token: "{{ lookup('ansible.builtin.env', 'INFRASTRUCTURE_RUNNER_TOKEN') }}"
+infrastructure_runner_ca_src: ""
+infrastructure_runner_workspace: /srv/iac
+# Approved signed RPM repositories must provide these tools; pin site-qualified versions.
+infrastructure_runner_tool_packages: [git, bash, python3, ansible-core]

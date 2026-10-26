@@ -1,0 +1,10 @@
+---
+# Run from Tier 0 ansible/ with explicit -e @group_vars/cluster_platform.yml.
+- name: Establish the Tier 0 Kubernetes basic platform
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - cluster_platform

@@ -1,0 +1,78 @@
+fullnameOverride: grafana
+replicas: {{ observability_ui_replicas }}
+image: {tag: '13.2.4'}
+initChownData: {enabled: false}
+serviceAccount: {create: true, automountServiceAccountToken: false}
+persistence: {enabled: false}
+admin: {existingSecret: grafana-admin, userKey: username, passwordKey: password}
+resources:
+{{ observability_resources.ui | to_nice_yaml | indent(2, true) }}
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector: {matchLabels: {app.kubernetes.io/instance: grafana}}
+        topologyKey: {{ observability_topology_key }}
+extraSecretMounts:
+  - {name: tls, secretName: grafana-tls, mountPath: /tls, readOnly: true}
+  - {name: oidc-ca, secretName: oidc-ca, mountPath: /oidc, readOnly: true}
+envValueFrom:
+  GF_DATABASE_USER: {secretKeyRef: {name: grafana-database, key: username}}
+  GF_DATABASE_PASSWORD: {secretKeyRef: {name: grafana-database, key: password}}
+  GF_SECURITY_SECRET_KEY: {secretKeyRef: {name: grafana-database, key: secret-key}}
+  METRICS_USERNAME: {secretKeyRef: {name: metrics-reader, key: username}}
+  METRICS_PASSWORD: {secretKeyRef: {name: metrics-reader, key: password}}
+  METRICS_CA: {secretKeyRef: {name: grafana-tls, key: ca.crt}}
+  GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: {secretKeyRef: {name: grafana-oidc, key: client-secret}}
+grafana.ini:
+  server: {protocol: https, http_port: 3000, cert_file: /tls/tls.crt, cert_key: /tls/tls.key, root_url: {{ observability_grafana_url | to_json }}}
+  database:
+    type: postgres
+    host: {{ observability_grafana_database_host }}
+    name: grafana
+    ssl_mode: verify-full
+    ca_cert_path: /tls/ca.crt
+  users: {allow_sign_up: false, auto_assign_org_role: Viewer, viewers_can_edit: false}
+  auth.anonymous: {enabled: false}
+  auth.basic: {enabled: false}
+  auth: {disable_login_form: true}
+  auth.generic_oauth:
+    enabled: true
+    name: Platform SSO
+    client_id: {{ observability_oidc_grafana_client_id | to_json }}
+    allow_sign_up: true
+    scopes: openid profile email groups
+    auth_url: {{ (observability_oidc_issuer ~ '/protocol/openid-connect/auth') | to_json }}
+    token_url: {{ (observability_oidc_issuer ~ '/protocol/openid-connect/token') | to_json }}
+    api_url: {{ (observability_oidc_issuer ~ '/protocol/openid-connect/userinfo') | to_json }}
+    jwk_set_url: {{ (observability_oidc_issuer ~ '/protocol/openid-connect/certs') | to_json }}
+    validate_id_token: true
+    use_pkce: true
+    tls_client_ca: /oidc/ca.crt
+    tls_skip_verify_insecure: false
+    groups_attribute_path: groups
+    allowed_groups: {{ observability_oidc_operator_group | to_json }}
+    role_attribute_path: "contains(groups[*], '{{ observability_oidc_operator_group }}') && 'Viewer' || 'None'"
+    role_attribute_strict: true
+    allow_assign_grafana_admin: false
+    skip_org_role_sync: false
+  security: {cookie_secure: true, cookie_samesite: lax}
+  unified_alerting: {enabled: false}
+  analytics: {reporting_enabled: false, check_for_updates: false}
+readinessProbe: {httpGet: {path: /api/health, port: 3000, scheme: HTTPS}}
+livenessProbe: {httpGet: {path: /api/health, port: 3000, scheme: HTTPS}}
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Platform Metrics
+        uid: platform-metrics
+        type: prometheus
+        access: proxy
+        url: https://metrics-query:8427
+        basicAuth: true
+        basicAuthUser: $METRICS_USERNAME
+        editable: false
+        jsonData: {tlsAuthWithCACert: true}
+        secureJsonData:
+          basicAuthPassword: $METRICS_PASSWORD
+          tlsCACert: $METRICS_CA

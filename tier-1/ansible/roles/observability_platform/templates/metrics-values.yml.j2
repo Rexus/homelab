@@ -1,0 +1,29 @@
+rbac: {create: false}
+serviceAccount: {create: true, automountToken: false}
+server:
+  fullnameOverride: {{ instance }}
+  replicaCount: 1
+  image: {tag: v1.155.0}
+  retentionPeriod: {{ observability_metrics_retention }}
+  nodeSelector:
+{{ observability_node_selector | combine({observability_topology_key: domain}) | to_nice_yaml | indent(4, true) }}
+  resources:
+{{ observability_resources.metrics | to_nice_yaml | indent(4, true) }}
+  persistentVolume:
+    enabled: true
+    storageClassName: {{ observability_storage_class }}
+    size: {{ observability_metrics_size }}
+  extraArgs:
+    tls: "true"
+    tlsCertFile: /tls/tls.crt
+    tlsKeyFile: /tls/tls.key
+  env:
+    - name: VM_httpAuth_username
+      valueFrom: {secretKeyRef: {name: metrics-auth, key: username}}
+    - name: VM_httpAuth_password
+      valueFrom: {secretKeyRef: {name: metrics-auth, key: password}}
+  extraVolumes: [{name: tls, secret: {secretName: {{ instance }}-tls}}]
+  extraVolumeMounts: [{name: tls, mountPath: /tls, readOnly: true}]
+  probe:
+    readiness:
+      httpGet: {path: /health, port: http, scheme: HTTPS}

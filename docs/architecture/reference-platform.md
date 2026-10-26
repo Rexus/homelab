@@ -227,8 +227,9 @@ Detailed variants link to their own realization procedures inside the domains.
 | Protected syslog and audit evidence | [Foundational logging](../deployment/stage-2-logging/README.md) |
 | Secrets, recovery custody and supporting control integrations | [Secrets](../deployment/stage-6-secrets/README.md) |
 | Observability and scoped application diagnostics | [Tier 1 Observability](../deployment/stage-8-observability/README.md) |
-| Shared delivery, published endpoints and protected execution handover | [Delivery and handover](../deployment/stage-7-delivery/README.md) |
-| Approved project runtimes and application reconciliation | [Workload provisioning](../deployment/stage-9-workloads/README.md) |
+| Shared application delivery and published endpoints | [Delivery](../deployment/stage-7-delivery/README.md) |
+| Source control, CI and trusted infrastructure handover | [Development platform](../deployment/stage-9-development/README.md) |
+| Approved project runtimes and application reconciliation | [Lab environments](../deployment/stage-10-lab-environments/README.md) |
 
 The [support map](../reference/implementation-support.md) distinguishes supplied
 automation from project integration. [Readiness](../deployment/readiness.md)

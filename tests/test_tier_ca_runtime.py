@@ -27,7 +27,7 @@ class CertificateAuthorityRuntime(TierRepositoryTestCase):
             self.assertNotIn('root_ca', groups['foundation']['children'])
             deploy = yaml.safe_load((source / 'ansible/playbooks/deployment/openxpki.yml').read_text())
             self.assertEqual(deploy[0]['hosts'], 'issuing_ca')
-            self.assertEqual(deploy[0]['roles'], ['openxpki'])
+            self.assertEqual(deploy[0]['roles'], ['baseline', 'openxpki'])
             for taskfile in (source / 'ansible/roles/openxpki/tasks').glob('*.yml'):
                 self.assertNotIn('ansible.builtin.shell', taskfile.read_text())
             identity = yaml.safe_load((source / 'ansible/playbooks/deployment/identity-freeipa.yml').read_text())

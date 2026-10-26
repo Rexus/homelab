@@ -1,0 +1,66 @@
+---
+- name: Require an explicit bounded application environment
+  ansible.builtin.assert:
+    that:
+      - lab_environment_action in ['render', 'apply']
+      - lab_environment_name is match('^lab-[a-z0-9][a-z0-9-]{0,45}$')
+      - lab_environment_owner_group | length > 0
+      - lab_environment_image is match('^[^\s]+@sha256:[a-f0-9]{64}$')
+      - lab_environment_replicas | int >= 2
+      - lab_environment_replicas | int <= 10
+      - lab_environment_host is match('^[a-z0-9.-]+$')
+      - not lab_environment_host.endswith('.example.com')
+      - lab_environment_ingress_class | length > 0
+      - lab_environment_ingress_namespace | length > 0
+      - lab_environment_uid | int > 0
+      - lab_environment_port | int >= 1024
+      - lab_environment_action != 'apply' or lab_environment_kubeconfig | length > 0
+    fail_msg: Select a lab namespace, owner group, approved image digest, private hostname and existing ingress.
+
+- name: Prepare private application manifests
+  ansible.builtin.file:
+    path: "{{ lab_environment_output }}"
+    state: directory
+    mode: '0700'
+
+- name: Render the tier-owned application and isolation policy
+  ansible.builtin.template:
+    src: environment.yml.j2
+    dest: "{{ lab_environment_output }}/{{ lab_environment_name }}.yml"
+    mode: '0600'
+
+- name: Check private ingress certificate before making application changes
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ lab_environment_kubeconfig }}"
+    context: "{{ lab_environment_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: "{{ lab_environment_name }}"
+    name: "{{ lab_environment_tls_secret }}"
+  register: lab_environment_certificate
+  when: lab_environment_action == 'apply'
+  no_log: true
+
+- name: Require separately commissioned TLS before enabling the route
+  ansible.builtin.assert:
+    that:
+      - lab_environment_certificate.resources | length == 1
+      - (lab_environment_certificate.resources | first).type == 'kubernetes.io/tls'
+      - (lab_environment_certificate.resources | first).data.get('tls.crt', '') | length > 0
+      - (lab_environment_certificate.resources | first).data.get('tls.key', '') | length > 0
+    fail_msg: Prepare the namespace and trusted TLS Secret before apply; no certificate is generated implicitly.
+  when: lab_environment_action == 'apply'
+  no_log: true
+
+- name: Apply the namespace boundaries before the application
+  kubernetes.core.k8s:
+    kubeconfig: "{{ lab_environment_kubeconfig }}"
+    context: "{{ lab_environment_context | default(omit, true) }}"
+    validate_certs: true
+    src: "{{ lab_environment_output }}/{{ lab_environment_name }}.yml"
+    state: present
+    apply: true
+    wait: true
+    wait_timeout: 600
+  when: lab_environment_action == 'apply'

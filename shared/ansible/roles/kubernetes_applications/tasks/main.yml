@@ -1,0 +1,41 @@
+---
+- name: Require explicit Kubernetes application scope
+  ansible.builtin.assert:
+    that:
+      - kube_apps_action in ['render', 'apply']
+      - kube_apps_output | length > 0
+      - kube_apps_releases | length > 0
+      - kube_apps_action != 'apply' or kube_apps_kubeconfig | length > 0
+    fail_msg: Supply tier-owned releases, a private output directory and an explicit kubeconfig for apply.
+
+- name: Validate every release before changing the cluster
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z0-9][a-z0-9-]*$')
+      - item.namespace is match('^[a-z0-9][a-z0-9-]*$')
+      - item.repository is match('^https://')
+      - item.version is match('^[0-9]+\.[0-9]+\.[0-9]+([+-][a-zA-Z0-9.-]+)?$')
+      - item['values'] is mapping
+    fail_msg: All selected native charts must have exact reviewed versions and HTTPS repositories.
+  loop: "{{ kube_apps_releases }}"
+  loop_control:
+    label: "{{ item.name | default('invalid release') }}"
+  no_log: true
+
+- name: Check the native Helm executable
+  ansible.builtin.command:
+    argv: [helm, version, --short]
+  changed_when: false
+
+- name: Check native Kubernetes Python dependencies before apply
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", -c, "import kubernetes, jsonpatch, yaml"]
+  changed_when: false
+  when: kube_apps_action == 'apply'
+
+- name: Process tier-owned native releases in dependency order
+  ansible.builtin.include_tasks: release.yml
+  loop: "{{ kube_apps_releases }}"
+  loop_control:
+    loop_var: kube_app
+    label: "{{ kube_app.namespace }}/{{ kube_app.name }}"

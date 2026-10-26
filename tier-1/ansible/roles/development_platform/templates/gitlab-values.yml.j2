@@ -1,0 +1,118 @@
+# Owned by Tier 1. Rendered by development_platform; secrets are references only.
+global:
+  edition: ce
+  hosts:
+    domain: {{ development_platform_domain | to_json }}
+    https: true
+    gitlab:
+      name: {{ development_platform_host | to_json }}
+  gatewayApi:
+    enabled: false
+    installEnvoy: false
+  ingress:
+    enabled: true
+    class: {{ development_platform_ingress_class | to_json }}
+    configureCertmanager: false
+    tls:
+      enabled: true
+      secretName: gitlab-tls
+  certificates:
+    customCAs:
+      - secret: {{ development_platform_ca_secret | to_json }}
+  initialRootPassword:
+    secret: gitlab-root
+    key: password
+  psql:
+    host: {{ development_platform_database_host | to_json }}
+    database: gitlabhq_production
+    username: gitlab
+    sslMode: verify-full
+    ssl:
+      secret: gitlab-postgresql-tls
+      clientCertificate: tls.crt
+      clientKey: tls.key
+      serverCA: ca.crt
+    password:
+      secret: gitlab-postgresql
+      key: password
+  extraEnv:
+    PGSSLMODE: verify-full
+    PGSSLCERT: /etc/gitlab/postgres/ssl/client-certificate.pem
+    PGSSLKEY: /etc/gitlab/postgres/ssl/client-key.pem
+    PGSSLROOTCERT: /etc/gitlab/postgres/ssl/server-ca.pem
+  redis:
+    host: {{ development_platform_redis_host | to_json }}
+    port: 6379
+    scheme: rediss
+    auth:
+      enabled: true
+      secret: gitlab-redis
+      key: password
+  shell:
+    authToken:
+      secret: gitlab-shell-auth
+      key: secret
+  gitaly:
+    enabled: false
+    authToken:
+      secret: gitlab-gitaly
+      key: token
+    external:
+      - name: default
+        hostname: {{ development_platform_gitaly_host | to_json }}
+        port: 8076
+        tlsEnabled: true
+  minio:
+    enabled: false
+  kas:
+    enabled: false
+  registry:
+    enabled: false
+  appConfig:
+    initialDefaults:
+      signupEnabled: false
+    omniauth:
+      enabled: true
+      allowSingleSignOn: [openid_connect]
+      blockAutoCreatedUsers: true
+      autoLinkUser: false
+      providers:
+        - secret: gitlab-oidc
+          key: provider
+    object_store:
+      enabled: true
+      proxy_download: true
+      connection:
+        secret: gitlab-storage
+        key: connection
+{% for key, bucket in development_platform_buckets.items() %}
+    {{ key }}:
+      bucket: {{ bucket | to_json }}
+{% endfor %}
+    backups:
+      bucket: gitlab-backups
+      tmpBucket: gitlab-backup-tmp
+installCertmanager: false
+nginx-ingress:
+  enabled: false
+haproxy:
+  install: false
+prometheus:
+  install: false
+gitlab-runner:
+  install: false
+registry:
+  enabled: false
+gitlab:
+  webservice:
+    minReplicas: 2
+    maxReplicas: 2
+  sidekiq:
+    minReplicas: 1
+    maxReplicas: 1
+  toolbox:
+    backups:
+      objectStorage:
+        config:
+          secret: gitlab-backup-storage
+          key: config

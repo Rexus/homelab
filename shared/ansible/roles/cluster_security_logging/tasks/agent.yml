@@ -1,0 +1,34 @@
+---
+- name: Assemble the native chart values for this node
+  ansible.builtin.set_fact:
+    security_logging_values: "{{ lookup('ansible.builtin.template', 'values.yml.j2') | from_yaml }}"
+
+- name: Render or install the native Fluent Bit collector with node-specific credentials
+  ansible.builtin.include_role:
+    name: kubernetes_applications
+  vars:
+    kube_apps_action: "{{ cluster_security_logging_action }}"
+    kube_apps_kubeconfig: "{{ cluster_security_logging_kubeconfig }}"
+    kube_apps_context: "{{ cluster_security_logging_context }}"
+    kube_apps_output: "{{ cluster_security_logging_output }}"
+    kube_apps_manage_secrets: "{{ cluster_security_logging_manage_secrets }}"
+    kube_apps_secrets: "{{ cluster_security_logging_secrets }}"
+    kube_apps_releases:
+      - name: "security-log-{{ security_logging_node.stream }}"
+        namespace: "{{ cluster_security_logging_namespace }}"
+        namespace_labels:
+          pod-security.kubernetes.io/enforce: privileged
+        repository: "{{ cluster_security_logging_chart_repository }}"
+        chart: fluent-bit
+        version: "{{ cluster_security_logging_chart_version }}"
+        values: "{{ security_logging_values }}"
+        required_secrets:
+          - name: "{{ security_logging_node.tls_secret }}"
+            type: kubernetes.io/tls
+            keys: [ca.crt, tls.crt, tls.key]
+        before: []
+        after: []
+
+- name: Require the current collector rollout on the selected node
+  ansible.builtin.include_tasks: health.yml
+  when: cluster_security_logging_action == 'apply'

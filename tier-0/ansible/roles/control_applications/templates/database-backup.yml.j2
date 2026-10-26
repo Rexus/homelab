@@ -1,0 +1,24 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata: {name: {{ product }}-db-backup, namespace: {{ product }}}
+spec:
+  retentionPolicy: {{ control_applications_backup_retention | to_json }}
+  configuration:
+    destinationPath: {{ control_applications_backup_destinations[product] | to_json }}
+    endpointURL: {{ control_applications_backup_endpoint | to_json }}
+    endpointCA: {name: {{ product }}-db-backup, key: ca.crt}
+    s3Credentials:
+      accessKeyId: {name: {{ product }}-db-backup, key: ACCESS_KEY_ID}
+      secretAccessKey: {name: {{ product }}-db-backup, key: ACCESS_SECRET_KEY}
+    wal: {compression: gzip}
+    data: {compression: gzip}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata: {name: {{ product }}-db-daily, namespace: {{ product }}}
+spec:
+  schedule: {{ control_applications_backup_schedule | to_json }}
+  backupOwnerReference: self
+  cluster: {name: {{ product }}-db}
+  method: plugin
+  pluginConfiguration: {name: barman-cloud.cloudnative-pg.io}

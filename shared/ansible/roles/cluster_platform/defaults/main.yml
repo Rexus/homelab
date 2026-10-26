@@ -1,0 +1,123 @@
+---
+cluster_platform_action: render
+cluster_platform_kubeconfig: ""
+cluster_platform_context: ""
+cluster_platform_output: "{{ playbook_dir }}/../../../secrets/cluster-platform"
+cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg, barman_cloud, flux]
+cluster_platform_versions: {}
+cluster_platform_repositories: {}
+cluster_platform_approved_repositories: []
+cluster_platform_values: {}
+cluster_platform_manage_secrets: false
+cluster_platform_secrets: {}
+cluster_platform_health_retries: 120
+cluster_platform_health_delay: 5
+
+# Acknowledges the node-OS configuration, never migrates an existing CNI.
+cluster_platform_talos_cilium_ready: false
+cluster_platform_expected_nodes: []
+cluster_platform_storage_provider: existing
+cluster_platform_storage_class: ""
+cluster_platform_existing_storage_accepted: false
+cluster_platform_nfs_prerequisites_accepted: false
+cluster_platform_nfs_server: ""
+cluster_platform_nfs_share: ""
+cluster_platform_nfs_mount_options: [nfsvers=4.1, hard]
+cluster_platform_ingress_class: traefik
+cluster_platform_ingress_http_port: 30080
+cluster_platform_ingress_https_port: 30443
+
+# Optional ClusterIssuer integration with an already qualified issuer.
+cluster_platform_issuer_name: platform-issuer
+cluster_platform_issuer_spec: {}
+cluster_platform_issuer_required_secrets: []
+cluster_platform_certificate_dns_names: []
+
+# Operator installation is independent of creating an application database.
+cluster_platform_database_enabled: false
+cluster_platform_database_name: platform-db
+cluster_platform_database_namespace: databases
+cluster_platform_database_instances: 1
+cluster_platform_database_size: 8Gi
+cluster_platform_database_image: ""
+cluster_platform_database_image_approved: false
+
+# The source and age key must remain usable without later identity/delivery tiers.
+cluster_platform_flux_source_approved: false
+cluster_platform_flux_url: ""
+cluster_platform_flux_commit: ""
+cluster_platform_flux_path: ""
+cluster_platform_flux_git_secret: flux-git
+cluster_platform_flux_git_secret_keys: [username, password]
+cluster_platform_flux_age_secret: sops-age
+cluster_platform_flux_age_key: age.agekey
+cluster_platform_flux_canary_name: platform-sops-canary
+cluster_platform_flux_canary_key: accepted
+cluster_platform_flux_canary_sha256: ""
+
+# Fixed product identities keep the health checks aligned with rendered resources.
+cluster_platform_catalog:
+  cilium:
+    name: cilium
+    namespace: kube-system
+    repository: https://helm.cilium.io
+    chart: cilium
+    health:
+      - {api_version: apps/v1, kind: DaemonSet, name: cilium, namespace: kube-system}
+      - {api_version: apps/v1, kind: Deployment, name: cilium-operator, namespace: kube-system}
+      - {api_version: apps/v1, kind: Deployment, name: coredns, namespace: kube-system}
+  storage:
+    name: csi-driver-nfs
+    namespace: csi-nfs
+    repository: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+    chart: csi-driver-nfs
+    health:
+      - {api_version: apps/v1, kind: Deployment, name: csi-nfs-controller, namespace: csi-nfs}
+      - {api_version: apps/v1, kind: DaemonSet, name: csi-nfs-node, namespace: csi-nfs}
+      - {api_version: storage.k8s.io/v1, kind: CSIDriver, name: nfs.csi.k8s.io}
+  cert_manager:
+    name: cert-manager
+    namespace: cert-manager
+    repository: https://charts.jetstack.io
+    chart: cert-manager
+    health:
+      - {kind: CustomResourceDefinition, name: certificates.cert-manager.io, condition: Established}
+      - {kind: CustomResourceDefinition, name: clusterissuers.cert-manager.io, condition: Established}
+      - {api_version: apps/v1, kind: Deployment, name: cert-manager, namespace: cert-manager}
+      - {api_version: apps/v1, kind: Deployment, name: cert-manager-webhook, namespace: cert-manager}
+      - {api_version: apps/v1, kind: Deployment, name: cert-manager-cainjector, namespace: cert-manager}
+  ingress:
+    name: traefik
+    namespace: ingress-system
+    repository: https://traefik.github.io/charts
+    chart: traefik
+    health:
+      - {api_version: apps/v1, kind: Deployment, name: traefik, namespace: ingress-system}
+  cloudnative_pg:
+    name: cloudnative-pg
+    namespace: cnpg-system
+    repository: https://cloudnative-pg.github.io/charts
+    chart: cloudnative-pg
+    health:
+      - {kind: CustomResourceDefinition, name: clusters.postgresql.cnpg.io, condition: Established}
+      - {api_version: apps/v1, kind: Deployment, name: cloudnative-pg, namespace: cnpg-system}
+  barman_cloud:
+    name: plugin-barman-cloud
+    namespace: cnpg-system
+    repository: https://cloudnative-pg.github.io/charts
+    chart: plugin-barman-cloud
+    health:
+      - {kind: CustomResourceDefinition, name: objectstores.barmancloud.cnpg.io, condition: Established}
+      - {api_version: apps/v1, kind: Deployment, name: plugin-barman-cloud, namespace: cnpg-system}
+  flux:
+    name: flux2
+    namespace: flux-system
+    repository: https://fluxcd-community.github.io/helm-charts
+    chart: flux2
+    health:
+      - {kind: CustomResourceDefinition, name: gitrepositories.source.toolkit.fluxcd.io, condition: Established}
+      - {kind: CustomResourceDefinition, name: kustomizations.kustomize.toolkit.fluxcd.io, condition: Established}
+      - {api_version: apps/v1, kind: Deployment, name: source-controller, namespace: flux-system}
+      - {api_version: apps/v1, kind: Deployment, name: kustomize-controller, namespace: flux-system}
+      - {api_version: apps/v1, kind: Deployment, name: helm-controller, namespace: flux-system}
+      - {api_version: apps/v1, kind: Deployment, name: notification-controller, namespace: flux-system}

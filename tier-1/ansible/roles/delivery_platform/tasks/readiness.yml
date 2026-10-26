@@ -1,0 +1,27 @@
+---
+- name: Wait for the registry's native component health report
+  ansible.builtin.uri:
+    url: "https://{{ delivery_platform_harbor_host }}/api/v2.0/health"
+    ca_path: "{{ delivery_platform_ca_path }}"
+    validate_certs: true
+    return_content: true
+  register: delivery_platform_harbor_health
+  until: (delivery_platform_harbor_health.json | default({})).get('status') == 'healthy'
+  retries: 30
+  delay: 10
+  when: delivery_platform_install_harbor | bool
+
+- name: Wait for the selected controller HTTPS endpoint
+  ansible.builtin.uri:
+    url: "{{ item }}"
+    ca_path: "{{ delivery_platform_ca_path }}"
+    validate_certs: true
+  register: delivery_platform_controller_health
+  until: delivery_platform_controller_health.status | default(0) == 200
+  retries: 30
+  delay: 10
+  loop: >-
+    {{ ['https://' ~ delivery_platform_argocd_host ~ '/healthz']
+       if delivery_platform_controller == 'argocd' else
+       (['https://' ~ delivery_platform_spinnaker_host ~ '/api/v1/health']
+        if delivery_platform_controller == 'spinnaker' else []) }}

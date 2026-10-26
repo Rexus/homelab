@@ -35,7 +35,7 @@ class Observability(TierRepositoryTestCase):
                 self.assertEqual(plays[0]["roles"], ["baseline"])
                 self.assertIn("observability", plays[0]["hosts"].split(":"))
 
-    def test_kubernetes_first_design_and_runtime_gap_are_explicit(self):
+    def test_kubernetes_first_design_and_native_installer_are_explicit(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             design = (docs / "architecture/operations/telemetry.md").read_text()
@@ -45,13 +45,15 @@ class Observability(TierRepositoryTestCase):
                              "Tier 1 index deletion never deletes Tier 0 originals"):
                 self.assertIn(expected, design)
             deployment = (docs / "deployment/stage-8-observability/README.md").read_text()
-            for expected in ("OpenSearch is included initially", "empty integration starter",
+            for expected in ("OpenSearch is included initially", "observability-platform.yml",
                              "writes to both", "replica shards", "complete worker/physical-host loss",
                              "no archive write/delete, retention or backup powers"):
                 self.assertIn(expected, deployment)
         for tier in (UPSTREAM / "tier-1", self.root / "verify-tier-1"):
             starter = yaml.safe_load((tier / "clusters/tier1/platform/observability/kustomization.yaml").read_text())
             self.assertFalse(starter.get("resources"))
+            self.assertTrue((tier / "ansible/playbooks/deployment/observability-platform.yml").is_file())
+            self.assertTrue((tier / "ansible/roles/observability_platform/templates/releases.yml.j2").is_file())
 
     def test_source_and_generated_logging_are_tier_zero_owned(self):
         self.generate()

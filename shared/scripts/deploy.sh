@@ -35,6 +35,8 @@ Options:
                    Add a vars file after automatic vars in both tools.
                    Encrypted secret-only files require --ansible-only or maintenance.
   --plan-only       Run Terraform init and plan, then stop.
+  --plan-file PATH  Save with --plan-only, or apply that exact existing plan.
+                   PATH must be inside this tier's .terraform/plans/ directory.
   --terraform-only  Run the precheck and Terraform only.
   --ansible-only    Run the precheck and mapped Ansible playbooks only.
   --playbook PATH   Select a tier-local deployment/ or maintenance/ recipe.
@@ -87,6 +89,7 @@ if [[ "$setup_name" == "image-template" ]]; then
 fi
 
 plan_only=false
+saved_plan=""
 terraform_only=false
 ansible_only=false
 auto_approve=false
@@ -167,6 +170,14 @@ while [[ $# -gt 0 ]]; do
       plan_only=true
       shift
       ;;
+    --plan-file)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value for --plan-file" >&2
+        exit 1
+      fi
+      saved_plan="$2"
+      shift 2
+      ;;
     --terraform-only)
       terraform_only=true
       shift
@@ -239,6 +250,25 @@ fi
 source "$(dirname "${BASH_SOURCE[0]}")/lib/deployment-context.sh"
 require_owned_setup "$setup_name"
 require_current_terraform_layout "$setup_name"
+if [[ -n "$saved_plan" ]]; then
+  if [[ "$destroy" == true || "$ansible_only" == true ]]; then
+    echo "--plan-file cannot be combined with --destroy or --ansible-only." >&2
+    exit 1
+  fi
+  [[ "$saved_plan" == /* ]] || saved_plan="$repo_root/$saved_plan"
+  saved_plan="$(realpath -m -- "$saved_plan")"
+  if [[ "$saved_plan" != "$repo_root/.terraform/plans/"* || "$saved_plan" != *.tfplan ]]; then
+    echo "--plan-file must be a .tfplan inside this tier's .terraform/plans/ directory." >&2
+    exit 1
+  fi
+  if [[ "$plan_only" == true ]]; then
+    rm -f -- "$saved_plan" "$saved_plan.context" "$saved_plan.applied.context"
+    mkdir -p -- "$(dirname "$saved_plan")"
+  elif [[ ( ! -f "$saved_plan" && ! -f "$saved_plan.applied.context" ) || -L "$saved_plan" ]]; then
+    echo "No saved plan. Plan and review this exact deployment first." >&2
+    exit 1
+  fi
+fi
 ansible_group_vars_paths=("$ansible_dir/group_vars/all.yml")
 environment_ansible_vars_path=""
 setup_ansible_vars_base_path=""
@@ -398,6 +428,11 @@ load_env_file() {
     local key="${line%%=*}"
     local value="${line#*=}"
 
+    if [[ "${IAC_REQUIRE_VAULT_PROVIDER:-false}" == true && "$key" =~ ^(TF_VAR_proxmox_api_|PROXMOX_API_) ]]; then
+      echo "Privileged CI environment files must not override Vault provider credentials." >&2
+      exit 1
+    fi
+
     key="${key%"${key##*[![:space:]]}"}"
     value="${value#"${value%%[![:space:]]*}"}"
 
@@ -408,6 +443,7 @@ load_env_file() {
 
     case "$key" in
       ansible_dir|ansible_playbook_dir|automation_root|DEPLOYMENT_REPO_DIR|SHARED_REPO_DIR|\
+      IAC_REQUIRE_VAULT_PROVIDER|\
       deployment_env|env_file_path|inventory_path|repo_root|setup_name|terraform_dir|\
       terraform_state_path|terraform_data_dir|var_file_path|recipe|ansible_only|\
       terraform_only|plan_only|destroy|auto_approve|ansible_playbooks|playbook_override)
@@ -427,6 +463,13 @@ load_env_file() {
 }
 
 map_provider_env() {
+  if [[ "${IAC_REQUIRE_VAULT_PROVIDER:-false}" == true && (
+    "${TF_VAR_proxmox_api_url:-}" != "${PROXMOX_API_URL:-}" ||
+    "${TF_VAR_proxmox_api_token_id:-}" != "${PROXMOX_API_TOKEN_ID:-}" ||
+    "${TF_VAR_proxmox_api_token_secret:-}" != "${PROXMOX_API_TOKEN_SECRET:-}" ) ]]; then
+    echo "Local environment conflicts with Vault-injected provider credentials." >&2
+    exit 1
+  fi
   export TF_VAR_proxmox_api_url="${TF_VAR_proxmox_api_url:-${PROXMOX_API_URL:-}}"
   export TF_VAR_proxmox_api_token_id="${TF_VAR_proxmox_api_token_id:-${PROXMOX_API_TOKEN_ID:-}}"
   export TF_VAR_proxmox_api_token_secret="${TF_VAR_proxmox_api_token_secret:-${PROXMOX_API_TOKEN_SECRET:-}}"
@@ -545,6 +588,25 @@ run_terraform() {
     fi
     terraform init -reconfigure -backend-config="path=$terraform_state_path"
 
+    if [[ -n "$saved_plan" && "$plan_only" != true ]]; then
+      context_path="$saved_plan.context"
+      if [[ -f "$saved_plan.applied.context" ]]; then
+        context_path="$saved_plan.applied.context"
+      fi
+      if ! cmp -s <(saved_plan_context) "$context_path"; then
+        echo "Saved plan context does not match this setup, environment, state, configuration or Shared code." >&2
+        exit 1
+      fi
+      if [[ "$context_path" == "$saved_plan.applied.context" ]]; then
+        echo "==> Infrastructure already applied; retrying the approved configuration only"
+        exit 0
+      fi
+      terraform apply -input=false -lock-timeout=60s "$saved_plan"
+      mv -- "$saved_plan.context" "$saved_plan.applied.context"
+      rm -f -- "$saved_plan"
+      exit 0
+    fi
+
     terraform_args=()
     # Later files replace variable values; roots merge shared/tier network maps by name.
     platform_profile_path="$automation_root/config/platform.tfvars"
@@ -601,7 +663,15 @@ run_terraform() {
       exit 0
     fi
 
-    terraform plan "${terraform_args[@]}"
+    if [[ -n "$saved_plan" ]]; then
+      if ! terraform plan -input=false -lock-timeout=60s -out="$saved_plan" "${terraform_args[@]}"; then
+        rm -f -- "$saved_plan" "$saved_plan.context"
+        exit 1
+      fi
+      saved_plan_context > "$saved_plan.context"
+    else
+      terraform plan "${terraform_args[@]}"
+    fi
 
     if [[ "$plan_only" == true ]]; then
       exit 0
@@ -613,6 +683,13 @@ run_terraform() {
       terraform apply "${terraform_args[@]}"
     fi
   )
+}
+
+saved_plan_context() {
+  python3 "$automation_root/scripts/saved-plan-context.py" \
+    --repo "$repo_root" --shared "$automation_root" --setup "$setup_name" \
+    --environment "$deployment_env" --state "$terraform_state_path" \
+    "${required_files[@]}" "$env_file_path"
 }
 
 run_ansible_playbooks() {
@@ -661,6 +738,9 @@ if [[ "$ansible_only" == false ]]; then
 fi
 
 if [[ "$plan_only" == true || "$terraform_only" == true ]]; then
+  if [[ -n "$saved_plan" && "$plan_only" != true ]]; then
+    rm -f -- "$saved_plan.applied.context"
+  fi
   exit 0
 fi
 
@@ -670,3 +750,6 @@ fi
 
 reset_known_host_entries
 run_ansible_playbooks
+if [[ -n "$saved_plan" ]]; then
+  rm -f -- "$saved_plan.applied.context"
+fi

@@ -66,6 +66,8 @@ Thumbs.db
 # Temporary local validation output
 .tmp/
 .venv/
+__pycache__/
+*.py[cod]
 
 # Local security-logging drill manifests, raw exports and reports
 .logging-evidence/

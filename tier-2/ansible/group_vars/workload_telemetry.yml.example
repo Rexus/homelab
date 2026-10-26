@@ -1,0 +1,17 @@
+---
+# Guide: docs/deployment/stage-10-lab-environments/telemetry.md
+workload_telemetry_action: render
+workload_telemetry_kubeconfig: ""
+workload_telemetry_namespace: lab-demo
+workload_telemetry_chart_version: REPLACE_WITH_EXACT_CHART_VERSION
+workload_telemetry_image_tag: REPLACE_WITH_COMPATIBLE_CONTRIB_VERSION
+workload_telemetry_storage_class: REPLACE_WITH_ACCEPTED_CSI_CLASS
+# Private reachable Tier 1 gateway, with matching server certificate names.
+# Example NodePorts match the selected Observability inputs; never assume these defaults.
+workload_telemetry_metrics_endpoint: otel.internal.example.com:30317
+workload_telemetry_application_endpoint: otel.internal.example.com:30400
+workload_telemetry_gateway_cidrs: []
+workload_telemetry_gateway_ports: [30317, 30400]
+# Existing per-namespace Secrets: otel-agent-metrics-client and otel-agent-application-client.
+# Each has tls.crt, tls.key, ca.crt. The latter identity is accepted only by this app's scope.
+workload_telemetry_manage_secrets: false

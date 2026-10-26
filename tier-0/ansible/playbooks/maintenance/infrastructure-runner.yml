@@ -1,0 +1,8 @@
+---
+# Reconcile supported configuration; package changes require an approved version input.
+- name: Reconcile the trusted infrastructure runner
+  hosts: infrastructure_runner
+  become: true
+  serial: 1
+  roles:
+    - infrastructure_runner

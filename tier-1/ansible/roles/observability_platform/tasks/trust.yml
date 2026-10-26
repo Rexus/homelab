@@ -1,0 +1,84 @@
+---
+- name: Resolve the client authority Secret names
+  ansible.builtin.set_fact:
+    observability_client_authorities: >-
+      {{ [observability_metrics_client_ca_secret]
+         + (observability_log_scopes | map(attribute='name') | map('regex_replace', '$', '-clients-ca') | list) }}
+    observability_client_ca_contents: {}
+    observability_client_ca_fingerprints: []
+
+- name: Read externally managed client authorities before opening intake
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ observability_kubeconfig }}"
+    context: "{{ observability_context | default(omit, true) }}"
+    validate_certs: true
+    kind: Secret
+    name: "{{ item }}"
+    namespace: "{{ observability_namespace }}"
+  loop: "{{ observability_client_authorities }}"
+  register: observability_existing_authorities
+  when: not observability_manage_secrets | bool
+  no_log: true
+
+- name: Require complete externally managed client authorities
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - "'ca.crt' in item.resources[0].data"
+  loop: "{{ observability_existing_authorities.results | default([]) }}"
+  when: not observability_manage_secrets | bool
+  no_log: true
+
+- name: Resolve public CA material from existing identities
+  ansible.builtin.set_fact:
+    observability_client_ca_contents: >-
+      {{ observability_client_ca_contents | combine({item.item: item.resources[0].data['ca.crt'] | b64decode}) }}
+  loop: "{{ observability_existing_authorities.results | default([]) }}"
+  when: not observability_manage_secrets | bool
+  no_log: true
+
+- name: Resolve public CA material from explicitly managed identities
+  ansible.builtin.set_fact:
+    observability_client_ca_contents: >-
+      {{ observability_client_ca_contents
+         | combine({item: observability_secrets.get(observability_namespace ~ '/' ~ item, {}).get('ca.crt', '')}) }}
+  loop: "{{ observability_client_authorities }}"
+  when: observability_manage_secrets | bool
+  no_log: true
+
+- name: Require one dedicated client-signing CA per source authority
+  ansible.builtin.assert:
+    that:
+      - item.value | regex_findall('-----BEGIN CERTIFICATE-----') | length == 1
+      - item.value | regex_findall('-----END CERTIFICATE-----') | length == 1
+    fail_msg: Source trust must use one dedicated client CA; overlapping shared-root bundles are not scope isolation.
+  loop: "{{ observability_client_ca_contents | dict2items }}"
+  no_log: true
+
+- name: Parse native CA validity and certificate identity
+  community.crypto.x509_certificate_info:
+    content: "{{ item.value }}"
+    valid_at: {current: '+0s'}
+  loop: "{{ observability_client_ca_contents | dict2items }}"
+  register: observability_ca_info
+  no_log: true
+
+- name: Require currently valid certificate authorities
+  ansible.builtin.assert:
+    that:
+      - item.valid_at.current
+      - "'CA:TRUE' in item.basic_constraints"
+  loop: "{{ observability_ca_info.results }}"
+  no_log: true
+
+- name: Collect native certificate fingerprints
+  ansible.builtin.set_fact:
+    observability_client_ca_fingerprints: "{{ observability_client_ca_fingerprints + [item.fingerprints.sha256] }}"
+  loop: "{{ observability_ca_info.results }}"
+  no_log: true
+
+- name: Reject shared client-signing authorities between source scopes
+  ansible.builtin.assert:
+    that:
+      - observability_client_ca_fingerprints | unique | length == observability_client_authorities | length
+    fail_msg: Use a distinct dedicated client-signing CA for metrics and for every application/projection listener.

@@ -1,0 +1,83 @@
+---
+- name: Validate selected delivery products
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Start a tier-owned release selection
+  ansible.builtin.set_fact:
+    delivery_platform_releases: []
+
+- name: Select the native Harbor release
+  ansible.builtin.include_tasks: harbor.yml
+  when: delivery_platform_install_harbor | bool
+
+- name: Select the native Argo CD release
+  ansible.builtin.include_tasks: argocd.yml
+  when: delivery_platform_controller == 'argocd'
+
+- name: Render and validate the reviewed Spinnaker overlay before any installation
+  ansible.builtin.include_tasks: spinnaker.yml
+  when: delivery_platform_controller == 'spinnaker'
+
+- name: Validate product credentials before applying releases
+  ansible.builtin.include_tasks: credentials.yml
+
+- name: Inspect the selected persistent storage provisioner
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+    name: "{{ delivery_platform_harbor_storage_class }}"
+  register: delivery_platform_storage
+  when:
+    - delivery_platform_action == 'apply'
+    - delivery_platform_install_harbor | bool
+
+- name: Reject unavailable persistent storage
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_storage.resources | length == 1
+  when:
+    - delivery_platform_action == 'apply'
+    - delivery_platform_install_harbor | bool
+
+- name: Verify identity discovery before application changes
+  ansible.builtin.uri:
+    url: "{{ delivery_platform_oidc_issuer }}/.well-known/openid-configuration"
+    ca_path: "{{ delivery_platform_ca_path }}"
+    validate_certs: true
+    return_content: true
+  register: delivery_platform_discovery
+  when: delivery_platform_action == 'apply'
+
+- name: Check the discovered authority
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_discovery.json.issuer == delivery_platform_oidc_issuer
+      - delivery_platform_discovery.json.authorization_endpoint is match('^https://')
+      - delivery_platform_discovery.json.token_endpoint is match('^https://')
+  when: delivery_platform_action == 'apply'
+
+- name: Execute tier-owned native Helm releases
+  ansible.builtin.include_role:
+    name: kubernetes_applications
+  vars:
+    kube_apps_action: "{{ delivery_platform_action }}"
+    kube_apps_kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    kube_apps_context: "{{ delivery_platform_context }}"
+    kube_apps_output: "{{ delivery_platform_output }}"
+    kube_apps_releases: "{{ delivery_platform_releases }}"
+    kube_apps_manage_secrets: "{{ delivery_platform_manage_secrets }}"
+    kube_apps_secrets: "{{ delivery_platform_secrets }}"
+  when: delivery_platform_releases | length > 0
+
+- name: Apply the reviewed Spinnaker resources
+  ansible.builtin.include_tasks: spinnaker-apply.yml
+  when:
+    - delivery_platform_controller == 'spinnaker'
+    - delivery_platform_action == 'apply'
+
+- name: Qualify application endpoints
+  ansible.builtin.include_tasks: readiness.yml
+  when: delivery_platform_action == 'apply'

@@ -1,0 +1,168 @@
+---
+- name: Install approved signed Netdata packages and native runtime
+  ansible.builtin.dnf:
+    name: "{{ infrastructure_monitoring_packages + ['podman', 'curl'] }}"
+    state: present
+    disable_gpg_check: false
+
+- name: Prepare Tier 0 monitoring directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: netdata
+    mode: "0750"
+  loop:
+    - /etc/netdata/private
+    - /etc/netdata/go.d
+    - /etc/netdata/health.d
+    - /etc/infrastructure-monitoring
+    - /var/lib/infrastructure-monitoring
+    - /etc/containers/systemd
+
+- name: Install private local credentials without disclosing them
+  ansible.builtin.copy:
+    content: "{{ item.value }}"
+    dest: "/etc/netdata/private/{{ item.key }}"
+    owner: root
+    group: netdata
+    mode: "0640"
+  loop: "{{ infrastructure_monitoring_private_files | dict2items }}"
+  no_log: true
+  notify: Restart independent Netdata
+  register: infrastructure_monitoring_credentials_changed
+
+- name: Install source-owned native Netdata configurations
+  ansible.builtin.template:
+    src: "{{ item.source }}"
+    dest: "{{ item.path }}"
+    owner: root
+    group: netdata
+    mode: "0640"
+  loop:
+    - {source: netdata.conf.j2, path: /etc/netdata/netdata.conf}
+    - {source: stream.conf.j2, path: /etc/netdata/stream.conf}
+    - {source: redfish.conf.j2, path: /etc/netdata/go.d/redfish.conf}
+    - {source: prometheus.conf.j2, path: /etc/netdata/go.d/prometheus.conf}
+  notify: Restart independent Netdata
+  no_log: true
+
+- name: Install independent native health rules
+  ansible.builtin.copy:
+    content: "{{ infrastructure_monitoring_health_rules }}"
+    dest: /etc/netdata/health.d/infrastructure.conf
+    owner: root
+    group: netdata
+    mode: "0640"
+  notify: Restart independent Netdata
+
+- name: Install independent notification credentials
+  ansible.builtin.copy:
+    content: "{{ infrastructure_monitoring_private_files['health_alarm_notify.conf'] }}"
+    dest: /etc/netdata/health_alarm_notify.conf
+    owner: root
+    group: netdata
+    mode: "0640"
+  notify: Restart independent Netdata
+  no_log: true
+
+- name: Install private exporter and Collector configuration
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/infrastructure-monitoring/{{ item }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop: [pve.yml, collector.yml]
+  register: infrastructure_monitoring_container_configs
+  no_log: true
+
+- name: Define loopback-only Proxmox polling with the supported Podman module
+  containers.podman.podman_container:
+    name: infrastructure-pve
+    image: "{{ infrastructure_monitoring_pve_image }}"
+    state: quadlet
+    network: host
+    user: '0:0'
+    command: [--config.file=/etc/pve.yml, --web.listen-address=127.0.0.1:9221]
+    env: {REQUESTS_CA_BUNDLE: /tls/ca.crt}
+    volume:
+      - /etc/infrastructure-monitoring/pve.yml:/etc/pve.yml:ro,Z
+      - /etc/netdata/private/ca.crt:/tls/ca.crt:ro,z
+    memory: "{{ infrastructure_monitoring_resources.exporter_memory }}"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges]
+    quadlet_file_mode: "0600"
+    quadlet_options:
+      - '[Service]'
+      - 'Restart=on-failure'
+      - '[Install]'
+      - 'WantedBy=multi-user.target'
+  when: infrastructure_monitoring_pve_targets | length > 0
+  register: infrastructure_monitoring_exporter
+
+- name: Define the allowlisted push-only metric bridge
+  containers.podman.podman_container:
+    name: infrastructure-export
+    image: "{{ infrastructure_monitoring_collector_image }}"
+    state: quadlet
+    network: host
+    user: '0:0'
+    command: [--config=/etc/otelcol/config.yml]
+    volume:
+      - /etc/infrastructure-monitoring/collector.yml:/etc/otelcol/config.yml:ro,Z
+      - /etc/netdata/private/ca.crt:/tls/ca.crt:ro,z
+      - /etc/netdata/private/export.crt:/tls/export.crt:ro,z
+      - /etc/netdata/private/export.key:/tls/export.key:ro,z
+      - /var/lib/infrastructure-monitoring:/var/lib/otelcol:Z
+    memory: "{{ infrastructure_monitoring_resources.collector_memory }}"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges]
+    quadlet_file_mode: "0600"
+    quadlet_options:
+      - '[Service]'
+      - 'Restart=on-failure'
+      - '[Install]'
+      - 'WantedBy=multi-user.target'
+  when: infrastructure_monitoring_export_endpoint | length > 0
+  register: infrastructure_monitoring_bridge
+
+- name: Converge managed Quadlet services and configuration changes
+  ansible.builtin.systemd_service:
+    name: "{{ item.name }}"
+    daemon_reload: true
+    state: "{{ 'restarted' if infrastructure_monitoring_container_configs.changed or infrastructure_monitoring_credentials_changed.changed or item.changed else 'started' }}"
+  loop:
+    - name: infrastructure-pve
+      active: "{{ infrastructure_monitoring_pve_targets | length > 0 }}"
+      changed: "{{ infrastructure_monitoring_exporter.changed | default(false) }}"
+    - name: infrastructure-export
+      active: "{{ infrastructure_monitoring_export_endpoint | length > 0 }}"
+      changed: "{{ infrastructure_monitoring_bridge.changed | default(false) }}"
+  when: item.active | bool
+
+- name: Stop retired polling and export services
+  ansible.builtin.include_tasks: retire.yml
+
+- name: Start independent Netdata
+  ansible.builtin.systemd_service:
+    name: netdata
+    enabled: true
+    state: started
+
+- name: Configure the external detector heartbeat
+  ansible.builtin.include_tasks: heartbeat.yml
+
+- name: Apply configuration handlers before checking the parent
+  ansible.builtin.meta: flush_handlers
+
+- name: Check the native local parent API with validated TLS
+  ansible.builtin.uri:
+    url: "https://{{ infrastructure_monitoring_listen_address }}:19999/api/v1/info"
+    ca_path: /etc/netdata/private/ca.crt
+    validate_certs: true
+    return_content: true
+  register: infrastructure_monitoring_parent
+  until: infrastructure_monitoring_parent.status == 200
+  retries: 12
+  delay: 5

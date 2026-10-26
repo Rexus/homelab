@@ -1,0 +1,33 @@
+fullnameOverride: data-prepper
+replicaCount: {{ observability_prepper_replicas }}
+image: {tag: '2.14.1'}
+resources:
+{{ observability_resources.prepper | to_nice_yaml | indent(2, true) }}
+serviceAccount: {create: true, automount: false}
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector: {matchLabels: {app.kubernetes.io/instance: data-prepper}}
+        topologyKey: {{ observability_topology_key }}
+extraEnvs:
+  - {name: JAVA_OPTS, value: '-Xms1g -Xmx1g'}
+config:
+  data-prepper-config.yaml: |
+    ssl: false
+    serverPort: 4900
+    processorShutdownTimeout: 30s
+    sinkShutdownTimeout: 60s
+ports:
+{% for scope in observability_log_scopes %}
+  - {name: scope{{ loop.index }}-logs, port: {{ 21890 + 2 * loop.index0 }}}
+{% if scope.kind == 'application' %}
+  - {name: scope{{ loop.index }}-traces, port: {{ 21891 + 2 * loop.index0 }}}
+{% endif %}
+{% endfor %}
+volumes: [{name: tls, secret: {secretName: prepper-tls}}]
+volumeMounts: [{name: tls, mountPath: /tls, readOnly: true}]
+pipelineConfig:
+  demoPipeline: false
+  enabled: true
+  config:
+{{ lookup('ansible.builtin.template', 'prepper-pipelines.yml.j2') | indent(4, true) }}

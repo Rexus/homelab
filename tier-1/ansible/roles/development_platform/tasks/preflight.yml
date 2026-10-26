@@ -1,0 +1,71 @@
+---
+- name: Reject incomplete or unsafe platform settings
+  ansible.builtin.assert:
+    that:
+      - development_platform_action in ['render', 'apply']
+      - development_platform_components | length > 0
+      - development_platform_components | difference(['gitlab', 'runners']) | length == 0
+      - development_platform_chart_repository is match('^https://')
+      - development_platform_namespace is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - development_platform_runner_namespace is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - development_platform_runner_namespace != development_platform_namespace
+      - development_platform_host is match('^[a-z0-9.-]+$')
+      - not development_platform_host.endswith('.example.com')
+      - development_platform_action != 'apply' or development_platform_kubeconfig | length > 0
+    fail_msg: Configure local Tier 1 inputs and distinct application/job namespaces before rendering or applying.
+
+- name: Validate GitLab dependencies before rendering or applying
+  ansible.builtin.assert:
+    that:
+      - development_platform_gitlab_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - development_platform_ingress_class | length > 0
+      - development_platform_database_host | length > 0
+      - development_platform_redis_host | length > 0
+      - development_platform_gitaly_host | length > 0
+      - "'REPLACE' not in development_platform_database_host + development_platform_redis_host + development_platform_gitaly_host"
+      - development_platform_oidc_issuer is match('^https://')
+      - development_platform_buckets.values() | list | unique | length == development_platform_buckets | length
+    fail_msg: Pin the chart and prepare external database, Redis, Gitaly, object storage, ingress, TLS and OIDC.
+  when: "'gitlab' in development_platform_components"
+
+- name: Validate on-demand runner limits
+  ansible.builtin.assert:
+    that:
+      - development_platform_runner_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - development_platform_runner_concurrent | int > 0
+      - development_platform_runner_concurrent | int <= 32
+      - development_platform_runner_allowed_cidrs | length > 0
+      - development_platform_runner_api_cidrs | length > 0
+      - "'0.0.0.0/0' not in development_platform_runner_allowed_cidrs + development_platform_runner_api_cidrs"
+      - "'::/0' not in development_platform_runner_allowed_cidrs + development_platform_runner_api_cidrs"
+      - development_platform_runner_image is match('^[^\s]+@sha256:[a-f0-9]{64}$')
+      - development_platform_runner_helper_image is match('^[^\s]+@sha256:[a-f0-9]{64}$')
+    fail_msg: Pin compatible build/helper images by digest and choose a bounded job concurrency.
+  when: "'runners' in development_platform_components"
+
+- name: Check native Python network validation dependency
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", -c, "import netaddr"]
+  changed_when: false
+  when: "'runners' in development_platform_components"
+
+- name: Validate runner network inputs with the native collection filter
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - "'/' in item"
+      - (item | ansible.utils.ipaddr('network/prefix')) is string
+    fail_msg: Use explicit valid network CIDRs, not hostnames or unrestricted default routes.
+  loop: "{{ development_platform_runner_allowed_cidrs + development_platform_runner_api_cidrs }}"
+  when: "'runners' in development_platform_components"
+
+- name: Check native Kubernetes client before making cluster changes
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", -c, "import kubernetes, jsonpatch, yaml"]
+  changed_when: false
+  when: development_platform_action == 'apply'
+
+- name: Check native Helm tool
+  ansible.builtin.command:
+    argv: [helm, version, --short]
+  changed_when: false

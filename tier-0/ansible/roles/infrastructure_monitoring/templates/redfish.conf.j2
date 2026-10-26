@@ -1,0 +1,14 @@
+autodetection_retry: 0
+update_every: 30
+jobs:
+{% for target in infrastructure_monitoring_redfish_targets %}
+  - name: {{ target.name }}
+    url: {{ target.url | to_json }}
+    username: {{ target.username | to_json }}
+    password: '${file:/etc/netdata/private/{{ target.password_file }}}'
+    tls_ca: /etc/netdata/private/ca.crt
+    tls_skip_verify: false
+    timeout: 15
+{% else %}
+  []
+{% endfor %}

@@ -1,0 +1,27 @@
+---
+lab_environment_action: render
+lab_environment_kubeconfig: ""
+lab_environment_context: ""
+lab_environment_output: "{{ playbook_dir }}/../../../secrets/lab-environment"
+lab_environment_name: ""
+lab_environment_owner_group: ""
+lab_environment_image: ""
+lab_environment_replicas: 2
+lab_environment_host: ""
+lab_environment_tls_secret: lab-tls
+lab_environment_ingress_class: ""
+lab_environment_ingress_namespace: ""
+lab_environment_port: 8080
+lab_environment_uid: 10001
+lab_environment_resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: 500m, memory: 256Mi}
+lab_environment_quota:
+  requests.cpu: '2'
+  requests.memory: 2Gi
+  limits.cpu: '4'
+  limits.memory: 4Gi
+  pods: '10'
+  services: '5'
+  persistentvolumeclaims: '5'
+  requests.storage: 20Gi

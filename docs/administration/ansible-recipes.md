@@ -59,6 +59,31 @@ The signing play is a gated backend renderer, not a service, VIP or HA installer
 | 1 / `observability` | `deployment/telemetry-hosts.yml` | `maintenance/observability.yml`: host baseline only |
 | 2 / `lab` | `deployment/lab-vms.yml` | `maintenance/lab.yml`: host baseline |
 
+Cluster applications use separate native recipes, not Linux Terraform setup names.
+Run them from the owning tier root with its Ansible configuration, local inputs and
+explicit kubeconfig. Their default action is offline `render`; `apply` is explicit.
+
+| Working tier | Native application recipe | Authoritative guide |
+| --- | --- | --- |
+| 0, 1, 2 | `deployment/cluster-platform.yml` | [Kubernetes basic platform](../deployment/stage-4-kubernetes/README.md#step-2-establish-the-basic-platform); tier-local inputs, Shared execution |
+| 0, 1, 2 | `deployment/cluster-security-logging.yml` | [Protected cluster-source collection](../deployment/stage-4-kubernetes/procedures/security-logging.md) |
+| 0 | `deployment/control-applications.yml` | [Identity](../deployment/stage-5-identity/README.md), [Secrets](../deployment/stage-6-secrets/README.md) |
+| 1 | `deployment/delivery-platform.yml` | [Delivery](../deployment/stage-7-delivery/README.md) |
+| 1 | `deployment/observability-platform.yml` | [Observability](../deployment/stage-8-observability/README.md) |
+| 1 | `deployment/development-platform.yml` | [GitLab and runners](../deployment/stage-9-development/procedures/gitlab.md) |
+| 2 | `deployment/lab-environment.yml` | [Bounded application](../deployment/stage-10-lab-environments/application.md) |
+| 2 | `deployment/workload-telemetry.yml` | [Scoped application telemetry](../deployment/stage-10-lab-environments/telemetry.md) |
+
+Tier 0's `deployment/infrastructure-monitoring.yml` instead targets an explicitly
+prepared host outside observed clusters; use the [independent monitoring guide](../deployment/stage-6-secrets/monitoring.md).
+Tier 0's control-application recipe also owns the guarded
+[Kubernetes API SSO operation](../deployment/stage-5-identity/procedures/kubernetes-sso.md),
+which uses the selected target tier's plan and credentials, not Helm.
+
+Reconcile the same release with the same values owner; do not run direct apply and
+a GitOps controller against the same objects simultaneously. Stateful upgrades,
+schema migrations and restores require the product's separate acceptance runbook.
+
 The [domain catalog](../architecture/README.md#technical-domains) maps these variants to
 the platform architecture and deployment stages. A stage can combine Terraform, Ansible, GitOps,
 and manual procedures; it is not an Ansible playbook that deploys everything.

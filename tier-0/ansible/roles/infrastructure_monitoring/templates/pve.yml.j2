@@ -1,0 +1,9 @@
+{% for name in infrastructure_monitoring_pve_targets | map(attribute='credential') | unique %}
+{{ name }}:
+  user: {{ infrastructure_monitoring_pve_credentials.get(name, {}).get('user', 'RENDER-ONLY') | to_json }}
+  token_name: {{ infrastructure_monitoring_pve_credentials.get(name, {}).get('token_name', 'RENDER-ONLY') | to_json }}
+  token_value: {{ infrastructure_monitoring_pve_credentials.get(name, {}).get('token_value', 'RENDER-ONLY') | to_json }}
+  verify_ssl: true
+{% else %}
+{}
+{% endfor %}

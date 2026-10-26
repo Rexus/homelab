@@ -21,7 +21,7 @@ class PkiBundle(TierRepositoryTestCase):
         self.generate()
         guides = (
             ('tier-0', 'stage-3-trust/procedures/software-pki.md', 'openxpki-bundle.yml'),
-            ('tier-2', 'stage-9-workloads/public-https.md', 'public-certificate-schedule.yml'),
+            ('tier-2', 'stage-10-lab-environments/public-https.md', 'public-certificate-schedule.yml'),
         )
         for collection, prefix, docs in (
             (UPSTREAM, '', UPSTREAM / 'docs'),

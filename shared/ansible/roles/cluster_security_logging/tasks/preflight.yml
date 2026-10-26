@@ -1,0 +1,81 @@
+---
+- name: Require explicit scope, pinned artifacts and approved repositories
+  ansible.builtin.assert:
+    that:
+      - cluster_security_logging_action in ['render', 'apply']
+      - cluster_security_logging_action != 'apply' or cluster_security_logging_kubeconfig | length > 0
+      - cluster_security_logging_output | length > 0
+      - cluster_security_logging_cluster is match('^[a-z0-9][a-z0-9-]{0,31}$')
+      - cluster_security_logging_tier in [0, 1, 2]
+      - cluster_security_logging_namespace is match('^[a-z0-9][a-z0-9-]{0,62}$')
+      - cluster_security_logging_talos_schema in ['v1.13', 'v1.14']
+      - cluster_security_logging_chart_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - cluster_security_logging_chart_repository is match('^https://[^/@\s]+(/[^\s]*)?$')
+      - cluster_security_logging_chart_repository in cluster_security_logging_approved_repositories
+      - cluster_security_logging_image_repository is match('^[a-zA-Z0-9][a-zA-Z0-9./:_-]+$')
+      - cluster_security_logging_image_repository in cluster_security_logging_approved_image_repositories
+      - cluster_security_logging_image_tag is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - cluster_security_logging_image_digest == '' or cluster_security_logging_image_digest is match('^sha256:[a-f0-9]{64}$')
+      - cluster_security_logging_health_retries | int > 0
+      - cluster_security_logging_health_delay | int > 0
+    fail_msg: Supply tier-owned cluster/node inputs, exact chart/image pins, approved repositories and a Talos schema.
+
+- name: Require the independent protected receiver and bounded dedicated queue
+  ansible.builtin.assert:
+    that:
+      - cluster_security_logging_receiver is match('^[a-zA-Z0-9][a-zA-Z0-9.-]*$')
+      - cluster_security_logging_receiver_name is match('^[a-zA-Z0-9][a-zA-Z0-9.-]*$')
+      - "'REPLACE' not in cluster_security_logging_receiver + cluster_security_logging_receiver_name"
+      - not cluster_security_logging_receiver.endswith('.example.com')
+      - cluster_security_logging_receiver_port | int > 0
+      - cluster_security_logging_receiver_port | int <= 65535
+      - cluster_security_logging_listener_port | int >= 1024
+      - cluster_security_logging_listener_port | int <= 65535
+      - cluster_security_logging_metrics_port | int >= 1024
+      - cluster_security_logging_metrics_port | int <= 65535
+      - cluster_security_logging_listener_port | int != cluster_security_logging_metrics_port | int
+      - cluster_security_logging_queue_path is match('^/var/lib/cluster-security-logging/[a-z0-9][a-z0-9-]{0,31}$')
+      - cluster_security_logging_queue_mib_per_output | int >= 16
+      - cluster_security_logging_queue_mib_per_output | int <= 4096
+      - cluster_security_logging_max_message_bytes | int >= 49152
+      - cluster_security_logging_max_message_bytes | int <= 65536
+    fail_msg: Select a verified TLS peer and a dedicated bounded node-local queue; no disk is formatted or replaced.
+
+- name: Require a unique node, TLS identity and Secret for every collector
+  ansible.builtin.assert:
+    that:
+      - cluster_security_logging_nodes | length > 0
+      - cluster_security_logging_nodes | map(attribute='name') | unique | length == cluster_security_logging_nodes | length
+      - cluster_security_logging_nodes | map(attribute='stream') | unique | length == cluster_security_logging_nodes | length
+      - cluster_security_logging_nodes | map(attribute='tls_secret') | unique | length == cluster_security_logging_nodes | length
+      - cluster_security_logging_nodes | selectattr('control_plane', 'equalto', true) | list | length > 0
+    fail_msg: List all actual cluster nodes with unique streams/Secrets and identify the API-server nodes.
+
+- name: Validate node names and receiver-observed stream enrollment
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+      - item.name | length <= 63
+      - item.stream is match('^[a-z0-9][a-z0-9-]{0,39}$')
+      - item.tls_secret is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+      - item.control_plane is boolean
+      - item.source_address is string
+      - item.source_address | ansible.utils.ipv4('address') == item.source_address
+      - item.source_address != '0.0.0.0'
+      - item.tls_dn is string
+      - item.tls_dn | length > 0
+      - "'CN=' ~ item.stream in item.tls_dn"
+      - "'\n' not in item.tls_dn"
+    fail_msg: Use real Kubernetes node names, unique safe stream CNs, exact subjects and observed IPv4 origins.
+  loop: "{{ cluster_security_logging_nodes }}"
+  loop_control:
+    label: "{{ item.name | default('invalid node') }}"
+
+- name: Require reviewed host access and completed source/receiver preparation for apply
+  ansible.builtin.assert:
+    that:
+      - cluster_security_logging_receiver_enrolled | bool
+      - cluster_security_logging_talos_configured | bool
+      - cluster_security_logging_host_access_accepted | bool
+    fail_msg: Enroll every client stream at intake, apply the reviewed Talos patches, and approve collector host access.
+  when: cluster_security_logging_action == 'apply'

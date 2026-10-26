@@ -29,9 +29,10 @@ options branch from the relevant decision and return to the main path.
 | **4: Kubernetes** | Control-cluster lifecycle, basic platform, node/API logging and recovery | [Kubernetes, Steps 1-3](../../deployment/stage-4-kubernetes/README.md) |
 | **5: Identity** | Dedicated FreeIPA pair and Keycloak/OIDC on the accepted cluster | [Identity](../../deployment/stage-5-identity/README.md) |
 | **6: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../deployment/stage-6-secrets/README.md), [monitoring](../../deployment/stage-6-secrets/monitoring.md) |
-| **7: Delivery and handover** | Protected Tier 0 runner; Tier 1 owns delivery services | [Delivery and handover](../../deployment/stage-7-delivery/README.md) |
+| **7: Delivery** | Retain independent Flux/recovery; Tier 1 selects its application controller | [Delivery](../../deployment/stage-7-delivery/README.md) |
 | **8: Observability** | Own Proxmox/BMC collectors and credentials; export approved metrics/evidence copies to Tier 1 | [Infrastructure monitoring](../../deployment/stage-8-observability/infrastructure-monitoring.md) |
-| **9: Workload provisioning** | Approve and execute infrastructure requests | [Workload provisioning](../../deployment/stage-9-workloads/README.md) |
+| **9: Development platform** | Install the dedicated runner and Vault CI policy; hand over original state with explicit CI trust | [Development platform](../../deployment/stage-9-development/README.md) |
+| **10: Lab environments** | Approve bounded infrastructure requests; an automated allocator is not supplied | [Lab environments](../../deployment/stage-10-lab-environments/README.md) |
 
 Select optional [HA](../../deployment/foundation/step-1b-cluster-ha.md) and
 [SDN](../../deployment/foundation/step-1c-sdn.md) before important guests.

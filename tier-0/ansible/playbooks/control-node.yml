@@ -3,6 +3,22 @@
   ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
   vars:
     control_node_collection_catalog:
+      containers.podman:
+        name: containers.podman
+        version: '>=1.18.0,<2.0.0'
+        os_packages: {RedHat: [], Debian: []}
+      kubernetes.core:
+        name: kubernetes.core
+        version: '>=6.6.0,<7.0.0'
+        os_packages: {RedHat: [], Debian: []}
+      ansible.utils:
+        name: ansible.utils
+        version: '>=6.0.0,<7.0.0'
+        os_packages: {RedHat: [python3-netaddr], Debian: [python3-netaddr]}
+      community.hashi_vault:
+        name: community.hashi_vault
+        version: '>=7.0.0,<8.0.0'
+        os_packages: {RedHat: [], Debian: []}
       ansible.mariadb:
         name: ansible.mariadb
         os_packages:
@@ -14,9 +30,14 @@
           RedHat: [ansible-freeipa]
           Debian: [ansible-freeipa]
     control_node_setup_collection_names:
+      cluster-platform: [kubernetes.core]
+      cluster-security-logging: [kubernetes.core, ansible.utils, community.crypto]
+      control-applications: [kubernetes.core, ansible.utils, community.general, community.hashi_vault, community.crypto]
+      infrastructure-monitoring: [community.general, ansible.posix, containers.podman]
       foundation: [community.general, ansible.posix, freeipa.ansible_freeipa, ansible.mariadb, community.crypto]
       syslog: [community.general, ansible.posix, community.crypto]
       vault: [community.general, ansible.posix]
+      infrastructure-runner: [community.general, ansible.posix]
       hsm: [community.general, ansible.posix]
       ingress: []
       immutable-template: [community.general, ansible.posix]

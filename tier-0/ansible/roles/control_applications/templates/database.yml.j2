@@ -1,0 +1,36 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ product }}-db
+  namespace: {{ product }}
+spec:
+  instances: {{ control_applications_database_instances }}
+  imageName: {{ control_applications_postgres_image | to_json }}
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: {{ product }}-db-backup
+  enableSuperuserAccess: false
+  bootstrap:
+    initdb:
+      database: {{ product }}
+      owner: {{ product }}
+      dataChecksums: true
+      secret:
+        name: {{ product }}-db
+  certificates:
+    serverCASecret: {{ product }}-db-ca
+    clientCASecret: {{ product }}-db-ca
+    serverTLSSecret: {{ product }}-db-server
+    replicationTLSSecret: {{ product }}-db-replication
+  storage:
+    storageClass: {{ control_applications_storage_class | to_json }}
+    size: {{ control_applications_database_size }}
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 1Gi}

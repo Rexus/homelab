@@ -1,0 +1,36 @@
+---
+cluster_security_logging_action: render
+cluster_security_logging_kubeconfig: ""
+cluster_security_logging_context: ""
+cluster_security_logging_output: "{{ playbook_dir }}/../../../secrets/cluster-security-logging"
+cluster_security_logging_namespace: security-logging
+cluster_security_logging_cluster: ""
+cluster_security_logging_tier: -1
+cluster_security_logging_nodes: []
+cluster_security_logging_chart_repository: https://fluent.github.io/helm-charts
+cluster_security_logging_chart_version: ""
+cluster_security_logging_approved_repositories: []
+cluster_security_logging_image_repository: cr.fluentbit.io/fluent/fluent-bit
+cluster_security_logging_image_tag: ""
+cluster_security_logging_image_digest: ""
+cluster_security_logging_approved_image_repositories: []
+cluster_security_logging_image_pull_secrets: []
+cluster_security_logging_receiver: ""
+cluster_security_logging_receiver_name: ""
+cluster_security_logging_receiver_port: 6514
+cluster_security_logging_receiver_enrolled: false
+cluster_security_logging_talos_configured: false
+cluster_security_logging_host_access_accepted: false
+cluster_security_logging_talos_schema: ""
+cluster_security_logging_listener_port: 6050
+cluster_security_logging_metrics_port: 2020
+cluster_security_logging_queue_path: "/var/lib/cluster-security-logging/{{ cluster_security_logging_cluster }}"
+cluster_security_logging_queue_mib_per_output: 128
+cluster_security_logging_max_message_bytes: 65536
+cluster_security_logging_manage_secrets: false
+cluster_security_logging_secrets: {}
+cluster_security_logging_health_retries: 120
+cluster_security_logging_health_delay: 5
+cluster_security_logging_resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: "1", memory: 256Mi}

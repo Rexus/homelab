@@ -1,0 +1,69 @@
+---
+- name: Read existing ACL policy names
+  community.hashi_vault.vault_list:
+    path: sys/policies/acl
+  register: control_applications_vault_policy_names
+
+- name: Converge each explicitly scoped human policy
+  ansible.builtin.include_tasks: vault-policy.yml
+  loop: "{{ control_applications_vault_policies | dict2items }}"
+  loop_control:
+    loop_var: control_application_policy
+
+- name: Configure human OIDC against the existing Keycloak issuer
+  community.hashi_vault.vault_write:
+    path: auth/oidc/config
+    data:
+      oidc_discovery_url: "{{ control_applications_oidc_issuer }}"
+      oidc_discovery_ca_pem: "{{ control_applications_oidc_ca_pem }}"
+      oidc_client_id: vault
+      oidc_client_secret: "{{ control_applications_oidc_client_secrets.vault }}"
+      default_role: ""
+  # Vault never returns this secret. Configure is an explicit credential convergence pass.
+  when: control_applications_vault_phase == 'configure'
+
+- name: Converge named human roles with mandatory directory-group claims
+  community.hashi_vault.vault_write:
+    path: "auth/oidc/role/{{ item.name }}"
+    data:
+      role_type: oidc
+      user_claim: sub
+      groups_claim: groups
+      bound_audiences: [vault]
+      bound_claims: {groups: "{{ item.groups }}"}
+      oidc_scopes: [openid, profile, email, groups]
+      allowed_redirect_uris:
+        - "https://{{ control_applications_hosts.vault }}/ui/vault/auth/oidc/oidc/callback"
+        - http://localhost:8250/oidc/callback
+      token_policies: "{{ item.policies }}"
+      token_no_default_policy: true
+      token_ttl: 15m
+      token_max_ttl: 1h
+  loop: "{{ control_applications_vault_oidc_roles }}"
+  when: control_applications_vault_phase == 'configure'
+
+- name: Verify the configured OIDC issuer and named role restrictions
+  community.hashi_vault.vault_read:
+    path: auth/oidc/config
+  register: control_applications_vault_oidc
+
+- name: Reject unexpected identity authority
+  ansible.builtin.assert:
+    that:
+      - control_applications_vault_oidc.data.data.oidc_discovery_url == control_applications_oidc_issuer
+      - control_applications_vault_oidc.data.data.oidc_client_id == 'vault'
+
+- name: Read each configured human OIDC role
+  community.hashi_vault.vault_read:
+    path: "auth/oidc/role/{{ item.name }}"
+  loop: "{{ control_applications_vault_oidc_roles }}"
+  register: control_applications_vault_roles
+
+- name: Validate that group and policy bounds survived configuration
+  ansible.builtin.assert:
+    that:
+      - item.data.data.bound_claims.groups | sort == item.item.groups | sort
+      - item.data.data.token_policies | sort == item.item.policies | sort
+      - item.data.data.user_claim == 'sub'
+      - item.data.data.token_no_default_policy | bool
+  loop: "{{ control_applications_vault_roles.results }}"

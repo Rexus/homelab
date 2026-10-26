@@ -1,0 +1,9 @@
+---
+# Merge into the existing Tier 0 syslog_ng_sources catalogue; do not replace other sources.
+syslog_ng_sources:
+{% for node in cluster_security_logging_nodes %}
+  - name: {{ node.stream | to_json }}
+    address: {{ node.source_address | to_json }}
+    tier: {{ cluster_security_logging_tier }}
+    tls_dn: {{ node.tls_dn | to_json }}
+{% endfor %}

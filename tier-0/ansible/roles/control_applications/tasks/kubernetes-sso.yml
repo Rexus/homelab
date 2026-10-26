@@ -1,0 +1,157 @@
+---
+# Talos has no practical Ansible machine-configuration module. Use its native CLI.
+- name: Require an explicit offline plan and private output
+  ansible.builtin.assert:
+    that:
+      - control_applications_action in ['render', 'apply']
+      - control_applications_sso_plan | length > 0
+      - control_applications_sso_output | length > 0
+      - control_applications_action != 'apply' or control_applications_sso_maintenance_accepted | bool
+      - control_applications_action != 'apply' or control_applications_sso_talosconfig | length > 0
+      - control_applications_action != 'apply' or control_applications_sso_talos_context | length > 0
+      - control_applications_action != 'apply' or control_applications_kubeconfig | length > 0
+      - control_applications_action != 'apply' or control_applications_context | length > 0
+    fail_msg: Supply the reviewed Terraform plan JSON and explicit recovery credentials; see kubernetes-sso.md.
+
+- name: Read the sensitive Terraform plan without logging credentials
+  ansible.builtin.set_fact:
+    _sso_plan: "{{ lookup('ansible.builtin.file', control_applications_sso_plan) | from_json }}"
+    _sso_patches: []
+  no_log: true
+
+- name: Select the dedicated OIDC patch from the authoritative Terraform input
+  ansible.builtin.set_fact:
+    _sso_patches: "{{ _sso_patches + [item] }}"
+  loop: "{{ _sso_plan.variables.machine_config_patches.value | map('from_yaml_all') | map('list') | flatten }}"
+  when:
+    - item is mapping
+    - item.get('cluster', {}).get('apiServer', {}).get('extraArgs', {}).get('oidc-issuer-url', '') | length > 0
+  no_log: true
+
+- name: Refuse another schema or incomplete Terraform output
+  ansible.builtin.assert:
+    that:
+      - _sso_plan.variables.cluster.value.talos_version is match('^v1\.13\.')
+      - _sso_patches | length == 1
+      - _sso_plan.planned_values.outputs.machine_configurations.value is mapping
+      - _sso_plan.planned_values.outputs.nodes.value is mapping
+      - _sso_plan.planned_values.outputs.nodes.value | length > 0
+      - _sso_plan.planned_values.outputs.nodes.value | dict2items | selectattr('value.role', 'equalto', 'controlplane') | list | length >= 3
+    fail_msg: This serial recipe supports selected Talos 1.13 and at least three control planes, with known plan outputs.
+  no_log: true
+
+- name: Refuse a plan containing infrastructure changes or credential replacement
+  ansible.builtin.assert:
+    that:
+      - item.change.actions | difference(['no-op', 'read', 'update']) | length == 0
+      - "'update' not in item.change.actions or item.type == 'talos_machine_configuration_apply'"
+    fail_msg: Make an OIDC-only plan; do not combine this rollout with infrastructure or credential changes.
+  loop: "{{ _sso_plan.resource_changes | default([]) }}"
+  no_log: true
+
+- name: Set the public integration and private planned node configurations
+  ansible.builtin.set_fact:
+    _sso_patch: "{{ _sso_patches[0] }}"
+    _sso_configurations: "{{ _sso_plan.planned_values.outputs.machine_configurations.value }}"
+    _sso_nodes: "{{ _sso_plan.planned_values.outputs.nodes.value | dict2items | sort(attribute='key') | sort(attribute='value.role') }}"
+  no_log: true
+
+- name: Verify provider updates reference exactly the checked full configuration
+  ansible.builtin.assert:
+    that:
+      - item.change.after.apply_mode in ['auto', 'no_reboot']
+      - item.change.after.config_patches | default([], true) | length == 0
+      - item.change.after.machine_configuration_input == _sso_configurations[item.index]
+      - item.change.after.node == _sso_plan.planned_values.outputs.nodes.value[item.index].ip
+      - item.change.before.client_configuration == item.change.after.client_configuration
+    fail_msg: Provider updates must use the checked output, unchanged client identity and no forced reboot or extra patches.
+  loop: "{{ _sso_plan.resource_changes | default([]) }}"
+  when: item.type == 'talos_machine_configuration_apply' and 'update' in item.change.actions
+  no_log: true
+
+- name: Restrict this patch to OIDC additions, never X509 or bootstrap settings
+  ansible.builtin.assert:
+    that:
+      - _sso_patch.keys() | list | sort == ['cluster', 'machine']
+      - _sso_patch.machine.keys() | list == ['files']
+      - _sso_patch.cluster.keys() | list == ['apiServer']
+      - _sso_patch.cluster.apiServer.keys() | list | sort == ['extraArgs', 'extraVolumes']
+      - _sso_patch.machine.files | length == 1
+      - _sso_patch.machine.files[0].keys() | list | sort == ['content', 'op', 'path', 'permissions']
+      - _sso_patch.machine.files[0].path == '/var/kubernetes-oidc/issuer-ca.crt'
+      - _sso_patch.machine.files[0].op == 'create'
+      - _sso_patch.machine.files[0].permissions | int == 420
+      - "'PRIVATE KEY' not in _sso_patch.machine.files[0].content"
+      - _sso_patch.cluster.apiServer.extraVolumes == expected_volumes
+      - _sso_patch.cluster.apiServer.extraArgs == expected_args
+    fail_msg: Use the dedicated native example; X509, Talos API access and all non-OIDC configuration must remain untouched.
+  vars:
+    expected_volumes:
+      - hostPath: /var/kubernetes-oidc
+        mountPath: /etc/kubernetes/oidc
+        readonly: true
+    expected_args:
+      oidc-issuer-url: "{{ control_applications_oidc_issuer }}"
+      oidc-client-id: headlamp
+      oidc-ca-file: /etc/kubernetes/oidc/issuer-ca.crt
+      oidc-username-claim: sub
+      oidc-username-prefix: 'oidc:'
+      oidc-groups-claim: groups
+      oidc-groups-prefix: 'oidc:'
+      oidc-signing-algs: RS256
+  no_log: true
+
+- name: Parse the imported public trust anchor without generating keys
+  community.crypto.x509_certificate_info:
+    content: "{{ _sso_patch.machine.files[0].content }}"
+  register: _sso_ca
+  no_log: true
+
+- name: Require a CA certificate rather than a leaf
+  ansible.builtin.assert:
+    that:
+      - "'CA:TRUE' in _sso_ca.basic_constraints"
+      - not _sso_ca.expired
+
+- name: Check the selected native Talos client
+  ansible.builtin.command:
+    argv: ["{{ control_applications_sso_talosctl }}", version, --client, --short]
+  register: _sso_client
+  changed_when: false
+
+- name: Require the selected Talos client minor
+  ansible.builtin.assert:
+    that:
+      - "'Talos v1.13.' in _sso_client.stdout"
+
+- name: Protect rendered configuration and recovery snapshots
+  ansible.builtin.file:
+    path: "{{ control_applications_sso_output }}"
+    state: directory
+    mode: '0700'
+
+- name: Render the exact Terraform-owned public patch
+  ansible.builtin.copy:
+    dest: "{{ control_applications_sso_output }}/oidc.patch.yaml"
+    content: "{{ _sso_patch | to_nice_yaml(indent=2) }}"
+    mode: '0600'
+  no_log: true
+
+- name: Validate all planned configurations before any live operation
+  ansible.builtin.include_tasks: sso-render.yml
+  loop: "{{ _sso_nodes }}"
+  loop_control:
+    loop_var: sso_node
+    label: "{{ sso_node.key }}"
+
+- name: Verify explicit certificate-only recovery credentials
+  ansible.builtin.include_tasks: sso-credentials.yml
+  when: control_applications_action == 'apply'
+
+- name: Apply and recover one node at a time, stopping on any failed gate
+  ansible.builtin.include_tasks: sso-node.yml
+  loop: "{{ _sso_nodes }}"
+  loop_control:
+    loop_var: sso_node
+    label: "{{ sso_node.key }}"
+  when: control_applications_action == 'apply'

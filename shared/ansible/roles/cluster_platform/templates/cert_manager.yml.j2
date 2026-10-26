@@ -1,0 +1,33 @@
+---
+values:
+  fullnameOverride: cert-manager
+  crds:
+    enabled: true
+    keep: true
+  prometheus:
+    enabled: false
+required_secrets: {{ cluster_platform_issuer_required_secrets | to_json }}
+after:
+{% if cluster_platform_issuer_spec | length > 0 %}
+  - apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: {{ cluster_platform_issuer_name | to_json }}
+    spec:
+{{ cluster_platform_issuer_spec | to_nice_yaml | indent(6, true) }}
+{% if cluster_platform_certificate_dns_names | length > 0 %}
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: platform-issuance-probe
+      namespace: cert-manager
+    spec:
+      secretName: platform-issuance-probe-tls
+      dnsNames: {{ cluster_platform_certificate_dns_names | to_json }}
+      issuerRef:
+        name: {{ cluster_platform_issuer_name | to_json }}
+        kind: ClusterIssuer
+{% endif %}
+{% else %}
+  []
+{% endif %}

@@ -1,0 +1,26 @@
+---
+- name: Inspect only the monitoring-owned Quadlet definitions
+  ansible.builtin.stat:
+    path: "/etc/containers/systemd/{{ item.name }}.container"
+  loop:
+    - {name: infrastructure-pve, active: "{{ infrastructure_monitoring_pve_targets | length > 0 }}"}
+    - {name: infrastructure-export, active: "{{ infrastructure_monitoring_export_endpoint | length > 0 }}"}
+  register: infrastructure_monitoring_owned_units
+
+- name: Stop an explicitly deselected monitoring service
+  ansible.builtin.systemd_service:
+    name: "{{ item.item.name }}"
+    state: stopped
+  loop: "{{ infrastructure_monitoring_owned_units.results }}"
+  when:
+    - item.stat.exists
+    - not item.item.active | bool
+
+- name: Remove only the deselected service's owned Quadlet definition
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    state: absent
+  loop: "{{ infrastructure_monitoring_owned_units.results }}"
+  when:
+    - item.stat.exists
+    - not item.item.active | bool

@@ -61,6 +61,11 @@ Operational paths below are relative to the owning tier. Start there, not at
 the kit root. Direct shared calls use `../shared/` in source and
 `../<prefix>-shared/` after generation. No aggregate inventory or deployment
 context exists at the kit root.
+Native cluster applications use dedicated `ansible/playbooks/deployment/` recipes,
+not Linux Terraform setup names. Their local group-vars examples select chart
+versions, interfaces and Secrets; Shared's `cluster_platform`,
+`kubernetes_applications` and `helm_release` roles execute reusable behavior.
+Empty `clusters/` folders remain optional GitOps adoption points, not installers.
 
 ## Terraform structure
 
@@ -235,6 +240,14 @@ Tier-local VM roots remain workload definitions with separate state. Tier 0 owns
 hardware-facing control and the future delegated execution service; no state
 is moved by generation. Current wrappers are operator tools, not a workload-user
 API. See [Infrastructure control](../architecture/compute/provisioning.md).
+
+The [development platform](../deployment/stage-9-development/README.md) adds distinct
+entry points. Tier 1's `ansible/playbooks/deployment/development-platform.yml`
+renders/applies native GitLab and runner charts; it does not provision another cluster.
+Tier 0's `terraform/deployments/ci-auth/` owns Vault policies, separate state and
+Vault provider credentials. Its `infrastructure-runner` Linux setup owns the
+dedicated VM. Shared `scripts/gitlab-iac.sh` executes against the persistent
+owning-tier workspace; Shared owns neither inventory nor state.
 
 ## Shared automation
 

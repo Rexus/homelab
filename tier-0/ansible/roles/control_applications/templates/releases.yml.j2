@@ -1,0 +1,75 @@
+{% set repositories = {
+  'keycloak': 'https://codecentric.github.io/helm-charts',
+  'vault': 'https://helm.releases.hashicorp.com',
+  'netbox': 'https://netbox-community.github.io/netbox-chart',
+  'headlamp': 'https://kubernetes-sigs.github.io/headlamp/'
+} %}
+{% set charts = {'keycloak': 'keycloakx', 'vault': 'vault', 'netbox': 'netbox', 'headlamp': 'headlamp'} %}
+{% set required = {
+  'keycloak': [
+    {'name': 'keycloak-bootstrap', 'keys': ['username', 'password']},
+    {'name': 'freeipa-ca', 'keys': ['ca.crt']}
+  ],
+  'vault': [],
+  'netbox': [
+    {'name': 'netbox-config', 'keys': ['secret_key', 'api_token_peppers']},
+    {'name': 'netbox-superuser', 'keys': ['username', 'password', 'email', 'api_token']},
+    {'name': 'netbox-oidc', 'keys': ['oidc.yaml']},
+    {'name': 'netbox-cache', 'keys': ['valkey.conf', 'password']},
+    {'name': 'netbox-cache-tls', 'keys': ['tls.crt', 'tls.key', 'ca.crt'], 'type': 'kubernetes.io/tls'},
+    {'name': 'service-ca', 'keys': ['ca.crt']}
+  ],
+  'headlamp': [
+    {'name': 'headlamp-oidc', 'keys': ['OIDC_CLIENT_ID', 'OIDC_CLIENT_SECRET', 'OIDC_ISSUER_URL', 'OIDC_SCOPES']},
+    {'name': 'service-ca', 'keys': ['ca.crt']}
+  ]
+} %}
+{% for product in ['keycloak', 'vault', 'netbox', 'headlamp'] if product in control_applications_components %}
+{% set product_vars = {'product': product} %}
+{% set secrets = required[product] + [
+  {'name': product ~ '-tls', 'keys': ['tls.crt', 'tls.key', 'ca.crt'], 'type': 'kubernetes.io/tls'}
+] %}
+{% set before = [] %}
+{% set after = [
+  lookup('ansible.builtin.template', 'ingress.yml.j2', template_vars=product_vars) | from_yaml
+] %}
+{% if product in ['keycloak', 'netbox'] %}
+{% set secrets = secrets + [
+  {'name': product ~ '-db', 'keys': ['username', 'password'], 'type': 'kubernetes.io/basic-auth'},
+  {'name': product ~ '-db-ca', 'keys': ['ca.crt']},
+  {'name': product ~ '-db-server', 'keys': ['tls.crt', 'tls.key'], 'type': 'kubernetes.io/tls'},
+  {'name': product ~ '-db-replication', 'keys': ['tls.crt', 'tls.key'], 'type': 'kubernetes.io/tls'},
+  {'name': product ~ '-db-backup', 'keys': ['ACCESS_KEY_ID', 'ACCESS_SECRET_KEY', 'ca.crt']}
+] %}
+{% set backup = lookup('ansible.builtin.template', 'database-backup.yml.j2', template_vars=product_vars)
+  | from_yaml_all | list %}
+{% set before = [backup[0],
+  lookup('ansible.builtin.template', 'database.yml.j2', template_vars=product_vars) | from_yaml, backup[1]
+] %}
+{% set after = after + [
+  lookup('ansible.builtin.template', 'database-first-backup.yml.j2', template_vars=product_vars) | from_yaml
+] %}
+{% endif %}
+{% if product in ['keycloak', 'vault'] %}
+{% set before = before + [
+  lookup('ansible.builtin.template', 'https-transport.yml.j2', template_vars=product_vars) | from_yaml
+] %}
+{% endif %}
+{% if product == 'netbox' %}
+{% set before = before + (lookup('ansible.builtin.template', 'netbox-cache.yml.j2') | from_yaml_all | list) %}
+{% endif %}
+{% if product == 'headlamp' %}
+{% set before = before + (lookup('ansible.builtin.template', 'headlamp-rbac.yml.j2') | from_yaml_all | list) %}
+{% endif %}
+- name: {{ product }}
+  namespace: {{ product }}
+  repository: {{ repositories[product] }}
+  chart: {{ charts[product] }}
+  version: {{ control_applications_versions[product] | to_json }}
+  namespace_labels: {{ control_applications_namespace_labels | to_json }}
+  wait: {{ (product != 'vault' or control_applications_vault_phase != 'install') | to_json }}
+  required_secrets: {{ secrets | to_json }}
+  before: {{ before | to_json }}
+  after: {{ after | to_json }}
+  values: {{ lookup('ansible.builtin.template', product ~ '-values.yml.j2') | from_yaml | to_json }}
+{% endfor %}

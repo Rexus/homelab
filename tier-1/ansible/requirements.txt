@@ -1,0 +1,6 @@
+# Control-node dependencies for the native Kubernetes application installer.
+PyYAML>=6.0
+kubernetes>=24.2.0
+jsonpatch
+netaddr>=0.10.1
+cryptography>=43.0

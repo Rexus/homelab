@@ -17,6 +17,10 @@ class ProviderTls(TierRepositoryTestCase):
                          (collection / f'{prefix}tier-{tier}/terraform/deployments').glob('*/providers.tf')]
             self.assertGreaterEqual(len(providers), 16)
             for path in providers:
+                if path.parent.name == 'ci-auth':
+                    self.assertRegex(path.read_text(), r'skip_tls_verify\s*=\s*false')
+                    self.assertNotRegex(path.read_text(), r'skip_tls_verify\s*=\s*true')
+                    continue
                 flags = re.findall(r'^\s*insecure\s*=\s*(\S+)', path.read_text(), re.MULTILINE)
                 self.assertEqual(flags, ['false'], str(path))
 

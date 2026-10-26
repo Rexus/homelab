@@ -1,0 +1,32 @@
+---
+- name: Install native independent heartbeat units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    mode: "0644"
+  loop: [infrastructure-heartbeat.service, infrastructure-heartbeat.timer]
+  register: infrastructure_monitoring_heartbeat_units
+  when: infrastructure_monitoring_heartbeat_enabled | bool
+
+- name: Converge the native heartbeat timer
+  ansible.builtin.systemd_service:
+    name: infrastructure-heartbeat.timer
+    daemon_reload: true
+    enabled: "{{ infrastructure_monitoring_heartbeat_enabled }}"
+    state: "{{ 'started' if infrastructure_monitoring_heartbeat_enabled else 'stopped' }}"
+  when: infrastructure_monitoring_heartbeat_enabled | bool
+
+- name: Inspect the independently owned heartbeat timer
+  ansible.builtin.stat:
+    path: /etc/systemd/system/infrastructure-heartbeat.timer
+  register: infrastructure_monitoring_existing_heartbeat
+  when: not infrastructure_monitoring_heartbeat_enabled | bool
+
+- name: Stop and disable an explicitly deselected heartbeat
+  ansible.builtin.systemd_service:
+    name: infrastructure-heartbeat.timer
+    enabled: false
+    state: stopped
+  when:
+    - not infrastructure_monitoring_heartbeat_enabled | bool
+    - infrastructure_monitoring_existing_heartbeat.stat.exists

@@ -1,0 +1,26 @@
+# Selected Talos 1.13 v1alpha1 schema, applied AFTER identity acceptance.
+# Append this document to machine_config_patches; retain CNI/proxy/audit patches.
+# Replace the public PEM placeholder. Never include a private key or Vault lookup.
+# Procedure: docs/deployment/stage-5-identity/procedures/kubernetes-sso.md
+machine:
+  files:
+    - path: /var/kubernetes-oidc/issuer-ca.crt
+      permissions: 420 # 0644, public trust bundle
+      op: create
+      content: |
+        REPLACE_WITH_EXISTING_ISSUER_PUBLIC_CA_PEM_BUNDLE
+cluster:
+  apiServer:
+    extraArgs:
+      oidc-issuer-url: https://sso.lab.example.com/realms/platform
+      oidc-client-id: headlamp
+      oidc-ca-file: /etc/kubernetes/oidc/issuer-ca.crt
+      oidc-username-claim: sub
+      oidc-username-prefix: 'oidc:'
+      oidc-groups-claim: groups
+      oidc-groups-prefix: 'oidc:'
+      oidc-signing-algs: RS256
+    extraVolumes:
+      - hostPath: /var/kubernetes-oidc
+        mountPath: /etc/kubernetes/oidc
+        readonly: true

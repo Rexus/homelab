@@ -1,0 +1,77 @@
+---
+- name: Canonicalize the current configuration without modifying it
+  ansible.builtin.command:
+    argv:
+      - "{{ control_applications_sso_talosctl }}"
+      - machineconfig
+      - patch
+      - "{{ control_applications_sso_output }}/{{ sso_node.key }}.current.yaml"
+      - --output
+      - "{{ control_applications_sso_output }}/{{ sso_node.key }}.current.canonical.yaml"
+  changed_when: false
+  no_log: true
+
+- name: Determine whether this exact configuration is already installed
+  ansible.builtin.set_fact:
+    _sso_current: "{{ lookup('ansible.builtin.file', control_applications_sso_output + '/' + sso_node.key + '.current.canonical.yaml') | from_yaml_all | list }}"
+    _sso_desired: "{{ lookup('ansible.builtin.file', control_applications_sso_output + '/' + sso_node.key + '.desired.canonical.yaml') | from_yaml_all | list }}"
+  no_log: true
+
+- name: Select the v1alpha1 document without dropping other native configuration
+  ansible.builtin.set_fact:
+    _sso_current_main: "{{ _sso_current | selectattr('version', 'defined') | selectattr('version', 'equalto', 'v1alpha1') | first }}"
+    _sso_desired_main: "{{ _sso_desired | selectattr('version', 'defined') | selectattr('version', 'equalto', 'v1alpha1') | first }}"
+  no_log: true
+
+- name: Require an already-installed configuration before Terraform state convergence
+  ansible.builtin.assert:
+    that:
+      - not control_applications_sso_require_installed | bool or _sso_current == _sso_desired
+    fail_msg: State convergence is verification-only; every live node must already equal its Terraform plan.
+  no_log: true
+
+- name: Prove this is a first OIDC addition, never append duplicate files or mounts
+  ansible.builtin.assert:
+    that:
+      - >-
+        _sso_current == _sso_desired or _sso_current_main.cluster.apiServer.extraArgs | default({}) |
+        dict2items | selectattr('key', 'match', '^oidc-') | list | length == 0
+      - >-
+        _sso_current == _sso_desired or _sso_current_main.machine.files | default([]) |
+        selectattr('path', 'equalto', '/var/kubernetes-oidc/issuer-ca.crt') | list | length == 0
+      - >-
+        _sso_current == _sso_desired or _sso_current_main.cluster.apiServer.extraVolumes | default([]) |
+        selectattr('mountPath', 'equalto', '/etc/kubernetes/oidc') | list | length == 0
+    fail_msg: Partial or different OIDC configuration requires a separately reviewed migration, not an append.
+  no_log: true
+
+- name: Derive the only permitted configuration change with native Talos merging
+  ansible.builtin.command:
+    argv:
+      - "{{ control_applications_sso_talosctl }}"
+      - machineconfig
+      - patch
+      - "{{ control_applications_sso_output }}/{{ sso_node.key }}.current.yaml"
+      - --patch
+      - "@{{ control_applications_sso_output }}/oidc.patch.yaml"
+      - --output
+      - "{{ control_applications_sso_output }}/{{ sso_node.key }}.expected.yaml"
+  changed_when: false
+  when: _sso_current != _sso_desired
+  no_log: true
+
+- name: Refuse Terraform drift, removed audit/CNI/proxy patches or credential rotation
+  ansible.builtin.assert:
+    that:
+      - >-
+        lookup('ansible.builtin.file', control_applications_sso_output + '/' + sso_node.key + '.expected.yaml') |
+        from_yaml_all | list == _sso_desired
+    fail_msg: Planned configuration must equal current plus OIDC only. Stop and reconcile Terraform inputs, never force apply.
+  when: _sso_current != _sso_desired
+  no_log: true
+
+- name: Protect all native comparison outputs
+  ansible.builtin.file:
+    path: "{{ control_applications_sso_output }}/{{ sso_node.key }}.{{ item }}.yaml"
+    mode: '0600'
+  loop: "{{ ['current.canonical'] + (['expected'] if _sso_current != _sso_desired else []) }}"

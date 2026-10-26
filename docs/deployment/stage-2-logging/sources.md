@@ -42,10 +42,36 @@ directory, cluster or registry is required.
    CA audit files once those exist. Example shapes are in each tier's template.
    Applications use separate `kind: application`, `input: files` identities and
    explicit paths, never a filtered shared security journal.
-3. Prepare host-local keys and fetch only public CSRs:
+3. Select one exact inventory host and its existing setup map, then prepare the
+   ordered Ansible inputs. Run once per producer; the inventory stays shared with
+   Terraform. The setup file is `syslog.yml` for the receiver, `foundation.yml` for
+   the issuer/directory, or the owning setup in another tier. For an existing
+   hypervisor without a setup map, leave that path empty and set `ansible_host`
+   and any SSH overrides in its host file.
 
    ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-producers.yml -e @ansible/group_vars/logging_producers.yml -e log_forwarder_mode=prepare
+   read -r -p 'Producer inventory host (for example log-1): ' LOGGING_HOST
+   read -r -e -p 'Existing setup vars path (empty for unmanaged hosts): ' LOGGING_SETUP_VARS
+   logging_inputs=(-i ansible/inventory/hosts.yml --limit "${LOGGING_HOST:?Select one host}"
+     -e @ansible/group_vars/all.yml)
+   if [[ -n "$LOGGING_SETUP_VARS" ]]; then
+     logging_inputs+=(-e "@$LOGGING_SETUP_VARS")
+   fi
+   logging_inputs+=(-e @ansible/group_vars/logging_producers.yml
+     -e "@ansible/host_vars/$LOGGING_HOST.yml")
+   ```
+
+   These files are explicit inputs: `ansible/host_vars/` is not automatically
+   discovered beside the nested playbook/inventory paths. The host file is last
+   and `--limit` restricts those extra vars to that producer. Keep `platform_host_ips`
+   in its setup map; per-host overrides can set `ansible_host` directly.
+   For a named environment, add its `all.<env>.yml` and `<setup>.<env>.yml` after the
+   base setup and before the producer/host inputs. Use the same order for both runs.
+4. Prepare host-local keys and fetch only public CSRs:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook "${logging_inputs[@]}" \
+     ansible/playbooks/deployment/logging-producers.yml -e log_forwarder_mode=prepare
    ```
 
    Complete [Tier 0 signing](producer-trust.md#3-approve-producer-requests). Before
@@ -57,12 +83,15 @@ directory, cluster or registry is required.
    `kind: application` in `syslog_ng_sources`; deploy the receiver with the current
    CRL. Multiple identities from one host may share its observed address.
 2. In the producer's tier, select the protected directory containing `ca.pem`,
-   `revoked.pem` and the approved `<stream>.pem` public leaves, then install:
+   `revoked.pem` and the approved `<stream>.pem` public leaves. Reuse the selected
+   `logging_inputs` from Step 1, rebuilding that array first if this is a new shell,
+   then install:
 
    ```bash
    read -r -e -p 'Approved public certificate handoff directory: ' LOGGING_PUBLIC_DIR
    export LOGGING_PUBLIC_DIR
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-producers.yml -e @ansible/group_vars/logging_producers.yml
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook "${logging_inputs[@]}" \
+     ansible/playbooks/deployment/logging-producers.yml
    ```
 
    Native validation checks the leaf's identity/key, client purpose, chain and CRL,

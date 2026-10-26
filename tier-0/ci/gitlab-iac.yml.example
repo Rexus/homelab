@@ -1,0 +1,29 @@
+# Protected-project starter for direct trusted CI. No raw plans/state/key artifacts.
+# Guide: docs/deployment/stage-9-development/procedures/handover.md
+stages: [plan, apply]
+workflow:
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
+default:
+  tags: [tier0-iac]
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: $VAULT_ADDR
+  before_script:
+    - test "$IAC_TRUST_CI_CONTROL_PLANE" = true
+    - cd "$IAC_REPOSITORY_DIR"
+    - test "$(git -C "$IAC_SHARED_DIR" rev-parse HEAD)" = "$IAC_SHARED_REVISION"
+iac-plan:
+  stage: plan
+  resource_group: tier0-iac
+  script:
+    - bash "$IAC_SHARED_DIR/scripts/gitlab-iac.sh" plan
+iac-apply:
+  stage: apply
+  needs: [iac-plan]
+  resource_group: tier0-iac
+  when: manual
+  allow_failure: false
+  script:
+    - bash "$IAC_SHARED_DIR/scripts/gitlab-iac.sh" apply

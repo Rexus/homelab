@@ -1,0 +1,45 @@
+---
+- name: Require a pinned controller and bounded application authority
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_argocd_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - delivery_platform_argocd_namespace != delivery_platform_harbor_namespace
+      - delivery_platform_argocd_repositories | length > 0
+      - delivery_platform_argocd_destinations | length > 0
+      - delivery_platform_argocd_admin_group is match('^[a-zA-Z0-9_:/.-]+$')
+      - delivery_platform_argocd_reader_group is match('^[a-zA-Z0-9_:/.-]+$')
+      - delivery_platform_argocd_admin_group != delivery_platform_argocd_reader_group
+    fail_msg: Pin Argo CD and select exact sources, local namespaces and distinct IdP groups.
+
+- name: Reject wildcard or insecure Git sources
+  ansible.builtin.assert:
+    that:
+      - item is match('^https://[^\s*]+$')
+  loop: "{{ delivery_platform_argocd_repositories }}"
+
+- name: Reject control and controller namespaces as application destinations
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - item not in ['default', 'kube-system', 'kube-public', 'kube-node-lease', delivery_platform_argocd_namespace]
+  loop: "{{ delivery_platform_argocd_destinations }}"
+
+- name: Select the authoritative controller values and application projects
+  ansible.builtin.set_fact:
+    delivery_platform_releases: >-
+      {{ delivery_platform_releases + [{
+        'name': 'argocd', 'namespace': delivery_platform_argocd_namespace,
+        'repository': 'https://argoproj.github.io/argo-helm', 'chart': 'argo-cd',
+        'version': delivery_platform_argocd_version,
+        'values': lookup('ansible.builtin.template', 'argocd-values.yml.j2') | from_yaml,
+        'required_secrets': [
+          {'name': 'argocd-server-tls', 'keys': ['tls.crt', 'tls.key'], 'type': 'kubernetes.io/tls'},
+          {'name': 'argocd-secret', 'keys': ['server.secretkey', 'admin.password', 'admin.passwordMtime']},
+          {'name': 'argocd-oidc', 'keys': ['clientSecret']}
+        ],
+        'before': [{'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {
+          'name': 'argocd-oidc', 'namespace': delivery_platform_argocd_namespace,
+          'labels': {'app.kubernetes.io/part-of': 'argocd'}}}],
+        'after': lookup('ansible.builtin.template', 'argocd-projects.yml.j2') | from_yaml_all | list
+      }] }}
+  no_log: true

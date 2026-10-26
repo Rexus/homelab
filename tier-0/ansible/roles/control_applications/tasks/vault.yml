@@ -1,0 +1,97 @@
+---
+- name: Require initialized and unsealed Vault before audit or SSO configuration
+  ansible.builtin.uri:
+    url: "https://{{ control_applications_hosts.vault }}/v1/sys/health"
+    validate_certs: true
+    ca_path: "{{ control_applications_vault_ca_path | default(omit, true) }}"
+    return_content: true
+    status_code: 200
+  register: control_applications_vault_health
+  failed_when: >-
+    not control_applications_vault_health.json.initialized or
+    control_applications_vault_health.json.sealed
+
+- name: Configure audit and scoped human access through the native Vault API
+  no_log: true
+  module_defaults:
+    community.hashi_vault.vault_read:
+      url: "https://{{ control_applications_hosts.vault }}"
+      token: "{{ control_applications_vault_token }}"
+      ca_cert: "{{ control_applications_vault_ca_path | default(omit, true) }}"
+      validate_certs: true
+    community.hashi_vault.vault_write:
+      url: "https://{{ control_applications_hosts.vault }}"
+      token: "{{ control_applications_vault_token }}"
+      ca_cert: "{{ control_applications_vault_ca_path | default(omit, true) }}"
+      validate_certs: true
+    community.hashi_vault.vault_list:
+      url: "https://{{ control_applications_hosts.vault }}"
+      token: "{{ control_applications_vault_token }}"
+      ca_cert: "{{ control_applications_vault_ca_path | default(omit, true) }}"
+      validate_certs: true
+  block:
+    - name: Inspect enabled audit devices
+      community.hashi_vault.vault_read:
+        path: sys/audit
+      register: control_applications_vault_audits
+
+    - name: Enable persistent and stdout audit before other configuration writes
+      community.hashi_vault.vault_write:
+        path: "sys/audit/{{ item.name }}"
+        data:
+          type: file
+          options: {file_path: "{{ item.destination }}", mode: "0600"}
+      loop:
+        - {name: file, destination: /vault/audit/audit.json}
+        - {name: stdout, destination: stdout}
+      when:
+        - control_applications_vault_phase == 'configure'
+        - item.name ~ '/' not in control_applications_vault_audits.data.data
+
+    - name: Re-read audit destinations
+      community.hashi_vault.vault_read:
+        path: sys/audit
+      register: control_applications_vault_audits
+
+    - name: Require both native audit destinations without replacing existing devices
+      ansible.builtin.assert:
+        that:
+          - item.name ~ '/' in control_applications_vault_audits.data.data
+          - control_applications_vault_audits.data.data[item.name ~ '/'].type == 'file'
+          - control_applications_vault_audits.data.data[item.name ~ '/'].options.file_path == item.destination
+      loop:
+        - {name: file, destination: /vault/audit/audit.json}
+        - {name: stdout, destination: stdout}
+
+    - name: Inspect enabled authentication methods
+      community.hashi_vault.vault_read:
+        path: sys/auth
+      register: control_applications_vault_auth_methods
+
+    - name: Enable the named human OIDC backend
+      community.hashi_vault.vault_write:
+        path: sys/auth/oidc
+        data: {type: oidc, description: Human SSO on the existing Tier 0 IdP}
+      when:
+        - control_applications_vault_phase == 'configure'
+        - "'oidc/' not in control_applications_vault_auth_methods.data.data"
+
+    - name: Refuse to replace an existing incompatible backend
+      ansible.builtin.assert:
+        that:
+          - control_applications_vault_auth_methods.data.data.get('oidc/', {'type':'oidc'}).type == 'oidc'
+          - control_applications_vault_phase != 'accept' or 'oidc/' in control_applications_vault_auth_methods.data.data
+
+    - name: Converge scoped policies and OIDC configuration
+      ansible.builtin.include_tasks: vault-oidc.yml
+
+    - name: Inspect Raft voting membership
+      community.hashi_vault.vault_read:
+        path: sys/storage/raft/configuration
+      register: control_applications_vault_raft
+
+    - name: Require the configured voting membership after operator unseal
+      ansible.builtin.assert:
+        that:
+          - control_applications_vault_raft.data.data.config.servers | length == control_applications_vault_replicas | int
+          - control_applications_vault_raft.data.data.config.servers | selectattr('voter', 'equalto', true) | list | length == control_applications_vault_replicas | int

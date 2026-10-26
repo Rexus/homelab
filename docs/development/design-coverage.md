@@ -21,9 +21,9 @@ The checks below concern design coverage, not equivalence of every historical se
 | Shamir, independent Transit, Vault Enterprise PKCS#11, OpenBao evaluation [2] | [Seal patterns](../architecture/cryptography/vault-seal.md) | [Seal integration](../deployment/stage-6-secrets/step-1c-seal-integration.md) |
 | Existing identity; dedicated authority; optional hardware authentication and Windows integration [3] | [Identity](../architecture/identity/README.md) | Identity and Secrets stages; no new mandatory AD deployment |
 | Bridges or SDN; host/storage-fabric choices [4] | [Compute](../architecture/compute/README.md), [network](../architecture/networking/README.md) | Unnumbered [foundation](../deployment/foundation/README.md), including optional HA/SDN |
-| Direct software access, cache, mirrors or offline sources; shared/isolated egress [5] | [Traffic and delivery](../architecture/delivery/README.md) | Foundation software supply and optional cache |
-| VM source control, registry alternatives, runner and image-based Linux [6] | [Delivery](../architecture/delivery/README.md), [artifact supply](../architecture/delivery/artifact-supply.md) | Stage 7 options; image publication remains Tier 0 |
-| Shared or isolated telemetry, multiple signal backends [1] | [Telemetry](../architecture/operations/telemetry.md) | Stage 6 independent Tier 0 monitoring; Stage 8 Observability; Stage 9 workload collection |
+| Direct software access, cache, mirrors or offline sources; shared/isolated egress [5] | [Traffic and delivery](../architecture/delivery/README.md) | Stage 1 Software intake; optional retained/OCI extensions |
+| VM source control, registry alternatives, runner and image-based Linux [6] | [Delivery](../architecture/delivery/README.md), [artifact supply](../architecture/delivery/artifact-supply.md) | Stage 7 registry options; Stage 9 source-control/build options; image publication remains Tier 0 |
+| Shared or isolated telemetry, multiple signal backends [1] | [Telemetry](../architecture/operations/telemetry.md) | Stage 6 independent Tier 0 monitoring; Stage 8 Observability; Stage 10 workload collection |
 | Private, hybrid and tenant-platform comparisons [7] | [Private-cloud model](../architecture/private-cloud.md), [service boundaries](../architecture/service-boundaries.md) | Proxmox remains the implemented hypervisor; external services need explicit contracts |
 
 ## Support boundaries

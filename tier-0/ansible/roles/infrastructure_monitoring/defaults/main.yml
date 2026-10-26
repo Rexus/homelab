@@ -1,0 +1,28 @@
+---
+infrastructure_monitoring_action: render
+infrastructure_monitoring_output: "{{ playbook_dir }}/../../../secrets/infrastructure-monitoring"
+infrastructure_monitoring_outside_observed_clusters: false
+infrastructure_monitoring_listen_address: 127.0.0.1
+infrastructure_monitoring_allow_from: localhost
+infrastructure_monitoring_packages: []
+infrastructure_monitoring_private_files: {}
+infrastructure_monitoring_child_key: ""
+infrastructure_monitoring_pve_targets: []
+# Each target: {name: cluster-a, host: pve.example.org, credential: cluster-a}.
+infrastructure_monitoring_pve_credentials: {}
+infrastructure_monitoring_redfish_targets: []
+# Each target: {name: hardware-a, url: https://bmc.example.org/redfish/v1/,
+#               username: monitor, password_file: hardware-a-password}.
+infrastructure_monitoring_pve_image: ""
+infrastructure_monitoring_collector_image: otel/opentelemetry-collector-contrib:0.163.2
+infrastructure_monitoring_export_endpoint: ""
+infrastructure_monitoring_export_metrics: []
+infrastructure_monitoring_export_labels: [job, source, instance, chart, dimension]
+infrastructure_monitoring_read_only_credentials_verified: false
+infrastructure_monitoring_health_rules: ""
+infrastructure_monitoring_heartbeat_enabled: true
+infrastructure_monitoring_history_size_mb: 4096
+infrastructure_monitoring_history_days: 7
+infrastructure_monitoring_resources:
+  collector_memory: 1g
+  exporter_memory: 256m

@@ -1,0 +1,70 @@
+# One persistent manager; the Kubernetes executor creates a separate pod per job.
+gitlabUrl: {{ ('https://' ~ development_platform_host) | to_json }}
+concurrent: {{ development_platform_runner_concurrent | int }}
+replicas: 1
+checkInterval: 5
+rbac:
+  create: true
+  clusterWideAccess: false
+  rules:
+    - apiGroups: [""]
+      resources: [pods]
+      verbs: [create, delete, get, list, watch, patch]
+    - apiGroups: [""]
+      resources: [pods/attach, pods/exec]
+      verbs: [create, delete, get, patch]
+    - apiGroups: [""]
+      resources: [secrets]
+      verbs: [create, delete, get, update]
+    - apiGroups: [""]
+      resources: [services]
+      verbs: [create, get]
+    - apiGroups: [""]
+      resources: [serviceaccounts]
+      verbs: [get]
+serviceAccount:
+  create: true
+  name: gitlab-runner
+certsSecretName: gitlab-runner-ca
+resources: {{ development_platform_runner_resources | to_json }}
+runners:
+  secret: gitlab-runner-auth
+  config: |
+    [[runners]]
+      executor = "kubernetes"
+      services_limit = 1
+      tls-ca-file = "/home/gitlab-runner/.gitlab-runner/certs/{{ development_platform_host }}.crt"
+      [runners.kubernetes]
+        namespace = "{{ development_platform_runner_namespace }}"
+        image = "{{ development_platform_runner_image }}"
+        helper_image = "{{ development_platform_runner_helper_image }}"
+        allowed_images = ["{{ development_platform_runner_image }}"]
+        allowed_services = ["{{ development_platform_runner_image }}"]
+        privileged = false
+        allow_privilege_escalation = false
+        service_account = "ci-job"
+        automount_service_account_token = false
+        bearer_token_overwrite_allowed = false
+        namespace_overwrite_allowed = ""
+        cpu_request = "500m"
+        cpu_limit = "1"
+        memory_request = "512Mi"
+        memory_limit = "2Gi"
+        helper_cpu_request = "100m"
+        helper_cpu_limit = "500m"
+        helper_memory_request = "128Mi"
+        helper_memory_limit = "512Mi"
+        service_cpu_request = "100m"
+        service_cpu_limit = "500m"
+        service_memory_request = "128Mi"
+        service_memory_limit = "512Mi"
+      [runners.kubernetes.pod_security_context]
+        run_as_user = 1000
+        run_as_non_root = true
+        fs_group = 1000
+      [runners.kubernetes.build_container_security_context.capabilities]
+        drop = ["ALL"]
+      [runners.kubernetes.helper_container_security_context.capabilities]
+        drop = ["ALL"]
+      [runners.kubernetes.service_container_security_context.capabilities]
+        drop = ["ALL"]

@@ -1,0 +1,86 @@
+fullnameOverride: vault
+global:
+  tlsDisable: false
+injector: {enabled: false}
+server:
+  logFormat: json
+  statefulSet:
+    securityContext:
+      pod:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      container:
+        allowPrivilegeEscalation: false
+        capabilities: {drop: [ALL]}
+  dev: {enabled: false}
+  standalone: {enabled: false}
+  ingress: {enabled: false}
+  service:
+    active:
+      annotations:
+        traefik.ingress.kubernetes.io/service.serversscheme: https
+        traefik.ingress.kubernetes.io/service.serverstransport: vault-control-applications@kubernetescrd
+  serviceAccount:
+    create: true
+  authDelegator: {enabled: false}
+  dataStorage:
+    enabled: true
+    storageClass: {{ control_applications_storage_class | to_json }}
+    size: {{ control_applications_vault_data_size }}
+  auditStorage:
+    enabled: true
+    storageClass: {{ control_applications_storage_class | to_json }}
+    size: {{ control_applications_vault_audit_size }}
+  persistentVolumeClaimRetentionPolicy: {whenDeleted: Retain, whenScaled: Retain}
+  volumes:
+    - {name: tls, secret: {secretName: vault-tls}}
+  volumeMounts:
+    - {name: tls, mountPath: /vault/tls, readOnly: true}
+  extraEnvironmentVars:
+    VAULT_CACERT: /vault/tls/ca.crt
+    VAULT_TLS_SERVER_NAME: {{ control_applications_hosts.vault | to_json }}
+  readinessProbe:
+    enabled: true
+    path: /v1/sys/health?standbyok=true
+  livenessProbe:
+    enabled: true
+    path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
+    initialDelaySeconds: 60
+  ha:
+    enabled: true
+    replicas: {{ control_applications_vault_replicas }}
+    disruptionBudget: {enabled: true, maxUnavailable: 1}
+    raft:
+      enabled: true
+      setNodeId: true
+      config: |
+        ui = true
+        disable_mlock = true
+        api_addr = "https://{{ control_applications_hosts.vault }}"
+        listener "tcp" {
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+          tls_cert_file = "/vault/tls/tls.crt"
+          tls_key_file = "/vault/tls/tls.key"
+          tls_min_version = "tls12"
+        }
+        storage "raft" {
+          path = "/vault/data"
+{% for index in range(control_applications_vault_replicas | int) %}
+          retry_join {
+            leader_api_addr = "https://vault-{{ index }}.vault-internal:8200"
+            leader_tls_servername = "{{ control_applications_hosts.vault }}"
+            leader_ca_cert_file = "/vault/tls/ca.crt"
+          }
+{% endfor %}
+        }
+        service_registration "kubernetes" {}
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 1Gi}
+ui:
+  enabled: true
+  serviceType: ClusterIP

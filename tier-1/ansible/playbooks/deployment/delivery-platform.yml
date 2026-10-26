@@ -1,0 +1,15 @@
+---
+- name: Check Tier 1 native application tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: delivery-platform
+    control_node_require_terraform: false
+
+- name: Render or install Tier 1 delivery services
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - delivery_platform

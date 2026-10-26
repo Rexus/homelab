@@ -80,10 +80,19 @@ restrictions for that mode. [1]
    and optional `domain=` lines. It is copied root-only, not placed in inventory/Git.
    Optionally map only approved application sources to dedicated reader groups;
    security-stream classification comes from Tier 0's source catalogue.
-3. After the source heartbeats are arriving and the storage contract is reviewed, deploy:
+3. After the source heartbeats are arriving and the storage contract is reviewed,
+   select one collector from `foundation_logging`. Reuse its host file from
+   [source setup](sources.md#1-prepare-tier-owned-streams). Explicitly load global
+   settings, the collector setup/IP map, archive settings and finally host overrides:
 
    ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-archive.yml -e @ansible/group_vars/logging_archive.yml
+   read -r -p 'Collector inventory host (for example log-1): ' LOGGING_COLLECTOR
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
+     -i ansible/inventory/hosts.yml --limit "${LOGGING_COLLECTOR:?Select one collector}" \
+     -e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml \
+     -e @ansible/group_vars/logging_archive.yml \
+     -e "@ansible/host_vars/$LOGGING_COLLECTOR.yml" \
+     ansible/playbooks/deployment/logging-archive.yml
    ```
 
    The role mounts the selected encrypted share, checks its independent marker and
@@ -105,16 +114,28 @@ restrictions for that mode. [1]
    Set source/marker, independent mounted repository, schedule and a separate external
    dead-man check. Keep password/recovery keys off the collector. Approve repository
    initialization only for a deliberately new destination; otherwise use the existing
-   repository/password. Deploy the separate backup recipe:
+   repository/password. Create `ansible/host_vars/<recovery-host>.yml` with its
+   existing `ansible_host`, SSH account/key overrides and any per-host backup settings.
+   The recovery host need not belong to a Terraform setup; never borrow a collector's
+   address. Deploy against that one inventory host:
 
    ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-backup.yml -e @ansible/group_vars/logging_backup.yml
+   read -r -p 'Independent recovery inventory host: ' LOGGING_RECOVERY_HOST
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
+     -i ansible/inventory/hosts.yml --limit "${LOGGING_RECOVERY_HOST:?Select one recovery host}" \
+     -e @ansible/group_vars/all.yml -e @ansible/group_vars/logging_backup.yml \
+     -e "@ansible/host_vars/$LOGGING_RECOVERY_HOST.yml" \
+     ansible/playbooks/deployment/logging-backup.yml
    ```
 
    It verifies complete checkpoints, backs up only that fixed verified file list with
    restic, checks the encrypted repository and pings only after success. No automatic
    expiry/prune or NAS administration is granted. Native NAS backup tasks are also a
    valid independently qualified alternative; avoid two unreviewed retention owners.
+
+For named environments, insert `all.<env>.yml` and the selected setup overlay after
+the base setup map and before archive/backup settings and host overrides. Keep the
+host file last and rerun separately for each collector or recovery host.
 
 Record source-to-copy lag and the latest verified snapshot/backup checkpoint.
 An asynchronous copy/snapshot interval creates an exposed tail; it is not zero RPO.

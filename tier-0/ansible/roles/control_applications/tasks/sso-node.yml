@@ -1,0 +1,151 @@
+---
+- name: Require all nodes Ready before disrupting another member
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Node
+  register: _sso_ready
+  until: >-
+    _sso_ready.resources | length == _sso_nodes | length and
+    _sso_ready.resources | map(attribute='status.conditions') | flatten |
+    selectattr('type', 'equalto', 'Ready') | selectattr('status', 'equalto', 'True') | list | length == _sso_nodes | length
+  retries: 60
+  delay: 10
+
+- name: Check the authenticated server version before staging configuration
+  ansible.builtin.command:
+    argv: "{{ talos_args + ['version', '--short'] }}"
+  register: _sso_server
+  changed_when: false
+  vars:
+    talos_args: &talos_args
+      - "{{ control_applications_sso_talosctl }}"
+      - --talosconfig
+      - "{{ control_applications_sso_talosconfig }}"
+      - --context
+      - "{{ control_applications_sso_talos_context }}"
+      - --endpoints
+      - "{{ sso_node.value.ip }}"
+      - --nodes
+      - "{{ sso_node.value.ip }}"
+
+- name: Refuse a different running Talos schema
+  ansible.builtin.assert:
+    that:
+      - _sso_server.stdout | regex_findall('Talos v1\.13\.') | length == 2
+    fail_msg: Both the native client and the selected single server must run Talos 1.13.
+
+- name: Read current machine configuration through the authenticated Talos API
+  ansible.builtin.command:
+    argv: "{{ talos_args + ['get', 'machineconfig', 'v1alpha1', '-o', 'jsonpath={.spec}'] }}"
+  vars:
+    talos_args: *talos_args
+  register: _sso_live
+  changed_when: false
+  no_log: true
+
+- name: Save current configuration for offline comparison and operator recovery
+  ansible.builtin.copy:
+    dest: "{{ control_applications_sso_output }}/{{ sso_node.key }}.current.yaml"
+    content: "{{ _sso_live.stdout }}"
+    mode: '0600'
+  no_log: true
+
+- name: Prove the exact OIDC-only transition against private Terraform output
+  ansible.builtin.include_tasks: sso-compare.yml
+
+- name: Read the persisted configuration to detect another staged operation
+  ansible.builtin.command:
+    argv: "{{ talos_args + ['get', 'machineconfig', 'persistent', '-o', 'jsonpath={.spec}'] }}"
+  vars:
+    talos_args: *talos_args
+  register: _sso_persistent
+  changed_when: false
+  no_log: true
+
+- name: Refuse to overwrite another staged or trial machine configuration
+  ansible.builtin.assert:
+    that:
+      - _sso_persistent.stdout | from_yaml_all | list == _sso_live.stdout | from_yaml_all | list
+    fail_msg: Active and persisted configuration differ. Reconcile the pending operation before OIDC rollout.
+  no_log: true
+
+- name: Prove certificate-authenticated API access directly to this control plane
+  ansible.builtin.command:
+    argv: "{{ kubectl_args + ['get', 'namespaces', '-o', 'name'] }}"
+  changed_when: false
+  when: sso_node.value.role == 'controlplane'
+  vars:
+    kubectl_args: &kubectl_args
+      - "{{ control_applications_sso_kubectl }}"
+      - --kubeconfig
+      - "{{ control_applications_kubeconfig }}"
+      - --context
+      - "{{ control_applications_context }}"
+      - --server
+      - "https://{{ sso_node.value.ip | ansible.utils.ipwrap }}:6443"
+      - --request-timeout=15s
+
+- name: Stage the verified native OIDC-only patch, without parallel provider apply
+  ansible.builtin.command:
+    argv: "{{ talos_args + ['patch', 'machineconfig', '--mode', 'staged', '--patch', '@' + control_applications_sso_output + '/oidc.patch.yaml'] }}"
+  vars:
+    talos_args: *talos_args
+  when: _sso_current != _sso_desired
+  changed_when: true
+  no_log: true
+
+- name: Reboot only this node because machine.files are boot-time configuration
+  ansible.builtin.command:
+    argv: "{{ talos_args + ['reboot', '--wait', '--timeout', '10m'] }}"
+  vars:
+    talos_args: *talos_args
+  when: _sso_current != _sso_desired
+  changed_when: true
+
+- name: Verify the imported public bundle exists locally after boot
+  ansible.builtin.command:
+    argv: "{{ talos_args + ['read', '/var/kubernetes-oidc/issuer-ca.crt'] }}"
+  vars:
+    talos_args: *talos_args
+  register: _sso_local_ca
+  changed_when: false
+  retries: 30
+  delay: 10
+  until: _sso_local_ca.rc == 0
+
+- name: Require exact local public trust, not a startup dependency on Vault
+  ansible.builtin.assert:
+    that:
+      - _sso_local_ca.stdout | trim == _sso_patch.machine.files[0].content | trim
+
+- name: Recheck direct certificate access and API readiness before the next member
+  ansible.builtin.command:
+    argv: "{{ kubectl_args + item }}"
+  vars:
+    kubectl_args: *kubectl_args
+  loop:
+    - [get, namespaces, -o, name]
+    - [get, --raw=/readyz]
+  changed_when: false
+  register: _sso_api_recovered
+  until: _sso_api_recovered.rc == 0
+  retries: 60
+  delay: 10
+  when: sso_node.value.role == 'controlplane'
+
+- name: Wait for this node to rejoin before completing its serial operation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Node
+    name: "{{ sso_node.key }}"
+    wait: true
+    wait_condition: {type: Ready, status: 'True'}
+    wait_timeout: 600
+  register: _sso_rejoined
+  failed_when: _sso_rejoined.resources | length != 1

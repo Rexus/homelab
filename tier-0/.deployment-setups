@@ -4,3 +4,4 @@ vault
 hsm
 immutable-template
 template-refresh
+infrastructure-runner

@@ -87,8 +87,10 @@ The same command operates on only the current tier's root, inventory and state.
 
 Use this checklist after Kubernetes bootstrap, regardless of node OS. Select
 the owning repo's `clusters/tier0/`, `clusters/tier1/` or `clusters/tier2/` path.
-**The directories are empty starters, not installed components.** Choose and pin implementations
-before enabling reconciliation; the products below are concrete examples.
+**The directories are empty starters, not installed components.** Each tier supplies
+its own inputs/playbook for the [native platform installer](basic-platform.md),
+executed through Shared roles. Pin and approve inputs before applying; Tier 1/2
+omit Tier 0 Flux and retain their independent delivery choice.
 
 These are dependency gates, not merely YAML list order:
 
@@ -100,7 +102,7 @@ These are dependency gates, not merely YAML list order:
 | 4. Persistence | Storage driver/classes and backup destination | A disposable claim binds, survives pod recreation, and has a tested recovery path |
 | 5. TLS and entry points | Certificate automation and ingress; cert-manager with an available issuer | Controller/webhook readiness, certificate issuance, and intended network access pass [2] |
 | 6. Database | PostgreSQL operator; CloudNativePG, database instances, and backups | Required CRDs/operator, claims, database connections, and backup access work before applications [3] |
-| 7. Security events | Selected node and Kubernetes API audit forwarding to Tier 0 | Approved OS/API events reach protected intake with source identity; a logging DaemonSet or API audit policy is not supplied by the VM/bootstrap root |
+| 7. Security events | [Protected node/pod/API collection](security-logging.md), separate from VM/bootstrap | Reviewed native patches, unique node certificates and actual events reach Tier 0 intake under enrolled identities |
 
 CNI must work before expecting GitOps controllers and ordinary pods to be
 healthy. Follow the chosen implementation's networking bootstrap procedure;

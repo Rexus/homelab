@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/podman_runner.yml
 # Replace every value before use.
-# Setup guide: docs/deployment/stage-7-delivery/step-1c-podman-runner.md
+# Setup guide: docs/deployment/stage-9-development/step-2b-podman-runner.md
 
 platform_host_ips:
   runner-1: 10.30.31.30

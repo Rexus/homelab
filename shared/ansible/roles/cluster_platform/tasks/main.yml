@@ -1,0 +1,34 @@
+---
+- name: Validate the complete platform selection before processing releases
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Assemble the selected product contracts in dependency order
+  ansible.builtin.set_fact:
+    cluster_platform_releases: []
+
+- name: Assemble tier-owned releases and native support resources
+  ansible.builtin.include_tasks: assemble.yml
+  loop: "{{ ['cilium', 'storage', 'cert_manager', 'ingress', 'cloudnative_pg', 'barman_cloud', 'flux'] }}"
+  loop_control:
+    loop_var: cluster_platform_component
+  when:
+    - cluster_platform_component in cluster_platform_components
+    - cluster_platform_component != 'storage' or cluster_platform_storage_provider == 'nfs'
+
+- name: Reject incompatible Cilium overrides before any installation
+  ansible.builtin.import_tasks: cilium-preflight.yml
+  when: "'cilium' in cluster_platform_components"
+
+- name: Accept an independently managed storage class
+  ansible.builtin.include_tasks: storage.yml
+  when:
+    - "'storage' in cluster_platform_components"
+    - cluster_platform_storage_provider == 'existing'
+    - cluster_platform_action == 'apply'
+
+- name: Process products with readiness gates between releases
+  ansible.builtin.include_tasks: product.yml
+  loop: "{{ cluster_platform_releases }}"
+  loop_control:
+    loop_var: cluster_platform_release
+    label: "{{ cluster_platform_release.name }}"

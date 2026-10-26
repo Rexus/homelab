@@ -1,0 +1,18 @@
+[SERVICE]
+    Daemon Off
+    Flush 1
+    Grace 10
+    Log_Level warn
+    HTTP_Server On
+    HTTP_Listen 127.0.0.1
+    HTTP_Port {{ cluster_security_logging_metrics_port }}
+    Health_Check On
+    HC_Errors_Count 5
+    HC_Retry_Failure_Count 5
+    HC_Period 60
+    storage.path /buffers/chunks
+    storage.sync full
+    storage.checksum on
+    storage.max_chunks_up 32
+    storage.backlog.mem_limit 16M
+    storage.metrics on

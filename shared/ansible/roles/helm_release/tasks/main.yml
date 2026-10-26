@@ -1,0 +1,69 @@
+---
+# Stateless native Helm execution. Product values and release ownership stay tier-local.
+- name: Validate the reviewed Helm release contract
+  ansible.builtin.assert:
+    that:
+      - helm_release_action in ['render', 'apply']
+      - helm_release_output | length > 0
+      - helm_release_spec.name is match('^[a-z0-9][a-z0-9-]*$')
+      - helm_release_spec.namespace is match('^[a-z0-9][a-z0-9-]*$')
+      - helm_release_spec.repository is match('^https://')
+      - helm_release_spec.chart is match('^[a-zA-Z0-9_./-]+$')
+      - helm_release_spec.version is match('^[0-9]+\.[0-9]+\.[0-9]+([+-][a-zA-Z0-9.-]+)?$')
+      - helm_release_spec['values'] is mapping
+      - helm_release_action != 'apply' or helm_release_kubeconfig | length > 0
+    fail_msg: Select render/apply, an exact chart version, HTTPS repository and explicit deployment inputs.
+
+- name: Prepare private native Helm output
+  ansible.builtin.file:
+    path: "{{ helm_release_output }}"
+    state: directory
+    mode: "0700"
+
+- name: Write the reviewed native Helm values
+  ansible.builtin.copy:
+    content: "{{ helm_release_spec['values'] | to_nice_yaml }}"
+    dest: "{{ helm_release_output }}/{{ helm_release_spec.name }}-values.yml"
+    mode: "0600"
+  no_log: true
+
+- name: Render a pinned chart without contacting Kubernetes
+  kubernetes.core.helm_template:
+    chart_ref: "{{ helm_release_spec.chart }}"
+    chart_repo_url: "{{ helm_release_spec.repository }}"
+    chart_version: "{{ helm_release_spec.version }}"
+    release_name: "{{ helm_release_spec.name }}"
+    release_namespace: "{{ helm_release_spec.namespace }}"
+    include_crds: true
+    release_values: "{{ helm_release_spec['values'] }}"
+  register: helm_release_rendered
+  when: helm_release_action == 'render'
+  no_log: true
+
+- name: Store private rendered native resources
+  ansible.builtin.copy:
+    content: "{{ helm_release_rendered.stdout }}"
+    dest: "{{ helm_release_output }}/{{ helm_release_spec.name }}-manifests.yml"
+    mode: "0600"
+  when: helm_release_action == 'render'
+  no_log: true
+
+- name: Install or converge the exact native Helm release
+  kubernetes.core.helm:
+    name: "{{ helm_release_spec.name }}"
+    chart_ref: "{{ helm_release_spec.chart }}"
+    chart_repo_url: "{{ helm_release_spec.repository }}"
+    chart_version: "{{ helm_release_spec.version }}"
+    release_namespace: "{{ helm_release_spec.namespace }}"
+    kubeconfig: "{{ helm_release_kubeconfig }}"
+    context: "{{ helm_release_context | default(omit, true) }}"
+    release_values: "{{ helm_release_spec['values'] }}"
+    create_namespace: false
+    wait: "{{ helm_release_spec.wait | default(true) | bool }}"
+    timeout: "{{ helm_release_spec.timeout | default('20m0s') }}"
+    reset_values: true
+    validate_certs: true
+    insecure_skip_tls_verify: false
+    history_max: 5
+  when: helm_release_action == 'apply'
+  no_log: true

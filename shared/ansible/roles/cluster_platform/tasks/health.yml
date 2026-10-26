@@ -1,0 +1,52 @@
+---
+- name: Wait for the expected native resource and its current readiness
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_platform_kubeconfig }}"
+    context: "{{ cluster_platform_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ cluster_platform_health.api_version | default('apiextensions.k8s.io/v1') }}"
+    kind: "{{ cluster_platform_health.kind }}"
+    name: "{{ cluster_platform_health.name }}"
+    namespace: "{{ cluster_platform_health.namespace | default(omit) }}"
+  register: cluster_platform_observed
+  vars:
+    observed: "{{ (cluster_platform_observed.resources | default([]) | first) | default({}) }}"
+    observed_status: "{{ observed.get('status', {}) }}"
+    ready_conditions: >-
+      {{ observed_status.get('conditions', [])
+        | selectattr('type', 'equalto', cluster_platform_health.condition | default(''))
+        | selectattr('status', 'equalto', 'True') | list }}
+  until:
+    - cluster_platform_observed.resources | default([]) | length == 1
+    - >-
+      cluster_platform_health.condition is not defined or
+      ready_conditions | length > 0
+    - >-
+      ready_conditions | selectattr('observedGeneration', 'defined')
+        | selectattr('observedGeneration', 'lt', observed.get('metadata', {}).get('generation', 1))
+        | list | length == 0
+    - >-
+      observed_status.get('observedGeneration', observed.get('metadata', {}).get('generation', 1)) >=
+      observed.get('metadata', {}).get('generation', 1)
+    - >-
+      cluster_platform_health.revision is not defined or
+      (observed_status.get('observedGeneration', 0) >= observed.get('metadata', {}).get('generation', 1) and
+       observed_status.get('lastAppliedRevision', observed_status.get('artifact', {}).get('revision', ''))
+         .endswith(':' ~ cluster_platform_health.revision))
+    - >-
+      cluster_platform_health.kind not in ['Deployment', 'DaemonSet'] or
+      observed_status.get('observedGeneration', 0) >= observed.get('metadata', {}).get('generation', 1)
+    - >-
+      cluster_platform_health.kind != 'Deployment' or
+      (observed.get('spec', {}).get('replicas', 0) | int > 0 and
+       observed_status.get('updatedReplicas', 0) == observed.get('spec', {}).get('replicas', 1) and
+       observed_status.get('availableReplicas', 0) == observed.get('spec', {}).get('replicas', 1) and
+       observed_status.get('replicas', 0) == observed.get('spec', {}).get('replicas', 1))
+    - >-
+      cluster_platform_health.kind != 'DaemonSet' or
+      (observed_status.get('desiredNumberScheduled', 0) | int > 0 and
+       observed_status.get('numberReady', 0) == observed_status.get('desiredNumberScheduled', 1) and
+       observed_status.get('updatedNumberScheduled', 0) == observed_status.get('desiredNumberScheduled', 1) and
+       observed_status.get('numberUnavailable', 0) == 0)
+  retries: "{{ cluster_platform_health_retries }}"
+  delay: "{{ cluster_platform_health_delay }}"

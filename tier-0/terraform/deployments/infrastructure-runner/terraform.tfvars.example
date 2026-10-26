@@ -1,0 +1,12 @@
+# Tier 0 direct trusted-CI option. Guide: docs/deployment/stage-9-development/procedures/infrastructure-runner.md
+vm_instances = {
+  "iac-1" = {
+    vm_id            = 150
+    size             = "medium"
+    storage_class    = "local"
+    disk_size_gb     = 80
+    network_zone_key = "management"
+    tags             = ["tier-0", "infrastructure-runner", "critical", "restricted"]
+  }
+}
+lxc_instances = {}

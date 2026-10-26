@@ -4,6 +4,8 @@ All checks are **Not tested** until an authorized operator records a real result
 This list is deliberately separate from [missing implementation](operator-walkthrough.md#remaining-implementation-before-an-end-to-end-installation).
 Local tests prove mechanisms, not a deployed environment. No live infrastructure was
 available during the 2026-10-18 preparation.
+New platform installers use the focused [Stages 4-10 acceptance list](platform-verification.md).
+Its rows remain unverified until an authorized operator records real results.
 
 ## Contents
 
@@ -11,6 +13,7 @@ available during the 2026-10-18 preparation.
 - [Secure provider defaults](#1-secure-provider-defaults)
 - [Logging integration](#2-logging-integration)
 - [Initial Trust](#3-initial-trust)
+- [Development platform and CI handover](#4-development-platform-and-ci-handover)
 - [Wider walkthrough](#wider-walkthrough)
 
 ## Use this list
@@ -125,9 +128,30 @@ ACME and public edge HTTPS are separate selections, not hidden bootstrap require
   or LDAP replication alone do not prove this. This extends trust in Stage 5; it is not
   a prerequisite for accepting the independent Stage 3 issuer.
 
+## 4. Development platform and CI handover
+
+**Procedure:** [Stage 9](../docs/deployment/stage-9-development/README.md).
+The supplied charts, runner role, Vault policy and saved-plan helpers have no live acceptance yet.
+
+- [ ] **CI-1: Application and recovery.** Verify external PostgreSQL/Redis/Gitaly/object
+  storage, approved TLS, SSO membership and clone/push. Restore GitLab data and secrets
+  on a clean target, including repository/object-store consistency; two web pods prove no HA.
+- [ ] **CI-2: General job isolation.** Verify ephemeral pod cleanup, image limits, non-root
+  execution and actual CNI egress denial. A job must not obtain manager/API credentials
+  or reach Tier 0 control services. Check server-side runner/project assignments.
+- [ ] **CI-3: Trust and Vault denials.** Record accepted Tier 0 trust for GitLab and hosting
+  administrators. Test exact audience/project/namespace/protected-branch claims, role expiry
+  and forbidden secret paths. Confirm ordinary projects cannot use the protected runner.
+- [ ] **CI-4: Original-state handover.** Restore the persistent collection, plan without
+  replacement, apply the reviewed saved plan once, and reject stale/mismatched plans.
+  Verify private files, revoked job Vault tokens, no sensitive artifacts and protected audit intake.
+- [ ] **CI-5: Independent recovery.** With GitLab, Vault and normal SSO unavailable, use
+  the disconnected recovery kit and original state to regain authorized control.
+  Restore normal CI only after verifying credentials, state continuity and audit evidence.
+
 ## Wider walkthrough
 
-The three focused sections above do not accept the rest of the platform. After those
+The focused sections above do not accept the rest of the platform. After those
 gates pass, continue the broader operator journey:
 
 - [ ] Cold-start gateway/controller, switches and the first server with only the offline kit.

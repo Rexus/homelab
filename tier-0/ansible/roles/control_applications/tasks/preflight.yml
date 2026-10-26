@@ -1,0 +1,145 @@
+---
+- name: Require explicit reviewed product scope
+  ansible.builtin.assert:
+    that:
+      - control_applications_action in ['render', 'apply']
+      - control_applications_components | length > 0
+      - control_applications_components | difference(['keycloak', 'vault', 'netbox', 'headlamp']) | length == 0
+      - control_applications_components | unique | length == control_applications_components | length
+      - control_applications_ingress_class | length > 0
+      - control_applications_action != 'apply' or control_applications_kubeconfig | length > 0
+      - control_applications_action != 'apply' or control_applications_platform_accepted | bool
+      - control_applications_action != 'apply' or control_applications_cluster_logging_accepted | bool
+    fail_msg: Select products, ingress, pinned charts and accepted Stage 4 prerequisites; apply needs a kubeconfig.
+
+- name: Require exact charts and real endpoint names
+  ansible.builtin.assert:
+    that:
+      - control_applications_versions[item] is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - control_applications_hosts[item] is match('^[a-z0-9][a-z0-9.-]+\.[a-z0-9-]+$')
+      - not control_applications_hosts[item].endswith('.example.com')
+    fail_msg: Replace example hosts and select an exact chart version for every selected product.
+  loop: "{{ control_applications_components }}"
+
+- name: Require Traefik HTTPS transport integration for secure backends
+  ansible.builtin.assert:
+    that:
+      - control_applications_action != 'apply' or control_applications_traefik_crd_accepted | bool
+    fail_msg: Enable and accept Traefik's Kubernetes CRD provider and ServersTransport CRD before apply.
+  loop: "{{ control_applications_components | intersect(['keycloak', 'vault']) }}"
+
+- name: Require persistent storage and external custody before state appears
+  ansible.builtin.assert:
+    that:
+      - control_applications_storage_class | length > 0
+      - control_applications_action != 'apply' or control_applications_recovery_custody_accepted | bool
+    fail_msg: Select storage and record independent certificate, credential and recovery custody before apply.
+  when: control_applications_components | intersect(['keycloak', 'vault', 'netbox']) | length > 0
+
+- name: Require CNPG inputs with externally issued certificates
+  ansible.builtin.assert:
+    that:
+      - control_applications_postgres_image is match('^.+(:[^/]+|@sha256:[0-9a-f]{64})$')
+      - "':latest' not in control_applications_postgres_image"
+      - control_applications_database_instances | int >= 3
+      - control_applications_database_instances | int % 2 == 1
+      - control_applications_backup_endpoint is match('^https://[^ ]+$')
+      - control_applications_action != 'apply' or control_applications_cnpg_barman_accepted | bool
+    fail_msg: Supply a pinned CNPG-compatible PostgreSQL image and an odd database instance count of at least three.
+  when: control_applications_components | intersect(['keycloak', 'netbox']) | length > 0
+
+- name: Require separate object-store archive prefixes for each database
+  ansible.builtin.assert:
+    that:
+      - control_applications_backup_destinations[item] is match('^s3://[^ ]+/[^ ]+$')
+      - control_applications_backup_destinations.keycloak != control_applications_backup_destinations.netbox
+  loop: "{{ control_applications_components | intersect(['keycloak', 'netbox']) }}"
+
+- name: Validate protected external directory federation
+  ansible.builtin.assert:
+    that:
+      - control_applications_ldap_url is match('^ldaps://[^/ ]+(:636)?$')
+      - control_applications_ldap_users_dn | length > 0
+      - control_applications_ldap_groups_dn | length > 0
+      - control_applications_ldap_bind_dn | length > 0
+      - control_applications_keycloak_replicas | int >= 2
+    fail_msg: Supply the external FreeIPA LDAPS endpoint, user/group search bases and read-only bind DN.
+  when: "'keycloak' in control_applications_components"
+
+- name: Require private Keycloak API credentials only when used
+  ansible.builtin.assert:
+    that:
+      - control_applications_keycloak_auth.get('auth_username', '') | length > 0
+      - control_applications_keycloak_auth.get('auth_password', '') | length > 0
+      - >-
+        not control_applications_keycloak_configure or 'keycloak' not in control_applications_components or
+        control_applications_ldap_bind_password | length > 0
+  no_log: true
+  when:
+    - control_applications_action == 'apply'
+    - >-
+      control_applications_register_clients or
+      ('keycloak' in control_applications_components and control_applications_keycloak_configure)
+
+- name: Validate existing human identity authority
+  ansible.builtin.assert:
+    that:
+      - control_applications_oidc_issuer is match('^https://[^ ]+/realms/[^/ ]+$')
+      - >-
+        control_applications_oidc_issuer ==
+        'https://' ~ control_applications_hosts.keycloak ~ '/realms/' ~ control_applications_keycloak_realm
+    fail_msg: Consumers must use the existing selected Keycloak realm.
+
+- name: Validate Vault installation and custody phases
+  ansible.builtin.assert:
+    that:
+      - control_applications_vault_phase in ['install', 'configure', 'accept']
+      - control_applications_vault_replicas | int >= 3
+      - control_applications_vault_replicas | int % 2 == 1
+      - >-
+        control_applications_action != 'apply' or control_applications_vault_phase == 'install' or
+        control_applications_vault_token | length > 0
+      - control_applications_vault_phase == 'install' or control_applications_vault_oidc_roles | length > 0
+      - control_applications_vault_phase == 'install' or control_applications_vault_policies | length > 0
+      - >-
+        control_applications_action != 'apply' or control_applications_vault_phase != 'configure' or
+        control_applications_oidc_client_secrets.get('vault', '') | length > 0
+      - >-
+        control_applications_action != 'apply' or control_applications_vault_phase != 'accept' or
+        control_applications_backup_restore_accepted | bool
+      - >-
+        control_applications_action != 'apply' or control_applications_vault_phase != 'accept' or
+        control_applications_vault_audit_forwarding_accepted | bool
+    fail_msg: Vault requires odd Raft membership, an explicit phase, scoped SSO policies and independent acceptance evidence.
+  when: "'vault' in control_applications_components"
+  no_log: true
+
+- name: Reject unbounded Vault SSO mappings
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9_-]+$')
+      - item.groups | length > 0
+      - item.policies | length > 0
+      - item.policies | difference(control_applications_vault_policies.keys() | list) | length == 0
+      - "'root' not in item.policies"
+      - "'*' not in item.groups"
+  loop: "{{ control_applications_vault_oidc_roles }}"
+  when: "'vault' in control_applications_components"
+
+- name: Require pinned NetBox cache image
+  ansible.builtin.assert:
+    that:
+      - control_applications_valkey_image is match('^.+(:[^/]+|@sha256:[0-9a-f]{64})$')
+      - "':latest' not in control_applications_valkey_image"
+  when: "'netbox' in control_applications_components"
+
+- name: Require scoped Headlamp access and accepted API OIDC integration
+  ansible.builtin.assert:
+    that:
+      - control_applications_headlamp_group | length > 0
+      - not control_applications_headlamp_group.startswith('system:')
+      - control_applications_headlamp_namespaces | length > 0
+      - "'*' not in control_applications_headlamp_namespaces"
+      - control_applications_action != 'apply' or control_applications_headlamp_api_oidc_accepted | bool
+    fail_msg: Configure API OIDC for the Headlamp audience and explicit group/namespace RBAC first.
+  when: "'headlamp' in control_applications_components"

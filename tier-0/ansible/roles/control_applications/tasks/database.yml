@@ -1,0 +1,47 @@
+---
+- name: Establish the database owner's namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ control_application_database_release.namespace }}"
+        labels: "{{ control_applications_namespace_labels }}"
+
+- name: Reuse Shared secret gates before creating the product database
+  ansible.builtin.include_role:
+    name: kubernetes_applications
+    tasks_from: secrets
+  vars:
+    kube_app: "{{ control_application_database_release }}"
+    kube_apps_action: "{{ control_applications_action }}"
+    kube_apps_kubeconfig: "{{ control_applications_kubeconfig }}"
+    kube_apps_context: "{{ control_applications_context }}"
+    kube_apps_manage_secrets: "{{ control_applications_manage_secrets }}"
+    kube_apps_secrets: "{{ control_applications_secrets }}"
+
+- name: Establish native database archive and cluster resources
+  kubernetes.core.k8s:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    definition: >-
+      {{ control_application_database_release.before
+         | selectattr('kind', 'in', ['ObjectStore', 'Cluster', 'ScheduledBackup']) | list }}
+    state: present
+
+- name: Wait for the application database before starting its consumer chart
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: "{{ control_application_database_release.namespace }}"
+    name: "{{ control_application_database_release.name }}-db"
+    wait: true
+    wait_timeout: 600
+    wait_condition: {type: Ready, status: "True"}

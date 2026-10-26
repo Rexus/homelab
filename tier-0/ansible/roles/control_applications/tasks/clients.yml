@@ -1,0 +1,64 @@
+---
+- name: Validate operator-supplied consumer client secrets
+  ansible.builtin.assert:
+    that:
+      - control_applications_oidc_client_secrets.get(item, '') | length > 0
+      - control_applications_oidc_client_secrets.get(item, '') != 'change-me'
+  loop: "{{ control_applications_components | difference(['keycloak']) }}"
+  no_log: true
+
+- name: Register explicit human clients on the existing identity provider
+  no_log: true
+  module_defaults:
+    group/community.general.keycloak:
+      auth_keycloak_url: "https://{{ control_applications_hosts.keycloak }}"
+      auth_realm: "{{ control_applications_keycloak_auth.get('auth_realm', 'master') }}"
+      auth_username: "{{ control_applications_keycloak_auth.auth_username }}"
+      auth_password: "{{ control_applications_keycloak_auth.auth_password }}"
+      validate_certs: true
+  block:
+    - name: Publish directory group membership as an explicit OIDC scope
+      community.general.keycloak_clientscope:
+        realm: "{{ control_applications_keycloak_realm }}"
+        name: groups
+        protocol: openid-connect
+        state: present
+        protocol_mappers:
+          - name: groups
+            protocol: openid-connect
+            protocolMapper: oidc-group-membership-mapper
+            config:
+              claim.name: groups
+              full.path: "false"
+              id.token.claim: "true"
+              access.token.claim: "true"
+              userinfo.token.claim: "true"
+
+    - name: Converge selected confidential clients with exact HTTPS callbacks
+      community.general.keycloak_client:
+        realm: "{{ control_applications_keycloak_realm }}"
+        client_id: "{{ item }}"
+        protocol: openid-connect
+        enabled: true
+        public_client: false
+        secret: "{{ control_applications_oidc_client_secrets[item] }}"
+        standard_flow_enabled: true
+        implicit_flow_enabled: false
+        direct_access_grants_enabled: false
+        service_accounts_enabled: false
+        full_scope_allowed: false
+        redirect_uris: "{{ callbacks[item] }}"
+        web_origins: ["https://{{ control_applications_hosts[item] }}"]
+        default_client_scopes: [profile, email, groups]
+        attributes: "{{ {'pkce.code.challenge.method': 'S256'} if item == 'headlamp' else {} }}"
+        state: present
+      vars:
+        callbacks:
+          vault:
+            - "https://{{ control_applications_hosts.vault }}/ui/vault/auth/oidc/oidc/callback"
+            - http://localhost:8250/oidc/callback
+          netbox:
+            - "https://{{ control_applications_hosts.netbox }}/oauth/complete/oidc/"
+          headlamp:
+            - "https://{{ control_applications_hosts.headlamp }}/oidc-callback"
+      loop: "{{ control_applications_components | difference(['keycloak']) }}"

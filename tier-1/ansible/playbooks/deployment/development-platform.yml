@@ -1,0 +1,16 @@
+---
+# Stage 9: native GitLab chart installation; run from Tier 1 with local protected inputs.
+- name: Check Kubernetes deployment tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: development-platform
+    control_node_require_terraform: false
+
+- name: Install the development platform
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - development_platform

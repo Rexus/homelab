@@ -1,0 +1,99 @@
+---
+- name: Require explicit platform ownership and action
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_action in ['render', 'apply']
+      - cluster_platform_components | length > 0
+      - cluster_platform_components | difference(cluster_platform_catalog.keys() | list) | length == 0
+      - cluster_platform_components | unique | length == cluster_platform_components | length
+      - cluster_platform_output | length > 0
+      - cluster_platform_action != 'apply' or cluster_platform_kubeconfig | length > 0
+      - cluster_platform_health_retries | int > 0
+      - cluster_platform_health_delay | int > 0
+    fail_msg: Select supported components, render/apply, private output and an explicit kubeconfig for apply.
+
+- name: Require exact chart pins and operator-approved repositories for every installer
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_versions.get(item, '') is match('^[0-9]+\.[0-9]+\.[0-9]+([+-][a-zA-Z0-9.-]+)?$')
+      - repository is match('^https://[^/@\s]+(/[^\s]*)?$')
+      - repository in cluster_platform_approved_repositories
+      - cluster_platform_values.get(item, {}) is mapping
+    fail_msg: Pin each selected chart exactly and explicitly approve its HTTPS repository or qualified mirror.
+  vars:
+    repository: "{{ cluster_platform_repositories.get(item, cluster_platform_catalog[item].repository) }}"
+  loop: "{{ cluster_platform_components }}"
+  when: item != 'storage' or cluster_platform_storage_provider == 'nfs'
+
+- name: Require Talos Cilium preparation and the expected node inventory
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_talos_cilium_ready | bool
+      - cluster_platform_expected_nodes | length > 0
+      - cluster_platform_expected_nodes | unique | length == cluster_platform_expected_nodes | length
+    fail_msg: Confirm CNI=none, kube-proxy disabled and KubePrism on every node before installing Cilium.
+  when: "'cilium' in cluster_platform_components"
+
+- name: Require a deliberate persistence selection
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_storage_provider in ['existing', 'nfs']
+      - cluster_platform_storage_class is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+      - cluster_platform_storage_provider != 'existing' or cluster_platform_existing_storage_accepted | bool
+    fail_msg: Select nfs or explicitly accept an existing tested CSI class; no storage server is provisioned.
+  when: "'storage' in cluster_platform_components or cluster_platform_database_enabled | bool"
+
+- name: Require an existing qualified NAS export for NFS CSI
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_nfs_prerequisites_accepted | bool
+      - cluster_platform_nfs_server is match('^[a-zA-Z0-9][a-zA-Z0-9.:-]*$')
+      - not cluster_platform_nfs_server.endswith('.example.com')
+      - "'REPLACE' not in cluster_platform_nfs_server"
+      - cluster_platform_nfs_share is match('^/[^\s]+$')
+      - "'REPLACE' not in cluster_platform_nfs_share"
+      - cluster_platform_nfs_mount_options | length > 0
+    fail_msg: Prepare NAS export permissions, node access, NFS support and recovery outside this installer.
+  when:
+    - "'storage' in cluster_platform_components"
+    - cluster_platform_storage_provider == 'nfs'
+
+- name: Validate ingress class and explicit NodePorts
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_ingress_class is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+      - cluster_platform_ingress_http_port | int >= 30000
+      - cluster_platform_ingress_http_port | int <= 32767
+      - cluster_platform_ingress_https_port | int >= 30000
+      - cluster_platform_ingress_https_port | int <= 32767
+      - cluster_platform_ingress_http_port | int != cluster_platform_ingress_https_port | int
+  when: "'ingress' in cluster_platform_components"
+
+- name: Validate optional certificate integration
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_issuer_spec is mapping
+      - "'ca' not in cluster_platform_issuer_spec"
+      - "'selfSigned' not in cluster_platform_issuer_spec"
+      - cluster_platform_issuer_name is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+      - cluster_platform_certificate_dns_names | length == 0 or cluster_platform_issuer_spec | length > 0
+    fail_msg: Use a qualified external issuer; CA private keys and self-signed bootstrap issuers are not accepted.
+  when: "'cert_manager' in cluster_platform_components"
+
+- name: Require reviewed database image and persistent capacity
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_database_image is match('^[^\s@]+:[0-9]+([._-][a-zA-Z0-9._-]+)?@sha256:[a-f0-9]{64}$')
+      - cluster_platform_database_image_approved | bool
+      - cluster_platform_database_name is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - cluster_platform_database_namespace is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - cluster_platform_database_instances | int > 0
+      - cluster_platform_database_size is match('^[1-9][0-9]*(Mi|Gi|Ti)$')
+    fail_msg: Approve a compatible PostgreSQL image by digest and select the database capacity and CSI class.
+  when:
+    - "'cloudnative_pg' in cluster_platform_components"
+    - cluster_platform_database_enabled | bool
+
+- name: Validate the independent Flux source and SOPS acceptance contract
+  ansible.builtin.import_tasks: flux-preflight.yml
+  when: "'flux' in cluster_platform_components"

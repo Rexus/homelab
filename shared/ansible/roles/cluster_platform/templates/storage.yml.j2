@@ -1,0 +1,29 @@
+---
+namespace_labels:
+  pod-security.kubernetes.io/enforce: privileged
+values:
+  kubeletDir: /var/lib/kubelet
+  driver:
+    mountPermissions: 0
+  controller:
+    replicas: 1
+    enableSnapshotter: false
+    defaultOnDeletePolicy: retain
+  externalSnapshotter:
+    enabled: false
+  storageClass:
+    create: false
+after:
+  - apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: {{ cluster_platform_storage_class | to_json }}
+    provisioner: nfs.csi.k8s.io
+    parameters:
+      server: {{ cluster_platform_nfs_server | to_json }}
+      share: {{ cluster_platform_nfs_share | to_json }}
+      onDelete: retain
+    reclaimPolicy: Retain
+    volumeBindingMode: Immediate
+    allowVolumeExpansion: true
+    mountOptions: {{ cluster_platform_nfs_mount_options | to_json }}

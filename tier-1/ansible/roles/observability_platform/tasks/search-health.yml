@@ -1,0 +1,51 @@
+---
+- name: Wait for the product-owned search security and replica-template bootstrap
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ observability_kubeconfig }}"
+    context: "{{ observability_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ observability_namespace }}"
+    name: "{{ observability_search_job }}"
+    wait: true
+    wait_timeout: 660
+    wait_condition: {type: Complete, status: 'True'}
+  vars:
+    observability_search_job: >-
+      search-security-{{ (lookup('ansible.builtin.template', 'search-policy.yml.j2') ~ observability_search_users_checksum ~ (observability_search_replicas | string)) | hash('sha256') | truncate(10, true, '') }}
+  register: observability_security_job
+
+- name: Select the successfully completed policy-bootstrap pod
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ observability_kubeconfig }}"
+    context: "{{ observability_context | default(omit, true) }}"
+    validate_certs: true
+    kind: Pod
+    namespace: "{{ observability_namespace }}"
+    label_selectors: ["job-name={{ observability_security_job.resources[0].metadata.name }}"]
+    field_selectors: [status.phase=Succeeded]
+  register: observability_security_pods
+
+- name: Read the authenticated native search health result
+  kubernetes.core.k8s_log:
+    kubeconfig: "{{ observability_kubeconfig }}"
+    context: "{{ observability_context | default(omit, true) }}"
+    validate_certs: true
+    namespace: "{{ observability_namespace }}"
+    name: "{{ observability_security_pods.resources[0].metadata.name }}"
+    container: security
+  register: observability_search_log
+  no_log: true
+
+- name: Require green native search health and all configured members
+  ansible.builtin.assert:
+    that:
+      - not health.timed_out
+      - health.status == 'green'
+      - health.number_of_nodes | int == observability_search_replicas | int
+      - health.number_of_data_nodes | int == observability_search_replicas | int
+      - health.unassigned_shards | int == 0
+    fail_msg: Search bootstrap did not establish the configured membership and allocated shards.
+  vars:
+    health: "{{ (observability_search_log.log | trim).split('\n') | last | from_json }}"

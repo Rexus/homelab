@@ -1,0 +1,96 @@
+fullnameOverride: netbox
+replicaCount: 1
+updateStrategy: {type: Recreate}
+allowedHosts: [{{ control_applications_hosts.netbox | to_json }}]
+loginRequired: true
+exemptViewPermissions: []
+existingSecret: netbox-config
+superuser:
+  name: recovery-admin
+  email: ""
+  existingSecret: netbox-superuser
+postgresql: {enabled: false}
+valkey: {enabled: false}
+externalDatabase:
+  host: netbox-db-rw
+  port: 5432
+  database: netbox
+  username: netbox
+  existingSecretName: netbox-db
+  existingSecretKey: password
+  options:
+    sslmode: verify-full
+    sslrootcert: /trust/db/ca.crt
+    target_session_attrs: read-write
+tasksDatabase:
+  host: netbox-cache
+  port: 6379
+  database: 0
+  ssl: true
+  insecureSkipTlsVerify: false
+  caCertPath: /trust/cache/ca.crt
+  existingSecretName: netbox-cache
+  existingSecretKey: password
+cachingDatabase:
+  host: netbox-cache
+  port: 6379
+  database: 1
+  ssl: true
+  insecureSkipTlsVerify: false
+  caCertPath: /trust/cache/ca.crt
+  existingSecretName: netbox-cache
+  existingSecretKey: password
+remoteAuth:
+  enabled: true
+  backends: [social_core.backends.open_id_connect.OpenIdConnectAuth]
+  autoCreateUser: true
+  autoCreateGroups: false
+  defaultGroups: []
+  defaultPermissions: {}
+  superuserGroups: []
+  staffGroups: []
+extraConfig:
+  - values:
+      SOCIAL_AUTH_OIDC_OIDC_ENDPOINT: {{ control_applications_oidc_issuer | to_json }}
+      SOCIAL_AUTH_OIDC_KEY: netbox
+      SOCIAL_AUTH_OIDC_SCOPE: [openid, profile, email]
+      SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+      SESSION_COOKIE_SECURE: true
+      CSRF_COOKIE_SECURE: true
+      LOGGING:
+        version: 1
+        disable_existing_loggers: false
+        handlers:
+          console: {class: logging.StreamHandler}
+        root: {handlers: [console], level: INFO}
+  - secret: {secretName: netbox-oidc}
+csrf:
+  trustedOrigins: [{{ ('https://' ~ control_applications_hosts.netbox) | to_json }}]
+extraEnvs: &trust-env
+  - {name: REQUESTS_CA_BUNDLE, value: /trust/services/ca.crt}
+extraVolumes: &trust-volumes
+  - {name: db-ca, secret: {secretName: netbox-db-ca}}
+  - {name: cache-ca, secret: {secretName: netbox-cache-tls, items: [{key: ca.crt, path: ca.crt}]}}
+  - {name: service-ca, secret: {secretName: service-ca}}
+extraVolumeMounts: &trust-mounts
+  - {name: db-ca, mountPath: /trust/db, readOnly: true}
+  - {name: cache-ca, mountPath: /trust/cache, readOnly: true}
+  - {name: service-ca, mountPath: /trust/services, readOnly: true}
+persistence:
+  enabled: true
+  accessMode: ReadWriteMany
+  storageClass: {{ control_applications_storage_class | to_json }}
+  size: {{ control_applications_netbox_media_size }}
+ingress: {enabled: false}
+worker:
+  enabled: true
+  replicaCount: 1
+  automountServiceAccountToken: false
+  extraEnvs: *trust-env
+  extraVolumes: *trust-volumes
+  extraVolumeMounts: *trust-mounts
+housekeeping:
+  enabled: true
+  extraEnvs: *trust-env
+  extraVolumes: *trust-volumes
+  extraVolumeMounts: *trust-mounts

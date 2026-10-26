@@ -6,13 +6,13 @@ umask 077
 # Preserve existing backend, working-data, plan, and credential paths across the rename.
 
 if [[ $# == 1 && "$1" == --help ]]; then
-  echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials}"
+  echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials|export-plan}"
   echo "Current implementation: Talos. Reference: docs/deployment/stage-4-kubernetes/procedures/kubernetes.md"
   exit 0
 fi
 
-if [[ $# != 1 || ! "$1" =~ ^(init|plan|apply|credentials)$ ]]; then
-  echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials}" >&2
+if [[ $# != 1 || ! "$1" =~ ^(init|plan|apply|credentials|export-plan)$ ]]; then
+  echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials|export-plan}" >&2
   echo "Current implementation: Talos. Reference: docs/deployment/stage-4-kubernetes/procedures/kubernetes.md" >&2
   exit 1
 fi
@@ -28,11 +28,12 @@ root="$repo_root/terraform/deployments/kubernetes"
 shared="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 state="$repo_root/.terraform/state/talos/terraform.tfstate"
 plan="$repo_root/.terraform/plans/talos.tfplan"
+plan_json="$repo_root/secrets/talos/plan.json"
 export TF_DATA_DIR="$repo_root/.terraform/data/talos"
 
 if [[ "$action" == plan ]]; then
   # Never allow a failed re-plan, including a layout check, to leave an older apply target.
-  rm -f "$plan"
+  rm -f "$plan" "$plan_json"
 fi
 if [[ "$action" == plan || "$action" == apply ]]; then
   for tls_option in PROXMOX_VE_INSECURE PM_VE_INSECURE; do
@@ -80,7 +81,7 @@ if [[ "$action" == plan ]]; then
     fi
   done
 fi
-if [[ "$action" == apply && ! -f "$plan" ]]; then
+if [[ ( "$action" == apply || "$action" == export-plan ) && ! -f "$plan" ]]; then
   echo "No saved Kubernetes plan. Run plan and review it first." >&2
   exit 1
 fi
@@ -103,8 +104,18 @@ case "$action" in
     ;;
   apply)
     terraform -chdir="$root" apply -input=false -lock-timeout=60s "$plan"
-    rm -f "$plan"
+    rm -f "$plan" "$plan_json"
     echo "Export protected client files with: bash scripts/kubernetes-cluster.sh credentials"
+    ;;
+  export-plan)
+    directory="$(dirname "$plan_json")"
+    mkdir -p "$directory"
+    temporary="$(mktemp "$directory/.plan.XXXXXX")"
+    trap 'rm -f "$temporary"' EXIT
+    terraform -chdir="$root" show -json "$plan" > "$temporary"
+    mv -- "$temporary" "$plan_json"
+    chmod 600 "$plan_json"
+    echo "Sensitive saved-plan JSON written to $plan_json; never publish it or treat it as acceptance evidence."
     ;;
   credentials)
     directory="$repo_root/secrets/talos"

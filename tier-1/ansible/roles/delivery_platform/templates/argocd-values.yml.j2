@@ -1,0 +1,35 @@
+global:
+  domain: {{ delivery_platform_argocd_host | to_json }}
+dex: {enabled: false}
+configs:
+  secret: {createSecret: false}
+  tls:
+    certificates: {{ delivery_platform_argocd_repository_certificates | to_json }}
+  cm:
+    url: {{ ('https://' ~ delivery_platform_argocd_host) | to_json }}
+    admin.enabled: true
+    users.anonymous.enabled: false
+    oidc.config: |
+      name: Platform SSO
+      issuer: {{ delivery_platform_oidc_issuer | to_json }}
+      clientID: {{ delivery_platform_argocd_client_id | to_json }}
+      clientSecret: $argocd-oidc:clientSecret
+      requestedScopes: [openid, profile, email, groups]
+      rootCA: |
+{{ delivery_platform_oidc_ca_pem | indent(8, true) }}
+  params:
+    server.insecure: true
+  rbac:
+    policy.default: role:no-access
+    scopes: '[groups]'
+    policy.csv: |
+      p, role:platform-reader, applications, get, platform/*, allow
+      g, {{ delivery_platform_argocd_reader_group }}, role:platform-reader
+      g, {{ delivery_platform_argocd_admin_group }}, role:admin
+server:
+  replicas: 1
+  ingress:
+    enabled: true
+    ingressClassName: {{ delivery_platform_ingress_class | to_json }}
+    hostname: {{ delivery_platform_argocd_host | to_json }}
+    tls: true

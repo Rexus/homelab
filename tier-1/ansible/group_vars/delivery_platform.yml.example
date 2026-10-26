@@ -1,0 +1,31 @@
+---
+# Local Tier 1 inputs; run deployment/delivery-platform.yml from this repository.
+delivery_platform_action: render
+delivery_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
+delivery_platform_context: REPLACE_WITH_TIER1_CONTEXT
+# Choose explicitly: argocd, spinnaker, or none (Harbor only).
+delivery_platform_controller: ""
+delivery_platform_install_harbor: true
+delivery_platform_ingress_class: REPLACE_WITH_ACCEPTED_INGRESS_CLASS
+delivery_platform_oidc_issuer: https://sso.internal.example.com/realms/platform
+delivery_platform_oidc_ca_pem: ""
+delivery_platform_ca_path: ""
+delivery_platform_harbor_version: REPLACE_WITH_EXACT_CHART_VERSION
+delivery_platform_harbor_host: harbor.internal.example.com
+delivery_platform_harbor_storage_class: REPLACE_WITH_PERSISTENT_STORAGE_CLASS
+# Private input, including for render. Helm's internal PostgreSQL password is a value.
+delivery_platform_harbor_database_password: ""
+delivery_platform_argocd_version: REPLACE_WITH_EXACT_CHART_VERSION
+delivery_platform_argocd_host: argocd.internal.example.com
+delivery_platform_argocd_client_id: argocd
+delivery_platform_argocd_admin_group: tier1-delivery-admins
+delivery_platform_argocd_reader_group: tier1-delivery-readers
+delivery_platform_argocd_repositories: []
+delivery_platform_argocd_repository_certificates: {}
+delivery_platform_argocd_destinations: []
+# Spinnaker: local overlay from a reviewed official upstream revision, never main-latest.
+delivery_platform_spinnaker_host: spinnaker.internal.example.com
+delivery_platform_spinnaker_overlay: ""
+delivery_platform_spinnaker_review_sha256: ""
+delivery_platform_spinnaker_required_secrets: []
+delivery_platform_manage_secrets: false

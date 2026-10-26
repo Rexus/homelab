@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/development.yml
 # Replace every value before use.
-# Setup guide: docs/deployment/stage-7-delivery/step-1b-source-control-vm.md
+# Setup guide: docs/deployment/stage-9-development/step-1b-source-control-vm.md
 
 platform_host_ips:
   git-1: 10.20.20.35

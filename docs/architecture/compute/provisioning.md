@@ -11,6 +11,7 @@ This applies across all tiers, not only to the machines hosting Tier 0 itself.
 - [Delegated provisioning](#delegated-provisioning)
 - [Request boundary](#request-boundary)
 - [Independent operation](#independent-operation)
+- [Trusted CI option](#trusted-ci-option)
 - [Implementation boundary](#implementation-boundary)
 
 ## Ownership
@@ -115,6 +116,15 @@ existing-resource control must not require that service. Do not let its users
 edit the privileged controller, acceptance policy, or shared execution revision.
 
 ## Implementation boundary
+
+### Trusted CI option
+
+The selected [development-platform variant](../delivery/development-platform.md#privileged-ci)
+permits direct IaC from a dedicated GitLab project. GitLab and administrators able
+to alter its hosting are Tier 0 trusted principals in that option.
+It does not provide the independent authorization guarantee described above.
+Ordinary lab users still require the bounded request interface; trusted CI is
+not permission to execute their code with infrastructure credentials.
 
 Today, the kit provides Tier 0 template publication, control-cluster bootstrap,
 and operator-run, per-tier Terraform/Ansible workflows. Those workflows are not

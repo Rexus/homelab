@@ -1,0 +1,31 @@
+---
+- name: Require accepted persistence before creating a database
+  ansible.builtin.include_tasks: storage.yml
+  when:
+    - cluster_platform_release.component == 'cloudnative_pg'
+    - cluster_platform_database_enabled | bool
+    - cluster_platform_action == 'apply'
+
+- name: Render or install the tier-owned native product
+  ansible.builtin.include_role:
+    name: kubernetes_applications
+  vars:
+    kube_apps_action: "{{ cluster_platform_action }}"
+    kube_apps_kubeconfig: "{{ cluster_platform_kubeconfig }}"
+    kube_apps_context: "{{ cluster_platform_context }}"
+    kube_apps_output: "{{ cluster_platform_output }}"
+    kube_apps_releases: "{{ [cluster_platform_release] }}"
+    kube_apps_manage_secrets: "{{ cluster_platform_manage_secrets }}"
+    kube_apps_secrets: "{{ cluster_platform_secrets }}"
+
+- name: Require product CRDs and current workload rollout
+  ansible.builtin.include_tasks: health.yml
+  loop: "{{ cluster_platform_catalog[cluster_platform_release.component].health }}"
+  loop_control:
+    loop_var: cluster_platform_health
+    label: "{{ cluster_platform_health.name }}"
+  when: cluster_platform_action == 'apply'
+
+- name: Run product-specific acceptance gates
+  ansible.builtin.include_tasks: "{{ cluster_platform_release.component }}.yml"
+  when: cluster_platform_action == 'apply'

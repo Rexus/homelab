@@ -1,0 +1,7 @@
+---
+- name: Prepare dedicated infrastructure runner host
+  hosts: infrastructure_runner
+  become: true
+  roles:
+    - baseline
+    - infrastructure_runner

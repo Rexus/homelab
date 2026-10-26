@@ -160,7 +160,7 @@ bash scripts/deploy.sh edge
 
 ## Verify before publication
 
-For a browser-facing website, use the [public HTTPS procedure](../../stage-9-workloads/public-https.md)
+For a browser-facing website, use the [public HTTPS procedure](../../stage-10-lab-environments/public-https.md)
 for HTTP-01, trusted public certificates, verified origin TLS and scheduled renewal.
 The generic edge recipe does not select or obtain those certificates on its own.
 

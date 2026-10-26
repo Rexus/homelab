@@ -1,0 +1,32 @@
+{% for scope in observability_log_scopes %}
+{% set scope_index = loop.index0 %}
+{% for signal in ['logs', 'traces'] %}
+{% if signal == 'logs' or scope.kind == 'application' %}
+{{ scope.name }}-{{ signal }}:
+  workers: 2
+  source:
+    {{ 'otel_logs_source' if signal == 'logs' else 'otel_trace_source' }}:
+      port: {{ 21890 + 2 * scope_index + loop.index0 }}
+      ssl: true
+      sslKeyCertChainFile: /tls/tls.crt
+      sslKeyFile: /tls/tls.key
+      authentication:
+        http_basic:
+          username: {{ observability_prepper_auth.username | to_json }}
+          password: {{ observability_prepper_auth.password | to_json }}
+  buffer:
+    bounded_blocking: {buffer_size: 10240, batch_size: 1024}
+  sink:
+    - opensearch:
+        hosts: ['https://opensearch:9200']
+        cert: /tls/ca.crt
+        insecure: false
+        username: {{ observability_prepper_search_auth.username | to_json }}
+        password: {{ observability_prepper_search_auth.password | to_json }}
+        index_type: custom
+        index: '{{ scope.kind }}-{{ scope.name }}-{{ signal }}-%{yyyy.MM.dd}'
+        number_of_shards: 1
+        number_of_replicas: 1
+{% endif %}
+{% endfor %}
+{% endfor %}

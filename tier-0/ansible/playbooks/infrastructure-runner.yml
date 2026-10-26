@@ -1,0 +1,3 @@
+---
+- name: "Development platform: protected infrastructure runner"
+  ansible.builtin.import_playbook: deployment/infrastructure-runner.yml

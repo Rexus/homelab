@@ -1,0 +1,34 @@
+---
+- name: Resolve the on-demand runner release
+  ansible.builtin.set_fact:
+    development_platform_release:
+      name: gitlab-runner
+      namespace: "{{ development_platform_runner_namespace }}"
+      chart: gitlab-runner
+      version: "{{ development_platform_runner_version }}"
+      values: "{{ lookup('ansible.builtin.template', 'runner-values.yml.j2') | from_yaml }}"
+    development_platform_required_secrets:
+      - {name: gitlab-runner-auth, keys: [runner-token]}
+      - {name: gitlab-runner-ca, keys: ["{{ development_platform_host }}.crt"]}
+
+- name: Prepare and check runner authentication
+  ansible.builtin.include_tasks: secrets.yml
+
+- name: Resolve namespaced runner identity and network policies
+  ansible.builtin.set_fact:
+    development_platform_runner_support: "{{ lookup('ansible.builtin.template', 'runner-support.yml.j2') | from_yaml_all | list }}"
+
+- name: Write runner identity and network policy manifests
+  ansible.builtin.copy:
+    content: "{{ development_platform_runner_support | map('to_nice_yaml') | join('---\n') }}"
+    dest: "{{ development_platform_output }}/gitlab-runner-support.yml"
+    mode: "0600"
+
+- name: Apply the job identity and restrictive network policies
+  kubernetes.core.k8s:
+    kubeconfig: "{{ development_platform_kubeconfig }}"
+    definition: "{{ development_platform_runner_support }}"
+  when: development_platform_action == 'apply'
+
+- name: Render or apply the runner manager
+  ansible.builtin.include_tasks: release.yml

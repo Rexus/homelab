@@ -1,0 +1,45 @@
+---
+- name: Validate node identity before using private filenames or endpoints
+  ansible.builtin.assert:
+    that:
+      - sso_node.key is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+      - sso_node.value.role in ['controlplane', 'worker']
+      - sso_node.value.ip | ansible.utils.ipaddr != false
+      - sso_node.key in _sso_configurations
+
+- name: Save the private planned machine configuration
+  ansible.builtin.copy:
+    dest: "{{ control_applications_sso_output }}/{{ sso_node.key }}.desired.yaml"
+    content: "{{ _sso_configurations[sso_node.key] }}"
+    mode: '0600'
+  no_log: true
+
+- name: Validate with the native selected Talos schema
+  ansible.builtin.command:
+    argv:
+      - "{{ control_applications_sso_talosctl }}"
+      - validate
+      - --config
+      - "{{ control_applications_sso_output }}/{{ sso_node.key }}.desired.yaml"
+      - --mode
+      - metal
+      - --strict
+  changed_when: false
+  no_log: true
+
+- name: Canonicalize the desired configuration through Talos itself
+  ansible.builtin.command:
+    argv:
+      - "{{ control_applications_sso_talosctl }}"
+      - machineconfig
+      - patch
+      - "{{ control_applications_sso_output }}/{{ sso_node.key }}.desired.yaml"
+      - --output
+      - "{{ control_applications_sso_output }}/{{ sso_node.key }}.desired.canonical.yaml"
+  changed_when: false
+  no_log: true
+
+- name: Protect native canonical output
+  ansible.builtin.file:
+    path: "{{ control_applications_sso_output }}/{{ sso_node.key }}.desired.canonical.yaml"
+    mode: '0600'

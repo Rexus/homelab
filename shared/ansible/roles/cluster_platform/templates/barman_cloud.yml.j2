@@ -1,0 +1,13 @@
+---
+values:
+  fullnameOverride: plugin-barman-cloud
+  replicaCount: 1
+  crds: {create: true}
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {memory: 256Mi}
+  # Native plugin-local client/server identity, not infrastructure CA custody.
+  certificate:
+    createClientCertificate: true
+    createServerCertificate: true
+    createIssuer: true

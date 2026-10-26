@@ -50,6 +50,9 @@ all:
         #   hsm_proxy_ingress_backend_port: 8443
     crypto_admin:
       hosts: {}
+    infrastructure_runner:
+      hosts:
+        iac-1: {}
     immutable_template_builders:
       hosts:
         rhel-10-immu-tmpl: {}
@@ -76,5 +79,6 @@ all:
         vault: null
         hsm_gateways: null
         crypto_admin: null
+        infrastructure_runner: null
         immutable_template_builders: null
         template_refresh_builders: null

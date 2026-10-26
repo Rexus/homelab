@@ -67,7 +67,6 @@ data "talos_machine_configuration" "node" {
   config_patches = concat([yamlencode({
     machine = {
       install    = { disk = "/dev/sda", image = var.cluster.installer_image }
-      network    = { hostname = each.key }
       nodeLabels = each.value.pool == null ? {} : { "node-pool" = each.value.pool }
     }
     cluster = {
@@ -77,6 +76,12 @@ data "talos_machine_configuration" "node" {
         serviceSubnets = [var.cluster.service_cidr]
       }
     }
+    }), yamlencode({
+    apiVersion = "v1alpha1"
+    kind       = "HostnameConfig"
+    hostname   = each.key
+    # Disable the generated automatic hostname without a conflicting legacy field.
+    auto = "off"
   })], var.machine_config_patches)
 }
 

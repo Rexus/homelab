@@ -1,0 +1,57 @@
+---
+- name: Require a scoped and authenticated application collection path
+  ansible.builtin.assert:
+    that:
+      - workload_telemetry_action in ['render', 'apply']
+      - workload_telemetry_namespace is match('^lab-[a-z0-9][a-z0-9-]{0,45}$')
+      - workload_telemetry_chart_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - workload_telemetry_image_tag is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - workload_telemetry_storage_class | length > 0
+      - workload_telemetry_metrics_endpoint is match('^[a-z0-9.-]+:[0-9]+$')
+      - workload_telemetry_application_endpoint is match('^[a-z0-9.-]+:[0-9]+$')
+      - workload_telemetry_gateway_cidrs | length > 0
+      - workload_telemetry_gateway_ports | length > 0
+      - workload_telemetry_action != 'apply' or workload_telemetry_kubeconfig | length > 0
+    fail_msg: Select exact pins, an existing lab namespace/storage and the accepted private Tier 1 intake endpoints.
+
+- name: Reject unrestricted or invalid gateway networks
+  ansible.builtin.assert:
+    that:
+      - item not in ['0.0.0.0/0', '::/0']
+      - "'/' in item"
+      - (item | ansible.utils.ipaddr('network/prefix')) is string
+  loop: "{{ workload_telemetry_gateway_cidrs }}"
+
+- name: Require the firewall ports to match the actual OTLP endpoints
+  ansible.builtin.assert:
+    that:
+      - item | int > 0
+      - item | int < 65536
+      - item | int in workload_telemetry_gateway_ports | map('int') | list
+  loop:
+    - "{{ workload_telemetry_metrics_endpoint.split(':')[-1] }}"
+    - "{{ workload_telemetry_application_endpoint.split(':')[-1] }}"
+
+- name: Render or install the native scoped Collector
+  ansible.builtin.include_role:
+    name: kubernetes_applications
+  vars:
+    kube_apps_action: "{{ workload_telemetry_action }}"
+    kube_apps_kubeconfig: "{{ workload_telemetry_kubeconfig }}"
+    kube_apps_context: "{{ workload_telemetry_context }}"
+    kube_apps_output: "{{ workload_telemetry_output }}"
+    kube_apps_manage_secrets: "{{ workload_telemetry_manage_secrets }}"
+    kube_apps_secrets: "{{ workload_telemetry_secrets }}"
+    kube_apps_releases:
+      - name: otel-agent
+        namespace: "{{ workload_telemetry_namespace }}"
+        namespace_labels:
+          pod-security.kubernetes.io/enforce: restricted
+        repository: https://open-telemetry.github.io/opentelemetry-helm-charts
+        chart: opentelemetry-collector
+        version: "{{ workload_telemetry_chart_version }}"
+        values: "{{ lookup('ansible.builtin.template', 'values.yml.j2') | from_yaml }}"
+        required_secrets:
+          - {name: otel-agent-metrics-client, keys: [tls.crt, tls.key, ca.crt]}
+          - {name: otel-agent-application-client, keys: [tls.crt, tls.key, ca.crt]}
+        before: "{{ lookup('ansible.builtin.template', 'network-policy.yml.j2') | from_yaml_all | list }}"

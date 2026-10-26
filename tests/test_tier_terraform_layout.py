@@ -30,7 +30,8 @@ class TerraformLayout(TierRepositoryTestCase):
                 self.assertIn(f"terraform/deployments/{name}/main.tf", readme)
                 self.assertNotIn('provider "', (root / "main.tf").read_text())
                 self.assertIn('backend "local"', (root / "versions.tf").read_text())
-                self.assertIn('provider "proxmox"', (root / "providers.tf").read_text())
+                provider = "vault" if name == "ci-auth" else "proxmox"
+                self.assertIn(f'provider "{provider}"', (root / "providers.tf").read_text())
         kubernetes = self.root / "verify-tier-0/terraform/deployments/kubernetes"
         self.assertIn('../../../ansible/inventory/hosts.yml', (kubernetes / "variables.tf").read_text())
         templates = self.root / "verify-tier-0/terraform/deployments/templates"

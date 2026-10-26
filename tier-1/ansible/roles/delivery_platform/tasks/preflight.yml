@@ -1,0 +1,42 @@
+---
+- name: Require explicit controller choice and verified application access
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_action in ['render', 'apply']
+      - delivery_platform_controller in ['none', 'argocd', 'spinnaker']
+      - delivery_platform_install_harbor | bool or delivery_platform_controller != 'none'
+      - delivery_platform_ingress_class | length > 0
+      - delivery_platform_oidc_issuer is match('^https://[^\s]+[^/]$')
+      - "'BEGIN CERTIFICATE' in delivery_platform_oidc_ca_pem"
+      - delivery_platform_action != 'apply' or delivery_platform_kubeconfig | length > 0
+      - delivery_platform_action != 'apply' or delivery_platform_context | length > 0
+      - delivery_platform_action != 'apply' or delivery_platform_ca_path | length > 0
+    fail_msg: Select none/argocd/spinnaker explicitly, TLS/OIDC trust, ingress and the exact apply context.
+
+- name: Keep registry and controller namespaces distinct
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_controller != 'spinnaker' or delivery_platform_harbor_namespace != delivery_platform_spinnaker_namespace
+      - delivery_platform_controller != 'argocd' or delivery_platform_harbor_namespace != delivery_platform_argocd_namespace
+  when: delivery_platform_install_harbor | bool
+
+- name: Require valid distinct namespaces and endpoint names
+  ansible.builtin.assert:
+    that:
+      - item.namespace is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - item.namespace not in ['default', 'kube-system', 'kube-public', 'kube-node-lease']
+      - item.host is match('^[a-z0-9][a-z0-9.-]+[a-z0-9]$')
+      - "'example.com' not in item.host"
+  loop: >-
+    {{ ([{'namespace': delivery_platform_harbor_namespace, 'host': delivery_platform_harbor_host}]
+        if delivery_platform_install_harbor | bool else [])
+       + ([{'namespace': delivery_platform_argocd_namespace, 'host': delivery_platform_argocd_host}]
+          if delivery_platform_controller == 'argocd' else [])
+       + ([{'namespace': delivery_platform_spinnaker_namespace, 'host': delivery_platform_spinnaker_host}]
+          if delivery_platform_controller == 'spinnaker' else []) }}
+
+- name: Require the native application client on apply
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", -c, "import kubernetes, jsonpatch, yaml"]
+  changed_when: false
+  when: delivery_platform_action == 'apply'

@@ -6,7 +6,7 @@ import yaml
 
 TIERS = ("tier-0", "tier-1", "tier-2")
 TERRAFORM_ONLY_DEPLOYMENTS = {
-    "tier-0": {"kubernetes", "templates"},
+    "tier-0": {"kubernetes", "templates", "ci-auth"},
     "tier-1": {"kubernetes"},
     "tier-2": {"kubernetes"},
 }
@@ -14,12 +14,12 @@ SHARED_TREES = {
     "config": ("*.json", "platform.tfvars"),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2"),
     "ansible/playbooks": ("*.yml",),
-    "scripts": ("*.sh", "log-evidence.py"),
+    "scripts": ("*.sh", "log-evidence.py", "saved-plan-context.py"),
     "templates": ("proxmox-catalog.tfvars",),
 }
 TIER_TREES = {
     "terraform": ("*.tf", "*.example", ".terraform.lock.hcl"),
-    "ansible": ("ansible.cfg", "*.example"),
+    "ansible": ("ansible.cfg", "requirements.txt", "*.example"),
     "ansible/playbooks": ("*.yml", "*.yaml"),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2", "logging_checkpoint.py", "logging_io.py",
                       "logging_health.py", ".gitkeep"),
@@ -30,7 +30,7 @@ TIER_TREES = {
     "bootstrap": ("*.tf", "*.yaml", ".gitkeep"),
     "clusters": ("*.yaml", ".gitkeep"),
     "environments": (".gitkeep",),
-    "workloads": (".gitkeep",),
+    "workloads": (".gitkeep", "*.example"),
 }
 OWNED_TREES = {"bootstrap", "clusters", "environments", "workloads", "ci"}
 

@@ -35,6 +35,12 @@
     owner: root
     group: root
     mode: "0644"
+    use_proxy: "{{ repository_proxy_active | default(false) | bool }}"
+  environment: >-
+    {{ {'http_proxy': repository_proxy_url,
+        'https_proxy': repository_proxy_effective_https_url,
+        'no_proxy': shell_proxy_no_proxy}
+       if repository_proxy_active | default(false) | bool else {} }}
 
 - name: Configure the signed native package repository
   ansible.builtin.deb822_repository:

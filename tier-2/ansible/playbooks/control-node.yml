@@ -2,7 +2,20 @@
 - name: Check Tier 2 deployment tooling
   ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
   vars:
+    control_node_collection_catalog:
+      kubernetes.core:
+        name: kubernetes.core
+        version: '>=6.6.0,<7.0.0'
+        os_packages: {RedHat: [], Debian: []}
+      ansible.utils:
+        name: ansible.utils
+        version: '>=6.0.0,<7.0.0'
+        os_packages: {RedHat: [python3-netaddr], Debian: [python3-netaddr]}
     control_node_setup_collection_names:
+      cluster-platform: [kubernetes.core]
+      cluster-security-logging: [kubernetes.core, ansible.utils, community.crypto]
+      lab-environment: [kubernetes.core]
+      workload-telemetry: [kubernetes.core, ansible.utils]
       edge: [community.general, ansible.posix, community.crypto]
       cache: [community.general, ansible.posix]
       lab: [community.general, ansible.posix]

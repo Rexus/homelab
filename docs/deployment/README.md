@@ -7,10 +7,10 @@ existing supply where appropriate. Foundation only requires an available bootstr
 Each stage explains the main path with diagrams, names the capability available at
 the end, and links back to the architecture it implements.
 
-**Before starting:** this is not yet a complete automated installation. Read the
+**Before starting:** this is a staged installation with explicit commissioning prerequisites. Read the
 [stage coverage](../reference/implementation-support.md#stage-coverage)
-to identify supplied workflows, manual prerequisites and missing integrations.
-The diagrams describe accepted outcomes, not proof that every pictured product is installed by the kit.
+to identify supplied workflows, manual prerequisites and optional integrations.
+The diagrams map selected resources and existing dependencies to IaC; they are not live acceptance evidence.
 
 ## Table of contents
 
@@ -30,33 +30,27 @@ The diagrams describe accepted outcomes, not proof that every pictured product i
 | 4: Kubernetes | Independently bootstrapped Tier 0 cluster and basic platform | Tier 0 | [Kubernetes](stage-4-kubernetes/README.md) |
 | 5: Identity | Directory authority and federated OIDC access | Tier 0 | [Identity](stage-5-identity/README.md) |
 | 6: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-6-secrets/README.md), [monitoring](stage-6-secrets/monitoring.md) |
-| 7: Delivery and handover | Source control, repository/OCI extensions, builds and protected execution | Tier 1 platform; Tier 2 edge; Tier 0 execution | [Delivery and handover](stage-7-delivery/README.md) |
+| 7: Delivery | Tier 1 runtime, Argo CD or Spinnaker, approved artifact supply | Tier 1 platform; optional Tier 2 edge | [Delivery](stage-7-delivery/README.md) |
 | 8: Observability | Netdata diagnostics, infrastructure health, logs, metrics, traces and scoped queries | Tier 1; Tier 0-owned infrastructure collection and approved exports | [Observability](stage-8-observability/README.md) |
-| 9: Workload provisioning | Approved Tier 2 runtime, applications and scoped collection | Tier 2 definitions; Tier 0 execution | [Workload provisioning](stage-9-workloads/README.md), [collection](stage-9-workloads/telemetry.md) |
+| 9: Development platform | GitLab, SSO, on-demand build pods, Vault CI and infrastructure handover | Tier 1 applications; Tier 0 execution/auth policy | [Development platform](stage-9-development/README.md) |
+| 10: Lab environments | Isolated Tier 2 runtimes, applications and future bounded requests | Tier 2 definitions; Tier 0 execution | [Lab environments](stage-10-lab-environments/README.md), [isolated clusters](stage-10-lab-environments/isolated-clusters.md) |
 
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 block-beta
-  columns 5
-  Base["Foundation prerequisites<br/>Hosts, access and templates"]:2
+  columns 3
+  Base["Foundation<br/>Hosts, access<br/>and templates"]
+  Intake["1. Software intake<br/>Controlled<br/>update access"]
+  Logs["2. Protected logging<br/>Independent<br/>Tier 0 evidence"]
+  Identity["5. Identity<br/>Directory<br/>and federation"]
+  Runtime["4. Kubernetes<br/>Control cluster<br/>and basic platform"]
+  Trust["3. Cryptographic trust<br/>Offline custody<br/>and issuance"]
+  Control["6. Secrets<br/>Secret service<br/>and recovery"]
+  Delivery["7. Delivery<br/>Controller<br/>and artifact supply"]
+  Visibility["8. Observability<br/>Logs, metrics, traces<br/>and queries"]
   space
-  Intake["1. Software intake<br/>Controlled update access"]:2
-  space:5
-  Trust["3. Cryptographic trust<br/>Offline custody and issuance"]:2
-  space
-  Logs["2. Protected logging<br/>Independent Tier 0 evidence"]:2
-  space:5
-  Runtime["4. Kubernetes<br/>Control cluster / basic platform"]:2
-  space
-  Identity["5. Identity<br/>Directory / federation"]:2
-  space:5
-  Delivery["7. Delivery and handover<br/>Artifacts / protected execution"]:2
-  space
-  Control["6. Secrets<br/>Secret service / audit / recovery"]:2
-  space:5
-  Visibility["8. Observability<br/>Logs / metrics / traces / queries"]:2
-  space
-  Workloads["9. Workloads<br/>Scoped delivery and collection"]:2
+  Workloads["10. Lab environments<br/>Scoped runtimes<br/>and requests"]
+  Development["9. Development<br/>platform<br/>GitLab, CI<br/>and handover"]
   Base --> Intake
   Intake --> Logs
   Logs --> Trust
@@ -65,7 +59,8 @@ block-beta
   Identity --> Control
   Control --> Delivery
   Delivery --> Visibility
-  Visibility --> Workloads
+  Visibility --> Development
+  Development --> Workloads
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -74,7 +69,7 @@ block-beta
   class Base boundary
   class Intake edge
   class Logs,Trust,Runtime,Identity,Control control
-  class Delivery,Visibility,Workloads services
+  class Delivery,Visibility,Development,Workloads services
 ```
 
 **Workflow:** this is the capability sequence, not a resource or network diagram.
@@ -100,20 +95,26 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Tier 0 | `hsm` | Stage 3 option: signing-service host pool | [USB HSM option](stage-3-trust/step-1b-usb-hsm.md) |
 | Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1-3](stage-4-kubernetes/README.md) |
 | Tier 0 | `vault` | Stage 6 option: dedicated secrets VM | [Vault VM option](stage-6-secrets/step-1b-vault-vm.md) |
-| Tier 0 | `immutable-template` | Stage 7 option: image-based Linux builds | [Image-based Linux](stage-7-delivery/step-1d-image-based-linux.md) |
+| Tier 0 | `immutable-template` | Stage 9 option: image-based Linux builds | [Image-based Linux](stage-9-development/step-2c-image-based-linux.md) |
+| Tier 0 | `infrastructure-runner` | Stage 9: dedicated trusted infrastructure CI VM | [Runner](stage-9-development/procedures/infrastructure-runner.md) |
+| Tier 0 | `ci-auth` | Stage 9: Vault JWT backend, bounded claims and policies; native Vault root | [Vault CI](stage-9-development/procedures/vault-ci.md) |
 | Tier 1 | `kubernetes` | Stage 7: shared platform cluster | [Platform runtime](stage-7-delivery/procedures/platform-cluster.md) |
-| Tier 1 | `development` | Stage 7 option: source-control VM | [Source-control VM](stage-7-delivery/step-1b-source-control-vm.md) |
-| Tier 1 | `podman-runner` | Stage 7 option: general build runner | [Build runner](stage-7-delivery/step-1c-podman-runner.md) |
+| Tier 1 | `development` | Stage 9 option: source-control VM | [Source-control VM](stage-9-development/step-1b-source-control-vm.md) |
+| Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-9-development/step-2b-podman-runner.md) |
 | Tier 1 | `observability` | Stage 8 alternative: dedicated VM foundations; baseline only | [Observability](stage-8-observability/README.md), [VM recipe](stage-8-observability/step-1b-dedicated-vms.md) |
 | Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 1](stage-1-software-intake/README.md#step-1-deploy-the-policy-proxy-and-cache) |
-| Tier 2 | `edge` | Stages 7/9: public service entry | [Edge deployment](stage-7-delivery/procedures/edge-proxy.md) |
-| Tier 2 | `kubernetes` | Stage 9: workload cluster | [Workload runtime](stage-9-workloads/README.md#step-2-provision-the-workload-runtime) |
-| Tier 2 | `lab` | Stage 9: workload VM/LXC resources | [Workload runtime](stage-9-workloads/README.md#step-2-provision-the-workload-runtime) |
+| Tier 2 | `edge` | Stages 7/10: public service entry | [Edge deployment](stage-7-delivery/procedures/edge-proxy.md) |
+| Tier 2 | `kubernetes` | Stage 10: workload cluster | [Workload runtime](stage-10-lab-environments/README.md#step-2-provision-the-workload-runtime) |
+| Tier 2 | `lab` | Stage 10: workload VM/LXC resources | [Workload runtime](stage-10-lab-environments/README.md#step-2-provision-the-workload-runtime) |
 
 Entry points are not one-to-one with stages: the Tier 0 `foundation` root plans all
 selected issuer/directory guests together; service configuration follows its stage.
 Stages never rename state roots or authorize removal of earlier resources. Product
 integration is distinguished from supplied automation in the [support map](../reference/implementation-support.md).
+
+GitLab and Kubernetes job runners use the separate Tier 1
+[application recipe](stage-9-development/procedures/gitlab.md), not a Terraform VM setup.
+The Vault `ci-auth` root likewise does not run through the Proxmox helper.
 
 ## Repository locations
 

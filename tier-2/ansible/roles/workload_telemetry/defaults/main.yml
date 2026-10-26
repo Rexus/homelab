@@ -1,0 +1,15 @@
+---
+workload_telemetry_action: render
+workload_telemetry_kubeconfig: ""
+workload_telemetry_context: ""
+workload_telemetry_output: "{{ playbook_dir }}/../../../secrets/workload-telemetry"
+workload_telemetry_namespace: ""
+workload_telemetry_chart_version: ""
+workload_telemetry_image_tag: ""
+workload_telemetry_storage_class: ""
+workload_telemetry_metrics_endpoint: ""
+workload_telemetry_application_endpoint: ""
+workload_telemetry_gateway_cidrs: []
+workload_telemetry_gateway_ports: []
+workload_telemetry_manage_secrets: false
+workload_telemetry_secrets: {}

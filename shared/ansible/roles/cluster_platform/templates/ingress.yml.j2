@@ -1,0 +1,33 @@
+---
+values:
+  fullnameOverride: traefik
+  deployment:
+    replicas: 1
+  ingressClass:
+    enabled: true
+    isDefaultClass: false
+    name: {{ cluster_platform_ingress_class | to_json }}
+  providers:
+    kubernetesCRD:
+      enabled: true
+      allowCrossNamespace: false
+    kubernetesIngress:
+      enabled: true
+      ingressClass: {{ cluster_platform_ingress_class | to_json }}
+      publishedService:
+        enabled: false
+    kubernetesGateway:
+      enabled: false
+  ingressRoute:
+    dashboard:
+      enabled: false
+  service:
+    type: NodePort
+  ports:
+    web:
+      nodePort: {{ cluster_platform_ingress_http_port | int }}
+    websecure:
+      nodePort: {{ cluster_platform_ingress_https_port | int }}
+  logs:
+    access:
+      enabled: true

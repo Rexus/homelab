@@ -15,12 +15,17 @@
   changed_when: false
   when: cache_keepalived_enabled | bool
 
-- name: Test upstream URL reachability from cache host
+- name: Test upstream access through this node's Squid
   ansible.builtin.uri:
     url: "{{ cache_validation_url }}"
     follow_redirects: all
     timeout: "{{ cache_validation_timeout | default(20) }}"
-    use_proxy: false
+    use_proxy: true
+  environment:
+    http_proxy: "http://127.0.0.1:{{ cache_squid_http_port }}"
+    https_proxy: "http://127.0.0.1:{{ cache_squid_http_port }}"
+    no_proxy: ""
+    NO_PROXY: ""
   changed_when: false
   when:
     - cache_validation_enabled | default(true) | bool

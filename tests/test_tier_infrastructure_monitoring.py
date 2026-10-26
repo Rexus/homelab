@@ -22,7 +22,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
             for expected in ("Tier 0 owns Proxmox/BMC targets", "read-only", "Redfish", "IPMI",
                              "separate identities, data volumes", "parent synchronization",
                              "node-OS compatibility", "approved metrics", "cannot power-cycle",
-                             "Tier 1 unavailable", "no command", "missing signals"):
+                             "Tier 1 unavailable", "missing signals"):
                 self.assertIn(expected.lower(), guide.lower())
             for step in range(1, 4):
                 self.assertIn(f"## Step {step}:", guide)
@@ -33,7 +33,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
                              "no default native Netdata stream or parent replication"):
                 self.assertIn(expected, design)
 
-    def test_diagram_scope_matches_empty_starter_and_tier_local_inventory(self):
+    def test_diagram_scope_matches_native_installers_and_tier_local_inventory(self):
         self.generate()
         for collection, prefix, docs in (
             (UPSTREAM, "", UPSTREAM / "docs"),
@@ -48,10 +48,14 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
             overview = (docs / "deployment/stage-8-observability/README.md").read_text()
             code = re.findall(r"```mermaid\n(.*?)```", overview, re.DOTALL)[2]
             for expected in ('subgraph T1[', 'subgraph T0[', "Existing platform Kubernetes",
-                             "project integration", "Existing / manually inventoried",
+                             "native releases", "Existing / manually inventoried",
                              "Native streaming", "Approved OTLP metrics"):
                 self.assertIn(expected, code)
-            self.assertIn("does not install the pictured Netdata", overview)
+            self.assertIn("roles/infrastructure_monitoring", overview)
+            self.assertIn("roles/observability_platform", overview)
+            for tier, role in (("tier-0", "infrastructure_monitoring"),
+                               ("tier-1", "observability_platform")):
+                self.assertTrue((collection / f"{prefix}{tier}/ansible/roles/{role}/tasks/main.yml").is_file())
             self.assertIn("flowchart BT", code)
             self.assertIn("T0 ---->|Approved OTLP metrics| T1", code)
             self.assertIn("Inputs -->|Health metrics| Local", code)

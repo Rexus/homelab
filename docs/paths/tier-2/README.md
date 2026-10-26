@@ -57,7 +57,7 @@ same inventory; no separate shared inventory is required.
 ## Navigation
 
 - [Inventory and automation layout](../../development/code-layout.md)
-- [Workload provisioning stage](../../deployment/stage-9-workloads/README.md)
+- [Lab environments stage](../../deployment/stage-10-lab-environments/README.md)
 - [VM placement and Proxmox HA](../../deployment/foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
-- [Delivery stage](../../deployment/stage-7-delivery/README.md#step-2-enable-protected-execution)
+- [Development-platform handover](../../deployment/stage-9-development/procedures/handover.md)
 - [Project conventions and recovery records](../../development/project-documentation.md)

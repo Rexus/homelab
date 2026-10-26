@@ -1,0 +1,8 @@
+jobs:
+{% for target in infrastructure_monitoring_pve_targets %}
+  - name: {{ target.name }}
+    url: 'http://127.0.0.1:9221/pve?target={{ target.host }}&module={{ target.credential }}&cluster=1&node=1'
+    update_every: 30
+{% else %}
+  []
+{% endfor %}

@@ -67,7 +67,10 @@ with tier-owned requirements. For offline use, pre-stage collections from
 `shared/ansible/requirements.yml` (the prefixed shared repo after generation)
 and any owning-tier `ansible/requirements.yml`. Shared owns `community.crypto`
 for private PKI and public ACME. Tier 0 adds `freeipa.ansible_freeipa` and
-`ansible.mariadb`; Tier 1 and Tier 2 use the common requirements.
+`ansible.mariadb`. Each tier adds `kubernetes.core` and Python client dependencies
+for native cluster applications; network-scoped recipes also use `ansible.utils`
+for address validation. Install the owning tier's `ansible/requirements.txt` in the
+accepted virtual environment, not the operating system's Python environment.
 Keep collection artifacts on the recovery host so the precheck needs no network.
 
 The repository deployment wrapper runs that precheck before Terraform or host

@@ -1,0 +1,35 @@
+---
+# Add the approved existing host to an infrastructure_monitoring inventory group.
+# Pass this file explicitly; no Terraform or live discovery is performed by this recipe.
+infrastructure_monitoring_action: render
+infrastructure_monitoring_listen_address: 10.10.20.60
+infrastructure_monitoring_allow_from: 10.10.20.*
+infrastructure_monitoring_outside_observed_clusters: false
+infrastructure_monitoring_read_only_credentials_verified: false
+# Select exact signed package builds from the approved native Netdata repository.
+infrastructure_monitoring_packages: [netdata-2.12.2, netdata-plugin-go-2.12.2]
+# Supply an approved upstream prometheus-pve-exporter digest in the private inputs.
+infrastructure_monitoring_pve_targets:
+  - {name: proxmox-a, host: pve01.management.example.org, credential: proxmox-a}
+infrastructure_monitoring_redfish_targets:
+  - name: hardware-a
+    url: https://bmc01.management.example.org/redfish/v1/
+    username: monitor
+    password_file: hardware-a-password
+# Optional metrics-only export; empty endpoint leaves Tier 0 fully independent.
+infrastructure_monitoring_export_endpoint: otlp-1.observability.example.org:30317
+infrastructure_monitoring_export_metrics: [netdata_system_cpu_percentage_average]
+infrastructure_monitoring_export_labels: [job, source, instance, chart, dimension]
+infrastructure_monitoring_health_rules: |
+  template: foundation_disk_pressure
+        on: disk.space
+     class: Utilization
+      type: System
+  component: Disk
+     every: 30s
+      calc: $used * 100 / ($avail + $used)
+     units: %
+      warn: $this > 80
+      crit: $this > 90
+        to: sysadmin
+# Add tested device/source freshness/quorum rules using observed Netdata chart names.

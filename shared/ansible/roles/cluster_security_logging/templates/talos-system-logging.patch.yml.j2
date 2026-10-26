@@ -1,0 +1,13 @@
+machine:
+  logging:
+    destinations:
+      - endpoint: tcp://127.0.0.1:{{ cluster_security_logging_listener_port }}/
+        format: json_lines
+        extraTags:
+          cluster: {{ cluster_security_logging_cluster | to_json }}
+          tier: {{ (cluster_security_logging_tier | string) | to_json }}
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: security-logging
+url: tcp://127.0.0.1:{{ cluster_security_logging_listener_port }}/

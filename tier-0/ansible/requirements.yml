@@ -1,5 +1,13 @@
 ---
 # Tier 0 additions to shared/ansible/requirements.yml.
 collections:
+  - name: containers.podman
+    version: '>=1.18.0,<2.0.0'
   - name: freeipa.ansible_freeipa
   - name: ansible.mariadb
+  - name: kubernetes.core
+    version: '>=6.6.0,<7.0.0'
+  - name: ansible.utils
+    version: '>=6.0.0,<7.0.0'
+  - name: community.hashi_vault
+    version: '>=7.0.0,<8.0.0'

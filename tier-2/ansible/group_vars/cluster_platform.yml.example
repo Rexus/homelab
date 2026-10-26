@@ -1,0 +1,25 @@
+---
+# Guide: docs/deployment/stage-4-kubernetes/procedures/basic-platform.md
+# Shared role = execution; no Tier 0/Tier 1 inventory is imported here.
+cluster_platform_action: render
+cluster_platform_kubeconfig: ""
+cluster_platform_context: ""
+# Application delivery is separately scoped; no cluster-local Flux is assumed.
+cluster_platform_components: [cilium, storage, cert_manager, ingress]
+cluster_platform_versions:
+  cilium: REPLACE_WITH_EXACT_CHART_VERSION
+  storage: REPLACE_WITH_EXACT_CHART_VERSION
+  cert_manager: REPLACE_WITH_EXACT_CHART_VERSION
+  ingress: REPLACE_WITH_EXACT_CHART_VERSION
+cluster_platform_approved_repositories: []
+cluster_platform_talos_cilium_ready: false
+cluster_platform_expected_nodes: >-
+  {{ ((lookup('ansible.builtin.file', playbook_dir ~ '/../../inventory/hosts.yml') | from_yaml)
+      .all.children.talos_control_plane.hosts.keys() | list)
+     + ((lookup('ansible.builtin.file', playbook_dir ~ '/../../inventory/hosts.yml') | from_yaml)
+      .all.children.talos_workers.hosts.keys() | list) }}
+cluster_platform_storage_provider: existing
+cluster_platform_storage_class: REPLACE_WITH_ACCEPTED_CSI_CLASS
+cluster_platform_existing_storage_accepted: false
+cluster_platform_issuer_spec: {}
+cluster_platform_database_enabled: false

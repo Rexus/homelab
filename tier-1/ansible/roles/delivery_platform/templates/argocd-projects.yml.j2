@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: default
+  namespace: {{ delivery_platform_argocd_namespace }}
+spec:
+  sourceRepos: []
+  destinations: []
+  namespaceResourceBlacklist: [{group: '*', kind: '*'}]
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: {{ delivery_platform_argocd_namespace }}
+spec:
+  sourceRepos: {{ delivery_platform_argocd_repositories | to_json }}
+  destinations:
+{% for namespace in delivery_platform_argocd_destinations %}
+    - server: https://kubernetes.default.svc
+      namespace: {{ namespace | to_json }}
+{% endfor %}
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist: [{group: '*', kind: '*'}]

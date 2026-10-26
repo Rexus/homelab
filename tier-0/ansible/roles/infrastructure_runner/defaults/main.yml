@@ -1,0 +1,8 @@
+---
+infrastructure_runner_trust_ci_control_plane: false
+infrastructure_runner_gitlab_url: ""
+infrastructure_runner_version: ""
+infrastructure_runner_token: ""
+infrastructure_runner_ca_src: ""
+infrastructure_runner_workspace: /srv/iac
+infrastructure_runner_tool_packages: [git, bash, python3, ansible-core]

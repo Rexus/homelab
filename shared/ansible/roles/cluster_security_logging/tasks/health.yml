@@ -1,0 +1,33 @@
+---
+- name: Wait for exactly one current ready collector on the selected node
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_security_logging_kubeconfig }}"
+    context: "{{ cluster_security_logging_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: DaemonSet
+    namespace: "{{ cluster_security_logging_namespace }}"
+    name: "security-log-{{ security_logging_node.stream }}"
+  register: security_logging_daemonset
+  vars:
+    daemon: "{{ (security_logging_daemonset.resources | default([]) | first) | default({}) }}"
+    daemon_status: "{{ daemon.get('status', {}) }}"
+    expected_affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchFields:
+                - key: metadata.name
+                  operator: In
+                  values: ["{{ security_logging_node.name }}"]
+  until:
+    - security_logging_daemonset.resources | default([]) | length == 1
+    - daemon.get('spec', {}).get('template', {}).get('spec', {}).get('affinity') == expected_affinity
+    - daemon_status.get('observedGeneration', 0) >= daemon.get('metadata', {}).get('generation', 1)
+    - daemon_status.get('desiredNumberScheduled', 0) == 1
+    - daemon_status.get('updatedNumberScheduled', 0) == 1
+    - daemon_status.get('numberReady', 0) == 1
+    - daemon_status.get('numberUnavailable', 0) == 0
+    - daemon_status.get('numberMisscheduled', 0) == 0
+  retries: "{{ cluster_security_logging_health_retries }}"
+  delay: "{{ cluster_security_logging_health_delay }}"

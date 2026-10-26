@@ -90,9 +90,13 @@ replacement for target authorization. [1][2]
 ## Realization
 
 [Stage 7](../../deployment/stage-7-delivery/README.md) provisions the platform runtime
-and integrates the selected delivery option. [Cluster foundation](../../deployment/stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation)
-defines the shared readiness gates. Tier 1/2 manifests remain project-owned starters;
-neither Argo CD nor Spinnaker installation is supplied.
+and guides selection of [Argo CD](../../deployment/stage-7-delivery/step-2a-argocd.md)
+or [Spinnaker](../../deployment/stage-7-delivery/step-2b-spinnaker.md).
+[Cluster foundation](../../deployment/stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation)
+defines shared readiness gates. Native installation does not replace controller
+commissioning, scoped destination approval or recovery qualification.
+[Development platform](development-platform.md) separates these application controllers
+from the later GitLab/runner installation and opt-in trusted infrastructure CI.
 
 ## References
 

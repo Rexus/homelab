@@ -1,0 +1,75 @@
+---
+control_applications_components: [keycloak]
+control_applications_action: render
+control_applications_kubeconfig: ""
+control_applications_context: ""
+control_applications_output: "{{ playbook_dir }}/../../../secrets/control-applications"
+control_applications_manage_secrets: false
+control_applications_secrets: {}
+control_applications_versions: {keycloak: "", vault: "", netbox: "", headlamp: ""}
+control_applications_hosts:
+  keycloak: sso.example.com
+  vault: vault.example.com
+  netbox: netbox.example.com
+  headlamp: headlamp.example.com
+control_applications_ingress_class: ""
+control_applications_traefik_crd_accepted: false
+control_applications_ingress_annotations: {keycloak: {}, vault: {}, netbox: {}, headlamp: {}}
+control_applications_storage_class: ""
+control_applications_postgres_image: ""
+control_applications_database_size: 10Gi
+control_applications_database_instances: 3
+control_applications_cnpg_barman_accepted: false
+control_applications_backup_endpoint: ""
+control_applications_backup_destinations: {keycloak: "", netbox: ""}
+control_applications_backup_schedule: "0 0 2 * * *"
+control_applications_backup_retention: 30d
+control_applications_cluster_domain: cluster.local
+control_applications_namespace_labels:
+  pod-security.kubernetes.io/enforce: restricted
+control_applications_platform_accepted: false
+control_applications_recovery_custody_accepted: false
+control_applications_backup_restore_accepted: false
+
+control_applications_keycloak_realm: platform
+control_applications_keycloak_replicas: 2
+control_applications_keycloak_configure: true
+control_applications_keycloak_auth: {}
+control_applications_ldap_url: ""
+control_applications_ldap_users_dn: ""
+control_applications_ldap_groups_dn: ""
+control_applications_ldap_bind_dn: ""
+control_applications_ldap_bind_password: ""
+# Clients already registered on the existing IdP; secrets are never generated here.
+control_applications_oidc_issuer: "https://{{ control_applications_hosts.keycloak }}/realms/{{ control_applications_keycloak_realm }}"
+control_applications_oidc_client_secrets: {}
+control_applications_register_clients: false
+
+# install leaves Vault sealed; configure enables audit/SSO; accept checks recovery evidence.
+control_applications_vault_phase: install
+control_applications_vault_replicas: 3
+control_applications_vault_data_size: 10Gi
+control_applications_vault_audit_size: 10Gi
+control_applications_vault_token: ""
+control_applications_vault_policies: {}
+control_applications_vault_oidc_roles: []
+control_applications_vault_audit_forwarding_accepted: false
+control_applications_vault_ca_path: ""
+control_applications_oidc_ca_pem: ""
+control_applications_valkey_image: ""
+control_applications_netbox_media_size: 5Gi
+control_applications_headlamp_api_oidc_accepted: false
+control_applications_headlamp_group: ""
+control_applications_headlamp_namespaces: []
+control_applications_https_ca_path: ""
+control_applications_cluster_logging_accepted: false
+
+# Separate, serial post-identity workflow; it never invokes Helm or Terraform apply.
+control_applications_sso_plan: ""
+control_applications_sso_output: "{{ control_applications_output }}/kubernetes-sso"
+control_applications_sso_talosctl: talosctl
+control_applications_sso_kubectl: kubectl
+control_applications_sso_talosconfig: ""
+control_applications_sso_talos_context: ""
+control_applications_sso_maintenance_accepted: false
+control_applications_sso_require_installed: false

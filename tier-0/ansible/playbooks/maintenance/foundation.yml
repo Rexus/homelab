@@ -1,7 +1,7 @@
 ---
-# Read-only identity health checks, also used after initial deployment.
+# Service/API probes use a temporary host ticket, never the operator's cache.
 - name: Sanity-check all FreeIPA identity hosts
-  hosts: identity
+  hosts: "{{ foundation_health_hosts | default('identity') }}"
   become: true
   gather_facts: false
   any_errors_fatal: true
@@ -15,14 +15,42 @@
       changed_when: false
       when: foundation_freeipa_enabled | default(false) | bool
 
-    - name: Wait for FreeIPA API health on each identity host
-      ansible.builtin.command:
-        argv:
-          - ipa
-          - ping
-      register: foundation_identity_ipa_ping
-      changed_when: false
-      until: foundation_identity_ipa_ping.rc == 0
-      retries: 12
-      delay: 10
+    - name: Probe the API with an isolated short-lived host credential
       when: foundation_freeipa_enabled | default(false) | bool
+      block:
+        - name: Allocate a private temporary credential directory
+          ansible.builtin.tempfile:
+            state: directory
+            prefix: freeipa-health-
+          register: foundation_health_cache
+          changed_when: false
+
+        - name: Obtain a short-lived ticket from this host's existing keytab
+          community.general.krb_ticket:
+            principal: "host/{{ platform_fqdn }}@{{ foundation_freeipa_realm }}"
+            keytab: true
+            keytab_path: /etc/krb5.keytab
+            cache_name: "FILE:{{ foundation_health_cache.path }}/ticket"
+            lifetime: 5m
+            forwardable: false
+            state: present
+          changed_when: false
+          no_log: true
+
+        - name: Wait for FreeIPA API health on each identity host
+          ansible.builtin.command:
+            argv: [ipa, ping]
+          environment:
+            KRB5CCNAME: "FILE:{{ foundation_health_cache.path }}/ticket"
+          register: foundation_identity_ipa_ping
+          changed_when: false
+          until: foundation_identity_ipa_ping.rc == 0
+          retries: 12
+          delay: 10
+      always:
+        - name: Remove only the health check's private credential cache
+          ansible.builtin.file:
+            path: "{{ foundation_health_cache.path }}"
+            state: absent
+          changed_when: false
+          when: foundation_health_cache.path is defined

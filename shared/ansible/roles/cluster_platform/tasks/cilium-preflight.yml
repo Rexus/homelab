@@ -1,0 +1,36 @@
+---
+- name: Retain Talos-compatible Cilium settings after value overrides
+  ansible.builtin.assert:
+    that:
+      - cilium.ipam.mode == 'kubernetes'
+      - cilium.kubeProxyReplacement == true
+      - cilium.k8sServiceHost == 'localhost'
+      - cilium.k8sServicePort | int == 7445
+      - cilium.cgroup.autoMount.enabled == false
+      - cilium.cgroup.hostRoot == '/sys/fs/cgroup'
+      - cilium.bpf.autoMount.enabled == false
+      - "'SYS_MODULE' not in cilium.securityContext.capabilities.ciliumAgent"
+      - "'SYS_MODULE' not in cilium.securityContext.capabilities.cleanCiliumState"
+    fail_msg: Keep the Talos IPAM, KubePrism, mount and capability constraints in the selected Cilium values.
+  vars:
+    cilium: "{{ (cluster_platform_releases | selectattr('component', 'equalto', 'cilium') | first)['values'] }}"
+
+- name: Detect conflicting network agents before changing the cluster
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_platform_kubeconfig }}"
+    context: "{{ cluster_platform_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: DaemonSet
+  register: cluster_platform_network_agents
+  when: cluster_platform_action == 'apply'
+
+- name: Reject a running default CNI or kube-proxy
+  ansible.builtin.assert:
+    that:
+      - >-
+        cluster_platform_network_agents.resources | map(attribute='metadata.name')
+        | select('match', '^(kube-flannel.*|kube-proxy|calico-node|antrea-agent|weave-net|kube-router)$')
+        | list | length == 0
+    fail_msg: Existing CNI/proxy detected. This installer does not migrate network plugins; qualify that separately.
+  when: cluster_platform_action == 'apply'

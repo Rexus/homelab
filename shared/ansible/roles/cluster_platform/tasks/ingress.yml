@@ -1,0 +1,31 @@
+---
+- name: Require the selected native ingress class
+  ansible.builtin.include_tasks: health.yml
+  vars:
+    cluster_platform_health:
+      api_version: networking.k8s.io/v1
+      kind: IngressClass
+      name: "{{ cluster_platform_ingress_class }}"
+
+- name: Require the Traefik ingress controller identity
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_observed.resources[0].spec.controller == 'traefik.io/ingress-controller'
+
+- name: Require the native ingress service
+  ansible.builtin.include_tasks: health.yml
+  vars:
+    cluster_platform_health:
+      api_version: v1
+      kind: Service
+      name: traefik
+      namespace: ingress-system
+
+- name: Require the reviewed NodePorts
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_observed.resources[0].spec.type == 'NodePort'
+      - cluster_platform_ingress_http_port | int in node_ports
+      - cluster_platform_ingress_https_port | int in node_ports
+  vars:
+    node_ports: "{{ cluster_platform_observed.resources[0].spec.ports | map(attribute='nodePort') | list }}"

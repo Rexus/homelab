@@ -1,0 +1,61 @@
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata: {name: observability-isolation, namespace: {{ selected_namespace }}}
+  spec:
+    podSelector: {}
+    policyTypes: [Ingress, Egress]
+    ingress:
+{% if component == 'metrics' %}
+      - from:
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: cnpg-system}}
+        ports: [{protocol: TCP, port: 8000}]
+{% endif %}
+      - from:
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ observability_operator_namespace }}}}
+        ports:
+{% for port in ([8427, 3000, 5601] if component == 'metrics' else [19999]) %}
+          - {protocol: TCP, port: {{ port }}}
+{% endfor %}
+{% if component == 'metrics' and observability_telemetry_cidrs | length > 0 %}
+      - from:
+{% for cidr in observability_telemetry_cidrs %}
+          - ipBlock: {cidr: {{ cidr }}}
+{% endfor %}
+        ports:
+          - {protocol: TCP, port: 4317}
+{% for scope in observability_log_scopes %}
+          - {protocol: TCP, port: {{ scope.port }}}
+{% endfor %}
+{% endif %}
+      - from:
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ observability_namespace }}}}
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ observability_netdata_namespace }}-1}}
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ observability_netdata_namespace }}-2}}
+        ports:
+{% if component == 'metrics' %}
+{% for port in [4317, 8427, 8428, 9200, 9300, 5601, 3000, 5432] %}
+          - {protocol: TCP, port: {{ port }}}
+{% endfor %}
+{% for scope in observability_log_scopes %}
+{% for port in [scope.port, 21890 + 2 * loop.index0, 21891 + 2 * loop.index0] %}
+          - {protocol: TCP, port: {{ port }}}
+{% endfor %}
+{% endfor %}
+{% else %}
+          - {protocol: TCP, port: 19999}
+{% endif %}
+    egress:
+{% for grant in observability_egress %}
+      - to: [{ipBlock: {cidr: {{ grant.cidr }}}}]
+        ports:
+{% for port in grant.ports %}
+          - {protocol: TCP, port: {{ port }}}
+{% endfor %}
+{% endfor %}
+      - to:
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ observability_namespace }}}}
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ observability_netdata_namespace }}-1}}
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ observability_netdata_namespace }}-2}}
+      - to:
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+        ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]

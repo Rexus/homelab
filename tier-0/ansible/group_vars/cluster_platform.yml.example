@@ -1,0 +1,86 @@
+---
+# Explicit extra-vars for localhost; examples are not automatically loaded.
+# Guide: docs/deployment/stage-4-kubernetes/procedures/basic-platform.md
+cluster_platform_action: render
+cluster_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
+cluster_platform_context: ""
+cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg, barman_cloud, flux]
+
+# Exact chart versions WITHOUT a leading v; qualify against your Talos/Kubernetes pins.
+cluster_platform_versions:
+  cilium: REPLACE_WITH_EXACT_CHART_VERSION
+  storage: REPLACE_WITH_EXACT_CHART_VERSION
+  cert_manager: REPLACE_WITH_EXACT_CHART_VERSION
+  ingress: REPLACE_WITH_EXACT_CHART_VERSION
+  cloudnative_pg: REPLACE_WITH_EXACT_CHART_VERSION
+  barman_cloud: REPLACE_WITH_EXACT_CHART_VERSION
+  flux: REPLACE_WITH_EXACT_CHART_VERSION
+# Copy only the explicitly approved URLs below into this list, or approve private mirrors.
+cluster_platform_approved_repositories: []
+cluster_platform_repositories:
+  cilium: https://helm.cilium.io
+  storage: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+  cert_manager: https://charts.jetstack.io
+  ingress: https://traefik.github.io/charts
+  cloudnative_pg: https://cloudnative-pg.github.io/charts
+  barman_cloud: https://cloudnative-pg.github.io/charts
+  flux: https://fluxcd-community.github.io/helm-charts
+
+# Set only after preparing CNI=none, disabled kube-proxy, KubePrism on all Talos nodes.
+cluster_platform_talos_cilium_ready: false
+cluster_platform_expected_nodes: [k8ctl-1, k8ctl-2, k8ctl-3]
+
+# Existing accepted CSI: set provider=existing, its class and acceptance=true.
+# NFS selection: existing NAS only, no server installation or disk formatting.
+cluster_platform_storage_provider: nfs
+cluster_platform_storage_class: nfs-platform
+cluster_platform_existing_storage_accepted: false
+cluster_platform_nfs_prerequisites_accepted: false
+cluster_platform_nfs_server: REPLACE_WITH_NAS_ADDRESS
+cluster_platform_nfs_share: /REPLACE_WITH_EXISTING_EXPORT
+cluster_platform_nfs_mount_options: [nfsvers=4.1, hard]
+cluster_platform_ingress_class: traefik
+cluster_platform_ingress_http_port: 30080
+cluster_platform_ingress_https_port: 30443
+
+# Optional native issuer integration; secrets live in cert-manager namespace.
+# ACME example after qualifying the existing Stage 3 adapter and its trust:
+# cluster_platform_issuer_spec:
+#   acme:
+#     server: https://qualified-acme.internal/directory
+#     email: operator@internal.example.com
+#     privateKeySecretRef: {name: platform-acme-account}
+#     solvers:
+#       - http01: {ingress: {ingressClassName: traefik}}
+# HTTP-01 also requires DNS/port-80 routing to ingress. Install ingress first
+# in a separate selected-component run if enabling an HTTP-01 issuance probe.
+cluster_platform_issuer_spec: {}
+cluster_platform_issuer_required_secrets: []
+cluster_platform_certificate_dns_names: []
+
+# Optional new application database. CNPG generates the app credentials.
+# Existing database adoption/recovery is a separate operation.
+cluster_platform_database_enabled: false
+cluster_platform_database_name: platform-db
+cluster_platform_database_namespace: databases
+# Keep a numeric PostgreSQL version tag as well as @sha256:<digest> for CNPG version detection.
+cluster_platform_database_image: REPLACE_WITH_APPROVED_POSTGRESQL_IMAGE_DIGEST
+cluster_platform_database_image_approved: false
+cluster_platform_database_instances: 1
+cluster_platform_database_size: 8Gi
+
+# This source must exist before Stage 4 and remain recoverable without later tiers.
+# It must include a SOPS-encrypted canary Secret under the selected path.
+cluster_platform_flux_source_approved: false
+cluster_platform_flux_url: REPLACE_WITH_INDEPENDENT_HTTPS_OR_SSH_GIT_URL
+cluster_platform_flux_commit: REPLACE_WITH_APPROVED_FULL_COMMIT_HASH
+cluster_platform_flux_path: ./clusters/tier0
+cluster_platform_flux_git_secret: flux-git
+cluster_platform_flux_git_secret_keys: [username, password]
+# SSH instead: [identity, identity.pub, known_hosts]; use ssh://git@host/path.git.
+cluster_platform_flux_age_secret: sops-age
+cluster_platform_flux_age_key: age.agekey
+cluster_platform_flux_canary_name: platform-sops-canary
+cluster_platform_flux_canary_key: accepted
+cluster_platform_flux_canary_sha256: REPLACE_WITH_SHA256_OF_DECRYPTED_CANARY_VALUE
+cluster_platform_manage_secrets: false

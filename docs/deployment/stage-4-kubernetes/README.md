@@ -10,8 +10,9 @@ API endpoint outside this cluster. Retain bootstrap tools, images and credential
 without depending on FreeIPA, Keycloak or later Tier 1 delivery services.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Automation:** tier-local Terraform provisions nodes and bootstraps Kubernetes.
-The API endpoint must already exist; add-ons and node/API audit forwarding require
-project integration. See [coverage](../../reference/implementation-support.md#stage-coverage).
+The API endpoint must already exist. Tier-local Ansible inputs select reusable
+platform and protected cluster-source collection roles in Shared.
+See [coverage](../../reference/implementation-support.md#stage-coverage).
 **Design:** [Kubernetes runtime](../../architecture/compute/kubernetes.md).
 
 ## Main path
@@ -57,6 +58,9 @@ From Tier 0, initialize the local inputs:
 bash scripts/kubernetes-cluster.sh init
 ```
 
+Before bootstrap, prepare the [Talos CNI/proxy patches](procedures/basic-platform.md#prepare-talos)
+and [node/API logging patches](procedures/security-logging.md#prepare-talos).
+The latter can be rendered without a live cluster; install its collectors after CNI is ready.
 Configure [inventory, node hardware, endpoint and pinned images](procedures/talos-terraform.md#configure)
 in Tier 0's [Kubernetes root](../../../tier-0/terraform/deployments/kubernetes/).
 Verify the independent endpoint and DHCP reservations before planning:
@@ -85,58 +89,128 @@ Additional workers are an explicit capacity choice; existing clusters retain the
 ## Step 2: Establish the basic platform
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":22,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Source["Existing bootstrap Git / OCI source"]
-  subgraph T0[" "]
+  subgraph T0["Tier 0 / Control layer"]
     direction TB
-    T0Title["Tier 0 / Control layer"]
-    subgraph Cluster["Existing Kubernetes / k8ctl-1, k8ctl-2, k8ctl-3"]
-      direction TB
-      subgraph Project["Project integration / cluster starters only"]
-        direction LR
-        Network["CNI, storage and ingress selection"]
-        Flux["Flux / SOPS"]
-        Base["cert-manager / CloudNativePG"]
-        Base ~~~ Flux ~~~ Network
+    subgraph Cluster["Existing Tier 0 Kubernetes / selected native releases"]
+      direction LR
+      subgraph Apps["Platform services"]
+        direction TB
+        TLS["cert-manager"]
+        Ingress["traefik / private NodePorts"]
+        Database["cloudnative-pg / operator"]
+        Backup["plugin-barman-cloud / backups"]
+        TLS ~~~ Ingress ~~~ Database ~~~ Backup
       end
+      subgraph Reconcile["Reconciliation"]
+        direction TB
+        Flux["flux2 / controllers"]
+        Source["platform / GitRepository<br/>and SOPS Kustomization"]
+        Flux --> Source
+      end
+      subgraph NodeServices["Node services"]
+        direction TB
+        Network["cilium / CNI"]
+        Storage["csi-driver-nfs / CSI"]
+        Network ~~~ Storage
+      end
+      Apps ~~~ Reconcile ~~~ NodeServices
     end
-    T0Title ~~~ Cluster
+    subgraph Existing["Independent existing prerequisites"]
+      direction LR
+      Git["Approved bootstrap Git source"]
+      NAS[("Qualified NAS export")]
+      Git ~~~ NAS
+    end
+    Cluster -->|Read-only Git / NFS storage interfaces| Existing
   end
-  Source -. Bootstrap source integration .-> T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T0 control
-  class T0Title controlHeading
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class T0,Flux,Network control
   class Cluster runtime
-  class Project replicas
-  class Source actor
+  class Apps,Reconcile,NodeServices,Existing boundary
+  class Source,Git,NAS data
 ```
 
-**Integration:** Tier 0 [cluster starters](../../../tier-0/clusters/tier0/kustomization.yaml)
-contain no installer for the dashed add-on group. Supply reviewed manifests and bootstrap Flux explicitly.
-The Kubernetes root retains its configured node-OS network defaults until the selected CNI is deliberately integrated.
+**IaC:** Tier 0's [platform playbook](../../../tier-0/ansible/playbooks/deployment/cluster-platform.yml)
+owns the selected pinned releases; reusable execution roles install them
+on the existing cluster. Follow the [basic platform procedure](procedures/basic-platform.md)
+to configure inputs, render privately and apply with readiness gates.
+Scope: the seven chart releases in the Tier 0 example and their Flux source/decryption
+objects. Existing Git/NAS interfaces are prerequisites; application databases are
+created later by their owning recipes, not implied by the operator box.
 
-Follow the [foundation checklist](procedures/kubernetes.md#cluster-foundation) in
-dependency order: networking, Flux, SOPS/bootstrap secrets, storage, certificates/ingress
-and database readiness. Connect certificate automation to the existing issuer through
-a supported integration.
+| Capability | Supplied installation | Explicit prerequisite or remaining acceptance |
+| --- | --- | --- |
+| Networking | Talos-compatible Cilium | CNI/proxy preparation before bootstrap; cross-node traffic and DNS tests |
+| Persistence | NFS CSI and a retained, non-default class, or accepted existing CSI | Existing NAS export and node access; persistence and restore tests |
+| Certificates | cert-manager, optional ClusterIssuer and issuance probe | Qualified existing issuer, trust and enrollment credentials |
+| Ingress | Traefik with explicit NodePorts and ingress class | Private DNS, routing/firewall and end-to-end TLS tests |
+| PostgreSQL | CloudNativePG operator, Barman Cloud plugin and optional new database | Qualified CSI/image; application connection, backup and restore tests |
+| Reconciliation/secrets | Flux controllers, pinned Git source, SOPS age decryption | Independent source/keys and encrypted acceptance canary |
+
+The installer applies networking, storage, certificates, ingress, database and Flux
+in that order, waiting between products. Components can be selected independently;
+install ingress first when an enabled certificate probe uses HTTP-01.
+The [foundation checklist](procedures/kubernetes.md#cluster-foundation) defines acceptance,
+including the dependencies a selected-component run must already satisfy.
+Connect certificate automation to the existing issuer through a supported integration.
 For the OpenXPKI Community reference, the [ACME adapter qualification](../stage-3-trust/procedures/issuer.md#step-3-activate-and-accept-issuance)
 is explicit; installing cert-manager does not supply that adapter or authorize enrollment.
 
-Tier 0's [clusters/tier0/](../../../tier-0/clusters/tier0/) add-on folders are starters.
-Supply reviewed manifests, verify reconciliation,
+Tier 0's [clusters/tier0/](../../../tier-0/clusters/tier0/) folders remain GitOps starters;
+the installer does not populate them or transfer Helm ownership to Flux.
+Prepare the [Flux source and canary](procedures/flux-sops.md), verify reconciliation,
 decryption, persistence, TLS and database health, and start backups as state appears.
 Flux requires a reachable source with independent credentials, not merely a local checkout.
-Also qualify node and API audit forwarding to Tier 0 before acceptance; the
-[security-event gate](procedures/kubernetes.md#cluster-foundation) is separate from
-the add-on subset drawn above and is not installed by the cluster Terraform root.
+Install and qualify [protected cluster-source collection](procedures/security-logging.md)
+before acceptance. It has a separate recipe from the add-on subset above; neither
+the VM/bootstrap root nor installing a logging pod alone accepts that complete path.
 
 ## Step 3: Verify operation and recovery
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph T0["Tier 0 / protected cluster logging"]
+    direction LR
+    subgraph Cluster["Existing control Kubernetes / cluster-security-logging"]
+      direction TB
+      Sources["Talos / API audit / pod logs<br/>All three existing nodes"]
+      subgraph Agents["Fluent Bit / bounded queues, not replicated"]
+        direction TB
+        A1["security-log-control-k8ctl-1<br/>Node-local queue / cursor"]
+        A2["security-log-control-k8ctl-2<br/>Node-local queue / cursor"]
+        A3["security-log-control-k8ctl-3<br/>Node-local queue / cursor"]
+        A1 ~~~ A2 ~~~ A3
+      end
+      Sources -->|Loopback / read-only host logs| Agents
+    end
+    Receiver["Existing log-1 / protected intake<br/>Per-node CN and observed IP enrollment"]
+    Cluster -->|RFC5424 / TCP with mTLS| Receiver
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  class T0,Receiver control
+  class Cluster runtime
+  class Agents replicas
+```
+
+**IaC:** the Tier 0 [collection playbook](../../../tier-0/ansible/playbooks/deployment/cluster-security-logging.yml)
+and [node inputs](../../../tier-0/ansible/group_vars/cluster_security_logging.yml.example)
+select these three releases from the [Shared role](../../../shared/ansible/roles/cluster_security_logging/).
+Scope: cluster sources and bounded local queues; the receiver and its archive are existing Stage 2 services.
+
+Follow the [collection procedure](procedures/security-logging.md) to enroll distinct
+client leaves, install collectors and test source-to-intake delivery. No signing
+authority enters Kubernetes. A lost node, full queue or unavailable first-hop
+listener can lose records; protected intake is not an application-acknowledged replica.
 
 Run the [implementation checks](procedures/talos-terraform.md#verify-and-hand-over) and accept
 every selected [cluster-foundation gate](procedures/kubernetes.md#cluster-foundation).

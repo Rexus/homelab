@@ -1,0 +1,11 @@
+{
+  "status": "design-input-only-not-consumed-by-current-single-cluster-root",
+  "isolation": "dedicated-vm-cluster",
+  "profiles": {
+    "xs": {"control_planes": 1, "control_plane_size": "medium", "workers": 1, "worker_size": "medium"},
+    "s": {"control_planes": 1, "control_plane_size": "medium", "workers": 2, "worker_size": "medium"},
+    "m": {"control_planes": 3, "control_plane_size": "medium", "workers": 3, "worker_size": "medium"},
+    "l": {"control_planes": 3, "control_plane_size": "medium", "workers": 3, "worker_size": "large"}
+  },
+  "expiry_requires_explicit_authorization": true
+}

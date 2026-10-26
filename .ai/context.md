@@ -25,6 +25,13 @@ This file keeps durable context for AI-assisted work across sessions.
   its `talos-terraform.md` sibling and stage's `step-1b-manual-cluster.md` own implementation procedures
 - all three tiers own a Kubernetes root, inventory/IP map, state and credentials;
   shared/scripts/kubernetes-cluster.sh is execution only, with tier-local shortcuts
+- all tiers use tier-owned cluster-platform playbooks/inputs with Shared's stateless
+  cluster_platform, kubernetes_applications and helm_release roles. Tier 0 selects Flux;
+  Tier 1/2 omit it unless a separate explicit design selects it. CNI/CSI, cert-manager,
+  Traefik CRDs, CNPG and Barman are native pinned products, not empty GitOps starters
+- Tier 0 control_applications installs Keycloak/LDAP, Vault/Raft/audit, NetBox and Headlamp;
+  initialization/unseal and custody remain explicit. Tier 1 delivery/observability/development
+  roles and Tier 2 lab/telemetry roles own their releases and interfaces
 - tier-local machine_config_patches supplies native Talos proxy, DNS/time and registry documents;
   default [] preserves existing behavior, not restricted-network readiness; Linux proxy inputs do not apply
 - new cluster examples use three schedulable control planes with optional workers;
@@ -33,6 +40,15 @@ This file keeps durable context for AI-assisted work across sessions.
   pools are not independent security boundaries and no autoscaler is supplied
 - Tier 0 uses Flux; Tier 1 delivery remains unselected between Argo CD and Spinnaker;
   Tier 1 delivery never owns Tier 0 credentials or cluster/infrastructure lifecycle
+- Stage 9 supplies native GitLab and Kubernetes runner Helm recipes in Tier 1;
+  PostgreSQL, Redis, Gitaly and object storage are explicit existing prerequisites.
+  Tier 0 owns infrastructure-runner provisioning/configuration and the separate Vault ci-auth root.
+- Direct infrastructure CI is opt-in: the dedicated project, GitLab control plane and
+  administrators able to alter its hosting are accepted as Tier 0 authorities.
+  Ordinary runners and application delivery controllers remain unprivileged.
+  Independent recovery retains original tier-local inputs/state without GitLab/Vault/SSO.
+- Stage 10 keeps workload isolation and bounded profile requests separate from direct CI.
+  Profile examples are design inputs, not a shipped allocator or self-service portal.
 - security-first posture with strong separation of concerns
 - public upstream is curated and not meant for operational changes
 - repository model is a Tier 0, Tier 1, and Tier 2 deployment kit
@@ -66,7 +82,7 @@ This file keeps durable context for AI-assisted work across sessions.
   tier-specific entries and complete per-network overrides; roots merge the two maps by name
 - refresh uses `.generated-files.json` and preserves local edits and deletions;
   Kubernetes Terraform currently uses Talos in tier-owned automation; `clusters/` service starters
-  remain project-owned skeletons, not installed services
+  remain project-owned adoption points, not the native application installers
 - code ownership upgrades preserve retired shared files for manual review and
   do not port local edits into new tier paths, alter owned CI jobs, or move state
 - Tier 0 must remain bootstrapable and recoverable without higher-tier services
@@ -121,8 +137,8 @@ This file keeps durable context for AI-assisted work across sessions.
 - delegated provisioning is a design goal, not an implemented controller or API;
   its authoritative contract is docs/architecture/compute/provisioning.md
 - docs/deployment/foundation/ contains unnumbered host/network/access/template prerequisites;
-  docs/deployment/README.md indexes nine numbered capabilities: software intake, protected logging,
-  cryptographic trust, Kubernetes, Identity, Secrets, delivery and handover, Observability and workloads
+  docs/deployment/README.md indexes ten numbered capabilities: software intake, protected logging,
+  cryptographic trust, Kubernetes, Identity, Secrets, Delivery, Observability, Development platform and Lab environments
 - Stage 4 owns control-cluster bootstrap and common add-on/audit/recovery gates;
   Stage 5 owns dedicated directory VMs and federation on the existing cluster;
   independent bootstrap DNS/time/credentials avoid a Kubernetes/identity dependency cycle
@@ -284,7 +300,7 @@ This file keeps durable context for AI-assisted work across sessions.
   earlier Tier 0 traceability/evidence capability, not the same as distributed tracing
 - Identity federation belongs to Stage 5: Identity; Stage 6: Secrets begins with Vault/audit/recovery.
   Stage folders use capability names, not implementation/runtime suffixes.
-- Observability has its own Stage 8 after Secrets and the Tier 1 runtime; workload provisioning is Stage 9
+- Observability has its own Stage 8 after Secrets and the Tier 1 runtime; Development platform is Stage 9 and Lab environments is Stage 10
 - Tier 1 Observability uses the existing Kubernetes cluster with separately scalable Collector,
   VictoriaMetrics, Data Prepper, OpenSearch and UI workloads; OpenSearch is included initially
 - Netdata is also part of Stage 8: tier-local children, Tier 1 parents/live diagnostics and
@@ -294,7 +310,12 @@ This file keeps durable context for AI-assisted work across sessions.
 - no all-in-one observability VM default or second Tier 1 syslog/archive; dedicated VM alternatives
   separate otel-N, metrics-N and search-N roles; their recipe supplies hosts/baseline only
 - OpenSearch indexes approved scoped copies, without Tier 0 write/delete/retention/backup authority;
-  document/field read filters do not revoke write privileges; product manifests remain integration work
+  document/field read filters do not revoke write privileges; native product installation is supplied,
+  while the Tier 0 approved-view export adapter remains a separately qualified integration
+- Cluster security collection uses Shared native Fluent Bit execution with per-node TLS identities,
+  tier-local source catalogs and Talos patches; no signing key enters Kubernetes.
+- Kubernetes OIDC is a Tier 0-owned guarded serial integration from each target tier's sensitive plan;
+  original X509/Talos access and backend/state remain authoritative and independently recoverable.
 
 ## Working rules
 

@@ -1,0 +1,13 @@
+---
+# Tier 2-owned application inputs. No hypervisor credentials or inventory in Shared.
+lab_environment_action: render
+lab_environment_kubeconfig: ""
+lab_environment_name: lab-demo
+lab_environment_replicas: 2
+lab_environment_owner_group: lab-demo-readers
+lab_environment_image: REPLACE_WITH_APPROVED_NONROOT_HTTP_IMAGE_AT_SHA256_DIGEST
+lab_environment_host: demo.internal.example.com
+lab_environment_ingress_class: REPLACE_WITH_ACCEPTED_CLASS
+lab_environment_ingress_namespace: REPLACE_WITH_EXISTING_INGRESS_NAMESPACE
+# The image must serve / on 8080 as UID 10001 with a read-only root filesystem.
+# This is an application reference, not an arbitrary image compatibility promise.

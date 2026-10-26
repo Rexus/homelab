@@ -1,0 +1,27 @@
+---
+- name: Prepare private support-resource output
+  ansible.builtin.file:
+    path: "{{ kube_apps_output }}"
+    state: directory
+    mode: "0700"
+  when: kube_app_manifests | length > 0
+
+- name: Store the selected native support resources
+  ansible.builtin.copy:
+    content: "{{ kube_app_manifests | map('to_nice_yaml') | join('---\n') }}"
+    dest: "{{ kube_apps_output }}/{{ kube_app.name }}-{{ kube_app_manifest_phase }}.yml"
+    mode: "0600"
+  when: kube_app_manifests | length > 0
+  no_log: true
+
+- name: Apply selected native support resources with verified API access
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kube_apps_kubeconfig }}"
+    context: "{{ kube_apps_context | default(omit, true) }}"
+    validate_certs: true
+    definition: "{{ kube_app_manifests }}"
+    state: present
+  when:
+    - kube_apps_action == 'apply'
+    - kube_app_manifests | length > 0
+  no_log: true

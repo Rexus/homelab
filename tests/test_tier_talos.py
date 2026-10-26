@@ -80,6 +80,8 @@ for arg in sys.argv:
         pathlib.Path(arg[5:]).write_text("saved plan")
 if os.environ.get("FAIL_PLAN") and "plan" in sys.argv:
     sys.exit(1)
+if "show" in sys.argv:
+    print('{"format_version": "1.2", "planned_values": {"sensitive": "disposable"}}')
 if "output" in sys.argv:
     if os.environ.get("FAIL_EXPORT") and sys.argv[-1] == "kubeconfig":
         sys.exit(1)
@@ -94,6 +96,7 @@ if "output" in sys.argv:
                                   capture_output=True, text=True)
 
         self.assertNotEqual(call("apply").returncode, 0)
+        self.assertNotEqual(call("export-plan").returncode, 0)
         self.assertFalse(log.exists())
         self.assertEqual(call("init").returncode, 0)
         inventory = repo / "ansible/inventory/hosts.yml"
@@ -108,19 +111,28 @@ if "output" in sys.argv:
         self.assertEqual(call("plan").returncode, 0)
         plan = repo / ".terraform/plans/talos.tfplan"
         self.assertTrue(plan.is_file())
+        result = call("export-plan")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        plan_json = repo / "secrets/talos/plan.json"
+        self.assertEqual(json.loads(plan_json.read_text())["format_version"], "1.2")
+        self.assertEqual(plan_json.stat().st_mode & 0o077, 0)
+        self.assertNotIn("disposable", result.stdout)
         requirement = self.root / "verify-shared/ansible/requirements.yml"
         original = requirement.read_bytes()
         requirement.unlink()
         self.assertNotEqual(call("plan").returncode, 0)
         self.assertFalse(plan.exists())
+        self.assertFalse(plan_json.exists())
         requirement.write_bytes(original)
         self.assertEqual(call("plan").returncode, 0)
         self.assertNotEqual(call("plan", dict(env, FAIL_PLAN="1")).returncode, 0)
         self.assertFalse(plan.exists())
         self.assertNotEqual(call("apply").returncode, 0)
         self.assertEqual(call("plan").returncode, 0)
+        self.assertEqual(call("export-plan").returncode, 0)
         self.assertEqual(call("apply").returncode, 0)
         self.assertFalse(plan.exists())
+        self.assertFalse(plan_json.exists())
         self.assertNotEqual(call("credentials").returncode, 0)
         state = repo / ".terraform/state/talos/terraform.tfstate"
         state.write_text("fake state\n")
@@ -143,6 +155,8 @@ if "output" in sys.argv:
                          str(self.root / "verify-shared/templates/proxmox-catalog.tfvars"))
         initializing = next(record["args"] for record in calls if "init" in record["args"])
         self.assertIn(f"-backend-config=path={repo}/.terraform/state/talos/terraform.tfstate", initializing)
+        showing = next(record["args"] for record in calls if "show" in record["args"])
+        self.assertEqual(showing[1:], ["show", "-json", str(plan)])
 
 
 if __name__ == "__main__":

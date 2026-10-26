@@ -1,0 +1,85 @@
+---
+fullnameOverride: {{ ('security-log-' ~ security_logging_node.stream) | to_json }}
+kind: DaemonSet
+image:
+  repository: {{ cluster_security_logging_image_repository | to_json }}
+  tag: {{ cluster_security_logging_image_tag | to_json }}
+  digest: {{ cluster_security_logging_image_digest | to_json }}
+imagePullSecrets: {{ cluster_security_logging_image_pull_secrets | to_json }}
+testFramework:
+  enabled: false
+hostNetwork: true
+dnsPolicy: ClusterFirstWithHostNet
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchFields:
+            - key: metadata.name
+              operator: In
+              values: [{{ security_logging_node.name | to_json }}]
+tolerations:
+  - operator: Exists
+rbac:
+  create: false
+serviceAccount:
+  create: true
+  automountServiceAccountToken: false
+securityContext:
+  runAsUser: 0
+  privileged: true
+  readOnlyRootFilesystem: true
+resources:
+{{ cluster_security_logging_resources | to_nice_yaml | indent(2, true) }}
+metricsPort: {{ cluster_security_logging_metrics_port | int }}
+serviceMonitor:
+  enabled: false
+livenessProbe:
+  httpGet:
+    path: /api/v1/uptime
+    port: {{ cluster_security_logging_metrics_port | int }}
+    host: 127.0.0.1
+  initialDelaySeconds: 10
+readinessProbe:
+  httpGet:
+    path: /api/v1/health
+    port: {{ cluster_security_logging_metrics_port | int }}
+    host: 127.0.0.1
+daemonSetVolumes:
+  - name: varlog
+    hostPath:
+      path: /var/log
+      type: Directory
+  - name: buffers
+    hostPath:
+      path: {{ cluster_security_logging_queue_path | to_json }}
+      type: DirectoryOrCreate
+daemonSetVolumeMounts:
+  - name: varlog
+    mountPath: /var/log
+    readOnly: true
+  - name: buffers
+    mountPath: /buffers
+extraVolumes:
+  - name: collector-tls
+    secret:
+      secretName: {{ security_logging_node.tls_secret | to_json }}
+      defaultMode: 256
+      items:
+        - {key: ca.crt, path: ca.crt}
+        - {key: tls.crt, path: tls.crt}
+        - {key: tls.key, path: tls.key}
+extraVolumeMounts:
+  - name: collector-tls
+    mountPath: /collector-tls
+    readOnly: true
+config:
+  service: |
+{{ lookup('ansible.builtin.template', 'service.conf.j2') | indent(4, true) }}
+  inputs: |
+{{ lookup('ansible.builtin.template', 'inputs.conf.j2') | indent(4, true) }}
+  filters: |
+{{ lookup('ansible.builtin.template', 'filters.conf.j2') | indent(4, true) }}
+  outputs: |
+{{ lookup('ansible.builtin.template', 'outputs.conf.j2') | indent(4, true) }}
+  customParsers: ""

@@ -84,6 +84,12 @@ operator actions. [1]
 | `foundation_freeipa_external_cert_files` | Absolute controller paths to the approved identity CA certificate and root/chain |
 | `ipareplica_setup_ca: true` | Explicit CA replica, not just a second directory server [2] |
 
+The identity recipe requires IPv6 support on the host even when the site's routed
+networks are IPv4-only. Set `baseline_disable_ipv6: false` in existing foundation
+inputs; the recipe rejects a disabled IPv6 stack rather than silently installing
+an incomplete directory. Install the coordinated Shared collection requirements
+(`community.general >= 10.0.0` includes the scoped Kerberos-ticket module).
+
 The recipe maps the selected phase to `ipaserver_external_ca` and
 `ipaserver_external_cert_files_from_controller`; the upstream role performs the
 native installation. These inputs do not rechain an existing installed domain.

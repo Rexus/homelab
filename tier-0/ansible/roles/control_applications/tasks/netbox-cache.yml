@@ -1,0 +1,26 @@
+---
+- name: Establish the native TLS cache and persistent queue
+  kubernetes.core.k8s:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    definition: >-
+      {{ (control_applications_releases | selectattr('name', 'equalto', 'netbox') | first).before
+         | selectattr('kind', 'in', ['Service', 'StatefulSet']) | list }}
+    state: present
+
+- name: Require authenticated TLS cache readiness before NetBox Helm
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: StatefulSet
+    namespace: netbox
+    name: netbox-cache
+  register: control_applications_cache_health
+  until: >-
+    control_applications_cache_health.resources | length == 1 and
+    control_applications_cache_health.resources[0].get('status', {}).get('readyReplicas', 0) == 1
+  retries: 60
+  delay: 10

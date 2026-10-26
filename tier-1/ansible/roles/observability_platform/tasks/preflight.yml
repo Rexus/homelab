@@ -1,0 +1,113 @@
+---
+- name: Require explicit topology and native service inputs
+  ansible.builtin.assert:
+    that:
+      - observability_action in ['render', 'apply']
+      - observability_namespace != observability_netdata_namespace
+      - observability_storage_class | length > 0
+      - observability_topology_key != 'kubernetes.io/hostname'
+      - observability_failure_domains | unique | length >= 3
+      - observability_gateway_replicas | int >= 2
+      - observability_metrics_node_port | int >= 30000
+      - observability_metrics_node_port | int <= 32767
+      - observability_prepper_replicas | int >= 2
+      - observability_search_replicas | int >= 3
+      - observability_search_replicas | int % 2 == 1
+      - observability_search_bootstrap is boolean
+      - observability_ui_replicas | int >= 2
+      - observability_queue_batches | int > 0
+      - observability_metrics_read_members | length > 0
+      - observability_metrics_read_members | difference(['metrics-1', 'metrics-2']) | length == 0
+      - observability_netdata_scrape_parent in ['netdata-1', 'netdata-2']
+      - observability_grafana_database_host == 'grafana-db-rw:5432'
+      - observability_backup_destination is match('^s3://[^/]+/.+')
+      - observability_backup_endpoint is match('^https://')
+      - observability_grafana_url is match('^https://')
+      - observability_dashboards_url is match('^https://')
+      - observability_oidc_issuer is match('^https://[^?#]+[^/]$')
+      - observability_oidc_dashboards_client_id | length > 0
+      - observability_oidc_grafana_client_id | length > 0
+      - observability_oidc_operator_group is match('^[a-zA-Z0-9_./:-]+$')
+      - observability_search_node_dns | length > 0
+      - observability_search_admin_dns | length > 0
+      - observability_log_scopes | length > 0
+      - observability_log_scopes | length <= 10
+      - observability_netdata_child_key is match('^[0-9a-f-]{36}$')
+      - observability_netdata_peer_key is match('^[0-9a-f-]{36}$')
+      - observability_netdata_child_key != observability_netdata_peer_key
+      - observability_netdata_allow_from | length > 0
+      - observability_netdata_allow_from != '*'
+      - observability_log_scopes | map(attribute='name') | unique | length == observability_log_scopes | length
+      - observability_log_scopes | map(attribute='port') | unique | length == observability_log_scopes | length
+      - observability_log_scopes | map(attribute='node_port') | unique | length == observability_log_scopes | length
+      - observability_metrics_node_port not in observability_log_scopes | map(attribute='node_port') | list
+      - observability_action != 'apply' or observability_kubeconfig | length > 0
+    fail_msg: Select physical failure domains, storage, source scopes, certificates and independent database backup storage.
+
+- name: Validate authenticated source routing
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9-]{0,30}$')
+      - item.kind in ['application', 'projection']
+      - item.port | int >= 4400
+      - item.port | int <= 4499
+      - item.node_port | int >= 30000
+      - item.node_port | int <= 32767
+      - item.reader_backend_roles | length > 0
+      - "'*' not in item.reader_backend_roles"
+    fail_msg: Each source needs its own client CA, listener, fixed index scope and explicit reader roles.
+  loop: "{{ observability_log_scopes }}"
+
+- name: Require reviewed host access and enforced isolation before apply
+  ansible.builtin.assert:
+    that:
+      - observability_netdata_host_access_approved | bool
+      - observability_network_policy_verified | bool
+      - observability_search_kernel_verified | bool
+    fail_msg: Qualify Netdata node-OS/host access, enforced CNI policy and vm.max_map_count >= 262144 first.
+  when: observability_action == 'apply'
+
+- name: Read real node placement before apply
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ observability_kubeconfig }}"
+    context: "{{ observability_context | default(omit, true) }}"
+    validate_certs: true
+    kind: Node
+  register: observability_nodes
+  when: observability_action == 'apply'
+
+- name: Require the existing PostgreSQL and Barman plugin CRDs
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ observability_kubeconfig }}"
+    context: "{{ observability_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: "{{ item }}"
+  loop: [clusters.postgresql.cnpg.io, objectstores.barmancloud.cnpg.io]
+  register: observability_cnpg
+  when: observability_action == 'apply'
+
+- name: Reject database installation before the Stage 4 operator is established
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].status.conditions | selectattr('type', 'equalto', 'Established') | selectattr('status', 'equalto', 'True') | list | length == 1
+  loop: "{{ observability_cnpg.results | default([]) }}"
+  when: observability_action == 'apply'
+
+- name: Collect actual schedulable physical domains
+  ansible.builtin.set_fact:
+    observability_seen_domains: >-
+      {{ (observability_seen_domains | default([])) + [item.metadata.labels.get(observability_topology_key, '')] }}
+  loop: "{{ observability_nodes.resources | default([]) }}"
+  when:
+    - observability_action == 'apply'
+    - not item.spec.unschedulable | default(false)
+
+- name: Require a schedulable node in every selected physical domain
+  ansible.builtin.assert:
+    that:
+      - observability_failure_domains | difference(observability_seen_domains | default([])) | length == 0
+    fail_msg: Physical domain labels must correspond to independently verified hypervisor placement.
+  when: observability_action == 'apply'

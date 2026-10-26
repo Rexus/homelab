@@ -1,0 +1,38 @@
+---
+- name: Prepare application namespace with its explicit security labels
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kube_apps_kubeconfig }}"
+    context: "{{ kube_apps_context | default(omit, true) }}"
+    validate_certs: true
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ kube_app.namespace }}"
+        labels: "{{ kube_app.namespace_labels | default({}) }}"
+  when: kube_apps_action == 'apply'
+
+- name: Prepare required application identities
+  ansible.builtin.include_tasks: secrets.yml
+
+- name: Prepare native pre-install resources
+  ansible.builtin.include_tasks: manifests.yml
+  vars:
+    kube_app_manifest_phase: before
+    kube_app_manifests: "{{ kube_app.before | default([]) }}"
+
+- name: Render or install the reviewed native application chart
+  ansible.builtin.include_role:
+    name: helm_release
+  vars:
+    helm_release_action: "{{ kube_apps_action }}"
+    helm_release_kubeconfig: "{{ kube_apps_kubeconfig }}"
+    helm_release_context: "{{ kube_apps_context }}"
+    helm_release_output: "{{ kube_apps_output }}"
+    helm_release_spec: "{{ kube_app }}"
+
+- name: Prepare native post-install resources
+  ansible.builtin.include_tasks: manifests.yml
+  vars:
+    kube_app_manifest_phase: after
+    kube_app_manifests: "{{ kube_app.after | default([]) }}"

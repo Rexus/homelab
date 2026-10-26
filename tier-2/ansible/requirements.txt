@@ -1,0 +1,5 @@
+PyYAML>=6.0
+kubernetes>=24.2.0
+jsonpatch>=1.33
+netaddr>=0.10.1
+cryptography>=43.0

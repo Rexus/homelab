@@ -13,4 +13,5 @@
           - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
           - groups.get('issuing_ca', []) | intersect(groups.get('identity', [])) | length == 0
   roles:
+    - baseline
     - openxpki

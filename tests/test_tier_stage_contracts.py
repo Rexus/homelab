@@ -28,7 +28,8 @@ class StageContracts(TierRepositoryTestCase):
             self.assertIn("not a full security", boundary)
             cluster = (docs / "deployment/stage-4-kubernetes/procedures/kubernetes.md").read_text()
             self.assertIn("7. Security events", cluster)
-            self.assertIn("API audit policy is not supplied", cluster)
+            self.assertIn("security-logging.md", cluster)
+            self.assertIn("unique node certificates", cluster)
 
     @unittest.skipUnless(os.name != "nt" and shutil.which("bash"), "Requires Linux file permissions and Bash")
     def test_new_local_inputs_and_overwrite_backups_are_private(self):
@@ -53,7 +54,7 @@ class StageContracts(TierRepositoryTestCase):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             stages = sorted((docs / "deployment").glob("stage-*/README.md"))
-            self.assertEqual(len(stages), 9)
+            self.assertEqual(len(stages), 10)
             for stage in stages:
                 content = stage.read_text()
                 opening = content.split("## Main path", 1)[0]
@@ -61,8 +62,9 @@ class StageContracts(TierRepositoryTestCase):
                 self.assertIn("implementation-support.md#stage-coverage", opening, str(stage))
             support = (docs / "reference/implementation-support.md").read_text()
             summary = support.split("## Stage coverage", 1)[1].split("## Detailed coverage", 1)[0]
-            self.assertIn("not yet an end-to-end installer", summary)
-            self.assertIn("Stage 4, Step 2", summary)
+            self.assertIn("not a zero-touch appliance", summary)
+            self.assertIn("Independent private API endpoint", summary)
+            self.assertNotIn("first missing main-path", summary)
             for stage in stages:
                 self.assertIn(f"deployment/{stage.parent.name}/README.md", summary)
             self.assertIn("empty manifests do not meet a stage gate", " ".join(summary.split()))

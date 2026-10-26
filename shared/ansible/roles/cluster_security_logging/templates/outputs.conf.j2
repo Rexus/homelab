@@ -1,0 +1,26 @@
+{% for tag, app in [('talos.system', 'talos'), ('kube.audit', 'kube-audit'), ('kube.pods', 'kube-pods')] %}
+[OUTPUT]
+    Name syslog
+    Alias {{ app }}-protected-intake
+    Match {{ tag }}
+    Host {{ cluster_security_logging_receiver }}
+    Port {{ cluster_security_logging_receiver_port }}
+    Mode tcp
+    Syslog_Format rfc5424
+    Syslog_Maxsize {{ cluster_security_logging_max_message_bytes }}
+    Syslog_Hostname_Preset {{ security_logging_node.name }}
+    Syslog_Appname_Preset {{ app }}
+    Syslog_Msgid_Preset {{ cluster_security_logging_cluster }}
+    Syslog_SD_Key meta
+    Syslog_Message_Key log
+    tls On
+    tls.verify On
+    tls.verify_hostname On
+    tls.vhost {{ cluster_security_logging_receiver_name }}
+    tls.ca_file /collector-tls/ca.crt
+    tls.crt_file /collector-tls/tls.crt
+    tls.key_file /collector-tls/tls.key
+    Retry_Limit False
+    storage.total_limit_size {{ (cluster_security_logging_queue_mib_per_output | int) * 1048576 }}
+
+{% endfor %}

@@ -44,9 +44,10 @@ and checksums live in `terraform/deployments/kubernetes/`.
   non-overlapping node, pod, and service networks.
 
 The supplied root uses an amd64 NoCloud template with SeaBIOS, `scsi0` installed
-as `/dev/sda`, DHCP, and the default Talos CNI. It does not use cloud-init or SSH.
-Use native patches below for proxy, DNS/time and mirrors. Firmware or CNI changes
-require review of this tier's root before deployment. Enable the guest agent only
+as `/dev/sda`, DHCP, and the default Talos CNI unless patched. It does not use cloud-init or SSH.
+For Tier 0's Cilium path, apply the [native CNI/proxy patches](basic-platform.md#prepare-talos)
+before bootstrap. Use native patches below for proxy, DNS/time and mirrors.
+Firmware or CNI changes require review before deployment. Enable the guest agent only
 if the image includes it. [1]
 
 ## Configure
@@ -71,6 +72,16 @@ reservation. Each new-cluster example starts with three schedulable control-plan
 VMs and no workers; review capacity and failure domains for the services.
 Existing clusters retain their local worker definitions and scheduling settings.
 Talos names are these inventory keys; Linux hostname prefix/suffix settings are not applied.
+The selected native schema uses one `HostnameConfig` document with that exact name
+and automatic naming disabled; do not add a legacy `machine.network.hostname`
+patch beside it. Native configuration tests qualify the reference Talos 1.13 path.
+Other release/schema choices need their own complete-config validation, not only
+a syntactically valid version string.
+
+For existing clusters, review this configuration change against the original state
+and live configuration before any apply. Preserve node identities and all ordered
+patches; a code refresh is not an automatic OS/schema migration. Bootstrap commands
+are not a health-gated parallel upgrade procedure.
 
 | Tier | Starter attachment | IP reservations | Manifest path |
 | --- | --- | --- | --- |
@@ -133,14 +144,17 @@ kubectl get nodes -o wide
 kubectl get pods -A
 ```
 
-Stop on unhealthy nodes or system pods. Confirm the independent API endpoint,
+With CNI disabled for Cilium, nodes/DNS can remain unready until the
+[network installer](basic-platform.md#render-and-apply) runs; API access must already work.
+After installation, stop on unhealthy nodes or system pods. Confirm the independent API endpoint,
 CNI, and [failover checks](../../foundation/step-1b-cluster-ha.md#prove-failover) before services
 depend on this cluster. Terraform completion alone does not prove readiness.
 
 Continue with the [cluster-foundation checklist](kubernetes.md#cluster-foundation).
 Tier 0 uses Flux against `clusters/tier0/`. Tier 1 selects Argo CD or Spinnaker
 separately; Tier 2 consumes scoped application delivery or a local controller.
-The supplied manifest directories remain placeholders, not installed add-ons.
+The supplied manifest directories remain placeholders; Tier 0's Ansible platform
+installer is their separate installation path.
 FreeIPA remains on the two dedicated Tier 0 Linux VMs; Keycloak is a later Tier 0 service.
 
 ## State and lifecycle

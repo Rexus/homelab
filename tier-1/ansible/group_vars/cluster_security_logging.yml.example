@@ -1,0 +1,45 @@
+---
+# Tier 1 owns these inputs; Shared owns stateless collector execution only.
+# Guide: docs/deployment/stage-4-kubernetes/procedures/security-logging.md
+cluster_security_logging_action: render
+cluster_security_logging_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
+cluster_security_logging_context: ""
+cluster_security_logging_cluster: platform
+cluster_security_logging_tier: 1
+cluster_security_logging_talos_schema: v1.13
+cluster_security_logging_chart_version: REPLACE_WITH_EXACT_CHART_VERSION
+cluster_security_logging_approved_repositories: []
+cluster_security_logging_image_tag: REPLACE_WITH_EXACT_FLUENT_BIT_VERSION
+cluster_security_logging_image_digest: ""
+cluster_security_logging_approved_image_repositories: []
+cluster_security_logging_receiver: REPLACE_WITH_TIER0_INTAKE_ADDRESS
+cluster_security_logging_receiver_name: REPLACE_WITH_RECEIVER_CERTIFICATE_DNS_SAN
+cluster_security_logging_receiver_port: 6514
+cluster_security_logging_listener_port: 6050
+cluster_security_logging_metrics_port: 2020
+cluster_security_logging_queue_mib_per_output: 128
+cluster_security_logging_receiver_enrolled: false
+cluster_security_logging_talos_configured: false
+cluster_security_logging_host_access_accepted: false
+cluster_security_logging_manage_secrets: false
+# Exact observed IPv4 and approved client certificate subject; no Tier 0 credentials are reused.
+cluster_security_logging_nodes:
+  - name: platform-k8ctl-1
+    control_plane: true
+    stream: platform-k8ctl-1
+    source_address: REPLACE_WITH_OBSERVED_IP
+    tls_secret: platform-k8ctl-1-tls
+    tls_dn: CN=platform-k8ctl-1
+  - name: platform-k8ctl-2
+    control_plane: true
+    stream: platform-k8ctl-2
+    source_address: REPLACE_WITH_OBSERVED_IP
+    tls_secret: platform-k8ctl-2-tls
+    tls_dn: CN=platform-k8ctl-2
+  - name: platform-k8ctl-3
+    control_plane: true
+    stream: platform-k8ctl-3
+    source_address: REPLACE_WITH_OBSERVED_IP
+    tls_secret: platform-k8ctl-3-tls
+    tls_dn: CN=platform-k8ctl-3
+# Add every worker with control_plane=false and its own enrolled identity.

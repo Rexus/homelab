@@ -1,0 +1,23 @@
+fullnameOverride: headlamp
+replicaCount: 1
+clusterRoleBinding: {create: false}
+config:
+  inCluster: true
+  unsafeUseServiceAccountToken: false
+  oidc:
+    secret: {create: false}
+    externalSecret: {enabled: true, name: headlamp-oidc, hasScopes: true}
+    callbackURL: {{ ('https://' ~ control_applications_hosts.headlamp ~ '/oidc-callback') | to_json }}
+    usePKCE: true
+env:
+  - {name: SSL_CERT_FILE, value: /trust/services/ca.crt}
+  - {name: OIDC_USE_PKCE, value: "true"}
+  - {name: OIDC_CALLBACK_URL, value: {{ ('https://' ~ control_applications_hosts.headlamp ~ '/oidc-callback') | to_json }}}
+volumes:
+  - {name: service-ca, secret: {secretName: service-ca}}
+volumeMounts:
+  - {name: service-ca, mountPath: /trust/services, readOnly: true}
+ingress: {enabled: false}
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {memory: 512Mi}

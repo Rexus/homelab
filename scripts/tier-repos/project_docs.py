@@ -57,7 +57,7 @@ def repository_guides(writer, repo, prefix, scope):
         ),
         "tier-2": ("| Traffic | Draft: public edge and ordinary outbound cache in DMZ; separate client subnet | Edge/cache roots and deployment recipes |\n"
                    "| Compute | Draft: independent workload cluster; development, testing and lab pools when needed | Kubernetes root and tier-local inventory |\n"
-                   "| Workloads | Select Linux VMs or application delivery targets | Lab root or cluster manifests; record acceptance checks |"),
+                   "| Lab environments | Select isolated Linux VMs or Kubernetes environments | Lab root or cluster manifests; record acceptance checks |"),
         "shared": "| Common automation | Review platform references, sizes and image catalog | Scripts and baseline roles; no inventory or state |",
     }
     docs = f"../../{prefix}-architecture/docs/auto-docs"

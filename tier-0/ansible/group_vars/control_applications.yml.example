@@ -1,0 +1,65 @@
+---
+# Run from Tier 0; procedure: docs/deployment/stage-6-secrets/procedures/control-applications.md
+control_applications_action: render
+control_applications_components: [keycloak]
+control_applications_kubeconfig: ""
+control_applications_context: ""
+control_applications_output: "{{ playbook_dir }}/../../../secrets/control-applications"
+control_applications_versions:
+  keycloak: "7.4.0"
+  vault: "0.34.1"
+  netbox: "8.3.95"
+  headlamp: "0.46.0"
+control_applications_hosts:
+  keycloak: sso.lab.example.com
+  vault: vault.lab.example.com
+  netbox: netbox.lab.example.com
+  headlamp: headlamp.lab.example.com
+control_applications_ingress_class: traefik
+control_applications_traefik_crd_accepted: false
+# The role supplies native verified ServersTransports and service annotations.
+control_applications_ingress_annotations: {keycloak: {}, vault: {}, netbox: {}, headlamp: {}}
+control_applications_storage_class: ""
+control_applications_postgres_image: ghcr.io/cloudnative-pg/postgresql:17.6
+control_applications_valkey_image: valkey/valkey:8.1.3
+control_applications_cluster_logging_accepted: false
+control_applications_cnpg_barman_accepted: false
+control_applications_backup_endpoint: https://backups.lab.example.com
+control_applications_backup_destinations:
+  keycloak: s3://control-backups/keycloak
+  netbox: s3://control-backups/netbox
+control_applications_backup_schedule: "0 0 2 * * *"
+control_applications_backup_retention: 30d
+control_applications_keycloak_realm: platform
+control_applications_ldap_url: ldaps://idm-1.lab.example.com:636
+control_applications_ldap_users_dn: cn=users,cn=accounts,dc=lab,dc=example,dc=com
+control_applications_ldap_groups_dn: cn=groups,cn=accounts,dc=lab,dc=example,dc=com
+control_applications_ldap_bind_dn: uid=keycloak,cn=sysaccounts,cn=etc,dc=lab,dc=example,dc=com
+control_applications_register_clients: false
+control_applications_vault_phase: install
+control_applications_vault_policies:
+  platform-read:
+    # Select an existing secrets-engine mount; this installer does not create one.
+    'path "platform/data/operators/*" { capabilities = ["read"] }'
+control_applications_vault_oidc_roles:
+  - name: platform-readers
+    groups: [platform-secret-readers]
+    policies: [platform-read]
+control_applications_headlamp_group: oidc:platform-viewers
+control_applications_headlamp_namespaces: [netbox, headlamp]
+control_applications_platform_accepted: false
+control_applications_recovery_custody_accepted: false
+control_applications_backup_restore_accepted: false
+control_applications_vault_audit_forwarding_accepted: false
+control_applications_headlamp_api_oidc_accepted: false
+# Optional local CA PEM paths for Ansible HTTPS checks; API modules use controller trust.
+control_applications_https_ca_path: ""
+control_applications_vault_ca_path: ""
+control_applications_oidc_ca_pem: ""
+
+# Alternate workflow, not a generic installer; see Stage 5 kubernetes-sso.md.
+# Use -e control_applications_operation=kubernetes_sso with a private reviewed plan.
+control_applications_sso_plan: ""
+control_applications_sso_talosconfig: ""
+control_applications_sso_talos_context: ""
+control_applications_sso_maintenance_accepted: false

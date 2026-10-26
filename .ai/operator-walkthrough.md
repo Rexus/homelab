@@ -1,19 +1,20 @@
 # Operator walkthrough checklist
 
-Rechecked 2026-10-23 against the current worktree and the handoff corrections below, from the
+Rechecked 2026-10-26 against the current worktree and the handoff corrections below, from the
 perspective of a software engineer with newly installed servers and UniFi switches.
 This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
 
-**Scope:** clone, generation, foundation, all nine capability stages and adjacent options,
+**Scope:** clone, generation, foundation, all ten capability stages and adjacent options,
 ordinary users, applications, maintenance, expansion and total-loss recovery.
 **Evidence boundary:** source/generator review and offline tests; no live gateway,
 Proxmox, HSM, service deployment, failover or disaster restore was performed.
 
 ## Current journey verdict
 
-The engineer can generate repositories and follow the foundation procedures, but
-cannot obtain the complete reference platform merely by running the supplied IaC.
+The engineer can generate repositories and follow native installation recipes for
+all ten selected capability stages. This is a staged, commissioned platform, not
+a zero-touch appliance or an operationally accepted deployment.
 The first security gate is verified Proxmox API trust; all supplied Terraform roots
 now verify TLS, and provisioning entry points reject inherited insecure flags.
 Stage 2 now has a selected Linux/NAS main path: reviewed-CSR producer trust, native
@@ -24,22 +25,20 @@ asynchronous bounded-loss custody, not replicated/lossless intake. The Stage 3 p
 TLS-server leaves, not producer client-auth certificates. Do not bypass that gate to
 declare a production PKI or assume Stage 3 automatically replaces producer trust.
 
-Since the prior walkthrough, software PKI and public HTTPS have concrete recipes,
-not just designs. Fresh-shell controller commands now select their Ansible config;
-edge setup links to HTTPS and recovery links directly to issuer restoration.
-Package qualification and live acceptance remain distinct from supplied mechanisms.
-
-The fresh generated collection keeps ownership and input paths aligned. The numbered
-route is understandable, but not yet an uninterrupted deployable platform: after logging,
-cluster endpoints/add-ons, control applications and protected delegated execution still
-need implementations. Household/team use and a complete first-app restore remain the
-outcome gaps below. A clean offline suite does not close those gaps.
+The generated collection keeps resources, inventory, inputs and state tier-local.
+Shared owns native chart execution and reusable cluster roles. Tier-owned application
+recipes now cover platform add-ons, Identity, Secrets, Delivery, Observability,
+the development platform and a bounded lab application. Empty GitOps directories
+remain adoption points, not the installation executor. Direct infrastructure CI
+explicitly trusts the dedicated GitLab project and its control/hosting authorities.
 
 The [stage coverage](../docs/reference/implementation-support.md#stage-coverage)
-gives the installation verdict before a reader starts. Stage 4's private API
-endpoint must already exist, then its Step 2 is the first missing main-path application
-installation. Later stages do not become installed merely because their cluster
-directories exist. No live acceptance box is checked by this consistency review.
+is the authoritative installation/prerequisite map. Independent API endpoints,
+prepared storage, approved images, certificate custody, external GitLab data services
+and selected product integrations still require commissioning. Optional HSM,
+Spinnaker product overlays and tenant allocation are not silently supplied.
+Household/team paths, complete product restores and live qualification remain open.
+No live acceptance box is checked by this consistency review.
 
 ## Corrected reading and execution gaps
 
@@ -109,8 +108,9 @@ directories exist. No live acceptance box is checked by this consistency review.
 - [x] **P1: Logging integration - sources (selected Linux path).** Shared isolated native
   rsyslog journal/file instances with host-local keys, disk queues, cursors and independent
   source health checks; tier-local recipes/inputs include collector OS, audit and CA files.
-  Appliance firmware and Kubernetes collectors remain explicitly selected product integrations,
-  not falsely implied host-role coverage. Register unsupported-device gaps in the live record.
+  Native cluster-source collection has its own recipe and per-node identities;
+  appliance firmware still requires product-native configuration. Register unsupported
+  devices and actual kernel/runtime source gaps in the live record.
 - [x] **P1: Logging integration - producer trust.** Protected Tier 0 native CSR signing,
   explicit initialization, encrypted CA key, bounded leaf renewal and cumulative CRLs;
   source private keys never leave their hosts. Client/server profiles and key fingerprints
@@ -124,7 +124,8 @@ directories exist. No live acceptance box is checked by this consistency review.
   offline verifier and restore procedure, native raw/view read audit and fixed application-only
   filesystem views. Actual NAS grants/snapshots/audit and physical independence need live proof.
   [Locked retention](../docs/deployment/stage-2-logging/step-3d-retention-lock.md), replicated intake
-  and later Tier 1 search remain separate variants, not supplied by this NAS implementation.
+  remain separate variants, not supplied by this NAS implementation. Tier 1 search is
+  independently installed; protected-log projections need a separately qualified exporter.
 
 ## Remaining implementation before an end-to-end installation
 
@@ -132,27 +133,27 @@ Secure provider defaults and the selected software-first Initial Trust mechanism
 supplied. Their live proof is tracked in the separate
 [manual verification list](operational-verification.md), not mixed with missing implementation.
 
-- [ ] **P1: Cluster API endpoint.** Supply a tested private endpoint recipe or a clearly
-  verified existing prerequisite before cluster bootstrap. It must not require the public
-  Tier 2 edge or the cluster it serves. Include DHCP/MAC reservations and bootstrap DNS/time.
-- [ ] **P1: Cluster services.** Add release-pinned delivery, decryption, persistence,
-  certificate/ingress, database and node/API audit-forwarding manifests with health/dependency gates. Empty Kustomize
-  directories do not implement the [cluster foundation](../docs/deployment/stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation).
-- [ ] **P1: Control applications.** Implement and verify the selected IdP, inventory
-  application, cluster interface and cluster-based secret service, including scoped roles,
-  data dependencies, audit forwarding and backups. The Vault VM alternative is a different runtime.
-- [ ] **P1: Independent monitoring and Observability.** Supply native Tier 1 Kubernetes
-  product manifests/values for Netdata, Collector gateways, VictoriaMetrics, Data Prepper,
-  OpenSearch and UIs; the current starter is empty. Add Tier 0 Proxmox/BMC collectors,
-  read-only credentials, source coverage and approved metric bridges as described in
-  [infrastructure monitoring](../docs/deployment/stage-8-observability/infrastructure-monitoring.md).
-  Qualify Netdata parent failover/persistence and node-OS permissions; budget each workload separately.
-  Configure replicated writes, query failover, search quorum/shards and restore paths.
-  Keep Tier 0 evidence and critical external alerts independent. Test scoped read-only
-  copies, forged ownership and outages; diagrams are not configured controls.
-- [ ] **P1: Protected execution.** Implement the approved Tier 0 runner/controller path
-  before delegated provisioning. General runner registration and source-control branch
-  protection must not be treated as that authorization boundary.
+- [x] **P1: Cluster endpoint contract.** Private independent endpoint, DHCP/MAC, DNS/time
+  and storage are explicit pre-bootstrap prerequisites; no public Tier 2 edge dependency.
+- [x] **P1: Cluster services.** Native pinned platform, SOPS/decryption and per-node
+  protected collection recipes replace the empty-starter installation gap. The
+  [cluster foundation](../docs/deployment/stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation)
+  still requires live endpoint, persistence, audit and recovery acceptance.
+- [x] **P1: Control application installers.** Native Keycloak, Vault, NetBox and Headlamp
+  recipes include data dependencies, scoped authentication and explicit recovery gates.
+  Manual initialization, enrollment and independently commissioned backup custody remain visible.
+- [x] **P1: Independent monitoring and Observability installers.** Tier 1 native product
+  releases and Tier 0 scoped infrastructure polling/export are supplied. Their budgets,
+  replication/read routing and source coverage are explicit, not inferred from pod count.
+- [ ] **P1: Remaining product integrations.** Qualify the protected-log projection exporter,
+  NetBox audited-change export, Vault snapshot transport and independent media/data backups.
+  Keep approved search copies separate from Tier 0 originals. See the focused
+  [platform verification list](platform-verification.md) before accepting these interfaces.
+- [ ] **P1: Bounded workload requests.** The Stage 9 direct trusted-CI runner/Vault/saved-plan
+  path is supplied, with GitLab/hosting administrators explicitly trusted at Tier 0.
+  Implement the separate data-only request dispatcher, allocation and authorization
+  contract before ordinary tenant self-service. General runner registration and branch
+  protection do not implement that boundary. Live trusted-CI acceptance is tracked separately.
 - [ ] **P1: Destructive-change protection.** Rehearse allocation collisions, state
   ownership, complete-map overlays and accidentally removed definitions. Consider a focused
   preflight for concurrent environments; current naming/state separation is not an allocation service.
@@ -179,12 +180,13 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Software intake | [Stage 1](../docs/deployment/stage-1-software-intake/README.md) | Early Squid/VIP path; independent bootstrap supply and later repository/Harbor extensions; no complete patch controller |
 | Logging | [Stage 2](../docs/deployment/stage-2-logging/README.md) | Linux/NAS recipes supplied; actual NAS custody, devices, bounded-loss fault and restore acceptance outstanding |
 | Trust | [Stage 3](../docs/deployment/stage-3-trust/README.md) | Software PKI and file/journal forwarding supplied; qualify packages, actual CA audit scope, ceremonies and live acceptance; hardware remains integration |
-| Kubernetes | [Stage 4](../docs/deployment/stage-4-kubernetes/README.md) | New-cluster lifecycle supplied; independent endpoint and add-on/audit integrations still required |
-| Identity | [Stage 5](../docs/deployment/stage-5-identity/README.md) | Dedicated directory recipe supplied; federation manifests and live acceptance still required |
-| Secrets | [Stage 6](../docs/deployment/stage-6-secrets/README.md) | Secret-service and supporting cluster integrations are starters; independent monitoring has its own path |
-| Delivery | [Stage 7](../docs/deployment/stage-7-delivery/README.md) | VM alternatives supplied; controller, registry and protected execution require selected integrations |
-| Observability | [Stage 8](../docs/deployment/stage-8-observability/README.md) | Separate capability after control and platform runtime; Kubernetes product starter is empty, with dedicated-VM baseline as an alternative |
-| Workloads | [Stage 9](../docs/deployment/stage-9-workloads/README.md) | VM/cluster resources and opt-in public HTTPS supplied; application manifests, policies, alerts and live publication acceptance remain project work |
+| Kubernetes | [Stage 4](../docs/deployment/stage-4-kubernetes/README.md) | Native node/platform/audit recipes; independent endpoint, storage, enrollment and live acceptance required |
+| Identity | [Stage 5](../docs/deployment/stage-5-identity/README.md) | Dedicated directory, Keycloak/LDAP and staged Kubernetes SSO; ceremony, accounts and live denial/recovery acceptance required |
+| Secrets | [Stage 6](../docs/deployment/stage-6-secrets/README.md) | Native cluster Vault/NetBox/Headlamp and independent monitoring; initialization and qualified recovery custody required |
+| Delivery | [Stage 7](../docs/deployment/stage-7-delivery/README.md) | Native platform/Harbor/Argo CD; explicit controller choice and complete reviewed Spinnaker overlay where selected |
+| Observability | [Stage 8](../docs/deployment/stage-8-observability/README.md) | Native Kubernetes signal backends/UIs and independent Tier 0 polling; scoped projections and live availability/access tests remain required |
+| Development platform | [Stage 9](../docs/deployment/stage-9-development/README.md) | Native GitLab/runner charts, dedicated infrastructure runner, Vault JWT root and saved-plan handover supplied; external data commissioning and live acceptance required |
+| Lab environments | [Stage 10](../docs/deployment/stage-10-lab-environments/README.md) | VM/cluster, bounded application/policy/RBAC, scoped telemetry and opt-in HTTPS; profiles are not an allocator; live tenant acceptance required |
 | Proxmox HA | [Foundation 1b](../docs/deployment/foundation/step-1b-cluster-ha.md) | Quorum/storage/fencing separate from VM creation; physical failure tests outstanding |
 | Guest SDN | [Foundation 1c](../docs/deployment/foundation/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
 | Redundant logging | [Logging 3b](../docs/deployment/stage-2-logging/step-3b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
@@ -198,9 +200,11 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Seal choice | [Secrets 1c](../docs/deployment/stage-6-secrets/step-1c-seal-integration.md) | Shamir/Transit/PKCS#11 capability and edition checks; no automatic migration |
 | Observability VMs | [Observability 1b](../docs/deployment/stage-8-observability/step-1b-dedicated-vms.md) | Separate-role fallback to Tier 1 Kubernetes; baseline only, not Tier 0 monitoring |
 | Operator hardware authentication | [Secrets 3b](../docs/deployment/stage-6-secrets/step-3b-hardware-authentication.md) | Enrollment and lost-token recovery are manual; retain break-glass access |
-| Source-control VM | [Delivery 1b](../docs/deployment/stage-7-delivery/step-1b-source-control-vm.md) | Supplied container recipe; pin image, prepare TLS and verify product backup/restore |
-| General build runner | [Delivery 1c](../docs/deployment/stage-7-delivery/step-1c-podman-runner.md) | Supplied host recipe; registration/credentials/trust required; no Tier 0 authority |
-| Image-based Linux | [Delivery 1d](../docs/deployment/stage-7-delivery/step-1d-image-based-linux.md) | Conversion is distro/product-specific; retain source image and test rollback |
+| Argo CD | [Delivery 2a](../docs/deployment/stage-7-delivery/step-2a-argocd.md) | Native installation guide; restricted projects, SSO, destination and rollback acceptance required |
+| Spinnaker | [Delivery 2b](../docs/deployment/stage-7-delivery/step-2b-spinnaker.md) | Native installation guide; storage, service identities and pipeline commissioning required |
+| Source-control VM | [Development 1b](../docs/deployment/stage-9-development/step-1b-source-control-vm.md) | Supplied container recipe; pin image, prepare TLS and verify product backup/restore |
+| General build runner | [Development 2b](../docs/deployment/stage-9-development/step-2b-podman-runner.md) | Supplied host recipe; registration/credentials/trust required; no Tier 0 authority |
+| Image-based Linux | [Development 2c](../docs/deployment/stage-9-development/step-2c-image-based-linux.md) | Conversion is distro/product-specific; retain source image and test rollback |
 
 ## User and operating paths still needed
 
@@ -241,13 +245,14 @@ inspected. Every selected path still needs its own live acceptance evidence.
   first-use contracts; separate advanced direct-mesh storage and large cache-sizing material
   from the main path. Preserve old anchors and generated-project edits when moving content.
 - [ ] **P3: GitHub diagram review.** Inspect the hosted rendering and refine layout details
-  separately; no topology redraw is part of this operator pass. Check labels, replica groups,
+  separately. Local rendering does not prove hosted parity. Check labels, replica groups,
   tier ordering and layer placement rather than equating local render success with hosted visual acceptance.
 
 ## Manual operational verification
 
 Follow the [manual verification list](operational-verification.md) for provider trust,
-Initial Trust and protected logging, then the wider walkthrough. It states prerequisites,
+Initial Trust, protected logging and development-platform handover, then the wider walkthrough.
+It states prerequisites,
 pass conditions and evidence for each check. No live infrastructure was available for
 this preparation; all operational checks remain unchecked.
 
@@ -257,6 +262,45 @@ be relabelled as a deployed-system pass.
 
 
 ## Repeat cadence
+
+Native platform implementation review, 2026-10-26: all ten selected stages now have
+explicit native execution paths and commissioning contracts. Shared supplies reusable
+platform/chart/cluster-source roles; tiers retain resources, inventory, inputs and state.
+Added guarded serial Kubernetes OIDC, native control applications, Delivery and
+Observability, scoped lab application/telemetry and protected infrastructure CI.
+Native checks found and corrected the Talos hostname-document conflict and OpenSearch
+discovery/first-cluster bootstrap configuration. Database schemas now match the selected
+platform operator version.
+
+The initial **256-case** full sweep reported six documentation/visual-contract failures,
+all corrected; the final **91 affected regressions passed, zero skipped**. A separate
+final **38 native application/configuration checks passed, zero skipped**, including
+actual provider-generated Talos configurations and matching database schemas. All
+**18 Terraform roots** validated and **33 mocked plan cases** passed. Repository syntax/
+duplicate-key checks covered **357 YAML files, 21 Bash scripts and 66 Python files**.
+Native cluster logging also exercised local mTLS rejection and crash/queue replay.
+
+The full sweep skipped two existing fixture-dependent cases: native offline clca
+and rsyslog/GnuTLS sender recovery. These are not closed by Fluent Bit replay tests.
+Selected figures were rendered on light/dark pages at normal and narrow widths;
+GitHub parity and live deployment, authorization, durability, failover and restoration
+remain unverified. Use [platform acceptance](platform-verification.md) for live results;
+optional/remaining integrations stay listed above rather than being called installed.
+
+Development-platform review, 2026-10-26: Stage 7 selects Argo CD or Spinnaker;
+Stage 9 owns GitLab/ephemeral runners, Vault CI roles and the dedicated `iac-1` runner;
+lab environments move to Stage 10. Direct CI explicitly accepts GitLab and hosting
+administrators as Tier 0 authorities. A bounded tenant allocator is not supplied.
+External GitLab PostgreSQL, Redis, Gitaly and object storage remain commissioned prerequisites.
+
+Offline evidence: **181 regression cases: 179 passed, two fixture-dependent skips**
+(offline clca and native rsyslog fixtures). **36 subsequent focused checks passed,
+zero skipped**, covering final
+installer/dependency, source/generated payload, CI safety, documentation and refresh changes.
+All **18 Terraform roots** passed provider-schema validation; **30 cluster mocks and
+three Vault authorization mocks** passed. The five changed figures rendered in light/dark
+themes at 1100px and 760px reading widths (20 combinations). GitHub renderer parity,
+live installation, SSO, policy enforcement and recovery remain unverified.
 
 Capability and IaC alignment, 2026-10-23: foundation remains unnumbered. The nine
 capabilities are Software intake, Protected logging, Cryptographic trust, Kubernetes,

@@ -1,0 +1,59 @@
+{% for instance in ['metrics-1', 'metrics-2', 'netdata-1', 'netdata-2'] %}
+{% set component = 'metrics' if instance.startswith('metrics') else 'netdata' %}
+{% set domain = observability_failure_domains[loop.index0 % 2] %}
+{% set selected_namespace = observability_namespace if component == 'metrics' else observability_netdata_namespace ~ '-' ~ instance[-1] %}
+- name: {{ instance }}
+  namespace: {{ selected_namespace }}
+  namespace_labels:
+    pod-security.kubernetes.io/enforce: {{ 'baseline' if component == 'metrics' else 'privileged' }}
+  repository: {{ observability_charts[component].repository | to_json }}
+  chart: {{ observability_charts[component].chart | to_json }}
+  version: {{ observability_charts[component].version | to_json }}
+  values:
+{% filter indent(4, true) %}{% include component ~ '-values.yml.j2' %}{% endfilter %}{{ '\n' }}
+  required_secrets:
+{% if instance == 'netdata-1' %}
+    - {name: {{ instance }}-tls, keys: [tls.crt, tls.key, ca.crt, kubelet-ca.crt]}
+{% else %}
+    - {name: {{ instance }}-tls, keys: [tls.crt, tls.key, ca.crt]}
+{% endif %}
+{% if component == 'metrics' %}
+    - {name: metrics-auth, keys: [username, password]}
+{% endif %}
+  before:
+{% filter indent(4, true) %}{% include 'network-policy.yml.j2' %}{% endfilter %}{{ '\n' }}
+{% if instance == 'netdata-1' %}
+{% filter indent(4, true) %}{% include 'netdata-rbac.yml.j2' %}{% endfilter %}{{ '\n' }}
+{% endif %}
+{% endfor %}
+{% if observability_netdata_scrape_metrics | length > 0 %}
+- name: netdata-metrics
+  namespace: {{ observability_namespace }}
+  repository: {{ observability_charts.collector.repository | to_json }}
+  chart: {{ observability_charts.collector.chart | to_json }}
+  version: {{ observability_charts.collector.version | to_json }}
+  values:
+{% filter indent(4, true) %}{% include 'bridge-values.yml.j2' %}{% endfilter %}{{ '\n' }}
+  required_secrets:
+    - {name: gateway-client-tls, keys: [tls.crt, tls.key, ca.crt]}
+{% endif %}
+{% for component in ['search', 'prepper', 'collector', 'query', 'dashboards', 'grafana'] %}
+{% set instance = {'search': 'opensearch', 'prepper': 'data-prepper', 'collector': 'otel-gateway', 'query': 'metrics-query', 'dashboards': 'dashboards', 'grafana': 'grafana'}[component] %}
+- name: {{ instance }}
+  namespace: {{ observability_namespace }}
+  repository: {{ observability_charts[component].repository | to_json }}
+  chart: {{ observability_charts[component].chart | to_json }}
+  version: {{ observability_charts[component].version | to_json }}
+  values:
+{% filter indent(4, true) %}{% include component ~ '-values.yml.j2' %}{% endfilter %}{{ '\n' }}
+  required_secrets:
+{% filter indent(4, true) %}{% include component ~ '-secrets.yml.j2' %}{% endfilter %}{{ '\n' }}
+{% if component == 'grafana' %}
+  before:
+{% filter indent(4, true) %}{% include 'grafana-database.yml.j2' %}{% endfilter %}{{ '\n' }}
+{% endif %}
+{% if component == 'search' %}
+  after:
+{% filter indent(4, true) %}{% include 'search-bootstrap.yml.j2' %}{% endfilter %}{{ '\n' }}
+{% endif %}
+{% endfor %}

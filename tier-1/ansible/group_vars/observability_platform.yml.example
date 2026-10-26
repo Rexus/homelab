@@ -1,0 +1,45 @@
+---
+# Pass explicitly: -e @ansible/group_vars/observability_platform.yml
+observability_action: render
+observability_kubeconfig: ""
+observability_context: ""
+observability_storage_class: retained-block
+observability_topology_key: infrastructure.example.org/physical-host
+observability_failure_domains: [pve01, pve02, pve03]
+observability_backup_destination: s3://platform-backups/grafana-db
+observability_backup_endpoint: https://backup-objectstore.services.example.org
+observability_grafana_url: https://grafana.services.example.org
+observability_dashboards_url: https://dashboards.services.example.org
+observability_oidc_issuer: https://sso.identity.example.org/realms/platform
+observability_oidc_operator_group: platform-observability-readers
+observability_search_node_dns: [CN=opensearch.nodes.services.example.org]
+observability_search_admin_dns: [CN=opensearch-bootstrap.services.example.org]
+# true only for a reviewed NEW, empty cluster; false for every restart, scale or restore.
+# After the first green cluster, set false and reapply to remove the initial-manager list.
+observability_search_bootstrap: false
+observability_netdata_allow_from: 10.20.*
+observability_telemetry_cidrs: [10.10.30.0/24, 10.30.30.0/24]
+observability_operator_namespace: operations
+observability_egress:
+  - {cidr: 10.20.20.50/32, ports: [443]}  # Independent backup object store, validated TLS.
+  - {cidr: 10.10.40.10/32, ports: [443]}  # Existing Keycloak issuer/JWKS and token endpoints.
+  - {cidr: 10.20.10.10/32, ports: [443, 6443]}  # Kubernetes API service/VIP.
+  - {cidr: 10.20.10.0/24, ports: [10250]}  # Reviewed kubelet endpoints.
+observability_metrics_node_port: 30317
+observability_log_scopes:
+  - name: application-a
+    kind: application
+    port: 4400
+    node_port: 30400
+    reader_backend_roles: [application-a-readers]
+  - name: approved-security
+    kind: projection
+    port: 4401
+    node_port: 30401
+    reader_backend_roles: [approved-security-readers]
+observability_metrics_read_members: [metrics-1]
+observability_netdata_scrape_metrics: [netdata_system_cpu_percentage_average]
+# Apply gates: set only after validating physical placement, host mounts, CNI and kernel settings.
+observability_netdata_host_access_approved: false
+observability_network_policy_verified: false
+observability_search_kernel_verified: false

@@ -1,6 +1,6 @@
 # Copy to: terraform/deployments/immutable-template/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/deployment/stage-7-delivery/step-1d-image-based-linux.md
+# Setup guide: docs/deployment/stage-9-development/step-2c-image-based-linux.md
 # Shared values live in ../../common.tfvars.
 
 # Optional: override the source mutable Linux template for this setup or

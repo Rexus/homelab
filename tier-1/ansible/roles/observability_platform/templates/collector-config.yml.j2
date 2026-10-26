@@ -1,0 +1,73 @@
+extensions:
+  health_check: {endpoint: '0.0.0.0:13133'}
+  file_storage: {directory: /var/lib/otelcol, create_directory: true}
+  basicauth/metrics:
+    client_auth: {username: '${env:VM_USERNAME}', password: '${env:VM_PASSWORD}'}
+  basicauth/prepper:
+    client_auth: {username: '${env:DP_USERNAME}', password: '${env:DP_PASSWORD}'}
+receivers:
+  jaeger: null
+  zipkin: null
+  prometheus: null
+  otlp:
+    protocols:
+      http: null
+      grpc:
+        endpoint: 0.0.0.0:4317
+        tls: {cert_file: /tls/tls.crt, key_file: /tls/tls.key, client_ca_file: /clients/ca.crt}
+{% for scope in observability_log_scopes %}
+  otlp/{{ scope.name }}:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:{{ scope.port }}
+        tls:
+          cert_file: /tls/tls.crt
+          key_file: /tls/tls.key
+          client_ca_file: /clients/{{ scope.name }}/ca.crt
+{% endfor %}
+processors:
+  memory_limiter: {check_interval: 1s, limit_mib: 1536, spike_limit_mib: 256}
+  batch: {send_batch_size: 1024, timeout: 5s}
+exporters:
+  debug: null
+{% for member in ['metrics-1', 'metrics-2'] %}
+  otlphttp/{{ member }}:
+    metrics_endpoint: https://{{ member }}:8428/opentelemetry/v1/metrics
+    tls: {ca_file: /tls/ca.crt}
+    auth: {authenticator: basicauth/metrics}
+    sending_queue: {enabled: true, storage: file_storage, queue_size: {{ observability_queue_batches }}, num_consumers: 1}
+    retry_on_failure: {enabled: true, initial_interval: 5s, max_interval: 30s, max_elapsed_time: 0s}
+{% endfor %}
+{% for scope in observability_log_scopes %}
+{% for signal in ['logs', 'traces'] %}
+{% if signal == 'logs' or scope.kind == 'application' %}
+  otlp/{{ scope.name }}-{{ signal }}:
+    endpoint: data-prepper:{{ 21890 + loop.index0 + 2 * observability_log_scopes.index(scope) }}
+    tls: {ca_file: /tls/ca.crt}
+    auth: {authenticator: basicauth/prepper}
+    sending_queue: {enabled: true, storage: file_storage, queue_size: {{ observability_queue_batches }}}
+    retry_on_failure: {enabled: true, max_elapsed_time: 0s}
+{% endif %}
+{% endfor %}
+{% endfor %}
+service:
+  extensions: [health_check, file_storage, basicauth/metrics, basicauth/prepper]
+  pipelines:
+    logs: null
+    traces: null
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/metrics-1, otlphttp/metrics-2]
+{% for scope in observability_log_scopes %}
+    logs/{{ scope.name }}:
+      receivers: [otlp/{{ scope.name }}]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/{{ scope.name }}-logs]
+{% if scope.kind == 'application' %}
+    traces/{{ scope.name }}:
+      receivers: [otlp/{{ scope.name }}]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/{{ scope.name }}-traces]
+{% endif %}
+{% endfor %}

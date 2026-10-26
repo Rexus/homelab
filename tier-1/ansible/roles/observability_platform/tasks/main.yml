@@ -1,0 +1,49 @@
+---
+- name: Validate the Tier 1 observability contract
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Resolve private native Data Prepper credentials
+  ansible.builtin.import_tasks: credentials.yml
+
+- name: Validate separate native client trust domains
+  ansible.builtin.include_tasks: trust.yml
+  when: observability_action == 'apply'
+
+- name: Resolve product-owned values and native resources
+  ansible.builtin.set_fact:
+    observability_releases: "{{ lookup('ansible.builtin.template', 'releases.yml.j2') | from_yaml }}"
+  no_log: true
+
+- name: Converge product dependencies before their consumers
+  block:
+    - name: Render or converge native backends and diagnostic parents
+      ansible.builtin.include_role:
+        name: kubernetes_applications
+      vars:
+        kube_apps_releases: >-
+          {{ observability_releases | selectattr('name', 'in',
+             ['metrics-1', 'metrics-2', 'netdata-1', 'netdata-2', 'opensearch']) | list }}
+
+    - name: Require native search policy readiness before starting ingestion
+      ansible.builtin.include_tasks: search-health.yml
+      when: observability_action == 'apply'
+
+    - name: Render or converge native ingestion and query consumers
+      ansible.builtin.include_role:
+        name: kubernetes_applications
+      vars:
+        kube_apps_releases: >-
+          {{ observability_releases | rejectattr('name', 'in',
+             ['metrics-1', 'metrics-2', 'netdata-1', 'netdata-2', 'opensearch']) | list }}
+  vars:
+    kube_apps_action: "{{ observability_action }}"
+    kube_apps_kubeconfig: "{{ observability_kubeconfig }}"
+    kube_apps_context: "{{ observability_context }}"
+    kube_apps_output: "{{ observability_output }}"
+    kube_apps_manage_secrets: "{{ observability_manage_secrets }}"
+    kube_apps_secrets: "{{ observability_secrets }}"
+  no_log: true
+
+- name: Check product readiness after convergence
+  ansible.builtin.include_tasks: health.yml
+  when: observability_action == 'apply'

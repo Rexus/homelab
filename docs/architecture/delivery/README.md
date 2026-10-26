@@ -80,7 +80,7 @@ service instance.
 | Public edge proxy (Tier 2 / DMZ) | Publish named application listeners; never Tier 0 administration or the foundational signing/recovery path |
 | Outbound proxy/cache (Tier 2 / DMZ) | Forward approved outbound requests; no unsolicited WAN listener or artifact promotion authority |
 | Authoritative mirrors (Tier 1 / DMZ) | Retain approved software sources; separate subnet and publication credentials |
-| Source control | Retain reviewed definitions and coordinate changes; not a source of Tier 0 authority |
+| Source control | Retain reviewed definitions and coordinate changes; direct privileged CI requires explicit Tier 0 trust acceptance |
 | Registry | Own approved artifact versions and consumer access |
 | Distribution layer | Accelerate artifact delivery without becoming the artifact authority |
 | Build runners (Tier 1 / DMZ) | Produce candidate artifacts with scoped credentials; no Tier 0 access |
@@ -131,6 +131,7 @@ is justified by capacity requirements, not by an assumed product progression.
 
 - [Controlled software intake](software-intake.md) connects approved update sources to all tiers without granting administration.
 - [Controller patterns](controllers.md) compares GitOps reconciliation and release-pipeline orchestration.
+- [Development platform](development-platform.md) separates source control, general jobs and the opt-in trusted infrastructure project.
 - [Artifact supply](artifact-supply.md) expands integrated, independent and accelerated registry designs.
 - [Infrastructure execution](../compute/provisioning.md) details the Tier 0 acceptance, credential and state boundary.
 - [Network policy](../networking/firewall-policy.md) defines permitted publication and software-supply routes.
@@ -140,4 +141,6 @@ is justified by capacity requirements, not by an assumed product progression.
 
 Implementation procedures: [software intake](../../deployment/stage-1-software-intake/README.md)
 and [hosted delivery](../../deployment/stage-7-delivery/README.md#step-1-deploy-shared-delivery-services).
+[Development platform](../../deployment/stage-9-development/README.md) owns source-control
+installation and bootstrap-to-CI handover.
 Procedure reuse does not transfer service ownership between tiers.

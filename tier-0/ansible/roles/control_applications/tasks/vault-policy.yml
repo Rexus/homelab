@@ -1,0 +1,23 @@
+---
+- name: Read a previously created ACL policy
+  community.hashi_vault.vault_read:
+    path: "sys/policies/acl/{{ control_application_policy.key }}"
+  register: control_applications_vault_policy
+  when: control_application_policy.key in control_applications_vault_policy_names.data.data['keys']
+
+- name: Converge the explicitly supplied scoped policy
+  community.hashi_vault.vault_write:
+    path: "sys/policies/acl/{{ control_application_policy.key }}"
+    data: {policy: "{{ control_application_policy.value }}"}
+  when:
+    - control_applications_vault_phase == 'configure'
+    - >-
+      control_application_policy.key not in control_applications_vault_policy_names.data.data['keys'] or
+      control_applications_vault_policy.data.data.policy != control_application_policy.value
+
+- name: Require unchanged accepted policy content
+  ansible.builtin.assert:
+    that:
+      - control_application_policy.key in control_applications_vault_policy_names.data.data['keys']
+      - control_applications_vault_policy.data.data.policy == control_application_policy.value
+  when: control_applications_vault_phase == 'accept'

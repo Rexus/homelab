@@ -1,0 +1,80 @@
+---
+- name: Wait for CNPG databases to become ready
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: postgresql.cnpg.io/v1
+    kind: Cluster
+    name: "{{ item }}-db"
+    namespace: "{{ item }}"
+  register: control_applications_database_health
+  until: >-
+    control_applications_database_health.resources | length == 1 and
+    (control_applications_database_health.resources[0].get('status', {}).get('conditions', [])
+    | selectattr('type', 'equalto', 'Ready') | selectattr('status', 'equalto', 'True') | list | length > 0)
+  retries: 60
+  delay: 10
+  loop: "{{ control_applications_components | intersect(['keycloak', 'netbox']) }}"
+
+- name: Require the first physical backup to complete after application installation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: postgresql.cnpg.io/v1
+    kind: Backup
+    name: "{{ item }}-db-first-backup"
+    namespace: "{{ item }}"
+  register: control_applications_first_backup
+  until: >-
+    control_applications_first_backup.resources | length == 1 and
+    control_applications_first_backup.resources[0].get('status', {}).get('phase', '') == 'completed'
+  retries: 60
+  delay: 10
+  loop: "{{ control_applications_components | intersect(['keycloak', 'netbox']) }}"
+
+- name: Verify application HTTPS endpoints with trusted certificates
+  ansible.builtin.uri:
+    url: "https://{{ control_applications_hosts[item] }}{{ paths[item] }}"
+    validate_certs: true
+    ca_path: "{{ control_applications_https_ca_path | default(omit, true) }}"
+    follow_redirects: none
+    status_code: "{{ [200] if item == 'keycloak' else [200, 302] }}"
+    return_content: true
+  vars:
+    paths:
+      keycloak: /realms/master/.well-known/openid-configuration
+      netbox: /login/
+      headlamp: /
+  loop: "{{ control_applications_components | difference(['vault']) }}"
+  register: control_applications_endpoint_health
+  until: control_applications_endpoint_health is succeeded
+  retries: 18
+  delay: 10
+
+- name: Verify Vault server processes exist without accepting sealed readiness
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: vault
+    label_selectors: [app.kubernetes.io/instance=vault, component=server]
+  register: control_applications_vault_pods
+  until: >-
+    control_applications_vault_pods.resources | selectattr('status.phase', 'equalto', 'Running')
+    | list | length == control_applications_vault_replicas | int
+  retries: 30
+  delay: 10
+  when: "'vault' in control_applications_components"
+
+- name: Report the operator-owned Vault bootstrap boundary
+  ansible.builtin.debug:
+    msg: >-
+      Vault processes are running. Installation does not initialize, unseal or accept the service.
+      Complete the custody ceremony, then select vault_phase=configure and finally accept.
+  when:
+    - "'vault' in control_applications_components"
+    - control_applications_vault_phase == 'install'

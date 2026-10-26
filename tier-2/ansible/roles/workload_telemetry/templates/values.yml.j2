@@ -1,0 +1,77 @@
+fullnameOverride: otel-agent
+mode: statefulset
+replicaCount: 2
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: {{ workload_telemetry_image_tag | to_json }}
+command: {name: otelcol-contrib}
+serviceAccount: {create: true, automountServiceAccountToken: false}
+clusterRole: {create: false}
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: 500m, memory: 256Mi}
+podSecurityContext: {runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001}
+securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: {drop: [ALL]}
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector: {matchLabels: {app.kubernetes.io/instance: otel-agent}}
+        topologyKey: kubernetes.io/hostname
+podDisruptionBudget: {enabled: true, maxUnavailable: 1}
+statefulset:
+  volumeClaimTemplates:
+    - metadata: {name: queue}
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: {{ workload_telemetry_storage_class | to_json }}
+        resources: {requests: {storage: 1Gi}}
+extraVolumes:
+  - {name: metrics, secret: {secretName: otel-agent-metrics-client}}
+  - {name: application, secret: {secretName: otel-agent-application-client}}
+extraVolumeMounts:
+  - {name: queue, mountPath: /var/lib/otelcol}
+  - {name: metrics, mountPath: /metrics, readOnly: true}
+  - {name: application, mountPath: /application, readOnly: true}
+ports:
+  jaeger-compact: {enabled: false}
+  jaeger-grpc: {enabled: false}
+  jaeger-thrift: {enabled: false}
+  zipkin: {enabled: false}
+  otlp-http: {enabled: false}
+config:
+  extensions:
+    health_check: {endpoint: '0.0.0.0:13133'}
+    file_storage: {directory: /var/lib/otelcol, create_directory: true}
+  receivers:
+    jaeger: null
+    zipkin: null
+    prometheus: null
+    otlp:
+      protocols:
+        http: null
+        grpc: {endpoint: '0.0.0.0:4317'}
+  processors:
+    memory_limiter: {check_interval: 1s, limit_mib: 192, spike_limit_mib: 32}
+    batch: {send_batch_size: 512, timeout: 5s}
+  exporters:
+    debug: null
+{% for signal in ['metrics', 'application'] %}
+    otlp/{{ signal }}:
+      endpoint: {{ (workload_telemetry_metrics_endpoint if signal == 'metrics' else workload_telemetry_application_endpoint) | to_json }}
+      tls: {ca_file: /{{ signal }}/ca.crt, cert_file: /{{ signal }}/tls.crt, key_file: /{{ signal }}/tls.key}
+      sending_queue: {enabled: true, storage: file_storage, queue_size: 1000}
+      retry_on_failure: {enabled: true, max_elapsed_time: 0s}
+{% endfor %}
+  service:
+    extensions: [health_check, file_storage]
+    pipelines:
+{% for signal in ['logs', 'metrics', 'traces'] %}
+      {{ signal }}:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [otlp/{{ 'metrics' if signal == 'metrics' else 'application' }}]
+{% endfor %}

@@ -1,0 +1,13 @@
+---
+- name: Validate every native container contract
+  ansible.builtin.assert:
+    that:
+      - item.image is match('^[^\s]+(@sha256:[a-f0-9]{64}|:[0-9]+\.[0-9]+\.[0-9]+)$')
+      - not item.get('securityContext', {}).get('privileged', false) | bool
+      - item.get('securityContext', {}).get('allowPrivilegeEscalation', true) == false
+    fail_msg: Pin every app, database, cache and init image and disable privilege escalation.
+  loop: >-
+    {{ spinnaker_workload.spec.template.spec.containers
+       + spinnaker_workload.spec.template.spec.get('initContainers', []) }}
+  loop_control:
+    label: "{{ spinnaker_workload.metadata.name }}/{{ item.name }}"

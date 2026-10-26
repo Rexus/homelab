@@ -1,0 +1,41 @@
+fullnameOverride: metrics-query
+replicaCount: {{ observability_ui_replicas }}
+image: {tag: v1.155.0}
+serviceAccount: {create: true, automountToken: false}
+resources:
+{{ observability_resources.ui | to_nice_yaml | indent(2, true) }}
+podDisruptionBudget: {enabled: true, maxUnavailable: 1}
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector: {matchLabels: {app.kubernetes.io/instance: metrics-query}}
+        topologyKey: {{ observability_topology_key }}
+extraArgs:
+  tls: 'true'
+  tlsCertFile: /tls/tls.crt
+  tlsKeyFile: /tls/tls.key
+  backend.TLSCAFile: /tls/ca.crt
+env:
+{% for prefix, secret in [('READER', 'metrics-reader'), ('VM', 'metrics-auth')] %}
+{% for key in ['username', 'password'] %}
+  - name: {{ prefix }}_{{ key | upper }}
+    valueFrom: {secretKeyRef: {name: {{ secret }}, key: {{ key }}}}
+{% endfor %}
+{% endfor %}
+  - name: VM_BASIC_AUTH
+    valueFrom: {secretKeyRef: {name: metrics-auth, key: basic-auth}}
+extraVolumes: [{name: tls, secret: {secretName: query-tls}}]
+extraVolumeMounts: [{name: tls, mountPath: /tls, readOnly: true}]
+config:
+  users:
+    - username: '%{READER_USERNAME}'
+      password: '%{READER_PASSWORD}'
+      headers: ['Authorization: Basic %{VM_BASIC_AUTH}']
+      url_map:
+        - src_paths: ['/api/v1/query', '/api/v1/query_range', '/api/v1/series', '/api/v1/labels', '/api/v1/label/[^/]+/values', '/api/v1/metadata']
+          url_prefix:
+{% for member in observability_metrics_read_members %}
+            - https://{{ member }}:8428
+{% endfor %}
+          load_balancing_policy: first_available
+          retry_status_codes: [500, 502, 503, 504]

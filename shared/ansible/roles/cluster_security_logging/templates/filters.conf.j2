@@ -1,0 +1,14 @@
+[FILTER]
+    Name record_modifier
+    Match *
+    Record source_cluster {{ cluster_security_logging_cluster }}
+    Record source_tier {{ cluster_security_logging_tier }}
+    Record source_node {{ security_logging_node.name }}
+    Record source_collector {{ security_logging_node.stream }}
+
+[FILTER]
+    Name nest
+    Match *
+    Operation nest
+    Wildcard source_*
+    Nest_under meta

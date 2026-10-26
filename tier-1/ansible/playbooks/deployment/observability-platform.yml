@@ -1,0 +1,10 @@
+---
+# Stage 8, application releases only. Supply local inputs explicitly with -e @file.
+- name: Render or apply Tier 1 observability
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - observability_platform

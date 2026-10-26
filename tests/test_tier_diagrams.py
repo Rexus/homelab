@@ -227,8 +227,10 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn('subgraph PVE["Existing Proxmox hosts"]\n      direction LR', directory)
         self.assertIn('Identity ~~~ ExistingCA', directory)
         control = diagrams(root / "deployment/stage-6-secrets/README.md")[0]
-        self.assertIn('Log ~~~ Identity ~~~ Issuer', control)
-        self.assertIn('Primary <-->|Replication| Replica', control)
+        self.assertIn('Identity ~~~ Log ~~~ Issuer', control)
+        self.assertIn('idm-1 / idm-2<br/>FreeIPA pair', control)
+        federation = diagrams(root / "deployment/stage-5-identity/README.md")[1]
+        self.assertIn('Primary <-->|Replication| Replica', federation)
 
     def test_queries_enter_from_readers_and_alerts_retain_real_flow(self):
         root = UPSTREAM / "docs"

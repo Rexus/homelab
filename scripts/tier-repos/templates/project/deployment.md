@@ -13,9 +13,10 @@ Existing services can satisfy verified prerequisites.
 | 4: Kubernetes | Record the cluster owner, bootstrap, add-ons, audit forwarding and recovery | Pending review | [Kubernetes](${docs}/deployment/stage-4-kubernetes/README.md) |
 | 5: Identity | Record directory, federation and OIDC integration on the accepted cluster | Pending review | [Identity](${docs}/deployment/stage-5-identity/README.md) |
 | 6: Secrets | Record secret storage, auditing, unseal/recovery and supporting control integrations | Pending review | [Secrets](${docs}/deployment/stage-6-secrets/README.md), [monitoring](${docs}/deployment/stage-6-secrets/monitoring.md) |
-| 7: Delivery and handover | Record shared delivery and protected execution handover | Pending review | [Delivery and handover](${docs}/deployment/stage-7-delivery/README.md) |
+| 7: Delivery | Record the Tier 1 controller and approved artifact supply | Pending review | [Delivery](${docs}/deployment/stage-7-delivery/README.md) |
 | 8: Observability | Record Netdata, Proxmox/BMC coverage, separate workload budgets, replicated backends and scoped reads | Pending review | [Observability](${docs}/deployment/stage-8-observability/README.md) |
-| 9: Workload provisioning | Record the approved workload lifecycle | Pending review | [Workload provisioning](${docs}/deployment/stage-9-workloads/README.md) |
+| 9: Development platform | Record GitLab, SSO, general job pods, direct-CI trust, Vault and original-state handover | Pending review | [Development platform](${docs}/deployment/stage-9-development/README.md) |
+| 10: Lab environments | Record isolation, profiles, authorization, lifecycle and missing dispatcher work | Pending review | [Lab environments](${docs}/deployment/stage-10-lab-environments/README.md) |
 
 Only work owned by this repository is executed here. Other steps record consumed
 dependencies and their owners; stage and step numbers do not transfer resource or state ownership.

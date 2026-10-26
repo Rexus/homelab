@@ -1,0 +1,64 @@
+fullnameOverride: otel-gateway
+mode: statefulset
+replicaCount: {{ observability_gateway_replicas }}
+image: {repository: otel/opentelemetry-collector-contrib, tag: 0.163.2}
+command: {name: otelcol-contrib}
+clusterRole: {create: false}
+serviceAccount: {create: true, automountServiceAccountToken: false}
+resources:
+{{ observability_resources.collector | to_nice_yaml | indent(2, true) }}
+podSecurityContext: {fsGroup: 10001, runAsUser: 10001, runAsGroup: 10001}
+securityContext: {runAsNonRoot: true, readOnlyRootFilesystem: true}
+podDisruptionBudget: {enabled: true, maxUnavailable: 1}
+service: {type: NodePort, externalTrafficPolicy: Local}
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector: {matchLabels: {app.kubernetes.io/instance: otel-gateway}}
+        topologyKey: {{ observability_topology_key }}
+statefulset:
+  volumeClaimTemplates:
+    - metadata: {name: queue}
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: {{ observability_storage_class }}
+        resources: {requests: {storage: {{ observability_queue_size }}}}
+extraVolumes:
+  - {name: tls, secret: {secretName: gateway-tls}}
+  - {name: clients, secret: {secretName: {{ observability_metrics_client_ca_secret }}}}
+{% for scope in observability_log_scopes %}
+  - {name: {{ scope.name }}-ca, secret: {secretName: {{ scope.name }}-clients-ca}}
+{% endfor %}
+extraVolumeMounts:
+  - {name: queue, mountPath: /var/lib/otelcol}
+  - {name: tls, mountPath: /tls, readOnly: true}
+  - {name: clients, mountPath: /clients, readOnly: true}
+{% for scope in observability_log_scopes %}
+  - {name: {{ scope.name }}-ca, mountPath: /clients/{{ scope.name }}, readOnly: true}
+{% endfor %}
+extraEnvs:
+  - name: VM_USERNAME
+    valueFrom: {secretKeyRef: {name: metrics-auth, key: username}}
+  - name: VM_PASSWORD
+    valueFrom: {secretKeyRef: {name: metrics-auth, key: password}}
+  - name: DP_USERNAME
+    valueFrom: {secretKeyRef: {name: prepper-auth, key: username}}
+  - name: DP_PASSWORD
+    valueFrom: {secretKeyRef: {name: prepper-auth, key: password}}
+ports:
+  otlp: {enabled: true, containerPort: 4317, servicePort: 4317, nodePort: {{ observability_metrics_node_port }}}
+  jaeger-compact: {enabled: false}
+  jaeger-grpc: {enabled: false}
+  jaeger-thrift: {enabled: false}
+  zipkin: {enabled: false}
+  otlp-http: {enabled: false}
+{% for scope in observability_log_scopes %}
+  {{ scope.name }}:
+    enabled: true
+    containerPort: {{ scope.port }}
+    servicePort: {{ scope.port }}
+    nodePort: {{ scope.node_port }}
+    protocol: TCP
+{% endfor %}
+config:
+{{ lookup('ansible.builtin.template', 'collector-config.yml.j2') | indent(2, true) }}

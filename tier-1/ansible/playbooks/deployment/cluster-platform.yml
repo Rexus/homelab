@@ -1,0 +1,10 @@
+---
+# Tier 1 selects inputs; Shared executes reusable native chart and readiness logic.
+- name: Establish the Tier 1 Kubernetes basic platform
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - cluster_platform

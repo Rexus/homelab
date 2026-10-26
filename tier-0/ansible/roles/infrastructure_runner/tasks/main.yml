@@ -1,0 +1,89 @@
+---
+- name: Require explicit direct-CI trust and supported host
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - infrastructure_runner_trust_ci_control_plane | bool
+      - infrastructure_runner_gitlab_url is match('^https://[^/]+/?$')
+      - infrastructure_runner_version is match('^[0-9]+\.[0-9]+\.[0-9]+([.-][a-zA-Z0-9_.]+)?$')
+      - infrastructure_runner_token is match('^glrt-')
+      - infrastructure_runner_ca_src | length > 0
+      - infrastructure_runner_workspace is match('^/srv/[a-zA-Z0-9/_-]+$')
+    fail_msg: >-
+      Direct CI delegates Tier 0 authority to the protected project and its GitLab/hosting administrators.
+      Explicitly accept that trust and supply a pinned package, auth token and trusted CA.
+  no_log: true
+
+- name: Install approved signed runner and control tools
+  ansible.builtin.dnf:
+    name: "{{ ['gitlab-runner-' ~ infrastructure_runner_version] + infrastructure_runner_tool_packages }}"
+    state: present
+    disable_gpg_check: false
+
+- name: Prepare the private collection workspace
+  ansible.builtin.file:
+    path: "{{ infrastructure_runner_workspace }}"
+    state: directory
+    owner: gitlab-runner
+    group: gitlab-runner
+    mode: "0700"
+
+- name: Prepare writable shell-executor build and cache directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: gitlab-runner
+    group: gitlab-runner
+    mode: "0700"
+  loop:
+    - /var/lib/gitlab-runner/builds
+    - /var/lib/gitlab-runner/cache
+
+- name: Install GitLab server trust
+  ansible.builtin.copy:
+    src: "{{ infrastructure_runner_ca_src }}"
+    dest: /etc/gitlab-runner/ca.crt
+    owner: root
+    group: gitlab-runner
+    mode: "0640"
+  notify: Restart infrastructure runner
+
+- name: Install one serialized trusted shell executor
+  ansible.builtin.template:
+    src: config.toml.j2
+    dest: /etc/gitlab-runner/config.toml
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/bin/gitlab-runner list --config %s
+  notify: Restart infrastructure runner
+  no_log: true
+
+- name: Prepare runner service hardening directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/gitlab-runner.service.d
+    state: directory
+    mode: "0755"
+
+- name: Disable core dumps and default public file permissions
+  ansible.builtin.copy:
+    content: "[Service]\nUMask=0077\nLimitCORE=0\n"
+    dest: /etc/systemd/system/gitlab-runner.service.d/privacy.conf
+    mode: "0644"
+  notify: Restart infrastructure runner
+
+- name: Check the independently provisioned IaC toolchain
+  ansible.builtin.command:
+    argv: "{{ item }}"
+  loop:
+    - [terraform, version]
+    - [vault, version]
+    - [ansible-playbook, --version]
+  changed_when: false
+
+- name: Start dedicated runner
+  ansible.builtin.systemd_service:
+    name: gitlab-runner
+    daemon_reload: true
+    enabled: true
+    state: started

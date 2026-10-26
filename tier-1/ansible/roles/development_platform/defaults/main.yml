@@ -1,0 +1,37 @@
+---
+development_platform_components: [gitlab]
+development_platform_action: render
+development_platform_kubeconfig: ""
+development_platform_output: "{{ playbook_dir }}/../../../secrets/development-platform"
+development_platform_chart_repository: https://charts.gitlab.io
+development_platform_gitlab_version: ""
+development_platform_runner_version: ""
+development_platform_namespace: gitlab
+development_platform_runner_namespace: ci-jobs
+development_platform_host: gitlab.example.com
+development_platform_domain: example.com
+development_platform_ingress_class: ""
+development_platform_ca_secret: gitlab-ca
+development_platform_database_host: ""
+development_platform_redis_host: ""
+development_platform_gitaly_host: ""
+development_platform_oidc_issuer: ""
+development_platform_manage_secrets: false
+development_platform_secrets: {}
+development_platform_buckets:
+  artifacts: gitlab-artifacts
+  lfs: gitlab-lfs
+  uploads: gitlab-uploads
+  packages: gitlab-packages
+  externalDiffs: gitlab-external-diffs
+  terraformState: gitlab-terraform-state
+  ciSecureFiles: gitlab-ci-secure-files
+  dependencyProxy: gitlab-dependency-proxy
+development_platform_runner_concurrent: 4
+development_platform_runner_allowed_cidrs: []
+development_platform_runner_api_cidrs: []
+development_platform_runner_image: ""
+development_platform_runner_helper_image: ""
+development_platform_runner_resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: "1", memory: 512Mi}

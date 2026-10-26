@@ -1,0 +1,17 @@
+---
+- name: Validate development platform contract
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Prepare private render directory
+  ansible.builtin.file:
+    path: "{{ development_platform_output }}"
+    state: directory
+    mode: "0700"
+
+- name: Install or render GitLab
+  ansible.builtin.include_tasks: gitlab.yml
+  when: "'gitlab' in development_platform_components"
+
+- name: Install or render Kubernetes job runners
+  ansible.builtin.include_tasks: runners.yml
+  when: "'runners' in development_platform_components"

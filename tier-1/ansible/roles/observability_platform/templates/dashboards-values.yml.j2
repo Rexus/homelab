@@ -1,0 +1,44 @@
+fullnameOverride: dashboards
+replicaCount: {{ observability_ui_replicas }}
+image: {tag: '3.9.0'}
+opensearchHosts: https://opensearch:9200
+serviceAccount: {create: true, automountServiceAccountToken: false}
+resources:
+{{ observability_resources.ui | to_nice_yaml | indent(2, true) }}
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector: {matchLabels: {app.kubernetes.io/instance: dashboards}}
+        topologyKey: {{ observability_topology_key }}
+secretMounts:
+  - {name: tls, secretName: dashboards-tls, path: /tls}
+  - {name: oidc-ca, secretName: oidc-ca, path: /oidc}
+extraEnvs:
+  - name: SEARCH_USERNAME
+    valueFrom: {secretKeyRef: {name: dashboards-auth, key: username}}
+  - name: SEARCH_PASSWORD
+    valueFrom: {secretKeyRef: {name: dashboards-auth, key: password}}
+  - name: OPENID_CLIENT_SECRET
+    valueFrom: {secretKeyRef: {name: dashboards-oidc, key: client-secret}}
+config:
+  opensearch_dashboards.yml: |
+    server.host: 0.0.0.0
+    server.ssl.enabled: true
+    server.ssl.certificate: /tls/tls.crt
+    server.ssl.key: /tls/tls.key
+    opensearch.hosts: ['https://opensearch:9200']
+    opensearch.ssl.verificationMode: full
+    opensearch.ssl.certificateAuthorities: [/tls/ca.crt]
+    opensearch.username: ${SEARCH_USERNAME}
+    opensearch.password: ${SEARCH_PASSWORD}
+    opensearch.requestHeadersAllowlist: [authorization, securitytenant]
+    opensearch_security.cookie.secure: true
+    opensearch_security.readonly_mode.roles: [kibana_user]
+    opensearch_security.auth.type: openid
+    opensearch_security.openid.connect_url: {{ (observability_oidc_issuer ~ '/.well-known/openid-configuration') | to_json }}
+    opensearch_security.openid.client_id: {{ observability_oidc_dashboards_client_id | to_json }}
+    opensearch_security.openid.client_secret: ${OPENID_CLIENT_SECRET}
+    opensearch_security.openid.scope: openid profile email groups
+    opensearch_security.openid.base_redirect_url: {{ observability_dashboards_url | to_json }}
+    opensearch_security.openid.root_ca: /oidc/ca.crt
+    opensearch_security.openid.verify_hostnames: true

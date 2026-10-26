@@ -62,14 +62,15 @@ class DeploymentViews(unittest.TestCase):
             ("stage-8-observability/step-1b-dedicated-vms.md", 0, "tier-1", "observability",
              ["observability"]),
             ("stage-7-delivery/README.md", 0, "tier-1", "kubernetes", ["talos_control_plane"]),
-            ("stage-7-delivery/step-1b-source-control-vm.md", 0, "tier-1", "development",
+            ("stage-9-development/step-1b-source-control-vm.md", 0, "tier-1", "development",
              ["development_platform"]),
-            ("stage-7-delivery/step-1c-podman-runner.md", 0, "tier-1", "podman-runner", ["podman_runner"]),
-            ("stage-7-delivery/step-1d-image-based-linux.md", 0, "tier-0", "immutable-template",
+            ("stage-9-development/step-2b-podman-runner.md", 0, "tier-1", "podman-runner", ["podman_runner"]),
+            ("stage-9-development/step-2c-image-based-linux.md", 0, "tier-0", "immutable-template",
              ["immutable_template_builders"]),
             ("stage-7-delivery/procedures/edge-proxy.md", 0, "tier-2", "edge", ["edge_load_balancers"]),
-            ("stage-9-workloads/README.md", 1, "tier-2", "kubernetes", ["talos_control_plane"]),
-            ("stage-9-workloads/README.md", 1, "tier-2", "lab", ["lab"]),
+            ("stage-10-lab-environments/README.md", 1, "tier-2", "kubernetes", ["talos_control_plane"]),
+            ("stage-10-lab-environments/README.md", 1, "tier-2", "lab", ["lab"]),
+            ("stage-10-lab-environments/README.md", 1, "tier-0", "infrastructure-runner", ["infrastructure_runner"]),
             ("stage-1-software-intake/README.md", 0, "tier-2", "cache", ["cache"]),
         ]
         selections = {}
@@ -93,22 +94,52 @@ class DeploymentViews(unittest.TestCase):
             drawn = {name for name in all_hosts if re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", code)}
             self.assertEqual(drawn, selected, relative)
 
-    def test_unimplemented_services_are_not_drawn_as_installed_products(self):
+    def test_application_installers_are_not_confused_with_owned_gitops_starters(self):
         cases = [
-            ("stage-4-kubernetes/README.md", "tier-0/clusters/tier0/infrastructure/cni"),
-            ("stage-5-identity/README.md", "tier-0/clusters/tier0/applications/keycloak"),
-            ("stage-6-secrets/README.md", "tier-0/clusters/tier0/applications/vault"),
-            ("stage-6-secrets/README.md", "tier-0/clusters/tier0/applications/netbox"),
-            ("stage-6-secrets/README.md", "tier-0/clusters/tier0/applications/headlamp"),
-            ("stage-7-delivery/README.md", "tier-1/clusters/tier1/platform/source-control"),
-            ("stage-8-observability/README.md", "tier-1/clusters/tier1/platform/observability"),
-            ("stage-9-workloads/README.md", "tier-2/clusters/tier2"),
+            ("stage-4-kubernetes", "tier-0", "cluster-platform", "infrastructure/cni"),
+            ("stage-5-identity", "tier-0", "control-applications", "applications/keycloak"),
+            ("stage-6-secrets", "tier-0", "control-applications", "applications/vault"),
+            ("stage-7-delivery", "tier-1", "delivery-platform", "platform/artifact-registry"),
+            ("stage-8-observability", "tier-1", "observability-platform", "platform/observability"),
+            ("stage-9-development", "tier-1", "development-platform", "platform/source-control"),
+            ("stage-10-lab-environments", "tier-2", "lab-environment", ""),
         ]
-        for relative, starter in cases:
-            document = DOCS / "deployment" / relative
-            self.assertIn("Project integration", "\n".join(FENCES.findall(document.read_text())))
-            config = yaml.safe_load((UPSTREAM / starter / "kustomization.yaml").read_text())
+        for stage, tier, recipe, relative in cases:
+            stage_docs = "\n".join(path.read_text() for path in (DOCS / "deployment" / stage).rglob('*.md'))
+            self.assertIn(f"ansible/playbooks/deployment/{recipe}.yml", stage_docs, stage)
+            self.assertTrue((UPSTREAM / tier / f"ansible/playbooks/deployment/{recipe}.yml").is_file())
+            starter = UPSTREAM / tier / f"clusters/tier{tier[-1]}" / relative
+            config = yaml.safe_load((starter / "kustomization.yaml").read_text())
             self.assertFalse(config.get("resources"), starter)
+
+    def test_cluster_logging_picture_matches_tier_owned_node_streams(self):
+        inputs = yaml.safe_load((UPSTREAM / "tier-0/ansible/group_vars/cluster_security_logging.yml.example").read_text())
+        document = (DOCS / "deployment/stage-4-kubernetes/README.md").read_text()
+        picture = FENCES.findall(document)[2]
+        nodes = inputs["cluster_security_logging_nodes"]
+        self.assertEqual({node["name"] for node in nodes},
+                         set(inventory_groups("tier-0")["talos_control_plane"]["hosts"]))
+        for node in nodes:
+            self.assertEqual(picture.count(f'security-log-{node["stream"]}'), 1)
+        for expected in ("Existing log-1", "not replicated", "mTLS"):
+            self.assertIn(expected, picture)
+
+    def test_observability_pictures_account_for_selected_native_releases_and_counts(self):
+        from test_tier_observability_platform import ROLE, platform_inputs, render_template
+        inputs = platform_inputs()
+        releases = yaml.safe_load(render_template(ROLE, 'releases.yml.j2', inputs))
+        document = (DOCS / 'deployment/stage-8-observability/README.md').read_text()
+        pictures = FENCES.findall(document)
+        for release in releases:
+            self.assertIn(release['name'], pictures[0], release['name'])
+        expected_counts = {
+            'otel-gateway': ('observability_gateway_replicas', 'replicas'),
+            'data-prepper': ('observability_prepper_replicas', 'replicas'),
+            'opensearch': ('observability_search_replicas', 'members'),
+        }
+        for name, (key, unit) in expected_counts.items():
+            self.assertIn(f'{name} / {inputs[key]} {unit}', pictures[1])
+        self.assertIn('Allowlisted metric bridge', pictures[2])
 
 
 if __name__ == "__main__":

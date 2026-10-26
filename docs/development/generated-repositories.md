@@ -78,9 +78,10 @@ has an owning tier, inventory, and state.
 
 Tier 0 owns hardware-facing administration and all VM template lifecycles.
 Tier-local workload definitions and state roots remain in place; they are not
-a grant of infrastructure privileges to repository users. Current deployment
-commands are operator-run. Future Tier 0-controlled execution accepts bounded
-workload requests, not arbitrary code; see
+a grant of infrastructure privileges to repository users. Commands are operator-run
+or executed through the explicitly trusted Stage 9 infrastructure project. Its
+GitLab/control-plane administrators are then Tier 0 authorities, not ordinary tenants.
+Future bounded self-service accepts data-only workload requests, not arbitrary code; see
 [Infrastructure control](../architecture/compute/provisioning.md).
 
 The upstream source already has this split: `tier-0/`, `tier-1/`, `tier-2/`,
@@ -517,22 +518,17 @@ This rename does not switch node OS or install a second cluster.
 
 ## Implementation scope
 
-Generation includes Linux Terraform/Ansible setups, Tier 0 Kubernetes bootstrap
+Generation includes Linux Terraform/Ansible setups, each tier's Kubernetes lifecycle
 (currently Talos), split inventory examples, stateless shared automation/data,
 and upstream documentation.
-Delivery-controller installation, cluster applications, and the documentation website remain
-skeletons. Kustomization resource lists group files; they do not enforce the
-control-service deployment sequence. See the [Tier 0 path](../paths/tier-0/README.md).
+Native application recipes install the selected platform, identity, secrets,
+delivery, Observability and lab capabilities. Their inputs stay tier-local;
+Shared executes reusable roles. Owned GitOps directories and the documentation
+website remain project starters. Kustomization resource lists do not enforce the
+control-service deployment sequence. See the [stage map](../reference/implementation-support.md#stage-coverage).
 
-Offline checks run with:
-
-```bash
-python3 -B -m unittest discover -s tests -p 'test_tier*.py' -v
-```
-
-Native Ansible syntax checks require the common and Tier 0 collections from
-the [local tooling prerequisites](local-setup.md#deployment-machine).
-Tests do not install packages or connect to hosts; Windows skips native tool checks.
+Run the [repository verification suite](testing.md) against source and generated
+output. Native validation is distinct from installation and operational acceptance.
 
 ## References
 

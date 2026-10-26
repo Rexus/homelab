@@ -1,0 +1,34 @@
+---
+- name: Validate tier-owned logging inputs before any mutation
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Prepare private logging review artifacts
+  ansible.builtin.file:
+    path: "{{ cluster_security_logging_output }}"
+    state: directory
+    mode: "0700"
+
+- name: Render native Talos patches and receiver enrollment handoff
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ cluster_security_logging_output }}/{{ item }}"
+    mode: "0600"
+  loop:
+    - talos-system-logging.patch.yml
+    - talos-api-audit.patch.yml
+    - receiver-sources.yml
+
+- name: Check each node identity before installing any agents
+  ansible.builtin.include_tasks: tls.yml
+  loop: "{{ cluster_security_logging_nodes }}"
+  loop_control:
+    loop_var: security_logging_node
+    label: "{{ security_logging_node.name }}"
+  when: cluster_security_logging_action == 'apply' or cluster_security_logging_manage_secrets | bool
+
+- name: Install or render one narrowly selected collector per node
+  ansible.builtin.include_tasks: agent.yml
+  loop: "{{ cluster_security_logging_nodes }}"
+  loop_control:
+    loop_var: security_logging_node
+    label: "{{ security_logging_node.name }}"
