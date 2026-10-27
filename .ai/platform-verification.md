@@ -17,6 +17,8 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
 | ID | Stage | Pass condition |
 | --- | --- | --- |
 | HOST-1 | Foundation | Key-only SSH, time, source-scoped host rules and audit survive reboot; required VRRP/ICMP/service traffic passes and unrelated sources are denied; console recovery works |
+| HA-1 | Foundation HA option | Native 9.2+ HA recovers the same VMID after tested host death/fencing, preserves affinity and data, and accepts a clean Terraform plan; constrained/no-quorum cases wait safely; rebalancing and returned-host behavior are measured separately |
+| IMAGE-1 | Foundation | Approved UEFI raw/qcow2 imports boot disposable clones with correct EFI/storage/CPU and fixed Talos RAM; schematic agent, DHCP, native configuration and recovery are qualified; legacy BIOS inputs are not migrated implicitly |
 | API-1 | Before 4/7/10 | One private API VIP owner at a time, correct isolated backends, client denial and gateway/peer/link failure cases pass without public-edge or cluster dependencies |
 | STORE-1 | Before storage consumers | Actual native file/object interface, transport, scoped access, capacity and required operations are qualified; no unsupported NAS feature is inferred |
 | STORE-2 | Before backup acceptance | NAS/path/host loss and wrong/missing mounts fail closed; independent encrypted copies restore with retained keys, without silently writing to local fallback paths |

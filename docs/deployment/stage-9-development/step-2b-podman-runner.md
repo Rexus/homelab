@@ -70,11 +70,11 @@ This path has dedicated IaC:
 
 | Repository / system | Path or setting | Responsibility |
 | --- | --- | --- |
-| Tier 1 | [terraform/deployments/podman-runner/](../../../tier-1/terraform/deployments/podman-runner/); local `terraform.tfvars` | Deploys runner VMs |
+| Tier 1 | [terraform/deployments/podman-runner/](../../../tier-1/terraform/deployments/podman-runner); local `terraform.tfvars` | Deploys runner VMs |
 | Tier 1 | `ansible/inventory/hosts.yml` | Stable `podman_runner` host group |
 | Tier 1 | `ansible/group_vars/podman_runner.yml` | Packages, runner tags and optional registration |
-| Tier 1 | [ansible/roles/podman_runner/](../../../tier-1/ansible/roles/podman_runner/) | Installs Podman, Buildah, Skopeo, Git and GitLab Runner |
-| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common host preparation |
+| Tier 1 | [ansible/roles/podman_runner/](../../../tier-1/ansible/roles/podman_runner) | Installs Podman, Buildah, Skopeo, Git and GitLab Runner |
+| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) | Common host preparation |
 | Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) | Execution helper called from Tier 1's root |
 | GitLab | Runner registration token and project settings | Runs the bootc image pipeline; credentials stay outside Git |
 | GitLab registry | Project or group registry | Stores the first internal bootc images |
@@ -324,7 +324,7 @@ retention, and Kubernetes pull scaling.
 - [Development platform path](step-1b-source-control-vm.md)
 - [Container registry path](../stage-7-delivery/procedures/registry.md)
 - [Image-based Linux path](step-2c-image-based-linux.md)
-- [Enterprise Linux template](../foundation/procedures/enterprise-linux-template.md)
+- [Enterprise Linux template](../foundation/proxmox/templates.md)
 
 ## References
 

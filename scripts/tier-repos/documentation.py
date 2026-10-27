@@ -54,7 +54,7 @@ def tier_readme(writer, tier, prefix, setups):
             f"Follow the [capability deployment checklist]({docs}/paths/tier-0/README.md#deployment-order).\n"
             f"Verify [foundation prerequisites]({docs}/deployment/foundation/README.md) first; "
             "numbered stages add platform capabilities.\n\n"
-            f"Prepare [Proxmox hosts]({docs}/deployment/foundation/procedures/proxmox.md#first-deployment-order)\n"
+            f"Prepare [Proxmox hosts]({docs}/deployment/foundation/proxmox/README.md#first-deployment-order)\n"
             "first, including optional cluster HA and SDN before important guests.\n\n"
             "**Templates before VMs.** From this repository's root, initialize\n"
             "the local image catalog:\n\n"
@@ -125,7 +125,7 @@ def copy_documentation(writer, prefix, upstream):
             return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
 
         # Preserve local doc links; source files and repository roots move between repos.
-        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012])/[^)#]*",
+        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012])(?:/[^)#]*)?(?=[)#])",
                          relocate, content)
         project_docs = Path(os.path.relpath(writer.root / "docs/README.md",
                                            (writer.root / target).parent)).as_posix()

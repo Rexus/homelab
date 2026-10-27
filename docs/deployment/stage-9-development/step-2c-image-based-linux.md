@@ -103,11 +103,11 @@ not the only possible model.
 
 | Repository | Path inside that repository | Responsibility |
 | --- | --- | --- |
-| Tier 0 | [terraform/deployments/immutable-template/](../../../tier-0/terraform/deployments/immutable-template/); local `terraform.tfvars` | Temporary template-builder VM |
+| Tier 0 | [terraform/deployments/immutable-template/](../../../tier-0/terraform/deployments/immutable-template); local `terraform.tfvars` | Temporary template-builder VM |
 | Tier 0 | `ansible/inventory/hosts.yml` | Stable `immutable_template_builders` host group |
 | Tier 0 | `ansible/group_vars/immutable_template.yml` | bootc image, registry auth, CA trust and cleanup |
-| Tier 0 | [ansible/roles/immutable_template/](../../../tier-0/ansible/roles/immutable_template/) | bootc tooling and preparation for template conversion |
-| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common host preparation |
+| Tier 0 | [ansible/roles/immutable_template/](../../../tier-0/ansible/roles/immutable_template) | bootc tooling and preparation for template conversion |
+| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) | Common host preparation |
 | Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) | Execution helper called from Tier 0's root |
 
 The default is one builder VM named for the target template,
@@ -275,7 +275,7 @@ keeps the previous deployment available.[4]
 - [Container registry path](../stage-7-delivery/procedures/registry.md)
 - [Development platform path](step-1b-source-control-vm.md)
 - [Podman image runner guide](step-2b-podman-runner.md)
-- [Enterprise Linux template](../foundation/procedures/enterprise-linux-template.md)
+- [Enterprise Linux template](../foundation/proxmox/templates.md)
 - [Proxmox planning guidelines](../../reference/proxmox-conventions.md)
 - [Security principles](../../architecture/principles.md)
 

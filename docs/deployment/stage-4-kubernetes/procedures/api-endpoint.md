@@ -101,9 +101,9 @@ Install the common and Tier 0 Ansible requirements as described in
 | [Tier 0 inventory](../../../../tier-0/ansible/inventory/hosts.yml.example) | Keep exactly two approved gateway hosts in `cluster_endpoint`; keep them in `guests` for baseline operations. Never place Talos nodes in this group. |
 | [Endpoint inputs](../../../../tier-0/ansible/group_vars/cluster_endpoint.yml.example) | Copy to `ansible/group_vars/cluster_endpoint.yml`; replace host IPs, interface, failure-domain labels, VIPs and backend addresses. |
 | [Gateway hardware](../../../../tier-0/terraform/deployments/cluster-endpoint/terraform.tfvars.example) | Copy to `terraform/deployments/cluster-endpoint/terraform.tfvars`; select distinct initial hosts, unused VMIDs, sizing, storage and the private attachment. |
-| [Terraform root](../../../../tier-0/terraform/deployments/cluster-endpoint/) | Composes Tier 0 `environment_guests` and `vm` modules using native inventory/IP inputs; owns only the two gateway VMs. |
+| [Terraform root](../../../../tier-0/terraform/deployments/cluster-endpoint) | Composes Tier 0 `environment_guests` and `vm` modules using native inventory/IP inputs; owns only the two gateway VMs. |
 | `ansible/group_vars/all.yml` | Use the existing Tier 0 environment identity and SSH settings. |
-| [Endpoint role](../../../../tier-0/ansible/roles/cluster_endpoint/) | Owns the TCP proxy and input gates; calls Shared package, sysctl and Keepalived fragments. |
+| [Endpoint role](../../../../tier-0/ansible/roles/cluster_endpoint) | Owns the TCP proxy and input gates; calls Shared package, sysctl and Keepalived fragments. |
 | [Deployment recipe](../../../../tier-0/ansible/playbooks/deployment/cluster-endpoint.yml) | Validates both hosts, then applies the baseline and endpoint serially. |
 
 Set `cluster_endpoint_fault_domains_validated: true` and

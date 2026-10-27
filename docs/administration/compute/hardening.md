@@ -39,7 +39,7 @@ requirements.
 
 Read more in:
 
-- [API setup](../../deployment/foundation/procedures/api-access.md)
+- [API setup](../../deployment/foundation/proxmox/api-access.md)
 - [Secret strategy](../secret-handling/strategy.md)
 
 ## Host and cluster hygiene

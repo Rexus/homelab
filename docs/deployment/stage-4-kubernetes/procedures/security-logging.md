@@ -3,7 +3,7 @@
 **Working repository:** the cluster owner's `<prefix>-tier-0`, `<prefix>-tier-1`
 or `<prefix>-tier-2` (source: matching `tier-N/`); run Ansible from its `ansible/`.
 Shared owns the stateless
-[cluster_security_logging role](../../../../shared/ansible/roles/cluster_security_logging/).
+[cluster_security_logging role](../../../../shared/ansible/roles/cluster_security_logging).
 Each tier owns node selections, release pins, credentials and local inputs.
 
 This required cluster-foundation step installs native Fluent Bit collectors,

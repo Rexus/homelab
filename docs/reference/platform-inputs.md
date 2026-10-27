@@ -69,6 +69,14 @@ The independent template-publication and Kubernetes roots keep their existing
 input contracts; they do not load unrelated Linux guest settings. Their datastore
 choices should follow the same approved project design.
 
+The cluster's `vm_firmware` matches its approved image. Fresh Talos examples use
+UEFI and a network-only NoCloud drive: `bootstrap_network` supplies prefix/gateway,
+while `platform_host_ips` remains the single tier-owned IP map. Optional `dns_servers`
+overrides qualified host defaults. No Linux users, SSH keys or machine-config
+snippets are supplied on that drive; the Talos API owns machine configuration.
+Omitted firmware and `bootstrap_network = null` preserve the older BIOS/DHCP contract.
+See the [cluster inputs](../deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure).
+
 Network keys are guest attachments, not a list of every service a guest can
 contact. Tier 1/2 do not need `identity`, `cryptography`, or `ceremony` attachments
 just to consume authentication or certificates. See [network inputs](network-inputs.md).
@@ -104,7 +112,7 @@ It is not a full security, time-synchronization or service-installation role.
 
 SSH access policy, NTP/chrony, host-firewall rules and audit collection must be
 prepared and verified through approved templates/OS configuration and the relevant
-service procedures. The separate guarded [Linux host security profile](../deployment/foundation/procedures/host-security.md)
+service procedures. The separate guarded [Linux host security profile](../deployment/foundation/proxmox/host-security.md)
 supplies native SSH, chrony, firewalld and audit controls with tier-owned inputs;
 it is not silently enabled by the baseline. Service-specific roles add only their implemented controls;
 an installed listener does not imply a permitted or safely restricted network path.

@@ -138,7 +138,7 @@ bash scripts/init-local-files.sh --setup edge
 | Tier 2 | [`ansible/group_vars/edge.yml.example`](../../../../tier-2/ansible/group_vars/edge.yml.example) | edge host IPs, VIPs, keepalived router IDs, rotated priorities, HAProxy stats listener, and frontend/backend entries |
 
 The Tier 2 [deployment recipe](../../../../tier-2/ansible/playbooks/deployment/edge-proxy.yml)
-uses its [edge_load_balancer role](../../../../tier-2/ansible/roles/edge_load_balancer/).
+uses its [edge_load_balancer role](../../../../tier-2/ansible/roles/edge_load_balancer).
 Shared supplies the [deploy helper](../../../../shared/scripts/deploy.sh) and
 [Keepalived primitive](../../../../shared/ansible/roles/shared/tasks/keepalived.yml),
 not the edge inventory, Terraform or frontend definitions.

@@ -7,7 +7,7 @@
 preissued TLS Secrets and Keycloak. An independently commissioned cert-manager issuer
 is an explicit alternative, not a prerequisite silently supplied by OpenXPKI.
 
-The [delivery role](../../../tier-1/ansible/roles/delivery_platform/) supplies the
+The [delivery role](../../../tier-1/ansible/roles/delivery_platform) supplies the
 upstream service base, configuration, SQL/Redis provisioning and staged installation.
 No external product overlay, Halyard or operator is required. Offline render tests
 are not live SSO, migration, deployment or recovery acceptance; complete the checks below
@@ -103,7 +103,7 @@ flowchart TB
 [persistence](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/persistence.yml.j2),
 [backup resources](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/backup.yml.j2)
 and [staged apply](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-native-apply.yml).
-**Prerequisites:** [existing NAS storage](../foundation/procedures/object-storage.md#use-nas-file-storage)
+**Prerequisites:** [existing NAS storage](../foundation/storage/README.md#use-nas-file-storage)
 and Keycloak retain their existing owners. Only the commissioned file PVC and OIDC
 interface are consumed, never Tier 0 control credentials. No NAS gateway is added.
 

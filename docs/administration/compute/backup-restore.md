@@ -83,7 +83,7 @@ With a qualified existing target, installing PBS is not mandatory.
    a second share on the same NAS does not provide that independence.
 
 VM backups do not automatically include external Kubernetes PVCs or NAS shares.
-Protect those datasets through their [application backup contracts](../../deployment/foundation/procedures/object-storage.md#choose-the-native-interface).
+Protect those datasets through their [application backup contracts](../../deployment/foundation/storage/README.md#choose-the-native-interface).
 The mounted file destination is not a claim of WORM, deduplication or HA.
 
 ### PBS reference
@@ -116,7 +116,7 @@ Do not continue until all of these are true:
 ## Read more
 
 - [Deployment readiness](../../deployment/readiness.md)
-- [Host networking](../../deployment/foundation/procedures/host-network.md)
+- [Host networking](../../deployment/foundation/proxmox/network.md)
 - [Hardening baseline](hardening.md)
 - [Offline security-log investigation](../security-logging.md#offline-investigation)
 - [Tier recovery order](../recovery.md#recovery-order)

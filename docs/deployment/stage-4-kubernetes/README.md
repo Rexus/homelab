@@ -5,7 +5,7 @@ deploying identity federation, secrets or other control applications. Kubernetes
 is the capability; Talos is the supplied node-OS implementation.
 
 **Prerequisites:** accepted software intake, protected logging and cryptographic
-trust; approved node images, independent DNS/time, DHCP reservations and a private
+trust; approved node images, independent DNS/time, reserved static node IPs and a private
 API endpoint outside this cluster. Retain bootstrap tools, images and credentials
 without depending on FreeIPA, Keycloak or later Tier 1 delivery services.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
@@ -31,12 +31,12 @@ flowchart TB
     direction LR
     subgraph PVE["Existing Proxmox hosts / control_cluster network"]
       direction TB
-      CP1["k8ctl-1<br/>Talos control plane"]
-      CP2["k8ctl-2<br/>Talos control plane"]
-      CP3["k8ctl-3<br/>Talos control plane"]
+      CP1["k8ctl-1<br/>Talos control plane<br/>ide2 / static NoCloud"]
+      CP2["k8ctl-2<br/>Talos control plane<br/>ide2 / static NoCloud"]
+      CP3["k8ctl-3<br/>Talos control plane<br/>ide2 / static NoCloud"]
       CP1 ~~~ CP2 ~~~ CP3
     end
-    API["Existing independent API endpoint<br/>Load balancing / DHCP reservations"]
+    API["Existing independent API endpoint<br/>Control-plane load balancing"]
     API -->|TCP 6443| PVE
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
@@ -50,7 +50,9 @@ flowchart TB
 
 **IaC:** Tier 0 [Kubernetes inputs](../../../tier-0/terraform/deployments/kubernetes/terraform.tfvars.example)
 and [cluster entry point](../../../tier-0/scripts/kubernetes-cluster.sh) create these three VMs and bootstrap Kubernetes.
-The API endpoint, DHCP reservations and approved node template already exist.
+The API endpoint, IP allocations and approved node template already exist.
+Each VM receives a network-only NoCloud drive at `ide2`, plus its live boot/EFI disks;
+the Talos API applies machine configuration. DHCP bootstrap remains an explicit legacy option.
 No workers are active in this starter; application and add-on manifests are separate inputs.
 
 From Tier 0, initialize the local inputs:
@@ -63,8 +65,8 @@ Before bootstrap, prepare the [Talos CNI/proxy patches](procedures/basic-platfor
 and [node/API logging patches](procedures/security-logging.md#prepare-talos).
 The latter can be rendered without a live cluster; install its collectors after CNI is ready.
 Configure [inventory, node hardware, endpoint and pinned images](procedures/talos-terraform.md#configure)
-in Tier 0's [Kubernetes root](../../../tier-0/terraform/deployments/kubernetes/).
-Verify the independent endpoint and DHCP reservations before planning:
+in Tier 0's [Kubernetes root](../../../tier-0/terraform/deployments/kubernetes).
+Verify the independent endpoint and static IP/gateway selections before planning:
 
 ```bash
 bash scripts/kubernetes-cluster.sh plan
@@ -164,7 +166,7 @@ Connect certificate automation to the existing issuer through a supported integr
 For the OpenXPKI Community reference, the [ACME adapter qualification](../stage-3-trust/procedures/issuer.md#step-3-activate-and-accept-issuance)
 is explicit; installing cert-manager does not supply that adapter or authorize enrollment.
 
-Tier 0's [clusters/tier0/](../../../tier-0/clusters/tier0/) folders remain GitOps starters;
+Tier 0's [clusters/tier0/](../../../tier-0/clusters/tier0) folders remain GitOps starters;
 the installer does not populate them or transfer Helm ownership to Flux.
 Prepare the [Flux source and canary](procedures/flux-sops.md), verify reconciliation,
 decryption, persistence, TLS and database health, and start backups as state appears.
@@ -206,7 +208,7 @@ flowchart LR
 
 **IaC:** the Tier 0 [collection playbook](../../../tier-0/ansible/playbooks/deployment/cluster-security-logging.yml)
 and [node inputs](../../../tier-0/ansible/group_vars/cluster_security_logging.yml.example)
-select these three releases from the [Shared role](../../../shared/ansible/roles/cluster_security_logging/).
+select these three releases from the [Shared role](../../../shared/ansible/roles/cluster_security_logging).
 Scope: cluster sources and bounded local queues; the receiver and its archive are existing Stage 2 services.
 
 Follow the [collection procedure](procedures/security-logging.md) to enroll distinct

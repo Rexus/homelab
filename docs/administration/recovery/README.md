@@ -8,7 +8,7 @@ These procedures are executable operator recipes, not evidence of a completed li
 | Task | Procedure |
 | --- | --- |
 | Extract encrypted control copies | [Clean file extraction](files.md) |
-| Verify storage custody and provider recovery | [Existing storage contract](../../deployment/foundation/procedures/object-storage.md#recovery-and-existing-installations) |
+| Verify storage custody and provider recovery | [Existing storage contract](../../deployment/foundation/storage/README.md#recovery-and-existing-installations) |
 | Transport original ignored provisioning inputs | [Input custody](input-custody.md) |
 | Authorize scheduled Vault snapshots | [Snapshot authentication](vault-backup-auth.md) |
 | Recover original inputs/state and Kubernetes state | [Original state and etcd](original-state-etcd.md) |

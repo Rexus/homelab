@@ -32,7 +32,7 @@ Keycloak additionally needs FreeIPA. Consumers need the accepted existing IdP.
 | Protected logs | Shared `cluster_security_logging` captures pod stdout and forwards it to protected Tier 0 mTLS intake |
 | Headlamp | Accepted [native Talos API OIDC integration](../../stage-5-identity/procedures/kubernetes-sso.md), with independent X509 recovery and matching `headlamp` audience/group bindings [4] |
 
-The [product role](../../../../tier-0/ansible/roles/control_applications/) owns
+The [product role](../../../../tier-0/ansible/roles/control_applications) owns
 values, native supporting resources, database readiness, federation and health.
 Shared owns execution. The role reuses Shared's `tasks_from: secrets` gate during
 database preparation, then calls its normal release interface. Database CRs in

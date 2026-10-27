@@ -32,7 +32,7 @@ events, so verify coverage using a real allowed/denied event test.
 ## Step 2: Install and connect collection
 
 The implementation is the [Tier 0 recipe](../../../../tier-0/ansible/playbooks/deployment/netbox-audit.yml),
-[role](../../../../tier-0/ansible/roles/netbox_audit/) and
+[role](../../../../tier-0/ansible/roles/netbox_audit) and
 [input example](../../../../tier-0/ansible/group_vars/netbox_audit.yml.example).
 
 1. Retain the existing host in `infrastructure_monitoring`. Add a `netbox-changes`

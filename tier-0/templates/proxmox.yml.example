@@ -16,6 +16,8 @@ templates:
     image_path: /srv/tier0/artifacts/debian-12-genericcloud-amd64.qcow2
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
     bridge: control
+    bios: ovmf
+    machine: q35
   alma-build-1:
     family: alma
     release: REPLACE_WITH_EXACT_RELEASE_AND_BUILD
@@ -27,6 +29,8 @@ templates:
     image_path: /srv/tier0/artifacts/alma-build-1.qcow2
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
     bridge: control
+    bios: ovmf
+    machine: q35
   rocky-build-1:
     family: rocky
     release: REPLACE_WITH_EXACT_RELEASE_AND_BUILD
@@ -38,6 +42,8 @@ templates:
     image_path: /srv/tier0/artifacts/rocky-build-1.qcow2
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
     bridge: control
+    bios: ovmf
+    machine: q35
   talos-build-1:
     family: talos
     release: REPLACE_WITH_EXACT_TALOS_VERSION
@@ -50,6 +56,10 @@ templates:
     image_path: /srv/tier0/artifacts/nocloud-amd64.raw
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
     bridge: control
-    # Standard non-secure-boot amd64 NoCloud image. No cluster config or secrets.
-    # Enable only when the recorded schematic includes siderolabs/qemu-guest-agent.
-    qemu_agent: false
+    # Image Factory: Cloud server / NoCloud / amd64 / UEFI only (not Secure Boot).
+    # Include siderolabs/qemu-guest-agent. Upload the unpacked .raw, not .raw.xz.
+    # Firmware must match new consuming clusters; never change a live cluster implicitly.
+    bios: ovmf
+    machine: q35
+    scsi_hardware: virtio-scsi-pci
+    qemu_agent: true

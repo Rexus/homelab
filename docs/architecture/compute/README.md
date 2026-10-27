@@ -53,6 +53,7 @@ also has its own configuration, identity, owner and lifecycle.
 | --- | --- |
 | Hypervisor and host fabrics | Run guests; separate management, quorum and storage transport from guest traffic |
 | Image publication | Supply approved, recoverable templates; consumer references do not own the build lifecycle |
+| Host availability and scheduling | Quorum, fencing and accessible live disks permit guest restart; affinity preserves placement constraints, while rebalancing is a separate optimization |
 | Cluster runtime | Supply a Kubernetes API, scheduling, networking and storage for platform services |
 | Infrastructure execution | Accept authorized changes without granting workload users hardware administration |
 | State and recovery | Retain resource ownership and bootstrap independently of hosted tooling |
@@ -117,3 +118,6 @@ Architecture drill-down: [service runtimes and infrastructure](runtime.md),
 Implementation procedures: [host/image foundation](../../deployment/foundation/README.md#step-1-prepare-compute-and-templates)
 and the [Kubernetes capability](../../deployment/stage-4-kubernetes/README.md).
 The current cluster installer uses Talos; each cluster has its own owner and state.
+The [Proxmox HA realization](../../deployment/foundation/step-1b-cluster-ha.md)
+selects native recovery and rebalancing, with an explicit alternative scheduler.
+Guest restart is not uninterrupted application service or recovery from lost storage.

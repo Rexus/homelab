@@ -15,6 +15,17 @@ This file keeps durable context for AI-assisted work across sessions.
 
 - public homelab and small datacenter IaC baseline
 - chosen virtualization platform is Proxmox; other hypervisors are not selectable implementations
+- New deployments target Proxmox VE 9+; the selected 9.2+ path uses native HA/affinity
+  and dynamic automatic rebalancing. ProxLB is an explicit alternative, never a second
+  unqualified scheduler for the same guests. HA restarts fenced guests; it is not zero downtime.
+- The common vm-template guide owns manual Alma/Rocky/Talos import. Fresh Talos examples
+  select NoCloud UEFI-only, q35, non-Single VirtIO SCSI, fixed RAM and the guest-agent
+  schematic. Explicit vm_firmware matches clones to publication; omitted fields preserve
+  legacy BIOS behavior, not implicit firmware migration.
+- Fresh Talos clones use a CloudInit/NoCloud drive at ide2 for static inventory IPs
+  and gateway only; user/password/SSH/custom user-data remain unset. Optional DNS override
+  is explicit; otherwise qualify Proxmox's inherited defaults. bootstrap_network = null
+  retains the previous DHCP path. The Talos API still owns machine configuration.
 - name capabilities by the goal, keeping implementation products explicit only where relevant
 - Kubernetes is the cluster goal; Talos is the current node-OS implementation example,
   not an architecture requirement. Immutable AlmaLinux or other OS support needs future lifecycle code
@@ -87,6 +98,10 @@ This file keeps durable context for AI-assisted work across sessions.
   full live assignments stay in inventory, with design and recovery in separate docs
 - `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
   notices; root READMEs and project templates are seeded once, never refreshed
+- Fresh architecture repositories contain only a short README, docs/README.md platform
+  selections/progress/navigation and docs/naming-conventions.md, plus the full auto-docs manual.
+  Do not seed a second domain/workflow/site hierarchy. Preserve old project documents
+  on refresh; consolidation is manual, with local runbooks added only when needed.
 - preserve existing README contents when promoting them to owned files;
   legacy `docs/generated/upstream/` stays untouched for manual link migration
 - shared scripts can be called by relative path from a tier root and use that
@@ -247,7 +262,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - `network_zones` remains a logical guest-network input, not a firewall zone;
   generation does not allocate subnets or configure gateway policy
 - keep network placement and firewall contracts in architecture/networking/, and
-  vendor-specific zone-matrix translation in deployment/foundation/procedures/
+  vendor-specific zone-matrix translation in deployment/foundation/network/
 - Tier 0 includes connected high-impact control systems; only selected custody
   and recovery assets are air-gapped; artifact handoffs do not create routed access
 - protect the acceptance path, jobs, runners, and credentials for privileged
@@ -272,8 +287,8 @@ This file keeps durable context for AI-assisted work across sessions.
   delivery/controllers.md owns the independent Flux, Argo CD and Spinnaker boundaries
 - variants.md records stable consumer contracts and different guarantees; detailed alternatives stay
   inside their owning domain; project architecture records one compatible selected composition
-- new project starters follow overview, relationships, domains and detailed variants;
-  refresh preserves every existing owned record, even an unchanged starter
+- upstream reference views follow overview, relationships, domains and detailed variants;
+  project starters link them from one compact selection/progress record, without duplicating the tree
 - networking/, compute/, identity/, cryptography/, delivery/ and operations/ own domain designs
 - architecture is the static intended design: context, components, interfaces, variants and constraints
 - docs/deployment/readiness.md owns capability progress and acceptance; the deployment index owns stages
@@ -286,8 +301,10 @@ This file keeps durable context for AI-assisted work across sessions.
   service seals are separate choices; do not imply every option has an installer
 - deployment/, development/, and administration/ separate installation, code and operations;
   paths/ contains only short repository checklists; reference/ contains exact contracts
-- every generated repo has seed-owned docs/architecture/, deployment/, development/, and
-  administration/ records; auto-docs mirror the upstream tree as reference material
+- Tier/Shared generated repos retain seed-owned code-specific workflow records;
+  the architecture repo has one platform record and standards, with auto-docs as the main manual
+- foundation docs are grouped in proxmox/, network/ and storage/; proxmox/templates.md
+  owns the shared Alma/Rocky/Talos wizard. Mutable Linux refresh belongs in administration.
 - refresh retains existing project records and links them from new starters; unchanged
   moved auto-docs become compatibility pointers only in existing collections
 - Ansible deployment/ and maintenance/ recipes compose existing roles; legacy setup plays import

@@ -39,8 +39,9 @@ resource "proxmox_virtual_environment_vm" "template" {
   template      = true
   started       = false
   on_boot       = false
-  bios          = "seabios"
-  scsi_hardware = "virtio-scsi-single"
+  bios          = each.value.bios
+  machine       = each.value.machine
+  scsi_hardware = each.value.scsi_hardware
   boot_order    = ["scsi0"]
 
   cpu {
@@ -50,6 +51,16 @@ resource "proxmox_virtual_environment_vm" "template" {
 
   memory {
     dedicated = each.value.memory_mb
+    floating  = 0
+  }
+
+  dynamic "efi_disk" {
+    for_each = each.value.bios == "ovmf" ? [true] : []
+    content {
+      datastore_id      = each.value.datastore_id
+      type              = "4m"
+      pre_enrolled_keys = false
+    }
   }
 
   agent {
@@ -61,7 +72,7 @@ resource "proxmox_virtual_environment_vm" "template" {
     import_from  = proxmox_virtual_environment_file.image[each.key].id
     interface    = "scsi0"
     size         = each.value.disk_size_gb
-    iothread     = true
+    iothread     = each.value.scsi_hardware == "virtio-scsi-single"
     discard      = "on"
   }
 

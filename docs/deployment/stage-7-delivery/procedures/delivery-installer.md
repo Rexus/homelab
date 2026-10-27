@@ -1,7 +1,7 @@
 # Native delivery installation
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`). The
-[delivery role](../../../../tier-1/ansible/roles/delivery_platform/) owns product
+[delivery role](../../../../tier-1/ansible/roles/delivery_platform) owns product
 configuration; Shared executes Helm releases without owning inventory or state.
 Choose `argocd`, `spinnaker`, or `none` explicitly. There is no default controller.
 Spinnaker supplies a pinned native base and provisions its SQL/Redis dependencies;

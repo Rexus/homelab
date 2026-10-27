@@ -19,7 +19,7 @@ Start with the [Stage 8 main path](README.md). All filled inputs and render outp
 ## Inputs and Execution
 
 Source ownership remains in
-[`ansible/roles/observability_platform/`](../../../tier-1/ansible/roles/observability_platform/).
+[`ansible/roles/observability_platform/`](../../../tier-1/ansible/roles/observability_platform).
 Prepare ignored local copies of the
 [platform](../../../tier-1/ansible/group_vars/observability_platform.yml.example) and
 [private inputs](../../../tier-1/ansible/group_vars/observability_platform_secrets.yml.example).
@@ -46,7 +46,7 @@ Do not run both this recipe and a delivery controller as concurrent owners of th
 | `observability_search_bootstrap` | True only for the initial empty cluster; false after first green acceptance and for all restarts, scaling and recovery |
 | `observability_log_scopes` | Per-source name, application/projection kind, listener, NodePort and explicit reader backend roles |
 | `observability_telemetry_cidrs`, `observability_egress` | Exact source networks and required database/API/kubelet destinations |
-| Database backup method | Scheduled verified full copies to a separate NAS file PVC, or the existing object/WAL option; [storage prerequisites](../foundation/procedures/object-storage.md) install no gateway |
+| Database backup method | Scheduled verified full copies to a separate NAS file PVC, or the existing object/WAL option; [storage prerequisites](../foundation/storage/README.md) install no gateway |
 | `observability_backup_mode`, `observability_backup_files_phase` | Fresh examples use `files` / `prepare`; [commission the NAS destination](../../administration/backups/postgresql.md), then select `backup` to enable copies and continue installation |
 | `observability_database_storage_class` | Explicit live Proxmox/Ceph-backed block class, independent of the NAS backup claim |
 | `observability_backup_destination`, `observability_backup_endpoint` | Object/WAL option only: Grafana database backup prefix and HTTPS S3-compatible endpoint, with scoped tenant keys and independent custody |

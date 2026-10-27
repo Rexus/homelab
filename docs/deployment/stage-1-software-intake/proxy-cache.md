@@ -122,7 +122,7 @@ bash scripts/init-local-files.sh --setup cache
 | Tier 2 | [`ansible/group_vars/cache.yml.example`](../../../tier-2/ansible/group_vars/cache.yml.example) | cache host IPs, VIP, FQDN, port, keepalived router ID, allowed client CIDRs, allowed software-source domains, and optional upstream proxy |
 
 The Tier 2 [deployment recipe](../../../tier-2/ansible/playbooks/deployment/outbound-cache.yml)
-uses its [cache_proxy role](../../../tier-2/ansible/roles/cache_proxy/).
+uses its [cache_proxy role](../../../tier-2/ansible/roles/cache_proxy).
 Shared's [deploy helper](../../../shared/scripts/deploy.sh) executes this recipe
 with Tier 2 inputs; the cache service code is not in Shared.
 

@@ -134,7 +134,7 @@ when the approved update path is ready.
 Policy acceptance requires evidence for approved flows, denied administrative
 access, same-zone isolation, stateful replies, IPv6 parity and offline-custody
 separation. A naming convention is not evidence of enforcement.
-The [Step 1 rollout procedure](../../deployment/foundation/procedures/firewall-rollout.md)
+The [Step 1 rollout procedure](../../deployment/foundation/network/firewall.md)
 owns the change sequence and test matrix.
 
 ## References

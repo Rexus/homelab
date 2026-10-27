@@ -12,6 +12,13 @@ and a privileged workstation with independent console access.
 
 ## Preparation checklist
 
+| Area | Detailed guides |
+| --- | --- |
+| Proxmox | [Host setup](proxmox/README.md), [host networking](proxmox/network.md), [API access](proxmox/api-access.md), [VM templates](proxmox/templates.md) |
+| Optional host availability | [Cluster/HA](step-1b-cluster-ha.md), [menu settings](../../reference/proxmox-ha.md), [failover example](proxmox/failover.md) |
+| Network equipment and policy | [UniFi setup](network/unifi.md), [firewall rollout](network/firewall.md) |
+| Storage | [Live storage interfaces and backup destinations](storage/README.md) |
+
 1. [Prepare hosts and networks](#step-1-prepare-hosts-and-networks)
 2. [Protect provisioning access and state](#step-2-protect-provisioning-access-and-state)
 3. [Publish and test VM templates](#step-3-publish-and-test-vm-templates)
@@ -53,14 +60,14 @@ they do not create guests or install the physical foundation.
 ## Step 1: Prepare hosts and networks
 
 Prepare [local tools](../../development/local-setup.md) and bring up the external
-network; the [UniFi starting path](procedures/unifi-zones.md#bring-up-the-network)
+network; the [UniFi starting path](network/unifi.md#bring-up-the-network)
 includes controller adoption and VLAN/port preparation. Install
-[Proxmox](procedures/proxmox.md), then configure [host networking](procedures/host-network.md)
+[Proxmox](proxmox/README.md), then configure [host networking](proxmox/network.md)
 and storage. Verify management access, DNS, time and permitted guest networks.
 Select existing [block, file and object interfaces](../../architecture/compute/runtime.md#storage-interfaces)
 deliberately. Use direct NAS file storage where supported; qualify an existing
 object endpoint only for consumers that require it. The
-[storage prerequisites](procedures/object-storage.md) add no gateway service.
+[storage prerequisites](storage/README.md) add no gateway service.
 Object storage must be available before the first consuming database or application,
 not before unrelated early logging or trust deployments.
 
@@ -68,8 +75,8 @@ The main path uses bridges and VLANs. **Before important guests**, select
 [1b: cluster HA](step-1b-cluster-ha.md) or [1c: SDN guest networks](step-1c-sdn.md)
 where required. These options return here after their own checks.
 
-Apply the [firewall policy](procedures/firewall-rollout.md), using the
-[UniFi translation](procedures/unifi-zones.md) where applicable. Verify permitted
+Apply the [firewall policy](network/firewall.md), using the
+[UniFi translation](network/unifi.md) where applicable. Verify permitted
 and denied paths; cluster membership alone is not evidence of HA.
 
 Keep persistent local host logs from first boot and export network-device logs where
@@ -78,7 +85,7 @@ central collection must not wait for FreeIPA or Kubernetes.
 
 ## Step 2: Protect provisioning access and state
 
-Configure [scoped API access](procedures/api-access.md) and protected local state
+Configure [scoped API access](proxmox/api-access.md) and protected local state
 or an independent backend. Back up local state, inventory and bootstrap inputs now;
 test their recovery before provisioning. Prepare the
 [backup destination](../../administration/compute/backup-restore.md), using PBS or
@@ -94,18 +101,18 @@ mirrors or offline copies provide independent approved content.
 
 ## Step 3: Publish and test VM templates
 
-Follow the [local publication workflow](../../administration/compute/template-lifecycle.md#local-workflow)
-for [Linux images](procedures/enterprise-linux-template.md) and the current
-[Kubernetes node image](procedures/talos-template.md). Tier 0 publishes templates;
+Use the [common image import guide](proxmox/templates.md) for AlmaLinux,
+Rocky Linux and Talos, or the [local API publication workflow](../../administration/compute/template-lifecycle.md#local-workflow).
+Tier 0 publishes templates;
 other tiers consume approved references. No hosted CI is required.
 
 Publication code and inputs are in Tier 0's
-[terraform/deployments/templates/](../../../tier-0/terraform/deployments/templates/) and
+[terraform/deployments/templates/](../../../tier-0/terraform/deployments/templates) and
 [templates/proxmox.yml.example](../../../tier-0/templates/proxmox.yml.example).
 Approved consumer references are in Shared's
 [templates/proxmox-catalog.tfvars](../../../shared/templates/proxmox-catalog.tfvars).
 
-Qualify the [Linux guest security profile](procedures/host-security.md) on the disposable clone.
+Qualify the [Linux guest security profile](proxmox/host-security.md) on the disposable clone.
 Each later Linux deployment applies its tier-owned operator/service allowlist before acceptance;
 Talos and Proxmox retain their own native security configuration. The generic baseline alone is not hardening.
 

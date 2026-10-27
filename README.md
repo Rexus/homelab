@@ -45,9 +45,9 @@ the prefix if customized. Each README is a developer-owned starter template.
 The [deployment checklist](docs/paths/tier-0/README.md#deployment-order) leads
 from foundation prerequisites through software intake, protected logging, trust, Kubernetes, identity,
 shared services and controlled automation. Each capability has a numbered deployment path.
-Select [domain patterns](docs/architecture/README.md#technical-domains) in each generated
-repo's `docs/architecture/README.md`; keep procedures under `docs/deployment/`,
-`docs/development/`, and `docs/administration/`.
+Use `homelab-architecture/docs/README.md` to record selected paths and deployed/verified
+capabilities. Its links lead directly to the maintained `docs/auto-docs/` manual;
+add project documentation only for local differences or operating records.
 
 <a id="update-your-collection"></a>
 

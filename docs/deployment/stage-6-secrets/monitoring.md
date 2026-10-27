@@ -66,7 +66,7 @@ flowchart LR
   class Project replicas
 ```
 
-**IaC:** Tier 0's [role](../../../tier-0/ansible/roles/infrastructure_monitoring/),
+**IaC:** Tier 0's [role](../../../tier-0/ansible/roles/infrastructure_monitoring),
 [recipe](../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) and local
 inputs own the installation on an existing host. The log-host Terraform and cluster starters
 provide context only. No additional VM is provisioned; host placement remains a prerequisite.
@@ -112,7 +112,7 @@ flowchart RL
   class Project replicas
 ```
 
-**IaC:** the [native configuration templates](../../../tier-0/ansible/roles/infrastructure_monitoring/templates/)
+**IaC:** the [native configuration templates](../../../tier-0/ansible/roles/infrastructure_monitoring/templates)
 configure the parent, dbengine history, source jobs and metric bridge. The three monitoring
 functions share one Netdata service; they are not three extra VMs or backends.
 The existing receiver and cluster recipes do not install these services.
@@ -185,12 +185,12 @@ through the external service to administrators outside that service boundary.
 
 | Repository | Path inside that repository | Coverage |
 | --- | --- | --- |
-| Tier 0 | [ansible/roles/infrastructure_monitoring/](../../../tier-0/ansible/roles/infrastructure_monitoring/) | Native parent, rules, jobs, external heartbeat and optional approved metric bridge |
+| Tier 0 | [ansible/roles/infrastructure_monitoring/](../../../tier-0/ansible/roles/infrastructure_monitoring) | Native parent, rules, jobs, external heartbeat and optional approved metric bridge |
 | Tier 0 | [deployment playbook](../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) | Existing host only; default private rendering, explicit apply |
-| Tier 0 | [terraform/deployments/syslog/](../../../tier-0/terraform/deployments/syslog/) | Protected logging resources remain separate |
-| Tier 0 | [clusters/tier0/](../../../tier-0/clusters/tier0/) | Project cluster manifests; no monitoring installer |
+| Tier 0 | [terraform/deployments/syslog/](../../../tier-0/terraform/deployments/syslog) | Protected logging resources remain separate |
+| Tier 0 | [clusters/tier0/](../../../tier-0/clusters/tier0) | Project cluster manifests; no monitoring installer |
 | Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) | Existing protected log receiver; unchanged by monitoring |
-| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common OS preparation, not inventory, state or alert authority |
+| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) | Common OS preparation, not inventory, state or alert authority |
 
 Return to [Stage 6 acceptance](README.md#capability-available). Later
 [Tier 1 Observability](../stage-8-observability/README.md) adds shared diagnosis without

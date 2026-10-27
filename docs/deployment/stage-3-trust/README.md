@@ -91,7 +91,7 @@ requirements. Size the replicated service for consumer traffic and availability,
 not merely because Vault or a registry has been installed.
 The HSM path remains Tier 0-owned and independently deployable in either form.
 
-Tier 0's [terraform/deployments/foundation/](../../../tier-0/terraform/deployments/foundation/)
+Tier 0's [terraform/deployments/foundation/](../../../tier-0/terraform/deployments/foundation)
 provisions the issuer host. Its Tier 0 OpenXPKI recipe installs the native runtime
 from approved packages/configuration; signing ceremonies, token import and acceptance
 remain controlled operations. An existing independent issuer is also valid.

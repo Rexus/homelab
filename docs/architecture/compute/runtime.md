@@ -183,7 +183,7 @@ copies and local administrative execution remain available.
 - Whole system: [reference platform](../reference-platform.md), [runtime flows](../runtime-flows.md) and [variant model](../variants.md).
 - Interfaces: [networking](../networking/README.md), [infrastructure control](provisioning.md) and [tier ownership](../tier-ownership.md).
 - Realization: [host/image foundation](../../deployment/foundation/README.md#step-1-prepare-compute-and-templates) and [Kubernetes capability](../../deployment/stage-4-kubernetes/README.md).
-- Native storage selection and qualification: [storage prerequisites](../../deployment/foundation/procedures/object-storage.md).
+- Native storage selection and qualification: [storage prerequisites](../../deployment/foundation/storage/README.md).
 - Acceptance and implementation coverage: [deployment readiness](../../deployment/readiness.md).
 
 ## References

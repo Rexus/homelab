@@ -18,7 +18,7 @@ backend worker capacity, persistent storage/backups and source identities.
 Equivalent verified existing services can satisfy these contracts.
 **Design:** [signals, placement, independent scaling and availability](../../architecture/operations/telemetry.md).
 **Automation:** the dedicated [Ansible deployment](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml)
-renders or applies the [native chart values](../../../tier-1/ansible/roles/observability_platform/).
+renders or applies the [native chart values](../../../tier-1/ansible/roles/observability_platform).
 The cluster directory remains an empty integration starter, not a second executor.
 Read [configuration, secrets and private intake](configuration.md) before beginning.
 See [stage coverage](../../reference/implementation-support.md#stage-coverage) for
@@ -64,7 +64,7 @@ flowchart TB
 ```
 
 **IaC:** Tier 1's [playbook](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml),
-[role](../../../tier-1/ansible/roles/observability_platform/) and
+[role](../../../tier-1/ansible/roles/observability_platform) and
 [inputs](../../../tier-1/ansible/group_vars/observability_platform.yml.example) own these workloads.
 The [cluster inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.tfvars.example)
 supply the existing runtime. Scope: service runtimes; backup jobs/destinations have
@@ -200,8 +200,8 @@ flowchart BT
   class Pipeline,Local replicas
 ```
 
-**IaC:** Tier 1's [role](../../../tier-1/ansible/roles/observability_platform/) installs cluster diagnostics.
-Tier 0's [monitoring role](../../../tier-0/ansible/roles/infrastructure_monitoring/) installs
+**IaC:** Tier 1's [role](../../../tier-1/ansible/roles/observability_platform) installs cluster diagnostics.
+Tier 0's [monitoring role](../../../tier-0/ansible/roles/infrastructure_monitoring) installs
 the independent parent, Redfish/API pollers, critical alerts and optional metric export.
 Proxmox host agents remain a reviewed prerequisite; this recipe does not alter hypervisors.
 Scope: the approved Tier 0 metric bridge into Step 2. Tier 1's separate Netdata
@@ -256,7 +256,7 @@ flowchart LR
   class Reader actor
 ```
 
-**IaC:** Tier 1 [query values and search policy](../../../tier-1/ansible/roles/observability_platform/templates/).
+**IaC:** Tier 1 [query values and search policy](../../../tier-1/ansible/roles/observability_platform/templates).
 This view shows query interfaces; backend placement and replica counts remain as
 defined in Step 2. Readers enter from the left and query Tier 1 only. Tier 0 originals are outside
 this query view: no archive mount or write path is granted. Export/redaction remains
@@ -284,11 +284,11 @@ Changing or deleting a search copy does not change the original retained log.
 
 | Repository | Path | Coverage |
 | --- | --- | --- |
-| Tier 1 | [ansible/roles/observability_platform/](../../../tier-1/ansible/roles/observability_platform/) | Native values, scoped intake, backends, Netdata, UIs/database, policy and health gates |
+| Tier 1 | [ansible/roles/observability_platform/](../../../tier-1/ansible/roles/observability_platform) | Native values, scoped intake, backends, Netdata, UIs/database, policy and health gates |
 | Tier 1 | [deployment playbook](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml) | Private render/apply entry point; no infrastructure provisioning |
-| Tier 1 | [clusters/tier1/platform/observability/](../../../tier-1/clusters/tier1/platform/observability/) | Empty controller-integration starter; choose one reconciler |
-| Tier 1 | [terraform/deployments/kubernetes/](../../../tier-1/terraform/deployments/kubernetes/) | Existing cluster and separately sized workers |
-| Tier 1 | [terraform/deployments/observability/](../../../tier-1/terraform/deployments/observability/) | Explicit VM alternative only |
+| Tier 1 | [clusters/tier1/platform/observability/](../../../tier-1/clusters/tier1/platform/observability) | Empty controller-integration starter; choose one reconciler |
+| Tier 1 | [terraform/deployments/kubernetes/](../../../tier-1/terraform/deployments/kubernetes) | Existing cluster and separately sized workers |
+| Tier 1 | [terraform/deployments/observability/](../../../tier-1/terraform/deployments/observability) | Explicit VM alternative only |
 | Tier 0 | [protected logging](../stage-2-logging/README.md) | Original evidence and approved export boundary |
 | Tier 0 | [logging-export playbook](../../../tier-0/ansible/playbooks/deployment/logging-export.yml) | Scoped native Collector; only approved read-only copies cross into search |
 | Tier 0 | [independent monitoring](../stage-6-secrets/monitoring.md) | Independent Netdata, local pollers/credentials, critical alerts and approved metric export |

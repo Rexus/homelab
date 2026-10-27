@@ -1,5 +1,5 @@
 ---
-# Opt-in leaf-host profile; docs/deployment/foundation/procedures/host-security.md.
+# Opt-in leaf-host profile; docs/deployment/foundation/proxmox/host-security.md.
 host_security_enabled: false
 host_security_profile: ""
 host_security_action: apply

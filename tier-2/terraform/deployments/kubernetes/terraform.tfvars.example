@@ -6,7 +6,17 @@
 # Linux common.tfvars and Ansible proxy settings do not apply to these nodes.
 machine_config_patches = []
 
+# NoCloud drive carries networking only; IPs come from tier-local platform_host_ips.
+# Leave user/password/SSH/custom user-data unset. DNS inherits the host default;
+# add dns_servers only if a qualified independent bootstrap DNS override is needed.
+# Null retains the earlier DHCP-reservation path for existing clusters.
+bootstrap_network = { prefix_length = 24, gateway = "10.42.20.1" }
+
 template_vm_id = 9102
+# New-cluster profile: match the approved UEFI-only NoCloud template.
+# Do not copy this profile onto an existing BIOS cluster as an update.
+vm_firmware = { bios = "ovmf", machine = "q35", scsi_hardware = "virtio-scsi-pci" }
+qemu_agent  = true # Requires siderolabs/qemu-guest-agent in the image and installer schematic.
 cluster = {
   name               = "workload"
   endpoint           = "https://kubernetes.workload.example.com:6443"
@@ -19,7 +29,7 @@ cluster = {
   allow_scheduling_on_control_planes = true
 }
 
-# Reserve each MAC/IP in DHCP before applying. The endpoint needs an external
+# Reserve each inventory IP outside DHCP and set its static NoCloud network. The endpoint needs an external
 # TCP load balancer for these control planes; it cannot use in-cluster ingress.
 # Keep host placement, storage, bridges, and image source in the same Proxmox cluster.
 nodes = {

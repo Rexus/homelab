@@ -18,8 +18,8 @@ See [coverage](../../reference/implementation-support.md#stage-coverage).
 
 | Work | Repository | IaC location inside that repository |
 | --- | --- | --- |
-| VM and workload definitions | `<prefix>-tier-2` | [terraform/deployments/lab/](../../../tier-2/terraform/deployments/lab/), [ansible/](../../../tier-2/ansible/) and [workloads/](../../../tier-2/workloads/) |
-| Workload cluster | `<prefix>-tier-2` | [terraform/deployments/kubernetes/](../../../tier-2/terraform/deployments/kubernetes/) and [clusters/tier2/](../../../tier-2/clusters/tier2/) |
+| VM and workload definitions | `<prefix>-tier-2` | [terraform/deployments/lab/](../../../tier-2/terraform/deployments/lab), [ansible/](../../../tier-2/ansible) and [workloads/](../../../tier-2/workloads) |
+| Workload cluster | `<prefix>-tier-2` | [terraform/deployments/kubernetes/](../../../tier-2/terraform/deployments/kubernetes) and [clusters/tier2/](../../../tier-2/clusters/tier2) |
 | Privileged request execution | `<prefix>-tier-0` | Project integration; no complete request controller is supplied |
 
 Run local operator commands from Tier 2's root. Tier 0 execution does not move

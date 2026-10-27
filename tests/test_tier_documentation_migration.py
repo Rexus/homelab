@@ -37,6 +37,10 @@ class DocumentationMigration(TierRepositoryTestCase):
             self.assertFalse((repo / "docs/owned").exists())
             self.assertFalse((repo / "docs/architecture.md").exists())
             manifest = json.loads((repo / ".generated-files.json").read_text())
+            if repo.name == "verify-architecture":
+                self.assertIn("docs/README.md", manifest["owned"])
+                self.assertFalse((repo / "docs/architecture").exists())
+                continue
             for area in ("architecture", "deployment", "development", "administration"):
                 relative = f"docs/{area}/README.md"
                 self.assertTrue((repo / relative).is_file())
@@ -81,7 +85,13 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "deployment/stage-10-workloads/isolated-clusters.md",
                     "deployment/stage-7-delivery/step-1b-source-control-vm.md",
                     "deployment/stage-7-delivery/step-1c-podman-runner.md",
-                    "deployment/stage-7-delivery/step-1d-image-based-linux.md"]
+                    "deployment/stage-7-delivery/step-1d-image-based-linux.md",
+                    "deployment/foundation/procedures/proxmox.md",
+                    "deployment/foundation/procedures/enterprise-linux-template.md",
+                    "deployment/foundation/procedures/talos-template.md",
+                    "deployment/foundation/procedures/vm-template.md",
+                    "deployment/foundation/procedures/unifi-zones.md",
+                    "deployment/foundation/procedures/object-storage.md"]
         for old in examples:
             relative = f"docs/auto-docs/{old}"
             path = repo / relative
@@ -129,7 +139,7 @@ class DocumentationMigration(TierRepositoryTestCase):
         self.assertEqual(pointer.read_text(), content)
         self.assertEqual(stage_pointer.read_text(), stage_content)
 
-    def test_previous_design_split_is_preserved_and_linked_from_domain_records(self):
+    def test_previous_design_split_is_preserved_without_seeding_more_domains(self):
         repo = self.root / "verify-architecture"
         original = repo / "docs/architecture/README.md"
         original.parent.mkdir(parents=True)
@@ -145,17 +155,13 @@ class DocumentationMigration(TierRepositoryTestCase):
             "generator": MARKER, "files": {}, "owned": owned,
         }))
         expected = original.read_bytes()
-        self.generate("--refresh")
-        design = repo / "docs/architecture/compute/README.md"
+        result = self.generate("--refresh")
         self.assertEqual(original.read_bytes(), expected)
-        self.assertIn("[retained local document](../subsystem-design/README.md)", design.read_text())
-        design.write_text("# Reviewed compute design\n")
-        deleted = repo / "docs/architecture/networking/README.md"
-        deleted.unlink()
+        self.assertIn("Existing project documents preserved", result.stdout)
+        self.assertIn("[retained local document](architecture/README.md)", (repo / "docs/README.md").read_text())
+        self.assertFalse((repo / "docs/architecture/compute").exists())
         self.generate("--refresh")
         self.assertEqual(original.read_bytes(), expected)
-        self.assertEqual(design.read_text(), "# Reviewed compute design\n")
-        self.assertFalse(deleted.exists())
         for path, content in previous.items():
             self.assertEqual(path.read_bytes(), content)
 
@@ -180,10 +186,12 @@ class DocumentationMigration(TierRepositoryTestCase):
             self.assertEqual(path.read_bytes(), data)
         for repo_name in examples:
             repo = self.root / f"verify-{repo_name}"
-            design = (repo / "docs/architecture/README.md").read_text()
+            record = "docs/README.md" if repo_name == "architecture" else "docs/architecture/README.md"
+            design = (repo / record).read_text()
             self.assertIn("retained local document", design)
             for area in ("deployment", "development", "administration"):
                 guide = repo / f"docs/{area}/README.md"
+                guide.parent.mkdir(parents=True, exist_ok=True)
                 guide.write_text("# Approved local workflow\n")
             deleted = repo / "docs/development/README.md"
             deleted.unlink()

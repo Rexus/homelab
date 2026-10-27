@@ -7,9 +7,10 @@ resource "proxmox_virtual_environment_vm" "node" {
   tags          = distinct(concat(try(local.template.tags, []), ["tier-0", "talos", each.value.role]))
   started       = true
   on_boot       = true
-  bios          = "seabios"
+  bios          = var.vm_firmware.bios
+  machine       = var.vm_firmware.machine
   boot_order    = ["scsi0"]
-  scsi_hardware = "virtio-scsi-single"
+  scsi_hardware = var.vm_firmware.scsi_hardware
 
   clone {
     vm_id     = var.template_vm_id
@@ -22,15 +23,44 @@ resource "proxmox_virtual_environment_vm" "node" {
   }
   memory {
     dedicated = each.value.memory
+    floating  = 0
+  }
+  dynamic "efi_disk" {
+    for_each = var.vm_firmware.bios == "ovmf" ? [true] : []
+    content {
+      datastore_id      = each.value.datastore_id
+      type              = "4m"
+      pre_enrolled_keys = false
+    }
   }
   agent {
     enabled = var.qemu_agent
+    # Addresses come from inventory; do not wait for a pre-configuration agent IP lookup.
+    wait_for_ip { disabled = true }
+  }
+  dynamic "initialization" {
+    for_each = var.bootstrap_network == null ? [] : [var.bootstrap_network]
+    content {
+      type         = "nocloud"
+      interface    = "ide2"
+      datastore_id = each.value.datastore_id
+      dynamic "dns" {
+        for_each = length(initialization.value.dns_servers) > 0 ? [initialization.value.dns_servers] : []
+        content { servers = dns.value }
+      }
+      ip_config {
+        ipv4 {
+          address = "${each.value.ip}/${initialization.value.prefix_length}"
+          gateway = initialization.value.gateway
+        }
+      }
+    }
   }
   disk {
     datastore_id = each.value.datastore_id
     interface    = "scsi0"
     size         = each.value.disk_size_gb
-    iothread     = true
+    iothread     = var.vm_firmware.scsi_hardware == "virtio-scsi-single"
     discard      = "on"
   }
   network_device {
@@ -40,7 +70,7 @@ resource "proxmox_virtual_environment_vm" "node" {
     mac_address = each.value.mac_address
   }
 
-  # No cloud-init, SSH account, or Ansible guest baseline is applied to Talos.
+  # NoCloud carries networking only; Talos API owns machine config, not Linux users or Ansible.
   lifecycle {
     prevent_destroy = true
     ignore_changes  = [node_name]

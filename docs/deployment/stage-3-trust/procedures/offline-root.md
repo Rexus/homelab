@@ -59,7 +59,7 @@ flowchart LR
 ```
 
 **Workflow:** authorized offline CSR/signature handoff, not a routed connection or VM installer.
-Tier 0 [offline ceremony templates](../../../../tier-0/templates/) provide supporting material;
+Tier 0 [offline ceremony templates](../../../../tier-0/templates) provide supporting material;
 the custody environment, approval and physical transfer remain manual.
 
 1. Receive and inspect the infrastructure issuer CSR. Verify its approved public key,

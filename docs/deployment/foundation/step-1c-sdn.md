@@ -12,7 +12,7 @@ Consuming tiers keep their own guest-network inputs.
 Use SDN as a foundation option for VM-facing networks. This repository
 only needs the final VM attachment name.
 
-Choose this during [early host preparation](procedures/proxmox.md#first-deployment-order),
+Choose this during [early host preparation](proxmox/README.md#first-deployment-order),
 before publishing templates and attaching guests. For a cluster, validate the
 underlay and resulting VNets on **every eligible migration/HA destination**;
 see [cluster readiness](step-1b-cluster-ha.md#make-guests-movable).

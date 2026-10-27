@@ -38,7 +38,17 @@ resource "terraform_data" "configuration" {
         alltrue([for node in local.machines : can(cidrnetmask("${node.ip}/32"))]) &&
         length(distinct([for node in local.machines : node.ip])) == length(var.nodes)
       )
-      error_message = "Every Talos node needs a unique IPv4 DHCP reservation in the tier-local platform_host_ips map."
+      error_message = "Every Talos node needs a unique IPv4 address in the tier-local platform_host_ips map."
+    }
+    precondition {
+      condition = var.bootstrap_network == null ? true : alltrue([for node in local.machines : try(
+        cidrhost("${node.ip}/${var.bootstrap_network.prefix_length}", 0) ==
+        cidrhost("${var.bootstrap_network.gateway}/${var.bootstrap_network.prefix_length}", 0) &&
+        node.ip != var.bootstrap_network.gateway &&
+        node.ip != cidrhost("${node.ip}/${var.bootstrap_network.prefix_length}", 0) &&
+        node.ip != cidrhost("${node.ip}/${var.bootstrap_network.prefix_length}", -1), false)
+      ])
+      error_message = "Static bootstrap inventory IPs must be usable addresses on the selected gateway subnet."
     }
     precondition {
       condition = try(local.template.family == "talos" && length(trimspace(local.template.node_name)) > 0 &&

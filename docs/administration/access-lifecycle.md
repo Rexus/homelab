@@ -17,7 +17,7 @@ not a user role, a Wi-Fi network or an automatic authorization grant. The
 
 1. Place ordinary workstations, family devices, guests and IoT equipment in explicitly selected
    Tier 2 client networks. Map the actual VLANs/ports/SSIDs to zones through the
-   [UniFi procedure](../deployment/foundation/procedures/unifi-zones.md).
+   [UniFi procedure](../deployment/foundation/network/unifi.md).
 2. Permit DNS/time and selected application endpoints. Deny hypervisor/BMC, directory
    administration, storage administration, original logs and cluster-control access.
    Scope printer/discovery exceptions to the required client/device groups, not every VLAN.

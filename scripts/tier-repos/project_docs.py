@@ -74,22 +74,16 @@ def repository_guides(writer, repo, prefix, scope):
 
 
 def architecture_scaffold(writer, prefix):
-    previous_design = next((path for path in ("docs/architecture/system-design/README.md", "docs/owned/design/overview.md")
+    previous_design = next((path for path in ("docs/architecture/README.md", "docs/owned/design/overview.md")
                             if (writer.root / path).is_file()), None)
-    writer.write("docs/architecture/decisions/.gitkeep", "", owned=True)
-    writer.write("site/.gitkeep", "", owned=True)
-    for template, target, legacy in (
-        ("readmes/architecture.md", "README.md", None),
-        ("project/index.md", "docs/README.md", None),
-        ("project/naming-conventions.md", "docs/naming-conventions.md", None),
-        ("project/platform-design.md", "docs/architecture/README.md", previous_design),
-        ("project/recovery.md", "docs/administration/recovery.md", "docs/owned/runbooks/recovery.md"),
+    for template, target in (
+        ("readmes/architecture.md", "README.md"),
+        ("project/index.md", "docs/README.md"),
+        ("project/naming-conventions.md", "docs/naming-conventions.md"),
     ):
-        owned_template(writer, template, target, legacy=legacy, prefix=prefix)
-    for domain, title in (("networking", "Networking"), ("compute", "Compute"),
-                          ("identity", "Identity"), ("cryptography", "Cryptography"),
-                          ("delivery", "Delivery"), ("operations", "Operations")):
-        owned_template(writer, "project/domain-design.md", f"docs/architecture/{domain}/README.md",
-                       legacy="docs/architecture/subsystem-design/README.md",
-                       prefix=prefix, domain=domain, title=title)
-    workflow_guides(writer, "architecture", "../auto-docs")
+        owned_template(writer, template, target, prefix=prefix,
+                       legacy=previous_design if target == "docs/README.md" else None)
+    if any((writer.root / path).exists() for path in ("docs/architecture", "docs/deployment",
+                                                    "docs/development", "docs/administration")):
+        print("Existing project documents preserved. The compact starter uses docs/README.md "
+              "for selections and progress; consolidate older records manually if appropriate.")

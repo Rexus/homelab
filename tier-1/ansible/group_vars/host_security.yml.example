@@ -1,6 +1,6 @@
 ---
 # Tier-owned inputs. Copy OUTSIDE Git and pass with -e @/absolute/path/host-security.yml.
-# Guide: docs/deployment/foundation/procedures/host-security.md.
+# Guide: docs/deployment/foundation/proxmox/host-security.md.
 host_security_enabled: false
 host_security_profile: linux-host-v1
 host_security_action: apply

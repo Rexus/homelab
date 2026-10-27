@@ -157,10 +157,10 @@ for a disposable rehearsal; never create another state owner for the live issuer
 
 | Repository | Path inside that repository | Responsibility |
 | --- | --- | --- |
-| Tier 0 | [terraform/deployments/foundation/](../../../../tier-0/terraform/deployments/foundation/) | Identity/issuer VM resources and state |
+| Tier 0 | [terraform/deployments/foundation/](../../../../tier-0/terraform/deployments/foundation) | Identity/issuer VM resources and state |
 | Tier 0 | [deployment/identity-freeipa.yml](../../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml) | Identity-only baseline, CSR pause, completion and replica sequencing |
 | Tier 0 | [foundation.yml.example](../../../../tier-0/ansible/group_vars/foundation.yml.example) | Host IPs, domain, CA phase and supported upstream-role mappings |
-| Shared | [baseline](../../../../shared/ansible/roles/baseline/), [deployment helper](../../../../shared/scripts/deploy.sh) | Reusable preparation/execution; no inventory, CA keys or state ownership |
+| Shared | [baseline](../../../../shared/ansible/roles/baseline), [deployment helper](../../../../shared/scripts/deploy.sh) | Reusable preparation/execution; no inventory, CA keys or state ownership |
 | External collection | `freeipa.ansible_freeipa.ipaserver`, `ipareplica` | Native product installation and CA replication interfaces |
 
 ## References

@@ -119,7 +119,7 @@ Follow [Vault CI authentication](procedures/vault-ci.md). Tier 0 creates the
 Human SSO uses Keycloak; CI uses GitLab-signed ID tokens. These are separate
 issuers and authorization paths.
 
-**IaC:** Tier 0 [CI auth root](../../../tier-0/terraform/deployments/ci-auth/)
+**IaC:** Tier 0 [CI auth root](../../../tier-0/terraform/deployments/ci-auth)
 and [inputs](../../../tier-0/terraform/deployments/ci-auth/terraform.tfvars.example).
 The root creates policies, not Vault or secret values. Test denied audiences,
 projects and branches before storing infrastructure credentials in the permitted path.
@@ -170,7 +170,7 @@ flowchart TB
   class Recovery custody
 ```
 
-**IaC:** Tier 0 [runner root](../../../tier-0/terraform/deployments/infrastructure-runner/),
+**IaC:** Tier 0 [runner root](../../../tier-0/terraform/deployments/infrastructure-runner),
 [installation](../../../tier-0/ansible/playbooks/deployment/infrastructure-runner.yml)
 and [CI example](../../../tier-0/ci/gitlab-iac.yml.example).
 Follow [runner preparation](procedures/infrastructure-runner.md), then

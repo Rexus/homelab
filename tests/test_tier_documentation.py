@@ -16,12 +16,7 @@ from generate import REPOSITORIES
 from generated_files import MARKER, RepositoryWriter
 
 PROJECT_DOCS = (
-    "docs/README.md", "docs/naming-conventions.md", "docs/architecture/README.md",
-    "docs/architecture/networking/README.md", "docs/architecture/compute/README.md",
-    "docs/architecture/identity/README.md", "docs/architecture/cryptography/README.md",
-    "docs/architecture/delivery/README.md", "docs/architecture/operations/README.md",
-    "docs/administration/recovery.md",
-    "docs/deployment/README.md", "docs/development/README.md", "docs/administration/README.md",
+    "docs/README.md", "docs/naming-conventions.md",
 )
 
 
@@ -38,7 +33,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("Live database data stays on qualified Proxmox/Ceph-backed block storage", design)
         foundation = (docs / "deployment/foundation/README.md").read_text(encoding="utf-8")
         self.assertIn("runtime.md#storage-interfaces", foundation)
-        guide = (docs / "deployment/foundation/procedures/object-storage.md").read_text(encoding="utf-8")
+        guide = (docs / "deployment/foundation/storage/README.md").read_text(encoding="utf-8")
         self.assertIn("## Use NAS file storage", guide)
         self.assertIn("## Qualify an object endpoint", guide)
         self.assertIn("does not deploy a storage gateway", guide)
@@ -96,6 +91,40 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         for heading in ("VM and DNS names", "Role abbreviations", "Proxmox tags", "VMID ranges", "Networks and VLANs"):
             self.assertIn(f"## {heading}", naming.read_text())
         self.assertFalse((architecture / "docs/generated").exists())
+
+    def test_architecture_starter_is_a_single_platform_record_and_standards(self):
+        self.generate()
+        repo = self.root / "verify-architecture"
+        local_docs = sorted(path.relative_to(repo).as_posix() for path in (repo / "docs").rglob("*.md")
+                            if not path.is_relative_to(repo / "docs/auto-docs"))
+        self.assertEqual(local_docs, sorted(PROJECT_DOCS))
+        self.assertFalse((repo / "site").exists())
+        record = (repo / "docs/README.md").read_text()
+        self.assertIn("## Selected design", record)
+        self.assertIn("## Deployment checklist", record)
+        self.assertIn("| Deployed | Verified |", record)
+        self.assertIn("&#9744;", record)
+        self.assertIn("generation proves no operational result", record)
+        self.assertIn("auto-docs/architecture/README.md", record)
+        for name in REPOSITORIES:
+            self.assertTrue((self.root / f"verify-{name}/README.md").exists())
+
+    def test_compact_refresh_preserves_old_scaffolding_and_recorded_deletions(self):
+        self.generate("--repo", "architecture")
+        repo = self.root / "verify-architecture"
+        writer = RepositoryWriter(repo)
+        writer.write("docs/architecture/identity/README.md", "# Local identity decisions\n", owned=True)
+        writer.write("docs/administration/recovery.md", "# Local restore evidence\n", owned=True)
+        writer.finish()
+        (repo / "docs/administration/recovery.md").unlink()
+        before = (repo / "docs/README.md").read_bytes()
+        result = self.generate("--repo", "architecture", "--refresh")
+        self.assertIn("Existing project documents preserved", result.stdout)
+        self.assertEqual((repo / "docs/README.md").read_bytes(), before)
+        self.assertEqual((repo / "docs/architecture/identity/README.md").read_text(), "# Local identity decisions\n")
+        self.assertFalse((repo / "docs/administration/recovery.md").exists())
+        self.assertFalse((repo / "docs/architecture/compute").exists())
+        self.assertFalse((repo / "docs/deployment").exists())
 
     def test_tier_zero_frontdoor_starts_with_local_template_publication(self):
         self.generate()
@@ -213,7 +242,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                         key=lambda path: int(path.parent.name.split("-")[1]))
         self.assertEqual(len(stages), 10)
         index = (docs / "deployment/README.md").read_text()
-        project = (self.root / "verify-architecture/docs/deployment/README.md").read_text()
+        project = (self.root / "verify-architecture/docs/README.md").read_text()
         for number, stage in enumerate(stages, 1):
             content = stage.read_text(encoding="utf-8")
             self.assertTrue(content.startswith(f"# Stage {number}: "), stage)
@@ -347,7 +376,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                    for relative in ("docs/architecture/README.md", "docs/README.md")]
         edited += [architecture / relative for relative in PROJECT_DOCS]
         edited += [architecture / "docs/auto-docs/architecture/README.md"]
-        deleted = [edited.pop(0), edited.pop(0), architecture / "docs/administration/recovery.md",
+        deleted = [edited.pop(0), edited.pop(0), architecture / "docs/naming-conventions.md",
                    self.root / "verify-tier-2/docs/architecture/README.md",
                    architecture / "docs/auto-docs/administration/secret-handling/strategy.md"]
         for path in edited:

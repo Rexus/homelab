@@ -257,7 +257,7 @@ when a shared proxy can publish its endpoint. Isolation and recovery requirement
 apply regardless of subnet count.
 
 The [Step 1 procedure](../../deployment/foundation/README.md#step-1-prepare-compute-and-templates) owns setup
-order; [firewall rollout](../../deployment/foundation/procedures/firewall-rollout.md)
+order; [firewall rollout](../../deployment/foundation/network/firewall.md)
 owns implementation and acceptance tests.
 
 ## Continue reading
@@ -266,8 +266,8 @@ owns implementation and acceptance tests.
 - [Runtime flows](../runtime-flows.md) and [compute runtime](../compute/runtime.md)
 - [Firewall policy](firewall-policy.md) and [network input contract](../../reference/network-inputs.md)
 - [Deployment stages](../../deployment/README.md)
-- [Proxmox host networking](../../deployment/foundation/procedures/host-network.md)
-- [UniFi zone setup](../../deployment/foundation/procedures/unifi-zones.md)
+- [Proxmox host networking](../../deployment/foundation/proxmox/network.md)
+- [UniFi zone setup](../../deployment/foundation/network/unifi.md)
 - [Project conventions](../../development/project-documentation.md#start-with-project-values)
 
 ## References

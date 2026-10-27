@@ -47,21 +47,23 @@ Tier 2 uses the same workflow with its own repository, API, credentials and
 
 Before starting, have:
 
-- Prepared [Proxmox hosts](../foundation/procedures/proxmox.md#first-deployment-order), storage,
+- Prepared [Proxmox hosts](../foundation/proxmox/README.md#first-deployment-order), storage,
   guest networks, and optional [HA/SDN](../foundation/step-1b-cluster-ha.md).
-- A tested [Talos template](../foundation/procedures/talos-template.md), its pinned release
+- A tested [Talos template](../foundation/proxmox/templates.md), its pinned release
   and schematic, and the matching installer image retained for recovery.
   Obtain its approved ID, title, and source node from the [shared catalog](../../reference/template-catalog.md).
 - Matching `talosctl`, compatible `kubectl`, and the required container images.
 - Recorded node IPs, names, VMIDs, API endpoint, and non-overlapping pod/service
   CIDRs. Provide DNS, time, and image access before this cluster exists.
 
-The fast path below uses **DHCP reservations** and the generated default CNI.
+The fast path uses the tested NoCloud template, a **network-only CloudInit drive**
+for each clone's static IP/gateway, and the generated default CNI.
 For the platform's Cilium selection, change the generated node configurations to
 the [CNI/proxy/KubePrism settings](procedures/basic-platform.md#prepare-talos)
 before applying them; the linked Terraform heredoc contains the native YAML.
-For static addressing, generate and review separate per-node configurations;
-never apply one static address to every node. For restricted networks, prepare
+Keep each clone's NoCloud address distinct; do not add conflicting static addresses
+to one common machine-config file. DHCP reservations remain an explicit alternative.
+For restricted networks, prepare
 image mirrors and discovery/network settings using the matching Talos release
 documentation before applying configuration. [1][2]
 
@@ -85,10 +87,13 @@ new VMIDs. Do not boot or configure the reusable template itself.
 | Storage and network | Reviewed datastore and bridge/VNet available on every eligible destination |
 | Firmware, CPU, boot order | Preserve the tested template settings and common host CPU baseline |
 | Guest agent | Enable only when the recorded image schematic includes the extension |
+| CloudInit drive | Retain/add `ide2`; set only the clone's `IP Config (net0)` static CIDR/gateway, leaving user/password/SSH and other fields at defaults |
 
 Sizing here is a starting allocation, not a capacity guarantee. Record the
 actual VMIDs and attachments in project inventory. Boot the clones into
 maintenance mode and record their console-reported IPs. [2]
+Use the [common template guide](../foundation/proxmox/templates.md) for the exact GUI path.
+Inherited DNS must work without this cluster; commission independent defaults before boot.
 
 Do **not** use the Linux cloud-init VM module or `deploy.sh` to configure Talos.
 When replacing manual VM creation with Terraform later, explicitly import and

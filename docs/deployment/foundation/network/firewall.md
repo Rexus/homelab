@@ -28,7 +28,7 @@ Guest-specific inputs remain in the consuming tier; gateway changes are operator
 | denied IPv4 path tested with IPv6 | also denied, or IPv6 unavailable by design |
 | connected system seeking an offline-custody route | no path exists |
 
-For UniFi, use the [platform translation](unifi-zones.md).
+For UniFi, use the [platform translation](unifi.md).
 Keep intended policy in project architecture; exports and test evidence belong in
 project deployment and administration records.
 A naming convention is not evidence that the firewall enforces it.

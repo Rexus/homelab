@@ -54,7 +54,7 @@ flowchart TB
 Directory VMs may already be allocated by Stage 3; retain the existing CA and all state.
 
 Follow the [FreeIPA procedure](procedures/freeipa.md). Add the identity VMs to the
-Tier 0 [foundation root](../../../tier-0/terraform/deployments/foundation/)
+Tier 0 [foundation root](../../../tier-0/terraform/deployments/foundation)
 and [inventory](../../../tier-0/ansible/inventory/hosts.yml.example)
 without removing the existing issuer definition.
 For the sibling FreeIPA CA, the [external-signing integration gate](procedures/freeipa.md#external-ca-integration-gate)
@@ -112,7 +112,7 @@ flowchart TB
 ```
 
 **IaC:** Tier 0 [control-application recipe](../../../tier-0/ansible/playbooks/deployment/control-applications.yml),
-[product role](../../../tier-0/ansible/roles/control_applications/) and
+[product role](../../../tier-0/ansible/roles/control_applications) and
 [example inputs](../../../tier-0/ansible/group_vars/control_applications.yml.example).
 Scope: identity runtimes and directory authority, not the separate backup jobs/storage.
 The picture shows configured placement, not a verified live installation.

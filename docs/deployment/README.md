@@ -89,7 +89,7 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Repository | Entry point | Capability / when | Walkthrough |
 | --- | --- | --- | --- |
 | Tier 0 | `templates` | Foundation: approved source images | [Publication](../administration/compute/template-lifecycle.md#local-workflow) |
-| Tier 0 | `template-refresh` | Foundation or maintenance: Linux image refresh | [Linux templates](foundation/procedures/enterprise-linux-template.md) |
+| Tier 0 | `template-refresh` | Foundation or maintenance: Linux image refresh | [Linux templates](foundation/proxmox/templates.md) |
 | Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1-3](stage-2-logging/README.md) |
 | Tier 0 | `foundation` | Stages 3/5: issuer and directory VM resources | [Trust](stage-3-trust/README.md), [directory deployment](stage-5-identity/procedures/freeipa.md) |
 | Tier 0 | `hsm` | Stage 3 option: signing-service host pool | [USB HSM option](stage-3-trust/step-1b-usb-hsm.md) |
@@ -125,10 +125,10 @@ directory becomes the matching generated repository; paths inside it stay the sa
 
 | Repository | Generated checkout | Upstream source | Responsibility |
 | --- | --- | --- | --- |
-| Tier 0 | `<prefix>-tier-0/` | [tier-0/](../../tier-0/) | Proxmox, templates, trust, identity, control cluster and privileged execution |
-| Tier 1 | `<prefix>-tier-1/` | [tier-1/](../../tier-1/) | Delivery services, general runners and platform cluster |
-| Tier 2 | `<prefix>-tier-2/` | [tier-2/](../../tier-2/) | Public edge, ordinary cache, workload cluster and applications |
-| Shared | `<prefix>-shared/` | [shared/](../../shared/) | Reusable helpers, baseline roles and stateless platform references; no inventory, resources or state |
+| Tier 0 | `<prefix>-tier-0/` | [tier-0/](../../tier-0) | Proxmox, templates, trust, identity, control cluster and privileged execution |
+| Tier 1 | `<prefix>-tier-1/` | [tier-1/](../../tier-1) | Delivery services, general runners and platform cluster |
+| Tier 2 | `<prefix>-tier-2/` | [tier-2/](../../tier-2) | Public edge, ordinary cache, workload cluster and applications |
+| Shared | `<prefix>-shared/` | [shared/](../../shared) | Reusable helpers, baseline roles and stateless platform references; no inventory, resources or state |
 | Architecture | `<prefix>-architecture/` | [docs/](../README.md) | Project records and upstream references in `docs/auto-docs/`; not a deployment working directory |
 
 Each guide names its **working repository**. File paths are relative to that

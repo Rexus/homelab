@@ -146,6 +146,8 @@ class ReaderRoles(TierRepositoryTestCase):
     def test_generated_records_separate_static_design_from_progress(self):
         self.generate()
         for repo in self.root.iterdir():
+            if repo.name == "verify-architecture":
+                continue
             design = (repo / "docs/architecture/README.md").read_text()
             deployment = (repo / "docs/deployment/README.md").read_text()
             self.assertNotIn("Current maturity", design)
@@ -169,8 +171,8 @@ class ReaderRoles(TierRepositoryTestCase):
         for old in ("stages", "compute", "cryptography", "identity", "network", "delivery", "operations"):
             self.assertFalse((reference / old).exists(), old)
         architecture = self.root / "verify-architecture/docs/architecture"
+        self.assertFalse(architecture.exists())
         for domain in ("networking", "compute", "identity", "cryptography", "delivery", "operations"):
-            self.assertTrue((architecture / domain / "README.md").is_file())
             self.assertTrue((reference.parent / "architecture" / domain / "README.md").is_file())
         for old in ("system", "subsystems", "system-design", "subsystem-design"):
             self.assertFalse((architecture / old).exists())
@@ -179,13 +181,9 @@ class ReaderRoles(TierRepositoryTestCase):
         for document in ("runtime-flows.md", "variants.md", "compute/runtime.md",
                          "compute/kubernetes.md", "delivery/controllers.md"):
             self.assertTrue((reference.parent / "architecture" / document).is_file(), document)
-        platform = (architecture / "README.md").read_text()
+        platform = (architecture.parent / "README.md").read_text()
         self.assertIn("auto-docs/architecture/runtime-flows.md", platform)
         self.assertIn("auto-docs/architecture/variants.md", platform)
         self.assertIn("Tier 2, Tier 1, Tier 0", platform)
         self.assertIn("Edge, Application, Control", platform)
-        self.assertIn("| Capability | Owning tier | Security layer | Domain design |", platform)
-        for domain in ("networking", "compute", "identity", "cryptography", "delivery", "operations"):
-            selected = (architecture / domain / "README.md").read_text()
-            self.assertIn("## Resulting domain design", selected)
-            self.assertIn("auto-docs/architecture/variants.md", selected)
+        self.assertIn("| Deployed | Verified |", platform)

@@ -7,7 +7,7 @@ remain in inventory and Terraform.
 
 **Tier = owning repo and potential impact. Zone = network protection.**
 Neither defines a naming or numbering scheme. Service ownership is recorded in the
-[project overview](architecture/README.md).
+[platform record](README.md#selected-design).
 
 ## Contents
 

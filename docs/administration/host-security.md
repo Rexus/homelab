@@ -1,7 +1,7 @@
 # Linux Host Security Operations
 
 Maintain the opt-in `linux-host-v1` profile on the selected tier's Linux leaf hosts.
-The [deployment procedure](../deployment/foundation/procedures/host-security.md)
+The [deployment procedure](../deployment/foundation/proxmox/host-security.md)
 owns supported systems, inputs, configuration boundaries and first-run acceptance.
 Keep the approved inputs, external public-key files and independent console
 credentials available without Kubernetes, SSO or higher-tier services.

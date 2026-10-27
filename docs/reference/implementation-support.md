@@ -39,7 +39,7 @@ each prerequisite before proceeding; empty manifests do not meet a stage gate.
 The independent cluster API endpoint and prepared storage are explicit prerequisites,
 not resources silently created by the cluster root. Tier 0 supplies an optional separate
 [API gateway](../deployment/stage-4-kubernetes/procedures/api-endpoint.md) setup;
-existing qualified services remain valid. [Storage prerequisites](../deployment/foundation/procedures/object-storage.md)
+existing qualified services remain valid. [Storage prerequisites](../deployment/foundation/storage/README.md)
 use existing native interfaces, not an added gateway. Product installers live in
 the owning tier's Ansible recipes; Shared supplies reusable execution. Owned
 `clusters/` directories remain optional GitOps adoption points, not duplicate installers.
@@ -60,7 +60,7 @@ Retain one values/resource owner when transferring a release to a delivery contr
 | 3 | D: Network HSM | Vendor appliance/client integration guide; no appliance installer or generic HA role |
 | 5 | Directory authority | Tier 0 foundation VM pair and FreeIPA CSR/pause/completion recipe with explicit CA replica; offline signing, chain checks and live replica/failure acceptance remain operator work |
 | 5 | Identity federation / OIDC | Tier 0 native Keycloak/database release, FreeIPA LDAP integration, consumer clients and serial Talos 1.13 API OIDC rollout from tier-owned plans; secret/certificate custody and live acceptance remain operational work |
-| 4/7/10 | Independent cluster nodes/bootstrap | Each tier owns a Kubernetes Terraform root, currently Talos; compact three-control-plane examples, native proxy/DNS/time/mirror patches and optional pool labels; no autoscaler |
+| 4/7/10 | Independent cluster nodes/bootstrap | Each tier owns a Kubernetes Terraform root, currently Talos; compact three-control-plane examples, explicit UEFI/network-only static NoCloud, native proxy/DNS/time/mirror patches and optional pool labels; no autoscaler |
 | 4/7/10 | Private API gateways | Tier 0 separate `cluster-endpoint` VM pair with native HAProxy/Keepalived and per-cluster VIP/backend inputs; no public edge dependency, TLS termination, quorum or fencing claim |
 | 4/5/6 | Cluster add-ons and control services | Tier-owned platform/application recipes and inputs; Shared native chart execution and product gates. Empty GitOps starters are not the executing path |
 | 6 | Dedicated secret-service VM | Tier 0 Vault root/role; Shamir reference; no automatic Transit/PKCS#11 migration |

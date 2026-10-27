@@ -16,6 +16,7 @@ Tier 0-owned automation, not a prerequisite for creating templates.
 - [Ownership](#ownership)
 - [Local workflow](#local-workflow)
 - [Updates and promotion](#updates-and-promotion)
+- [Mutable Linux refresh](#mutable-linux-refresh)
 - [GitLab CI example](#gitlab-ci-example)
 - [Existing collections](#existing-collections)
 - [Offline validation](#offline-validation)
@@ -37,8 +38,14 @@ custody deployment, acquire and verify outside the air gap, then transfer throug
 the approved custody procedure. Matching a locally supplied checksum detects
 changed bytes; it is not, by itself, proof of vendor authenticity. No job
 downloads from the Internet.
-See the [Enterprise Linux image guide](../../deployment/foundation/procedures/enterprise-linux-template.md) or
-[Talos image guide](../../deployment/foundation/procedures/talos-template.md) for source selection.
+Use the [common VM template guide](../../deployment/foundation/proxmox/templates.md)
+for image selection and GUI import, including Talos Image Factory, unpacking and firmware.
+
+Fresh publication examples select UEFI (`bios: ovmf`, `machine: q35`) with a 4m
+EFI disk and pre-enrolled keys off. Talos also selects `virtio-scsi-pci` and its
+schematic's QEMU agent; fixed memory disables ballooning. Omitted firmware inputs
+retain existing BIOS templates. Add a new candidate VMID rather than changing
+an existing template's boot contract; consuming clusters must match it explicitly.
 
 ## Ownership
 
@@ -127,13 +134,43 @@ only recovery source. Use offline transfer when crossing a custody air gap.
 For Talos, publish a fresh raw image for each release/schematic revision;
 do not run package updates, SSH provisioners, or Linux cleanup roles on it.
 Updating the template does not upgrade running cluster nodes. Follow the
-[Talos guide](../../deployment/foundation/procedures/talos-template.md) for the separate machine lifecycle.
+[Talos guide](../../deployment/foundation/proxmox/templates.md) for the separate machine lifecycle.
 
 Tier 1 and Tier 2 consume approved templates or transferred image artifacts.
 Use controlled distribution for connected platforms and offline handoff across
 custody boundaries. VMIDs are local to a Proxmox cluster: import into another
 cluster under one designated owner and record its destination ID. The kit does
 not automate cross-cluster transfer or open a route into offline custody.
+
+## Mutable Linux refresh
+
+This optional path is for AlmaLinux/Rocky Linux only, not Talos. The common
+[template guide](../../deployment/foundation/proxmox/templates.md) owns the initial
+image import. Use a disposable staged clone for packages/cleanup, never boot a
+base template that is already being published by another Terraform root.
+
+| Tier 0 input | Purpose |
+| --- | --- |
+| `terraform/deployments/template-refresh/terraform.tfvars` | Staged VM, source template, size/storage and final template conversion |
+| `ansible/group_vars/template_refresh.yml` | Package preparation, cleanup and explicit same-ID replacement |
+| `ansible/inventory/hosts.yml` | `template_refresh_builders` and the Proxmox host used for replacement |
+
+1. Review `bash scripts/deploy.sh template-refresh --env test --plan-only`, then
+   create/update the staged clone with the same command without `--plan-only`.
+   The recipe verifies required guest packages and cloud-init behavior.
+2. Set `template_refresh_prepare_for_template: true`; run with `--ansible-only`
+   to clean cloud-init state, SSH host keys and caches.
+3. Set the staged VM's `template = true`, `started = false`; run with
+   `--terraform-only`. Test disposable full clones before promotion.
+4. Only for an approved same-ID replacement window, set
+   `template_refresh_replace_enabled: true`, `template_refresh_prepare_builders: false`,
+   then run with `--ansible-only`.
+
+The last step **deletes the old target template** before replacing it. Quiesce
+new clones and check linked-clone dependencies. Prefer new versioned VMIDs when
+possible. Keep Shared's catalog aligned after explicit promotion; a builder can
+use `template_catalog_id` for the final target's reference tags. Retain independent
+artifacts and inputs before any destructive publication change.
 
 ## GitLab CI example
 

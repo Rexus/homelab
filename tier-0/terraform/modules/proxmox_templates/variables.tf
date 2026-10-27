@@ -18,7 +18,19 @@ variable "images" {
     memory_mb          = optional(number, 4096)
     disk_size_gb       = optional(number, 32)
     qemu_agent         = optional(bool, false)
+    # Omitted values retain existing BIOS publications; select UEFI for new image revisions.
+    bios          = optional(string, "seabios")
+    machine       = optional(string)
+    scsi_hardware = optional(string, "virtio-scsi-single")
   }))
+
+  validation {
+    condition = alltrue([
+      for image in var.images : contains(["seabios", "ovmf"], image.bios) &&
+      contains(["virtio-scsi-single", "virtio-scsi-pci"], image.scsi_hardware)
+    ])
+    error_message = "Select seabios/ovmf and virtio-scsi-single/virtio-scsi-pci for the approved image."
+  }
 
   validation {
     condition     = length(var.images) > 0

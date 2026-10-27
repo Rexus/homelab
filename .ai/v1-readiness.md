@@ -41,7 +41,7 @@ Confirmed selections for this work:
 | PostgreSQL NAS copies | Reusable stateless role with tier-owned inputs, separate block/media/backup classes, guarded preparation, verified physical copies and clean-target recovery; 24 focused native/contract checks passed |
 | GitLab VM copies | Direct filesystem or retained SFTP transport; real encrypted restic roundtrip, mount/capacity/permission/refusal and cold-copy timeout checks passed; NAS outage/readiness remains live acceptance |
 | Spinnaker | Complete native reference and encrypted NAS-file/object backup choices; 26 distinct methods passed across completed focused runs and the broader interrupted run, not one clean full-module invocation |
-| Reproducibility | All 20 retained Terraform roots have locks and passed isolated provider-schema validation; 52 native mocked cases passed across guest/template/cluster/endpoint scopes |
+| Reproducibility | All 20 retained Terraform roots have locks and passed isolated provider-schema validation; the Proxmox 9 follow-up passed 66 mocked cases, including explicit UEFI/static NoCloud and preserved legacy defaults |
 | Secret scanning | Redacted native staged/history/artifact scanner, explicit unprivileged CI inheritance and image admission; synthetic-secret tests and public-source snapshot scans passed |
 | Reading and diagrams | Capability map, native storage choices and source ownership aligned; source/generated links pass; updated storage/backup figures inspected on light/dark pages at normal/narrow widths |
 
@@ -61,6 +61,20 @@ Confirmed selections for this work:
 
 Review date: 2026-10-27. Tests use isolated public-source copies, synthetic credentials,
 temporary local services and approved native artifacts. No infrastructure apply occurred.
+
+Proxmox 9 and documentation follow-up:
+
+- Selected native HA/dynamic rebalancing for Proxmox VE 9.2+, with ProxLB as an
+  explicitly separate alternative. Host fencing, Ceph and actual failover remain manual gates.
+- Unified Alma/Rocky/Talos image import in `foundation/proxmox/templates.md`;
+  fresh cluster examples use UEFI and network-only static NoCloud, leaving accounts unset.
+  Original BIOS/DHCP inputs retain their behavior; no firmware or network migration is implied.
+- Grouped foundation docs by Proxmox/network/storage. Fresh architecture repositories
+  seed only a short README, one selection/progress record and naming conventions beside auto-docs.
+  Legacy local docs/deletions are preserved; managed old guide paths redirect to their current home.
+- Full portable suite: **372 cases, 232 passed and 140 tool-dependent skips**, no failures/errors.
+  All 20 roots validated and all 66 mocked Terraform cases passed. Local theme/width previews
+  were inspected for HA before/after and the static-network cluster view; hosted parity remains manual.
 
 - The 354-case full sweep reported 16 failure events across 12 cases, with four skipped cases.
   External DNS, a missing extracted syslog library, DNS-dependent loopback fixtures and an

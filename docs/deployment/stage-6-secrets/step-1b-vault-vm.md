@@ -83,7 +83,7 @@ platform.
 - gateway and host-firewall policy permits only approved consumers/operators to
   the configured API listener (`8200/tcp` in the example); additional Raft peers
   need their selected cluster listener (`8201/tcp`). The role and Shared baseline
-  do not install those network rules; follow the [firewall rollout](../foundation/procedures/firewall-rollout.md).
+  do not install those network rules; follow the [firewall rollout](../foundation/network/firewall.md).
 
 <a id="what-you-configure"></a>
 
@@ -145,10 +145,10 @@ The inputs above stay in Tier 0. Follow these entry points to their implementati
 | Repository | Code path inside that repository | Responsibility |
 | --- | --- | --- |
 | Tier 0 | [terraform/deployments/vault/main.tf](../../../tier-0/terraform/deployments/vault/main.tf) | Dedicated Vault VMs through tier-local modules |
-| Tier 0 | [ansible/playbooks/deployment/vault-vm.yml](../../../tier-0/ansible/playbooks/deployment/vault-vm.yml) and [ansible/roles/vault/](../../../tier-0/ansible/roles/vault/) | Vault host preparation and installation |
+| Tier 0 | [ansible/playbooks/deployment/vault-vm.yml](../../../tier-0/ansible/playbooks/deployment/vault-vm.yml) and [ansible/roles/vault/](../../../tier-0/ansible/roles/vault) | Vault host preparation and installation |
 | Tier 0 | [scripts/deploy.sh](../../../tier-0/scripts/deploy.sh) | Tier entry point; select `vault` |
 | Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) | Reusable execution implementation, using Tier 0 inputs/state |
-| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Common host preparation, reused by the Tier 0 recipe |
+| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) | Common host preparation, reused by the Tier 0 recipe |
 
 This deployment flow installs Vault and prepares the first node. Operator
 initialization, unseal handling, and secret handoff stay manual.

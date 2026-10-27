@@ -16,4 +16,5 @@ Exact inputs and command contracts. Use the [design](../architecture/README.md),
 | Guest network attachment fields | [Network inputs](network-inputs.md) |
 | Approved image references | [Template catalog](template-catalog.md) |
 | VM names, tags and IDs | [Proxmox conventions](proxmox-conventions.md) |
+| HA menu, affinity and native balancing | [Proxmox HA controls](proxmox-ha.md) |
 | Runtime variables | [Environment conventions](environment-variables.md), [example](environment-file-example.md) |

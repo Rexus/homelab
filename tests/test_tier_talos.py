@@ -40,6 +40,17 @@ class TierClusters(TierRepositoryTestCase):
         self.assertIn('var.machine_config_patches', (root / "machines.tf").read_text())
         self.assertIn('variable "machine_config_patches"', (root / "variables.tf").read_text())
         self.assertIn('machine_config_patches = []', (root / "terraform.tfvars.example").read_text())
+        self.assertIn('vm_firmware = { bios = "ovmf", machine = "q35", scsi_hardware = "virtio-scsi-pci" }',
+                      (root / "terraform.tfvars.example").read_text())
+        self.assertIn('bios          = var.vm_firmware.bios', (root / "machines.tf").read_text())
+        self.assertIn('pre_enrolled_keys = false', (root / "machines.tf").read_text())
+        self.assertIn('floating  = 0', (root / "machines.tf").read_text())
+        self.assertIn('bootstrap_network = { prefix_length = 24, gateway =',
+                      (root / "terraform.tfvars.example").read_text())
+        self.assertIn('type         = "nocloud"', (root / "machines.tf").read_text())
+        self.assertIn('interface    = "ide2"', (root / "machines.tf").read_text())
+        self.assertNotIn('user_account', (root / "machines.tf").read_text())
+        self.assertNotIn('user_data_file_id', (root / "machines.tf").read_text())
         self.assertTrue((repo / "scripts/kubernetes-cluster.sh").is_file())
         self.assertIn('allow_scheduling_on_control_planes = true',
                       (root / "terraform.tfvars.example").read_text())

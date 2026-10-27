@@ -77,6 +77,63 @@ run "clone_and_bootstrap_contract" {
   }
 }
 
+run "static_nocloud_network_only" {
+  command = plan
+  variables {
+    bootstrap_network = { prefix_length = 24, gateway = "192.0.2.1" }
+  }
+  assert {
+    condition = alltrue([for name, vm in proxmox_virtual_environment_vm.node :
+      length(vm.initialization) == 1 && vm.initialization[0].type == "nocloud" &&
+      vm.initialization[0].interface == "ide2" &&
+      vm.initialization[0].datastore_id == var.nodes[name].datastore_id &&
+      vm.initialization[0].ip_config[0].ipv4[0].address == "${local.host_ips[name]}/24" &&
+      vm.initialization[0].ip_config[0].ipv4[0].gateway == "192.0.2.1" &&
+      length(vm.initialization[0].user_account) == 0 &&
+      length(vm.initialization[0].dns) == 0
+    ])
+    error_message = "NoCloud must configure static inventory networking only, not Linux accounts or machine-config snippets."
+  }
+}
+
+run "reject_wrong_static_subnet" {
+  command = plan
+  variables { bootstrap_network = { prefix_length = 24, gateway = "198.51.100.1" } }
+  expect_failures = [terraform_data.configuration]
+}
+
+run "uefi_fixed_memory_profile" {
+  command = plan
+  variables {
+    vm_firmware = { bios = "ovmf", machine = "q35", scsi_hardware = "virtio-scsi-pci" }
+    qemu_agent  = true
+  }
+  assert {
+    condition = alltrue([for vm in proxmox_virtual_environment_vm.node :
+      vm.bios == "ovmf" && vm.machine == "q35" && vm.scsi_hardware == "virtio-scsi-pci" &&
+      vm.memory[0].floating == 0 && vm.agent[0].enabled && !vm.disk[0].iothread &&
+      length(vm.efi_disk) == 1 && vm.efi_disk[0].type == "4m" && !vm.efi_disk[0].pre_enrolled_keys
+    ])
+    error_message = "The selected UEFI image needs fixed RAM, non-Single SCSI and an EFI disk without pre-enrolled keys."
+  }
+  assert {
+    condition = alltrue([for name, vm in proxmox_virtual_environment_vm.node :
+      vm.efi_disk[0].datastore_id == var.nodes[name].datastore_id
+    ])
+    error_message = "EFI state must use the node's selected live storage, not the image import datastore."
+  }
+}
+
+run "legacy_bios_profile_is_preserved" {
+  command = plan
+  assert {
+    condition = alltrue([for vm in proxmox_virtual_environment_vm.node :
+      vm.bios == "seabios" && vm.scsi_hardware == "virtio-scsi-single" && length(vm.efi_disk) == 0
+    ])
+    error_message = "Absent firmware inputs must not silently migrate an existing BIOS cluster."
+  }
+}
+
 run "compact_control_planes" {
   command = plan
   variables {

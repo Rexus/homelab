@@ -29,7 +29,7 @@ Have these ready before running automation:
 - an LXC template file if container provisioning will be used
 
 For Proxmox token setup, read
-[Proxmox API setup](../deployment/foundation/procedures/api-access.md).
+[Proxmox API setup](../deployment/foundation/proxmox/api-access.md).
 For the shared zone names and IaC mapping, read
 [Network architecture](../architecture/networking/README.md).
 
@@ -159,4 +159,4 @@ encrypted off-host recovery separately.
 - [Identity foundation path](../deployment/stage-5-identity/procedures/freeipa.md)
 - [Windows and AD support](../architecture/identity/windows-integration.md)
 - [Deployment readiness](../deployment/readiness.md)
-- [Proxmox reference platform](../deployment/foundation/procedures/proxmox.md)
+- [Proxmox reference platform](../deployment/foundation/proxmox/README.md)

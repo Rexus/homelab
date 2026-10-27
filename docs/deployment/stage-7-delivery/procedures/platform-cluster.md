@@ -1,8 +1,8 @@
 # Kubernetes platform path
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`) for the delivery platform.
-Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes/) and
-[clusters/tier1/](../../../../tier-1/clusters/tier1/); other clusters use their own tier repositories.
+Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes) and
+[clusters/tier1/](../../../../tier-1/clusters/tier1); other clusters use their own tier repositories.
 
 **Design:** [delivery runtimes](../../../architecture/delivery/README.md).
 

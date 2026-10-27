@@ -183,6 +183,6 @@ sudo dnf \
 ## Read more
 
 - [Software intake](../../deployment/stage-1-software-intake/README.md)
-- [Enterprise Linux template](../../deployment/foundation/procedures/enterprise-linux-template.md)
+- [Enterprise Linux template](../../deployment/foundation/proxmox/templates.md)
 - [Proxmox hardening baseline](hardening.md)
 - [Proxmox datacenter configuration](https://pve.proxmox.com/pve-docs/datacenter.cfg.5.html)

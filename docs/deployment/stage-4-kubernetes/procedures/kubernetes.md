@@ -22,7 +22,7 @@ system is an implementation choice, not the name or purpose of the platform.
 
 ## Prerequisites
 
-Prepare [Proxmox](../../foundation/procedures/proxmox.md#first-deployment-order), approved node
+Prepare [Proxmox](../../foundation/proxmox/README.md#first-deployment-order), approved node
 images, networks, storage, API access, and an execution host outside the cluster.
 Record the owning tier, node allocations, cluster API endpoint, and recovery
 inputs. Tier 0 must bootstrap and recover without Tier 1 or Tier 2 services.
@@ -38,9 +38,9 @@ exist in all tiers, but each cluster has its own resources, inputs, credentials 
 
 | Cluster | Working repository | Terraform root | Host/IP inputs | Service manifests |
 | --- | --- | --- | --- | --- |
-| Control | `<prefix>-tier-0` | [terraform/deployments/kubernetes/](../../../../tier-0/terraform/deployments/kubernetes/) | [ansible/inventory/](../../../../tier-0/ansible/inventory/) and [ansible/group_vars/talos.yml.example](../../../../tier-0/ansible/group_vars/talos.yml.example) | [clusters/tier0/](../../../../tier-0/clusters/tier0/) |
-| Platform | `<prefix>-tier-1` | [terraform/deployments/kubernetes/](../../../../tier-1/terraform/deployments/kubernetes/) | [ansible/inventory/](../../../../tier-1/ansible/inventory/) and [ansible/group_vars/talos.yml.example](../../../../tier-1/ansible/group_vars/talos.yml.example) | [clusters/tier1/](../../../../tier-1/clusters/tier1/) |
-| Workload | `<prefix>-tier-2` | [terraform/deployments/kubernetes/](../../../../tier-2/terraform/deployments/kubernetes/) | [ansible/inventory/](../../../../tier-2/ansible/inventory/) and [ansible/group_vars/talos.yml.example](../../../../tier-2/ansible/group_vars/talos.yml.example) | [clusters/tier2/](../../../../tier-2/clusters/tier2/) |
+| Control | `<prefix>-tier-0` | [terraform/deployments/kubernetes/](../../../../tier-0/terraform/deployments/kubernetes) | [ansible/inventory/](../../../../tier-0/ansible/inventory) and [ansible/group_vars/talos.yml.example](../../../../tier-0/ansible/group_vars/talos.yml.example) | [clusters/tier0/](../../../../tier-0/clusters/tier0) |
+| Platform | `<prefix>-tier-1` | [terraform/deployments/kubernetes/](../../../../tier-1/terraform/deployments/kubernetes) | [ansible/inventory/](../../../../tier-1/ansible/inventory) and [ansible/group_vars/talos.yml.example](../../../../tier-1/ansible/group_vars/talos.yml.example) | [clusters/tier1/](../../../../tier-1/clusters/tier1) |
+| Workload | `<prefix>-tier-2` | [terraform/deployments/kubernetes/](../../../../tier-2/terraform/deployments/kubernetes) | [ansible/inventory/](../../../../tier-2/ansible/inventory) and [ansible/group_vars/talos.yml.example](../../../../tier-2/ansible/group_vars/talos.yml.example) | [clusters/tier2/](../../../../tier-2/clusters/tier2) |
 
 Each tier's `scripts/kubernetes-cluster.sh` delegates to Shared's
 [scripts/kubernetes-cluster.sh](../../../../shared/scripts/kubernetes-cluster.sh).

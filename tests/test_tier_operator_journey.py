@@ -16,12 +16,12 @@ class OperatorJourney(TierRepositoryTestCase):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             foundation = (docs / "deployment/foundation/README.md").read_text()
-            self.assertIn("unifi-zones.md#bring-up-the-network", foundation)
-            host = (docs / "deployment/foundation/procedures/proxmox.md").read_text()
+            self.assertIn("network/unifi.md#bring-up-the-network", foundation)
+            host = (docs / "deployment/foundation/proxmox/README.md").read_text()
             handoff = next(line for line in host.splitlines() if line.startswith("| 8."))
             self.assertIn("stage-2-logging/README.md", handoff)
             self.assertNotIn("freeipa.md", handoff)
-            network = (docs / "deployment/foundation/procedures/unifi-zones.md").read_text()
+            network = (docs / "deployment/foundation/network/unifi.md").read_text()
             for expected in ("## Bring up the network", "switch alone is not", "controller",
                              "native/untagged", "control_cluster"):
                 self.assertIn(expected.lower(), network.lower())
@@ -142,7 +142,7 @@ class OperatorJourney(TierRepositoryTestCase):
                 self.assertIn("deploy.sh syslog --plan-only", quick)
 
     def test_tls_exceptions_are_visible_before_linux_api_use(self):
-        guide = (UPSTREAM / "docs/deployment/foundation/procedures/api-access.md").read_text()
+        guide = (UPSTREAM / "docs/deployment/foundation/proxmox/api-access.md").read_text()
         if any(re.search(r"insecure\s*=\s*true", source.read_text())
                for tier in range(3)
                for source in (UPSTREAM / f"tier-{tier}/terraform/deployments").glob("*/providers.tf")):
@@ -164,7 +164,7 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("SHA-256 fingerprint", guide)
             self.assertIn("untrusted CA and a wrong hostname are rejected", guide)
             self.assertIn("state as before", guide)
-            entry = (docs / "deployment/foundation/procedures/api-access.md").read_text()
+            entry = (docs / "deployment/foundation/proxmox/api-access.md").read_text()
             self.assertIn(relative, entry)
             trust = (docs / "deployment/stage-3-trust/README.md").read_text()
             self.assertIn(relative + "#step-2-adopt-the-platform-pki", trust)

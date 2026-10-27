@@ -22,8 +22,8 @@ development and administration maintain it.
    [runtime relationships](architecture/runtime-flows.md).
 3. Drill into [domain designs](architecture/README.md#technical-domains) and
    [select compatible variants](architecture/variants.md).
-4. Record the selected composition in the generated repositories' project-owned
-   architecture records.
+4. Record selected paths in the generated architecture repository's `docs/README.md`;
+   complete `docs/naming-conventions.md` for local standards.
 5. Follow the [deployment stages](deployment/README.md), using verified
    existing services wherever they satisfy the prerequisites.
 
@@ -31,9 +31,10 @@ Deployment guides name the working repository; the
 [repository map](deployment/README.md#repository-locations) connects Tier 0/1/2
 and Shared to generated checkouts and source directories.
 
-Generated repositories use the same architecture, deployment, development and
-administration folders for project-owned records. The architecture repository's
-`docs/auto-docs/` mirrors this upstream tree as reference material.
+The architecture repository's `docs/auto-docs/` is the complete maintained manual.
+Its only initial local documents are one platform checklist/navigation record and
+naming conventions. Tier/Shared repositories retain their code-specific records;
+extra site design/runbooks are added only when needed.
 
 Architecture defines the result and its boundaries. Deployment realizes it;
 development changes its implementation; administration maintains its guarantees.

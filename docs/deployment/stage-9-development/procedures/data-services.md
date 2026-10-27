@@ -3,7 +3,7 @@
 **Working repository:** `<prefix>-tier-1`; upstream implementation: `tier-1/`.
 This procedure supplies PostgreSQL, Redis and Gitaly on dedicated VMs for the
 [GitLab CE chart](gitlab.md). The main path consumes versioned tenant buckets and
-keys from [existing object storage](../../foundation/procedures/object-storage.md).
+keys from [existing object storage](../../foundation/storage/README.md).
 Its `preprovisioned` mode receives no storage-administrator credentials and
 qualifies the S3-compatible data APIs with restricted tenant keys. Ceph RGW account
 provisioning remains an explicit alternative, not a requirement for every existing

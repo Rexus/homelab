@@ -100,13 +100,13 @@ from the GitLab host.
 
 | Repository | Layer | Path inside that repository |
 | --- | --- | --- |
-| Tier 1 | Terraform setup | [terraform/deployments/development/](../../../tier-1/terraform/deployments/development/); local `terraform.tfvars` |
+| Tier 1 | Terraform setup | [terraform/deployments/development/](../../../tier-1/terraform/deployments/development); local `terraform.tfvars` |
 | Tier 1 | Ansible inventory | `ansible/inventory/hosts.yml` |
 | Tier 1 | Ansible environment vars | `ansible/group_vars/all.yml` or `all.<env>.yml` |
 | Tier 1 | Ansible setup vars | `ansible/group_vars/development.yml` |
 | Tier 1 | Deployment recipe | [ansible/playbooks/deployment/source-control-vm.yml](../../../tier-1/ansible/playbooks/deployment/source-control-vm.yml) |
-| Tier 1 | Service role | [ansible/roles/gitlab_container/](../../../tier-1/ansible/roles/gitlab_container/) |
-| Shared | Host baseline | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) |
+| Tier 1 | Service role | [ansible/roles/gitlab_container/](../../../tier-1/ansible/roles/gitlab_container) |
+| Shared | Host baseline | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) |
 | Shared | Execution helper | [scripts/deploy.sh](../../../shared/scripts/deploy.sh); called by Tier 1's `scripts/deploy.sh` |
 
 ## Configure the deployment
@@ -183,7 +183,7 @@ design:
 Use the DNS name from `gitlab_external_url`. Do not use `localhost` as the
 GitLab hostname.
 Apply scoped gateway and host-firewall rules through the
-[firewall rollout](../foundation/procedures/firewall-rollout.md); container port
+[firewall rollout](../foundation/network/firewall.md); container port
 publication and the Shared baseline do not install those rules.
 
 ## Operations

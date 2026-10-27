@@ -306,7 +306,7 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 | `observability` | Optional Tier 1 gateway, metrics and search VMs; OS baseline only, not the Kubernetes product deployment or Tier 0 evidence | [Observability VM alternative](../deployment/stage-8-observability/step-1b-dedicated-vms.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../deployment/stage-9-development/step-2b-podman-runner.md) |
 | `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../deployment/stage-9-development/step-2c-image-based-linux.md) |
-| `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/foundation/procedures/enterprise-linux-template.md) |
+| `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/foundation/proxmox/templates.md) |
 | `hsm` | USB or software HSM gateway deployment pattern | [USB HSM active-active blueprint](../deployment/stage-3-trust/step-1b-usb-hsm.md) |
 | `lab` | general-purpose lab guests | this reference and the local inventory |
 

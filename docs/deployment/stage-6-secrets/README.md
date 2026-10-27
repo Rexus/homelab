@@ -74,7 +74,7 @@ flowchart TB
 ```
 
 **IaC:** Tier 0 [control-application recipe](../../../tier-0/ansible/playbooks/deployment/control-applications.yml),
-[product role](../../../tier-0/ansible/roles/control_applications/) and
+[product role](../../../tier-0/ansible/roles/control_applications) and
 [example inputs](../../../tier-0/ansible/group_vars/control_applications.yml.example)
 install the added group after explicit prerequisite gates. The picture shows configured
 placement, not a verified live service. Empty Flux application starters are not a

@@ -56,6 +56,34 @@ run "publish_unconfigured_templates" {
   }
 }
 
+run "publish_uefi_image_profile" {
+  command = plan
+  variables {
+    images = { for key, image in var.images : key => merge(image, {
+      bios = "ovmf", machine = "q35", scsi_hardware = "virtio-scsi-pci", qemu_agent = true
+    }) }
+  }
+  assert {
+    condition = alltrue([for key, vm in proxmox_virtual_environment_vm.template :
+      vm.bios == "ovmf" && vm.machine == "q35" && vm.scsi_hardware == "virtio-scsi-pci" &&
+      vm.memory[0].floating == 0 && !vm.disk[0].iothread &&
+      length(vm.efi_disk) == 1 && vm.efi_disk[0].type == "4m" && !vm.efi_disk[0].pre_enrolled_keys &&
+      vm.efi_disk[0].datastore_id == var.images[key].datastore_id
+    ])
+    error_message = "UEFI templates need fixed RAM and qualified live EFI storage without pre-enrolled keys."
+  }
+}
+
+run "legacy_bios_publication_is_preserved" {
+  command = plan
+  assert {
+    condition = alltrue([for vm in proxmox_virtual_environment_vm.template :
+      vm.bios == "seabios" && length(vm.efi_disk) == 0
+    ])
+    error_message = "Omitted firmware fields must preserve existing BIOS publications."
+  }
+}
+
 run "reject_wrong_checksum" {
   command = plan
   variables {

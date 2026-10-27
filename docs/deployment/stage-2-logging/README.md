@@ -298,10 +298,10 @@ selected receiver/storage implementation. Offline checker tests do not accept th
 
 | Repository | Location inside that repository | Supplied behavior |
 | --- | --- | --- |
-| Tier 0 | [terraform/deployments/syslog/](../../../tier-0/terraform/deployments/syslog/) | Receiver VM/disk provisioning only; separate `syslog` state |
+| Tier 0 | [terraform/deployments/syslog/](../../../tier-0/terraform/deployments/syslog) | Receiver VM/disk provisioning only; separate `syslog` state |
 | Tier 0 | [ansible/inventory/hosts.yml.example](../../../tier-0/ansible/inventory/hosts.yml.example) and [ansible/group_vars/syslog.yml.example](../../../tier-0/ansible/group_vars/syslog.yml.example) | `foundation_logging` hosts and shared Terraform/Ansible IP inputs |
-| Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) and [ansible/roles/syslog_ng/](../../../tier-0/ansible/roles/syslog_ng/) | OS baseline and isolated TLS receiver; no filesystem creation, HA or WORM installation |
-| Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) and [ansible/roles/baseline/](../../../shared/ansible/roles/baseline/) | Reusable execution and host preparation using Tier 0 inputs |
+| Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) and [ansible/roles/syslog_ng/](../../../tier-0/ansible/roles/syslog_ng) | OS baseline and isolated TLS receiver; no filesystem creation, HA or WORM installation |
+| Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) and [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) | Reusable execution and host preparation using Tier 0 inputs |
 
 The [pipeline map](../../reference/logging-pipeline.md#ownership-and-entry-points)
 lists the tier-owned authority/archive/backup recipes and Shared forwarding implementation.

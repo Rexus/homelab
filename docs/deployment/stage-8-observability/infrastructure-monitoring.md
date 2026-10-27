@@ -13,9 +13,9 @@ but never targets, credentials or state.
 [Stage 8 signal pipelines](README.md#step-2-deploy-the-signal-pipelines), approved
 source inventory, TLS trust, firewall policy and physical failure-domain mapping.
 **Design:** [coverage and ownership](../../architecture/operations/telemetry.md#infrastructure-coverage).
-**Automation:** the [Tier 0 role](../../../tier-0/ansible/roles/infrastructure_monitoring/)
+**Automation:** the [Tier 0 role](../../../tier-0/ansible/roles/infrastructure_monitoring)
 installs its independent Netdata parent, Redfish jobs, loopback Proxmox exporter and optional
-allowlisted metric bridge. The [Tier 1 role](../../../tier-1/ansible/roles/observability_platform/)
+allowlisted metric bridge. The [Tier 1 role](../../../tier-1/ansible/roles/observability_platform)
 owns cluster diagnostics and both metrics copies. The cluster starter remains empty; no command
 in that starter installs these products. Use the dedicated playbooks in each tier.
 

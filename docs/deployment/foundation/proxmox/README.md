@@ -1,4 +1,4 @@
-# Proxmox platform
+# Proxmox foundation
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 
@@ -18,6 +18,10 @@
 Proxmox is the chosen virtualization platform in this repository.
 It provides the cluster, storage, networking, and API surface used by the first
 image build, provisioning, and configuration workflows.
+
+Target **Proxmox VE 9+**, with **9.2+** for the selected native dynamic-rebalancing
+path. Use current supported 9.x packages and matching installed-release help;
+older HA-group or pre-import workflows are not the new-deployment baseline.
 
 Its hardware-facing administration belongs to Tier 0: hosts, storage, network
 control, and every VM template lifecycle. Tier 1/2 workload definitions remain
@@ -44,13 +48,14 @@ Use the Proxmox platform layer for:
 - [Planning guidelines](../../../reference/proxmox-conventions.md)
 - [Tier 0 template lifecycle and CD](../../../administration/compute/template-lifecycle.md)
 - [Shared template references](../../../reference/template-catalog.md)
-- [Enterprise Linux template](enterprise-linux-template.md)
-- [Talos template](talos-template.md)
+- [VM template import: AlmaLinux, Rocky Linux and Talos](templates.md)
 - [Using the cache from Proxmox](../../../administration/compute/update-access.md)
 - [Backup foundation](../../../administration/compute/backup-restore.md)
 - [API setup](api-access.md)
-- [Host networking](host-network.md)
+- [Host networking](network.md)
 - [Cluster, HA, and Terraform placement](../step-1b-cluster-ha.md)
+- [HA menu and recommended starting values](../../../reference/proxmox-ha.md)
+- [Worked host failure and recovery](failover.md)
 - [Kubernetes clusters](../../stage-4-kubernetes/procedures/kubernetes.md)
 - [Hardening baseline](../../../administration/compute/hardening.md)
 
@@ -63,9 +68,9 @@ host is a valid pilot; cluster membership, HA, and SDN are explicit choices.
 | --- | --- | --- |
 | 1. Plan | Record [names, IDs, and tags](../../../reference/proxmox-conventions.md) in the project worksheet | No conflicting allocations |
 | 2. Install hosts | Use the official [Proxmox installer procedure][1] with final node names, addresses, DNS, and time | Protected UI/console access works on every host |
-| 3. Prepare networking | Follow [host networking](host-network.md) and approved gateway/firewall policy | Management, cluster/storage links, and intended guest paths are tested |
+| 3. Prepare networking | Follow [host networking](network.md) and approved gateway/firewall policy | Management, cluster/storage links, and intended guest paths are tested |
 | 4. Optional cluster/HA | Follow [cluster and HA](../step-1b-cluster-ha.md), including shared storage and failure-domain planning | Quorum is healthy; guest mobility prerequisites are met |
-| 5. Optional SDN | Configure [guest VNets](host-network.md#optional-sdn-for-guest-networks) on eligible nodes | VNet/bridge IDs and VLAN policy match the tier inputs |
+| 5. Optional SDN | Configure [guest VNets](network.md#optional-sdn-for-guest-networks) on eligible nodes | VNet/bridge IDs and VLAN policy match the tier inputs |
 | 6. Protect access and data | Configure [API access](api-access.md), [backups](../../../administration/compute/backup-restore.md), and the [hardening baseline](../../../administration/compute/hardening.md) | Scoped credentials, recovery access, and restore checks work |
 | 7. Publish templates | Run the [local template workflow](../../../administration/compute/template-lifecycle.md#local-workflow) | Disposable clones boot with the correct disks and networks |
 | 8. Start capabilities | Accept [Stage 1: Software intake](../../stage-1-software-intake/README.md), then begin [Stage 2: Protected logging](../../stage-2-logging/README.md) | Approved supply and protected collection work before trust, clusters and identity |

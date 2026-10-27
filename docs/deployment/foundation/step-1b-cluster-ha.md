@@ -14,24 +14,35 @@ Optional foundation setup in Tier 0, **before templates and important guests**. 
 host is valid for a pilot. A cluster adds shared administration; HA must be
 configured separately for selected guests. Neither replaces backups.
 
+**Target: Proxmox VE 9+.** The selected path uses **9.2+ native HA and dynamic
+rebalancing**, not a second scheduler. ProxLB remains an [alternative](proxmox/proxlb.md).
+On 9.0/9.1, HA and affinity are available, but the native automatic load balancer is not. [7]
+
+**Yes: an HA-enrolled VM can restart on a surviving host after its original host dies.**
+The original host must be fenced, a quorate survivor must have its disks/networks,
+and placement/capacity must permit recovery. This is a cold restart with downtime,
+not migration of a dead host's memory. An application hang inside a running VM is
+not automatically detected by guest-level HA. [2]
+
 ## Table of contents
 
 - [Prepare and join hosts](#prepare-and-join-hosts)
 - [Make guests movable](#make-guests-movable)
 - [Enable HA](#enable-ha)
+- [Select rebalancing](#select-rebalancing)
 - [Terraform against the cluster](#terraform-against-the-cluster)
 - [Prove failover](#prove-failover)
 - [References](#references)
 
 ## Prepare and join hosts
 
-Start with [host installation and preparation](procedures/proxmox.md#first-deployment-order).
+Start with [host installation and preparation](proxmox/README.md#first-deployment-order).
 
 | Step | Action | Ready when |
 | --- | --- | --- |
 | 1. Plan | Choose final node names/IPs, Corosync links, and host capacity | Choices recorded in project docs |
 | 2. Install | Use compatible Proxmox releases; configure DNS/time and protected access | Every node works independently |
-| 3. Network | Follow [host networking](procedures/host-network.md); separate latency-sensitive Corosync from busy storage/migration traffic | Links tested before joining |
+| 3. Network | Follow [host networking](proxmox/network.md); separate latency-sensitive Corosync from busy storage/migration traffic | Links tested before joining |
 | 4. Create | On the first node, use **Datacenter > Cluster > Create Cluster** and select the intended Corosync links | First node reports quorum |
 | 5. Join | Copy **Join Information**; use **Join Cluster** on each empty additional node | All intended nodes are members |
 
@@ -62,31 +73,49 @@ in this repo is only a storage mapping: it does not build shared storage.
 Local replicated storage needs its own replication, recovery-point, and failure
 testing plan; copying a datastore name across nodes does not copy its data. [2][3]
 
-For SDN, complete [optional guest SDN](procedures/host-network.md#optional-sdn-for-guest-networks)
+For SDN, complete [optional guest SDN](proxmox/network.md#optional-sdn-for-guest-networks)
 on **every eligible node** now. An SDN zone is a network implementation group,
 not the architecture's DMZ/Services/Control firewall zone.
 
 ## Enable HA
 
-After creating a disposable guest, add it under **Datacenter > HA**, with the
-desired state started. Configure eligible nodes and affinity using the controls
-for the installed release. Proxmox VE 9 replaces legacy HA groups with node
-affinity rules. Keep Kubernetes control-plane VMs on separate physical hosts;
-review whether strict anti-affinity would prevent recovery when capacity drops. [2]
+1. Qualify shared live storage, remaining-host capacity and watchdog/fencing on all nodes.
+   Prefer the server's supported hardware watchdog; do not change watchdog settings without console access.
+2. After creating a disposable VM, add it in **Datacenter > HA > Resources**.
+   Use `started`, `Max. Restart = 1`, `Max. Relocate = 1`; these are a conservative starting policy,
+   not an outage-duration guarantee. Enroll each important guest explicitly after its tests pass.
+3. Configure **HA > Rules**, then the shutdown/scheduling options below. Use the
+   [menu reference](../../reference/proxmox-ha.md) for every field, state and recommended starting value.
 
-Verify watchdog/fencing and redundant network/storage paths before a failure
-test. HA can restart a guest after a host failure; it does not preserve that
-guest's running memory. Migration, HA restart, and application-level availability
-are different outcomes. Review cluster scheduling separately: do not assume
-that merely joining hosts enables continuous workload balancing. [2]
+Use node affinity for required hardware/storage eligibility and resource anti-affinity
+for replica separation. Proxmox VE 9 uses rules rather than legacy HA groups.
+Resource anti-affinity is a **hard constraint**: three control-plane VMs constrained
+to three separate hosts cannot all restart on two hosts. The surviving two may preserve
+etcd quorum, while the third waits. Do not describe this as three recovered replicas. [2]
 
 This kit does not create the host cluster, storage, fencing, HA membership, or
 affinity rules. Those are Tier 0 operator steps, not implied by Terraform VM creation.
 
+## Select rebalancing
+
+In **Datacenter > Options > HA Settings**, select `migrate` for planned single-node
+maintenance after migration has been qualified. For **Cluster Resource Scheduling**,
+use `Dynamic Load`, enable `Automatic Rebalance`, and retain the initial threshold
+`30%`, hold duration `3` rounds, minimum improvement `10%` and `Bruteforce` method.
+These are starting values to measure, not universal sizing advice. Leave `Rebalance
+on Start` off initially: it is a separate placement option, not required for failure recovery.
+Details and cautions are in the [scheduler reference](../../reference/proxmox-ha.md#scheduling-and-maintenance). [7][8]
+
+Native rebalancing applies to **HA-managed resources only** and respects HA rules.
+For this path, do not run ProxLB against the same guests. If ProxLB is selected
+for another scope, follow its [separate rollout and compatibility checks](proxmox/proxlb.md).
+The [worked failover example](proxmox/failover.md) shows the directory pair
+before and after a node failure, including where recovery must wait.
+
 ## Terraform against the cluster
 
 Use one reachable Proxmox API endpoint for the cluster and permissions covering
-the intended nodes, storage, and guests; see [API setup](procedures/api-access.md).
+the intended nodes, storage, and guests; see [API setup](proxmox/api-access.md).
 The endpoint is not a placement selector. Keep a working alternate endpoint or
 independent API frontend for recovery; never host the only access path on the
 cluster being rebuilt. The provider does not select healthy target nodes. [4]
@@ -115,7 +144,7 @@ reviewed container provider reads a node-specific path; do not assume the same
 external-migration behavior for LXC. [6] Talos clones need their own resources,
 not the Linux cloud-init module; see [Talos bootstrap](../stage-4-kubernetes/step-1b-manual-cluster.md).
 
-Complete the [API TLS gate](procedures/api-access.md#tls-gate) before live deployment;
+Complete the [API TLS gate](proxmox/api-access.md#tls-gate) before live deployment;
 cluster membership does not establish trusted API certificates.
 
 ## Prove failover
@@ -130,13 +159,17 @@ Use a disposable guest and a maintenance window; retain working out-of-band acce
 4. Repeat the Terraform plan after recovery. Stop on unexpected drift; do not apply it.
 5. For Kubernetes, also test API and workload availability, then record recovery times.
 
+Follow the [fault and recovery checks](proxmox/failover.md#verify-the-result)
+for quorum loss, placement constraints and the returned host. A clean migration
+test alone is not proof of recovery after host death.
+
 Offline mock tests cover the Terraform contract, not real failover. Recheck with
 the provider version locked by each consuming root. Keep the
 [backup and restore procedure](../../administration/compute/backup-restore.md) independent of HA.
 
 ## References
 
-Official documentation, checked 2026-09-21. Use the matching installed-release documentation.
+Official documentation, checked 2026-10-27. Use the matching installed 9.x documentation.
 
 1. [Proxmox cluster manager](https://github.com/proxmox/pve-docs/blob/master/pvecm.adoc).
 2. [Proxmox HA manager](https://github.com/proxmox/pve-docs/blob/master/ha-manager.adoc).
@@ -144,3 +177,5 @@ Official documentation, checked 2026-09-21. Use the matching installed-release d
 4. [Provider multi-node guide](https://registry.terraform.io/providers/bpg/proxmox/latest/docs/guides/multi-node).
 5. [Provider VM clone arguments](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/docs/resources/virtual_environment_vm.md).
 6. [Provider container read implementation](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/proxmoxtf/resource/container/container.go).
+7. [Proxmox VE 9.2: native dynamic load balancer](https://www.proxmox.com/en/about/company-details/press-releases/proxmox-virtual-environment-9-2).
+8. [Proxmox scheduling controls](https://github.com/proxmox/pve-manager/blob/master/www/manager6/form/CRSOptions.js).

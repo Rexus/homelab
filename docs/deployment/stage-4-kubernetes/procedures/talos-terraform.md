@@ -30,12 +30,14 @@ independent authorized execution host. Tier 0 recovery must not depend on Tier 1
 Install Terraform, matching `talosctl`, and compatible `kubectl`. Provider constraints
 and checksums live in `terraform/deployments/kubernetes/`.
 
-- Complete [Proxmox preparation](../../foundation/procedures/proxmox.md#first-deployment-order),
-  optional [HA](../../foundation/step-1b-cluster-ha.md), and [Talos template publication](../../foundation/procedures/talos-template.md).
+- Complete [Proxmox preparation](../../foundation/proxmox/README.md#first-deployment-order),
+  optional [HA](../../foundation/step-1b-cluster-ha.md), and [Talos template publication](../../foundation/proxmox/templates.md).
 - Approve the template ID, title, and source node in the sibling shared
   [catalog](../../../reference/template-catalog.md). Retain the disk and matching installer image.
-- Prepare DHCP reservations for each VM's MAC/IP, bootstrap DNS/time, and image
-  access. IPs come from inventory; Terraform does not configure DHCP or DNS.
+- Reserve each VM's inventory IP outside DHCP, and configure `bootstrap_network`
+  with its subnet prefix/gateway. A NoCloud drive supplies static network settings,
+  not Linux users or Talos machine configuration. Legacy `null` retains DHCP reservations.
+  Bootstrap DNS/time and image access must work independently; Terraform does not configure DNS servers.
 - Provide an independent Kubernetes API endpoint on TCP 6443. For HA, use a
   load balancer targeting the control-plane IPs; it cannot depend on this cluster's
   ingress or Tier 1 services. Tier 0 supplies an [independent endpoint pair](api-endpoint.md)
@@ -44,12 +46,25 @@ and checksums live in `terraform/deployments/kubernetes/`.
 - Review storage/bridge availability on every eligible Proxmox host and choose
   non-overlapping node, pod, and service networks.
 
-The supplied root uses an amd64 NoCloud template with SeaBIOS, `scsi0` installed
-as `/dev/sda`, DHCP, and the default Talos CNI unless patched. It does not use cloud-init or SSH.
+Fresh examples use the [common imported template](../../foundation/proxmox/templates.md):
+amd64 NoCloud, UEFI (`ovmf`/`q35`), `virtio-scsi-pci`, `scsi0` installed as `/dev/sda`,
+fixed RAM and the schematic's guest agent. A CloudInit drive at `ide2` supplies static
+NoCloud networking only. User/password/SSH and other fields remain unset; Talos machine
+config uses the native API. The default Talos CNI applies unless patched.
 For Tier 0's Cilium path, apply the [native CNI/proxy patches](basic-platform.md#prepare-talos)
 before bootstrap. Use native patches below for proxy, DNS/time and mirrors.
 Firmware or CNI changes require review before deployment. Enable the guest agent only
 if the image includes it. [1]
+
+`bootstrap_network` selects the static prefix/gateway; IPs come from the existing
+inventory map. DNS fields are left at Proxmox defaults unless `dns_servers` is
+explicitly supplied. Qualify those defaults before bootstrap. A null input keeps
+the previous DHCP path without adding a drive to existing VMs automatically.
+
+Match `vm_firmware` to the approved template before creating VMs. Existing inputs
+without it retain BIOS/Single-controller defaults; a refresh is not a firmware
+migration. Do not apply a new UEFI profile to existing nodes without a reviewed
+replacement/recovery plan. The EFI volume lives on each node's selected live datastore.
 
 ## Configure
 
@@ -63,13 +78,13 @@ or merged; add the Talos groups from the inventory example when upgrading.
 | Repository | File relative to that repository | Edit or purpose |
 | --- | --- | --- |
 | Selected tier | `ansible/inventory/hosts.yml` | Logical hosts in `talos_control_plane` and `talos_workers`, both under `talos` |
-| Selected tier | `ansible/group_vars/talos.yml` | `platform_host_ips`, matching the external DHCP reservations |
+| Selected tier | `ansible/group_vars/talos.yml` | `platform_host_ips` for the clone's static NoCloud IP and Talos API |
 | Selected tier | `terraform/deployments/kubernetes/terraform.tfvars` | Cluster endpoint, releases/installer, template, hardware and `machine_config_patches` for native node configuration |
 | Shared | [config/guest-sizes.json](../../../../shared/config/guest-sizes.json) | Common sizing data, read directly by tier-local Terraform |
 | Shared | [templates/proxmox-catalog.tfvars](../../../../shared/templates/proxmox-catalog.tfvars) | Approved image metadata, loaded by the command |
 
-Every Talos inventory host must have one hardware entry and one fixed IPv4
-reservation. Each new-cluster example starts with three schedulable control-plane
+Every Talos inventory host must have one hardware entry and one reserved IPv4
+address. Each new-cluster example starts with three schedulable control-plane
 VMs and no workers; review capacity and failure domains for the services.
 Existing clusters retain their local worker definitions and scheduling settings.
 Talos names are these inventory keys; Linux hostname prefix/suffix settings are not applied.

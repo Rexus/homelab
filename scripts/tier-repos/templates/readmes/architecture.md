@@ -1,37 +1,28 @@
 # ${prefix} Architecture
 
-Design, naming conventions, resource allocations, and recovery documentation
-for ${prefix}. Project decisions live here alongside a refreshable copy of
-the upstream reference guides.
+Project standards, selected deployment paths and verification records for ${prefix}.
+The complete design and operating guides are maintained under `docs/auto-docs/`;
+local records contain only project choices and exceptions.
 
 ## Getting started
 
 1. Complete [naming conventions](docs/naming-conventions.md).
-2. Record the [platform architecture](docs/architecture/README.md) and its [technical domains](docs/architecture/README.md#technical-domains).
-3. Follow the [owning repo's deployment checklist](docs/auto-docs/paths/README.md#choose-a-repository).
-4. Record the results and test the [recovery runbook](docs/administration/recovery.md).
+2. Select the paths and follow the [deployment checklist](docs/README.md#deployment-checklist).
+3. Run each step from its owning tier repository and record verification in the checklist.
 
-Use the [project documentation index](docs/README.md) to find local records
-and the [upstream guides](docs/auto-docs/README.md) for detailed reference.
-This repository deploys no infrastructure; see the
-[documentation operating order](docs/auto-docs/development/project-documentation.md#operating-order).
+## Navigation
 
-## Repository structure
+- [Project choices and progress](docs/README.md)
+- [Reference design](docs/auto-docs/architecture/README.md)
+- [Installation guides](docs/auto-docs/deployment/README.md)
+- [Administration and recovery](docs/auto-docs/administration/README.md)
+- [Development and updates](docs/auto-docs/development/README.md)
 
-- `docs/naming-conventions.md`: VM names, Proxmox tags, VMID ranges, and VLAN conventions
-- `docs/architecture/README.md`: platform relationships, ownership and shared constraints
-- `docs/architecture/<domain>/`: networking, compute, identity, cryptography, delivery and operations designs
-- `docs/deployment/`: selected stages, prerequisites and acceptance records
-- `docs/development/`: review, validation and upstream adoption procedures
-- `docs/administration/`: maintenance, recovery and verification records
-- `docs/auto-docs/`: upstream-maintained reference docs; do not edit
-- `site/`: optional documentation-site integration
-
-This README and the project documents are maintained by the repository's
-developers. Keep credentials and recovery secrets out of documentation.
+This repository deploys nothing. `README.md`, `docs/README.md` and naming conventions
+are project-owned; refresh updates unchanged auto-docs without rewriting these records.
+Add local detail only when the project differs from the reference. Keep secrets out of documentation.
 
 ## Licensing
 
-Project licensing is determined by the repository owners. Copied reference guides
-retain their [upstream license](docs/auto-docs/LICENSE); [upstream attribution](UPSTREAM-NOTICE)
-also covers inherited document templates, not independently authored project content.
+Project licensing is determined by the repository owners. Copied material retains its
+[upstream license](docs/auto-docs/LICENSE) and [attribution](UPSTREAM-NOTICE).

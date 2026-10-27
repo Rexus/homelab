@@ -55,7 +55,7 @@ It creates directories and files; it does not initialize Git or create remotes.
 | `<prefix>-tier-1` | platform service playbooks and roles, inventory, Terraform roots, cluster definitions |
 | `<prefix>-tier-2` | public edge/cache and workload playbooks, inventory, Terraform roots, project and application definitions |
 | `<prefix>-shared` | baseline roles, common helpers, sizes, image and platform references |
-| `<prefix>-architecture` | copied upstream docs and environment-owned design, decisions, service records, runbooks |
+| `<prefix>-architecture` | maintained auto-docs, one local selection/progress record and naming conventions |
 
 The collection directory groups five sibling repositories and is not itself a
 Git repository. The prefix defaults to `homelab`:
@@ -136,7 +136,7 @@ inventory, group vars, state, and local overrides are never copied from upstream
 
 Every root README is a developer-owned starter, not a refresh target. The
 architecture repository includes `docs/naming-conventions.md` and project
-templates alongside `docs/auto-docs/`. Start with
+selections in `docs/README.md` alongside the `docs/auto-docs/` manual. Start with
 [Project documentation](project-documentation.md) for that layout and existing-collection upgrades.
 
 ## Licensing and attribution
@@ -332,9 +332,14 @@ or network policy by itself.
 
 ## Refresh and local ownership
 
-Every repository receives project-owned `docs/architecture/`, `docs/deployment/`,
-`docs/development/` and `docs/administration/` records, with a `docs/README.md` index.
-These hold selected designs and local procedures; auto-docs remain references. The shared
+Tier/Shared repositories receive project-owned design and operating records.
+The architecture repository starts with only `README.md`, `docs/README.md`
+(selected paths, deployment checkboxes and navigation), and `docs/naming-conventions.md`.
+Its `docs/auto-docs/` is the full maintained manual, not another local documentation hierarchy.
+Add local exceptions/runbooks as needed; no domain, workflow or site skeletons are generated there.
+Existing collections keep all previously generated project documents and recorded deletions;
+consolidation is a manual review, never a refresh deletion. See the
+[compact documentation model](project-documentation.md). The shared
 `config/platform.tfvars` profile is also seeded once. Refresh preserves their
 edits and recorded deletions; existing READMEs need manual navigation updates.
 When adopting the profile in an older collection, existing common inputs still

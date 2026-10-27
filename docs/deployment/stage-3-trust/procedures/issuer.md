@@ -116,8 +116,8 @@ for a sibling identity CA. Existing domains are never recreated or rechained by 
 
 | Repository | Path inside that repository | Responsibility |
 | --- | --- | --- |
-| Tier 0 | [terraform/deployments/foundation/](../../../../tier-0/terraform/deployments/foundation/) | Issuer and identity VM resources/state; per-guest image and extra disks |
-| Tier 0 | [ansible/roles/openxpki/](../../../../tier-0/ansible/roles/openxpki/) | Native package, local database, TLS portal, storage binding and activation checks |
+| Tier 0 | [terraform/deployments/foundation/](../../../../tier-0/terraform/deployments/foundation) | Issuer and identity VM resources/state; per-guest image and extra disks |
+| Tier 0 | [ansible/roles/openxpki/](../../../../tier-0/ansible/roles/openxpki) | Native package, local database, TLS portal, storage binding and activation checks |
 | Tier 0 | [deployment/openxpki.yml](../../../../tier-0/ansible/playbooks/deployment/openxpki.yml), [maintenance/openxpki.yml](../../../../tier-0/ansible/playbooks/maintenance/openxpki.yml) | Issuer-only deployment and read-only inspection |
 | Tier 0 | [issuer.yml.example](../../../../tier-0/ansible/group_vars/issuer.yml.example) | Local production input contract |
 | Shared | [scripts/deploy.sh](../../../../shared/scripts/deploy.sh) | Reusable execution only; `--playbook` does not select new Terraform state |

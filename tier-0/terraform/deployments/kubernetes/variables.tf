@@ -49,7 +49,7 @@ variable "machine_config_patches" {
 }
 
 variable "nodes" {
-  description = "Tier-owned VM hardware keyed by Talos inventory hostname; MACs must have DHCP reservations."
+  description = "Tier-owned VM hardware keyed by Talos inventory hostname; reserve unique MACs and inventory IPs."
   type = map(object({
     vm_id        = number
     node_name    = string
@@ -117,4 +117,38 @@ variable "qemu_agent" {
   description = "Enable only when the approved Talos schematic includes the QEMU guest-agent extension."
   type        = bool
   default     = false
+}
+
+variable "bootstrap_network" {
+  description = "NoCloud network-only drive for static inventory IPs. Null preserves the existing DHCP bootstrap path."
+  type = object({
+    prefix_length = number
+    gateway       = string
+    dns_servers   = optional(list(string), [])
+  })
+  default = null
+  validation {
+    condition = var.bootstrap_network == null ? true : (
+      var.bootstrap_network.prefix_length >= 1 && var.bootstrap_network.prefix_length <= 30 &&
+      floor(var.bootstrap_network.prefix_length) == var.bootstrap_network.prefix_length &&
+      can(cidrnetmask("${var.bootstrap_network.gateway}/32")) &&
+      alltrue([for server in var.bootstrap_network.dns_servers : can(cidrnetmask("${server}/32"))])
+    )
+    error_message = "Static bootstrap needs an integer prefix 1-30, an IPv4 gateway and valid optional DNS addresses."
+  }
+}
+
+variable "vm_firmware" {
+  description = "Match the approved template. Omission preserves legacy BIOS clusters; UEFI is explicit for new clusters."
+  type = object({
+    bios          = optional(string, "seabios")
+    machine       = optional(string)
+    scsi_hardware = optional(string, "virtio-scsi-single")
+  })
+  default = {}
+  validation {
+    condition = (contains(["seabios", "ovmf"], var.vm_firmware.bios) &&
+    contains(["virtio-scsi-single", "virtio-scsi-pci"], var.vm_firmware.scsi_hardware))
+    error_message = "Select seabios/ovmf and virtio-scsi-single/virtio-scsi-pci to match the template."
+  }
 }

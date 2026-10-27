@@ -91,7 +91,7 @@ return to certificate auth or explicitly maintained AppRole before enabling sche
      -e @ansible/group_vars/control_backup.yml
    ```
 
-The [role](../../../tier-0/ansible/roles/control_backup/) installs native distro restic and supporting
+The [role](../../../tier-0/ansible/roles/control_backup) installs native distro restic and supporting
 tools, copies credentials mode `0600`, mounts optional media with `ansible.posix.mount`, runs the first
 backup, then enables a persistent systemd timer. An existing/wrong/unavailable repository fails closed;
 no target is silently initialized. systemd exposes selected inputs read-only and permits writes only

@@ -48,7 +48,7 @@ flowchart BT
   class Copy,Original data
 ```
 
-**IaC:** Tier 0's [checkpoint publisher](../../../tier-0/ansible/roles/logging_archive/)
+**IaC:** Tier 0's [checkpoint publisher](../../../tier-0/ansible/roles/logging_archive)
 creates the approved files; its [export recipe](../../../tier-0/ansible/playbooks/deployment/logging-export.yml)
 installs one container per selected scope using the [local inputs](../../../tier-0/ansible/group_vars/logging_export.yml.example).
 Tier 1's [existing pipeline](../../../tier-1/ansible/roles/observability_platform/templates/collector-config.yml.j2)

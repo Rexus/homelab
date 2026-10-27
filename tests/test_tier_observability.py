@@ -144,7 +144,7 @@ class Observability(TierRepositoryTestCase):
             recovery = (docs / "administration/recovery.md").read_text()
             self.assertLess(recovery.index("| 1 | Isolate"), recovery.index("| 3 | Restore Tier 0 intake"))
             self.assertLess(recovery.index("| 3 | Restore Tier 0 intake"), recovery.index("| 4 | Restore Tier 0 trust"))
-        runbook = (self.root / "verify-architecture/docs/administration/recovery.md").read_text()
+        runbook = (self.root / "verify-architecture/docs/README.md").read_text()
         self.assertIn("offline reader/key kit", runbook)
         self.assertIn("RPO/RTO and pruning custodian", runbook)
 

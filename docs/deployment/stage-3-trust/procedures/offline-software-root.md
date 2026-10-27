@@ -1,7 +1,7 @@
 # Software root ceremony
 
 Use the [offline custody procedure](offline-root.md) with native clca and the
-Tier 0 [configuration examples](../../../../tier-0/templates/offline-root/).
+Tier 0 [configuration examples](../../../../tier-0/templates/offline-root).
 This is an authorized manual ceremony, not a connected Ansible deployment.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`) supplies templates;

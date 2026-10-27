@@ -14,8 +14,8 @@ available locally.
 Approved image IDs and titles come from the sibling shared repository's
 [template catalog](../${prefix}-shared/templates/proxmox-catalog.tfvars).
 The [shared deploy helper](../${prefix}-shared/scripts/deploy.sh) loads it;
-the tier-local [inventory resolver](terraform/modules/environment_guests/)
-and [VM module](terraform/modules/vm/) own the resources. Shared supplies
+the tier-local [inventory resolver](terraform/modules/environment_guests)
+and [VM module](terraform/modules/vm) own the resources. Shared supplies
 [size profiles](../${prefix}-shared/config/guest-sizes.json), image references,
 and a project-owned [platform profile](../${prefix}-shared/config/platform.tfvars).
 Set workload tags here, not template recipes. Only Tier 0 publishes templates
@@ -91,7 +91,7 @@ ${deployments}
 - [Local deployment, development and administration guides](docs/README.md)
 - [Project documentation](../${prefix}-architecture/docs/README.md)
 - [Deployment order](${docs}/paths/${tier}/README.md)
-- [Recovery runbook](../${prefix}-architecture/docs/administration/recovery.md)
+- [Recovery guides](${docs}/administration/recovery.md)
 - [Architecture and tier boundaries](${docs}/architecture/tier-ownership.md)
 - [Infrastructure control and delegated requests](${docs}/architecture/compute/provisioning.md)
 - [Deployment commands](${docs}/reference/repository-scripts.md)
