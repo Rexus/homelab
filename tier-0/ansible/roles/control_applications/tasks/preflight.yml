@@ -43,8 +43,12 @@
       - "':latest' not in control_applications_postgres_image"
       - control_applications_database_instances | int >= 3
       - control_applications_database_instances | int % 2 == 1
-      - control_applications_backup_endpoint is match('^https://[^ ]+$')
-      - control_applications_action != 'apply' or control_applications_cnpg_barman_accepted | bool
+      - control_applications_backup_mode in ['object', 'files']
+      - control_applications_backup_files_phase in ['prepare', 'backup']
+      - control_applications_backup_mode != 'object' or control_applications_backup_endpoint is match('^https://[^ ]+$')
+      - >-
+        control_applications_action != 'apply' or control_applications_backup_mode != 'object' or
+        control_applications_cnpg_barman_accepted | bool
     fail_msg: Supply a pinned CNPG-compatible PostgreSQL image and an odd database instance count of at least three.
   when: control_applications_components | intersect(['keycloak', 'netbox']) | length > 0
 
@@ -54,6 +58,43 @@
       - control_applications_backup_destinations[item] is match('^s3://[^ ]+/[^ ]+$')
       - control_applications_backup_destinations.keycloak != control_applications_backup_destinations.netbox
   loop: "{{ control_applications_components | intersect(['keycloak', 'netbox']) }}"
+  when: control_applications_backup_mode == 'object'
+
+- name: Require separately qualified Proxmox or Ceph block storage for file-backup mode
+  ansible.builtin.assert:
+    that:
+      - control_applications_database_storage_class | length > 0
+      - control_applications_action != 'apply' or control_applications_database_storage_accepted | bool
+      - control_applications_backup_files[item] is mapping
+    fail_msg: Select a commissioned Proxmox/Ceph database block CSI class; NAS claims are backup destinations only.
+  loop: "{{ control_applications_components | intersect(['keycloak', 'netbox']) }}"
+  when: control_applications_backup_mode == 'files'
+
+- name: Require separate qualified RWX media storage for fresh NetBox file-backup deployments
+  ansible.builtin.assert:
+    that:
+      - control_applications_netbox_media_storage_class | length > 0
+      - control_applications_netbox_media_storage_class != control_applications_database_storage_class
+    fail_msg: Select a qualified RWX media class independently of Proxmox/Ceph database block disks.
+  when:
+    - control_applications_backup_mode == 'files'
+    - "'netbox' in control_applications_components"
+
+- name: Qualify live block storage without migrating existing databases
+  ansible.builtin.include_role:
+    name: postgresql_file_backup
+    tasks_from: qualify-database
+  vars:
+    postgresql_file_backup_kubeconfig: "{{ control_applications_kubeconfig }}"
+    postgresql_file_backup_context: "{{ control_applications_context }}"
+    postgresql_file_backup_database:
+      cluster: "{{ item }}-db"
+      namespace: "{{ item }}"
+      storage_class: "{{ control_applications_database_storage_class }}"
+  loop: "{{ control_applications_components | intersect(['keycloak', 'netbox']) }}"
+  when:
+    - control_applications_backup_mode == 'files'
+    - control_applications_action == 'apply'
 
 - name: Validate protected external directory federation
   ansible.builtin.assert:
@@ -66,6 +107,12 @@
     fail_msg: Supply the external FreeIPA LDAPS endpoint, user/group search bases and read-only bind DN.
   when: "'keycloak' in control_applications_components"
 
+- name: Keep NetBox source history longer than an ordinary repair window
+  ansible.builtin.assert:
+    that: control_applications_netbox_changelog_retention | int >= 7
+    fail_msg: Retain at least seven days and qualify the audit collection repair window.
+  when: "'netbox' in control_applications_components"
+
 - name: Require private Keycloak API credentials only when used
   ansible.builtin.assert:
     that:
@@ -77,6 +124,7 @@
   no_log: true
   when:
     - control_applications_action == 'apply'
+    - control_applications_backup_mode != 'files' or control_applications_backup_files_phase != 'prepare'
     - >-
       control_applications_register_clients or
       ('keycloak' in control_applications_components and control_applications_keycloak_configure)

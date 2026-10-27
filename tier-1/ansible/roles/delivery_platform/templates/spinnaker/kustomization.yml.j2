@@ -1,0 +1,59 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: {{ delivery_platform_spinnaker_namespace }}
+resources: [base, foundation.yml, persistence.yml, database-job.yml, backup.yml, network.yml]
+images:
+{% for service in spinnaker_native_ports %}
+  - name: ghcr.io/spinnaker/{{ service }}
+    newTag: {{ delivery_platform_software.spinnaker_release | to_json }}
+{% endfor %}
+configMapGenerator:
+  - name: spinnaker
+    behavior: replace
+    files: [spinnaker.yml=common.yml]
+{% for service in spinnaker_native_ports if service != 'deck' %}
+  - name: {{ service }}
+    behavior: replace
+    files: [{{ service }}-local.yml]
+{% endfor %}
+  - name: deck
+    behavior: replace
+    files: [settings.js, settings-local.js]
+  - name: spinnaker-roots
+    files: [identity.crt, platform.crt, backup.crt]
+  - name: spinnaker-envoy
+    files: [redis.yml=envoy.yml]
+  - name: spinnaker-scripts
+    files: [prepare-trust.sh, initialize-databases.sh, backup-restic.sh]
+  - name: spinnaker-persistence
+    files: [mysql.cnf, redis.conf]
+patches:
+  - target: {kind: Namespace, name: spinnaker}
+    patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: spinnaker
+        labels:
+          pod-security.kubernetes.io/enforce: baseline
+          pod-security.kubernetes.io/enforce-version: v1.33
+  - target: {kind: ClusterRoleBinding, name: spinnaker-clouddriver-cluster-admin}
+    patch: |-
+      $patch: delete
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata: {name: spinnaker-clouddriver-cluster-admin}
+{% for service in spinnaker_native_ports %}
+  - path: {{ service }}-deployment.yml
+  - target: {kind: Service, name: {{ service }}}
+    patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ service }}
+{% if service == 'gate' %}
+        annotations:
+          traefik.ingress.kubernetes.io/service.serversscheme: https
+          traefik.ingress.kubernetes.io/service.serverstransport: {{ delivery_platform_spinnaker_namespace }}-spinnaker-gate@kubernetescrd
+{% endif %}
+{% endfor %}

@@ -98,6 +98,9 @@ class PkiBundle(TierRepositoryTestCase):
             result = run(values)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             bundle = root / 'approved/bundle'
+            for path in bundle.rglob('*'):
+                self.assertFalse(path.is_symlink(), path)
+                self.assertEqual(path.stat().st_mode & 0o077, 0, path)
             realm = bundle / 'config.d/realm/infrastructure'
             read = lambda path: yaml.safe_load(path.read_text())
             self.assertEqual(set(read(realm / 'auth/handler.yaml')), {'LocalPassword', 'System'})

@@ -1,0 +1,65 @@
+---
+- name: Check access before installing packages or writing configuration
+  ansible.builtin.import_tasks: access.yml
+
+- name: Gather existing service ownership
+  ansible.builtin.service_facts:
+
+- name: Preserve keepalived coordination through explicitly approved peers before mutations
+  ansible.builtin.assert:
+    that:
+      - >-
+        (ansible_facts.services.get('keepalived.service', {}).get('state', '') != 'running' and
+         ansible_facts.services.get('keepalived.service', {}).get('status', '')
+         not in ['enabled', 'enabled-runtime']) or host_security_vrrp_peers | length > 0
+    fail_msg: >-
+      This host runs or enables keepalived. Supply its approved host_security_vrrp_peers
+      before replacing the firewall; an empty list would break VIP coordination.
+
+- name: Refuse competing firewall managers and alternate time daemons
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.services.get(item, {}).get('state', '') != 'running'
+      - ansible_facts.services.get(item, {}).get('status', '') not in ['enabled', 'enabled-runtime']
+    fail_msg: >-
+      {{ item }} conflicts with the selected profile. Migrate its configuration from the console
+      before applying; this role does not disable an existing service or migrate its rules.
+  loop:
+    - ufw.service
+    - nftables.service
+    - iptables.service
+    - ip6tables.service
+    - netfilter-persistent.service
+    - systemd-timesyncd.service
+    - ntp.service
+    - ntpd.service
+
+- name: Install EL native security products and bindings
+  ansible.builtin.dnf:
+    name: >-
+      {{ host_security_os[ansible_os_family].packages +
+         (['audit-rules'] if ansible_distribution_major_version | string == '10' else []) }}
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Install Debian products without starting an unreviewed firewall during package installation
+  ansible.builtin.apt:
+    name: "{{ host_security_os[ansible_os_family].packages }}"
+    state: present
+    policy_rc_d: 101
+  when: ansible_os_family == 'Debian'
+
+- name: Inspect existing firewalld and audit ownership before configuration
+  ansible.builtin.import_tasks: runtime-preflight.yml
+
+- name: Configure time synchronization and persistent audit rules
+  ansible.builtin.import_tasks: time-audit.yml
+
+- name: Configure key-only SSH and verify a new connection before firewall changes
+  ansible.builtin.import_tasks: ssh.yml
+
+- name: Converge the owned deny-by-default host zone
+  ansible.builtin.import_tasks: firewall.yml
+
+- name: Verify selected native services and policy
+  ansible.builtin.import_tasks: health.yml

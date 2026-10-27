@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spinnaker-accounts
+  namespace: {{ delivery_platform_spinnaker_namespace }}
+data:
+{% for namespace in delivery_platform_spinnaker_destinations %}
+  {{ namespace }}.kubeconfig: |
+    apiVersion: v1
+    kind: Config
+    current-context: {{ namespace }}
+    clusters:
+      - name: tier1
+        cluster:
+          server: https://kubernetes.default.svc
+          certificate-authority: /accounts/{{ namespace }}/ca.crt
+    users:
+      - name: {{ namespace }}
+        user: {tokenFile: /accounts/{{ namespace }}/token}
+    contexts:
+      - name: {{ namespace }}
+        context: {cluster: tier1, user: {{ namespace }}, namespace: {{ namespace }}}
+{% endfor %}
+{% for namespace in delivery_platform_spinnaker_destinations %}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ namespace }}
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.33
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ delivery_platform_spinnaker_namespace }}-deployer
+  namespace: {{ namespace }}
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: {{ delivery_platform_spinnaker_namespace }}-deployer, namespace: {{ namespace }}}
+rules:
+  - apiGroups: ['']
+    resources: [pods, services, configmaps, persistentvolumeclaims]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: ['']
+    resources: [events, pods/log]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [deployments, replicasets, statefulsets, daemonsets]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [batch]
+    resources: [jobs, cronjobs]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [autoscaling]
+    resources: [horizontalpodautoscalers]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: {{ delivery_platform_spinnaker_namespace }}-deployer, namespace: {{ namespace }}}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: {{ delivery_platform_spinnaker_namespace }}-deployer}
+subjects:
+  - {kind: ServiceAccount, name: {{ delivery_platform_spinnaker_namespace }}-deployer, namespace: {{ namespace }}}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ delivery_platform_spinnaker_namespace }}-deployer-token
+  namespace: {{ namespace }}
+  annotations:
+    kubernetes.io/service-account.name: {{ delivery_platform_spinnaker_namespace }}-deployer
+type: kubernetes.io/service-account-token
+{% endfor %}

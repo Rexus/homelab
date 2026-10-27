@@ -1,0 +1,122 @@
+---
+- name: Require an explicit supported profile and typed inputs
+  ansible.builtin.assert:
+    that:
+      - host_security_enabled is sameas true
+      - host_security_profile == 'linux-host-v1'
+      - host_security_action in ['apply', 'render']
+      - ansible_os_family in ['RedHat', 'Debian']
+      - >-
+        (ansible_os_family == 'RedHat' and ansible_distribution in ['AlmaLinux', 'Rocky', 'RedHat']
+         and ansible_distribution_major_version | string in ['9', '10']) or
+        (ansible_os_family == 'Debian' and ansible_distribution == 'Debian'
+         and ansible_distribution_major_version | string in ['12', '13'])
+      - ansible_architecture in ['x86_64', 'aarch64']
+      - host_security_operator_sources is sequence and host_security_operator_sources is not string
+      - host_security_operator_sources is not mapping
+      - host_security_operator_sources | length > 0
+      - host_security_operator_sources | unique | length == host_security_operator_sources | length
+      - host_security_ssh_users is sequence and host_security_ssh_users is not string
+      - host_security_ssh_users is not mapping
+      - host_security_ssh_users | length > 0
+      - host_security_service_rules is sequence and host_security_service_rules is not string
+      - host_security_service_rules is not mapping
+      - host_security_vrrp_peers is sequence and host_security_vrrp_peers is not string
+      - host_security_vrrp_peers is not mapping
+      - host_security_vrrp_peers | unique | length == host_security_vrrp_peers | length
+      - host_security_time_servers is sequence and host_security_time_servers is not string
+      - host_security_time_servers is not mapping
+      - host_security_time_servers | length > 0
+      - host_security_ssh_port | string is match('^[0-9]+$')
+      - host_security_ssh_port | int > 0 and host_security_ssh_port | int < 65536
+    fail_msg: >-
+      Select host_security_enabled: true and profile linux-host-v1 with explicit operators,
+      existing SSH users, service rules and time servers. Supported: EL 9/10 (Alma/Rocky/RHEL),
+      Debian 12/13, x86_64/aarch64. This profile excludes routers, hypervisors and cluster nodes.
+
+- name: Require deliberate configuration ownership and access approval for apply
+  ansible.builtin.assert:
+    that:
+      - host_security_acknowledgement == 'apply-linux-host-v1'
+      - host_security_console_verified is sameas true
+      - host_security_key_access_verified is sameas true
+      - host_security_config_ownership_verified is sameas true
+      - ansible_service_mgr == 'systemd'
+      - ansible_connection | default('ssh') in ['ssh', 'paramiko']
+      - not ansible_check_mode
+    fail_msg: >-
+      Apply requires apply-linux-host-v1 acknowledgement, tested console/key access and
+      ownership of sshd_config, chrony.conf and firewalld public.xml. Use render for review;
+      check mode cannot establish access or firewall safety.
+  when: host_security_action == 'apply'
+
+- name: Validate SSH user records before reading any public keys
+  ansible.builtin.assert:
+    that:
+      - item is mapping
+      - item.name is defined and item.name is match('^[a-z_][a-z0-9_-]*$')
+      - item.name != 'root'
+      - item.public_key_files is defined and item.public_key_files is sequence
+      - item.public_key_files is not string and item.public_key_files | length > 0
+      - item.public_key_files is not mapping
+      - item.public_key_files | select('match', '^/[^\r\n]+$') | list == item.public_key_files
+    fail_msg: Each non-root existing user needs absolute controller paths to external public keys.
+  loop: "{{ host_security_ssh_users }}"
+
+- name: Reject duplicate SSH users
+  ansible.builtin.assert:
+    that:
+      - host_security_ssh_users | map(attribute='name') | unique | length == host_security_ssh_users | length
+
+- name: Validate explicit operator networks
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - item is match('^[0-9A-Fa-f:.]+/[0-9]+$')
+      - item | ansible.utils.ipaddr('net') != false
+      - item | ansible.utils.ipaddr('prefix') | int > 0
+    fail_msg: Operator sources must be valid canonical CIDRs, never a default route.
+  loop: "{{ host_security_operator_sources }}"
+
+- name: Validate source-scoped inbound service allows
+  ansible.builtin.assert:
+    that:
+      - item is mapping
+      - item.source is defined and item.source is string
+      - item.source is match('^[0-9A-Fa-f:.]+/[0-9]+$')
+      - item.source | ansible.utils.ipaddr('net') != false
+      - item.source | ansible.utils.ipaddr('prefix') | int > 0
+      - item.protocol | default('') in ['tcp', 'udp']
+      - item.port | default('') | string is match('^[0-9]+$')
+      - item.port | int > 0 and item.port | int < 65536
+      - item.port | int != host_security_ssh_port | int
+    fail_msg: Each service allow needs a scoped CIDR, one TCP/UDP port, and must not widen SSH access.
+  loop: "{{ host_security_service_rules }}"
+
+- name: Validate exact VRRP peer sources without opening a subnet or arbitrary protocol
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - item is match('^[0-9A-Fa-f:.]+/(32|128)$')
+      - item | ansible.utils.ipaddr('net') != false
+      - item | ansible.utils.ipaddr('size') | int == 1
+      - item not in ['0.0.0.0/32', '::/128']
+    fail_msg: VRRP peers must be individual IPv4 /32 or IPv6 /128 source CIDRs, never whole networks.
+  loop: "{{ host_security_vrrp_peers }}"
+
+- name: Validate selected NTP endpoints without permitting configuration injection
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - item is match('^[A-Za-z0-9][A-Za-z0-9.:-]*$')
+      - "'.' in item or ':' in item"
+    fail_msg: Supply NTP server addresses or DNS names only, without chrony directives or options.
+  loop: "{{ host_security_time_servers }}"
+
+- name: Validate render destination
+  ansible.builtin.assert:
+    that:
+      - host_security_output_dir is match('^/[^\r\n]+$')
+      - host_security_output_dir not in ['/', '/etc', '/etc/ssh', '/etc/chrony', '/etc/firewalld']
+    fail_msg: Render into a dedicated absolute review directory on the selected render machine.
+  when: host_security_action == 'render'

@@ -1,0 +1,101 @@
+---
+# Copy to development_data.yml; keep secrets in encrypted private extra vars.
+# Guide: docs/deployment/stage-9-development/procedures/data-services.md
+platform_host_ips:
+  gitlab-db-1: 10.20.20.36
+  gitlab-redis-1: 10.20.20.37
+  gitlab-gitaly-1: 10.20.20.38
+
+development_data_action: render
+development_data_apply_confirm: false
+development_data_gitlab_url: "https://gitlab.{{ platform_domain }}"
+# Obtain appVersion from `helm show chart gitlab/gitlab --version <chart-pin>`.
+# Download the matching EL9 CE RPM and obtain its real SHA256 and signing fingerprint.
+development_data_chart_app_version: ""
+development_data_package_version: "{{ development_data_chart_app_version }}-ce.0.el9"
+development_data_package_url: ""
+development_data_package_sha256: ""
+development_data_package_key_src: /absolute/private/gitlab-package-signing.asc
+development_data_package_key_fingerprint: ""
+development_data_endpoints:
+  postgresql: "gitlab-db-1.{{ platform_domain }}"
+  redis: "gitlab-redis-1.{{ platform_domain }}"
+  gitaly: "gitlab-gitaly-1.{{ platform_domain }}"
+# Exact cluster egress/node addresses and pod ranges that actually reach these VMs.
+development_data_client_cidrs: []
+development_data_ca_src: /absolute/private/platform-ca-bundle.pem
+development_data_tls:
+  postgresql:
+    cert_src: /absolute/private/gitlab-db-1.crt
+    key_src: /absolute/private/gitlab-db-1.key
+  redis:
+    cert_src: /absolute/private/gitlab-redis-1.crt
+    key_src: /absolute/private/gitlab-redis-1.key
+  gitaly:
+    cert_src: /absolute/private/gitlab-gitaly-1.crt
+    key_src: /absolute/private/gitlab-gitaly-1.key
+# Client certificate must have CN=gitlab and clientAuth EKU.
+development_data_postgresql_client_cert_src: /absolute/private/gitlab-db-client.crt
+development_data_postgresql_client_key_src: /absolute/private/gitlab-db-client.key
+development_data_backup_transport: sftp
+development_data_backup_repository:
+  gitlab-db-1: sftp:gitlab-db-backup@recovery.internal.example.com:/backups/gitlab-db
+  gitlab-redis-1: sftp:gitlab-redis-backup@recovery.internal.example.com:/backups/gitlab-redis
+  gitlab-gitaly-1: sftp:gitlab-gitaly-backup@recovery.internal.example.com:/backups/gitlab-gitaly
+development_data_backup_password_src: /absolute/private/gitlab-restic.password
+development_data_backup_ssh_key_src: /absolute/private/gitlab-backup.key
+development_data_backup_known_hosts_src: /absolute/private/recovery-known-hosts
+development_data_backup_initialize: false
+development_data_backup_custody_accepted: false
+# Backups TO NAS only: live PostgreSQL/Redis/Gitaly data stays on the VM disks
+# backed by Proxmox/Ceph. Never mount a NAS export over /var/opt/gitlab or PGDATA.
+# Direct NAS backup alternative: transport=filesystem, replace the repository map, and
+# supply all three host contracts below. This role does not mount, create NAS
+# directories/markers, alter export permissions or install a storage gateway.
+# Commission persistent rw NFS/SMB mounts and private directories before apply.
+# Use exact findmnt TARGET,SOURCE,FSTYPE; independently create each mount's
+# .development-data-backup-target file with that host's unique marker value.
+# Keep root-squash; grant the mapped UID/GID (or SMB identity) access on the NAS.
+# The root-run job verifies create/read/sync/rename/delete and effective UID/GID.
+# development_data_backup_transport: filesystem
+# development_data_backup_repository:
+#   gitlab-db-1: /mnt/gitlab-backup/gitlab-db-1
+#   gitlab-redis-1: /mnt/gitlab-backup/gitlab-redis-1
+#   gitlab-gitaly-1: /mnt/gitlab-backup/gitlab-gitaly-1
+# development_data_backup_filesystem:
+#   gitlab-db-1:
+#     mount: /mnt/gitlab-backup
+#     source: nas.internal.example.com:/backups/gitlab-db-1
+#     fstype: nfs4
+#     marker: <independently-generated-unique-32-plus-character-token>
+#     uid: 65534
+#     gid: 65534
+#   gitlab-redis-1: <same contract, its own export and unique marker>
+#   gitlab-gitaly-1: <same contract, its own export and unique marker>
+# SSH key/known_hosts inputs apply only to sftp; encryption password is always required.
+development_data_backup_min_free_bytes: 10737418240 # 10 GiB reserve; size for actual growth.
+development_data_backup_timeout_seconds: 7200 # Failure deadline; 60s termination grace.
+# NAS loss/full fails the job, never falls back locally or triggers retention deletion.
+# Qualify client outage/ENOSPC behavior and source restart in the maintenance budget.
+# Hard NFS I/O may remain uninterruptible past the timeout; qualify this explicitly.
+# Time NAS loss during a cold backup and measure actual application readiness;
+# the job logs start requests, not guaranteed service recovery. Copies are per
+# component and are not an atomic GitLab-wide application recovery point.
+# Existing object-storage endpoint: tenant keys only; no NAS-to-object gateway is deployed.
+development_data_s3_mode: preprovisioned
+development_data_s3_preprovisioned_accepted: false
+development_data_s3_denied_buckets: [] # Existing private bucket outside both identities.
+# Ceph alternative: set mode=ceph-rgw, supply the privileged provisioning profile
+# and same-endpoint IAM API. Never supply Tier 0 storage-admin credentials here.
+development_data_s3_endpoint: ""
+development_data_s3_iam_endpoint: "{{ development_data_s3_endpoint }}"
+development_data_s3_region: us-east-1
+development_data_s3_profile: gitlab-provisioner
+development_data_s3_ca_src: /absolute/private/s3-ca.pem
+development_data_s3_users: {application: gitlab-app, backup: gitlab-backup}
+# Encrypted private extra vars must provide these, with independently generated values:
+# development_data_postgresql_password, development_data_redis_password,
+# development_data_gitaly_token, development_data_shell_token (32-256 base64/hex-safe characters).
+# development_data_s3_keys:
+#   application: {access_key: <gitlab-app key>, secret_key: <gitlab-app secret>}
+#   backup: {access_key: <gitlab-backup key>, secret_key: <gitlab-backup secret>}

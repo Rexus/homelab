@@ -1,0 +1,20 @@
+---
+- name: Create the tenant database using the local package administrator socket
+  community.postgresql.postgresql_db:
+    name: gitlabhq_production
+    owner: gitlab
+    encoding: UTF8
+    login_user: gitlab-psql
+    login_unix_socket: /var/opt/gitlab/postgresql
+    state: present
+  become_user: gitlab-psql
+
+- name: Install all external-database extensions before chart migrations
+  community.postgresql.postgresql_ext:
+    name: "{{ item }}"
+    db: gitlabhq_production
+    login_user: gitlab-psql
+    login_unix_socket: /var/opt/gitlab/postgresql
+    state: present
+  loop: [amcheck, pg_trgm, btree_gist]
+  become_user: gitlab-psql

@@ -1,0 +1,21 @@
+---
+- name: Reload host security SSH
+  ansible.builtin.systemd_service:
+    name: "{{ host_security_os[ansible_os_family].ssh_service }}"
+    state: reloaded
+
+- name: Restart host security time synchronization
+  ansible.builtin.systemd_service:
+    name: "{{ host_security_os[ansible_os_family].time_service }}"
+    state: restarted
+
+- name: Load host security audit rules
+  ansible.builtin.command:
+    argv: [augenrules, --load]
+  # augenrules merges all persistent fragments; run only when our fragment changes.
+  changed_when: true
+
+- name: Reload host security firewall
+  ansible.builtin.systemd_service:
+    name: firewalld
+    state: reloaded

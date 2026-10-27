@@ -1,0 +1,27 @@
+global
+  log /dev/log local0
+  maxconn {{ cluster_endpoint_maxconn }}
+  user haproxy
+  group haproxy
+
+defaults
+  log global
+  mode tcp
+  option tcplog
+  option dontlognull
+  timeout connect 5s
+  timeout client 1h
+  timeout server 1h
+
+{% for endpoint in cluster_endpoint_endpoints | sort(attribute='name') %}
+frontend api_{{ endpoint.name }}
+  bind {{ endpoint.vip_cidr.split('/')[0] }}:6443
+  default_backend control_planes_{{ endpoint.name }}
+
+backend control_planes_{{ endpoint.name }}
+  balance leastconn
+{% for name, address in endpoint.control_planes | dictsort %}
+  server {{ name }} {{ address }}:6443 check inter 2s fall 3 rise 2
+{% endfor %}
+
+{% endfor %}

@@ -1,0 +1,37 @@
+---
+- name: Wait for target-scoped service account credentials from the Kubernetes token controller
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: "{{ item }}"
+    name: "{{ delivery_platform_spinnaker_namespace }}-deployer-token"
+  register: spinnaker_native_target_tokens
+  until: >-
+    spinnaker_native_target_tokens.resources | length == 1 and
+    spinnaker_native_target_tokens.resources[0].get('data', {}).get('token', '') | length > 0 and
+    spinnaker_native_target_tokens.resources[0].get('data', {}).get('ca.crt', '') | length > 0
+  retries: 30
+  delay: 2
+  loop: "{{ delivery_platform_spinnaker_destinations }}"
+  no_log: true
+
+- name: Mount only namespace-restricted tokens and API trust, never the installer kubeconfig
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        namespace: "{{ delivery_platform_spinnaker_namespace }}"
+        name: "spinnaker-account-{{ item.item }}"
+      type: Opaque
+      data:
+        token: "{{ item.resources[0].data.token }}"
+        ca.crt: "{{ item.resources[0].data['ca.crt'] }}"
+  loop: "{{ spinnaker_native_target_tokens.results }}"
+  no_log: true

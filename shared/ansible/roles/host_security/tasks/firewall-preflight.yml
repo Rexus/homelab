@@ -1,0 +1,74 @@
+---
+- name: Inspect legacy direct-rule configuration without altering it
+  ansible.builtin.stat:
+    path: /etc/firewalld/direct.xml
+  register: host_security_direct_file
+
+- name: Count persistent firewalld direct rules and passthroughs
+  community.general.xml:
+    path: /etc/firewalld/direct.xml
+    xpath: /direct/rule | /direct/passthrough
+    count: true
+  register: host_security_direct_rules
+  when: host_security_direct_file.stat.exists
+
+- name: Refuse permanent direct rules outside the owned zone policy
+  ansible.builtin.assert:
+    that:
+      - host_security_direct_rules.count | default(0) | int == 0
+
+- name: Find persistent firewall zone definitions
+  ansible.builtin.find:
+    paths: [/etc/firewalld/zones, /usr/lib/firewalld/zones]
+    patterns: '*.xml'
+  register: host_security_zone_files
+
+- name: Read persistent non-public interface and source bindings with the native XML module
+  community.general.xml:
+    path: "{{ item.path }}"
+    xpath: /zone/interface | /zone/source
+    count: true
+  loop: "{{ host_security_zone_files.files | rejectattr('path', 'search', '/public[.]xml$') | list }}"
+  register: host_security_zone_bindings
+
+- name: Refuse persistent bindings that can bypass the owned public zone after reboot
+  ansible.builtin.assert:
+    that:
+      - item.count | int == 0
+    fail_msg: Remove alternate persistent zone bindings through an approved console migration first.
+  loop: "{{ host_security_zone_bindings.results }}"
+
+- name: Inspect all persistent firewalld policies before startup or reload
+  ansible.builtin.command:
+    argv: [firewall-offline-cmd, --get-policies]
+  changed_when: false
+  register: host_security_persistent_policies
+
+- name: Refuse custom permanent policies outside the leaf-host profile
+  ansible.builtin.assert:
+    that:
+      - >-
+        host_security_persistent_policies.stdout.split() |
+        reject('equalto', 'allow-host-ipv6') | list | length == 0
+    fail_msg: Review custom persistent firewalld policies before adopting this profile.
+
+- name: List persistent NetworkManager connections when NetworkManager owns networking
+  ansible.builtin.command:
+    argv: [nmcli, -g, UUID, connection, show]
+  changed_when: false
+  register: host_security_nm_connections
+  when: ansible_facts.services.get('NetworkManager.service', {}).get('state', '') == 'running'
+
+- name: Read NetworkManager's saved zone assignment for each connection
+  ansible.builtin.command:
+    argv: [nmcli, -g, connection.zone, connection, show, "{{ item }}"]
+  changed_when: false
+  loop: "{{ host_security_nm_connections.stdout_lines | default([]) }}"
+  register: host_security_nm_zones
+
+- name: Reject saved network profiles that select a different firewall zone
+  ansible.builtin.assert:
+    that:
+      - item.stdout | trim in ['', '--', 'public']
+    fail_msg: Saved NetworkManager zones must be public or inherit the public default.
+  loop: "{{ host_security_nm_zones.results }}"

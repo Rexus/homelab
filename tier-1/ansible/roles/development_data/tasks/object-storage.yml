@@ -1,0 +1,52 @@
+---
+- name: Provision versioned private buckets on the existing Ceph RGW account
+  amazon.aws.s3_bucket:
+    name: "{{ item }}"
+    state: present
+    endpoint_url: "{{ development_data_s3_endpoint }}"
+    ceph: true
+    region: "{{ development_data_s3_region }}"
+    profile: "{{ development_data_s3_profile }}"
+    aws_ca_bundle: "{{ development_data_s3_ca_src }}"
+    validate_certs: true
+    versioning: true
+    acl: private
+    force: false
+  loop: "{{ development_data_buckets.values() | list + development_data_backup_buckets }}"
+  no_log: true
+
+- name: Install narrowly scoped inline policies on dedicated existing users
+  amazon.aws.iam_policy:
+    iam_type: user
+    iam_name: "{{ development_data_s3_users[item] }}"
+    policy_name: gitlab-data
+    policy_json: "{{ lookup('ansible.builtin.file', development_data_output ~ '/' ~ item ~ '-policy.json') }}"
+    state: present
+    endpoint_url: "{{ development_data_s3_iam_endpoint }}"
+    region: "{{ development_data_s3_region }}"
+    profile: "{{ development_data_s3_profile }}"
+    aws_ca_bundle: "{{ development_data_s3_ca_src }}"
+    validate_certs: true
+  loop: [application, backup]
+  no_log: true
+
+- name: Read the dedicated users' active key identities through the native IAM API
+  amazon.aws.iam_access_key_info:
+    user_name: "{{ development_data_s3_users[item] }}"
+    endpoint_url: "{{ development_data_s3_iam_endpoint }}"
+    region: "{{ development_data_s3_region }}"
+    profile: "{{ development_data_s3_profile }}"
+    aws_ca_bundle: "{{ development_data_s3_ca_src }}"
+    validate_certs: true
+  loop: [application, backup]
+  register: development_data_tenant_keys
+  no_log: true
+
+- name: Reject credentials that do not belong to the intended tenant users
+  ansible.builtin.assert:
+    that:
+      - >-
+        item.access_keys | selectattr('access_key_id', 'equalto', development_data_s3_keys[item.item].access_key)
+        | selectattr('status', 'equalto', 'Active') | list | length == 1
+  loop: "{{ development_data_tenant_keys.results }}"
+  no_log: true

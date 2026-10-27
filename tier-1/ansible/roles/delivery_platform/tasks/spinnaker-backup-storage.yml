@@ -1,0 +1,49 @@
+---
+- name: Inspect the preprovisioned NAS repository claim before resource changes
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    name: "{{ delivery_platform_spinnaker_backup_filesystem_claim }}"
+  register: spinnaker_backup_claim
+
+- name: Require a bound existing filesystem claim
+  ansible.builtin.assert:
+    that:
+      - spinnaker_backup_claim.resources | length == 1
+      - spinnaker_backup_claim.resources[0].get('status', {}).get('phase') == 'Bound'
+      - spinnaker_backup_claim.resources[0].spec.get('volumeName', '') | length > 0
+      - spinnaker_backup_claim.resources[0].spec.get('volumeMode', 'Filesystem') == 'Filesystem'
+      - not spinnaker_backup_claim.resources[0].metadata.get('deletionTimestamp')
+    fail_msg: Commission and bind the dedicated NAS repository PVC before applying Spinnaker.
+
+- name: Inspect the repository claim's actual backing volume
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolume
+    name: "{{ spinnaker_backup_claim.resources[0].spec.volumeName }}"
+  register: spinnaker_backup_volume
+
+- name: Require retained NFS or commissioned NAS CSI storage bound to this exact claim
+  ansible.builtin.assert:
+    that:
+      - spinnaker_backup_volume.resources | length == 1
+      - volume.get('status', {}).get('phase') == 'Bound'
+      - volume.spec.persistentVolumeReclaimPolicy == 'Retain'
+      - volume.spec.get('volumeMode', 'Filesystem') == 'Filesystem'
+      - volume.spec.get('claimRef', {}).get('uid') == claim.metadata.uid
+      - volume.spec.get('claimRef', {}).get('name') == claim.metadata.name
+      - volume.spec.get('claimRef', {}).get('namespace') == delivery_platform_spinnaker_namespace
+      - not volume.metadata.get('deletionTimestamp')
+      - "'nfs' in volume.spec or 'csi' in volume.spec"
+      - not volume.spec.get('nfs', volume.spec.get('csi', {})).get('readOnly', false) | bool
+    fail_msg: Use a retained writable NFS/NAS CSI PV; the storage owner must verify independent NAS custody.
+  vars:
+    claim: "{{ spinnaker_backup_claim.resources[0] }}"
+    volume: "{{ spinnaker_backup_volume.resources[0] | default({}) }}"

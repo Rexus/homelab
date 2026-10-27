@@ -1,0 +1,32 @@
+---
+- name: Prepare private database-only render output
+  ansible.builtin.file:
+    path: "{{ control_applications_output }}"
+    state: directory
+    mode: "0700"
+
+- name: Store only new database resources for review
+  ansible.builtin.copy:
+    content: "{{ item.before | selectattr('kind', 'equalto', 'Cluster') | map('to_nice_yaml') | join('---\n') }}"
+    dest: "{{ control_applications_output }}/{{ item.name }}-database-prepare.yml"
+    mode: "0600"
+  loop: "{{ control_applications_releases | selectattr('name', 'in', ['keycloak', 'netbox']) | list }}"
+
+- name: Read database identities for explicit NAS commissioning
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: "{{ item }}"
+    name: "{{ item }}-db"
+  loop: "{{ control_applications_components | intersect(['keycloak', 'netbox']) }}"
+  register: control_applications_prepared_databases
+  when: control_applications_action == 'apply'
+
+- name: Report source identity without creating a NAS marker
+  ansible.builtin.debug:
+    msg: "{{ item.item }}-db systemID={{ item.resources[0].status.systemID }}; commission its private NAS claim separately."
+  loop: "{{ control_applications_prepared_databases.results | default([]) }}"
+  when: control_applications_action == 'apply'

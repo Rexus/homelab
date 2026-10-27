@@ -1,0 +1,17 @@
+[Unit]
+Description=Independent control recovery snapshots and encrypted copies
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor={{ control_backup_repository }}{% for source in control_backup_input_sources %} {{ source.mount }}{% endfor %}{% if control_backup_media_enabled | bool %} {{ control_backup_media_mount }}{% endif %}
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/control-backup/control_backup.py /etc/control-backup/config.json
+TimeoutStartSec=6h
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ control_backup_repository }} {{ control_backup_directory }}
+Environment=RESTIC_CACHE_DIR={{ control_backup_directory }}/cache

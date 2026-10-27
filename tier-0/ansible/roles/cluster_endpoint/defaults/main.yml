@@ -1,0 +1,11 @@
+---
+cluster_endpoint_group: cluster_endpoint
+cluster_endpoint_interface: ""
+cluster_endpoint_fault_domains: {}
+cluster_endpoint_fault_domains_validated: false
+cluster_endpoint_network_gates_validated: false
+cluster_endpoint_endpoints: []
+
+cluster_endpoint_haproxy_config_path: /etc/haproxy/haproxy.cfg
+cluster_endpoint_keepalived_config_path: /etc/keepalived/keepalived.conf
+cluster_endpoint_maxconn: 4096

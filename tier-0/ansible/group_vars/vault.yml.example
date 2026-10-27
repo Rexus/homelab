@@ -3,7 +3,7 @@
 # Reference guide: docs/deployment/stage-6-secrets/step-1b-vault-vm.md
 
 platform_host_ips:
-  vault-1: 10.20.21.21
+  vault-1: 10.20.21.40
 
 vault_api_addr: "https://vault01.example.internal:8200"
 vault_cluster_addr: "https://vault01.example.internal:8201"

@@ -88,6 +88,7 @@ controlled environment; a VM or VLAN label alone does not establish an air gap.
 | Platform function | Reference component and placement | Interfaces or detailed design |
 | --- | --- | --- |
 | Compute, networking and data | Tier 0-operated Proxmox, host fabrics, selected storage and approved VM templates | [Runtime and failure domains](compute/runtime.md), [network attachments](networking/README.md) |
+| Storage interfaces | Direct NAS file storage where supported; existing qualified S3-compatible object endpoint for consumers requiring it, with scoped buckets/keys | [Storage interfaces and custody](compute/runtime.md#storage-interfaces); no extra storage gateway, inferred NAS feature or independent-backup claim |
 | Infrastructure lifecycle | Protected workstation and management VM/runner; independent tier-owned state | [Infrastructure acceptance](compute/provisioning.md) |
 | Directory authority (IdM) | FreeIPA primary and replica on two dedicated VMs, outside Kubernetes | [Identity authority](identity/README.md) |
 | Identity provider (IdP / SSO) | Keycloak inside the Tier 0 cluster, using the directory pair | [Service access](runtime-flows.md#service-access) |

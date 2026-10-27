@@ -228,13 +228,15 @@ does not implement a live inventory-application integration.
 
 ## Setup ownership
 
-The generator assigns existing setup examples as follows:
+Each tier's `.deployment-setups` registers its Linux guest workflows. The
+[IaC capability map](../deployment/README.md#iac-capability-map) owns the complete
+entry-point/guide list, including Terraform-only cluster and policy roots.
 
-| Tier | Setups | Placement condition |
-| --- | --- | --- |
-| Tier 0 | `foundation`, `syslog`, `vault`, `hsm`, `immutable-template`, `template-refresh` | high-impact control, protected logging and template builders; protected networks and recoverable local artifacts |
-| Tier 1 | `development`, `observability`, `podman-runner` | shared platform services and general runners; `delivery_edge` is the separate build/supply DMZ subnet |
-| Tier 2 | `edge`, `cache`, `lab` | public ingress, ordinary outbound proxy/cache and workload instances; client subnets are policy references only |
+**Existing collections:** refresh preserves the project-owned `.deployment-setups`.
+Before adopting a newly supplied setup, review its new root, playbook, examples,
+inventory groups and control-node mapping, then add that setup name to the owning
+tier's local registration file if absent. Initialize only after this review.
+Do not replace the complete file or transfer existing resources/state implicitly.
 
 Tier 0 also owns the template module, publication script, Packer definitions,
 `terraform/deployments/templates/`, `templates/proxmox.yml.example`, and the seed-only

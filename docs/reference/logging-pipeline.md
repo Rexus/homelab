@@ -23,6 +23,8 @@ Start with [Stage 2](../deployment/stage-2-logging/README.md), not these impleme
 | Tier 0 | `ansible/playbooks/deployment/logging-authority.yml`, `ansible/roles/logging_authority/` | Protected controller signing/renewal, cumulative CRL; public CSR approval, no producer key export |
 | Tier 0 | `ansible/playbooks/deployment/logging-archive.yml`, `ansible/roles/logging_archive/` | NAS mount, create-only publication, source/copy health, application copies, read-audit rules |
 | Tier 0 | `ansible/playbooks/deployment/logging-backup.yml`, `ansible/roles/logging_backup/` | Separate `logging_recovery` host, read-only NAS identity, encrypted restic backup and repository check |
+| Tier 0 | `ansible/playbooks/deployment/logging-export.yml`, `ansible/roles/logging_export/` | Native Collector reads only field-allowlisted copies; persistent outbound queue and scoped mTLS to Tier 1 search |
+| Tier 0 | `ansible/playbooks/deployment/netbox-audit.yml`, `ansible/roles/netbox_audit/` | GET-only NetBox change ledger on the independent monitor; dedicated security stream into protected intake |
 
 Recipes are Ansible-only integration over existing hosts. They do not add another
 Terraform resource/state owner. [Receiver resources](syslog-receiver.md) stay in Tier 0.

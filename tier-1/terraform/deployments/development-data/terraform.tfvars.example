@@ -1,0 +1,41 @@
+# Copy to: terraform/deployments/development-data/terraform.tfvars
+# Replace every value before use.
+# Setup guide: docs/deployment/stage-9-development/procedures/data-services.md
+# Shared values live in ../../common.tfvars.
+
+# Required image qualification: the native data services use EL9 x86_64.
+# Use an approved EL9 shared default, or select its existing catalogue VMID here.
+# A null shared default selects no image; an EL10 default is not compatible.
+# default_linux_vm_template_id = APPROVED_EL9_TEMPLATE_VMID
+
+vm_instances = {
+  # Main path: chart applications consume these dedicated native data services.
+  # Select an approved EL9 x86_64 template for these hosts. No all-in-one GitLab VM.
+  "gitlab-db-1" = {
+    vm_id            = 340
+    size             = "small-mem"
+    storage_class    = "shared"
+    disk_size_gb     = 100
+    network_zone_key = "application"
+    tags             = ["gitlab", "postgresql", "internal", "always-on", "apps"]
+  }
+  "gitlab-redis-1" = {
+    vm_id            = 341
+    size             = "tiny-mem"
+    storage_class    = "shared"
+    disk_size_gb     = 40
+    network_zone_key = "application"
+    tags             = ["gitlab", "redis", "internal", "always-on", "apps"]
+  }
+  "gitlab-gitaly-1" = {
+    vm_id            = 342
+    size             = "medium-mem"
+    storage_class    = "shared"
+    disk_size_gb     = 200
+    network_zone_key = "application"
+    tags             = ["gitlab", "gitaly", "internal", "always-on", "apps"]
+  }
+}
+
+# The independent Podman alternative retains the separate development setup/state.
+lxc_instances = {}

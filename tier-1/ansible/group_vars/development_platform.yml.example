@@ -5,6 +5,8 @@ development_platform_action: render
 development_platform_components: [gitlab]
 development_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
 development_platform_gitlab_version: REPLACE_WITH_EXACT_CHART_VERSION
+development_platform_gitlab_backup_enabled: true
+development_platform_gitlab_backup_schedule: "30 2 * * *"
 development_platform_runner_version: REPLACE_WITH_EXACT_RUNNER_CHART_VERSION
 development_platform_host: gitlab.internal.example.com
 development_platform_domain: internal.example.com

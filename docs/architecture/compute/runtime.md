@@ -9,9 +9,11 @@ placements; the hosting relationships below apply across its local variants.
 
 - [Completed hosting model](#completed-hosting-model)
 - [Runtime realizations](#runtime-realizations)
+- [Storage interfaces](#storage-interfaces)
 - [Persistence and recovery](#persistence-and-recovery)
 - [Failure domains](#failure-domains)
 - [Related designs and procedures](#related-designs-and-procedures)
+- [References](#references)
 
 ## Completed hosting model
 
@@ -69,11 +71,54 @@ A runtime alternative for another service does not imply migration of that pair
 or of any existing service. Moving a service requires an explicit data and
 lifecycle design, even when its client interface remains unchanged.
 
+## Storage interfaces
+
+**Object storage** names the capability; **S3-compatible API** names the interface
+used by the supplied clients. Neither term requires Amazon-hosted storage.
+Block, file and object interfaces can coexist on the same storage system:
+
+| Interface | Typical use | Existing infrastructure |
+| --- | --- | --- |
+| Block | Live VM disks and application volumes | Proxmox datastores, including Ceph RBD [1] |
+| File | Shared files, archive copies and backup repositories | NAS NFS/SMB shares or CephFS [1] |
+| Object | Application objects, artifacts and database backup objects | A qualified NAS object endpoint, Ceph Object Gateway (RGW), or another object-storage service [2] |
+
+**Live database data stays on qualified Proxmox/Ceph-backed block storage.**
+NAS file exports hold backup copies or explicitly selected shared files, not the
+database's live data/WAL directories. Database volume classes and backup mounts
+are separate selections; configuring a NAS backup does not move the database.
+
+Ceph is not limited to backups. Proxmox supports RBD for live guest disks and
+CephFS for files; an S3-compatible endpoint additionally requires RGW. An existing
+Proxmox Ceph installation does not establish that RGW is deployed. The shared
+storage-class profile references commissioned datastores; it does not install
+Ceph, RGW or a NAS. [1][2]
+
+A NAS can supply file and object interfaces, depending on its product and software.
+For UNAS, the reviewed documentation describes NFS/SMB access and **outbound
+backups to** object-storage providers, not an application-facing S3 endpoint.
+Confirm the selected model/software's serving interface before relying on it. [3][4]
+
+Prefer an existing qualified object endpoint over another service. Qualification
+covers the consumer's actual operations, TLS, scoped credentials, versioning and
+recovery requirements; API compatibility alone does not prove them. Use direct
+NAS file storage where the application supports it. Do not deploy a translation
+service merely to make a file share appear to supply another interface. A required
+object endpoint remains a commissioned prerequisite, not an implied NAS feature.
+Storage capacity, replication and snapshots do not replace independent backup custody.
+
 ## Persistence and recovery
 
 Runtime availability, data persistence and recovery are separate responsibilities.
 Each service identifies its authoritative data, storage owner and backup path.
 No single storage backend is implied for every VM, cluster or service.
+
+Backup jobs read consistent application recovery material and send copies to a
+separate file repository or supported object endpoint. Tier 0 owns storage
+administration; each consumer receives only its scoped dataset access.
+The selected backup method declares its recovery point and restore procedure:
+scheduled full copies and continuously archived transactions are not equivalent.
+Versioning, replication and a shared NAS do not establish independent backup custody.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -138,4 +183,14 @@ copies and local administrative execution remain available.
 - Whole system: [reference platform](../reference-platform.md), [runtime flows](../runtime-flows.md) and [variant model](../variants.md).
 - Interfaces: [networking](../networking/README.md), [infrastructure control](provisioning.md) and [tier ownership](../tier-ownership.md).
 - Realization: [host/image foundation](../../deployment/foundation/README.md#step-1-prepare-compute-and-templates) and [Kubernetes capability](../../deployment/stage-4-kubernetes/README.md).
+- Native storage selection and qualification: [storage prerequisites](../../deployment/foundation/procedures/object-storage.md).
 - Acceptance and implementation coverage: [deployment readiness](../../deployment/readiness.md).
+
+## References
+
+Storage interfaces checked 2026-10-27; qualify the selected product/software before adoption.
+
+1. [Proxmox Ceph integration: RBD and CephFS](https://github.com/proxmox/pve-docs/blob/master/pveceph.adoc).
+2. [Ceph Object Gateway and its S3-compatible interface](https://docs.ceph.com/en/squid/radosgw/).
+3. [UNAS file-access interfaces](https://help.ui.com/hc/en-us/articles/39670142044567-Accessing-UniFi-NAS-UNAS-Drives).
+4. [UNAS backup destinations](https://help.ui.com/hc/en-us/articles/30961935781655-Troubleshooting-UNAS-Backup-Issues).

@@ -1,0 +1,8 @@
+---
+# Tier 0 owns redaction and source permissions. Tier 1 receives copies only.
+- name: Install approved protected-log search exports
+  hosts: foundation_logging
+  become: true
+  serial: 1
+  roles:
+    - logging_export

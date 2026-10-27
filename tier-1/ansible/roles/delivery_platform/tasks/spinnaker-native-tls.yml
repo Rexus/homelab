@@ -1,0 +1,30 @@
+---
+- name: Inspect every preissued private TLS and JVM keystore Secret
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    name: "{{ item }}-tls"
+  loop: >-
+    {{ ['spinnaker', 'spinnaker-mysql', 'spinnaker-redis'] +
+       (spinnaker_native_ports.keys() | reject('equalto', 'deck') | list) }}
+  register: spinnaker_native_preissued_tls
+  no_log: true
+
+- name: Require all preissued leaf, chain and binary PKCS12 fields without decoding private keys
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].type == 'kubernetes.io/tls'
+      - required | difference(item.resources[0].get('data', {}).keys() | list) | length == 0
+      - required | map('extract', item.resources[0].data) | select('equalto', '') | list | length == 0
+    fail_msg: Commission the ten preissued TLS Secrets and matching PKCS12 password before native apply.
+  vars:
+    required: >-
+      {{ ['tls.crt', 'tls.key'] + (['ca.crt'] if item.item != 'spinnaker' else []) +
+         (['keystore.p12'] if item.item in spinnaker_native_ports else []) }}
+  loop: "{{ spinnaker_native_preissued_tls.results }}"
+  no_log: true

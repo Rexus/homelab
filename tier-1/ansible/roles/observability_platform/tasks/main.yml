@@ -4,10 +4,13 @@
 
 - name: Resolve private native Data Prepper credentials
   ansible.builtin.import_tasks: credentials.yml
+  when: observability_backup_mode != 'files' or observability_backup_files_phase != 'prepare'
 
 - name: Validate separate native client trust domains
   ansible.builtin.include_tasks: trust.yml
-  when: observability_action == 'apply'
+  when:
+    - observability_action == 'apply'
+    - observability_backup_mode != 'files' or observability_backup_files_phase != 'prepare'
 
 - name: Resolve product-owned values and native resources
   ansible.builtin.set_fact:
@@ -43,7 +46,34 @@
     kube_apps_manage_secrets: "{{ observability_manage_secrets }}"
     kube_apps_secrets: "{{ observability_secrets }}"
   no_log: true
+  when: observability_backup_mode != 'files' or observability_backup_files_phase != 'prepare'
+
+- name: Prepare only the Grafana database before NAS commissioning
+  ansible.builtin.include_tasks: database-prepare.yml
+  when:
+    - observability_backup_mode == 'files'
+    - observability_backup_files_phase == 'prepare'
+
+- name: Render or apply PostgreSQL backups to the separate NAS claim
+  ansible.builtin.include_role:
+    name: postgresql_file_backup
+  vars:
+    postgresql_file_backup_action: "{{ observability_action }}"
+    postgresql_file_backup_kubeconfig: "{{ observability_kubeconfig }}"
+    postgresql_file_backup_context: "{{ observability_context }}"
+    postgresql_file_backup_output: "{{ observability_output }}"
+    postgresql_file_backup_target: >-
+      {{ observability_backup_files | combine({
+         'cluster': 'grafana-db', 'namespace': observability_namespace,
+         'source_id': 'tier-1/' ~ observability_namespace ~ '/grafana-db',
+         'image': observability_database_image, 'tls_secret': 'grafana-db-file-backup',
+         'accepted': observability_backup_files_accepted}) }}
+  when:
+    - observability_backup_mode == 'files'
+    - observability_backup_files_phase == 'backup'
 
 - name: Check product readiness after convergence
   ansible.builtin.include_tasks: health.yml
-  when: observability_action == 'apply'
+  when:
+    - observability_action == 'apply'
+    - observability_backup_mode != 'files' or observability_backup_files_phase != 'prepare'

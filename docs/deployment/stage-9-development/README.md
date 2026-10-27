@@ -23,8 +23,9 @@ requests remain separate; see [coverage](../../reference/implementation-support.
 ## Step 1: Deploy source control and SSO
 
 Follow [GitLab Kubernetes installation](procedures/gitlab.md), including external
-PostgreSQL, Redis, Gitaly, object storage and the Keycloak client. The official chart
-uses these prepared Tier 1 dependencies, not data services borrowed from Tier 0.
+[dedicated PostgreSQL, Redis and Gitaly VMs](procedures/data-services.md), scoped
+object-storage buckets and the Keycloak client. Tier 1 owns its data and credentials;
+the selected Tier 0 object-storage service owns the underlying storage interface.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -34,19 +35,22 @@ flowchart TB
     subgraph Cluster["Existing Tier 1 Kubernetes"]
       Git["gitlab / Helm release<br/>Webservice x2 / Sidekiq x1"]
     end
-    subgraph Data["Existing independently managed data"]
+    subgraph Data["Prepared dedicated Tier 1 data VMs"]
       direction TB
-      DB["PostgreSQL / Redis"]
-      Repos["Gitaly / repository storage"]
-      Objects[("Object storage / backups")]
-      DB ~~~ Repos ~~~ Objects
+      DB["gitlab-db-1 / PostgreSQL"]
+      Cache["gitlab-redis-1 / Redis"]
+      Repos["gitlab-gitaly-1 / repositories"]
+      DB ~~~ Cache ~~~ Repos
     end
     Cluster -->|Data interfaces / TLS| Data
   end
-  subgraph T0["Tier 0 / existing identity"]
-    IdP["Keycloak / OIDC"]
+  subgraph T0["Tier 0 / existing foundation and identity"]
+    direction LR
+    IdP["Keycloak / OIDC<br/>Existing control cluster"]
+    Objects["Existing object storage / prerequisite<br/>S3-compatible API / scoped GitLab buckets"]
+    IdP ~~~ Objects
   end
-  T1 -->|OIDC authentication| T0
+  T1 -->|OIDC / scoped S3 over TLS| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
@@ -62,7 +66,11 @@ flowchart TB
 [recipe](../../../tier-1/ansible/playbooks/deployment/development-platform.yml)
 and [values template](../../../tier-1/ansible/roles/development_platform/templates/gitlab-values.yml.j2).
 The GitLab box aggregates the native chart; its labels highlight web/worker scale,
-not a complete pod inventory. The data services already exist.
+not a complete pod inventory. The dedicated data VMs are prepared by the separate
+[data-service recipe](procedures/data-services.md); this step then installs GitLab.
+The selected object-storage service already exists and supplies tenant credentials,
+never storage-admin authority. This stage deploys no storage VM or gateway.
+A NAS file mount cannot replace the chart's object API requirement.
 Accept SSO, scoped membership, clone/push and
 backup/restore before ordinary use.
 **Alternative:** [1b: source-control VM](step-1b-source-control-vm.md).

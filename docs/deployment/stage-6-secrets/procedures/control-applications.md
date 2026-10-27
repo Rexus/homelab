@@ -6,7 +6,7 @@ stage; an install does not grant operational acceptance or transfer directory au
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** accepted Stage 4 networking/storage/ingress, CNPG, external TLS
-and bootstrap custody, protected stdout log delivery, and independent object storage.
+and bootstrap custody, protected stdout log delivery, and a qualified backup destination.
 Keycloak additionally needs FreeIPA. Consumers need the accepted existing IdP.
 
 ## Table of contents
@@ -24,9 +24,10 @@ Keycloak additionally needs FreeIPA. Consumers need the accepted existing IdP.
 | Dependency | Required capability |
 | --- | --- |
 | Control node | Native Helm, `kubernetes.core`, `community.general` with Keycloak action group support, `community.hashi_vault` and Python `kubernetes`, `jsonpatch`, `PyYAML`, `hvac` |
-| CNPG and Barman Cloud plugin | Existing controllers and `Cluster`, `Backup`, `ScheduledBackup`, `ObjectStore` CRDs; plugin installed alongside CNPG [1] |
+| CNPG | Existing controller and `Cluster` CRD; the object/WAL option additionally requires Barman Cloud and its backup CRDs [1] |
 | Ingress and TLS | Existing Traefik ingress and CRD providers with `ServersTransport` CRD; external certificates/keys |
-| Backup destination | Existing HTTPS S3-compatible service outside these databases, with separate database prefixes and scoped credentials |
+| Live database storage | Qualified Proxmox/Ceph-backed block volumes; separate from NetBox media and NAS backup claims |
+| Database backup destination | [Scheduled verified full copies to NAS](../../../administration/backups/postgresql.md), or existing S3-compatible storage for the object/WAL option; no gateway is installed |
 | NetBox media | RWX-capable storage class shared by web, worker and housekeeping pods; separate media backup/restore |
 | Protected logs | Shared `cluster_security_logging` captures pod stdout and forwards it to protected Tier 0 mTLS intake |
 | Headlamp | Accepted [native Talos API OIDC integration](../../stage-5-identity/procedures/kubernetes-sso.md), with independent X509 recovery and matching `headlamp` audience/group bindings [4] |
@@ -64,7 +65,11 @@ terminate TLS at ingress and use cluster-internal HTTP; qualify network isolatio
 | `control_applications_manage_secrets` | `false`; use pre-existing Secrets, or explicitly permit Shared to create them from private `stringData` |
 | `control_applications_register_clients` | `false`; enable to converge selected clients on the existing Keycloak realm |
 | `control_applications_vault_phase` | `install`, `configure`, then `accept`; see the [Vault ceremony](vault-kubernetes.md) |
-| `control_applications_backup_schedule` | Six-field daily schedule; example runs at 02:00 according to the controller's timezone [2] |
+| `control_applications_backup_mode` | Fresh examples select `files`; omitted values retain the existing `object` behavior |
+| `control_applications_backup_files_phase` | `prepare` creates/gates the database only; `backup` enables file backups and proceeds to applications after NAS commissioning |
+| `control_applications_database_storage_class` | Qualified live Proxmox/Ceph-backed block class, separate from the backup destination |
+| `control_applications_netbox_media_storage_class` | Explicit RWX media class; independent of database block disks |
+| `control_applications_backup_schedule` | Object/WAL only: six-field schedule. File jobs use each database's five-field UTC schedule |
 | `control_applications_cluster_logging_accepted` | `false`; apply requires evidence of protected stdout delivery for the selected namespaces |
 | `control_applications_traefik_crd_accepted` | `false`; Keycloak/Vault require the existing CRD provider and verified upstream transport |
 
@@ -83,7 +88,7 @@ only contain Secret references.
 | `<product>-db-ca` | Public CA bundle for server and client authentication; no CA private key |
 | `<product>-db-server` | Issued server TLS leaf/key; SAN includes `<product>-db-rw` and its namespace/service FQDN |
 | `<product>-db-replication` | Issued client TLS leaf/key with CN `streaming_replica` and client-auth usage [3] |
-| `<product>-db-backup` | Scoped object credentials and backup endpoint CA |
+| `<product>-db-backup` | Object/WAL option only: scoped object credentials and backup endpoint CA |
 | `netbox-config` | Operator-held 50+ character `secret_key` and JSON `api_token_peppers`; retain old peppers during rotation |
 | `netbox-superuser` | Independent `username`, `password`, `email`, `api_token` recovery account |
 | `netbox-oidc` | `oidc.yaml` containing `SOCIAL_AUTH_OIDC_SECRET`, identical to the existing `netbox` client |
@@ -113,22 +118,33 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   -e control_applications_action=apply
 ```
 
-Apply creates/gates database Secrets, ObjectStores and Clusters, waits for each
+Apply creates/gates database Secrets, Clusters and the selected backup resources, waits for each
 database and authenticated TLS cache before installing application Helm releases. The role checks the
 first post-install physical backup. A manifest render proves neither controllers
 nor live services work. Do not apply these inputs against another tier's cluster.
 
 ## Persistence and recovery
 
-CNPG archives WAL through Barman and schedules physical backups to the configured
-store. The first `Backup` must reach `completed`; test a fresh post-configuration
+Select one backup method. Scheduled full file backups send verified copies to a
+separate NAS backup PVC; live database data remains on Proxmox/Ceph-backed volumes.
+These copies include the WAL needed for that backup, not transactions written
+after it completes. Recovery is bounded by the last completed verified set.
+Follow [prepare, commission and enable](../../../administration/backups/postgresql.md)
+before treating a fresh files-mode application install as complete.
+
+The object/WAL option archives through Barman and schedules physical backups to
+the configured endpoint. Its first `Backup` must reach `completed`. Existing
+object/WAL inputs remain compatible; changing methods is a reviewed recovery-policy
+decision, not an automatic refresh migration. Test the selected method's fresh
 backup and clean-target restore before accepting service recovery. [1][2]
 
-For a recovery rehearsal, use the plugin's native recovery recipe with a **new**
+For an object/WAL recovery rehearsal, use the plugin's native recipe with a **new**
 Cluster name and fresh PVCs: `bootstrap.recovery.source` references an
 `externalClusters[].plugin` entry with `barmanObjectName` and the original database
 `serverName`. Restore read credentials and TLS independently. Never replace the
 running Cluster's `initdb` bootstrap or share archive prefixes between writers. [1]
+Use the separate [NAS-file recovery procedure](../../../administration/recovery/cnpg-files.md)
+for a completed file set; it does not replay a Barman archive.
 
 NetBox media has a separate RWX persistent volume shared by web, worker and
 housekeeping pods; its backup/restore and cache AOF

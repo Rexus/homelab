@@ -1,5 +1,5 @@
 ---
-gitlab_container_image: docker.io/gitlab/gitlab-ce:latest
+gitlab_container_image: ""
 gitlab_container_name: gitlab
 gitlab_home: /srv/gitlab
 

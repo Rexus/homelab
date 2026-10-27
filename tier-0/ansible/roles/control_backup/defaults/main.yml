@@ -1,0 +1,37 @@
+---
+control_backup_independent_host_accepted: false
+control_backup_repository: ""
+control_backup_repository_id: ""
+control_backup_password_file: "{{ lookup('ansible.builtin.env', 'CONTROL_BACKUP_PASSWORD_FILE') }}"
+control_backup_calendar: hourly
+control_backup_watchdog_url: ""
+control_backup_directory: /var/lib/control-backup
+# Install a release-matched, verified Vault CLI through the site's software intake.
+control_backup_vault_binary: /usr/local/bin/vault
+control_backup_vault_address: ""
+control_backup_vault_server_name: ""
+control_backup_vault_ca_file: ""
+control_backup_vault_auth: cert
+control_backup_vault_cert_mount: control-backup-cert
+control_backup_vault_cert_role: control-raft-snapshot
+control_backup_vault_client_cert_file: ""
+control_backup_vault_client_key_file: ""
+control_backup_vault_client_tls_accepted: false
+control_backup_vault_cert_min_seconds: 604800
+control_backup_vault_bound_cidrs: []
+control_backup_vault_approle_mount: approle
+control_backup_vault_role_id_file: ""
+control_backup_vault_secret_id_file: ""
+control_backup_vault_static_token_file: ""
+control_backup_vault_static_token_local_accepted: false
+# Exactly this policy, with no inherited/default/identity policies, is accepted.
+control_backup_vault_policy: control-raft-snapshot
+control_backup_inputs: []
+# Mount bounded read-only exports directly from actual provisioning/input custodians.
+control_backup_input_sources: []
+# Each selection: {repo: /mnt/control-inputs-provisioner/tier-0, path: .terraform/state/...}
+control_backup_media_enabled: false
+control_backup_media_source: ""
+control_backup_media_mount: /mnt/netbox-recovery-media
+control_backup_media_marker: ""
+control_backup_media_credentials_file: ""

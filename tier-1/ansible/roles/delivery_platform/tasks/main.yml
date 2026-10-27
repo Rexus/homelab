@@ -14,7 +14,7 @@
   ansible.builtin.include_tasks: argocd.yml
   when: delivery_platform_controller == 'argocd'
 
-- name: Render and validate the reviewed Spinnaker overlay before any installation
+- name: Render and validate the selected Spinnaker installation before any cluster access
   ansible.builtin.include_tasks: spinnaker.yml
   when: delivery_platform_controller == 'spinnaker'
 

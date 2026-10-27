@@ -1,0 +1,7 @@
+---
+development_platform_database_host: {{ development_data_endpoints.postgresql | to_json }}
+development_platform_redis_host: {{ development_data_endpoints.redis | to_json }}
+development_platform_gitaly_host: {{ development_data_endpoints.gitaly | to_json }}
+development_platform_buckets: {{ development_data_buckets | to_json }}
+development_platform_gitlab_backup_enabled: true
+development_platform_gitlab_backup_schedule: "30 2 * * *"

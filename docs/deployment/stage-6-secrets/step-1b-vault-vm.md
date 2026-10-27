@@ -126,7 +126,7 @@ inventory includes `vault-1` because it matches the active Terraform default.
 The foundation run does not touch it because the foundation playbook targets
 only the foundation groups.
 
-The starter places privileged secrets at `10.20.21.21` on the cryptography
+The starter places privileged secrets at `10.20.21.40` on the cryptography
 network, not on the application subnet. Existing deployments keep their local
 inputs during refresh; moving a live Vault service requires a separate reviewed
 network, DNS, TLS, firewall, and recovery plan.

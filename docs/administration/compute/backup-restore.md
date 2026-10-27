@@ -64,9 +64,29 @@ or successful file transfer alone does not establish that result.
 
 ## Quick steps
 
-The following is the **PBS reference path**. With an existing approved service,
-use its supported backup/restore procedure and complete the same done criteria;
-installing PBS is not mandatory.
+Choose an existing NAS file target or the PBS reference service. Both must pass
+the same restore and custody checks; neither requires an object-storage API.
+With a qualified existing target, installing PBS is not mandatory.
+
+### NAS file target
+
+1. Commission a dedicated NAS export with restricted Proxmox access and enough
+   capacity. In Proxmox, add it under `Datacenter -> Storage -> Add -> NFS`, select
+   the actual server/export and enable backup-file content. Proxmox manages the
+   mount; no gateway service or guest-side object API is required. [4][5]
+2. Under `Datacenter -> Backup`, select that target, guests, included disks,
+   consistency mode and schedule. Run the job and check the resulting backup
+   files. Snapshot mode is not proof of application-consistent database recovery;
+   use product-aware backups or an approved stopped-guest recovery point. [4]
+3. Restore a disposable guest under a new identity and verify its data. Arrange
+   an independently retained/offsite copy of the files and recovery credentials;
+   a second share on the same NAS does not provide that independence.
+
+VM backups do not automatically include external Kubernetes PVCs or NAS shares.
+Protect those datasets through their [application backup contracts](../../deployment/foundation/procedures/object-storage.md#choose-the-native-interface).
+The mounted file destination is not a claim of WORM, deduplication or HA.
+
+### PBS reference
 
 1. Install Proxmox Backup Server.
 2. Log in to the PBS web UI on port `8007`.
@@ -103,8 +123,10 @@ Do not continue until all of these are true:
 
 ## References
 
-Sources checked 2026-10-19.
+Policy sources checked 2026-10-19; native NAS backup path checked 2026-10-27.
 
 1. [HHS backup and recovery guidance: 3-2-1 and offline copies](https://www.hhs.gov/hipaa/for-professionals/security/guidance/cybersecurity-newsletter-october-2022/index.html)
 2. [PBS roles, privileges and namespace-scoped access](https://pbs.proxmox.com/docs/user-management.html)
 3. [PBS ransomware protection and independent copies](https://pbs.proxmox.com/docs/storage.html#ransomware-protection-recovery)
+4. [Proxmox native backup targets and consistency modes](https://github.com/proxmox/pve-docs/blob/master/vzdump.adoc)
+5. [Proxmox native NFS storage backend](https://github.com/proxmox/pve-docs/blob/master/pve-storage-nfs.adoc)

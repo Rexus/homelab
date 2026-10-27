@@ -11,6 +11,11 @@ all:
   children:
     hypervisors:
       hosts: {}
+    # Independently prepared existing hosts; never placed in the observed cluster.
+    infrastructure_monitoring:
+      hosts: {}
+    control_recovery:
+      hosts: {}
     foundation_logging:
       hosts:
         log-1: {}
@@ -53,6 +58,11 @@ all:
     infrastructure_runner:
       hosts:
         iac-1: {}
+    # Independently provisioned private API gateways; never public edge or cluster workloads.
+    cluster_endpoint:
+      hosts:
+        api-gw-1: {}
+        api-gw-2: {}
     immutable_template_builders:
       hosts:
         rhel-10-immu-tmpl: {}
@@ -80,5 +90,6 @@ all:
         hsm_gateways: null
         crypto_admin: null
         infrastructure_runner: null
+        cluster_endpoint: null
         immutable_template_builders: null
         template_refresh_builders: null

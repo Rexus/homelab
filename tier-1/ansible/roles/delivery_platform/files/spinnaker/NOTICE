@@ -1,0 +1,12 @@
+Spinnaker native reference
+
+The files recorded in upstream.yml are reproduced from the official Spinnaker
+repository's spinnaker-kustomize directory under the Apache License, Version 2.0.
+Original copyright comments are preserved. LICENSE reproduces that directory's
+license, including Copyright 2023 Karl Skewes. Exact repository, release and
+revision are pinned in ../software.yml. No upstream root NOTICE was present.
+
+base/kustomization.yml is a local selection of eight upstream components.
+The surrounding templates replace demonstration configuration, pin images,
+remove the upstream cluster-admin binding, and add Tier 1 dependencies.
+These integration changes do not relicense the reproduced upstream material.

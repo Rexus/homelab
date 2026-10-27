@@ -5,6 +5,8 @@ development_platform_kubeconfig: ""
 development_platform_output: "{{ playbook_dir }}/../../../secrets/development-platform"
 development_platform_chart_repository: https://charts.gitlab.io
 development_platform_gitlab_version: ""
+development_platform_gitlab_backup_enabled: true
+development_platform_gitlab_backup_schedule: "30 2 * * *"
 development_platform_runner_version: ""
 development_platform_namespace: gitlab
 development_platform_runner_namespace: ci-jobs
@@ -32,6 +34,7 @@ development_platform_runner_allowed_cidrs: []
 development_platform_runner_api_cidrs: []
 development_platform_runner_image: ""
 development_platform_runner_helper_image: ""
+development_platform_runner_additional_allowed_images: []
 development_platform_runner_resources:
   requests: {cpu: 100m, memory: 128Mi}
   limits: {cpu: "1", memory: 512Mi}

@@ -1,0 +1,104 @@
+---
+- name: Require native storage, certificate authority and bounded local destinations
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_spinnaker_storage_class | length > 0
+      - delivery_platform_spinnaker_storage_class != '-'
+      - delivery_platform_spinnaker_issuer.kind in ['Issuer', 'ClusterIssuer']
+      - delivery_platform_spinnaker_issuer.group == 'cert-manager.io'
+      - delivery_platform_spinnaker_issuer.name is match('^[a-z0-9][a-z0-9.-]*$')
+      - delivery_platform_spinnaker_certificate_mode in ['preissued', 'issuer']
+      - delivery_platform_spinnaker_ca_pem | regex_findall('BEGIN CERTIFICATE') | length == 1
+      - delivery_platform_oidc_ca_pem | regex_findall('BEGIN CERTIFICATE') | length == 1
+      - delivery_platform_spinnaker_destinations | length > 0
+      - delivery_platform_spinnaker_destinations | unique | length == delivery_platform_spinnaker_destinations | length
+      - delivery_platform_spinnaker_egress | length > 0
+      - delivery_platform_spinnaker_secret_revision is match('^[A-Za-z0-9._-]+$')
+      - delivery_platform_software.spinnaker_release is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - delivery_platform_software.spinnaker_revision is match('^[a-f0-9]{40}$')
+    fail_msg: Supply native persistent storage, an accepted issuer and roots, exact target namespaces and endpoint egress.
+
+- name: Reject system, control and delivery namespaces as pipeline targets
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - item | length <= 63
+      - >-
+        item not in ['default', 'kube-system', 'kube-public', 'kube-node-lease', 'flux-system',
+          'cert-manager', 'cnpg-system', 'vault', 'keycloak', 'freeipa', 'netbox', 'headlamp',
+          delivery_platform_spinnaker_namespace, delivery_platform_spinnaker_ingress_namespace]
+  loop: "{{ delivery_platform_spinnaker_destinations }}"
+
+- name: Require distinct native identity roles
+  ansible.builtin.assert:
+    that:
+      - spinnaker_native_groups | unique | length == 3
+      - delivery_platform_spinnaker_oidc_client_id | length > 0
+      - delivery_platform_spinnaker_oidc_roles_claim is match('^[A-Za-z0-9_.-]+$')
+      - "'openid' in delivery_platform_spinnaker_oidc_scopes"
+      - item is match('^[a-z0-9][a-z0-9_:/.-]*$')
+  vars:
+    spinnaker_native_groups: >-
+      {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_reader_group,
+          delivery_platform_spinnaker_writer_group] }}
+  loop: "{{ spinnaker_native_groups }}"
+
+- name: Require explicit non-global egress grants
+  ansible.builtin.assert:
+    that:
+      - item.cidr is match('^[0-9a-fA-F:.]+/[0-9]+$')
+      - item.cidr not in ['0.0.0.0/0', '::/0']
+      - item.cidr | ansible.utils.ipaddr is string
+      - item.cidr | ansible.utils.ipaddr('prefix') | int > 0
+      - item.ports | length > 0
+      - item.ports | map('int') | min > 0
+      - item.ports | map('int') | max <= 65535
+  loop: >-
+    {{ delivery_platform_spinnaker_egress +
+       (delivery_platform_spinnaker_backup_egress if delivery_platform_spinnaker_backup_backend == 's3' else []) }}
+
+- name: Require an explicitly supported independent backup backend
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_spinnaker_backup_backend in ['s3', 'filesystem']
+
+- name: Require a dedicated preprovisioned file repository and its custody marker
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_spinnaker_backup_filesystem_claim is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+      - delivery_platform_spinnaker_backup_filesystem_claim | length <= 253
+      - delivery_platform_spinnaker_backup_filesystem_claim not in ['spinnaker-backup', 'data-spinnaker-mysql-0', 'data-spinnaker-redis-0']
+      - delivery_platform_spinnaker_backup_filesystem_repository is match('^[a-z0-9][a-z0-9_-]{0,62}$')
+      - delivery_platform_spinnaker_backup_filesystem_marker is match('^[A-Za-z0-9_-]{32,128}$')
+    fail_msg: Supply a separate existing NAS PVC, one repository directory name and its commissioned marker identity.
+  when: delivery_platform_spinnaker_backup_backend == 'filesystem'
+
+- name: Require independent verified HTTPS object storage for S3 backups
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_spinnaker_backup_s3_endpoint | urlsplit('scheme') == 'https'
+      - delivery_platform_spinnaker_backup_s3_endpoint | urlsplit('hostname') | default('', true) is match('^[a-z0-9][a-z0-9.-]+[a-z0-9]$')
+      - delivery_platform_spinnaker_backup_s3_endpoint | urlsplit('hostname') not in ['localhost', delivery_platform_spinnaker_host]
+      - delivery_platform_spinnaker_backup_s3_endpoint | urlsplit('hostname') is not search('(^127\.|\.svc($|\.))')
+      - not delivery_platform_spinnaker_backup_s3_endpoint | urlsplit('username')
+      - not delivery_platform_spinnaker_backup_s3_endpoint | urlsplit('password')
+      - delivery_platform_spinnaker_backup_s3_endpoint | urlsplit('path') in ['', '/']
+      - not delivery_platform_spinnaker_backup_s3_endpoint | urlsplit('query')
+      - not delivery_platform_spinnaker_backup_s3_endpoint | urlsplit('fragment')
+      - delivery_platform_spinnaker_backup_s3_bucket is match('^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$')
+      - delivery_platform_spinnaker_backup_s3_prefix is match('^[a-z0-9][a-z0-9/_-]*[a-z0-9]$')
+      - delivery_platform_spinnaker_backup_ca_pem | regex_findall('BEGIN CERTIFICATE') | length == 1
+      - delivery_platform_spinnaker_backup_egress | length > 0
+    fail_msg: Native Spinnaker requires independent S3 HTTPS storage, public root trust, bucket/prefix and scoped backup egress.
+  when: delivery_platform_spinnaker_backup_backend == 's3'
+
+- name: Require persistent allocations and bounded backup retention
+  ansible.builtin.assert:
+    that:
+      - item is match('^[1-9][0-9]*(Mi|Gi|Ti)$')
+      - delivery_platform_spinnaker_backup_keep_days | int >= 1
+      - delivery_platform_spinnaker_backup_keep_days | int <= 365
+  loop:
+    - "{{ delivery_platform_spinnaker_mysql_size }}"
+    - "{{ delivery_platform_spinnaker_redis_size }}"
+    - "{{ delivery_platform_spinnaker_backup_size }}"

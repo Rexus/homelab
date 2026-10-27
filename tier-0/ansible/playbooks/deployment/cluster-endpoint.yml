@@ -1,0 +1,32 @@
+---
+# Run before any consuming cluster. The private gateway pair stays outside Kubernetes.
+# Guide: docs/deployment/stage-4-kubernetes/procedures/api-endpoint.md
+- name: Validate the private API endpoint contract on both gateways
+  hosts: cluster_endpoint
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Check endpoint inputs before applying the Linux baseline
+      ansible.builtin.include_role:
+        name: cluster_endpoint
+        tasks_from: preflight
+
+- name: Configure independent Tier 0 private API gateways one at a time
+  hosts: cluster_endpoint
+  gather_facts: false
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  pre_tasks:
+    - name: Wait for the cloned gateway to accept Ansible connections
+      ansible.builtin.wait_for_connection:
+        delay: "{{ platform_wait_for_connection_delay | default(5) }}"
+        sleep: "{{ platform_wait_for_connection_sleep | default(5) }}"
+        connect_timeout: "{{ platform_wait_for_connection_connect_timeout | default(5) }}"
+        timeout: "{{ platform_wait_for_connection_timeout | default(300) }}"
+
+    - name: Gather gateway facts after bootstrap SSH is ready
+      ansible.builtin.setup:
+  roles:
+    - baseline
+    - cluster_endpoint

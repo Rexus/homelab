@@ -16,6 +16,16 @@
           password: {{ observability_prepper_auth.password | to_json }}
   buffer:
     bounded_blocking: {buffer_size: 10240, batch_size: 1024}
+{% if signal == 'logs' and scope.kind == 'projection' %}
+  processor:
+{% for field in ['body', 'body/record'] %}
+    - parse_json:
+        source: {{ field }}
+        destination: {{ field }}
+        overwrite_if_destination_exists: true
+        tags_on_failure: [projection_record_parse_failure]
+{% endfor %}
+{% endif %}
   sink:
     - opensearch:
         hosts: ['https://opensearch:9200']

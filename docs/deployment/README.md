@@ -94,12 +94,14 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Tier 0 | `foundation` | Stages 3/5: issuer and directory VM resources | [Trust](stage-3-trust/README.md), [directory deployment](stage-5-identity/procedures/freeipa.md) |
 | Tier 0 | `hsm` | Stage 3 option: signing-service host pool | [USB HSM option](stage-3-trust/step-1b-usb-hsm.md) |
 | Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1-3](stage-4-kubernetes/README.md) |
+| Tier 0 | `cluster-endpoint` | Before Stage 4/7/10: private independent API gateways | [API endpoint](stage-4-kubernetes/procedures/api-endpoint.md) |
 | Tier 0 | `vault` | Stage 6 option: dedicated secrets VM | [Vault VM option](stage-6-secrets/step-1b-vault-vm.md) |
 | Tier 0 | `immutable-template` | Stage 9 option: image-based Linux builds | [Image-based Linux](stage-9-development/step-2c-image-based-linux.md) |
 | Tier 0 | `infrastructure-runner` | Stage 9: dedicated trusted infrastructure CI VM | [Runner](stage-9-development/procedures/infrastructure-runner.md) |
 | Tier 0 | `ci-auth` | Stage 9: Vault JWT backend, bounded claims and policies; native Vault root | [Vault CI](stage-9-development/procedures/vault-ci.md) |
 | Tier 1 | `kubernetes` | Stage 7: shared platform cluster | [Platform runtime](stage-7-delivery/procedures/platform-cluster.md) |
 | Tier 1 | `development` | Stage 9 option: source-control VM | [Source-control VM](stage-9-development/step-1b-source-control-vm.md) |
+| Tier 1 | `development-data` | Stage 9: dedicated PostgreSQL, Redis and Gitaly VMs | [GitLab data services](stage-9-development/procedures/data-services.md) |
 | Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-9-development/step-2b-podman-runner.md) |
 | Tier 1 | `observability` | Stage 8 alternative: dedicated VM foundations; baseline only | [Observability](stage-8-observability/README.md), [VM recipe](stage-8-observability/step-1b-dedicated-vms.md) |
 | Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 1](stage-1-software-intake/README.md#step-1-deploy-the-policy-proxy-and-cache) |

@@ -1,0 +1,21 @@
+---
+# Tier-owned inputs. Copy OUTSIDE Git and pass with -e @/absolute/path/host-security.yml.
+# Guide: docs/deployment/foundation/procedures/host-security.md.
+host_security_enabled: false
+host_security_profile: linux-host-v1
+host_security_action: apply
+# Select exactly one pilot inventory host before expanding the approved scope.
+host_security_hosts: REPLACE_WITH_PILOT_INVENTORY_HOST
+host_security_acknowledgement: ""
+host_security_console_verified: false
+host_security_key_access_verified: false
+host_security_config_ownership_verified: false
+host_security_operator_sources: []
+host_security_ssh_users:
+  - name: automation
+    public_key_files: []
+host_security_time_servers: []
+# Explicit [] means this host has no inbound services other than operator SSH.
+host_security_service_rules: []
+# Required on keepalived hosts: explicit peer source /32 or /128 CIDRs, never subnets.
+host_security_vrrp_peers: []

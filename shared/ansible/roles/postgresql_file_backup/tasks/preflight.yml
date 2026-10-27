@@ -1,0 +1,19 @@
+---
+- name: Require explicit identity, release and commissioned NAS inputs
+  ansible.builtin.assert:
+    that:
+      - postgresql_file_backup_action in ['render', 'apply']
+      - postgresql_file_backup_output | length > 0
+      - postgresql_file_backup_target.cluster is match('^[a-z0-9][a-z0-9-]{0,39}$')
+      - postgresql_file_backup_target.namespace is match('^[a-z0-9][a-z0-9-]*$')
+      - postgresql_file_backup_target.claim is match('^[a-z0-9][a-z0-9-]*$')
+      - postgresql_file_backup_target.tls_secret is match('^[a-z0-9][a-z0-9-]*$')
+      - postgresql_file_backup_target.image is match('^[^\s]+:17\.[0-9]+(@sha256:[a-f0-9]{64})?$')
+      - postgresql_file_backup_target.source_id is match('^[a-zA-Z0-9/_-]+$')
+      - postgresql_file_backup_target.system_identifier | string is match('^[0-9]{10,20}$')
+      - postgresql_file_backup_target.marker is match('^[a-zA-Z0-9_-]{24,128}$')
+      - postgresql_file_backup_target.volume_handle | length > 0
+      - postgresql_file_backup_target.schedule.split() | length == 5
+      - postgresql_file_backup_action != 'apply' or postgresql_file_backup_target.accepted | bool
+      - postgresql_file_backup_action != 'apply' or postgresql_file_backup_kubeconfig | length > 0
+    fail_msg: Supply PostgreSQL 17, exact source identity and commissioned NAS claim/marker; apply needs acceptance.

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zone target="DROP">
+  <short>Host security</short>
+{% for source in host_security_operator_sources %}
+  <rule family="{{ 'ipv6' if ':' in source else 'ipv4' }}">
+    <source address="{{ source }}"/>
+    <port port="{{ host_security_ssh_port }}" protocol="tcp"/>
+    <accept/>
+  </rule>
+{% endfor %}
+{% for rule in host_security_service_rules %}
+  <rule family="{{ 'ipv6' if ':' in rule.source else 'ipv4' }}">
+    <source address="{{ rule.source }}"/>
+    <port port="{{ rule.port }}" protocol="{{ rule.protocol }}"/>
+    <accept/>
+  </rule>
+{% endfor %}
+{% for peer in host_security_vrrp_peers %}
+  <rule family="{{ 'ipv6' if ':' in peer else 'ipv4' }}">
+    <source address="{{ peer }}"/>
+    <protocol value="vrrp"/>
+    <accept/>
+  </rule>
+{% endfor %}
+</zone>

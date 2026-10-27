@@ -1,0 +1,150 @@
+---
+- name: Check platform prerequisites and partition the reviewed lifecycle
+  ansible.builtin.import_tasks: spinnaker-native-cluster.yml
+
+- name: Prepare explicitly owned credentials and derived public trust
+  ansible.builtin.import_tasks: spinnaker-native-bootstrap.yml
+
+- name: Install configuration, private certificates, claims, network policies and scoped target identities
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition: "{{ spinnaker_native_foundation }}"
+
+- name: Wait for every verified private TLS and PKCS12 certificate
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: cert-manager.io/v1
+    kind: Certificate
+    namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    name: "{{ item.metadata.name }}"
+  register: spinnaker_native_certificate_health
+  until: >-
+    spinnaker_native_certificate_health.resources | length == 1 and
+    spinnaker_native_certificate_health.resources[0].get('status', {}).get('conditions', [])
+    | selectattr('type', 'equalto', 'Ready') | selectattr('status', 'equalto', 'True')
+    | selectattr('observedGeneration', 'ge', spinnaker_native_certificate_health.resources[0].metadata.generation)
+    | list | length == 1
+  retries: 120
+  delay: 5
+  loop: "{{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'Certificate') | list }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+
+- name: Start persistent SQL and Redis before schema or application initialization
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition: "{{ spinnaker_native_datastores }}"
+
+- name: Wait for both persistent data services
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: StatefulSet
+    namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    name: "{{ item.metadata.name }}"
+  register: spinnaker_native_datastore_health
+  until: >-
+    spinnaker_native_datastore_health.resources | length == 1 and
+    spinnaker_native_datastore_health.resources[0].get('status', {}).get('readyReplicas', 0) == 1 and
+    spinnaker_native_datastore_health.resources[0].get('status', {}).get('updatedReplicas', 0) == 1 and
+    spinnaker_native_datastore_health.resources[0].get('status', {}).get('observedGeneration', 0)
+      >= spinnaker_native_datastore_health.resources[0].metadata.generation and
+    spinnaker_native_datastore_health.resources[0].status.currentRevision
+      == spinnaker_native_datastore_health.resources[0].status.updateRevision
+  retries: 90
+  delay: 10
+  loop: "{{ spinnaker_native_datastores }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+
+- name: Replace the transient idempotent schema and user provisioning job
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    name: spinnaker-databases
+    namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    state: absent
+    wait: true
+
+- name: Complete schema and account provisioning before starting service migrations
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition: "{{ spinnaker_native_database_job }}"
+    wait: true
+    wait_timeout: 900
+    wait_condition: {type: Complete, status: 'True'}
+
+- name: Transfer only the explicit namespace-restricted deployment identities
+  ansible.builtin.import_tasks: spinnaker-native-identities.yml
+
+- name: Roll out all eight service Deployments after data and identity dependencies are ready
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition: "{{ spinnaker_native_deployments }}"
+
+- name: Wait for native service migrations and healthy application replicas
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    name: "{{ item.metadata.name }}"
+  register: spinnaker_native_application_health
+  until: >-
+    spinnaker_native_application_health.resources | length == 1 and
+    spinnaker_native_application_health.resources[0].get('status', {}).get('observedGeneration', 0)
+      >= spinnaker_native_application_health.resources[0].metadata.generation and
+    spinnaker_native_application_health.resources[0].get('status', {}).get('updatedReplicas', 0) == 1 and
+    spinnaker_native_application_health.resources[0].get('status', {}).get('availableReplicas', 0) == 1 and
+    spinnaker_native_application_health.resources[0].get('status', {}).get('replicas', 0) == 1 and
+    spinnaker_native_application_health.resources[0].get('status', {}).get('unavailableReplicas', 0) == 0
+  retries: 90
+  delay: 10
+  loop: "{{ spinnaker_native_deployments }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+
+- name: Replace the independent-copy verification Job before publishing the application
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    name: spinnaker-backup-verify
+    namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    state: absent
+    wait: true
+
+- name: Require a complete verified independent repository snapshot on every apply
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition: >-
+      {{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'Job')
+         | selectattr('metadata.name', 'equalto', 'spinnaker-backup-verify') | first }}
+    wait: true
+    wait_timeout: 4200
+    wait_condition: {type: Complete, status: 'True'}
+
+- name: Publish the private interface and enable scheduled independent backups
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition: "{{ delivery_platform_spinnaker_documents | selectattr('kind', 'in', ['Ingress', 'CronJob']) | list }}"

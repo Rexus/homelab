@@ -1,0 +1,96 @@
+---
+- name: Validate the bounded PostgreSQL file backup contract
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Render native backup resources without cluster access
+  ansible.builtin.file:
+    path: "{{ postgresql_file_backup_output }}"
+    state: directory
+    mode: "0700"
+
+- name: Store the reviewed native backup manifests
+  ansible.builtin.copy:
+    content: "{{ lookup('ansible.builtin.template', 'resources.yml.j2') }}"
+    dest: "{{ postgresql_file_backup_output }}/{{ postgresql_file_backup_target.cluster }}-files.yml"
+    mode: "0600"
+
+- name: Qualify the existing NAS destination before applying jobs
+  ansible.builtin.include_tasks: storage.yml
+  when: postgresql_file_backup_action == 'apply'
+
+- name: Require the ready source database and its recorded identity
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ postgresql_file_backup_kubeconfig }}"
+    context: "{{ postgresql_file_backup_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: "{{ postgresql_file_backup_target.namespace }}"
+    name: "{{ postgresql_file_backup_target.cluster }}"
+    wait: true
+    wait_timeout: 900
+    wait_condition: {type: Ready, status: 'True'}
+  register: postgresql_file_backup_source
+  when: postgresql_file_backup_action == 'apply'
+
+- name: Reject a changed source identity or image before scheduling backups
+  ansible.builtin.assert:
+    that:
+      - postgresql_file_backup_source.resources[0].status.systemID | string == postgresql_file_backup_target.system_identifier | string
+      - postgresql_file_backup_source.resources[0].spec.imageName == postgresql_file_backup_target.image
+    fail_msg: The source system identifier or PostgreSQL image changed; recommission the selected source explicitly.
+  when: postgresql_file_backup_action == 'apply'
+
+- name: Apply native PostgreSQL backup jobs
+  kubernetes.core.k8s:
+    kubeconfig: "{{ postgresql_file_backup_kubeconfig }}"
+    context: "{{ postgresql_file_backup_context | default(omit, true) }}"
+    validate_certs: true
+    definition: >-
+      {{ lookup('ansible.builtin.template', 'resources.yml.j2') | from_yaml_all
+         | rejectattr('kind', 'equalto', 'Job') | list }}
+    state: present
+  when: postgresql_file_backup_action == 'apply'
+
+- name: Read the immutable first-backup Job before creation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ postgresql_file_backup_kubeconfig }}"
+    context: "{{ postgresql_file_backup_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ postgresql_file_backup_target.namespace }}"
+    name: >-
+      {{ (lookup('ansible.builtin.template', 'resources.yml.j2') | from_yaml_all
+          | selectattr('kind', 'equalto', 'Job') | first).metadata.name }}
+  register: postgresql_file_backup_initial_job
+  when: postgresql_file_backup_action == 'apply'
+
+- name: Create the initial Job only on its first installation
+  kubernetes.core.k8s:
+    kubeconfig: "{{ postgresql_file_backup_kubeconfig }}"
+    context: "{{ postgresql_file_backup_context | default(omit, true) }}"
+    validate_certs: true
+    definition: >-
+      {{ lookup('ansible.builtin.template', 'resources.yml.j2') | from_yaml_all
+         | selectattr('kind', 'equalto', 'Job') | first }}
+    state: present
+  when:
+    - postgresql_file_backup_action == 'apply'
+    - postgresql_file_backup_initial_job.resources | length == 0
+
+- name: Require the initial verified NAS backup
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ postgresql_file_backup_kubeconfig }}"
+    context: "{{ postgresql_file_backup_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ postgresql_file_backup_target.namespace }}"
+    name: >-
+      {{ (lookup('ansible.builtin.template', 'resources.yml.j2') | from_yaml_all
+          | selectattr('kind', 'equalto', 'Job') | first).metadata.name }}
+    wait: true
+    wait_timeout: 3600
+    wait_condition: {type: Complete, status: "True"}
+  when: postgresql_file_backup_action == 'apply'

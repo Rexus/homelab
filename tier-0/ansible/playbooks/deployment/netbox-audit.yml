@@ -1,0 +1,17 @@
+---
+# Existing independent Tier 0 monitoring host; no cluster or archive credentials.
+- name: Require one selected independent audit collector
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Refuse an empty or ambiguous audit-collector assignment
+      ansible.builtin.assert:
+        that: groups.get('infrastructure_monitoring', []) | length == 1
+        fail_msg: Assign the single selected independent monitor host before installing NetBox audit collection.
+
+- name: Collect NetBox change history for protected forwarding
+  hosts: infrastructure_monitoring
+  become: true
+  roles:
+    - netbox_audit

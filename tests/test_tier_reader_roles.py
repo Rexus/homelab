@@ -155,7 +155,8 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertIn("deployment/readiness.md", deployment)
             self.assertIn("Selected variant / local procedure", deployment)
             for stage in ("stage-1-software-intake", "stage-2-logging", "stage-3-trust", "stage-4-kubernetes", "stage-5-identity",
-                          "stage-6-secrets", "stage-7-delivery", "stage-8-observability", "stage-9-development", "stage-10-lab-environments"):
+                          "stage-6-secrets",
+                          "stage-7-delivery", "stage-8-observability", "stage-9-development", "stage-10-lab-environments"):
                 self.assertIn(f"{stage}/README.md", deployment)
             self.assertIn("../architecture/README.md", deployment)
             self.assertIn("do not transfer resource or state ownership", deployment)
@@ -163,7 +164,8 @@ class ReaderRoles(TierRepositoryTestCase):
         self.assertEqual(sorted((path.parent.name for path in reference.glob("stage-*/README.md")),
                                 key=lambda name: int(name.split("-")[1])),
                          ["stage-1-software-intake", "stage-2-logging", "stage-3-trust", "stage-4-kubernetes", "stage-5-identity",
-                          "stage-6-secrets", "stage-7-delivery", "stage-8-observability", "stage-9-development", "stage-10-lab-environments"])
+                          "stage-6-secrets",
+                          "stage-7-delivery", "stage-8-observability", "stage-9-development", "stage-10-lab-environments"])
         for old in ("stages", "compute", "cryptography", "identity", "network", "delivery", "operations"):
             self.assertFalse((reference / old).exists(), old)
         architecture = self.root / "verify-architecture/docs/architecture"

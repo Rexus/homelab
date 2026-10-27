@@ -1,0 +1,81 @@
+---
+- name: Prepare private scope configuration
+  ansible.builtin.file:
+    path: "/etc/logging-export/{{ logging_export_scope.name }}"
+    state: directory
+    owner: root
+    group: log-export
+    mode: '0750'
+
+- name: Prepare local durable offsets and outbound queue
+  ansible.builtin.file:
+    path: "/var/lib/logging-export/{{ logging_export_scope.name }}"
+    state: directory
+    owner: log-export
+    group: log-export
+    mode: '0700'
+
+- name: Inspect the separately prepared read-only projection
+  ansible.builtin.stat:
+    path: "{{ logging_export_root }}/{{ logging_export_scope.name }}"
+    follow: false
+  register: logging_export_view
+
+- name: Reject a missing view or a symlink substitute
+  ansible.builtin.assert:
+    that:
+      - logging_export_view.stat.isdir | default(false)
+      - not (logging_export_view.stat.islnk | default(false))
+    fail_msg: Publish a first approved checkpoint before installing this scope.
+
+- name: Install only this scope's outbound credentials
+  ansible.builtin.copy:
+    src: "{{ logging_export_scope[item ~ '_file'] }}"
+    dest: "/etc/logging-export/{{ logging_export_scope.name }}/{{ item }}.pem"
+    owner: root
+    group: log-export
+    mode: '0440'
+  loop: [ca, cert, key]
+  no_log: true
+  diff: false
+  register: logging_export_credentials
+
+- name: Render the native Collector configuration
+  ansible.builtin.template:
+    src: collector.yml.j2
+    dest: "/etc/logging-export/{{ logging_export_scope.name }}/config.yml"
+    owner: root
+    group: log-export
+    mode: '0440'
+  register: logging_export_configuration
+
+- name: Define non-root scoped native Collector with read-only copies
+  containers.podman.podman_container:
+    name: "security-log-projection-{{ logging_export_scope.name }}"
+    image: "{{ logging_export_image }}"
+    state: quadlet
+    user: "{{ logging_export_user.uid }}:{{ logging_export_user.group }}"
+    group_add: ["{{ logging_export_view.stat.gid }}"]
+    command: [--config=/config/config.yml]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges]
+    memory: "{{ logging_export_memory }}"
+    volume:
+      - "/etc/logging-export/{{ logging_export_scope.name }}:/config:ro,Z"
+      - "{{ logging_export_root }}/{{ logging_export_scope.name }}:/approved:ro,z"
+      - "/var/lib/logging-export/{{ logging_export_scope.name }}:/state:Z"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=on-failure
+      - |
+        [Install]
+        WantedBy=multi-user.target
+  register: logging_export_container
+
+- name: Start or reload the exporter after credential and configuration changes
+  ansible.builtin.systemd_service:
+    name: "security-log-projection-{{ logging_export_scope.name }}"
+    daemon_reload: true
+    state: "{{ 'restarted' if logging_export_configuration.changed or logging_export_credentials.changed or logging_export_container.changed else 'started' }}"

@@ -62,7 +62,8 @@ class AnsibleOwnership(TierRepositoryTestCase):
         shared = self.root / "verify-shared"
         self.assertEqual({p.name for p in (shared / "ansible/roles").iterdir()},
                          {"baseline", "shared", "log_forwarder", "helm_release", "kubernetes_applications",
-                          "cluster_platform", "cluster_security_logging"})
+                          "cluster_platform", "cluster_security_logging", "host_security",
+                          "postgresql_file_backup"})
         self.assertEqual({p.name for p in (shared / "ansible/playbooks").iterdir()},
                          {"control-node.yml", "site.yml", "reset-known-hosts.yml"})
         self.assertFalse((shared / "terraform").exists())
@@ -77,9 +78,10 @@ class AnsibleOwnership(TierRepositoryTestCase):
             "tier-0": {"hsm_proxy_ingress", "immutable_template", "proxmox_host", "proxmox_template_replace",
                        "template_refresh", "vault", "syslog_ng", "openxpki", "openxpki_bundle",
                        "logging_authority", "logging_archive", "logging_backup", "infrastructure_runner",
-                       "control_applications", "infrastructure_monitoring"},
+                       "control_applications", "infrastructure_monitoring", "cluster_endpoint",
+                       "control_backup", "logging_export", "netbox_audit"},
             "tier-1": {"gitlab_container", "podman_runner", "development_platform", "delivery_platform",
-                       "observability_platform"},
+                       "observability_platform", "development_data"},
             "tier-2": {"cache_proxy", "edge_load_balancer", "public_certificates", "public_certificate_schedule",
                        "lab_environment", "workload_telemetry"},
         }

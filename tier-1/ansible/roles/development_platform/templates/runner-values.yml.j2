@@ -38,7 +38,7 @@ runners:
         namespace = "{{ development_platform_runner_namespace }}"
         image = "{{ development_platform_runner_image }}"
         helper_image = "{{ development_platform_runner_helper_image }}"
-        allowed_images = ["{{ development_platform_runner_image }}"]
+        allowed_images = {{ ([development_platform_runner_image] + development_platform_runner_additional_allowed_images) | to_json }}
         allowed_services = ["{{ development_platform_runner_image }}"]
         privileged = false
         allow_privilege_escalation = false

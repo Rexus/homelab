@@ -24,9 +24,12 @@ class ClusterPlacement(TierRepositoryTestCase):
                 self.assertRegex(main, r"template_node_name\s*=\s*each.value.template_node_name")
                 self.assertIn('variable "proxmox_template_catalog"', variables)
                 self.assertRegex(main, r"proxmox_template_catalog\s*=\s*var.proxmox_template_catalog")
-                self.assertRegex(main.split('module "lxcs"')[1], r"vlan_id\s*=\s*each.value.vlan_id")
+                if 'module "lxcs"' in main:
+                    self.assertRegex(main.split('module "lxcs"')[1], r"vlan_id\s*=\s*each.value.vlan_id")
+                else:
+                    self.assertEqual(setup, 'cluster-endpoint')
                 count += 1
-        self.assertEqual(count, 13)
+        self.assertEqual(count, 15)
         for tier in ("tier-0", "tier-1", "tier-2"):
             vm = (self.root / f"verify-{tier}/terraform/modules/vm/main.tf").read_text()
             self.assertIn("ignore_changes = [node_name]", vm)

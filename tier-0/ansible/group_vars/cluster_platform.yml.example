@@ -4,9 +4,10 @@
 cluster_platform_action: render
 cluster_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
 cluster_platform_context: ""
-cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg, barman_cloud, flux]
+cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg, flux]
+# Add barman_cloud only when selecting object-based WAL/PITR backups.
 
-# Exact chart versions WITHOUT a leading v; qualify against your Talos/Kubernetes pins.
+# Exact chart versions WITHOUT a leading v; qualify against the selected node/cluster pins.
 cluster_platform_versions:
   cilium: REPLACE_WITH_EXACT_CHART_VERSION
   storage: REPLACE_WITH_EXACT_CHART_VERSION
@@ -30,10 +31,11 @@ cluster_platform_repositories:
 cluster_platform_talos_cilium_ready: false
 cluster_platform_expected_nodes: [k8ctl-1, k8ctl-2, k8ctl-3]
 
-# Existing accepted CSI: set provider=existing, its class and acceptance=true.
-# NFS selection: existing NAS only, no server installation or disk formatting.
-cluster_platform_storage_provider: nfs
-cluster_platform_storage_class: nfs-platform
+# Live database/application disks use existing qualified Proxmox/Ceph-backed block CSI.
+# NFS CSI is a separate selected-component run for backup/shared-file claims only;
+# it connects an existing NAS export, never installs a NAS or moves database data.
+cluster_platform_storage_provider: existing
+cluster_platform_storage_class: REPLACE_WITH_ACCEPTED_BLOCK_CSI_CLASS
 cluster_platform_existing_storage_accepted: false
 cluster_platform_nfs_prerequisites_accepted: false
 cluster_platform_nfs_server: REPLACE_WITH_NAS_ADDRESS

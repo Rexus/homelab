@@ -12,6 +12,11 @@ all:
     development_platform:
       hosts:
         git-1: {}
+    development_data:
+      hosts:
+        gitlab-db-1: {}
+        gitlab-redis-1: {}
+        gitlab-gitaly-1: {}
     observability:
       hosts:
         # Dedicated-VM alternative only; normal services use the Tier 1 cluster.
@@ -42,6 +47,7 @@ all:
     guests:
       children:
         development_platform: null
+        development_data: null
         observability: null
         podman_runner: null
         identity_providers: null

@@ -5,7 +5,7 @@
 platform_host_ips:
   git-1: 10.20.20.35
 
-gitlab_container_image: docker.io/gitlab/gitlab-ce:latest
+gitlab_container_image: ""  # Required approved version tag or immutable digest.
 gitlab_container_name: gitlab
 gitlab_home: /srv/gitlab
 

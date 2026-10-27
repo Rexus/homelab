@@ -6,11 +6,13 @@ metadata:
 spec:
   instances: {{ control_applications_database_instances }}
   imageName: {{ control_applications_postgres_image | to_json }}
+{% if control_applications_backup_mode == 'object' %}
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
         barmanObjectName: {{ product }}-db-backup
+{% endif %}
   enableSuperuserAccess: false
   bootstrap:
     initdb:
@@ -25,8 +27,13 @@ spec:
     serverTLSSecret: {{ product }}-db-server
     replicationTLSSecret: {{ product }}-db-replication
   storage:
-    storageClass: {{ control_applications_storage_class | to_json }}
+    storageClass: {{ (control_applications_database_storage_class or control_applications_storage_class) | to_json }}
     size: {{ control_applications_database_size }}
+{% if control_applications_backup_mode == 'files' %}
+  postgresql:
+    pg_ident:
+      - cnpg_streaming_replica {{ product }}-db-file-backup streaming_replica
+{% endif %}
   affinity:
     enablePodAntiAffinity: true
     podAntiAffinityType: required

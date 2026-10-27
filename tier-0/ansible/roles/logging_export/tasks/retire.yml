@@ -1,0 +1,16 @@
+---
+- name: Stop the retired scoped export service
+  ansible.builtin.systemd_service:
+    name: "{{ item.path | basename | regex_replace('[.]container$', '') }}"
+    state: stopped
+
+- name: Remove only the retired managed Quadlet, retaining its queue and credentials for review
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  register: logging_export_retired
+
+- name: Reload service definitions after retirement
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: logging_export_retired.changed

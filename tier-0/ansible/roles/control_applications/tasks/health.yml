@@ -33,6 +33,7 @@
   retries: 60
   delay: 10
   loop: "{{ control_applications_components | intersect(['keycloak', 'netbox']) }}"
+  when: control_applications_backup_mode == 'object'
 
 - name: Verify application HTTPS endpoints with trusted certificates
   ansible.builtin.uri:

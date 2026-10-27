@@ -1,0 +1,30 @@
+---
+# Opt-in leaf-host profile; docs/deployment/foundation/procedures/host-security.md.
+host_security_enabled: false
+host_security_profile: ""
+host_security_action: apply
+host_security_acknowledgement: ""
+host_security_console_verified: false
+host_security_key_access_verified: false
+host_security_config_ownership_verified: false
+host_security_operator_sources: []
+host_security_ssh_users: []
+# Each existing user: {name: automation, public_key_files: [/outside/git/operator.pub]}.
+host_security_service_rules: []
+# Each inbound allow: {source: 192.0.2.4/32, port: 443, protocol: tcp}.
+host_security_vrrp_peers: []
+# Explicit keepalived peer source addresses, each /32 (IPv4) or /128 (IPv6).
+host_security_time_servers: []
+host_security_output_dir: ""
+host_security_ssh_port: "{{ ansible_port | default(22) }}"
+host_security_os:
+  RedHat:
+    packages: [openssh-server, chrony, firewalld, python3-firewall, python3-lxml, audit]
+    ssh_service: sshd
+    time_service: chronyd
+    time_config: /etc/chrony.conf
+  Debian:
+    packages: [openssh-server, chrony, firewalld, python3-firewall, python3-lxml, auditd]
+    ssh_service: ssh
+    time_service: chrony
+    time_config: /etc/chrony/chrony.conf

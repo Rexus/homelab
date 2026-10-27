@@ -6,7 +6,7 @@ Keycloak uses its own CNPG database and verifies LDAP and database certificates.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** working FreeIPA LDAPS, a restricted directory reader, external
-certificate/credential custody, CNPG with the Barman Cloud plugin, independent
+certificate/credential custody, CNPG, the selected database backup path, independent
 backup storage and protected cluster log delivery. None may depend on later Vault.
 
 ## Table of contents
@@ -21,12 +21,18 @@ backup storage and protected cluster log delivery. None may depend on later Vaul
 Use the [control-application procedure](../../stage-6-secrets/procedures/control-applications.md)
 for dependencies, private inputs, certificates and render/apply commands. Select
 `control_applications_components: [keycloak]`; retain `render` until review.
+For fresh file-backup inputs, follow [database preparation and NAS commissioning](../../../administration/backups/postgresql.md)
+before the final application installation. The `prepare` phase alone does not install Keycloak.
 
-The installer creates `keycloak-db` with its externally issued TLS certificates,
-WAL archive and scheduled base backups, then waits for database readiness before
+The installer creates `keycloak-db` on qualified Proxmox/Ceph-backed volumes with
+externally issued TLS and the selected backup resources, then waits for readiness before
 installing the pinned `keycloakx` chart. Two Keycloak replicas use JDBC discovery;
 this is a placement configuration, not evidence of failover. The maintained chart
 runs the upstream Keycloak image in production mode. [1][2]
+
+Scheduled verified full backups can write to a separate NAS backup PVC. The database
+itself does not use that PVC. Select the object/WAL path separately when continuous
+point-in-time recovery is required; a file backup recovers only to a completed set.
 
 | Input | Required selection |
 | --- | --- |
@@ -73,7 +79,7 @@ including preserved X509 authentication and cold-start issuer-outage acceptance.
 | Discovery | The HTTPS discovery document reports the exact selected issuer |
 | Federation | Allowed user, denied user, disabled user and removed group membership behave as approved |
 | Audit | Authentication and administrative changes arrive through protected cluster stdout collection |
-| Backup | Fresh base backup plus archived WAL; restore into a separate CNPG cluster and exercise a login |
+| Backup | Completed verified file set, or base backup plus archived WAL for the selected object/PITR path; restore into a separate CNPG cluster and exercise a login |
 | Failure | Restart one replica, test the directory endpoint failing, then test the IdP outage |
 | Recovery | Independent Kubernetes and Keycloak administration, database restore inputs and TLS material remain available |
 

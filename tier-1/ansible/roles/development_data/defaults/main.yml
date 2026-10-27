@@ -1,0 +1,59 @@
+---
+development_data_action: render
+development_data_apply_confirm: false
+development_data_output: "{{ playbook_dir }}/../../../secrets/development-data"
+development_data_gitlab_url: ""
+development_data_package_version: ""
+development_data_chart_app_version: ""
+development_data_package_url: ""
+development_data_package_sha256: ""
+development_data_package_key_src: ""
+development_data_package_key_fingerprint: ""
+development_data_client_cidrs: []
+development_data_hosts:
+  gitlab-db-1: postgresql
+  gitlab-redis-1: redis
+  gitlab-gitaly-1: gitaly
+development_data_endpoints: {postgresql: "", redis: "", gitaly: ""}
+development_data_tls: {}
+development_data_ca_src: ""
+development_data_postgresql_client_cert_src: ""
+development_data_postgresql_client_key_src: ""
+development_data_postgresql_password: ""
+development_data_redis_password: ""
+development_data_gitaly_token: ""
+development_data_shell_token: ""
+development_data_namespace: gitlab
+development_data_backup_repository: {}
+development_data_backup_transport: sftp
+# Backup destinations only; live GitLab data stays on Proxmox/Ceph-backed VM disks.
+# Filesystem mounts and empty repository directories are commissioned outside this role.
+development_data_backup_filesystem: {}
+development_data_backup_min_free_bytes: 10737418240
+development_data_backup_timeout_seconds: 7200
+development_data_backup_password_src: ""
+development_data_backup_ssh_key_src: ""
+development_data_backup_known_hosts_src: ""
+development_data_backup_initialize: false
+development_data_backup_calendar: "*-*-* 02:00:00"
+development_data_backup_custody_accepted: false
+development_data_s3_endpoint: ""
+development_data_s3_mode: preprovisioned
+development_data_s3_preprovisioned_accepted: false
+development_data_s3_denied_buckets: []
+development_data_s3_iam_endpoint: ""
+development_data_s3_region: us-east-1
+development_data_s3_ca_src: ""
+development_data_s3_profile: gitlab-provisioner
+development_data_s3_users: {application: gitlab-app, backup: gitlab-backup}
+development_data_s3_keys: {}
+development_data_buckets:
+  artifacts: gitlab-artifacts
+  lfs: gitlab-lfs
+  uploads: gitlab-uploads
+  packages: gitlab-packages
+  externalDiffs: gitlab-external-diffs
+  terraformState: gitlab-terraform-state
+  ciSecureFiles: gitlab-ci-secure-files
+  dependencyProxy: gitlab-dependency-proxy
+development_data_backup_buckets: [gitlab-backups, gitlab-backup-tmp]

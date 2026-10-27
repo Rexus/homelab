@@ -16,7 +16,7 @@ These are distinct functions even when one product exposes several interfaces.
 
 | Function | Reference realization | Boundary |
 | --- | --- | --- |
-| Source control | GitLab application in Tier 1 Kubernetes | Existing independently managed database, queue/cache, repository and object storage |
+| Source control | GitLab application in Tier 1 Kubernetes, dedicated Tier 1 database/cache/repository VMs, scoped object storage | Application/dependency lifecycle remains distinct from Tier 0 storage administration |
 | General CI | Tier 1 runner manager with Kubernetes job pods | Ephemeral job compute, bounded resources and no infrastructure credentials |
 | Application delivery | Tier 1 Argo CD or Spinnaker | Selected application destinations, never Tier 0 infrastructure |
 | Control GitOps | Tier 0 Flux | Independently recoverable definitions, source trust and bootstrap keys |

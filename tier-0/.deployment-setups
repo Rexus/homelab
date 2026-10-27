@@ -5,3 +5,4 @@ hsm
 immutable-template
 template-refresh
 infrastructure-runner
+cluster-endpoint

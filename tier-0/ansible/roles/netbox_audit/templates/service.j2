@@ -1,0 +1,24 @@
+[Unit]
+Description=Read-only NetBox change-ledger export
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=netbox-audit
+Group=netbox-audit
+UMask=0027
+StateDirectory=netbox-audit
+StateDirectoryMode=0700
+LoadCredential=token:/etc/netbox-audit/token
+LoadCredential=heartbeat:/etc/netbox-audit/heartbeat.curl
+ExecStart=/usr/bin/python3 /usr/local/lib/netbox-audit/netbox_audit.py --config /etc/netbox-audit/config.json
+ExecStartPost=/usr/bin/curl --fail --silent --show-error --max-time 20 --config %d/heartbeat
+TimeoutStartSec=240
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=

@@ -1,3 +1,4 @@
+{% if observability_backup_mode == 'object' %}
 - apiVersion: barmancloud.cnpg.io/v1
   kind: ObjectStore
   metadata: {name: grafana-db-backup, namespace: {{ observability_namespace }}}
@@ -12,16 +13,19 @@
         secretAccessKey: {name: grafana-backup-auth, key: secret-key}
       wal: {compression: gzip, encryption: AES256}
       data: {compression: gzip, encryption: AES256}
+{% endif %}
 - apiVersion: postgresql.cnpg.io/v1
   kind: Cluster
   metadata: {name: grafana-db, namespace: {{ observability_namespace }}}
   spec:
     instances: 3
     imageName: {{ observability_database_image }}
+{% if observability_backup_mode == 'object' %}
     plugins:
       - name: barman-cloud.cloudnative-pg.io
         isWALArchiver: true
         parameters: {barmanObjectName: grafana-db-backup}
+{% endif %}
     enableSuperuserAccess: false
     bootstrap:
       initdb:
@@ -31,13 +35,21 @@
     certificates:
       serverTLSSecret: grafana-db-server-tls
       serverCASecret: grafana-db-ca
+{% if observability_backup_mode == 'files' %}
+      clientCASecret: grafana-db-client-ca
+      replicationTLSSecret: grafana-db-replication
+{% endif %}
     postgresql:
+{% if observability_backup_mode == 'files' %}
+      pg_ident:
+        - cnpg_streaming_replica grafana-db-file-backup streaming_replica
+{% endif %}
       synchronous: {method: any, number: 1, dataDurability: required, failoverQuorum: true}
       pg_hba:
         - hostnossl all all all reject
         - hostssl grafana grafana all scram-sha-256
     storage:
-      storageClass: {{ observability_storage_class }}
+      storageClass: {{ (observability_database_storage_class or observability_storage_class) | to_json }}
       size: {{ observability_database_size }}
     affinity:
       enablePodAntiAffinity: true
@@ -46,6 +58,7 @@
     resources:
       requests: {cpu: 500m, memory: 1Gi}
       limits: {cpu: '2', memory: 2Gi}
+{% if observability_backup_mode == 'object' %}
 - apiVersion: postgresql.cnpg.io/v1
   kind: ScheduledBackup
   metadata: {name: grafana-db, namespace: {{ observability_namespace }}}
@@ -56,3 +69,4 @@
     method: plugin
     pluginConfiguration: {name: barman-cloud.cloudnative-pg.io}
     immediate: true
+{% endif %}

@@ -1,0 +1,50 @@
+---
+- name: Create private render directory
+  ansible.builtin.file:
+    path: "{{ development_data_output }}"
+    state: directory
+    mode: "0700"
+
+- name: Render each dedicated native package configuration
+  ansible.builtin.template:
+    src: gitlab.rb.j2
+    dest: "{{ development_data_output }}/{{ item.key }}.rb"
+    mode: "0600"
+  loop: "{{ development_data_hosts | dict2items }}"
+  vars:
+    data_component: "{{ item.value }}"
+    data_address: "{{ hostvars[item.key].ansible_host }}"
+  no_log: true
+
+- name: Render scoped S3 policies
+  ansible.builtin.template:
+    src: s3-policy.json.j2
+    dest: "{{ development_data_output }}/{{ item }}-policy.json"
+    mode: "0600"
+  loop: [application, backup]
+  vars:
+    policy_buckets: >-
+      {{ development_data_buckets.values() | list if item == 'application' else
+         development_data_buckets.values() | list + development_data_backup_buckets }}
+
+- name: Render per-host backup jobs and commissioned transport contracts for review
+  ansible.builtin.template:
+    src: "{{ item.1 }}.j2"
+    dest: "{{ development_data_output }}/{{ item.0.key }}-{{ item.1 }}"
+    mode: "0600"
+  loop: >-
+    {{ development_data_hosts | dict2items | product(
+       ['backup.env', 'backup.sh', 'backup.service', 'backup.timer'] +
+       (['backup-filesystem.sh'] if development_data_backup_transport == 'filesystem' else [])) | list }}
+  vars:
+    data_backup_host: "{{ item.0.key }}"
+    data_component: "{{ item.0.value }}"
+  no_log: true
+
+- name: Render chart endpoints and explicitly bootstrap-owned dependency Secrets
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ development_data_output }}/{{ item }}"
+    mode: "0600"
+  loop: [platform-inputs.yml, dependency-secrets.yml]
+  no_log: true

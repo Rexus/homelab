@@ -1,0 +1,150 @@
+---
+- name: Validate the selected recovery contract
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Inspect the existing schedule before replacing credentials
+  ansible.builtin.stat:
+    path: /etc/systemd/system/control-backup.timer
+  register: control_backup_existing_timer
+
+- name: Stop the previous schedule during configuration changes
+  ansible.builtin.systemd_service:
+    name: control-backup.timer
+    enabled: false
+    state: stopped
+  when: control_backup_existing_timer.stat.exists
+
+- name: Inspect whether an earlier scheduled backup is still running
+  ansible.builtin.command:
+    argv: [systemctl, show, --property=ActiveState, --value, control-backup.service]
+  register: control_backup_existing_service
+  changed_when: false
+  when: control_backup_existing_timer.stat.exists
+
+- name: Require the previous job to finish before replacing its inputs
+  ansible.builtin.assert:
+    that:
+      - control_backup_existing_service.stdout | trim in ['inactive', 'failed']
+    fail_msg: A backup is active; let it finish, then rerun configuration. The timer remains stopped.
+  when: control_backup_existing_timer.stat.exists
+
+- name: Install native backup dependencies
+  ansible.builtin.package:
+    name: [restic, python3, git, curl, util-linux, cifs-utils, openssl]
+    state: present
+
+- name: Require supported Python for recovery boundary checks
+  ansible.builtin.command:
+    argv: [python3, -c, "import sys; assert sys.version_info >= (3, 9), 'Python 3.9+ required'"]
+  changed_when: false
+
+- name: Prepare root-only recovery directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - /etc/control-backup
+    - /usr/local/lib/control-backup
+    - "{{ control_backup_directory }}"
+
+- name: Copy independently held credentials and public trust
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/control-backup/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - {src: "{{ control_backup_password_file }}", name: restic.password}
+    - {src: "{{ control_backup_vault_ca_file }}", name: vault-ca.pem}
+    - {src: "{{ control_backup_vault_client_cert_file }}", name: client.pem}
+    - {src: "{{ control_backup_vault_client_key_file }}", name: client.key}
+    - {src: "{{ control_backup_vault_role_id_file }}", name: role-id}
+    - {src: "{{ control_backup_vault_secret_id_file }}", name: secret-id}
+    - {src: "{{ control_backup_vault_static_token_file }}", name: token}
+    - {src: "{{ control_backup_media_credentials_file }}", name: media.credentials}
+  when: item.src | length > 0
+  no_log: true
+  diff: false
+
+- name: Copy separate read-only input-custodian credentials
+  ansible.builtin.copy:
+    src: "{{ item.credentials_file }}"
+    dest: "/etc/control-backup/input-{{ item.name }}.credentials"
+    owner: root
+    group: root
+    mode: "0600"
+  loop: "{{ control_backup_input_sources }}"
+  no_log: true
+  diff: false
+
+- name: Mount original ignored inputs read-only from each authorized custodian
+  ansible.posix.mount:
+    path: "{{ item.mount }}"
+    src: "{{ item.source }}"
+    fstype: cifs
+    opts: "ro,credentials=/etc/control-backup/input-{{ item.name }}.credentials,vers=3.1.1,seal,nosuid,nodev,noexec,_netdev,nofail,dir_mode=0700,file_mode=0600"
+    state: mounted
+  loop: "{{ control_backup_input_sources }}"
+
+- name: Mount the authorized media view with a separate read-only identity
+  ansible.posix.mount:
+    path: "{{ control_backup_media_mount }}"
+    src: "{{ control_backup_media_source }}"
+    fstype: cifs
+    opts: ro,credentials=/etc/control-backup/media.credentials,vers=3.1.1,seal,nosuid,nodev,noexec,_netdev,nofail,dir_mode=0700,file_mode=0600
+    state: mounted
+  when: control_backup_media_enabled | bool
+
+- name: Install native CLI orchestration and guarded file restore
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/usr/local/lib/control-backup/{{ item }}"
+    owner: root
+    group: root
+    mode: "0700"
+  loop: [control_backup.py, control_backup_io.py, vault_snapshot.py, restore_files.py]
+
+- name: Render private job configuration
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: /etc/control-backup/config.json
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Store the independent health capability in a private curl file
+  ansible.builtin.copy:
+    dest: /etc/control-backup/health.curl
+    content: "url = {{ control_backup_watchdog_url | to_json }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Install native service and timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/control-backup.{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [service, timer]
+
+- name: Require a first verified backup before enabling the schedule
+  ansible.builtin.systemd_service:
+    name: control-backup.service
+    daemon_reload: true
+    state: started
+
+- name: Schedule certificate or maintained AppRole auth and leave break-glass unscheduled
+  ansible.builtin.systemd_service:
+    name: control-backup.timer
+    enabled: "{{ control_backup_vault_auth != 'static-token-local' }}"
+    state: "{{ 'started' if control_backup_vault_auth != 'static-token-local' else 'stopped' }}"

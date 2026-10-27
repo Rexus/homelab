@@ -1,6 +1,5 @@
 """Render pinned official delivery charts and exercise product admission without a cluster."""
 
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -11,6 +10,7 @@ import unittest
 import yaml
 
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
+from native_chart_test_support import native_chart_fixture
 
 
 NATIVE = os.name != "nt" and shutil.which("ansible-playbook") and shutil.which("helm")
@@ -37,13 +37,13 @@ class DeliveryPlatform(TierRepositoryTestCase):
             "delivery_platform_argocd_destinations": ["gitlab", "harbor"],
         }, **overrides)
 
-    def run_role(self, repo, inputs):
+    def run_role(self, repo, inputs, environment=None):
         fixture = Path(self.temp.name) / "inputs.yml"
         fixture.write_text(yaml.safe_dump(inputs))
         return subprocess.run(
             ["ansible-playbook", "-i", "localhost,", "ansible/playbooks/deployment/delivery-platform.yml",
              "-e", f"@{fixture}"], cwd=repo,
-            env=dict(os.environ, ANSIBLE_CONFIG=str(repo / "ansible/ansible.cfg")),
+            env=dict(os.environ, ANSIBLE_CONFIG=str(repo / "ansible/ansible.cfg"), **(environment or {})),
             capture_output=True, text=True, timeout=300,
         )
 
@@ -61,10 +61,13 @@ class DeliveryPlatform(TierRepositoryTestCase):
     @unittest.skipUnless(NATIVE, "Requires native Ansible, kubernetes.core and Helm")
     def test_pinned_official_charts_render_source_and_generated_resources(self):
         self.generate()
+        chart_inputs, chart_environment = self.enterContext(native_chart_fixture(
+            Path(self.temp.name) / "charts", "kube_app"))
         for repo in (UPSTREAM / "tier-1", self.root / "verify-tier-1"):
             with self.subTest(repo=repo):
                 inputs = self.inputs(delivery_platform_output=str(Path(self.temp.name) / repo.parent.name))
-                result = self.run_role(repo, inputs)
+                inputs.update(chart_inputs)
+                result = self.run_role(repo, inputs, chart_environment)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 output = Path(inputs["delivery_platform_output"])
                 # The upstream TLS template uses a legal trailing tab rejected by PyYAML's Python scanner.
@@ -145,94 +148,6 @@ class DeliveryPlatform(TierRepositoryTestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Validate Harbor native OIDC", result.stdout)
         self.assertNotIn("TASK [helm_release : Render a pinned chart", result.stdout)
-
-    def spinnaker_overlay(self, repo, image="ghcr.io/spinnaker/gate:2025.3.2", cluster_authority=False):
-        overlay = repo / "clusters/tier1/platform/spinnaker-test"
-        overlay.mkdir(parents=True)
-        services = ["clouddriver", "deck", "echo", "fiat", "front50", "gate", "orca", "rosco"]
-        resources = [{
-            "apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": name},
-            "spec": {"selector": {"matchLabels": {"app": name}}, "template": {
-                "metadata": {"labels": {"app": name}}, "spec": {
-                    "automountServiceAccountToken": False,
-                    "containers": [{"name": name, "image": image,
-                                    "volumeMounts": [{"name": "runtime", "mountPath": "/opt/spinnaker/config/"}],
-                                    "securityContext": {"allowPrivilegeEscalation": False}}],
-                    "volumes": [{"name": "runtime", "secret": {"secretName": "spinnaker-runtime"}}],
-                }}},
-        } for name in services]
-        resources.append({"apiVersion": "networking.k8s.io/v1", "kind": "Ingress",
-                          "metadata": {"name": "spinnaker"}, "spec": {
-                              "tls": [{"secretName": "spinnaker-tls", "hosts": ["spin.lab.test"]}],
-                              "rules": [{"host": "spin.lab.test", "http": {"paths": []}}]}})
-        if cluster_authority:
-            resources.append({"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "ClusterRoleBinding",
-                              "metadata": {"name": "demo-admin"}})
-        (overlay / "resources.yml").write_text(yaml.safe_dump_all(resources))
-        (overlay / "kustomization.yaml").write_text(yaml.safe_dump({
-            "apiVersion": "kustomize.config.k8s.io/v1beta1", "kind": "Kustomization",
-            "namespace": "spinnaker", "resources": ["resources.yml"],
-        }))
-        return overlay
-
-    @unittest.skipUnless(NATIVE and (shutil.which("kubectl") or shutil.which("kustomize")),
-                         "Requires native Ansible and Kustomize or kubectl")
-    def test_native_kustomize_render_requires_complete_pinned_scoped_review(self):
-        self.generate()
-        repo = self.root / "verify-tier-1"
-        overlay = self.spinnaker_overlay(repo)
-        inputs = self.inputs(delivery_platform_controller="spinnaker", delivery_platform_install_harbor=False,
-                             delivery_platform_spinnaker_host="spin.lab.test",
-                             delivery_platform_spinnaker_overlay=str(overlay))
-        result = self.run_role(repo, inputs)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        output = Path(inputs["delivery_platform_output"])
-        render = (output / "spinnaker-manifests.yml").read_bytes()
-        self.assertEqual((output / "spinnaker.sha256").read_text().strip(), hashlib.sha256(render).hexdigest())
-        resources = list(yaml.safe_load_all(render))
-        self.assertEqual(sum(doc["kind"] == "Deployment" for doc in resources), 8)
-        for image, authority in (("ghcr.io/spinnaker/gate:main-latest", False),
-                                 ("ghcr.io/spinnaker/gate:2025.3.2", True)):
-            shutil.rmtree(overlay)
-            self.spinnaker_overlay(repo, image=image, cluster_authority=authority)
-            result = self.run_role(repo, inputs)
-            self.assertNotEqual(result.returncode, 0)
-        # Rejection occurs before any Kubernetes API operation.
-        shutil.rmtree(overlay)
-        self.spinnaker_overlay(repo)
-        result = self.run_role(repo, dict(inputs, delivery_platform_action="apply",
-                                         delivery_platform_kubeconfig="/nonexistent/offline-test",
-                                         delivery_platform_context="offline-test",
-                                         delivery_platform_ca_path="/nonexistent/offline-ca",
-                                         delivery_platform_spinnaker_review_sha256="0" * 64))
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn("TASK [delivery_platform : Check every existing credential", result.stdout)
-
-    @unittest.skipUnless(NATIVE and shutil.which("kustomize"), "Requires native Kustomize, Ansible and Git")
-    def test_pinned_official_spinnaker_kustomize_demo_is_not_accepted_as_production(self):
-        self.generate()
-        repo = self.root / "verify-tier-1"
-        vendor = repo / "clusters/tier1/platform/spinnaker-upstream"
-        vendor.mkdir(parents=True)
-        revision = "d2eaa598c95d0a8e17736f2df61fa1fa9f738b53"
-        for args in (["init", "--quiet"], ["remote", "add", "origin", "https://github.com/spinnaker/spinnaker.git"],
-                     ["sparse-checkout", "set", "spinnaker-kustomize"],
-                     ["fetch", "--quiet", "--depth=1", "--filter=blob:none", "origin", revision],
-                     ["checkout", "--quiet", "--detach", "FETCH_HEAD"]):
-            subprocess.run(["git", "-C", str(vendor), *args], capture_output=True, text=True,
-                           timeout=180, check=True)
-        overlay = vendor / "spinnaker-kustomize"
-        native = subprocess.run(["kustomize", "build", str(overlay)], capture_output=True,
-                                text=True, timeout=60, check=True)
-        documents = list(yaml.safe_load_all(native.stdout))
-        self.assertTrue(any(doc["kind"] == "Deployment" for doc in documents))
-        self.assertIn("main-latest", native.stdout)
-        inputs = self.inputs(delivery_platform_controller="spinnaker", delivery_platform_install_harbor=False,
-                             delivery_platform_spinnaker_host="spin.lab.test",
-                             delivery_platform_spinnaker_overlay=str(overlay))
-        result = self.run_role(repo, inputs)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn("TASK [delivery_platform : Apply the reviewed Spinnaker", result.stdout)
 
 
 if __name__ == "__main__":

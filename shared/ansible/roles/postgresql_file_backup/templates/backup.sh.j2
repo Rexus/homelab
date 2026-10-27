@@ -1,0 +1,48 @@
+#!/bin/bash
+set -euo pipefail
+export LC_ALL=C
+umask 077
+: "${SOURCE_ID:?}" "${SYSTEM_IDENTIFIER:?}" "${DESTINATION_MARKER:?}" "${POSTGRES_IMAGE:?}" "${BACKUP_RUN:?}"
+[[ "$BACKUP_RUN" =~ ^[a-zA-Z0-9-]+$ ]]
+root=/repository
+[[ $(realpath -e "$root") == "$root" ]]
+awk -v path="$root" '$5 == path { found=1 } END { exit !found }' /proc/self/mountinfo
+for directory in pending completed; do
+  [[ -d "$root/$directory" && ! -L "$root/$directory" ]]
+done
+[[ -f "$root/.postgresql-backup-source" && ! -L "$root/.postgresql-backup-source" ]]
+printf '%s\n%s\n%s\n' "$SOURCE_ID" "$SYSTEM_IDENTIFIER" "$DESTINATION_MARKER" > /tmp/expected-source
+cmp /tmp/expected-source "$root/.postgresql-backup-source"
+identity=$(psql -XAtw --dbname='replication=true' --command=IDENTIFY_SYSTEM)
+[[ ${identity%%|*} == "$SYSTEM_IDENTIFIER" ]]
+[[ $(psql -XAtw -c "SELECT count(*) FROM pg_tablespace WHERE spcname NOT IN ('pg_default','pg_global')") == 0 ]]
+source_version=$(psql -XAtw -c 'SHOW server_version_num')
+[[ $source_version == 17???? ]]
+sender_timeout=$(psql -XAtw -c "SELECT setting FROM pg_settings WHERE name = 'wal_sender_timeout'")
+if [[ ! $sender_timeout =~ ^[0-9]+$ ]] || (( sender_timeout == 0 )); then
+  echo 'A finite WAL sender timeout is required before backing up to NAS' >&2
+  exit 1
+fi
+client_version=$(pg_basebackup --version)
+[[ $client_version == *' 17.'* ]]
+pending="$root/pending/$BACKUP_RUN"
+complete="$root/completed/$BACKUP_RUN"
+[[ ! -e "$pending" && ! -L "$pending" && ! -e "$complete" && ! -L "$complete" ]]
+mkdir -- "$pending"
+date -u +%Y-%m-%dT%H:%M:%SZ > "$pending/started-at"
+pg_basebackup --pgdata="$pending/pgdata" --format=plain --wal-method=stream \
+  --manifest-checksums=SHA256 --no-password --no-clean
+date -u +%Y-%m-%dT%H:%M:%SZ > "$pending/captured-at"
+[[ $(pg_controldata "$pending/pgdata" | awk -F ': *' '/Database system identifier/ {print $2}') == "$SYSTEM_IDENTIFIER" ]]
+[[ ! -L "$pending/pgdata/pg_wal" && ! -n $(find "$pending/pgdata/pg_tblspc" -mindepth 1 -print -quit) ]]
+pg_verifybackup --exit-on-error "$pending/pgdata"
+cp /tmp/expected-source "$pending/source"
+printf '%s\n' "$POSTGRES_IMAGE" > "$pending/image"
+printf '%s\n' "$source_version" > "$pending/server-version-num"
+date -u +%Y-%m-%dT%H:%M:%SZ > "$pending/completed-at"
+cmp /tmp/expected-source "$root/.postgresql-backup-source"
+sync -f "$pending"
+mv -T --no-clobber -- "$pending" "$complete"
+[[ ! -e "$pending" && -d "$complete" ]]
+sync -f "$root/completed"
+printf 'Verified PostgreSQL backup: %s/completed/%s\n' "$SOURCE_ID" "$BACKUP_RUN"

@@ -1,0 +1,78 @@
+{% for product, image, port, size in [
+  ('mysql', delivery_platform_software.mysql_image, 3306, delivery_platform_spinnaker_mysql_size),
+  ('redis', delivery_platform_software.redis_image, 6379, delivery_platform_spinnaker_redis_size)] %}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: spinnaker-{{ product }}}
+spec:
+  selector: {app.kubernetes.io/name: spinnaker-{{ product }}}
+  ports: [{name: traffic, port: {{ port }}, targetPort: {{ port }}}]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spinnaker-{{ product }}
+  annotations: {delivery.homelab/phase: persistence}
+spec:
+  serviceName: spinnaker-{{ product }}
+  replicas: 1
+  persistentVolumeClaimRetentionPolicy: {whenDeleted: Retain, whenScaled: Retain}
+  selector: {matchLabels: {app.kubernetes.io/name: spinnaker-{{ product }}}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: spinnaker-{{ product }}}
+      annotations: {delivery.homelab/secret-revision: {{ delivery_platform_spinnaker_secret_revision | to_json }}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 999, runAsGroup: 999, runAsNonRoot: true, fsGroup: 999}
+      containers:
+        - name: {{ product }}
+          image: {{ image | to_json }}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          ports: [{name: traffic, containerPort: {{ port }}}]
+{% if product == 'mysql' %}
+          env:
+            - {name: MYSQL_ROOT_PASSWORD_FILE, value: /root-auth/password}
+            - {name: MYSQL_ROOT_HOST, value: '%'}
+          startupProbe:
+            exec: {command: [mysqladmin, --protocol=socket, ping, --silent]}
+            failureThreshold: 90
+            periodSeconds: 5
+          readinessProbe:
+            exec: {command: [mysqladmin, --protocol=socket, ping, --silent]}
+          resources: {requests: {cpu: 500m, memory: 1Gi}, limits: {memory: 2Gi}}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/mysql}
+            - {name: config, mountPath: /etc/mysql/conf.d, readOnly: true}
+            - {name: auth, mountPath: /root-auth, readOnly: true}
+{% else %}
+          args: [redis-server, /config/redis.conf]
+          env:
+            - name: REDISCLI_AUTH
+              valueFrom: {secretKeyRef: {name: spinnaker-redis-auth, key: password}}
+          readinessProbe:
+            exec:
+              command: [sh, -ec, 'redis-cli --tls --cacert /tls/ca.crt -h spinnaker-redis ping | grep -q PONG']
+          resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {memory: 1Gi}}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: auth, mountPath: /auth, readOnly: true}
+{% endif %}
+            - {name: tls, mountPath: /tls, readOnly: true}
+      volumes:
+        - name: config
+          configMap:
+            name: spinnaker-persistence
+            items: [{key: {{ product ~ '.cnf' if product == 'mysql' else 'redis.conf' }}, path: {{ product ~ '.cnf' if product == 'mysql' else 'redis.conf' }}}]
+        - name: auth
+          secret: {secretName: {{ 'spinnaker-mysql-root' if product == 'mysql' else 'spinnaker-redis-acl' }}}
+        - {name: tls, secret: {secretName: spinnaker-{{ product }}-tls}}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: {{ delivery_platform_spinnaker_storage_class | to_json }}
+        resources: {requests: {storage: {{ size }}}}
+{% endfor %}

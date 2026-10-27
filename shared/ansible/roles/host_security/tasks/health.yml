@@ -1,0 +1,57 @@
+---
+- name: Verify chrony has synchronized to an approved source
+  ansible.builtin.command:
+    argv: [chronyc, waitsync, '12', '0.5', '0', '5']
+  changed_when: false
+
+- name: Inspect the enforced firewall zones
+  ansible.posix.firewalld_info:
+  register: host_security_enforced_firewall
+  until: host_security_enforced_firewall.firewalld_info.zones.public.target == 'DROP'
+  retries: 5
+  delay: 2
+
+- name: Require the real drop policy and source-scoped access
+  ansible.builtin.assert:
+    that:
+      - host_security_enforced_firewall.firewalld_info.default_zone == 'public'
+      - host_security_enforced_firewall.firewalld_info.zones.public.target == 'DROP'
+      - host_security_enforced_firewall.firewalld_info.zones.public.services | length == 0
+      - host_security_enforced_firewall.firewalld_info.zones.public.ports | length == 0
+      - host_security_enforced_firewall.firewalld_info.zones.public.protocols | length == 0
+      - >-
+        host_security_enforced_firewall.firewalld_info.zones.public.rich_rules | length ==
+        host_security_operator_sources | length + host_security_service_rules | length +
+        host_security_vrrp_peers | length
+
+- name: Verify local audit recording is enabled without lost records
+  ansible.builtin.command:
+    argv: [auditctl, -s]
+  changed_when: false
+  register: host_security_enforced_audit
+
+- name: Require active audit recording and report gaps as a failed acceptance
+  ansible.builtin.assert:
+    that:
+      - host_security_enforced_audit.stdout is search('(?m)^enabled\s+1$')
+      - host_security_enforced_audit.stdout is search('(?m)^pid\s+[1-9][0-9]*$')
+      - host_security_enforced_audit.stdout is search('(?m)^lost\s+0$')
+
+- name: Read the effective audit rules after loading the persistent profile
+  ansible.builtin.command:
+    argv: [auditctl, -l]
+  changed_when: false
+  register: host_security_enforced_audit_rules
+
+- name: Require the profile audit groups to remain loaded on every reconciliation
+  ansible.builtin.assert:
+    that:
+      - item in host_security_enforced_audit_rules.stdout
+    fail_msg: Persistent profile rules are missing from the kernel; inspect and reload approved audit fragments.
+  loop:
+    - host_security_ssh
+    - host_security_identity
+    - host_security_privilege
+    - host_security_firewall
+    - host_security_time
+    - host_security_clock

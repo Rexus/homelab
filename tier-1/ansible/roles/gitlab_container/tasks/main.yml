@@ -5,6 +5,7 @@
       - ansible_os_family == "RedHat"
       - gitlab_hostname | length > 0
       - gitlab_external_url | length > 0
+      - gitlab_container_image is match('^docker[.]io/gitlab/gitlab-ce:(?:[0-9]+[.][0-9]+[.][0-9]+-ce[.]0|[0-9]+[.][0-9]+[.][0-9]+-ce[.]0@sha256:[a-f0-9]{64})$') or gitlab_container_image is match('^docker[.]io/gitlab/gitlab-ce@sha256:[a-f0-9]{64}$')
       - >-
         not gitlab_external_url.startswith('https://')
         or gitlab_letsencrypt_enabled | bool
@@ -13,6 +14,7 @@
       The gitlab_container role targets Fedora or Enterprise Linux-like hosts.
       HTTPS requires either GitLab Let's Encrypt or local certificate and key
       files from the shared PKI.
+      Select an approved explicit GitLab CE version or immutable digest; latest is not accepted.
 
 - name: Install GitLab container host packages
   ansible.builtin.dnf:

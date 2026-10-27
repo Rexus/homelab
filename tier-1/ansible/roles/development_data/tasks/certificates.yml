@@ -1,0 +1,82 @@
+---
+- name: Verify each server certificate chain and DNS identity
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - verify
+      - -CAfile
+      - "{{ development_data_ca_src }}"
+      - -purpose
+      - sslserver
+      - -verify_hostname
+      - "{{ development_data_endpoints[item] }}"
+      - "{{ development_data_tls[item].cert_src }}"
+  loop: [postgresql, redis, gitaly]
+  changed_when: false
+
+- name: Read the server certificate public keys
+  ansible.builtin.command:
+    argv: [openssl, x509, -in, "{{ development_data_tls[item].cert_src }}", -pubkey, -noout]
+  loop: [postgresql, redis, gitaly]
+  register: development_data_cert_public_keys
+  changed_when: false
+  no_log: true
+
+- name: Read the supplied server private keys' public parts
+  ansible.builtin.command:
+    argv: [openssl, pkey, -in, "{{ development_data_tls[item].key_src }}", -pubout]
+  loop: [postgresql, redis, gitaly]
+  register: development_data_key_public_keys
+  changed_when: false
+  no_log: true
+
+- name: Reject mismatched service certificate and private key pairs
+  ansible.builtin.assert:
+    that:
+      - item.0.stdout == item.1.stdout
+  loop: "{{ development_data_cert_public_keys.results | zip(development_data_key_public_keys.results) | list }}"
+  no_log: true
+
+- name: Verify the database client certificate chain and purpose
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - verify
+      - -CAfile
+      - "{{ development_data_ca_src }}"
+      - -purpose
+      - sslclient
+      - "{{ development_data_postgresql_client_cert_src }}"
+  changed_when: false
+
+- name: Read the database client certificate subject
+  ansible.builtin.command:
+    argv: [openssl, x509, -in, "{{ development_data_postgresql_client_cert_src }}", -noout, -subject, -nameopt, RFC2253]
+  register: development_data_client_subject
+  changed_when: false
+
+- name: Require the certificate identity enforced by the database HBA rule
+  ansible.builtin.assert:
+    that:
+      - >-
+        (development_data_client_subject.stdout | regex_replace('^subject= *', '')
+        | regex_search('(^|,)CN=gitlab(,|$)')) is not none
+
+- name: Read the database client certificate public key
+  ansible.builtin.command:
+    argv: [openssl, x509, -in, "{{ development_data_postgresql_client_cert_src }}", -pubkey, -noout]
+  register: development_data_client_certificate_key
+  changed_when: false
+  no_log: true
+
+- name: Read the database client private key's public part
+  ansible.builtin.command:
+    argv: [openssl, pkey, -in, "{{ development_data_postgresql_client_key_src }}", -pubout]
+  register: development_data_client_private_key
+  changed_when: false
+  no_log: true
+
+- name: Require a matching database client certificate and private key
+  ansible.builtin.assert:
+    that: development_data_client_certificate_key.stdout == development_data_client_private_key.stdout
+  no_log: true

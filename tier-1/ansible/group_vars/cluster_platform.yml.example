@@ -5,7 +5,8 @@ cluster_platform_action: render
 cluster_platform_kubeconfig: ""
 cluster_platform_context: ""
 # Tier 1 selects Argo CD or Spinnaker later; it must not bootstrap Tier 0's Flux.
-cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg, barman_cloud]
+cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg]
+# Add barman_cloud only when selecting object-based WAL/PITR backups.
 cluster_platform_versions:
   cilium: REPLACE_WITH_EXACT_CHART_VERSION
   storage: REPLACE_WITH_EXACT_CHART_VERSION

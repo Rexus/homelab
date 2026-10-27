@@ -1,0 +1,17 @@
+---
+- name: Reuse Shared's native PostgreSQL file backup jobs with Tier 0 inputs
+  ansible.builtin.include_role:
+    name: postgresql_file_backup
+  vars:
+    postgresql_file_backup_action: "{{ control_applications_action }}"
+    postgresql_file_backup_kubeconfig: "{{ control_applications_kubeconfig }}"
+    postgresql_file_backup_context: "{{ control_applications_context }}"
+    postgresql_file_backup_output: "{{ control_applications_output }}"
+    postgresql_file_backup_target: >-
+      {{ control_applications_backup_files[control_application_file_product] | combine({
+         'cluster': control_application_file_product ~ '-db',
+         'namespace': control_application_file_product,
+         'source_id': 'tier-0/' ~ control_application_file_product ~ '/' ~ control_application_file_product ~ '-db',
+         'image': control_applications_postgres_image,
+         'tls_secret': control_application_file_product ~ '-db-file-backup',
+         'accepted': control_applications_backup_files_accepted}) }}

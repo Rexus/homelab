@@ -1,0 +1,19 @@
+- name: redis-tls
+  image: {{ delivery_platform_software.envoy_image | to_json }}
+  restartPolicy: Always
+  args: [-c, /envoy/redis.yml, --log-level, warning, --concurrency, '1']
+  securityContext:
+    runAsUser: 10111
+    runAsGroup: 10111
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities: {drop: [ALL]}
+  resources: {requests: {cpu: 25m, memory: 32Mi}, limits: {memory: 128Mi}}
+  startupProbe:
+    exec: {command: [sh, -c, 'test -s /envoy/redis.yml']}
+    failureThreshold: 30
+    periodSeconds: 2
+  volumeMounts:
+    - {name: roots, mountPath: /roots, readOnly: true}
+    - {name: envoy, mountPath: /envoy, readOnly: true}

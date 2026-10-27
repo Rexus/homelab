@@ -20,8 +20,10 @@
       - observability_metrics_read_members | difference(['metrics-1', 'metrics-2']) | length == 0
       - observability_netdata_scrape_parent in ['netdata-1', 'netdata-2']
       - observability_grafana_database_host == 'grafana-db-rw:5432'
-      - observability_backup_destination is match('^s3://[^/]+/.+')
-      - observability_backup_endpoint is match('^https://')
+      - observability_backup_mode in ['object', 'files']
+      - observability_backup_files_phase in ['prepare', 'backup']
+      - observability_backup_mode != 'object' or observability_backup_destination is match('^s3://[^/]+/.+')
+      - observability_backup_mode != 'object' or observability_backup_endpoint is match('^https://')
       - observability_grafana_url is match('^https://')
       - observability_dashboards_url is match('^https://')
       - observability_oidc_issuer is match('^https://[^?#]+[^/]$')
@@ -65,7 +67,9 @@
       - observability_network_policy_verified | bool
       - observability_search_kernel_verified | bool
     fail_msg: Qualify Netdata node-OS/host access, enforced CNI policy and vm.max_map_count >= 262144 first.
-  when: observability_action == 'apply'
+  when:
+    - observability_action == 'apply'
+    - observability_backup_mode != 'files' or observability_backup_files_phase != 'prepare'
 
 - name: Read real node placement before apply
   kubernetes.core.k8s_info:
@@ -84,7 +88,7 @@
     api_version: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     name: "{{ item }}"
-  loop: [clusters.postgresql.cnpg.io, objectstores.barmancloud.cnpg.io]
+  loop: "{{ ['clusters.postgresql.cnpg.io'] + (['objectstores.barmancloud.cnpg.io'] if observability_backup_mode == 'object' else []) }}"
   register: observability_cnpg
   when: observability_action == 'apply'
 
@@ -95,6 +99,30 @@
       - item.resources[0].status.conditions | selectattr('type', 'equalto', 'Established') | selectattr('status', 'equalto', 'True') | list | length == 1
   loop: "{{ observability_cnpg.results | default([]) }}"
   when: observability_action == 'apply'
+
+- name: Require a separately commissioned Proxmox or Ceph database block CSI class
+  ansible.builtin.assert:
+    that:
+      - observability_database_storage_class | length > 0
+      - observability_action != 'apply' or observability_database_storage_accepted | bool
+      - observability_backup_files is mapping
+    fail_msg: Select qualified database block storage; the NAS backup claim never stores live PGDATA/WAL.
+  when: observability_backup_mode == 'files'
+
+- name: Qualify live database storage without implicit migration
+  ansible.builtin.include_role:
+    name: postgresql_file_backup
+    tasks_from: qualify-database
+  vars:
+    postgresql_file_backup_kubeconfig: "{{ observability_kubeconfig }}"
+    postgresql_file_backup_context: "{{ observability_context }}"
+    postgresql_file_backup_database:
+      cluster: grafana-db
+      namespace: "{{ observability_namespace }}"
+      storage_class: "{{ observability_database_storage_class }}"
+  when:
+    - observability_backup_mode == 'files'
+    - observability_action == 'apply'
 
 - name: Collect actual schedulable physical domains
   ansible.builtin.set_fact:

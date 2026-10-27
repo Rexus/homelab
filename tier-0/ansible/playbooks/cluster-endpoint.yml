@@ -1,0 +1,3 @@
+---
+- name: Configure independent private Kubernetes API gateways
+  ansible.builtin.import_playbook: deployment/cluster-endpoint.yml

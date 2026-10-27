@@ -1,0 +1,63 @@
+{% if delivery_platform_spinnaker_certificate_mode == 'issuer' %}
+{% for service in ['spinnaker', 'spinnaker-mysql', 'spinnaker-redis'] +
+                  (spinnaker_native_ports.keys() | reject('equalto', 'deck') | list) %}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ service }}-tls
+  annotations: {delivery.homelab/phase: foundation}
+spec:
+  secretName: {{ service }}-tls
+  duration: 720h
+  renewBefore: 240h
+  privateKey: {algorithm: RSA, size: 3072, rotationPolicy: Always}
+  issuerRef: {{ delivery_platform_spinnaker_issuer | to_json }}
+  dnsNames:
+{% if service == 'spinnaker' %}
+    - {{ delivery_platform_spinnaker_host }}
+{% else %}
+    - {{ service }}
+    - {{ service }}.{{ delivery_platform_spinnaker_namespace }}
+    - {{ service }}.{{ delivery_platform_spinnaker_namespace }}.svc
+    - {{ service }}.{{ delivery_platform_spinnaker_namespace }}.svc.cluster.local
+{% endif %}
+{% if service in spinnaker_native_ports %}
+  keystores:
+    pkcs12:
+      create: true
+      passwordSecretRef: {name: spinnaker-keystore, key: password}
+{% endif %}
+{% endfor %}
+{% endif %}
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: spinnaker-gate
+  annotations: {delivery.homelab/phase: foundation}
+spec:
+  serverName: gate.{{ delivery_platform_spinnaker_namespace }}.svc.cluster.local
+  rootCAsSecrets: [spinnaker-ingress-ca]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spinnaker
+  annotations:
+    delivery.homelab/phase: application
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: 'true'
+spec:
+  ingressClassName: {{ delivery_platform_ingress_class }}
+  tls: [{secretName: spinnaker-tls, hosts: [{{ delivery_platform_spinnaker_host }}]}]
+  rules:
+    - host: {{ delivery_platform_spinnaker_host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: deck, port: {number: 9000}}}
+          - path: /api/v1
+            pathType: Prefix
+            backend: {service: {name: gate, port: {number: 8084}}}

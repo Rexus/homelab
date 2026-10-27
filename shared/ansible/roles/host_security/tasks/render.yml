@@ -1,0 +1,13 @@
+---
+- name: Create a private configuration review directory
+  ansible.builtin.file:
+    path: "{{ host_security_output_dir }}"
+    state: directory
+    mode: '0700'
+
+- name: Render the owned native configuration files for review
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ host_security_output_dir }}/{{ item }}"
+    mode: '0600'
+  loop: [sshd_config, chrony.conf, public.xml, 50-host-security.rules]

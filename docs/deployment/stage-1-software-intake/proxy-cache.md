@@ -301,6 +301,12 @@ and users who log in get `http_proxy`, `https_proxy`, and `no_proxy` without
 editing individual `.bashrc` files. Set `baseline_manage_shell_proxy: false`
 when a setup should configure package managers only.
 
+Ansible downloads do not rely on an interactive login profile. The GitLab
+data-service artifact tasks explicitly use `repository_proxy_url` and optional
+`repository_proxy_https_url` when intake is enabled. [1] This supplements, not replaces,
+the persistent package-manager policy. Approve redirect destinations as well as the
+original artifact host; other automation tools need their own approved environment or mirror.
+
 Use `all.yml` when the cache should be shared by default. Use `all.<env>.yml`
 only when an environment should use a different cache or explicitly consume a
 shared cache by FQDN.
@@ -376,3 +382,8 @@ environment setting that only exists during one Ansible task.
 - [Using the cache from Proxmox](../../administration/compute/update-access.md)
 - [Network architecture](../../architecture/networking/README.md)
 - [Security principles](../../architecture/principles.md)
+
+## References
+
+1. [Ansible native download proxy behavior](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/get_url_module.html)
+   and [task environment](https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_environment.html).

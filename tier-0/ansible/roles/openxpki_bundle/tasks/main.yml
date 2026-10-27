@@ -86,6 +86,7 @@
   ansible.builtin.copy:
     src: "{{ openxpki_bundle_directory }}/upstream/{{ item.src }}/"
     dest: "{{ openxpki_bundle_directory }}/bundle/{{ item.dest }}/"
+    remote_src: true
     local_follow: true
     mode: preserve
   loop:

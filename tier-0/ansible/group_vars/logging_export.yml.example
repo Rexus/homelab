@@ -1,0 +1,10 @@
+---
+# Guide: docs/deployment/stage-8-observability/protected-log-search.md
+logging_export_allow_egress_accepted: false
+logging_export_scopes:
+  - name: operations
+    group: log-export
+    endpoint: otlp.observability.example.org:30402
+    ca_file: "{{ lookup('ansible.builtin.env', 'LOGGING_EXPORT_CA_FILE') }}"
+    cert_file: "{{ lookup('ansible.builtin.env', 'LOGGING_EXPORT_CERT_FILE') }}"
+    key_file: "{{ lookup('ansible.builtin.env', 'LOGGING_EXPORT_KEY_FILE') }}"

@@ -51,6 +51,7 @@ remoteAuth:
   staffGroups: []
 extraConfig:
   - values:
+      CHANGELOG_RETENTION: {{ control_applications_netbox_changelog_retention | int }}
       SOCIAL_AUTH_OIDC_OIDC_ENDPOINT: {{ control_applications_oidc_issuer | to_json }}
       SOCIAL_AUTH_OIDC_KEY: netbox
       SOCIAL_AUTH_OIDC_SCOPE: [openid, profile, email]
@@ -79,7 +80,7 @@ extraVolumeMounts: &trust-mounts
 persistence:
   enabled: true
   accessMode: ReadWriteMany
-  storageClass: {{ control_applications_storage_class | to_json }}
+  storageClass: {{ (control_applications_netbox_media_storage_class or control_applications_storage_class) | to_json }}
   size: {{ control_applications_netbox_media_size }}
 ingress: {enabled: false}
 worker:

@@ -1,0 +1,116 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: spinnaker-default-deny}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: spinnaker-dns}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ delivery_platform_spinnaker_dns_namespace }}}}
+          podSelector: {matchLabels: {{ delivery_platform_spinnaker_dns_selector | to_json }}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: spinnaker-private-services}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: app.kubernetes.io/name, operator: In, values: {{ spinnaker_native_ports.keys() | list | to_json }}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: app.kubernetes.io/name, operator: In, values: {{ spinnaker_native_ports.keys() | list | to_json }}}
+      ports:
+{% for service, port in spinnaker_native_ports.items() if service != 'deck' %}
+        - {protocol: TCP, port: {{ port }}}
+{% endfor %}
+  egress:
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: {{ (spinnaker_native_ports.keys() | list + ['spinnaker-mysql', 'spinnaker-redis']) | to_json }}
+      ports:
+{% for port in spinnaker_native_ports.values() | list + [3306, 6379] %}
+        - {protocol: TCP, port: {{ port }}}
+{% endfor %}
+{% for grant in delivery_platform_spinnaker_egress %}
+    - to: [{ipBlock: {cidr: {{ grant.cidr | to_json }}}}]
+      ports:
+{% for port in grant.ports %}
+        - {protocol: TCP, port: {{ port }}}
+{% endfor %}
+{% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: spinnaker-ingress}
+spec:
+  podSelector:
+    matchExpressions: [{key: app.kubernetes.io/name, operator: In, values: [deck, gate]}]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: {{ delivery_platform_spinnaker_ingress_namespace }}}
+          podSelector: {matchLabels: {{ delivery_platform_spinnaker_ingress_selector | to_json }}}
+      ports: [{protocol: TCP, port: 9000}, {protocol: TCP, port: 8084}]
+{% for service, port, clients in [
+  ('mysql', 3306, spinnaker_native_sql_services + ['spinnaker-databases', 'spinnaker-backup']),
+  ('redis', 6379, (spinnaker_native_ports.keys() | reject('equalto', 'deck') | list) + ['spinnaker-backup'])] %}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: spinnaker-{{ service }}-clients}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: spinnaker-{{ service }}}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions: [{key: app.kubernetes.io/name, operator: In, values: {{ clients | to_json }}}]
+      ports: [{protocol: TCP, port: {{ port }}}]
+{% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: spinnaker-administration}
+spec:
+  podSelector:
+    matchExpressions: [{key: app.kubernetes.io/name, operator: In, values: [spinnaker-databases, spinnaker-backup]}]
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchExpressions: [{key: app.kubernetes.io/name, operator: In, values: [spinnaker-mysql, spinnaker-redis]}]
+      ports: [{protocol: TCP, port: 3306}, {protocol: TCP, port: 6379}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: spinnaker-offcluster-backup}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: spinnaker-backup}}
+  policyTypes: [Egress]
+{% if delivery_platform_spinnaker_backup_backend == 's3' %}
+  egress:
+{% for grant in delivery_platform_spinnaker_backup_egress %}
+    - to: [{ipBlock: {cidr: {{ grant.cidr | to_json }}}}]
+      ports:
+{% for port in grant.ports %}
+        - {protocol: TCP, port: {{ port }}}
+{% endfor %}
+{% endfor %}
+{% else %}
+  egress: []
+{% endif %}

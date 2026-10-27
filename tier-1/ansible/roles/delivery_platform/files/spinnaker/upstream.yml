@@ -1,0 +1,114 @@
+# Canonical UTF-8/LF, trailing whitespace stripped at EOF, one final newline.
+# Repository, release and revision are centralized in ../software.yml.
+files:
+  LICENSE:
+    source: spinnaker-kustomize/LICENSE
+    sha256: de4686e6dc7275d215854d8e2f6f33a9b6a8e796f1f80b1ab2748cae20f19972
+  base/namespace.yml:
+    source: spinnaker-kustomize/base/namespace.yml
+    sha256: 2f392ce869c057d336a86ce5542ef42eb4ab2300c66807016ec9fd0f87f948f2
+  base/spinnaker.yml:
+    source: spinnaker-kustomize/base/spinnaker.yml
+    sha256: 70180fc55f95cdd9f4cf95cc392028ee84ed258bdc6f36f20a5507a6a3832869
+  base/clouddriver/clusterrolebinding.yml:
+    source: spinnaker-kustomize/base/clouddriver/clusterrolebinding.yml
+    sha256: fed8820bfa077f9a1b0e1554f4f13e711d398a505436c5b98535a940cce3e2cd
+  base/clouddriver/deployment.yml:
+    source: spinnaker-kustomize/base/clouddriver/deployment.yml
+    sha256: d7a096a86552636408452dd02f3a4a330980192b34d84cfdcf4d5644de3d932a
+  base/clouddriver/kustomization.yml:
+    source: spinnaker-kustomize/base/clouddriver/kustomization.yml
+    sha256: 70eccd69e2992597856219018f6cc300de61e1428ff33f780afab62d0e9e03d6
+  base/clouddriver/service.yml:
+    source: spinnaker-kustomize/base/clouddriver/service.yml
+    sha256: ed5e5c22d547ce1ea071975d1b3e5fc8d3541934e125ea906c4b952bd241ec0e
+  base/clouddriver/serviceaccount.yml:
+    source: spinnaker-kustomize/base/clouddriver/serviceaccount.yml
+    sha256: 3804f5ecb46eae5fa0d7de7e10cd6dace5af115656a4f3258b1f771a4f44c646
+  base/clouddriver/files/clouddriver.yml:
+    source: spinnaker-kustomize/base/clouddriver/files/clouddriver.yml
+    sha256: 19da85c5c3b6a84f4cd4e48fc6e9cd0c905dc2d81c2b65001cadc295f405532f
+  base/deck/deployment.yml:
+    source: spinnaker-kustomize/base/deck/deployment.yml
+    sha256: 07c9991982d31ba6fc3cb8ea9e46b8dd930248bfd49ca9c93a81ac0ef7e68ad6
+  base/deck/kustomization.yml:
+    source: spinnaker-kustomize/base/deck/kustomization.yml
+    sha256: c54f0a7b7b8d5697edf07ec932179757d1b116f341a2efa554bbdcbd60f0f679
+  base/deck/service.yml:
+    source: spinnaker-kustomize/base/deck/service.yml
+    sha256: 07482c9b00c5f77afbdab22c44fe36f4ddf7fb772845ac65f5179ed05f621e62
+  base/deck/files/settings.js:
+    source: spinnaker-kustomize/base/deck/files/settings.js
+    sha256: b2659651ff4e631d5673261dd8a5f94bc4ae360d1f3c9e5cfd9cf492d475fdd6
+  base/echo/deployment.yml:
+    source: spinnaker-kustomize/base/echo/deployment.yml
+    sha256: 87b97e8beba5f99760d2815ceb67d3ae17c69376f8e7097042163f7793f4550a
+  base/echo/kustomization.yml:
+    source: spinnaker-kustomize/base/echo/kustomization.yml
+    sha256: 8cb3b70eae2cabc1badd6d091bda9e4cf228679b1274cc2df93bf04e967bcdd1
+  base/echo/service.yml:
+    source: spinnaker-kustomize/base/echo/service.yml
+    sha256: 87c5799dba54b5fe24ecaa298de7f053ded3ea5121379b84279bc6260c62afb2
+  base/echo/serviceaccount.yml:
+    source: spinnaker-kustomize/base/echo/serviceaccount.yml
+    sha256: 20e91dad3c90ecd7db56876d3da66be52a6ce2d400adeb07f1d073616536fa6a
+  base/fiat/deployment.yml:
+    source: spinnaker-kustomize/base/fiat/deployment.yml
+    sha256: 9d3ccdcec3418e00f030a85c57caaabcf232072385f1629cf96f4e0f9a7eac31
+  base/fiat/kustomization.yml:
+    source: spinnaker-kustomize/base/fiat/kustomization.yml
+    sha256: d1b0a29bfb2b6ad818bfe9bc6339ae142f7083f37680e3e339f9417546c5620c
+  base/fiat/service.yml:
+    source: spinnaker-kustomize/base/fiat/service.yml
+    sha256: c15dcd109f8c38872397c88af2b512128cea09360969cd5c2563bc69708f0cdc
+  base/fiat/serviceaccount.yml:
+    source: spinnaker-kustomize/base/fiat/serviceaccount.yml
+    sha256: eab24519fa2f50ce133a7b9c903eae29fab48e42802bd5ab0fc6d268917acc9e
+  base/front50/deployment.yml:
+    source: spinnaker-kustomize/base/front50/deployment.yml
+    sha256: 9cad94a967ba048a3f0ce3dbeb23358a653f2e18e0e904871d94638c6d8c6ae4
+  base/front50/kustomization.yml:
+    source: spinnaker-kustomize/base/front50/kustomization.yml
+    sha256: 7e1510b6b1154728aeb8c879d70b605d152b240ba82242083a6c4bb8f9c3b939
+  base/front50/service.yml:
+    source: spinnaker-kustomize/base/front50/service.yml
+    sha256: 157adc6edf735c5cff65cacc4ffa874a7f512a2d94af5e7b75c9ca25cf9cb1d6
+  base/front50/serviceaccount.yml:
+    source: spinnaker-kustomize/base/front50/serviceaccount.yml
+    sha256: 5dec5166a3e5012128693c753d44c5f18dfefe607200e683052152bf31bc278e
+  base/gate/deployment.yml:
+    source: spinnaker-kustomize/base/gate/deployment.yml
+    sha256: a11c393ab7b98c3be152f45eba3d1c2fec23b2f88c3e813171027e0d14f479d2
+  base/gate/kustomization.yml:
+    source: spinnaker-kustomize/base/gate/kustomization.yml
+    sha256: 3cce2b52f5d73c34fd3ec467ad67f3a7968852d996ea07ab73176abe87e10e0c
+  base/gate/service.yml:
+    source: spinnaker-kustomize/base/gate/service.yml
+    sha256: 5af34d8e33824372259e5b9ab560fd90d173cff413959088a907b1fa25d16e53
+  base/gate/serviceaccount.yml:
+    source: spinnaker-kustomize/base/gate/serviceaccount.yml
+    sha256: dfed8ff46bfd0d7eef708f6a08715495b33c89a657671f440d3846de2f58a4fb
+  base/orca/deployment.yml:
+    source: spinnaker-kustomize/base/orca/deployment.yml
+    sha256: 201b5dcb3acef621584ca475d17505c7d771ab1dbd063d0ba1a48f7bcb2619d2
+  base/orca/kustomization.yml:
+    source: spinnaker-kustomize/base/orca/kustomization.yml
+    sha256: 2e55068960a4b22a6b050cfe88ffe57bac8fcb44c8a2d310e3c6f8ed1b6e4e45
+  base/orca/service.yml:
+    source: spinnaker-kustomize/base/orca/service.yml
+    sha256: c65ddffcb8a05512081f5f628b5ad77fb8852ba869d625104f2004cfb0604644
+  base/orca/serviceaccount.yml:
+    source: spinnaker-kustomize/base/orca/serviceaccount.yml
+    sha256: d88cb4f8b373579485e2d718c3821e12dcc789a935a83607237b7a3cfdcfe819
+  base/rosco/deployment.yml:
+    source: spinnaker-kustomize/base/rosco/deployment.yml
+    sha256: f59309ad84a5f159fa4c14063505fbd9c03a3a00e7fba3385dc6f87579ccac3e
+  base/rosco/kustomization.yml:
+    source: spinnaker-kustomize/base/rosco/kustomization.yml
+    sha256: 9de79efead525d63842d6e523d1a8bb9214facf85f4449a96336cbafd3f27e87
+  base/rosco/service.yml:
+    source: spinnaker-kustomize/base/rosco/service.yml
+    sha256: 4b8fb1646a40f55a66c1427eb6a94edca944f017a5060810eb1daa54dbb68bfe
+  base/rosco/serviceaccount.yml:
+    source: spinnaker-kustomize/base/rosco/serviceaccount.yml
+    sha256: 0f3f7ce67f1eb6ab30ef8b80640d6771ac054d98ae3712380f13b9ee78538397

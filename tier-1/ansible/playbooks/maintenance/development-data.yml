@@ -1,0 +1,4 @@
+---
+# Reuse the guarded declarative recipe; render is the default, apply requires confirmation.
+- name: Maintain native GitLab data services
+  ansible.builtin.import_playbook: ../deployment/development-data.yml

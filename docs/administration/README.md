@@ -12,6 +12,13 @@ or recovery dependencies requires a design review before execution.
 | Task | Guide |
 | --- | --- |
 | Reconcile supported host configuration | [Ansible recipes](ansible-recipes.md) |
+| Maintain Linux SSH, time, audit and host-firewall policy | [Host security](host-security.md) |
+| Manage household/team roles and remote-entry boundaries | [Access lifecycle](access-lifecycle.md) |
+| Plan updates and replace physical hosts | [Maintenance](maintenance.md) |
+| Schedule control snapshots and independent encrypted copies | [Control backups](backups/control-applications.md) |
+| Send verified PostgreSQL backup copies to NAS | [PostgreSQL file backups](backups/postgresql.md) |
+| Back up GitLab data VMs to mounted files or SFTP | [GitLab data backups](backups/gitlab-data.md) |
+| Restore original product identities and data on clean targets | [Product recovery](recovery/README.md) |
 | Recover independently of hosted services | [Recovery](recovery.md) |
 | Test VM backup and restore | [Backup foundation](compute/backup-restore.md) |
 | Maintain hypervisor access and posture | [Hardening](compute/hardening.md), [update access](compute/update-access.md) |

@@ -1,0 +1,50 @@
+---
+- name: Require explicit backup custody and separate encrypted repositories
+  ansible.builtin.assert:
+    that:
+      - development_data_backup_transport in ['sftp', 'filesystem']
+      - development_data_backup_custody_accepted | bool
+      - development_data_backup_repository.keys() | sort == development_data_hosts.keys() | sort
+      - development_data_backup_repository.values() | unique | length == 3
+      - development_data_backup_password_src is match('^/')
+      - development_data_backup_min_free_bytes | int > 0
+      - development_data_backup_timeout_seconds | int >= 60
+    fail_msg: Select sftp or a commissioned NAS filesystem, independent encryption keys and accepted recovery custody.
+
+- name: Validate SFTP repository addresses
+  ansible.builtin.assert:
+    that: item.value is match('^sftp:[a-z0-9_-]+@[a-z0-9.-]+:/[a-zA-Z0-9/_-]+$')
+  loop: "{{ development_data_backup_repository | dict2items }}"
+  when: development_data_backup_transport == 'sftp'
+
+- name: Require commissioned filesystem contracts for all data hosts
+  ansible.builtin.assert:
+    that:
+      - development_data_backup_filesystem.keys() | sort == development_data_hosts.keys() | sort
+      - development_data_backup_filesystem.values() | map(attribute='marker') | unique | length == 3
+  when: development_data_backup_transport == 'filesystem'
+
+- name: Validate bounded NAS mount paths and identities
+  ansible.builtin.assert:
+    that:
+      - item.value.mount is match('^/(mnt|srv)/[A-Za-z0-9_/-]+$')
+      - item.value.fstype in ['nfs', 'nfs4', 'cifs']
+      - >-
+        (item.value.fstype in ['nfs', 'nfs4'] and
+         item.value.source is match('^[a-zA-Z0-9.-]+:/[a-zA-Z0-9_./-]+$')) or
+        (item.value.fstype == 'cifs' and
+         item.value.source is match('^//[a-zA-Z0-9.-]+/[a-zA-Z0-9_-]+$'))
+      - item.value.marker is match('^[A-Za-z0-9_-]{32,128}$')
+      - item.value.uid is integer
+      - item.value.gid is integer
+      - item.value.uid >= 0
+      - item.value.gid >= 0
+      - development_data_backup_repository[item.key] is match('^/[A-Za-z0-9_/-]+$')
+      - development_data_backup_repository[item.key].startswith(item.value.mount + '/')
+      - "'' not in item.value.mount.split('/')[1:]"
+      - "'' not in development_data_backup_repository[item.key].split('/')[1:]"
+    fail_msg: >-
+      Commission a dedicated NFS/SMB mount, unique per-host marker and precreated repository directory.
+      Supply the actual findmnt source/type and effective NAS write UID/GID, including root-squash mapping.
+  loop: "{{ development_data_backup_filesystem | dict2items }}"
+  when: development_data_backup_transport == 'filesystem'

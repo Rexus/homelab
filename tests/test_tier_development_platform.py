@@ -10,6 +10,7 @@ import unittest
 import yaml
 
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
+from native_chart_test_support import native_chart_fixture
 
 
 class DevelopmentPlatform(TierRepositoryTestCase):
@@ -32,6 +33,8 @@ class DevelopmentPlatform(TierRepositoryTestCase):
                          "Requires Ansible Kubernetes collection and native Helm")
     def test_native_charts_render_source_and_generated_with_scoped_runner(self):
         self.generate()
+        chart_inputs, chart_environment = self.enterContext(native_chart_fixture(
+            Path(self.temp.name) / "charts", "development_platform_release"))
         for repo in (UPSTREAM / "tier-1", self.root / "verify-tier-1"):
             with self.subTest(repo=repo.name):
                 output = Path(self.temp.name) / f"render-{repo.parent.name}-{repo.name}"
@@ -50,12 +53,14 @@ class DevelopmentPlatform(TierRepositoryTestCase):
                     "development_platform_oidc_issuer": "https://sso.lab.test/realms/platform",
                     "development_platform_runner_image": "registry.lab.test/build@sha256:" + "0" * 64,
                     "development_platform_runner_helper_image": "registry.lab.test/helper@sha256:" + "1" * 64,
+                    "development_platform_runner_additional_allowed_images": ["ghcr.io/gitleaks/gitleaks:v8.30.1"],
                     "development_platform_runner_allowed_cidrs": ["192.0.2.10/32"],
                     "development_platform_runner_api_cidrs": ["192.0.2.20/32"],
                 }
+                inputs.update(chart_inputs)
                 fixture = Path(self.temp.name) / "platform-inputs.yml"
                 fixture.write_text(yaml.safe_dump(inputs))
-                environment = dict(os.environ, ANSIBLE_CONFIG=str(repo / "ansible/ansible.cfg"))
+                environment = dict(os.environ, ANSIBLE_CONFIG=str(repo / "ansible/ansible.cfg"), **chart_environment)
                 result = subprocess.run(
                     ["ansible-playbook", "-i", "localhost,", "ansible/playbooks/deployment/development-platform.yml",
                      "-e", f"@{fixture}"],
@@ -69,6 +74,9 @@ class DevelopmentPlatform(TierRepositoryTestCase):
                 self.assertEqual(values["global"]["shell"]["authToken"],
                                  {"secret": "gitlab-shell-auth", "key": "secret"})
                 self.assertFalse(values["gitlab-runner"]["install"])
+                self.assertEqual(values['gitlab']['toolbox']['backups']['cron'], {
+                    'enabled': True, 'schedule': '30 2 * * *', 'concurrencyPolicy': 'Forbid',
+                })
                 self.assertTrue(values["global"]["appConfig"]["omniauth"]["blockAutoCreatedUsers"])
                 manifests = [doc for doc in yaml.safe_load_all((output / "gitlab-manifests.yml").read_text()) if doc]
                 web = next(doc for doc in manifests if doc["kind"] == "Deployment" and "webservice" in doc["metadata"]["name"])
@@ -84,11 +92,17 @@ class DevelopmentPlatform(TierRepositoryTestCase):
                 self.assertEqual(autoscaler["spec"]["minReplicas"], 2)
                 self.assertEqual(autoscaler["spec"]["maxReplicas"], 2)
                 self.assertFalse(any(doc["kind"] == "StatefulSet" and "gitaly" in doc["metadata"]["name"] for doc in manifests))
+                backups = next(doc for doc in manifests if doc['kind'] == 'CronJob'
+                               and 'toolbox' in doc['metadata']['name'])
+                self.assertEqual(backups['spec']['schedule'], '30 2 * * *')
+                self.assertEqual(backups['spec']['concurrencyPolicy'], 'Forbid')
                 runner = yaml.safe_load((output / "gitlab-runner-values.yml").read_text())
                 config = tomllib.loads(runner["runners"]["config"])["runners"][0]["kubernetes"]
                 self.assertFalse(config["privileged"])
                 self.assertFalse(config["automount_service_account_token"])
                 self.assertEqual(config["service_account"], "ci-job")
+                self.assertEqual(config['allowed_images'], [inputs['development_platform_runner_image'],
+                                                           'ghcr.io/gitleaks/gitleaks:v8.30.1'])
                 rendered = [doc for doc in yaml.safe_load_all((output / "gitlab-runner-manifests.yml").read_text()) if doc]
                 manager = next(doc for doc in rendered if doc["kind"] == "Deployment")
                 self.assertEqual(manager["spec"]["template"]["metadata"]["labels"]["app"], "gitlab-runner")

@@ -1,0 +1,11 @@
+[Unit]
+Description=Collect retained NetBox audit changes
+
+[Timer]
+OnCalendar={{ netbox_audit_calendar }}
+Persistent=true
+RandomizedDelaySec=15
+Unit=netbox-audit.service
+
+[Install]
+WantedBy=timers.target

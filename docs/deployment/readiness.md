@@ -71,7 +71,7 @@ Hardware expense, node count and successful VM creation do not establish a level
 | Independent monitoring | Stage 6: Tier 0 outage visibility | Required failures produce alerts without the observed cluster, Tier 1 or normal SSO |
 | Observability | Stage 8: infrastructure diagnostics and separate Tier 1 signal workloads | Netdata failover/source coverage, replicated backends, scoped queries, approved copies and tested replay/restore |
 | Development platform | Stage 9 | SSO, external data restore, ephemeral job isolation, exact Vault claims, original-state handover and independent CI outage recovery |
-| Lab environments | Stage 10 | Tenant isolation, bounded sizing/expiry, unique resource/state allocations, restricted credentials and tested deletion/recovery |
+| Lab environments | Stage 10 | Scoped runtime/application isolation, bounded sizing, unique resource/state allocations, restricted credentials and tested operator deletion/recovery; automatic allocation/expiry only when separately selected and implemented |
 
 The directory and identity provider, or issuer and seal provider, may have different readiness.
 Each stage records acceptance and operational handover; later stages do not postpone basic protection and
@@ -85,6 +85,22 @@ Project architecture records the chosen design and required properties.
 Project deployment records current readiness, outstanding work, selected procedures
 and acceptance evidence. Administration keeps recurring verification and recovery
 records. A failed requirement can block acceptance without changing the architecture.
+
+### Site approvals
+
+Record these decisions in the generated project's owned architecture/deployment records
+before applying the affected stage. Example values and unchecked acceptance inputs are not approvals.
+
+| Decision | Required record |
+| --- | --- |
+| Resource and failure budget | Physical hosts, RAM/CPU/storage headroom, placement and shared failure dependencies |
+| Network and access | VMIDs/IPs/VLANs, DNS/time, independent API endpoints, gateway/host/workload rules and privileged entry |
+| Persistence | Qualified CSI/NAS interfaces, database/object storage, capacity and storage-failure assumptions |
+| Recovery | Per-capability RPO/RTO, encrypted off-host backups, original state/ignored inputs, keys and clean-target restore procedure |
+| Logging custody | Bounded-loss intake, trusted NAS administrators or selected retention locks, scope approvals and independent backup ownership |
+| Delivery | Explicit Argo CD or Spinnaker selection, accepted targets/sources and one release owner |
+| Infrastructure CI | Dedicated project's direct-CI trust extends Tier 0 authority to GitLab and its control/hosting administrators |
+| Release acceptance | Reviewed tool/provider/chart versions and offline results; separate live installation, denial, failure and restore records |
 
 For an existing service, record its owner and verified interface instead of
 creating duplicate resources or state. A separate isolated instance requires an

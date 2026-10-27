@@ -1,0 +1,35 @@
+---
+- name: Install the distribution's owned chrony client configuration
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: "{{ host_security_os[ansible_os_family].time_config }}"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: true
+    validate: /usr/sbin/chronyd -p -f %s
+  notify: Restart host security time synchronization
+
+- name: Enable the native time and audit daemons without stopping existing loggers
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - "{{ host_security_os[ansible_os_family].time_service }}"
+    - auditd
+
+- name: Install additive persistent security audit rules
+  ansible.builtin.template:
+    src: 50-host-security.rules.j2
+    dest: /etc/audit/rules.d/50-host-security.rules
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Load host security audit rules
+
+- name: Enable EL 10's separate native audit rule loader for reboot persistence
+  ansible.builtin.systemd_service:
+    name: audit-rules
+    enabled: true
+  when: ansible_os_family == 'RedHat' and ansible_distribution_major_version | string == '10'

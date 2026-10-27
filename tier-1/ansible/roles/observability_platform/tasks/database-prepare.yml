@@ -1,0 +1,72 @@
+---
+- name: Prepare private database-only output
+  ansible.builtin.file:
+    path: "{{ observability_output }}"
+    state: directory
+    mode: "0700"
+
+- name: Store the native database preparation manifest
+  ansible.builtin.copy:
+    content: "{{ lookup('ansible.builtin.template', 'grafana-database.yml.j2') | from_yaml | first | to_nice_yaml }}"
+    dest: "{{ observability_output }}/grafana-database-prepare.yml"
+    mode: "0600"
+
+- name: Establish only the database namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ observability_kubeconfig }}"
+    context: "{{ observability_context | default(omit, true) }}"
+    validate_certs: true
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata: {name: "{{ observability_namespace }}"}
+  when: observability_action == 'apply'
+
+- name: Gate only the database's independently supplied secrets
+  ansible.builtin.include_role:
+    name: kubernetes_applications
+    tasks_from: secrets
+  vars:
+    kube_app:
+      namespace: "{{ observability_namespace }}"
+      required_secrets:
+        - {name: grafana-database, keys: [username, password, secret-key]}
+        - {name: grafana-db-ca, keys: [ca.crt]}
+        - {name: grafana-db-server-tls, keys: [tls.crt, tls.key]}
+        - {name: grafana-db-client-ca, keys: [ca.crt]}
+        - {name: grafana-db-replication, keys: [tls.crt, tls.key]}
+    kube_apps_action: "{{ observability_action }}"
+    kube_apps_kubeconfig: "{{ observability_kubeconfig }}"
+    kube_apps_context: "{{ observability_context }}"
+    kube_apps_manage_secrets: "{{ observability_manage_secrets }}"
+    kube_apps_secrets: "{{ observability_secrets }}"
+  when: observability_action == 'apply'
+
+- name: Establish only the new native database
+  kubernetes.core.k8s:
+    kubeconfig: "{{ observability_kubeconfig }}"
+    context: "{{ observability_context | default(omit, true) }}"
+    validate_certs: true
+    definition: "{{ lookup('ansible.builtin.template', 'grafana-database.yml.j2') | from_yaml }}"
+    state: present
+  when: observability_action == 'apply'
+
+- name: Wait for database preparation and its actual system identifier
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ observability_kubeconfig }}"
+    context: "{{ observability_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: "{{ observability_namespace }}"
+    name: grafana-db
+    wait: true
+    wait_timeout: 900
+    wait_condition: {type: Ready, status: 'True'}
+  register: observability_prepared_database
+  when: observability_action == 'apply'
+
+- name: Report identity without writing the destination marker
+  ansible.builtin.debug:
+    msg: "grafana-db systemID={{ observability_prepared_database.resources[0].status.systemID }}; commission the private NAS claim separately."
+  when: observability_action == 'apply'

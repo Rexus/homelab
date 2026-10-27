@@ -64,6 +64,7 @@ def create_only(path, data, group=None):
     with os.fdopen(descriptor, 'wb') as output:
         if group is not None:
             os.fchown(output.fileno(), -1, group)
+            os.fchmod(output.fileno(), 0o640)
         output.write(data)
         output.flush()
         os.fsync(output.fileno())

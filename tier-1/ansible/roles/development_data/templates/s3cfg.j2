@@ -1,0 +1,10 @@
+[default]
+access_key = {{ development_data_s3_keys.backup.access_key }}
+secret_key = {{ development_data_s3_keys.backup.secret_key }}
+host_base = {{ development_data_s3_endpoint | regex_replace('^https://', '') }}
+host_bucket = {{ development_data_s3_endpoint | regex_replace('^https://', '') }}
+bucket_location = {{ development_data_s3_region }}
+use_https = True
+check_ssl_certificate = True
+check_ssl_hostname = True
+signature_v2 = False

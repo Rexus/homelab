@@ -8,19 +8,8 @@ usage() {
 Usage:
   ./scripts/deploy.sh <setup> [options]
 
-Kit setups (only those owned by the current tier are available):
-  foundation
-  syslog
-  edge
-  cache
-  development
-  observability
-  podman-runner
-  immutable-template
-  template-refresh
-  lab
-  vault
-  hsm
+Available setups are listed in the current tier's .deployment-setups file.
+Each setup owns a Terraform root, inventory inputs and Ansible recipe in that tier.
 
 Options:
   --env NAME        Use ansible/group_vars/all.NAME.yml, matching setup vars,
@@ -54,6 +43,7 @@ Options:
 Examples:
   bash scripts/deploy.sh foundation
   bash scripts/deploy.sh foundation --env test --plan-only
+  bash scripts/deploy.sh cluster-endpoint --plan-only
   bash scripts/deploy.sh foundation --env-file secrets/proxmox.env
   bash scripts/deploy.sh foundation --env lab1
   bash scripts/deploy.sh foundation --env test --reset-known-hosts

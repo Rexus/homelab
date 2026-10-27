@@ -88,6 +88,13 @@ class ClusterPlatform(TierRepositoryTestCase):
         self.assertEqual(DEFAULTS["cluster_platform_flux_path"], "")
         self.assertEqual(DEFAULTS["cluster_platform_expected_nodes"], [])
 
+    def test_fresh_platform_examples_do_not_require_object_backup_or_nas_database_storage(self):
+        for tier in ("tier-0", "tier-1"):
+            example = yaml.safe_load((UPSTREAM / tier / "ansible/group_vars/cluster_platform.yml.example").read_text())
+            self.assertNotIn("barman_cloud", example["cluster_platform_components"])
+            self.assertEqual(example["cluster_platform_storage_provider"], "existing")
+            self.assertFalse(example["cluster_platform_existing_storage_accepted"])
+
     def test_native_execution_delegates_and_all_api_calls_use_target_and_tls(self):
         product = yaml.safe_load((ROLE / "tasks/product.yml").read_text())
         delegation = next(t for t in product if "ansible.builtin.include_role" in t)

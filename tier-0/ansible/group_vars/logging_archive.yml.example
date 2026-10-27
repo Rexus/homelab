@@ -8,6 +8,16 @@ logging_archive_required_sources: []  # active journal identities; include recei
 logging_archive_max_lag_seconds: 300
 logging_archive_min_free_bytes: 2147483648
 logging_archive_views: {}
+logging_archive_projections: {}
+# A search copy is an additional, revocable read boundary, never original evidence.
+# New scopes start with newly checkpointed records; retain the original for historic review.
+# logging_archive_projections:
+#   operations:
+#     group: log-export
+#     approval: SEC-001
+#     sources: [pve01]
+#     fields: [source, source_tier, received_at, reported_host]
+#     content_approved: false  # required true before selecting message or raw
 # Approved application sources only, never OS/audit/CA streams:
 # logging_archive_views:
 #   example-app: example-app-readers

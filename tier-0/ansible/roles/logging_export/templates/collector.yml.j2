@@ -1,0 +1,34 @@
+extensions:
+  file_storage:
+    directory: /state
+    create_directory: true
+    fsync: true
+receivers:
+  filelog:
+    include: [/approved/*.jsonl]
+    start_at: beginning
+    storage: file_storage
+    delete_after_read: false
+    max_log_size: 4MiB
+    retry_on_failure: {enabled: true, max_elapsed_time: 0s}
+    operators:
+      - type: json_parser
+        parse_to: body
+        on_error: drop
+processors:
+  memory_limiter: {check_interval: 1s, limit_mib: 384, spike_limit_mib: 64}
+exporters:
+  otlp:
+    endpoint: {{ logging_export_scope.endpoint | to_json }}
+    tls: {ca_file: /config/ca.pem, cert_file: /config/cert.pem, key_file: /config/key.pem}
+    sending_queue:
+      enabled: true
+      storage: file_storage
+      queue_size: {{ logging_export_queue_batches }}
+      num_consumers: 1
+      block_on_overflow: true
+    retry_on_failure: {enabled: true, max_elapsed_time: 0s}
+service:
+  extensions: [file_storage]
+  pipelines:
+    logs: {receivers: [filelog], processors: [memory_limiter], exporters: [otlp]}

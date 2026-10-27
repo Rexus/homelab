@@ -1,0 +1,40 @@
+#!/bin/bash
+set -euo pipefail
+export LC_ALL=C
+umask 077
+source_id={{ postgresql_file_backup_target.source_id | quote }}
+system_identifier={{ postgresql_file_backup_target.system_identifier | string | quote }}
+marker={{ postgresql_file_backup_target.marker | quote }}
+image={{ postgresql_file_backup_target.image | quote }}
+set_id={{ postgresql_file_backup_recovery.set_id | quote }}
+root=/repository
+[[ $(realpath -e "$root") == "$root" ]]
+awk -v path="$root" '$5 == path { found=1 } END { exit !found }' /proc/self/mountinfo
+printf '%s\n%s\n%s\n' "$source_id" "$system_identifier" "$marker" > /tmp/expected-source
+[[ ! -L "$root/.postgresql-backup-source" ]]
+cmp /tmp/expected-source "$root/.postgresql-backup-source"
+[[ ! -L "$root/completed" && ! -L "$root/completed/$set_id" ]]
+selected="$root/completed/$set_id"
+[[ $(realpath -e "$selected") == "$selected" ]]
+[[ $(realpath -e "$selected/pgdata") == "$selected/pgdata" ]]
+cmp /tmp/expected-source "$selected/source"
+[[ $(cat "$selected/image") == "$image" && -s "$selected/completed-at" ]]
+[[ $(cat "$selected/pgdata/PG_VERSION") == 17 ]]
+[[ ! -L "$selected/pgdata/pg_wal" ]]
+[[ -z $(find "$selected/pgdata/pg_tblspc" -mindepth 1 -print -quit) ]]
+pg_verifybackup --exit-on-error "$selected/pgdata"
+[[ $(pg_controldata "$selected/pgdata" | awk -F ': *' '/Database system identifier/ {print $2}') == "$system_identifier" ]]
+[[ -z $(find /work -mindepth 1 -maxdepth 1 ! -name lost+found -print -quit) ]]
+mkdir /work/pgdata
+cp -a "$selected/pgdata/." /work/pgdata/
+pg_verifybackup --exit-on-error /work/pgdata
+# Only the new staging copy is changed; production and the NAS set remain untouched.
+for file in postgresql.auto.conf standby.signal recovery.signal; do
+  if [[ -e /work/pgdata/$file ]]; then mv "/work/pgdata/$file" "/work/original-$file"; fi
+done
+pg_ctl -D /work/pgdata -o '-c config_file=/recovery/postgresql.conf' -w start
+trap 'pg_ctl -D /work/pgdata -m fast -w stop' EXIT
+trap 'exit 1' TERM INT
+[[ $(psql -h /tmp -U postgres -d postgres -Atw -c 'SELECT pg_is_in_recovery()') == f ]]
+printf 'Recovered temporary source; create the separate CNPG target, then touch /work/release.\n'
+while [[ ! -f /work/release ]]; do sleep 5; done

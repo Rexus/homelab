@@ -1,0 +1,88 @@
+---
+- name: Validate endpoint inputs before changing a gateway
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Require the supported gateway operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_service_mgr == 'systemd'
+      - cluster_endpoint_interface in ansible_interfaces
+      - platform_host_ips[inventory_hostname] in ansible_all_ipv4_addresses
+    fail_msg: The private API endpoint installer supports Enterprise Linux guests with systemd.
+
+- name: Install distribution HAProxy and Keepalived packages
+  ansible.builtin.include_role:
+    name: shared
+    tasks_from: packages
+  vars:
+    shared_packages: [haproxy, keepalived]
+    shared_package_state: present
+
+- name: Install native SELinux management dependencies
+  ansible.builtin.dnf:
+    name: [policycoreutils-python-utils, python3-libselinux, python3-libsemanage]
+    state: present
+  when: ansible_selinux.status | default('disabled') == 'enabled'
+
+- name: Allow the confined HAProxy domain to serve the private API port
+  ansible.posix.seboolean:
+    name: haproxy_connect_any
+    state: true
+    persistent: true
+  when: ansible_selinux.status | default('disabled') == 'enabled'
+
+- name: Allow HAProxy to bind a VIP on the standby gateway
+  ansible.builtin.include_role:
+    name: shared
+    tasks_from: sysctl
+  vars:
+    shared_sysctl_settings:
+      net.ipv4.ip_nonlocal_bind: '1'
+    shared_sysctl_file: /etc/sysctl.d/60-cluster-endpoint.conf
+
+- name: Render validated TCP passthrough configuration
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: "{{ cluster_endpoint_haproxy_config_path }}"
+    owner: root
+    group: root
+    mode: '0644'
+    validate: /usr/sbin/haproxy -c -f %s
+  notify: Reload cluster endpoint HAProxy
+
+- name: Configure VIP ownership through Shared with native validation
+  module_defaults:
+    ansible.builtin.template:
+      validate: /usr/sbin/keepalived --config-test -f %s
+  block:
+    - name: Render Shared Keepalived instances for private API VIPs
+      ansible.builtin.include_role:
+        name: shared
+        tasks_from: keepalived
+      vars:
+        shared_keepalived_enabled: true
+        shared_keepalived_config_path: "{{ cluster_endpoint_keepalived_config_path }}"
+        shared_keepalived_group: "{{ cluster_endpoint_group }}"
+        shared_keepalived_interface: "{{ cluster_endpoint_interface }}"
+        shared_keepalived_instance_name_prefix: cluster_api_
+        shared_keepalived_scripts:
+          - name: chk_cluster_api_haproxy
+            path: /usr/bin/systemctl is-active --quiet haproxy
+        shared_keepalived_default_track_scripts: [chk_cluster_api_haproxy]
+        shared_keepalived_instances: "{{ cluster_endpoint_endpoints }}"
+
+- name: Apply validated service configuration changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Keep the API proxy enabled and running
+  ansible.builtin.service:
+    name: haproxy
+    enabled: true
+    state: started
+
+- name: Keep VIP ownership enabled and running
+  ansible.builtin.service:
+    name: keepalived
+    enabled: true
+    state: started

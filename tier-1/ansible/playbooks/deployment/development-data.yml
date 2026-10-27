@@ -1,0 +1,52 @@
+---
+- name: Render or provision GitLab dependency interfaces
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  pre_tasks:
+    - name: Check native module dependencies before any provisioning
+      ansible.builtin.command:
+        argv: >-
+          {{ ['ansible-doc', '--type', 'module', '--json', 'community.postgresql.postgresql_db',
+              'community.postgresql.postgresql_ext'] +
+             (['amazon.aws.s3_bucket', 'amazon.aws.iam_policy', 'amazon.aws.iam_access_key_info']
+              if development_data_s3_mode | default('preprovisioned') == 'ceph-rgw' else []) }}
+      changed_when: false
+      register: development_data_modules
+      failed_when: >-
+        development_data_modules.rc != 0 or
+        (development_data_modules.stdout | from_json | length) !=
+        (5 if development_data_s3_mode | default('preprovisioned') == 'ceph-rgw' else 2)
+    - name: Check native controller libraries
+      ansible.builtin.command:
+        argv: ["{{ ansible_playbook_python }}", -c, "import boto3, botocore, netaddr"]
+      changed_when: false
+  roles:
+    - development_data
+  post_tasks:
+    - name: Authorize host configuration only after all controller checks succeed
+      ansible.builtin.set_fact:
+        development_data_controller_ready: true
+
+- name: Configure dedicated GitLab data hosts
+  hosts: development_data
+  gather_facts: false
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Reject host-only apply that bypasses controller validation
+      ansible.builtin.assert:
+        that: hostvars['localhost'].development_data_controller_ready | default(false) | bool
+        fail_msg: Run the complete playbook with localhost included so all controller checks run first.
+      when: development_data_action | default('render') == 'apply'
+    - name: Apply only after explicit controller validation and authorization
+      ansible.builtin.include_role:
+        name: development_data
+        tasks_from: host.yml
+      when:
+        - development_data_action | default('render') == 'apply'
+        - development_data_apply_confirm | default(false) | bool

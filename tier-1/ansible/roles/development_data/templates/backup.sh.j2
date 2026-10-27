@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec 9>/run/development-data-backup.lock
+flock -n 9
+set -a
+source /etc/development-data/backup.env
+set +a
+mode=${1:-backup}
+case "$mode" in backup|--probe|--initialize) ;; *) exit 2 ;; esac
+restic_args=()
+{% if development_data_backup_transport == 'sftp' %}
+sftp_args='-i /etc/development-data/backup.key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/development-data/known_hosts'
+restic_args=(-o "sftp.args=$sftp_args")
+{% else %}
+source /etc/development-data/backup-filesystem.sh
+require_filesystem_repository
+{% endif %}
+# Only missing repositories may be initialized; every other error remains fatal.
+status=0
+restic "${restic_args[@]}" cat config >/dev/null || status=$?
+if (( status != 0 )); then
+  if [[ "$mode" != --initialize || "$status" != 10 ]]; then exit "$status"; fi
+{% if development_data_backup_transport == 'filesystem' %}
+  # Missing config in a nonempty directory is damage, not permission to reinitialize.
+  entries=$(find . -mindepth 1 -maxdepth 1 -print -quit)
+  [[ -z "$entries" ]] || {
+    echo 'Refusing to initialize a nonempty NAS repository' >&2; exit 1;
+  }
+  probe_filesystem_writes
+  require_filesystem_repository
+{% endif %}
+  restic "${restic_args[@]}" init
+  echo 'Initialized encrypted repository'
+fi
+{% if development_data_backup_transport == 'filesystem' %}
+probe_filesystem_writes
+require_filesystem_repository
+{% endif %}
+[[ "$mode" == backup ]] || exit 0
+# A cold component copy avoids copying live database/repository files.
+# Cross-component consistency still requires a coordinated GitLab recovery point.
+# A hard NFS kernel wait can outlast termination; the timer is not a recovery guarantee.
+cold_started=$SECONDS
+start_source() {
+  if (cd / && /opt/gitlab/bin/gitlab-ctl start {{ data_component }}); then
+    printf 'GitLab {{ data_component }} start requested after %s seconds; verify readiness\n' \
+      "$((SECONDS - cold_started))"
+  else
+    echo "GitLab {{ data_component }} start failed after $((SECONDS - cold_started)) seconds" >&2
+    return 1
+  fi
+}
+trap 'status=$?; start_source || status=1; exit "$status"' EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+(cd / && /opt/gitlab/bin/gitlab-ctl stop {{ data_component }})
+{% if development_data_backup_transport == 'filesystem' %}
+require_filesystem_repository
+{% endif %}
+restic "${restic_args[@]}" backup --tag gitlab-{{ data_component }} /var/opt/gitlab /etc/gitlab
+start_source
+trap - EXIT
+{% if development_data_backup_transport == 'filesystem' %}
+require_filesystem_repository
+{% endif %}
+restic "${restic_args[@]}" check

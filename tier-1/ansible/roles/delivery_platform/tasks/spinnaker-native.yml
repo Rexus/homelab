@@ -1,0 +1,148 @@
+---
+- name: Resolve the native reference's complete service and SQL inventory
+  ansible.builtin.set_fact:
+    spinnaker_native_ports:
+      clouddriver: 7002
+      deck: 9000
+      echo: 8089
+      fiat: 7003
+      front50: 8080
+      gate: 8084
+      orca: 8083
+      rosco: 8087
+    spinnaker_native_sql_services: [clouddriver, echo, fiat, front50, orca]
+    spinnaker_native_directory: "{{ delivery_platform_output }}/spinnaker-native"
+
+- name: Check native reference inputs before generating resources
+  ansible.builtin.import_tasks: spinnaker-native-preflight.yml
+
+- name: Prepare private reproducible native source output
+  ansible.builtin.file:
+    path: "{{ spinnaker_native_directory }}/base"
+    state: directory
+    mode: '0700'
+
+- name: Materialize the supplied pinned upstream service base
+  ansible.builtin.copy:
+    src: spinnaker/base/
+    dest: "{{ spinnaker_native_directory }}/base/"
+    mode: '0600'
+    directory_mode: '0700'
+
+- name: Generate the complete native application and dependency configuration
+  ansible.builtin.template:
+    src: "spinnaker/{{ item }}.j2"
+    dest: "{{ spinnaker_native_directory }}/{{ item }}"
+    mode: '0600'
+  loop:
+    - common.yml
+    - envoy.yml
+    - foundation.yml
+    - persistence.yml
+    - database-job.yml
+    - backup.yml
+    - network.yml
+    - kustomization.yml
+
+- name: Generate each service's native SQL, authorization and provider configuration
+  ansible.builtin.template:
+    src: spinnaker/service.yml.j2
+    dest: "{{ spinnaker_native_directory }}/{{ spinnaker_native_service }}-local.yml"
+    mode: '0600'
+  loop: "{{ spinnaker_native_ports.keys() | reject('equalto', 'deck') | list }}"
+  loop_control: {loop_var: spinnaker_native_service}
+
+- name: Generate dependency-aware patches for the original service Deployments
+  ansible.builtin.template:
+    src: spinnaker/deployment.yml.j2
+    dest: "{{ spinnaker_native_directory }}/{{ spinnaker_native_service }}-deployment.yml"
+    mode: '0600'
+  loop: "{{ spinnaker_native_ports.keys() | list }}"
+  loop_control: {loop_var: spinnaker_native_service}
+
+- name: Materialize native product configuration and public trust roots
+  ansible.builtin.copy:
+    dest: "{{ spinnaker_native_directory }}/{{ item.name }}"
+    content: "{{ item.content }}"
+    mode: '0600'
+  loop:
+    - {name: identity.crt, content: "{{ delivery_platform_oidc_ca_pem }}"}
+    - {name: platform.crt, content: "{{ delivery_platform_spinnaker_ca_pem }}"}
+    - {name: backup.crt, content: "{{ delivery_platform_spinnaker_backup_ca_pem }}"}
+    - {name: prepare-trust.sh, content: "{{ lookup('ansible.builtin.file', 'spinnaker/prepare-trust.sh') }}\n"}
+    - {name: initialize-databases.sh, content: "{{ lookup('ansible.builtin.file', 'spinnaker/initialize-databases.sh') }}\n"}
+    - {name: backup-restic.sh, content: "{{ lookup('ansible.builtin.file', 'spinnaker/backup-restic.sh') }}\n"}
+    - {name: mysql.cnf, content: "{{ lookup('ansible.builtin.file', 'spinnaker/mysql.cnf') }}\n"}
+    - {name: redis.conf, content: "{{ lookup('ansible.builtin.file', 'spinnaker/redis.conf') }}\n"}
+    - name: settings.js
+      content: >-
+        {{ lookup('ansible.builtin.file', 'spinnaker/base/deck/files/settings.js')
+           | replace('http://example.com/api/v1', 'https://' ~ delivery_platform_spinnaker_host ~ '/api/v1')
+           | replace('{%version%}', delivery_platform_software.spinnaker_release) }}
+    - name: settings-local.js
+      content: |
+        window.spinnakerSettings.feature.fiatEnabled = true;
+        window.spinnakerSettings.feature.managedServiceAccounts = true;
+        window.spinnakerSettings.feature.pipelineTemplates = true;
+        window.spinnakerSettings.feature.kustomizeEnabled = true;
+        window.spinnakerSettings.authEnabled = true;
+        window.spinnakerSettings.kubernetesAdHocInfraWritesEnabled = false;
+  loop_control: {label: "{{ item.name }}"}
+
+- name: Render native resources without downloading a base or contacting Kubernetes
+  ansible.builtin.set_fact:
+    spinnaker_native_application_render: "{{ lookup('kubernetes.core.kustomize', dir=spinnaker_native_directory) }}"
+    spinnaker_native_accounts_render: "{{ lookup('ansible.builtin.template', 'spinnaker/accounts.yml.j2') }}"
+  no_log: true
+
+- name: Bind the complete native reference and destination contracts to one review output
+  ansible.builtin.set_fact:
+    delivery_platform_spinnaker_render: "{{ spinnaker_native_application_render }}\n---\n{{ spinnaker_native_accounts_render }}"
+    spinnaker_native_generated_secrets: {}
+    delivery_platform_spinnaker_spec:
+      namespace: "{{ delivery_platform_spinnaker_namespace }}"
+      required_secrets: >-
+        {{ [{'name': 'spinnaker-oidc', 'keys': ['clientSecret']},
+            {'name': 'spinnaker-mysql-root', 'keys': ['password']},
+            {'name': 'spinnaker-redis-auth', 'keys': ['password']},
+            {'name': 'spinnaker-keystore', 'keys': ['password']}]
+           + [{'name': 'spinnaker-backup', 'keys': ['RESTIC_PASSWORD'] +
+               (['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
+                if delivery_platform_spinnaker_backup_backend == 's3' else [])}]
+           + (lookup('ansible.builtin.template', 'spinnaker/database-secrets.yml.j2') | from_yaml) }}
+  no_log: true
+
+- name: Resolve the complete rendered native inventory
+  ansible.builtin.set_fact:
+    delivery_platform_spinnaker_documents: "{{ delivery_platform_spinnaker_render | from_yaml_all | select('mapping') | list }}"
+  no_log: true
+
+- name: Check native resource scope and exact reviewed apply before any cluster access
+  ansible.builtin.include_tasks: spinnaker-native-validate.yml
+
+- name: Prepare stable private bootstrap credentials when explicitly owned
+  ansible.builtin.include_tasks: spinnaker-native-generate-secrets.yml
+  when: delivery_platform_manage_secrets | bool
+
+- name: Store the complete native installation and its exact review checksum
+  ansible.builtin.copy:
+    dest: "{{ delivery_platform_output }}/{{ item.name }}"
+    content: "{{ item.content }}"
+    mode: '0600'
+  loop:
+    - {name: spinnaker-manifests.yml, content: "{{ delivery_platform_spinnaker_render }}"}
+    - {name: spinnaker.sha256, content: "{{ delivery_platform_spinnaker_render | hash('sha256') }}\n"}
+  no_log: true
+
+- name: Store the scoped policy for an existing IAM-compatible object endpoint
+  ansible.builtin.template:
+    src: spinnaker/backup-iam.json.j2
+    dest: "{{ delivery_platform_output }}/spinnaker-backup-iam.json"
+    mode: '0600'
+  when: delivery_platform_spinnaker_backup_backend == 's3'
+
+- name: Remove an obsolete generated S3 policy when selecting file storage
+  ansible.builtin.file:
+    path: "{{ delivery_platform_output }}/spinnaker-backup-iam.json"
+    state: absent
+  when: delivery_platform_spinnaker_backup_backend == 'filesystem'

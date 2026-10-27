@@ -11,8 +11,9 @@ delivery_platform_oidc_ca_pem: ""
 delivery_platform_ca_path: ""
 delivery_platform_manage_secrets: false
 delivery_platform_secrets: {}
+delivery_platform_software: "{{ lookup('ansible.builtin.file', role_path ~ '/files/software.yml') | from_yaml }}"
 
-delivery_platform_harbor_version: ""
+delivery_platform_harbor_version: "{{ delivery_platform_software.harbor_chart }}"
 delivery_platform_harbor_namespace: harbor
 delivery_platform_harbor_host: ""
 delivery_platform_harbor_storage_class: ""
@@ -24,7 +25,7 @@ delivery_platform_harbor_volumes:
   redis: 1Gi
   trivy: 5Gi
 
-delivery_platform_argocd_version: ""
+delivery_platform_argocd_version: "{{ delivery_platform_software.argocd_chart }}"
 delivery_platform_argocd_namespace: argocd
 delivery_platform_argocd_host: ""
 delivery_platform_argocd_client_id: argocd
@@ -36,10 +37,45 @@ delivery_platform_argocd_destinations: []
 
 delivery_platform_spinnaker_namespace: spinnaker
 delivery_platform_spinnaker_host: ""
+delivery_platform_spinnaker_mode: native
 delivery_platform_spinnaker_overlay: ""
 delivery_platform_repository_root: "{{ playbook_dir }}/../../.."
 delivery_platform_spinnaker_review_sha256: ""
 delivery_platform_spinnaker_required_secrets: []
+delivery_platform_spinnaker_storage_class: ""
+delivery_platform_spinnaker_mysql_size: 20Gi
+delivery_platform_spinnaker_redis_size: 5Gi
+delivery_platform_spinnaker_backup_size: 32Gi
+delivery_platform_spinnaker_issuer: {name: platform, kind: ClusterIssuer, group: cert-manager.io}
+delivery_platform_spinnaker_certificate_mode: preissued
+delivery_platform_spinnaker_ca_pem: ""
+delivery_platform_spinnaker_ingress_namespace: ingress-system
+delivery_platform_spinnaker_ingress_selector: {app.kubernetes.io/name: traefik}
+delivery_platform_spinnaker_dns_namespace: kube-system
+delivery_platform_spinnaker_dns_selector: {k8s-app: kube-dns}
+# Exact permitted IdP/artifact endpoints and Tier 1 API; no control targets or blanket WAN egress.
+delivery_platform_spinnaker_egress: []
+delivery_platform_spinnaker_destinations: []
+delivery_platform_spinnaker_admin_group: tier1-delivery-admins
+delivery_platform_spinnaker_reader_group: tier1-delivery-readers
+delivery_platform_spinnaker_writer_group: tier1-delivery-writers
+delivery_platform_spinnaker_oidc_client_id: spinnaker
+delivery_platform_spinnaker_oidc_scopes: [openid, profile, email]
+delivery_platform_spinnaker_oidc_roles_claim: groups
+delivery_platform_spinnaker_secret_revision: '1'
+delivery_platform_spinnaker_backup_schedule: '0 2 * * *'
+delivery_platform_spinnaker_backup_keep_days: 7
+delivery_platform_spinnaker_backup_backend: s3
+# Preprovisioned NAS file volume; the role never creates this claim or repository.
+delivery_platform_spinnaker_backup_filesystem_claim: ""
+delivery_platform_spinnaker_backup_filesystem_repository: spinnaker
+delivery_platform_spinnaker_backup_filesystem_marker: ""
+delivery_platform_spinnaker_backup_s3_endpoint: ""
+delivery_platform_spinnaker_backup_s3_bucket: spinnaker-backups
+delivery_platform_spinnaker_backup_s3_region: us-east-1
+delivery_platform_spinnaker_backup_s3_prefix: spinnaker
+delivery_platform_spinnaker_backup_ca_pem: ""
+delivery_platform_spinnaker_backup_egress: []
 delivery_platform_spinnaker_deployments:
   - clouddriver
   - deck

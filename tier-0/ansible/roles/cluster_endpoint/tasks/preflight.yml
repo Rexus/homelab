@@ -1,0 +1,113 @@
+---
+- name: Require an independent private gateway pair and reviewed site gates
+  ansible.builtin.assert:
+    that:
+      - groups.get(cluster_endpoint_group, []) | length == 2
+      - inventory_hostname in groups.get(cluster_endpoint_group, [])
+      - platform_host_ips | default({}) is mapping
+      - cluster_endpoint_fault_domains is mapping
+      - cluster_endpoint_fault_domains_validated | bool
+      - cluster_endpoint_network_gates_validated | bool
+      - cluster_endpoint_interface is match('^[A-Za-z0-9_.-]{1,15}$')
+      - cluster_endpoint_endpoints is sequence and cluster_endpoint_endpoints is not string
+      - cluster_endpoint_endpoints is not mapping
+      - cluster_endpoint_endpoints | length > 0
+      - cluster_endpoint_maxconn is integer
+      - cluster_endpoint_maxconn > 0
+    fail_msg: >-
+      Supply two independent Tier 0 Linux gateways, their interface, static host IPs,
+      distinct fault domains, and at least one private endpoint. Approve fault domains
+      and network gates explicitly after reviewing api-endpoint.md.
+
+- name: Validate gateway addresses and declared fault domains
+  ansible.builtin.assert:
+    that:
+      - item in platform_host_ips
+      - item in cluster_endpoint_fault_domains
+      - platform_host_ips[item] | ansible.utils.ipv4('address') == platform_host_ips[item]
+      - cluster_endpoint_fault_domains[item] is string
+      - cluster_endpoint_fault_domains[item] | trim | length > 0
+    fail_msg: Every gateway needs a static IPv4 address and a nonempty physical fault-domain label.
+  loop: "{{ groups[cluster_endpoint_group] }}"
+
+- name: Require separate gateway addresses and fault domains
+  ansible.builtin.assert:
+    that:
+      - >-
+        groups[cluster_endpoint_group] | map('extract', platform_host_ips)
+        | unique | length == 2
+      - >-
+        groups[cluster_endpoint_group] | map('extract', cluster_endpoint_fault_domains)
+        | unique | length == 2
+    fail_msg: The two gateways must have different addresses and physical fault domains.
+
+- name: Validate endpoint shapes
+  ansible.builtin.assert:
+    that:
+      - item is mapping
+      - >-
+        item.keys() | difference(['name', 'tier', 'vip_cidr', 'virtual_router_id', 'control_planes'])
+        | length == 0
+      - item.name is match('^[a-z][a-z0-9_-]{0,31}$')
+      - item.tier is integer
+      - item.tier in [0, 1, 2]
+      - item.vip_cidr is string
+      - item.virtual_router_id is integer
+      - item.virtual_router_id >= 1 and item.virtual_router_id <= 255
+      - item.control_planes is mapping
+      - item.control_planes | length > 0
+    fail_msg: Each endpoint needs a safe name, tier, VIP CIDR, VRID (1-255), and control-plane address map.
+  loop: "{{ cluster_endpoint_endpoints }}"
+  loop_control:
+    label: "{{ item.name | default('invalid endpoint') }}"
+
+- name: Validate private VIPs on the gateway subnet
+  ansible.builtin.assert:
+    that:
+      - item.vip_cidr | ansible.utils.ipv4('host/prefix') == item.vip_cidr
+      - >-
+        (item.vip_cidr | ansible.utils.ipaddr('10.0.0.0/8')) == item.vip_cidr or
+        (item.vip_cidr | ansible.utils.ipaddr('172.16.0.0/12')) == item.vip_cidr or
+        (item.vip_cidr | ansible.utils.ipaddr('192.168.0.0/16')) == item.vip_cidr
+      - item.vip_cidr | ansible.utils.ipaddr('prefix') | int >= 1
+      - item.vip_cidr | ansible.utils.ipaddr('prefix') | int <= 30
+      - item.vip_cidr | ansible.utils.ipaddr('address') != item.vip_cidr | ansible.utils.ipaddr('network')
+      - item.vip_cidr | ansible.utils.ipaddr('address') != item.vip_cidr | ansible.utils.ipaddr('broadcast')
+      - >-
+        groups[cluster_endpoint_group] | map('extract', platform_host_ips)
+        | ansible.utils.ipaddr(item.vip_cidr) | length == 2
+      - item.vip_cidr | ansible.utils.ipaddr('address') not in platform_host_ips.values()
+      - >-
+        item.control_planes.values() | unique | length == item.control_planes | length
+      - item.vip_cidr | ansible.utils.ipaddr('address') not in item.control_planes.values()
+    fail_msg: >-
+      Reserve an unused RFC1918 VIP on the gateways' shared IPv4 subnet, with distinct
+      control-plane addresses. Network/broadcast addresses and gateway/backend IPs cannot be VIPs.
+  loop: "{{ cluster_endpoint_endpoints }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Require unique endpoint names, VIP addresses, VRIDs and cluster tiers
+  ansible.builtin.assert:
+    that:
+      - >-
+        cluster_endpoint_endpoints | map(attribute='name') | unique | length
+        == cluster_endpoint_endpoints | length
+      - >-
+        cluster_endpoint_endpoints | map(attribute='vip_cidr')
+        | map('ansible.utils.ipaddr', 'address') | unique | length
+        == cluster_endpoint_endpoints | length
+      - >-
+        cluster_endpoint_endpoints | map(attribute='virtual_router_id') | unique | length
+        == cluster_endpoint_endpoints | length
+      - >-
+        cluster_endpoint_endpoints | map(attribute='tier') | unique | length
+        == cluster_endpoint_endpoints | length
+    fail_msg: Configure one endpoint per tier, with a distinct name, VIP address and VRID.
+
+- name: Validate approved control-plane addresses independently of cluster inventory
+  ansible.builtin.include_tasks: backend.yml
+  loop: "{{ cluster_endpoint_endpoints }}"
+  loop_control:
+    loop_var: cluster_endpoint_current
+    label: "{{ cluster_endpoint_current.name }}"

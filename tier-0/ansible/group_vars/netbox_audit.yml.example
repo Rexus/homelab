@@ -1,0 +1,14 @@
+---
+# Guide: docs/deployment/stage-6-secrets/procedures/netbox-audit.md
+netbox_audit_endpoint: https://netbox.lab.example.com/api/core/object-changes/
+netbox_audit_instance: netbox-primary
+netbox_audit_auth_scheme: Bearer
+netbox_audit_retention_days: 90
+netbox_audit_read_only_accepted: false
+netbox_audit_forwarding_accepted: false
+netbox_audit_watchdog_url: ""
+# Add to this host's existing log_forwarder_streams; do not replace its OS/audit streams:
+# - name: netbox-changes
+#   kind: security
+#   input: files
+#   files: [/var/lib/netbox-audit/events/*.jsonl]

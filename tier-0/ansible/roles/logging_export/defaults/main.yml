@@ -1,0 +1,10 @@
+---
+logging_export_image: otel/opentelemetry-collector-contrib:0.163.2
+logging_export_root: /srv/approved-log-projections
+logging_export_scopes: []
+logging_export_retire_all: false
+# Each scope: {name: operations, group: log-export, endpoint: host:30402,
+#              ca_file: /local/ca.crt, cert_file: /local/client.crt, key_file: /local/client.key}.
+logging_export_queue_batches: 10000
+logging_export_memory: 512m
+logging_export_allow_egress_accepted: false

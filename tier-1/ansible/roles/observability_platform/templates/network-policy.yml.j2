@@ -2,9 +2,20 @@
   kind: NetworkPolicy
   metadata: {name: observability-isolation, namespace: {{ selected_namespace }}}
   spec:
+{% if component == 'metrics' and observability_backup_mode == 'files' %}
+    podSelector:
+      matchExpressions:
+        - {key: app.kubernetes.io/name, operator: NotIn, values: [postgresql-file-backup]}
+{% else %}
     podSelector: {}
+{% endif %}
     policyTypes: [Ingress, Egress]
     ingress:
+{% if component == 'metrics' and observability_backup_mode == 'files' %}
+      - from:
+          - podSelector: {matchLabels: {app.kubernetes.io/name: postgresql-file-backup, backup.homelab/cluster: grafana-db}}
+        ports: [{protocol: TCP, port: 5432}]
+{% endif %}
 {% if component == 'metrics' %}
       - from:
           - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: cnpg-system}}
@@ -59,3 +70,20 @@
       - to:
           - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
         ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+{% if component == 'metrics' and observability_backup_mode == 'files' %}
+- apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata: {name: grafana-db-file-backup, namespace: {{ selected_namespace }}}
+  spec:
+    podSelector:
+      matchLabels: {app.kubernetes.io/name: postgresql-file-backup, backup.homelab/cluster: grafana-db}
+    policyTypes: [Ingress, Egress]
+    ingress: []
+    egress:
+      - to:
+          - podSelector: {matchLabels: {cnpg.io/cluster: grafana-db}}
+        ports: [{protocol: TCP, port: 5432}]
+      - to:
+          - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+        ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+{% endif %}

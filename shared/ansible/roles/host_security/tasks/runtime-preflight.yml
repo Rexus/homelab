@@ -1,0 +1,121 @@
+---
+- name: Read the audit kernel state without changing rules
+  ansible.builtin.command:
+    argv: [auditctl, -s]
+  changed_when: false
+  register: host_security_audit_status
+
+- name: Read the installed audit rules
+  ansible.builtin.command:
+    argv: [auditctl, -l]
+  changed_when: false
+  register: host_security_audit_rules
+
+- name: Refuse immutable or suppressed audit rules before changing security configuration
+  ansible.builtin.assert:
+    that:
+      - host_security_audit_status.stdout is not search('(?m)^enabled\s+2$')
+      - host_security_audit_rules.stdout is not search('never,task|task,never')
+    fail_msg: Review immutable or never-task audit policy from the console before adopting this profile.
+
+- name: Preserve the existing audit log contract
+  ansible.builtin.slurp:
+    src: /etc/audit/auditd.conf
+  register: host_security_audit_config
+
+- name: Require local audit recording at the existing forwarder path
+  ansible.builtin.assert:
+    that:
+      - host_security_audit_text is not search('(?im)^\s*(local_events|write_logs)\s*=\s*no\s*$')
+      - host_security_audit_text is not search('(?im)^\s*log_file\s*=\s*(?!/var/log/audit/audit[.]log\s*$)\S+')
+    fail_msg: Retain local audit recording at /var/log/audit/audit.log; review conflicting auditd.conf first.
+  vars:
+    host_security_audit_text: "{{ host_security_audit_config.content | b64decode }}"
+
+- name: Find persistent audit fragments without replacing them
+  ansible.builtin.find:
+    paths: /etc/audit/rules.d
+    patterns: '*.rules'
+  register: host_security_audit_fragments
+
+- name: Read persistent audit policy for suppression or immutable settings
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  loop: "{{ host_security_audit_fragments.files }}"
+  register: host_security_audit_fragment_contents
+
+- name: Reject persistent audit suppression or immutable activation
+  ansible.builtin.assert:
+    that:
+      - item.content | b64decode is not search('(?m)^\s*-a\s+(never,task|task,never)')
+      - item.content | b64decode is not search('(?m)^\s*-e\s*[02]\s*$')
+    fail_msg: Review audit suppression/immutable fragments before applying; existing rules are preserved.
+  loop: "{{ host_security_audit_fragment_contents.results }}"
+
+- name: Read all existing nftables tables before selecting firewalld ownership
+  ansible.builtin.command:
+    argv: [nft, --json, list, tables]
+  changed_when: false
+  register: host_security_nft_tables
+
+- name: Refuse unrelated packet-filter ownership
+  ansible.builtin.assert:
+    that:
+      - >-
+        (host_security_nft_tables.stdout | from_json).nftables | selectattr('table', 'defined') |
+        map(attribute='table.name') | reject('equalto', 'firewalld') | list | length == 0
+    fail_msg: Existing non-firewalld nftables tables require an explicit console migration.
+
+- name: Inspect persistent firewall ownership before its first activation
+  ansible.builtin.import_tasks: firewall-preflight.yml
+
+- name: Inspect running firewall zones when firewalld is already active
+  ansible.posix.firewalld_info:
+  register: host_security_firewall_info
+  when: ansible_facts.services.get('firewalld.service', {}).get('state', '') == 'running'
+
+- name: Require the public default zone when firewalld is running
+  ansible.builtin.assert:
+    that:
+      - host_security_firewall_info.firewalld_info.default_zone == 'public'
+  when: host_security_firewall_info.firewalld_info is defined
+
+- name: Read runtime direct rules before adopting firewalld ownership
+  ansible.builtin.command:
+    argv: [firewall-cmd, --direct, "{{ item }}"]
+  changed_when: false
+  loop: [--get-all-rules, --get-all-passthroughs]
+  register: host_security_runtime_direct
+  when: host_security_firewall_info.firewalld_info is defined
+
+- name: Refuse runtime direct rules outside the owned zone policy
+  ansible.builtin.assert:
+    that:
+      - item.stdout | default('') | trim == ''
+  loop: "{{ host_security_runtime_direct.results }}"
+
+- name: Reject source routing, forwarding or non-public interface assignments
+  ansible.builtin.assert:
+    that:
+      - item.value.sources | default([]) | length == 0
+      - item.key == 'public' or item.value.interfaces | default([]) | length == 0
+      - item.value.forward_ports | default([]) | length == 0
+      - not item.value.masquerade | default(false) | bool
+    fail_msg: This leaf-host profile requires no source zones, NAT, forwarded ports or alternate active zones.
+  loop: "{{ (host_security_firewall_info.firewalld_info.zones | default({})) | dict2items }}"
+
+- name: Inspect active firewalld policies when firewalld is already active
+  ansible.builtin.command:
+    argv: [firewall-cmd, --get-active-policies]
+  changed_when: false
+  register: host_security_firewall_policies
+  when: host_security_firewall_info.firewalld_info is defined
+
+- name: Refuse custom active firewalld policies
+  ansible.builtin.assert:
+    that:
+      - >-
+        host_security_firewall_policies.stdout.split() |
+        reject('equalto', 'allow-host-ipv6') | list | length == 0
+    fail_msg: Review active custom policies before adopting the leaf-host firewall profile.
+  when: host_security_firewall_policies.stdout is defined

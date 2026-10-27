@@ -1,0 +1,130 @@
+---
+- name: Require a complete single-tenant hybrid deployment
+  ansible.builtin.assert:
+    that:
+      - development_data_action in ['render', 'apply']
+      - development_data_action != 'apply' or development_data_apply_confirm | bool
+      - development_data_gitlab_url is match('^https://[a-z0-9.-]+$')
+      - development_data_chart_app_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - development_data_package_version == development_data_chart_app_version ~ '-ce.0.el9'
+      - development_data_package_url is match('^https://[^ ]+\.rpm$')
+      - development_data_package_sha256 is match('^[a-f0-9]{64}$')
+      - development_data_package_key_fingerprint is match('^[A-F0-9]{40}$')
+      - development_data_hosts | length == 3
+      - development_data_hosts.values() | sort == ['gitaly', 'postgresql', 'redis']
+      - development_data_hosts.keys() | difference(groups.get('development_data', [])) | length == 0
+      - development_data_client_cidrs | length > 0
+      - development_data_endpoints.keys() | sort == ['gitaly', 'postgresql', 'redis']
+      - development_data_endpoints.values() | unique | length == 3
+      - development_data_tls.keys() | sort == ['gitaly', 'postgresql', 'redis']
+      - development_data_namespace is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - "development_data_backup_calendar is match('^[A-Za-z0-9*: ,./-]+$')"
+    fail_msg: >-
+      Supply approved matching chart/package versions, three dedicated hosts, bounded clients,
+      TLS, independent backup repositories and accepted custody. Apply also requires explicit confirmation.
+
+- name: Validate endpoint names and backup repository separation
+  ansible.builtin.assert:
+    that:
+      - item.value is match('^[a-z0-9][a-z0-9.-]+$')
+      - "'REPLACE' not in item.value"
+  loop: "{{ development_data_endpoints | dict2items }}"
+
+- name: Validate client networks with the native address filter
+  ansible.builtin.assert:
+    that:
+      - (item | ansible.utils.ipaddr('network/prefix')) is string
+      - item not in ['0.0.0.0/0', '::/0']
+      - "'/' in item"
+  loop: "{{ development_data_client_cidrs }}"
+
+- name: Validate the selected independent backup transport
+  ansible.builtin.import_tasks: backup-inputs.yml
+
+- name: Require an explicit S3 ownership mode with separate tenant credentials
+  ansible.builtin.assert:
+    that:
+      - development_data_s3_endpoint is match('^https://[a-z0-9.-]+(:[0-9]+)?$')
+      - development_data_s3_mode in ['preprovisioned', 'ceph-rgw']
+      - development_data_s3_mode != 'ceph-rgw' or development_data_s3_iam_endpoint == development_data_s3_endpoint
+      - development_data_s3_mode != 'preprovisioned' or development_data_s3_preprovisioned_accepted | bool
+      - development_data_s3_mode != 'preprovisioned' or development_data_s3_denied_buckets | length > 0
+      - development_data_s3_denied_buckets | intersect(all_buckets) | length == 0
+      - development_data_s3_users.keys() | sort == ['application', 'backup']
+      - development_data_s3_users.values() | unique | length == 2
+      - development_data_buckets.keys() | sort == expected_buckets | sort
+      - development_data_backup_buckets == ['gitlab-backups', 'gitlab-backup-tmp']
+      - all_buckets | unique | length == 10
+      - development_data_s3_keys.keys() | sort == ['application', 'backup']
+      - development_data_s3_keys.application.access_key != development_data_s3_keys.backup.access_key
+    fail_msg: >-
+      Select approved preprovisioned tenant buckets/keys or an existing Ceph RGW IAM account.
+      Preprovisioned mode requires explicit approval and existing denied buckets for access qualification.
+  vars:
+    expected_buckets: [artifacts, lfs, uploads, packages, externalDiffs, terraformState, ciSecureFiles, dependencyProxy]
+    all_buckets: "{{ development_data_buckets.values() | list + development_data_backup_buckets }}"
+  no_log: true
+
+- name: Validate bucket names
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$')
+  loop: "{{ development_data_buckets.values() | list + development_data_backup_buckets + development_data_s3_denied_buckets }}"
+
+- name: Validate tenant user names and supplied keys
+  ansible.builtin.assert:
+    that:
+      - item.value is match('^[a-zA-Z0-9_-]+$')
+      - development_data_s3_keys[item.key].access_key is match('^[A-Za-z0-9]+$')
+      - development_data_s3_keys[item.key].secret_key is match('^[A-Za-z0-9/+=]+$')
+  loop: "{{ development_data_s3_users | dict2items }}"
+  no_log: true
+
+- name: Require nonempty independent authentication material
+  ansible.builtin.assert:
+    that:
+      - item is match('^[A-Za-z0-9_+=/.-]{32,256}$')
+      - "'REPLACE' not in item"
+  loop:
+    - "{{ development_data_postgresql_password }}"
+    - "{{ development_data_redis_password }}"
+    - "{{ development_data_gitaly_token }}"
+    - "{{ development_data_shell_token }}"
+  no_log: true
+
+- name: Require static private service addresses before rendering
+  ansible.builtin.assert:
+    that:
+      - (hostvars[item].ansible_host | ansible.utils.ipv4('address')) is string
+      - hostvars[item].ansible_host != '127.0.0.1'
+  loop: "{{ development_data_hosts.keys() | list }}"
+
+- name: Require service certificate and key inputs
+  ansible.builtin.assert:
+    that:
+      - development_data_tls[item].cert_src is match('^/')
+      - development_data_tls[item].key_src is match('^/')
+  loop: [postgresql, redis, gitaly]
+
+- name: Verify private controller files exist before rendering or applying
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: >-
+    {{ [development_data_ca_src, development_data_package_key_src,
+        development_data_postgresql_client_cert_src, development_data_postgresql_client_key_src,
+        development_data_backup_password_src, development_data_s3_ca_src]
+       + ([development_data_backup_ssh_key_src, development_data_backup_known_hosts_src]
+          if development_data_backup_transport == 'sftp' else [])
+       + development_data_tls.values() | map(attribute='cert_src') | list
+       + development_data_tls.values() | map(attribute='key_src') | list }}
+  register: development_data_files
+  no_log: true
+
+- name: Reject missing source files
+  ansible.builtin.assert:
+    that: item.stat.isreg | default(false)
+  loop: "{{ development_data_files.results }}"
+  no_log: true
+
+- name: Verify server identities, certificate chains and keys before provisioning
+  ansible.builtin.import_tasks: certificates.yml

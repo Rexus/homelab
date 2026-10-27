@@ -5,89 +5,26 @@ to run native rendering without a cluster or network. No secrets are loaded.
 """
 
 import hashlib
-import http.server
 import json
 import os
 from pathlib import Path
 import shutil
-import ssl
 import subprocess
 import sys
 import tempfile
-import threading
 import unittest
-from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
-from functools import partial
-import ipaddress
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, pass_context
 import yaml
 
 from tier_repo_test_support import TierRepositoryTestCase
+from native_chart_test_support import cached_https_repository, make_test_certificate
 
 
 ROOT = Path(__file__).resolve().parents[1]
 ROLE = ROOT / "tier-1/ansible/roles/observability_platform"
 MONITORING = ROOT / "tier-0/ansible/roles/infrastructure_monitoring"
 
-
-def make_test_certificate(name):
-    from cryptography import x509
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import ec
-    from cryptography.x509.oid import NameOID
-    key = ec.generate_private_key(ec.SECP256R1())
-    subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)])
-    now = datetime.now(timezone.utc)
-    certificate = (x509.CertificateBuilder().subject_name(subject).issuer_name(subject)
-                   .public_key(key.public_key()).serial_number(x509.random_serial_number())
-                   .not_valid_before(now - timedelta(minutes=1)).not_valid_after(now + timedelta(days=1))
-                   .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
-                   .add_extension(x509.SubjectAlternativeName([x509.DNSName('localhost'),
-                                  x509.IPAddress(ipaddress.ip_address('127.0.0.1'))]), critical=False)
-                   .sign(key, hashes.SHA256()))
-    return (key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
-                              serialization.NoEncryption()), certificate.public_bytes(serialization.Encoding.PEM))
-
-
-@contextmanager
-def cached_https_repository(directory, cache):
-    """Exercise Shared's real HTTPS repository contract using only exact cached packages."""
-    import tarfile
-    directory.mkdir()
-    entries = {}
-    for package in Path(cache).glob('*.tgz'):
-        shutil.copyfile(package, directory / package.name)
-        with tarfile.open(package) as archive:
-            metadata = next(member for member in archive.getmembers() if member.name.count('/') == 1
-                            and member.name.endswith('/Chart.yaml'))
-            chart = yaml.safe_load(archive.extractfile(metadata).read())
-        chart['urls'] = [package.name]
-        entries.setdefault(chart['name'], []).append(chart)
-    (directory / 'index.yaml').write_text(yaml.safe_dump({'apiVersion': 'v1', 'entries': entries}))
-    key, certificate = make_test_certificate('native-offline-chart-cache')
-    key_path, ca_path = directory.parent / 'test-key.pem', directory.parent / 'test-ca.pem'
-    key_path.write_bytes(key)
-    key_path.chmod(0o600)
-    ca_path.write_bytes(certificate)
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(ca_path, key_path)
-
-    class QuietHandler(http.server.SimpleHTTPRequestHandler):
-        def log_message(self, *args):
-            pass
-
-    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), partial(QuietHandler, directory=str(directory)))
-    server.socket = context.wrap_socket(server.socket, server_side=True)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        yield f'https://127.0.0.1:{server.server_port}', ca_path
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
 
 DATA_PREPPER_CHECK = r'''
 package org.opensearch.dataprepper.plugin;
@@ -234,8 +171,14 @@ class ObservabilityNativeValues(unittest.TestCase):
         self.assertNotIn("approved-traces", prepper)
         self.assertEqual(prepper["approved-logs"]["sink"][0]["opensearch"]["index"],
                          "projection-approved-logs-%{yyyy.MM.dd}")
-        for pipeline in prepper.values():
-            self.assertNotIn("processor", pipeline)  # No stateful trace aggregation needs affinity.
+        for name, pipeline in prepper.items():
+            processors = pipeline.get("processor", [])
+            fields = ['body', 'body/record'] if name == 'approved-logs' else []
+            self.assertEqual([list(processor) for processor in processors], [['parse_json']] * len(fields))
+            self.assertEqual([processor['parse_json']['source'] for processor in processors], fields)
+            self.assertEqual([processor['parse_json']['destination'] for processor in processors], fields)
+            self.assertTrue(all(processor['parse_json']['overwrite_if_destination_exists']
+                                for processor in processors))
             self.assertFalse(pipeline["sink"][0]["opensearch"]["insecure"])
 
     def test_reader_role_has_no_write_or_management_action(self):

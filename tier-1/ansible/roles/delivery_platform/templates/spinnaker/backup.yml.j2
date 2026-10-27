@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: spinnaker-backup}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ delivery_platform_spinnaker_storage_class | to_json }}
+  resources: {requests: {storage: {{ delivery_platform_spinnaker_backup_size }}}}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: spinnaker-backup
+  annotations: {delivery.homelab/phase: backup}
+spec:
+  schedule: {{ delivery_platform_spinnaker_backup_schedule | to_json }}
+  timeZone: UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+{{ lookup('ansible.builtin.template', 'spinnaker/backup-job-spec.yml.j2') | indent(6, true) }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spinnaker-backup-verify
+  annotations: {delivery.homelab/phase: backup-verify}
+spec:
+  ttlSecondsAfterFinished: 86400
+{{ lookup('ansible.builtin.template', 'spinnaker/backup-job-spec.yml.j2') | indent(2, true) }}

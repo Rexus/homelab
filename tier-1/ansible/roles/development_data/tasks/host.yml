@@ -1,0 +1,176 @@
+---
+- name: Gather the target operating system facts
+  ansible.builtin.setup:
+
+- name: Enforce the qualified package platform and dedicated host identity
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution in ['AlmaLinux', 'Rocky', 'RedHat']
+      - ansible_distribution_major_version == '9'
+      - ansible_architecture == 'x86_64'
+      - inventory_hostname in development_data_hosts
+      - (ansible_host | ansible.utils.ipv4('address')) is string
+      - ansible_host != '127.0.0.1'
+    fail_msg: Use a dedicated EL9 x86_64 VM with a static private address and the approved signed CE RPM.
+
+- name: Resolve the one native component owned by this host
+  ansible.builtin.set_fact:
+    data_component: "{{ development_data_hosts[inventory_hostname] }}"
+    data_address: "{{ ansible_host }}"
+    data_service_user: >-
+      {{ {'postgresql': 'gitlab-psql', 'redis': 'gitlab-redis', 'gitaly': 'git'}
+         [development_data_hosts[inventory_hostname]] }}
+
+- name: Apply the existing Linux baseline
+  ansible.builtin.include_role:
+    name: baseline
+
+- name: Install native service and backup prerequisites from approved repositories
+  ansible.builtin.dnf:
+    name: [openssl, openssh-clients, python3-psycopg2, restic, policycoreutils-python-utils,
+           coreutils, util-linux, findutils]
+    state: present
+    disable_gpg_check: false
+
+- name: Prepare package configuration and prevent unattended first reconfigure
+  ansible.builtin.file:
+    path: /etc/gitlab
+    state: directory
+    mode: "0755"
+
+- name: Keep reconfiguration under this role's explicit control
+  ansible.builtin.copy:
+    content: ""
+    dest: /etc/gitlab/skip-auto-reconfigure
+    force: false
+    mode: "0600"
+
+- name: Copy the approved package signing key
+  ansible.builtin.copy:
+    src: "{{ development_data_package_key_src }}"
+    dest: /etc/gitlab/package-signing.asc
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Import the approved package signing key with a verified fingerprint
+  ansible.builtin.rpm_key:
+    key: /etc/gitlab/package-signing.asc
+    fingerprint: "{{ development_data_package_key_fingerprint }}"
+    state: present
+
+- name: Download the pinned signed CE package
+  ansible.builtin.get_url:
+    url: "{{ development_data_package_url }}"
+    dest: "/var/cache/gitlab-ce-{{ development_data_package_version }}.rpm"
+    checksum: "sha256:{{ development_data_package_sha256 }}"
+    mode: "0600"
+  environment: >-
+    {{ {'http_proxy': repository_proxy_url,
+        'https_proxy': repository_proxy_https_url | default(repository_proxy_url, true)}
+       if repository_proxy_enabled | default(false) | bool else {} }}
+
+- name: Install the approved native package with signature checks
+  ansible.builtin.dnf:
+    name: "/var/cache/gitlab-ce-{{ development_data_package_version }}.rpm"
+    state: present
+    disable_gpg_check: false
+  notify: Reconfigure development data
+
+- name: Verify the installed package matches the chart application version
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Reject a mismatched package before configuration
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.packages['gitlab-ce'] | length == 1
+      - >-
+        ansible_facts.packages['gitlab-ce'][0].version ~ '-' ~
+        ansible_facts.packages['gitlab-ce'][0].release == development_data_package_version
+
+- name: Prepare the native package service group before first reconfigure
+  ansible.builtin.group:
+    name: "{{ data_service_user }}"
+    system: true
+
+- name: Prepare the native package service account before first reconfigure
+  ansible.builtin.user:
+    name: "{{ data_service_user }}"
+    group: "{{ data_service_user }}"
+    home: "{{ '/var/opt/gitlab' if data_component == 'gitaly' else '/var/opt/gitlab/' ~ data_component }}"
+    create_home: false
+    system: true
+
+- name: Prepare private service TLS and package trust directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: /etc/gitlab/data-tls, group: "{{ data_service_user }}", mode: "0750"}
+    - {path: /etc/gitlab/trusted-certs, group: root, mode: "0755"}
+
+- name: Install service-specific certificate material
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: "{{ data_service_user }}"
+    mode: "0640"
+  loop:
+    - {src: "{{ development_data_tls[data_component].cert_src }}", dest: /etc/gitlab/data-tls/server.crt}
+    - {src: "{{ development_data_tls[data_component].key_src }}", dest: /etc/gitlab/data-tls/server.key}
+    - {src: "{{ development_data_ca_src }}", dest: /etc/gitlab/data-tls/ca.crt}
+  notify:
+    - Reconfigure development data
+    - Restart development data
+  no_log: true
+
+- name: Trust GitLab callback and dependency certificates
+  ansible.builtin.copy:
+    src: "{{ development_data_ca_src }}"
+    dest: /etc/gitlab/trusted-certs/development-ca.crt
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reconfigure development data
+    - Restart development data
+
+- name: Install only the selected native package role
+  ansible.builtin.template:
+    src: gitlab.rb.j2
+    dest: /etc/gitlab/gitlab.rb
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /opt/gitlab/embedded/bin/ruby -c %s
+  notify:
+    - Reconfigure development data
+    - Restart development data
+  no_log: true
+
+- name: Finish native package configuration before database and backup operations
+  ansible.builtin.meta: flush_handlers
+
+- name: Start the native package service supervisor
+  ansible.builtin.systemd_service:
+    name: gitlab-runsvdir
+    enabled: true
+    state: started
+
+- name: Bootstrap the supported PostgreSQL database and extensions
+  ansible.builtin.include_tasks: postgresql.yml
+  when: data_component == 'postgresql'
+
+- name: Configure independent encrypted backup jobs
+  ansible.builtin.include_tasks: backup.yml
+
+- name: Check the native component supervisor
+  ansible.builtin.command:
+    argv: [/opt/gitlab/bin/gitlab-ctl, status, "{{ data_component }}"]
+  changed_when: false

@@ -6,9 +6,15 @@
   vars:
     control_node_selected_setup: "{{ control_node_setup | default('site') }}"
     control_node_base_collection_catalog:
+      ansible.utils:
+        name: ansible.utils
+        version: '>=6.0.0,<7.0.0'
+        os_packages:
+          RedHat: [python3-netaddr]
+          Debian: [python3-netaddr]
       community.general:
         name: community.general
-        version: '>=10.0.0'
+        version: '>=10.2.0'
         os_packages:
           RedHat:
             - ansible-collection-community-general
@@ -45,14 +51,20 @@
 
     - name: Resolve required collections for selected setup
       ansible.builtin.set_fact:
+        control_node_missing_collections: []
+        control_node_collection_packages: []
+        control_node_still_missing_collections: []
         control_node_required_collections: >-
           {{
-            control_node_setup_collection_names[control_node_selected_setup]
+            (selected_collections + ['community.general'] if selected_collections | length > 0 else [])
             | unique
             | map('extract', control_node_base_collection_catalog
               | combine(control_node_collection_catalog | default({})))
             | list
           }}
+      vars:
+        # The native version lookup is also used for setups without general modules.
+        selected_collections: "{{ control_node_setup_collection_names[control_node_selected_setup] }}"
 
     - name: Show selected setup collection precheck
       ansible.builtin.debug:
@@ -129,22 +141,50 @@
       loop: "{{ control_node_collection_rechecks.results | default([]) }}"
       when: item.rc != 0 or item.item.name not in item.stdout
 
-    - name: Explain Ansible Galaxy fallback
+    - name: Explain native collection version convergence
       ansible.builtin.debug:
         msg: >-
-          OS packages did not provide all required collections for setup
-          {{ control_node_selected_setup }}. Falling back to ansible-galaxy for {{
-            control_node_still_missing_collections | map(attribute='name') | join(', ')
-          }}.
-      when: (control_node_still_missing_collections | default([]) | length) > 0
+          Check declared version ranges with Galaxy after the OS package attempt.
+          Compatible installed collections need no download; offline operators must pre-stage
+          every selected range. Incompatible shadowing copies must be corrected explicitly.
+      when: control_node_required_collections | length > 0
 
-    - name: Install remaining Ansible collections from Galaxy
+    - name: Install missing or incompatible Ansible collections with native Galaxy ranges
       ansible.builtin.command:
         argv:
           - ansible-galaxy
           - collection
           - install
           - "{{ item.name ~ (':' ~ item.version if item.version is defined else '') }}"
-      loop: "{{ control_node_still_missing_collections | default([]) }}"
+      loop: "{{ control_node_required_collections }}"
+      when: item.version is defined or item in control_node_still_missing_collections
       register: control_node_galaxy_install
-      changed_when: false
+      changed_when: "'was installed successfully' in control_node_galaxy_install.stdout"
+
+    - name: Require the effective collection version to satisfy every declared bound
+      ansible.builtin.assert:
+        that:
+          - installed_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+          - version_compatible | bool
+        fail_msg: >-
+          {{ item.name }} resolves to {{ installed_version | default('unknown', true) }},
+          but requires {{ item.version }}. Correct outdated or unversioned collections earlier
+          on Ansible's search path; installing another shadowed copy is insufficient.
+      vars:
+        installed_version: >-
+          {{ lookup('community.general.collection_version', item.name,
+                    result_not_found='', result_no_version='') }}
+        version_compatible: >-
+          {%- set result = namespace(accepted=true) -%}
+          {%- for bound in item.version.split(',') | map('trim') -%}
+          {%- if bound != '*' -%}
+          {%- set operator = bound | regex_search('^(>=|<=|==|!=|>|<|=)') | default('==', true) -%}
+          {%- set required = bound | regex_replace('^(>=|<=|==|!=|>|<|=)', '') -%}
+          {%- if installed_version is not ansible.builtin.version(required, operator, version_type='semver') -%}
+          {%- set result.accepted = false -%}
+          {%- endif -%}
+          {%- endif -%}
+          {%- endfor -%}
+          {{ result.accepted }}
+      loop: "{{ control_node_required_collections }}"
+      when: item.version is defined

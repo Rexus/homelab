@@ -1,0 +1,58 @@
+{% set backup_host = data_backup_host | default(inventory_hostname) %}
+{% set filesystem = development_data_backup_filesystem[backup_host] %}
+# Commissioned mount contract, shared by apply-time preparation and every scheduled run.
+require_filesystem_repository() {
+  local mount='{{ filesystem.mount }}'
+  local repository='{{ development_data_backup_repository[backup_host] }}'
+  local expected='{{ filesystem.mount }} {{ filesystem.source }} {{ filesystem.fstype }}'
+  local marker="$mount/.development-data-backup-target" entry free_bytes source_path
+  [[ "$mount" != / && "$repository" == "$mount/"* ]] || return 1
+  [[ "$(realpath -e -- "$mount")" == "$mount" ]] || return 1
+  [[ "$(realpath -e -- "$repository")" == "$repository" ]] || return 1
+  for source_path in /var/opt/gitlab /etc/gitlab; do
+    source_path=$(realpath -m -- "$source_path")
+    [[ "$source_path" != "$mount" && "$source_path" != "$mount/"* &&
+       "$repository" != "$source_path" && "$repository" != "$source_path/"* ]] || {
+      echo 'NAS backup destination overlaps live GitLab data/configuration' >&2; return 1;
+    }
+  done
+  [[ "$(findmnt -rn -M "$mount" -o TARGET,SOURCE,FSTYPE)" == "$expected" ]] || {
+    echo 'Commissioned NAS mount target/source/type is missing or different' >&2; return 1;
+  }
+  [[ -f "$marker" && ! -L "$marker" ]] || return 1
+  [[ "$(cat -- "$marker")" == '{{ filesystem.marker }}' ]] || {
+    echo 'Commissioned NAS marker is missing or different' >&2; return 1;
+  }
+  # Pin relative restic writes to this filesystem even if the mount is later detached.
+  cd -- "$repository"
+  [[ "$(findmnt -rn -T . -o TARGET,SOURCE,FSTYPE)" == "$expected" ]] || return 1
+  for entry in config data index keys locks snapshots; do
+    [[ ! -L "$entry" ]] || { echo 'Symlink in NAS repository layout' >&2; return 1; }
+  done
+  free_bytes=$(df --block-size=1 --output=avail .)
+  free_bytes=${free_bytes##*$'\n'}
+  free_bytes=${free_bytes// /}
+  [[ "$free_bytes" =~ ^[0-9]+$ ]] && (( free_bytes >= {{ development_data_backup_min_free_bytes | int }} )) || {
+    echo 'NAS free-space reserve exhausted; increase capacity before retrying' >&2; return 1;
+  }
+  export RESTIC_REPOSITORY=.
+{% if filesystem.fstype == 'cifs' %}
+  # restic documents this workaround for Linux CIFS compatibility.
+  export GODEBUG=asyncpreemptoff=1
+{% endif %}
+}
+
+probe_filesystem_writes() {
+  local probe
+  probe=$(mktemp -d .development-data-write-check.XXXXXX)
+  [[ "$(stat -c '%u:%g' -- "$probe")" == '{{ filesystem.uid }}:{{ filesystem.gid }}' ]] || {
+    rmdir -- "$probe"
+    echo 'NAS effective write UID/GID differs from commissioned mapping' >&2; return 1;
+  }
+  printf '%s\n' 'development-data-write-check' > "$probe/write"
+  sync -f "$probe/write"
+  [[ "$(cat "$probe/write")" == development-data-write-check ]]
+  mv -- "$probe/write" "$probe/renamed"
+  rm -- "$probe/renamed"
+  rmdir -- "$probe"
+}

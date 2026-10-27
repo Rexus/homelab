@@ -140,7 +140,7 @@ those test values.
 
 | Value | What to choose |
 | --- | --- |
-| `gitlab_container_image` | pin a GitLab image tag before production use |
+| `gitlab_container_image` | required approved CE version tag or immutable digest; no `latest` default |
 | `gitlab_hostname` | the DNS name GitLab should present to users |
 | `gitlab_external_url` | the final HTTPS URL for GitLab |
 | `gitlab_tls_cert_src` | approved service certificate/chain on the deployment machine |

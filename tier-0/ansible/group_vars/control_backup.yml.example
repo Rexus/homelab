@@ -1,0 +1,35 @@
+---
+# Explicit -e @ansible/group_vars/control_backup.yml; inventory group: control_recovery.
+control_backup_independent_host_accepted: false
+control_backup_repository: /mnt/control-recovery
+control_backup_repository_id: ""  # restic cat config -> id, recorded during separate commissioning
+control_backup_password_file: ""  # absolute controller-side file, copied root-only
+control_backup_vault_address: https://vault-backup.internal.example.com:8200
+control_backup_vault_server_name: vault.example.com
+control_backup_vault_ca_file: ""
+control_backup_vault_auth: cert
+control_backup_vault_client_cert_file: ""  # independently approved clientAuth certificate/chain
+control_backup_vault_client_key_file: ""
+control_backup_vault_client_tls_accepted: false  # end-to-end TLS: no HTTP TLS-terminating ingress
+control_backup_vault_bound_cidrs: [192.0.2.10/32]  # exact recovery host source as seen by Vault
+control_backup_calendar: hourly
+control_backup_watchdog_url: ""  # independent HTTPS dead-man endpoint; secrets never enter the journal
+# Original input transport, directly from the actual provisioning host's bounded read-only export.
+# This share includes the owning Git working trees AND their ignored local data, never a Git clone alone.
+control_backup_input_sources:
+  - name: provisioner
+    source: //provisioner.internal.example.com/recovery-inputs
+    mount: /mnt/control-inputs-provisioner
+    marker: ""  # source owner's .control-backup-source content
+    credentials_file: ""  # controller-side CIFS reader credential file
+# Absolute repo paths BELOW approved mounts, as seen by the recovery host. No globbing.
+control_backup_inputs:
+  - {repo: /mnt/control-inputs-provisioner/homelab-tier-0, path: .terraform/state}
+  - {repo: /mnt/control-inputs-provisioner/homelab-tier-0, path: secrets}
+  - {repo: /mnt/control-inputs-provisioner/homelab-tier-0, path: ansible/inventory/hosts.yml}
+  - {repo: /mnt/control-inputs-provisioner/homelab-tier-0, path: ansible/group_vars/all.yml}
+# Enable only after the storage owner authorizes a read-only export of NetBox media.
+control_backup_media_enabled: false
+control_backup_media_source: ""
+control_backup_media_marker: ""  # .control-backup-source content placed by storage custodian
+control_backup_media_credentials_file: ""

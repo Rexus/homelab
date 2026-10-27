@@ -11,6 +11,8 @@ observability_prepper_auth: {username: render-only, password: render-only}
 observability_prepper_search_auth: {username: data-prepper, password: render-only}
 observability_search_users_checksum: render-only
 observability_storage_class: ""
+observability_database_storage_class: ""
+observability_database_storage_accepted: false
 observability_topology_key: infrastructure.example.org/physical-host
 observability_failure_domains: []
 observability_node_selector: {}
@@ -27,6 +29,10 @@ observability_database_size: 20Gi
 observability_backup_destination: ""
 observability_backup_endpoint: ""
 observability_backup_retention: 30d
+observability_backup_mode: object
+observability_backup_files_accepted: false
+observability_backup_files_phase: backup
+observability_backup_files: {}
 observability_grafana_url: ""
 observability_dashboards_url: ""
 observability_oidc_issuer: ""

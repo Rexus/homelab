@@ -83,7 +83,7 @@ flowchart TB
         subgraph Added["Native Helm / after apply"]
           Keycloak["keycloak / IdP x2"]
         end
-        Data[("keycloak-db / PostgreSQL x3<br/>WAL / base backups")]
+        Data[("keycloak-db / PostgreSQL x3<br/>Live Proxmox/Ceph-backed PVCs")]
         Keycloak -->|Database access| Data
       end
       subgraph Identity["Existing dedicated VMs / identity network"]
@@ -114,9 +114,13 @@ flowchart TB
 **IaC:** Tier 0 [control-application recipe](../../../tier-0/ansible/playbooks/deployment/control-applications.yml),
 [product role](../../../tier-0/ansible/roles/control_applications/) and
 [example inputs](../../../tier-0/ansible/group_vars/control_applications.yml.example).
-The picture shows the selected post-apply realization, not a verified live installation.
+Scope: identity runtimes and directory authority, not the separate backup jobs/storage.
+The picture shows configured placement, not a verified live installation.
 The existing directory comes from the [FreeIPA recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml).
-CNPG and its Barman plugin must be available before the recipe creates the application database.
+CNPG must be available before database creation. Backup destinations are separate
+from its live volumes; the Barman plugin is required only for the object/WAL option.
+The [backup realization](../../administration/backups/postgresql.md) identifies the
+scheduled file jobs and NAS destinations omitted from this runtime view.
 
 Follow the [Keycloak procedure](procedures/keycloak.md) to render and install its
 database, TLS and FreeIPA federation. Configure OIDC clients, group mappings and scoped service roles; verify permitted

@@ -37,6 +37,7 @@ HTTPS; cached-only product validators use the following explicit paths.
 | Terraform configuration | `terraform` on `PATH`; roots use pinned lock files, mocked resources and no remote backend |
 | Platform/control charts | `HOMELAB_NATIVE_CHART_TESTS=1`, native Ansible/Helm and approved repository access |
 | Delivery alternatives | Native `kustomize` on `PATH`, in addition to Ansible/Helm |
+| Cached delivery/development/lab charts | Optional `NATIVE_CHART_CACHE` containing exact approved `.tgz` packages; native Ansible/Helm uses a temporary verified HTTPS repository instead of external DNS |
 | Observability charts | `HELM_BINARY`, `OBSERVABILITY_CHART_CACHE` containing the exact `.tgz` packages |
 | Collector configuration | `OTELCOL_BINARY`, matching the selected native Collector distribution/version |
 | Data Prepper models | `DATA_PREPPER_HOME`, the extracted distribution including its native JDK |
@@ -49,6 +50,10 @@ HTTPS; cached-only product validators use the following explicit paths.
 The test modules document additional optional native tools for PKI, receiver,
 backup and evidence checks. No real credentials belong in test fixtures. Local
 test certificates are disposable and must never become deployment trust anchors.
+
+The cached delivery/development/lab fixture isolates Helm's configuration/cache/data
+directories and trusts only its temporary repository CA. It keeps real chart versions,
+values and rendering; it does not stub the release or disable TLS verification.
 
 See [Observability verification](../deployment/stage-8-observability/configuration.md#verification)
 for its cached package contract and [diagram verification](diagrams.md#verification)

@@ -1,0 +1,89 @@
+---
+- name: Check native restic supports distinct missing-repository exit status
+  ansible.builtin.command:
+    argv: [restic, version]
+  register: development_data_restic_version
+  changed_when: false
+
+- name: Require the qualified native backup tool version
+  ansible.builtin.assert:
+    that: development_data_restic_version.stdout.split()[1] is version('0.17.0', '>=')
+    fail_msg: Install restic 0.17 or newer from the approved signed repositories.
+
+- name: Prepare root-only backup configuration
+  ansible.builtin.file:
+    path: /etc/development-data
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install the independently retained repository encryption password
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/development-data/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - {src: "{{ development_data_backup_password_src }}", dest: backup.password}
+  no_log: true
+  diff: false
+
+- name: Install SFTP credentials only for the SFTP transport
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/development-data/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - {src: "{{ development_data_backup_ssh_key_src }}", dest: backup.key}
+    - {src: "{{ development_data_backup_known_hosts_src }}", dest: known_hosts}
+  when: development_data_backup_transport == 'sftp'
+  no_log: true
+  diff: false
+
+- name: Install the commissioned filesystem guard
+  ansible.builtin.template:
+    src: backup-filesystem.sh.j2
+    dest: /etc/development-data/backup-filesystem.sh
+    owner: root
+    group: root
+    mode: "0700"
+  when: development_data_backup_transport == 'filesystem'
+
+- name: Install native restic job and systemd schedule
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - {src: backup.env.j2, dest: /etc/development-data/backup.env, mode: "0600"}
+    - {src: backup.sh.j2, dest: /etc/development-data/backup.sh, mode: "0700"}
+    - {src: backup.service.j2, dest: /etc/systemd/system/development-data-backup.service, mode: "0644"}
+    - {src: backup.timer.j2, dest: /etc/systemd/system/development-data-backup.timer, mode: "0644"}
+  notify: Reload development backup units
+
+- name: Verify backup access and initialize only an explicitly commissioned empty repository
+  ansible.builtin.command:
+    argv:
+      - timeout
+      - --signal=TERM
+      - --kill-after=60
+      - "{{ development_data_backup_timeout_seconds | int }}"
+      - /etc/development-data/backup.sh
+      - "{{ '--initialize' if development_data_backup_initialize | bool else '--probe' }}"
+  register: development_data_backup_probe
+  changed_when: "'Initialized encrypted repository' in development_data_backup_probe.stdout"
+
+- name: Load the backup unit changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable scheduled encrypted backups
+  ansible.builtin.systemd_service:
+    name: development-data-backup.timer
+    enabled: true
+    state: started

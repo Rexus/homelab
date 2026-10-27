@@ -8,6 +8,8 @@ import re
 import unittest
 from unittest.mock import patch
 
+import yaml
+
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 from project_docs import owned_template
 from generate import REPOSITORIES
@@ -24,6 +26,41 @@ PROJECT_DOCS = (
 
 
 class RepositoryDocumentation(TierRepositoryTestCase):
+    def test_generated_storage_design_distinguishes_capability_api_and_hosting(self):
+        self.generate()
+        docs = self.root / "verify-architecture/docs/auto-docs"
+        design = (docs / "architecture/compute/runtime.md").read_text(encoding="utf-8")
+        for term in ("**Object storage**", "**S3-compatible API**", "Ceph RBD", "CephFS",
+                     "Ceph Object Gateway (RGW)", "**outbound\nbackups to**",
+                     "independent backup custody"):
+            self.assertIn(term, design)
+        self.assertIn("does not establish that RGW is deployed", design)
+        self.assertIn("Live database data stays on qualified Proxmox/Ceph-backed block storage", design)
+        foundation = (docs / "deployment/foundation/README.md").read_text(encoding="utf-8")
+        self.assertIn("runtime.md#storage-interfaces", foundation)
+        guide = (docs / "deployment/foundation/procedures/object-storage.md").read_text(encoding="utf-8")
+        self.assertIn("## Use NAS file storage", guide)
+        self.assertIn("## Qualify an object endpoint", guide)
+        self.assertIn("does not deploy a storage gateway", guide)
+        backups = (docs / "administration/compute/backup-restore.md").read_text()
+        self.assertIn("### NAS file target", backups)
+        self.assertIn("Datacenter -> Storage -> Add -> NFS", backups)
+        self.assertIn("neither requires an object-storage API", backups)
+        database_backups = (docs / "administration/backups/postgresql.md").read_text()
+        inputs = yaml.safe_load((UPSTREAM / "tier-0/ansible/group_vars/control_applications.yml.example").read_text())
+        defaults = yaml.safe_load((UPSTREAM / "tier-0/ansible/roles/control_applications/defaults/main.yml").read_text())
+        self.assertIn(inputs["control_applications_backup_files"]["keycloak"]["claim"], database_backups)
+        self.assertIn(f'keycloak-db / PostgreSQL x{defaults["control_applications_database_instances"]}', database_backups)
+        self.assertIn("keycloak-db-files-first-&lt;revision&gt;", database_backups)
+        tier0 = self.root / "verify-tier-0"
+        self.assertNotIn("object-storage", (tier0 / ".deployment-setups").read_text())
+        for path in ("terraform/deployments/object-storage", "ansible/roles/object_storage",
+                     "ansible/playbooks/deployment/object-storage.yml",
+                     "ansible/group_vars/object_storage.yml.example"):
+            self.assertFalse((tier0 / path).exists(), path)
+        data = (docs / "deployment/stage-9-development/procedures/data-services.md").read_text()
+        self.assertIn("Existing Ceph endpoints can also use `preprovisioned`", data)
+
     def test_frontdoors_and_project_templates_are_owned(self):
         self.generate()
         architecture = self.root / "verify-architecture"

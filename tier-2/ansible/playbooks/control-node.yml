@@ -12,6 +12,7 @@
         version: '>=6.0.0,<7.0.0'
         os_packages: {RedHat: [python3-netaddr], Debian: [python3-netaddr]}
     control_node_setup_collection_names:
+      host-security: [community.general, ansible.posix, ansible.utils]
       cluster-platform: [kubernetes.core]
       cluster-security-logging: [kubernetes.core, ansible.utils, community.crypto]
       lab-environment: [kubernetes.core]

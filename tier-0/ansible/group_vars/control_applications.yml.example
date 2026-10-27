@@ -19,9 +19,15 @@ control_applications_ingress_class: traefik
 control_applications_traefik_crd_accepted: false
 # The role supplies native verified ServersTransports and service annotations.
 control_applications_ingress_annotations: {keycloak: {}, vault: {}, netbox: {}, headlamp: {}}
-control_applications_storage_class: ""
+control_applications_storage_class: ""  # Qualified Proxmox/Ceph block class for Vault/cache, not the NAS backup claim.
+# Commission live database disks through Proxmox CSI or Ceph RBD, independently of NAS backups.
+# Empty overrides preserve legacy storage_class fallback; files mode requires an explicit DB class.
+control_applications_database_storage_class: ""
+control_applications_database_storage_accepted: false
+control_applications_netbox_media_storage_class: ""  # Commissioned CephFS/qualified RWX share, separate from DB block disks.
 control_applications_postgres_image: ghcr.io/cloudnative-pg/postgresql:17.6
 control_applications_valkey_image: valkey/valkey:8.1.3
+control_applications_netbox_changelog_retention: 90
 control_applications_cluster_logging_accepted: false
 control_applications_cnpg_barman_accepted: false
 control_applications_backup_endpoint: https://backups.lab.example.com
@@ -30,6 +36,24 @@ control_applications_backup_destinations:
   netbox: s3://control-backups/netbox
 control_applications_backup_schedule: "0 0 2 * * *"
 control_applications_backup_retention: 30d
+# PostgreSQL backups to NAS: docs/administration/backups/postgresql.md.
+# Existing/absent mode retains Barman plus continuous object WAL. Files mode has periodic full copies only.
+control_applications_backup_mode: files
+control_applications_backup_files_phase: prepare  # files: prepare DB first, commission NAS, then backup.
+control_applications_backup_files_accepted: false
+control_applications_backup_files:
+  keycloak:
+    claim: keycloak-db-backups
+    volume_handle: ""  # Exact retained nfs.csi.k8s.io PV handle, never a live CNPG claim.
+    system_identifier: ""  # Read status.systemID after database-only preparation.
+    marker: ""  # Custodian writes the exact source/SID/random-marker file on the private NAS export.
+    schedule: '0 2 * * *'  # Native CronJob has five fields, UTC; object schedule above has six.
+  netbox:
+    claim: netbox-db-backups
+    volume_handle: ""
+    system_identifier: ""
+    marker: ""
+    schedule: '0 2 * * *'
 control_applications_keycloak_realm: platform
 control_applications_ldap_url: ldaps://idm-1.lab.example.com:636
 control_applications_ldap_users_dn: cn=users,cn=accounts,dc=lab,dc=example,dc=com

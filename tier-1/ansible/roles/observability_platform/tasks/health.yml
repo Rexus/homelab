@@ -31,6 +31,7 @@
   until: observability_database_backups.resources | selectattr('status.phase', 'defined') | selectattr('status.phase', 'equalto', 'completed') | list | length > 0
   retries: 60
   delay: 10
+  when: observability_backup_mode == 'object'
 
 - name: Check independent stateful workloads after Helm convergence
   kubernetes.core.k8s_info:

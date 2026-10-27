@@ -1,0 +1,98 @@
+backoffLimit: 1
+activeDeadlineSeconds: 3600
+template:
+  metadata: {labels: {app.kubernetes.io/name: spinnaker-backup}}
+  spec:
+    restartPolicy: Never
+    automountServiceAccountToken: false
+    securityContext: {runAsUser: 999, runAsGroup: 999, runAsNonRoot: true, fsGroup: 999}
+    initContainers:
+{{ lookup('ansible.builtin.template', 'spinnaker/redis-sidecar.yml.j2') | indent(6, true) }}
+      - name: mysql
+        image: {{ delivery_platform_software.mysql_image | to_json }}
+        securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+        env:
+          - name: MYSQL_PWD
+            valueFrom: {secretKeyRef: {name: spinnaker-mysql-root, key: password}}
+          - name: BACKUP_RUN
+            valueFrom: {fieldRef: {fieldPath: metadata.uid}}
+        command: [/bin/bash, -ec]
+        args:
+          - |
+            directory="/backup/$BACKUP_RUN"
+            mkdir -p "$directory"
+            set -o pipefail
+            mysqldump --host=spinnaker-mysql --user=root --ssl-mode=VERIFY_IDENTITY \
+              --ssl-ca=/roots/platform.crt --single-transaction --no-tablespaces \
+              --set-gtid-purged=OFF --databases clouddriver echo fiat front50 orca | gzip > "$directory/mysql.sql.gz"
+        volumeMounts:
+          - {name: backup, mountPath: /backup}
+          - {name: roots, mountPath: /roots, readOnly: true}
+      - name: redis
+        image: {{ delivery_platform_software.redis_image | to_json }}
+        securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+        env:
+          - name: REDISCLI_AUTH
+            valueFrom: {secretKeyRef: {name: spinnaker-redis-auth, key: password}}
+          - name: BACKUP_RUN
+            valueFrom: {fieldRef: {fieldPath: metadata.uid}}
+        command: [sh, -ec]
+        args:
+          - |
+            redis-cli -h 127.0.0.1 -p 16379 --rdb "/backup/$BACKUP_RUN/redis.rdb"
+        volumeMounts: [{name: backup, mountPath: /backup}]
+    containers:
+      - name: independent-copy
+        image: {{ delivery_platform_software.restic_image | to_json }}
+        command: [sh, /bootstrap/backup-restic.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: [ALL]}
+        resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {memory: 1Gi}}
+        env:
+{% for key in ['RESTIC_PASSWORD'] + (['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
+                                  if delivery_platform_spinnaker_backup_backend == 's3' else []) %}
+          - name: {{ key }}
+            valueFrom: {secretKeyRef: {name: spinnaker-backup, key: {{ key }}}}
+{% endfor %}
+          - name: BACKUP_RUN
+            valueFrom: {fieldRef: {fieldPath: metadata.uid}}
+          - {name: BACKUP_KEEP_DAYS, value: {{ delivery_platform_spinnaker_backup_keep_days | string | to_json }}}
+          - {name: RESTIC_HOST, value: {{ delivery_platform_spinnaker_namespace | to_json }}}
+          - {name: BACKUP_BACKEND, value: {{ delivery_platform_spinnaker_backup_backend | to_json }}}
+          - {name: RESTIC_CACHE_DIR, value: /cache}
+          - {name: TMPDIR, value: /cache}
+{% if delivery_platform_spinnaker_backup_backend == 's3' %}
+          - {name: AWS_DEFAULT_REGION, value: {{ delivery_platform_spinnaker_backup_s3_region | to_json }}}
+          - {name: RESTIC_CACERT, value: /roots/backup.crt}
+          - name: RESTIC_REPOSITORY
+            value: {{ ('s3:' ~ (delivery_platform_spinnaker_backup_s3_endpoint | regex_replace('/$', '')) ~
+              '/' ~ delivery_platform_spinnaker_backup_s3_bucket ~ '/' ~
+              delivery_platform_spinnaker_backup_s3_prefix) | to_json }}
+{% else %}
+          - {name: BACKUP_FILESYSTEM_MOUNT, value: /repository}
+          - name: BACKUP_FILESYSTEM_MARKER
+            value: {{ delivery_platform_spinnaker_backup_filesystem_marker | to_json }}
+          - name: RESTIC_REPOSITORY
+            value: {{ ('/repository/' ~ delivery_platform_spinnaker_backup_filesystem_repository) | to_json }}
+{% endif %}
+        volumeMounts:
+          - {name: backup, mountPath: /backup}
+          - {name: roots, mountPath: /roots, readOnly: true}
+          - {name: scripts, mountPath: /bootstrap, readOnly: true}
+          - {name: cache, mountPath: /cache}
+{% if delivery_platform_spinnaker_backup_backend == 'filesystem' %}
+          - {name: repository, mountPath: /repository}
+{% endif %}
+    volumes:
+      - {name: backup, persistentVolumeClaim: {claimName: spinnaker-backup}}
+      - {name: roots, configMap: {name: spinnaker-roots}}
+      - {name: envoy, configMap: {name: spinnaker-envoy}}
+      - {name: scripts, configMap: {name: spinnaker-scripts, defaultMode: 0550}}
+      - {name: cache, emptyDir: {}}
+{% if delivery_platform_spinnaker_backup_backend == 'filesystem' %}
+      - name: repository
+        persistentVolumeClaim:
+          claimName: {{ delivery_platform_spinnaker_backup_filesystem_claim | to_json }}
+{% endif %}

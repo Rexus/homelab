@@ -62,6 +62,11 @@ before reserving control planes for Kubernetes components:
 | ingress | cluster-native ingress | consumes the shared edge path instead of replacing it |
 | Delivery | Argo CD or Spinnaker; unselected | Application GitOps or release orchestration; scoped credentials and independent recovery |
 
+The starter node sizes establish the cluster, not capacity for every later service.
+Before installing Harbor, Spinnaker, Observability or GitLab, review their rendered
+resource requests and add appropriately sized workers. Retain headroom for the
+selected failures, upgrades, database recovery and JVM startup; VM count alone is not a budget.
+
 Use separate clusters for stronger project isolation when shared namespaces,
 RBAC, and policy are not enough.
 
@@ -70,8 +75,10 @@ RBAC, and policy are not enough.
 Record [A: Argo CD or B: Spinnaker](../../../architecture/delivery/controllers.md) in the
 project architecture before installation. Use the [native delivery installer](delivery-installer.md)
 with explicit controller selection, pinned charts/images, scoped destinations/accounts,
-RBAC/OIDC and secret handling. Spinnaker requires a complete reviewed local Kustomize
-overlay. Tier 0's Flux remains independently owned.
+RBAC/OIDC and secret handling. The
+[Spinnaker native reference](../step-2b-spinnaker.md#installation-decision) supplies its
+service base and SQL/cache dependencies; custom overlays remain optional.
+Tier 0's Flux remains independently owned.
 
 Test approved delivery, rejected targets, health gates, rollback and recovery
 without the normal delivery service. Never register Tier 0 as a Tier 1 delivery target.
@@ -92,11 +99,13 @@ counterpart and configure Tier 1's kubeconfig/context, exact chart pins, image a
 storage and issuer prerequisites. Retain Tier 1's explicit component selection:
 
 ```yaml
-cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg, barman_cloud]
+cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg]
 ```
 
 **Omit Flux in Tier 1.** Tier 0 retains its independent Flux installation; choose
 Argo CD or Spinnaker for Tier 1 application delivery after basic-platform acceptance.
+Add `barman_cloud` only for the object/WAL database backup option. Live database
+volumes remain on qualified Proxmox/Ceph-backed block CSI; NAS backup claims are separate.
 From Tier 1, render and review:
 
 ```bash

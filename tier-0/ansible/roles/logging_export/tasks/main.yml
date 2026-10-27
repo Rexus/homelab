@@ -1,0 +1,70 @@
+---
+- name: Require fixed approved views and authenticated push-only destinations
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - logging_export_allow_egress_accepted | bool
+      - logging_export_root is match('^/srv/[a-zA-Z0-9_-]+$')
+      - logging_export_scopes | length > 0 or logging_export_retire_all | bool
+      - logging_export_scopes | map(attribute='name') | unique | length == logging_export_scopes | length
+      - logging_export_image is match('^.+(:[0-9]+[.][0-9]+[.][0-9]+|@sha256:[a-f0-9]{64})$')
+      - logging_export_queue_batches | int >= 100
+    fail_msg: Approve the Tier 0 projection views and exact Tier 1 egress before installation.
+
+- name: Validate each scope without allowing archive paths or arbitrary destinations
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9-]{0,30}$')
+      - item.group is match('^[a-z][a-z0-9_-]{0,30}$')
+      - item.endpoint is match('^[A-Za-z0-9.-]+:[0-9]{2,5}$')
+      - item.ca_file is match('^/')
+      - item.cert_file is match('^/')
+      - item.key_file is match('^/')
+  loop: "{{ logging_export_scopes }}"
+  no_log: true
+
+- name: Install the supported container runtime
+  ansible.builtin.dnf:
+    name: podman
+    state: present
+    disable_gpg_check: false
+
+- name: Create a noninteractive read-only export identity
+  ansible.builtin.user:
+    name: log-export
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+    groups: "{{ logging_export_scopes | map(attribute='group') | unique | join(',') }}"
+    append: false
+  register: logging_export_user
+
+- name: Prepare root-owned runtime and configuration directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop: [/etc/logging-export, /etc/containers/systemd, /var/lib/logging-export]
+
+- name: Define each scoped exporter with no original archive mount
+  ansible.builtin.include_tasks: scope.yml
+  loop: "{{ logging_export_scopes }}"
+  loop_control:
+    loop_var: logging_export_scope
+    label: "{{ logging_export_scope.name }}"
+
+- name: Identify previously installed scope units
+  ansible.builtin.find:
+    paths: /etc/containers/systemd
+    patterns: security-log-projection-*.container
+    file_type: file
+  register: logging_export_units
+
+- name: Stop and remove retired scopes before leaving the deployment
+  ansible.builtin.include_tasks: retire.yml
+  loop: "{{ logging_export_units.files }}"
+  when: >-
+    (item.path | basename | regex_replace('^security-log-projection-|[.]container$', ''))
+    not in (logging_export_scopes | map(attribute='name') | list)

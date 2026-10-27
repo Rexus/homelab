@@ -16,7 +16,13 @@
     name: kubernetes_applications
     tasks_from: secrets
   vars:
-    kube_app: "{{ control_application_database_release }}"
+    kube_app: >-
+      {{ control_application_database_release | combine({'required_secrets':
+         control_application_database_release.required_secrets | selectattr('name', 'in',
+         [control_application_database_release.name ~ '-db', control_application_database_release.name ~ '-db-ca',
+          control_application_database_release.name ~ '-db-server', control_application_database_release.name ~ '-db-replication'])
+         | list}) if control_applications_backup_mode == 'files' and control_applications_backup_files_phase == 'prepare'
+         else control_application_database_release }}
     kube_apps_action: "{{ control_applications_action }}"
     kube_apps_kubeconfig: "{{ control_applications_kubeconfig }}"
     kube_apps_context: "{{ control_applications_context }}"

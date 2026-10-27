@@ -10,12 +10,11 @@ delivery_platform_ingress_class: REPLACE_WITH_ACCEPTED_INGRESS_CLASS
 delivery_platform_oidc_issuer: https://sso.internal.example.com/realms/platform
 delivery_platform_oidc_ca_pem: ""
 delivery_platform_ca_path: ""
-delivery_platform_harbor_version: REPLACE_WITH_EXACT_CHART_VERSION
+# Qualified product/chart versions are centralized in delivery_platform/files/software.yml.
 delivery_platform_harbor_host: harbor.internal.example.com
 delivery_platform_harbor_storage_class: REPLACE_WITH_PERSISTENT_STORAGE_CLASS
 # Private input, including for render. Helm's internal PostgreSQL password is a value.
 delivery_platform_harbor_database_password: ""
-delivery_platform_argocd_version: REPLACE_WITH_EXACT_CHART_VERSION
 delivery_platform_argocd_host: argocd.internal.example.com
 delivery_platform_argocd_client_id: argocd
 delivery_platform_argocd_admin_group: tier1-delivery-admins
@@ -23,8 +22,38 @@ delivery_platform_argocd_reader_group: tier1-delivery-readers
 delivery_platform_argocd_repositories: []
 delivery_platform_argocd_repository_certificates: {}
 delivery_platform_argocd_destinations: []
-# Spinnaker: local overlay from a reviewed official upstream revision, never main-latest.
+# Native Spinnaker supplies the pinned upstream base and provisions its dependencies.
+# Installation contract: docs/deployment/stage-7-delivery/step-2b-spinnaker.md.
 delivery_platform_spinnaker_host: spinnaker.internal.example.com
+delivery_platform_spinnaker_mode: native
+delivery_platform_spinnaker_certificate_mode: preissued
+delivery_platform_spinnaker_storage_class: ""
+delivery_platform_spinnaker_issuer: {name: platform, kind: ClusterIssuer, group: cert-manager.io}
+delivery_platform_spinnaker_ca_pem: ""
+delivery_platform_spinnaker_destinations: []
+# Explicit endpoint IP ranges and TCP ports: Tier 1 API, IdP and approved HTTP artifacts.
+delivery_platform_spinnaker_egress: []
+# Fresh installations select direct NAS files; omitting the selector retains legacy s3.
+delivery_platform_spinnaker_backup_backend: filesystem
+# Filesystem only: existing Bound NAS PVC with Retain PV, separate from data/staging.
+delivery_platform_spinnaker_backup_filesystem_claim: spinnaker-nas-repository
+delivery_platform_spinnaker_backup_filesystem_repository: spinnaker
+# Identity in <repository>/.spinnaker-backup-repository, commissioned by its custodian.
+delivery_platform_spinnaker_backup_filesystem_marker: ""
+# S3 only: existing native HTTPS object endpoint, private bucket/prefix and scoped key.
+delivery_platform_spinnaker_backup_s3_endpoint: ""
+delivery_platform_spinnaker_backup_s3_bucket: spinnaker-backups
+delivery_platform_spinnaker_backup_s3_region: us-east-1
+delivery_platform_spinnaker_backup_s3_prefix: spinnaker
+delivery_platform_spinnaker_backup_ca_pem: ""
+delivery_platform_spinnaker_backup_egress: []
+delivery_platform_spinnaker_admin_group: tier1-delivery-admins
+delivery_platform_spinnaker_reader_group: tier1-delivery-readers
+delivery_platform_spinnaker_writer_group: tier1-delivery-writers
+delivery_platform_spinnaker_oidc_client_id: spinnaker
+delivery_platform_spinnaker_oidc_roles_claim: groups
+delivery_platform_spinnaker_secret_revision: '1'
+# Optional custom-overlay mode retains its separate, externally maintained dependency contract.
 delivery_platform_spinnaker_overlay: ""
 delivery_platform_spinnaker_review_sha256: ""
 delivery_platform_spinnaker_required_secrets: []

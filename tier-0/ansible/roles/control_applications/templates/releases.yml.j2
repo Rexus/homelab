@@ -38,7 +38,10 @@
   {'name': product ~ '-db', 'keys': ['username', 'password'], 'type': 'kubernetes.io/basic-auth'},
   {'name': product ~ '-db-ca', 'keys': ['ca.crt']},
   {'name': product ~ '-db-server', 'keys': ['tls.crt', 'tls.key'], 'type': 'kubernetes.io/tls'},
-  {'name': product ~ '-db-replication', 'keys': ['tls.crt', 'tls.key'], 'type': 'kubernetes.io/tls'},
+  {'name': product ~ '-db-replication', 'keys': ['tls.crt', 'tls.key'], 'type': 'kubernetes.io/tls'}
+] %}
+{% if control_applications_backup_mode == 'object' %}
+{% set secrets = secrets + [
   {'name': product ~ '-db-backup', 'keys': ['ACCESS_KEY_ID', 'ACCESS_SECRET_KEY', 'ca.crt']}
 ] %}
 {% set backup = lookup('ansible.builtin.template', 'database-backup.yml.j2', template_vars=product_vars)
@@ -49,6 +52,12 @@
 {% set after = after + [
   lookup('ansible.builtin.template', 'database-first-backup.yml.j2', template_vars=product_vars) | from_yaml
 ] %}
+{% else %}
+{% set secrets = secrets + [
+  {'name': product ~ '-db-file-backup', 'keys': ['tls.crt', 'tls.key', 'ca.crt'], 'type': 'kubernetes.io/tls'}
+] %}
+{% set before = [lookup('ansible.builtin.template', 'database.yml.j2', template_vars=product_vars) | from_yaml] %}
+{% endif %}
 {% endif %}
 {% if product in ['keycloak', 'vault'] %}
 {% set before = before + [

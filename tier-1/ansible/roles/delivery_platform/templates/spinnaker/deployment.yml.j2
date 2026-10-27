@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ spinnaker_native_service }}
+  annotations: {delivery.homelab/phase: application}
+spec:
+  template:
+    metadata:
+      annotations:
+        delivery.homelab/secret-revision: {{ delivery_platform_spinnaker_secret_revision | to_json }}
+    spec:
+      automountServiceAccountToken: false
+{% if spinnaker_native_service != 'deck' %}
+      initContainers:
+{{ lookup('ansible.builtin.template', 'spinnaker/redis-sidecar.yml.j2') | indent(8, true) }}
+        - name: trust-roots
+          image: ghcr.io/spinnaker/{{ spinnaker_native_service }}:{{ delivery_platform_software.spinnaker_release }}
+          command: [sh, /bootstrap/prepare-trust.sh]
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: trust, mountPath: /trust}
+            - {name: roots, mountPath: /roots, readOnly: true}
+            - {name: scripts, mountPath: /bootstrap, readOnly: true}
+      containers:
+        - name: {{ spinnaker_native_service }}
+          env:
+            - name: JAVA_OPTS
+              value: >-
+                -XX:MaxRAMPercentage=80.0 -Djavax.net.ssl.trustStore=/trust/cacerts
+                -Djavax.net.ssl.trustStorePassword=changeit
+            - name: REDIS_PASSWORD
+              valueFrom: {secretKeyRef: {name: spinnaker-redis-auth, key: password}}
+            - name: KEYSTORE_PASSWORD
+              valueFrom: {secretKeyRef: {name: spinnaker-keystore, key: password}}
+{% if spinnaker_native_service in spinnaker_native_sql_services %}
+            - name: SQL_PASSWORD
+              valueFrom: {secretKeyRef: {name: spinnaker-{{ spinnaker_native_service }}-db, key: password}}
+            - name: SQL_MIGRATION_PASSWORD
+              valueFrom: {secretKeyRef: {name: spinnaker-{{ spinnaker_native_service }}-db, key: migration-password}}
+{% elif spinnaker_native_service == 'gate' %}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: spinnaker-oidc, key: clientSecret}}
+{% endif %}
+          readinessProbe:
+            httpGet: {scheme: HTTPS, path: {{ '/api/v1/health' if spinnaker_native_service == 'gate' else '/health' }}, port: http}
+          startupProbe:
+            httpGet: {scheme: HTTPS, path: {{ '/api/v1/health' if spinnaker_native_service == 'gate' else '/health' }}, port: http}
+            failureThreshold: 90
+            periodSeconds: 10
+          volumeMounts:
+            - {name: trust, mountPath: /trust, readOnly: true}
+            - {name: tls, mountPath: /tls, readOnly: true}
+{% if spinnaker_native_service == 'clouddriver' %}
+            - {name: accounts, mountPath: /accounts, readOnly: true}
+{% endif %}
+      volumes:
+        - {name: trust, emptyDir: {medium: Memory}}
+        - {name: roots, configMap: {name: spinnaker-roots}}
+        - {name: envoy, configMap: {name: spinnaker-envoy}}
+        - {name: scripts, configMap: {name: spinnaker-scripts, defaultMode: 0550}}
+        - {name: tls, secret: {secretName: {{ spinnaker_native_service }}-tls}}
+{% if spinnaker_native_service == 'clouddriver' %}
+        - name: accounts
+          projected:
+            sources:
+              - configMap:
+                  name: spinnaker-accounts
+                  items:
+{% for namespace in delivery_platform_spinnaker_destinations %}
+                    - {key: {{ namespace }}.kubeconfig, path: {{ namespace }}/kubeconfig}
+{% endfor %}
+{% for namespace in delivery_platform_spinnaker_destinations %}
+              - secret:
+                  name: spinnaker-account-{{ namespace }}
+                  items:
+                    - {key: token, path: {{ namespace }}/token}
+                    - {key: ca.crt, path: {{ namespace }}/ca.crt}
+{% endfor %}
+{% endif %}
+{% endif %}

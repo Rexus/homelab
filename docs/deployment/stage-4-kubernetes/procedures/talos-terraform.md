@@ -38,7 +38,8 @@ and checksums live in `terraform/deployments/kubernetes/`.
   access. IPs come from inventory; Terraform does not configure DHCP or DNS.
 - Provide an independent Kubernetes API endpoint on TCP 6443. For HA, use a
   load balancer targeting the control-plane IPs; it cannot depend on this cluster's
-  ingress or Tier 1 services. Permit the operator to reach node Talos APIs on
+  ingress or Tier 1 services. Tier 0 supplies an [independent endpoint pair](api-endpoint.md)
+  when no qualified existing endpoint is available. Permit the operator to reach node Talos APIs on
   TCP 50000 over a protected bootstrap network. [1]
 - Review storage/bridge availability on every eligible Proxmox host and choose
   non-overlapping node, pod, and service networks.

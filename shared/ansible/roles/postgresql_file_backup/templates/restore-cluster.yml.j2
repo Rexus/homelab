@@ -1,0 +1,27 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata: {name: {{ postgresql_file_backup_target.cluster }}, namespace: {{ postgresql_file_backup_target.namespace }}}
+spec:
+  instances: 1
+  imageName: {{ postgresql_file_backup_target.image | to_json }}
+  enableSuperuserAccess: false
+  bootstrap:
+    pg_basebackup:
+      source: files-restore
+      database: {{ postgresql_file_backup_recovery.database }}
+      owner: {{ postgresql_file_backup_recovery.database }}
+      secret: {name: {{ postgresql_file_backup_recovery.secret }}}
+  externalClusters:
+    - name: files-restore
+      connectionParameters:
+        host: {{ postgresql_file_backup_target.cluster }}-files-restore
+        user: streaming_replica
+        sslmode: verify-full
+      sslKey: {name: {{ postgresql_file_backup_target.tls_secret }}, key: tls.key}
+      sslCert: {name: {{ postgresql_file_backup_target.tls_secret }}, key: tls.crt}
+      sslRootCert: {name: {{ postgresql_file_backup_recovery.server_tls_secret }}, key: ca.crt}
+  certificates:
+{{ postgresql_file_backup_recovery.certificates | to_nice_yaml | indent(4, true) }}
+  storage:
+    storageClass: {{ postgresql_file_backup_recovery.storage_class | to_json }}
+    size: {{ postgresql_file_backup_recovery.size }}

@@ -14,6 +14,7 @@ import sys
 
 from logging_io import catalogue, create_only, digest, directory, encoded, regular, require_mount, safe_name
 from logging_health import health
+from logging_projection import publish, validate
 
 
 def prefix(path, previous, limit):
@@ -65,6 +66,7 @@ def checkpoint(config, check_mount=True):
         if budget < 65536:
             raise ValueError('Checkpoint budget must be at least 65536 bytes')
         views = config.get('views', {})
+        validate(config.get('projections', {}), sources)
         for name, group in views.items():
             safe_name(group)
             if name not in sources or sources[name].get('kind', 'security') != 'application':
@@ -86,6 +88,7 @@ def checkpoint(config, check_mount=True):
                 filename = f"{path.stem}-{previous['end']}-{position['end']}-{digest(data)}.jsonl"
                 chunk = f'chunks/{name}/{filename}'
                 create_only(target / chunk, data)
+                publish(config, name, filename, data, previous['end'])
                 if name in views:
                     group = grp.getgrnam(views[name]).gr_gid
                     view = directory(Path(config['view_root']) / name)

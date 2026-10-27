@@ -1,0 +1,146 @@
+{% if spinnaker_native_service in spinnaker_native_sql_services %}
+{% set jdbc = 'jdbc:mysql://spinnaker-mysql.' ~ delivery_platform_spinnaker_namespace ~
+  '.svc.cluster.local:3306/' ~ spinnaker_native_service ~ '?sslMode=VERIFY_IDENTITY&serverTimezone=UTC&' ~
+  'trustCertificateKeyStoreUrl=file:/trust/cacerts&trustCertificateKeyStorePassword=changeit&' ~
+  'trustCertificateKeyStoreType=JKS&allowPublicKeyRetrieval=false' %}
+sql:
+  enabled: true
+  connectionPools:
+    default:
+      default: true
+      dialect: MYSQL
+      jdbcUrl: {{ jdbc | to_json }}
+      user: {{ spinnaker_native_service }}_service
+      password: ${SQL_PASSWORD}
+      maxPoolSize: 10
+      minIdle: 2
+  migration:
+    jdbcUrl: {{ jdbc | to_json }}
+    user: {{ spinnaker_native_service }}_migrate
+    password: ${SQL_MIGRATION_PASSWORD}
+{% if spinnaker_native_service == 'clouddriver' %}
+  cache: {enabled: true}
+  taskRepository: {enabled: true}
+  scheduler: {enabled: false}
+  unknown-agent-cleanup-agent: {enabled: true}
+redis:
+  enabled: true
+  cache: {enabled: false}
+  taskRepository: {enabled: false}
+  scheduler: {enabled: true}
+kubernetes:
+  enabled: true
+  primaryAccount: {{ delivery_platform_spinnaker_destinations[0] }}
+  loadNamespacesInAccount: false
+  accounts:
+{% for namespace in delivery_platform_spinnaker_destinations %}
+    - name: {{ namespace }}
+      providerVersion: V2
+      kubeconfigFile: /accounts/{{ namespace }}/kubeconfig
+      serviceAccount: false
+      namespaces: [{{ namespace }}]
+      checkPermissionsOnStartup: true
+      onlySpinnakerManaged: true
+      permissions:
+        READ: {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_reader_group,
+                   delivery_platform_spinnaker_writer_group] | to_json }}
+        WRITE: {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_writer_group] | to_json }}
+{% endfor %}
+artifacts:
+  http:
+    enabled: true
+    accounts: [{name: approved-http}]
+{% elif spinnaker_native_service == 'orca' %}
+executionRepository:
+  sql: {enabled: true}
+  redis: {enabled: false}
+monitor:
+  activeExecutions: {redis: false}
+keiko:
+  queue:
+    sql: {enabled: false}
+    redis: {enabled: true}
+queue:
+  zombieCheck: {enabled: true}
+  pendingExecutionService:
+    sql: {enabled: false}
+    redis: {enabled: true}
+tasks:
+  useManagedServiceAccounts: true
+  useSharedManagedServiceAccounts: true
+{% elif spinnaker_native_service == 'fiat' %}
+permissionsRepository:
+  sql: {enabled: true}
+  redis: {enabled: false}
+fiat:
+  enabled: true
+  defaultToUnrestrictedUser: false
+  allowAccessToUnknownApplications: false
+  executeFallback: WRITE
+  admin:
+    roles: [{{ delivery_platform_spinnaker_admin_group | to_json }}]
+auth:
+  permissions:
+    provider: {application: aggregate}
+    source:
+      application:
+        resource: {enabled: false}
+        prefix:
+          enabled: true
+          prefixes:
+            - prefix: '*'
+              permissions:
+                READ: {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_reader_group,
+                          delivery_platform_spinnaker_writer_group] | to_json }}
+                WRITE: {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_writer_group] | to_json }}
+                EXECUTE: {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_writer_group] | to_json }}
+{% elif spinnaker_native_service == 'echo' %}
+scheduler:
+  enabled: true
+  cron: {timezone: UTC}
+{% elif spinnaker_native_service == 'front50' %}
+spinnaker:
+  s3: {enabled: false}
+  gcs: {enabled: false}
+  redis: {enabled: false}
+  azure: {enabled: false}
+{% endif %}
+{% elif spinnaker_native_service == 'gate' %}
+security:
+  basicform: {enabled: false}
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          user-info-requirements:
+            {{ delivery_platform_spinnaker_oidc_roles_claim | to_json }}: {{ ('/^(' ~
+              ([delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_reader_group,
+                delivery_platform_spinnaker_writer_group] | map('regex_escape') | join('|')) ~ ')$/') | to_json }}
+          user-info-mapping:
+            username: preferred_username
+            email: email
+            firstName: given_name
+            lastName: family_name
+            roles: {{ delivery_platform_spinnaker_oidc_roles_claim | to_json }}
+          platform:
+            client-id: {{ delivery_platform_spinnaker_oidc_client_id | to_json }}
+            client-secret: ${OIDC_CLIENT_SECRET}
+            scope: {{ delivery_platform_spinnaker_oidc_scopes | to_json }}
+            authorization-grant-type: authorization_code
+            redirect-uri: {{ ('https://' ~ delivery_platform_spinnaker_host ~
+                              '/api/v1/login/oauth2/code/platform') | to_json }}
+        provider:
+          platform:
+            issuer-uri: {{ delivery_platform_oidc_issuer | to_json }}
+server:
+  servlet:
+    context-path: /api/v1
+    session:
+      cookie: {secure: true, http-only: true}
+  forward-headers-strategy: framework
+redis:
+  configuration: {secure: true}
+{% elif spinnaker_native_service == 'rosco' %}
+{}
+{% endif %}

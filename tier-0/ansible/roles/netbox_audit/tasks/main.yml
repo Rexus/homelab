@@ -1,0 +1,101 @@
+---
+- name: Require bounded polling and a separately verified read-only change-ledger credential
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['RedHat', 'Debian']
+      - netbox_audit_endpoint is match('^https://[A-Za-z0-9.-]+(:[0-9]+)?/api/(core|extras)/object-changes/$')
+      - netbox_audit_instance is match('^[a-z0-9][a-z0-9-]{2,62}$')
+      - netbox_audit_token_file is match('^/')
+      - netbox_audit_ca_file is match('^/')
+      - netbox_audit_auth_scheme in ['Bearer', 'Token']
+      - netbox_audit_read_only_accepted | bool
+      - netbox_audit_forwarding_accepted | bool
+      - netbox_audit_max_records | int >= 100
+      - netbox_audit_retention_days | int >= 7
+      - netbox_audit_watchdog_url is match('^https://[A-Za-z0-9./_?=&:%-]+$')
+    fail_msg: Verify the view-only token, independent forwarding and source retention before enabling polling.
+
+- name: Install the native Python runtime and heartbeat client
+  ansible.builtin.package:
+    name: [python3, curl]
+    state: present
+
+- name: Create the noninteractive change-ledger reader
+  ansible.builtin.user:
+    name: netbox-audit
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Prepare root-owned program and credential directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop: [/usr/local/lib/netbox-audit, /etc/netbox-audit]
+
+- name: Install the dedicated GET-only product API collector
+  ansible.builtin.copy:
+    src: netbox_audit.py
+    dest: /usr/local/lib/netbox-audit/netbox_audit.py
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install the local token only as a systemd credential source
+  ansible.builtin.copy:
+    src: "{{ netbox_audit_token_file }}"
+    dest: /etc/netbox-audit/token
+    owner: root
+    group: root
+    mode: '0400'
+  no_log: true
+  diff: false
+
+- name: Install the verified NetBox server trust anchor
+  ansible.builtin.copy:
+    src: "{{ netbox_audit_ca_file }}"
+    dest: /etc/netbox-audit/ca.crt
+    owner: root
+    group: root
+    mode: '0444'
+
+- name: Install the explicit API and custody contract
+  ansible.builtin.copy:
+    content: >-
+      {{ {'endpoint': netbox_audit_endpoint, 'instance': netbox_audit_instance,
+          'auth_scheme': netbox_audit_auth_scheme, 'state': '/var/lib/netbox-audit',
+          'ca_file': '/etc/netbox-audit/ca.crt', 'max_records': netbox_audit_max_records | int} | to_nice_json }}
+    dest: /etc/netbox-audit/config.json
+    owner: root
+    group: root
+    mode: '0444'
+
+- name: Install the private external health endpoint
+  ansible.builtin.copy:
+    content: "url = \"{{ netbox_audit_watchdog_url }}\"\n"
+    dest: /etc/netbox-audit/heartbeat.curl
+    owner: root
+    group: root
+    mode: '0400'
+  no_log: true
+  diff: false
+
+- name: Install the bounded collection service and timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/netbox-audit.{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: [service, timer]
+
+- name: Start the first collection and recurring reconciliation
+  ansible.builtin.systemd_service:
+    name: "netbox-audit.{{ item }}"
+    daemon_reload: true
+    enabled: "{{ item == 'timer' }}"
+    state: started
+  loop: [service, timer]

@@ -4,10 +4,22 @@ observability_action: render
 observability_kubeconfig: ""
 observability_context: ""
 observability_storage_class: retained-block
+# Live database disks stay on independently qualified Proxmox CSI/Ceph RBD, never the NAS backup claim.
+observability_database_storage_class: ""
+observability_database_storage_accepted: false
 observability_topology_key: infrastructure.example.org/physical-host
 observability_failure_domains: [pve01, pve02, pve03]
 observability_backup_destination: s3://platform-backups/grafana-db
 observability_backup_endpoint: https://backup-objectstore.services.example.org
+observability_backup_mode: files
+observability_backup_files_phase: prepare
+observability_backup_files_accepted: false
+observability_backup_files:
+  claim: grafana-db-backups
+  volume_handle: ""  # Exact retained NFS CSI PV handle; backup destination only.
+  system_identifier: ""  # status.systemID after database-only preparation.
+  marker: ""  # Commissioned private NAS marker, permissions and storage encryption.
+  schedule: '0 2 * * *'
 observability_grafana_url: https://grafana.services.example.org
 observability_dashboards_url: https://dashboards.services.example.org
 observability_oidc_issuer: https://sso.identity.example.org/realms/platform

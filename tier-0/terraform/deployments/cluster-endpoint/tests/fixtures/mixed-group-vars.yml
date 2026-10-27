@@ -1,0 +1,3 @@
+platform_host_ips:
+  api-gw-1: 10.10.10.60
+  idm-1: 10.10.10.10

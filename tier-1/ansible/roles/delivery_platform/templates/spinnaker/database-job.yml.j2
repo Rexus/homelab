@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spinnaker-databases
+  annotations: {delivery.homelab/phase: initialize}
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata: {labels: {app.kubernetes.io/name: spinnaker-databases}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 999, runAsGroup: 999, runAsNonRoot: true, fsGroup: 999}
+      containers:
+        - name: initialize
+          image: {{ delivery_platform_software.mysql_image | to_json }}
+          command: [sh, /bootstrap/initialize-databases.sh]
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          env:
+            - name: MYSQL_PWD
+              valueFrom: {secretKeyRef: {name: spinnaker-mysql-root, key: password}}
+          volumeMounts:
+            - {name: scripts, mountPath: /bootstrap, readOnly: true}
+            - {name: roots, mountPath: /roots, readOnly: true}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+      volumes:
+        - {name: scripts, configMap: {name: spinnaker-scripts, defaultMode: 0550}}
+        - {name: roots, configMap: {name: spinnaker-roots}}
+        - name: credentials
+          projected:
+            sources:
+{% for service in spinnaker_native_sql_services %}
+              - secret:
+                  name: spinnaker-{{ service }}-db
+                  items:
+                    - {key: password, path: {{ service }}-password}
+                    - {key: migration-password, path: {{ service }}-migration-password}
+{% endfor %}

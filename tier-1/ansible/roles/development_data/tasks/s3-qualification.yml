@@ -1,0 +1,16 @@
+---
+- name: Qualify S3 data APIs and access boundaries with tenant credentials only
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", "{{ role_path }}/../../../../shared/scripts/s3-contract.py"]
+    stdin: >-
+      {{ {'endpoint': development_data_s3_endpoint, 'region': development_data_s3_region,
+          'ca_file': development_data_s3_ca_src,
+          'access_key': development_data_s3_keys[item].access_key,
+          'secret_key': development_data_s3_keys[item].secret_key,
+          'buckets': development_data_buckets.values() | list +
+                     (development_data_backup_buckets if item == 'backup' else []),
+          'denied_buckets': development_data_s3_denied_buckets +
+                            (development_data_backup_buckets if item == 'application' else [])} | to_json }}
+  loop: [application, backup]
+  changed_when: true
+  no_log: true

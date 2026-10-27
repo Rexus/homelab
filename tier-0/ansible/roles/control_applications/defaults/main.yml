@@ -16,6 +16,9 @@ control_applications_ingress_class: ""
 control_applications_traefik_crd_accepted: false
 control_applications_ingress_annotations: {keycloak: {}, vault: {}, netbox: {}, headlamp: {}}
 control_applications_storage_class: ""
+control_applications_database_storage_class: ""
+control_applications_database_storage_accepted: false
+control_applications_netbox_media_storage_class: ""
 control_applications_postgres_image: ""
 control_applications_database_size: 10Gi
 control_applications_database_instances: 3
@@ -24,6 +27,10 @@ control_applications_backup_endpoint: ""
 control_applications_backup_destinations: {keycloak: "", netbox: ""}
 control_applications_backup_schedule: "0 0 2 * * *"
 control_applications_backup_retention: 30d
+control_applications_backup_mode: object
+control_applications_backup_files_accepted: false
+control_applications_backup_files_phase: backup
+control_applications_backup_files: {keycloak: {}, netbox: {}}
 control_applications_cluster_domain: cluster.local
 control_applications_namespace_labels:
   pod-security.kubernetes.io/enforce: restricted
@@ -58,6 +65,7 @@ control_applications_vault_ca_path: ""
 control_applications_oidc_ca_pem: ""
 control_applications_valkey_image: ""
 control_applications_netbox_media_size: 5Gi
+control_applications_netbox_changelog_retention: 90
 control_applications_headlamp_api_oidc_accepted: false
 control_applications_headlamp_group: ""
 control_applications_headlamp_namespaces: []

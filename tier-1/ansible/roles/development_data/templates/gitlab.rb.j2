@@ -1,0 +1,45 @@
+# Tier 1 single-tenant GitLab data service. Managed by development_data.
+roles([{{ {'postgresql': 'postgres_role', 'redis': 'redis_master_role', 'gitaly': 'gitaly_role'}[data_component] | to_json }}])
+gitlab_rails['auto_migrate'] = false
+prometheus_monitoring['enable'] = false
+node_exporter['enable'] = false
+{% if data_component == 'postgresql' %}
+postgresql['listen_address'] = {{ data_address | to_json }}
+postgresql['port'] = 5432
+postgresql['ssl'] = 'on'
+postgresql['hostssl'] = true
+postgresql['ssl_cert_file'] = '/etc/gitlab/data-tls/server.crt'
+postgresql['ssl_key_file'] = '/etc/gitlab/data-tls/server.key'
+postgresql['ssl_ca_file'] = '/etc/gitlab/data-tls/ca.crt'
+postgresql['md5_auth_cidr_addresses'] = []
+postgresql['trust_auth_cidr_addresses'] = []
+postgresql['sql_user'] = 'gitlab'
+postgresql['sql_user_password'] = {{ ('md5' ~ ((development_data_postgresql_password ~ 'gitlab') | hash('md5'))) | to_json }}
+postgresql['custom_pg_hba_entries'] = {
+  'gitlab_chart' => [
+{% for cidr in development_data_client_cidrs %}
+    { type: 'hostssl', database: 'gitlabhq_production', user: 'gitlab', cidr: {{ cidr | to_json }}, method: 'md5', option: 'clientcert=verify-full' },
+{% endfor %}
+  ]
+}
+{% elif data_component == 'redis' %}
+redis['bind'] = {{ data_address | to_json }}
+redis['port'] = 0
+redis['tls_port'] = 6379
+redis['password'] = {{ development_data_redis_password | to_json }}
+redis['tls_cert_file'] = '/etc/gitlab/data-tls/server.crt'
+redis['tls_key_file'] = '/etc/gitlab/data-tls/server.key'
+redis['tls_ca_cert_file'] = '/etc/gitlab/data-tls/ca.crt'
+redis['tls_auth_clients'] = 'no'
+redis['maxmemory_policy'] = 'noeviction'
+{% else %}
+gitlab_rails['internal_api_url'] = {{ development_data_gitlab_url | to_json }}
+gitaly['gitlab_secret'] = {{ development_data_shell_token | to_json }}
+gitaly['configuration'] = {
+  listen_addr: '',
+  tls_listen_addr: {{ (data_address ~ ':8076') | to_json }},
+  tls: { certificate_path: '/etc/gitlab/data-tls/server.crt', key_path: '/etc/gitlab/data-tls/server.key' },
+  auth: { token: {{ development_data_gitaly_token | to_json }} },
+  storage: [{ name: 'default', path: '/var/opt/gitlab/git-data/repositories' }]
+}
+{% endif %}

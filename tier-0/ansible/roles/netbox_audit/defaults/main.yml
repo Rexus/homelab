@@ -1,0 +1,12 @@
+---
+netbox_audit_endpoint: ""
+netbox_audit_instance: ""
+netbox_audit_token_file: "{{ lookup('ansible.builtin.env', 'NETBOX_AUDIT_TOKEN_FILE') }}"
+netbox_audit_ca_file: "{{ lookup('ansible.builtin.env', 'NETBOX_AUDIT_CA_FILE') }}"
+netbox_audit_auth_scheme: Bearer
+netbox_audit_calendar: '*:0/5'
+netbox_audit_max_records: 50000
+netbox_audit_retention_days: 90
+netbox_audit_read_only_accepted: false
+netbox_audit_forwarding_accepted: false
+netbox_audit_watchdog_url: ""

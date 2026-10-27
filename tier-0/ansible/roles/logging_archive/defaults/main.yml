@@ -9,6 +9,8 @@ logging_archive_max_bytes: 67108864
 logging_archive_interval: 60
 logging_archive_views: {}
 logging_archive_view_root: /srv/application-log-views
+logging_archive_projections: {}
+logging_archive_projection_root: /srv/approved-log-projections
 logging_archive_snapshot_contract: ""
 logging_archive_watchdog_url: ""
 logging_archive_required_sources: []

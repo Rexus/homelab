@@ -1,0 +1,20 @@
+---
+- name: Require private literal IPv4 backends and safe server names
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[a-zA-Z][a-zA-Z0-9_.-]{0,62}$')
+      - item.value | ansible.utils.ipv4('address') == item.value
+      - >-
+        (item.value | ansible.utils.ipaddr('10.0.0.0/8')) == item.value or
+        (item.value | ansible.utils.ipaddr('172.16.0.0/12')) == item.value or
+        (item.value | ansible.utils.ipaddr('192.168.0.0/16')) == item.value
+      - item.value not in (groups[cluster_endpoint_group] | map('extract', platform_host_ips) | list)
+      - >-
+        item.value not in (cluster_endpoint_endpoints | map(attribute='vip_cidr')
+        | map('ansible.utils.ipaddr', 'address') | list)
+    fail_msg: >-
+      Use approved private control-plane IPs, never DNS names, gateways, VIPs or arbitrary HAProxy directives.
+      Backends belong to the endpoint's declared cluster tier and always use TCP 6443.
+  loop: "{{ cluster_endpoint_current.control_planes | dict2items }}"
+  loop_control:
+    label: "{{ cluster_endpoint_current.name }}/{{ item.key }}"

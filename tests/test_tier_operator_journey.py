@@ -65,9 +65,13 @@ class OperatorJourney(TierRepositoryTestCase):
         checklist = (UPSTREAM / ".ai/operator-walkthrough.md").read_text()
         for option in (UPSTREAM / "docs/deployment").rglob("step-*.md"):
             self.assertIn(option.relative_to(UPSTREAM).as_posix(), checklist)
-        for expected in ("P1: Logging integration", "P1: Clean-room recovery", "P2: Household access",
-                         "P2: Small-team access", "## Repeat cadence", "no live gateway"):
+        for expected in ("P1: Logging integration", "P1: Recovery procedures", "P2: Household/team procedures",
+                         "## Repeat cadence", "no live gateway"):
             self.assertIn(expected, checklist)
+        access = (UPSTREAM / "docs/administration/access-lifecycle.md").read_text()
+        for heading in ("## Household devices", "## Team roles", "## Join and leave"):
+            self.assertIn(heading, access)
+        self.assertIn("../docs/administration/access-lifecycle.md", checklist)
         for repo in self.root.iterdir():
             self.assertFalse((repo / ".ai/operator-walkthrough.md").exists())
             self.assertIn(".venv/", (repo / ".gitignore").read_text())
@@ -90,7 +94,7 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn(expected, guide)
 
     def test_missing_generator_dependency_points_to_the_safe_setup_path(self):
-        result = subprocess.run([sys.executable, "-S", str(UPSTREAM / "scripts/tier-repos/generate.py"),
+        result = subprocess.run([sys.executable, "-E", "-S", str(UPSTREAM / "scripts/tier-repos/generate.py"),
                                  "--dry-run", "--root", str(self.parent)], capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("PyYAML is required", result.stderr)

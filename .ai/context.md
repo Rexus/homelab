@@ -28,7 +28,8 @@ This file keeps durable context for AI-assisted work across sessions.
 - all tiers use tier-owned cluster-platform playbooks/inputs with Shared's stateless
   cluster_platform, kubernetes_applications and helm_release roles. Tier 0 selects Flux;
   Tier 1/2 omit it unless a separate explicit design selects it. CNI/CSI, cert-manager,
-  Traefik CRDs, CNPG and Barman are native pinned products, not empty GitOps starters
+  Traefik CRDs and CNPG are native pinned products, not empty GitOps starters;
+  Barman is an explicit object/WAL backup selection, not required by scheduled NAS file copies
 - Tier 0 control_applications installs Keycloak/LDAP, Vault/Raft/audit, NetBox and Headlamp;
   initialization/unseal and custody remain explicit. Tier 1 delivery/observability/development
   roles and Tier 2 lab/telemetry roles own their releases and interfaces
@@ -41,8 +42,27 @@ This file keeps durable context for AI-assisted work across sessions.
 - Tier 0 uses Flux; Tier 1 delivery remains unselected between Argo CD and Spinnaker;
   Tier 1 delivery never owns Tier 0 credentials or cluster/infrastructure lifecycle
 - Stage 9 supplies native GitLab and Kubernetes runner Helm recipes in Tier 1;
-  PostgreSQL, Redis, Gitaly and object storage are explicit existing prerequisites.
+  its separate development-data setup supplies native PostgreSQL/Redis/Gitaly VMs,
+  scoped object-storage handoff and backup jobs. The development setup retains
+  its original standalone GitLab alternative/state; never migrate resources implicitly.
   Tier 0 owns infrastructure-runner provisioning/configuration and the separate Vault ci-auth root.
+- Tier 0 supplies a separate cluster-endpoint setup with independent HAProxy/Keepalived
+  API gateways. Existing qualified endpoints remain valid; replica count alone does not prove HA.
+- Object storage names the capability; S3-compatible API names the selected interface,
+  not an AWS dependency. Use direct NAS file interfaces where supported and existing
+  qualified NAS/Ceph RGW/other object endpoints only where consumers require them.
+  Do not add a NAS-to-object gateway, storage VM or imply missing infrastructure features.
+  Ceph RBD supplies live VM disks; RGW is separate. UNAS outbound S3 backups do not
+  establish an inbound object endpoint; confirm actual model/software support.
+- Live databases stay on qualified Proxmox/Ceph-backed block volumes. NAS file areas
+  receive backup copies, never replace PGDATA/WAL. Keep database/media/backup storage
+  inputs distinct. Scheduled verified full PostgreSQL backups to NAS are accepted with
+  recovery to a completed set, not continuous PITR; existing object/WAL mode remains valid.
+  Shared's stateless postgresql_file_backup role executes the tier-owned database/backup
+  contracts; it owns no inventory, storage server or resource state.
+- Tier 1's complete native Spinnaker path includes the pinned upstream service base,
+  SQL/cache dependencies, scoped target identities, SSO and recovery jobs. Argo CD
+  remains a separate complete alternative; a custom Spinnaker overlay is no longer required.
 - Direct infrastructure CI is opt-in: the dedicated project, GitLab control plane and
   administrators able to alter its hosting are accepted as Tier 0 authorities.
   Ordinary runners and application delivery controllers remain unprivileged.
@@ -113,6 +133,7 @@ This file keeps durable context for AI-assisted work across sessions.
   entry points reject current/legacy insecure environment flags; bootstrap trusts the Proxmox CA.
 - .ai/operator-walkthrough.md tracks missing mechanisms separately from supplied code;
   .ai/operational-verification.md owns unchecked live pass conditions for the current priorities.
+  .ai/v1-readiness.md records implementation qualification and its exact offline evidence.
 - Internal ACME remains integration; public HTTP-01 has Tier 2 automation with verified origins,
   separate staging/production state and a serialized controller timer, still requiring live acceptance
 - Tier 0 owns publication catalogs, creation/update CD jobs, publication state,
@@ -311,7 +332,11 @@ This file keeps durable context for AI-assisted work across sessions.
   separate otel-N, metrics-N and search-N roles; their recipe supplies hosts/baseline only
 - OpenSearch indexes approved scoped copies, without Tier 0 write/delete/retention/backup authority;
   document/field read filters do not revoke write privileges; native product installation is supplied,
-  while the Tier 0 approved-view export adapter remains a separately qualified integration
+  and Tier 0 supplies create-only approved field projections plus non-root persistent mTLS push.
+  Each scope pins its approval policy; broadening it requires a new scope and review.
+- Tier 0 supplies GET-only retained NetBox audit collection and independent Vault snapshot/input/media
+  recovery transport. Separate source exports, source retention, credentials and physical recovery
+  custody remain commissioned interfaces, not evidence of live acceptance.
 - Cluster security collection uses Shared native Fluent Bit execution with per-node TLS identities,
   tier-local source catalogs and Talos patches; no signing key enters Kubernetes.
 - Kubernetes OIDC is a Tier 0-owned guarded serial integration from each target tier's sensitive plan;
@@ -334,7 +359,8 @@ This file keeps durable context for AI-assisted work across sessions.
   consumers use scoped service endpoints, while offline custody supplies transfers
 - keep Packer, Terraform, and Ansible responsibilities separate
 - the Shared baseline implements proxy settings, timezone and IPv6 policy only;
-  SSH/NTP/firewall/audit are verified template/OS or service requirements, not unused baseline switches
+  a separate opt-in host_security role supplies SSH/chrony/firewalld/audit with tier-owned
+  allowlists and access gates. It does not imply appliance, Kubernetes-host or egress enforcement.
 - initializers and deployment entry points use umask 077 for new local files and backups;
   existing files and Windows ACLs need separate permission checks
 - preserve a high-security baseline by default

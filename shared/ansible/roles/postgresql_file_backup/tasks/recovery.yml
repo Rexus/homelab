@@ -1,0 +1,30 @@
+---
+- name: Validate the selected immutable backup identity
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Require a fresh isolated recovery target and explicit storage
+  ansible.builtin.assert:
+    that:
+      - postgresql_file_backup_action == 'render'
+      - postgresql_file_backup_recovery.set_id is match('^[a-zA-Z0-9-]+$')
+      - postgresql_file_backup_recovery.storage_class | length > 0
+      - postgresql_file_backup_recovery.size is match('^[1-9][0-9]*(Gi|Ti)$')
+      - postgresql_file_backup_recovery.database is match('^[a-z][a-z0-9_]*$')
+      - postgresql_file_backup_recovery.secret | length > 0
+      - postgresql_file_backup_recovery.server_tls_secret | length > 0
+      - postgresql_file_backup_recovery.client_ca_secret | length > 0
+      - postgresql_file_backup_recovery.certificates is mapping
+    fail_msg: Recovery only renders; select a completed set, fresh block claims and independently supplied credentials.
+
+- name: Prepare private recovery manifests
+  ansible.builtin.file:
+    path: "{{ postgresql_file_backup_output }}"
+    state: directory
+    mode: "0700"
+
+- name: Render the source Job and separate clean CNPG target
+  ansible.builtin.copy:
+    content: "{{ lookup('ansible.builtin.template', item ~ '.yml.j2') }}"
+    dest: "{{ postgresql_file_backup_output }}/{{ item }}.yml"
+    mode: "0600"
+  loop: [restore-source, restore-cluster]

@@ -1,0 +1,13 @@
+[Unit]
+Description=Encrypted cold backup of the GitLab {{ data_component }} service
+After=network-online.target gitlab-runsvdir.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/etc/development-data/backup.sh
+ExecStopPost=/opt/gitlab/bin/gitlab-ctl start {{ data_component }}
+UMask=0077
+LimitCORE=0
+TimeoutStartSec={{ development_data_backup_timeout_seconds | int }}
+TimeoutStopSec=60

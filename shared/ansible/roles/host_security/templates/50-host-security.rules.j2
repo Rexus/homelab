@@ -1,0 +1,14 @@
+# Additive profile: retain all existing rules and the normal /var/log/audit/audit.log sink.
+-w /etc/ssh -p wa -k host_security_ssh
+-w /etc/passwd -p wa -k host_security_identity
+-w /etc/group -p wa -k host_security_identity
+-w /etc/shadow -p wa -k host_security_identity
+-w /etc/sudoers -p wa -k host_security_privilege
+-w /etc/firewalld -p wa -k host_security_firewall
+-w {{ host_security_os[ansible_os_family].time_config }} -p wa -k host_security_time
+-a always,exit -F arch=b64 -S adjtimex,settimeofday,clock_settime -k host_security_clock
+-a always,exit -F arch=b64 -S execve -F euid=0 -F auid>=1000 -F auid!=unset -k host_security_privilege
+{% if ansible_architecture == 'x86_64' %}
+-a always,exit -F arch=b32 -S adjtimex,settimeofday,clock_settime -k host_security_clock
+-a always,exit -F arch=b32 -S execve -F euid=0 -F auid>=1000 -F auid!=unset -k host_security_privilege
+{% endif %}

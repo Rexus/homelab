@@ -1,0 +1,76 @@
+---
+- name: Require explicit independent custody and safe paths
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+      - control_backup_independent_host_accepted | bool
+      - inventory_hostname not in groups.get('identity', [])
+      - inventory_hostname not in groups.get('foundation_logging', [])
+      - control_backup_repository is match('^/[A-Za-z0-9_/-]+$')
+      - control_backup_repository != '/'
+      - "'..' not in control_backup_repository.split('/')"
+      - control_backup_repository_id is match('^[a-f0-9]{64}$')
+      - control_backup_directory is match('^/var/lib/[a-z0-9-]+$')
+      - control_backup_vault_binary is match('^/[A-Za-z0-9_./-]+$')
+      - control_backup_vault_address is match('^https://[A-Za-z0-9.-]+(:[0-9]+)?$')
+      - control_backup_vault_server_name is match('^[A-Za-z0-9.-]+$')
+      - control_backup_vault_ca_file is match('^/')
+      - control_backup_password_file is match('^/')
+      - control_backup_vault_auth in ['cert', 'approle', 'static-token-local']
+      - control_backup_vault_cert_mount is match('^[a-z0-9-]+$')
+      - control_backup_vault_cert_role is match('^[a-z0-9-]+$')
+      - control_backup_vault_cert_min_seconds | int >= 86400
+      - control_backup_vault_policy is match('^[a-z0-9-]+$')
+      - control_backup_vault_approle_mount is match('^[a-z0-9-]+$')
+      - control_backup_watchdog_url is match('^https://[A-Za-z0-9./_?=&:%-]+$')
+      - "control_backup_calendar is match('^[A-Za-z0-9*: ,./-]+$')"
+      - control_backup_inputs | length > 0
+      - control_backup_input_sources | length > 0
+      - >-
+        control_backup_input_sources | map(attribute='mount') | unique | list | length ==
+        control_backup_input_sources | length
+      - >-
+        control_backup_input_sources | map(attribute='name') | unique | list | length ==
+        control_backup_input_sources | length
+    fail_msg: Commission independent custody, a known repository, verified TLS and explicit local inputs first.
+
+- name: Require selected short-lived authentication material
+  ansible.builtin.assert:
+    that:
+      - >-
+        (control_backup_vault_auth == 'cert' and
+         control_backup_vault_client_tls_accepted | bool and
+         control_backup_vault_bound_cidrs | length > 0 and
+         control_backup_vault_client_cert_file is match('^/') and
+         control_backup_vault_client_key_file is match('^/')) or
+        (control_backup_vault_auth == 'approle' and
+         control_backup_vault_role_id_file is match('^/') and
+         control_backup_vault_secret_id_file is match('^/')) or
+        (control_backup_vault_auth == 'static-token-local' and
+         control_backup_vault_static_token_local_accepted | bool and
+         control_backup_vault_static_token_file is match('^/'))
+    fail_msg: Supply verified end-to-end client TLS, rotated AppRole files, or an explicit local break-glass token.
+
+- name: Require bounded marked exports from original input custodians
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z0-9-]+$')
+      - item.source is match('^//[A-Za-z0-9.-]+/[A-Za-z0-9_-]+$')
+      - item.mount is match('^/mnt/control-inputs-[a-z0-9-]+$')
+      - item.marker is match('^[A-Za-z0-9_-]{16,128}$')
+      - item.credentials_file is match('^/')
+  loop: "{{ control_backup_input_sources }}"
+
+- name: Require an authorized marked media view when selected
+  ansible.builtin.assert:
+    that:
+      - control_backup_media_source is match('^//[A-Za-z0-9.-]+/[A-Za-z0-9_-]+$')
+      - control_backup_media_mount is match('^/mnt/[a-z0-9-]+$')
+      - control_backup_media_marker is match('^[A-Za-z0-9_-]{16,128}$')
+      - control_backup_media_credentials_file is match('^/')
+  when: control_backup_media_enabled | bool
+
+- name: Inspect the independently installed Vault CLI
+  ansible.builtin.command:
+    argv: ["{{ control_backup_vault_binary }}", version]
+  changed_when: false

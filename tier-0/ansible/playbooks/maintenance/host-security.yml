@@ -1,0 +1,4 @@
+---
+# Reconciliation requires the same explicit acknowledgements and access checks.
+- name: Reconcile the selected Tier 0 Linux host security profile
+  ansible.builtin.import_playbook: ../deployment/host-security.yml

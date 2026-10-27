@@ -1,0 +1,11 @@
+---
+# Product and image pins for the native delivery paths. Update and verify together.
+harbor_chart: 1.18.0
+argocd_chart: 8.5.6
+spinnaker_release: 2026.3.2
+spinnaker_revision: 42da7f83e7db090429bfa3f2fddeff34f0b124a7
+spinnaker_repository: https://github.com/spinnaker/spinnaker
+mysql_image: docker.io/library/mysql:8.4.11
+redis_image: docker.io/library/redis:8.2.9
+envoy_image: docker.io/envoyproxy/envoy:v1.39.5
+restic_image: docker.io/restic/restic:0.19.1

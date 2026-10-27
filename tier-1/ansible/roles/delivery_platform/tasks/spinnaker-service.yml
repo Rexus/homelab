@@ -1,0 +1,63 @@
+---
+- name: Resolve the selected native service and workload
+  ansible.builtin.set_fact:
+    spinnaker_service_deployments: >-
+      {{ delivery_platform_spinnaker_workloads | selectattr('kind', 'equalto', 'Deployment')
+         | selectattr('metadata.name', 'equalto', spinnaker_service) | list }}
+    spinnaker_service_resources: >-
+      {{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'Service')
+         | selectattr('metadata.name', 'equalto', spinnaker_service) | list }}
+  no_log: true
+
+- name: Require one Deployment and internal Service per native component
+  ansible.builtin.assert:
+    that:
+      - spinnaker_service_deployments | length == 1
+      - spinnaker_service_resources | length == 1
+    fail_msg: "Missing or duplicate native Deployment/Service for {{ spinnaker_service }}."
+
+- name: Require the Service to select its workload and expose its native port
+  ansible.builtin.assert:
+    that:
+      - service.spec.get('type', 'ClusterIP') == 'ClusterIP'
+      - service.spec.get('selector', {}) | length > 0
+      - >-
+        service.spec.get('selector', {}) | dict2items
+        | difference(deployment.spec.template.metadata.labels | dict2items) | length == 0
+      - ports | length == 1
+      - containers | length == 1
+      - ports[0].get('targetPort', ports[0].port) in [native_port | int, 'http']
+      - >-
+        ports[0].get('targetPort', ports[0].port) != 'http' or
+        containers[0].get('ports', []) | selectattr('name', 'equalto', 'http')
+        | selectattr('containerPort', 'equalto', native_port | int) | list | length == 1
+    fail_msg: "Wire {{ spinnaker_service }} to its own native container and port."
+  vars:
+    deployment: "{{ spinnaker_service_deployments[0] }}"
+    service: "{{ spinnaker_service_resources[0] }}"
+    native_port: >-
+      {{ {'clouddriver': 7002, 'deck': 9000, 'echo': 8089, 'fiat': 7003,
+          'front50': 8080, 'gate': 8084, 'igor': 8088, 'kayenta': 8090,
+          'keel': 7010, 'orca': 8083, 'rosco': 8087}[spinnaker_service] }}
+    ports: "{{ service.spec.ports | selectattr('port', 'equalto', native_port | int) | list }}"
+    containers: >-
+      {{ deployment.spec.template.spec.containers | selectattr('name', 'equalto', spinnaker_service) | list }}
+
+- name: Require a read-only native configuration mount backed by the actual runtime Secret
+  ansible.builtin.assert:
+    that:
+      - mounts | length == 1
+      - mounts[0].get('readOnly', false) | bool
+      - not mounts[0].get('subPath', '')
+      - volumes | length == 1
+      - >-
+        volumes[0].get('secret', {}).get('secretName', '') == 'spinnaker-runtime' or
+        volumes[0].get('projected', {}).get('sources', []) | selectattr('secret', 'defined')
+        | selectattr('secret.name', 'equalto', 'spinnaker-runtime') | list | length > 0
+    fail_msg: "Mount spinnaker-runtime read-only at {{ spinnaker_service }}'s native configuration directory."
+  vars:
+    pod: "{{ spinnaker_service_deployments[0].spec.template.spec }}"
+    container: "{{ pod.containers | selectattr('name', 'equalto', spinnaker_service) | first }}"
+    mounts: >-
+      {{ container.get('volumeMounts', []) | selectattr('mountPath', 'match', '^/opt/spinnaker/config/?$') | list }}
+    volumes: "{{ pod.get('volumes', []) | selectattr('name', 'in', mounts | map(attribute='name') | list) | list }}"

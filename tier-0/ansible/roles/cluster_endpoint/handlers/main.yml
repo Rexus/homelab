@@ -1,0 +1,11 @@
+---
+- name: Reload cluster endpoint HAProxy
+  ansible.builtin.service:
+    name: haproxy
+    state: reloaded
+
+# Shared's keepalived fragment notifies this handler.
+- name: Restart keepalived
+  ansible.builtin.service:
+    name: keepalived
+    state: restarted

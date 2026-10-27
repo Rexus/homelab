@@ -4,6 +4,8 @@
 [delivery role](../../../../tier-1/ansible/roles/delivery_platform/) owns product
 configuration; Shared executes Helm releases without owning inventory or state.
 Choose `argocd`, `spinnaker`, or `none` explicitly. There is no default controller.
+Spinnaker supplies a pinned native base and provisions its SQL/Redis dependencies;
+follow its [native installation contract](../step-2b-spinnaker.md#installation-decision).
 
 ## Contents
 
@@ -18,8 +20,8 @@ Choose `argocd`, `spinnaker`, or `none` explicitly. There is no default controll
 
 | Dependency | Required preparation |
 | --- | --- |
-| Control node | Linux, Ansible Core, Helm and `kubernetes.core >=6.6,<7`; Python `kubernetes`, `jsonpatch`, `PyYAML` for apply |
-| Spinnaker only | Native Kustomize or kubectl with Kustomize; Git for obtaining reviewed official resources |
+| Control node | Linux, Ansible Core, Helm and `kubernetes.core >=6.6,<7`; Python `kubernetes`, `jsonpatch`, `PyYAML` for apply; native Spinnaker also uses declared `ansible.utils` and `netaddr` |
+| Spinnaker only | Native Kustomize or kubectl with Kustomize; Kubernetes >=1.33, Traefik CRD, preissued TLS (or commissioned issuer), and existing independent backup storage: NAS file PVC or native HTTPS S3-compatible endpoint |
 | Tier 1 cluster | Accepted Stage 4/7 cluster, CNI policy enforcement, image access and sufficient worker capacity |
 | Networking | Private DNS, accepted ingress class, matching TLS certificates and node/consumer CA trust |
 | Identity | Existing Keycloak clients, group claims and matching callback URLs; CA PEM and a local CA bundle |
@@ -29,11 +31,17 @@ Choose `argocd`, `spinnaker`, or `none` explicitly. There is no default controll
 The playbook does not create a cluster, ingress controller, storage provisioner or
 identity provider. Use the common cluster lifecycle rather than duplicating it.
 Prepare accepted existing services for these prerequisites before apply.
+For Spinnaker, choose [backup storage](../step-2b-spinnaker.md#choose-backup-storage):
+`s3` remains the default for existing inputs; `filesystem` consumes a dedicated,
+preprovisioned NAS-backed PVC and initialized repository directly. No additional
+object server or NAS-to-S3 gateway is installed. Retain the restic password separately
+from the cluster and storage service. The storage owner commissions the export,
+node/CSI access, permissions, retained PV and exact PVC binding before apply.
 
 ## Inputs and secrets
 
 Copy [delivery_platform.yml.example](../../../../tier-1/ansible/group_vars/delivery_platform.yml.example)
-to its ignored `.yml` counterpart. Set the exact reviewed chart versions, controller
+to its ignored `.yml` counterpart. Review the central `files/software.yml` pins, controller
 selection, ingress, names, identity and storage inputs. Set
 `delivery_platform_install_harbor: false` when only installing a controller.
 
@@ -69,7 +77,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 
 Omit the final extra-vars file when using pre-existing Secrets, but supply Harbor's
 database password through an accepted private input. Rendering downloads exact
-official charts and builds a selected local Spinnaker overlay; it never contacts
+official charts; native Spinnaker builds its supplied pinned base without downloads. Rendering never contacts
 Kubernetes. It does not establish that existing Secrets or services are usable.
 
 Review `<release>-values.yml`, `<release>-manifests.yml`, and any `before`/`after`
@@ -86,8 +94,12 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 
 Apply checks credentials, storage where selected and verified OIDC discovery.
 The Shared Helm executor waits for chart resources. Spinnaker requires the exact
-reviewed output hash, submits all resources before waiting for their workloads,
-and never executes Halyard. No release is uninstalled or pruned by this procedure.
+reviewed output hash and stages certificates, persistence, schema initialization,
+scoped identities and application startup in dependency order. Native filesystem
+backups check the retained PVC/PV before resource changes and the actual mount and
+repository marker inside each backup Job. Both modes require a verified first
+snapshot before publishing ingress. It never executes
+Halyard. No release is uninstalled or pruned by this procedure.
 
 ## Readiness and recovery
 
@@ -110,12 +122,34 @@ From the upstream repository with the native tools and collections installed:
 python3 -B -m unittest discover -s tests -p test_tier_delivery_platform.py -v
 ```
 
-Tests render official Harbor `1.18.0` and Argo CD `8.5.6` charts through Ansible/Helm
+Tests render the centrally pinned official Harbor and Argo CD charts through Ansible/Helm
 in both source and generated repositories. They inspect actual native workloads,
-storage, ingress, OIDC and RBAC output. Kustomize tests check a scoped fixture,
-rejected images/authority/review hashes and an exact official Spinnaker demo revision.
-The versions are test fixtures, not deployment defaults. These checks never apply
-to a cluster and do not establish live SSO, storage, failover or restore acceptance.
+storage, ingress, OIDC and RBAC output. Spinnaker tests render the supplied native
+installation in both source and generated repositories, check payload/license
+preservation, schema/auth/TLS/storage wiring and stable private credentials.
+Install `kubernetes-validate` for strict Kubernetes schema checks. Run:
+
+```bash
+python3 -B -m unittest discover -s tests -p test_tier_spinnaker_reference.py -v
+python3 -B -m unittest discover -s tests -p test_tier_spinnaker_backup.py -v
+```
+
+Set `RESTIC_BINARY` to the pinned native restic executable (or put it on `PATH`)
+to run real repository backup/restore and failure tests. Filesystem tests use an
+existing local tmpfs mount and test actual Ansible storage assertions with API fixtures;
+they do not mount or verify a live NAS. Optional
+`SPINNAKER_CRD_CACHE` holds `cert-manager.yaml` (released CRDs) and `traefik.yaml`
+(ServersTransport CRD); the test module records their exact revisions/checksums.
+It enables strict custom-resource validation without network downloads. Missing
+native executables, schema libraries or optional caches produce explicit skips.
+
+An optional `SPINNAKER_UPSTREAM_CACHE=/absolute/reviewed/spinnaker` checkout must
+match the central pinned revision and unmodified `spinnaker-kustomize/` files.
+It enables provenance correspondence and upstream-demo rejection checks; native
+installation tests do not require that cache. Synthetic overlay fixtures only
+exercise the advanced custom-overlay admission path. No tests fetch upstream source.
+These checks never apply to a cluster and do not establish live SSO, storage,
+failover or restore acceptance.
 The tests use PyYAML's LibYAML loader, included in standard PyYAML wheels, to parse
 the official Harbor TLS template's trailing-tab YAML.
 

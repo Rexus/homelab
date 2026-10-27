@@ -14,6 +14,7 @@ Stages do not replace Terraform lifecycle boundaries or Ansible roles.
 | Find and change Terraform or Ansible | [Code layout](code-layout.md) |
 | Generate, verify or refresh a collection | [Generated repositories](generated-repositories.md) |
 | Run offline and native implementation checks | [Repository testing](testing.md) |
+| Check staged code, history and publishable artifacts | [Secret scanning](secret-scanning.md) |
 | Maintain selected designs and local runbooks | [Project documentation](project-documentation.md) |
 | Edit and verify architecture or deployment diagrams | [Diagram conventions](diagrams.md) |
 | Review preserved design alternatives | [Design coverage](design-coverage.md) |

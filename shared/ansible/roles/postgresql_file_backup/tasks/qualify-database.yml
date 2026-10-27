@@ -1,0 +1,39 @@
+---
+- name: Read the separately selected live database storage class
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ postgresql_file_backup_kubeconfig }}"
+    context: "{{ postgresql_file_backup_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+    name: "{{ postgresql_file_backup_database.storage_class }}"
+  register: postgresql_file_backup_database_class
+
+- name: Require the commissioned Proxmox or Ceph RBD provisioner
+  ansible.builtin.assert:
+    that:
+      - postgresql_file_backup_database_class.resources | length == 1
+      - >-
+        postgresql_file_backup_database_class.resources[0].provisioner == 'csi.proxmox.sinextra.dev' or
+        postgresql_file_backup_database_class.resources[0].provisioner is match('^([a-z0-9-]+\.)?rbd\.csi\.ceph\.com$')
+    fail_msg: Live database storage must use the commissioned Proxmox/Ceph block CSI class, never the NAS backup class.
+
+- name: Read any existing database before choosing file mode
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ postgresql_file_backup_kubeconfig }}"
+    context: "{{ postgresql_file_backup_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: "{{ postgresql_file_backup_database.namespace }}"
+    name: "{{ postgresql_file_backup_database.cluster }}"
+  register: postgresql_file_backup_existing_database
+
+- name: Reject implicit database storage or object archive migration
+  ansible.builtin.assert:
+    that:
+      - item.spec.storage.storageClass == postgresql_file_backup_database.storage_class
+      - item.spec.get('plugins', []) | selectattr('isWALArchiver', 'defined') | selectattr('isWALArchiver') | list | length == 0
+      - not item.spec.get('backup', {}).get('barmanObjectStore')
+    fail_msg: Existing database storage or WAL mode differs; retain object mode and plan migration separately.
+  loop: "{{ postgresql_file_backup_existing_database.resources }}"

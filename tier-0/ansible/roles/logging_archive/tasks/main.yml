@@ -12,6 +12,8 @@
       - logging_archive_watchdog_url is match('^https://[A-Za-z0-9./_?=&:%-]+$')
       - logging_archive_data is match('^/[A-Za-z0-9_/-]+$')
       - logging_archive_view_root is match('^/srv/[A-Za-z0-9_-]+$')
+      - logging_archive_projection_root is match('^/srv/[A-Za-z0-9_-]+$')
+      - logging_archive_projection_root != logging_archive_view_root
       - "'..' not in logging_archive_data.split('/')"
       - logging_archive_interval | int >= 10
       - logging_archive_max_bytes | int >= 65536
@@ -29,7 +31,7 @@
 - name: Validate fixed application reader group names
   ansible.builtin.assert:
     that: item is match('^[a-z][a-z0-9_-]{0,62}$')
-  loop: "{{ logging_archive_views.values() | list | unique }}"
+  loop: "{{ (logging_archive_views.values() | list + (logging_archive_projections.values() | map(attribute='group') | list)) | unique }}"
 
 - name: Install the restricted archive-transfer credential
   ansible.builtin.copy:
@@ -64,17 +66,18 @@
     state: directory
     owner: root
     group: root
-    mode: "{{ '0711' if item == logging_archive_view_root else '0700' }}"
+    mode: "{{ '0711' if item in [logging_archive_view_root, logging_archive_projection_root] else '0700' }}"
   loop:
     - /usr/local/lib/security-logging
     - /var/lib/security-logging
     - "{{ logging_archive_view_root }}"
+    - "{{ logging_archive_projection_root }}"
 
 - name: Create explicit application-reader groups without enrolling users
   ansible.builtin.group:
     name: "{{ item }}"
     system: true
-  loop: "{{ logging_archive_views.values() | list | unique }}"
+  loop: "{{ (logging_archive_views.values() | list + (logging_archive_projections.values() | map(attribute='group') | list)) | unique }}"
 
 - name: Install the portable checkpoint writer and offline verifier
   ansible.builtin.copy:
@@ -83,7 +86,7 @@
     owner: root
     group: root
     mode: "0755"
-  loop: [logging_checkpoint.py, logging_io.py, logging_health.py]
+  loop: [logging_checkpoint.py, logging_io.py, logging_health.py, logging_projection.py]
 
 - name: Install the root-owned archive contract
   ansible.builtin.template:

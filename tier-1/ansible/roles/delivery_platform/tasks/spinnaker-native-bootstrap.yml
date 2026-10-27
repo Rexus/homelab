@@ -1,0 +1,70 @@
+---
+- name: Inspect an existing root credential before explicit bootstrap ownership
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    name: spinnaker-mysql-root
+  register: spinnaker_native_existing_root
+  when: delivery_platform_manage_secrets | bool
+  no_log: true
+
+- name: Prevent lost bootstrap caches from overwriting a persistent database's root credential
+  ansible.builtin.assert:
+    that:
+      - >-
+        spinnaker_native_existing_root.resources | length == 0 or
+        spinnaker_native_existing_root.resources[0].data.password | b64decode ==
+        delivery_platform_checked_secrets[delivery_platform_spinnaker_namespace ~ '/spinnaker-mysql-root'].password
+    fail_msg: Restore the original bootstrap cache or coordinate database root rotation with its credential owner.
+  when: delivery_platform_manage_secrets | bool
+  no_log: true
+
+- name: Create only the selected application and destination namespaces
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition: "{{ spinnaker_native_namespaces }}"
+
+- name: Bootstrap explicitly owned stable native credentials
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata: {namespace: "{{ delivery_platform_spinnaker_namespace }}", name: "{{ item.name }}"}
+      type: Opaque
+      data: "{{ dict(secret.keys() | zip(secret.values() | map('b64encode'))) }}"
+  vars:
+    secret: "{{ delivery_platform_checked_secrets[delivery_platform_spinnaker_namespace ~ '/' ~ item.name] }}"
+  loop: "{{ delivery_platform_spinnaker_spec.required_secrets }}"
+  when: delivery_platform_manage_secrets | bool
+  no_log: true
+
+- name: Maintain public ingress trust and a hashed Redis ACL without exposing passwords in manifests
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata: {namespace: "{{ delivery_platform_spinnaker_namespace }}", name: "{{ item.name }}"}
+      type: Opaque
+      data: "{{ item.data }}"
+  loop:
+    - name: spinnaker-ingress-ca
+      data: {ca.crt: "{{ delivery_platform_spinnaker_ca_pem | b64encode }}"}
+    - name: spinnaker-redis-acl
+      data:
+        users.acl: >-
+          {{ ('user default on #' ~ (delivery_platform_checked_secrets[delivery_platform_spinnaker_namespace ~
+             '/spinnaker-redis-auth'].password | hash('sha256')) ~
+             ' ~* &* +@all -config -acl -shutdown -module -debug -replicaof -slaveof -migrate -flushall -flushdb\n') | b64encode }}
+  no_log: true

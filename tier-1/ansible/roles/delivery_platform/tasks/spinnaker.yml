@@ -1,126 +1,14 @@
 ---
-- name: Require a real tier-owned Kustomize overlay
+- name: Require an explicit supported native or custom-overlay path
   ansible.builtin.assert:
     that:
-      - delivery_platform_spinnaker_overlay | length > 0
-      - (delivery_platform_spinnaker_overlay | realpath).startswith((delivery_platform_repository_root | realpath) ~ '/')
-    fail_msg: Prepare a reviewed local overlay inside the owning Tier 1 repository before selecting Spinnaker.
+      - delivery_platform_spinnaker_mode in ['native', 'overlay']
+      - delivery_platform_spinnaker_mode != 'native' or delivery_platform_spinnaker_overlay | length == 0
 
-- name: Build the native overlay without accessing Kubernetes
-  ansible.builtin.set_fact:
-    delivery_platform_spinnaker_render: >-
-      {{ lookup('kubernetes.core.kustomize', dir=delivery_platform_spinnaker_overlay) }}
-  no_log: true
+- name: Render the supplied native Spinnaker reference
+  ansible.builtin.include_tasks: spinnaker-native.yml
+  when: delivery_platform_spinnaker_mode == 'native'
 
-- name: Resolve the actual rendered resources and credential contract
-  ansible.builtin.set_fact:
-    delivery_platform_spinnaker_documents: >-
-      {{ delivery_platform_spinnaker_render | from_yaml_all | select('mapping') | list }}
-    delivery_platform_spinnaker_spec:
-      namespace: "{{ delivery_platform_spinnaker_namespace }}"
-      required_secrets: >-
-        {{ [
-          {'name': 'spinnaker-tls', 'keys': ['tls.crt', 'tls.key'], 'type': 'kubernetes.io/tls'},
-          {'name': 'spinnaker-runtime', 'keys': ['spinnaker-local.yml', 'gate-local.yml', 'fiat-local.yml',
-            'clouddriver-local.yml', 'front50-local.yml', 'orca-local.yml', 'echo-local.yml']}
-        ] + delivery_platform_spinnaker_required_secrets }}
-  no_log: true
-
-- name: Reject missing services or an unreviewed apply
-  ansible.builtin.assert:
-    that:
-      - delivery_platform_spinnaker_documents | length > 0
-      - >-
-        delivery_platform_spinnaker_deployments | difference(delivery_platform_spinnaker_documents
-        | selectattr('kind', 'equalto', 'Deployment') | map(attribute='metadata.name') | list) | length == 0
-      - delivery_platform_action != 'apply' or delivery_platform_spinnaker_review_sha256 is match('^[a-f0-9]{64}$')
-      - >-
-        delivery_platform_action != 'apply' or
-        delivery_platform_spinnaker_render | hash('sha256') == delivery_platform_spinnaker_review_sha256
-    fail_msg: Supply the complete native service set and review the SHA256 of this exact Kustomize output before apply.
-
-- name: Reject cluster authority, embedded secrets and resources outside the selected namespace
-  ansible.builtin.assert:
-    that:
-      - >-
-        item.kind in ['Namespace', 'ConfigMap', 'ServiceAccount', 'Role', 'RoleBinding', 'Service',
-        'Ingress', 'NetworkPolicy', 'PersistentVolumeClaim', 'Deployment', 'StatefulSet',
-        'PodDisruptionBudget', 'Job', 'HorizontalPodAutoscaler']
-      - >-
-        (item.kind == 'Namespace' and item.metadata.name == delivery_platform_spinnaker_namespace) or
-        (item.kind != 'Namespace' and item.metadata.namespace | default('') == delivery_platform_spinnaker_namespace)
-      - item.kind != 'RoleBinding' or item.roleRef.kind == 'Role'
-    fail_msg: Spinnaker resources must be namespaced; use scoped Roles and separately owned Secrets.
-  loop: "{{ delivery_platform_spinnaker_documents }}"
-  loop_control:
-    label: "{{ item.kind }}/{{ item.metadata.name }}"
-
-- name: Select actual native workloads
-  ansible.builtin.set_fact:
-    delivery_platform_spinnaker_workloads: >-
-      {{ delivery_platform_spinnaker_documents | selectattr('kind', 'in', ['Deployment', 'StatefulSet', 'Job']) | list }}
-
-- name: Require application configuration mounts and unprivileged pods
-  ansible.builtin.assert:
-    that:
-      - not item.spec.template.spec.get('hostNetwork', false) | bool
-      - not item.spec.template.spec.get('hostPID', false) | bool
-      - not item.spec.template.spec.get('hostIPC', false) | bool
-      - item.spec.template.spec.get('volumes', []) | selectattr('hostPath', 'defined') | list | length == 0
-      - item.spec.template.spec.get('automountServiceAccountToken', true) == false
-      - item.kind == 'Job' or item.spec.replicas | default(1) | int > 0
-  loop: "{{ delivery_platform_spinnaker_workloads }}"
-  loop_control:
-    label: "{{ item.metadata.name }}"
-
-- name: Require native services to mount their protected runtime configuration
-  ansible.builtin.assert:
-    that:
-      - mounts | length > 0
-      - "'spinnaker-runtime' in (volumes | to_json)"
-    fail_msg: Each service must actually mount spinnaker-runtime at its native configuration directory.
-  vars:
-    mounts: >-
-      {{ item.spec.template.spec.containers[0].get('volumeMounts', [])
-         | selectattr('mountPath', 'match', '^/opt/spinnaker/config/?$') | list }}
-    volumes: >-
-      {{ item.spec.template.spec.get('volumes', [])
-         | selectattr('name', 'in', mounts | map(attribute='name') | list) | list }}
-  loop: "{{ delivery_platform_spinnaker_workloads }}"
-  loop_control:
-    label: "{{ item.metadata.name }}"
-  when: item.metadata.name in delivery_platform_spinnaker_deployments
-
-- name: Require pinned unprivileged container images including init containers
-  ansible.builtin.include_tasks: spinnaker-containers.yml
-  loop: "{{ delivery_platform_spinnaker_workloads }}"
-  loop_control:
-    loop_var: spinnaker_workload
-    label: "{{ spinnaker_workload.metadata.name }}"
-
-- name: Require HTTPS ingress for the selected hostname
-  ansible.builtin.assert:
-    that:
-      - ingresses | length > 0
-      - delivery_platform_spinnaker_host in (ingresses | map(attribute='spec.rules') | flatten | map(attribute='host') | list)
-      - "'spinnaker-tls' in (ingresses | map(attribute='spec.tls') | flatten | map(attribute='secretName') | list)"
-  vars:
-    ingresses: "{{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'Ingress') | list }}"
-
-- name: Prepare private native-manifest output
-  ansible.builtin.file:
-    path: "{{ delivery_platform_output }}"
-    state: directory
-    mode: "0700"
-
-- name: Store the exact Spinnaker render and its review checksum
-  ansible.builtin.copy:
-    content: "{{ item.content }}"
-    dest: "{{ delivery_platform_output }}/{{ item.name }}"
-    mode: "0600"
-  loop:
-    - name: spinnaker-manifests.yml
-      content: "{{ delivery_platform_spinnaker_render }}"
-    - name: spinnaker.sha256
-      content: "{{ delivery_platform_spinnaker_render | hash('sha256') }}\n"
-  no_log: true
+- name: Render a separately maintained custom Spinnaker integration
+  ansible.builtin.include_tasks: spinnaker-overlay.yml
+  when: delivery_platform_spinnaker_mode == 'overlay'

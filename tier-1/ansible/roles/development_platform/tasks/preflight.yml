@@ -1,4 +1,11 @@
 ---
+- name: Require explicit pinned runner-image exceptions without wildcards
+  ansible.builtin.assert:
+    that:
+      - item is match('^[A-Za-z0-9./_-]+(:v?[0-9]+[.][0-9]+[.][0-9]+|@sha256:[a-f0-9]{64})$')
+    fail_msg: Additional job images must be individually reviewed, versioned references or digests.
+  loop: "{{ development_platform_runner_additional_allowed_images }}"
+
 - name: Reject incomplete or unsafe platform settings
   ansible.builtin.assert:
     that:
@@ -18,6 +25,8 @@
   ansible.builtin.assert:
     that:
       - development_platform_gitlab_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - development_platform_gitlab_backup_enabled is boolean
+      - development_platform_gitlab_backup_schedule.split() | length == 5
       - development_platform_ingress_class | length > 0
       - development_platform_database_host | length > 0
       - development_platform_redis_host | length > 0

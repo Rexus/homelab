@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: {{ postgresql_file_backup_target.cluster }}-files-stage, namespace: {{ postgresql_file_backup_target.namespace }}}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ postgresql_file_backup_recovery.storage_class | to_json }}
+  resources: {requests: {storage: {{ postgresql_file_backup_recovery.size }}}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: {{ postgresql_file_backup_target.cluster }}-files-restore, namespace: {{ postgresql_file_backup_target.namespace }}}
+data:
+  restore.sh: |
+{{ lookup('ansible.builtin.template', 'restore.sh.j2') | indent(4, true) }}
+  postgresql.conf: |
+{{ lookup('ansible.builtin.template', 'standalone.conf.j2') | indent(4, true) }}
+  pg_hba.conf: |
+    local all postgres peer
+    hostssl postgres streaming_replica all cert map=cnpg_streaming_replica
+    hostssl replication streaming_replica all cert map=cnpg_streaming_replica
+  pg_ident.conf: |
+    cnpg_streaming_replica {{ postgresql_file_backup_target.cluster }}-file-backup streaming_replica
+---
+apiVersion: v1
+kind: Service
+metadata: {name: {{ postgresql_file_backup_target.cluster }}-files-restore, namespace: {{ postgresql_file_backup_target.namespace }}}
+spec:
+  selector: {backup.homelab/restore: {{ postgresql_file_backup_target.cluster }}}
+  ports: [{name: postgres, port: 5432, targetPort: 5432}]
+---
+apiVersion: batch/v1
+kind: Job
+metadata: {name: {{ postgresql_file_backup_target.cluster }}-files-restore, namespace: {{ postgresql_file_backup_target.namespace }}}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 14400
+  template:
+    metadata:
+      labels: {backup.homelab/restore: {{ postgresql_file_backup_target.cluster }}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 26
+        runAsGroup: 26
+        fsGroup: 26
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: source
+          image: {{ postgresql_file_backup_target.image | to_json }}
+          command: [/bin/bash, /recovery/restore.sh]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {memory: 1Gi}}
+          readinessProbe:
+            exec:
+              command: [psql, -h, /tmp, -U, postgres, -d, postgres, -Atw, -c, SELECT 1]
+            periodSeconds: 5
+          volumeMounts:
+            - {name: repository, mountPath: /repository, readOnly: true}
+            - {name: stage, mountPath: /work}
+            - {name: recovery, mountPath: /recovery, readOnly: true}
+            - {name: server, mountPath: /server, readOnly: true}
+            - {name: client-ca, mountPath: /client-ca, readOnly: true}
+            - {name: temporary, mountPath: /tmp}
+      volumes:
+        - {name: repository, persistentVolumeClaim: {claimName: {{ postgresql_file_backup_target.claim }}, readOnly: true}}
+        - {name: stage, persistentVolumeClaim: {claimName: {{ postgresql_file_backup_target.cluster }}-files-stage}}
+        - {name: recovery, configMap: {name: {{ postgresql_file_backup_target.cluster }}-files-restore}}
+        - {name: server, secret: {secretName: {{ postgresql_file_backup_recovery.server_tls_secret }}, defaultMode: 0440}}
+        - {name: client-ca, secret: {secretName: {{ postgresql_file_backup_recovery.client_ca_secret }}}}
+        - {name: temporary, emptyDir: {}}

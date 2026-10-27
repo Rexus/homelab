@@ -116,6 +116,8 @@ including certificate access during issuer outage, before accepting Headlamp acc
 
 NetBox documents inventory. It never supplies the inventory needed to bootstrap
 its own platform. Test backups and restoration before other tiers depend on these services.
+Install [NetBox change-audit collection](procedures/netbox-audit.md) as part of this step;
+ordinary application logging does not preserve its complete change ledger.
 
 ## Step 3: Integrate access and recovery
 

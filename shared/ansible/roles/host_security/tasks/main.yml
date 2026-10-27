@@ -1,0 +1,11 @@
+---
+- name: Validate the selected host security contract before mutations
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Render the selected profile without configuring this machine
+  ansible.builtin.include_tasks: render.yml
+  when: host_security_action == 'render'
+
+- name: Apply the explicitly approved host security profile
+  ansible.builtin.include_tasks: apply.yml
+  when: host_security_action == 'apply'

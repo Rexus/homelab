@@ -40,12 +40,16 @@ Do not run both this recipe and a delivery controller as concurrent owners of th
 | --- | --- |
 | `observability_charts` | Exact native chart versions and HTTPS repositories; defaults are the reviewed pin set |
 | `observability_storage_class` | Existing retained RWO block storage with qualified failover and backups |
+| Live Grafana database | Proxmox/Ceph-backed block volumes; separate from the NAS backup PVC |
 | `observability_topology_key`, `observability_failure_domains` | Real physical-host mapping; three distinct domains, verified independently of VM names |
 | `observability_resources`, replica/size settings | Separate component budgets; surviving capacity must be tested |
 | `observability_search_bootstrap` | True only for the initial empty cluster; false after first green acceptance and for all restarts, scaling and recovery |
 | `observability_log_scopes` | Per-source name, application/projection kind, listener, NodePort and explicit reader backend roles |
 | `observability_telemetry_cidrs`, `observability_egress` | Exact source networks and required database/API/kubelet destinations |
-| `observability_backup_destination`, `observability_backup_endpoint` | Dedicated S3-compatible backup prefix and HTTPS endpoint; accepted storage custody is a prerequisite |
+| Database backup method | Scheduled verified full copies to a separate NAS file PVC, or the existing object/WAL option; [storage prerequisites](../foundation/procedures/object-storage.md) install no gateway |
+| `observability_backup_mode`, `observability_backup_files_phase` | Fresh examples use `files` / `prepare`; [commission the NAS destination](../../administration/backups/postgresql.md), then select `backup` to enable copies and continue installation |
+| `observability_database_storage_class` | Explicit live Proxmox/Ceph-backed block class, independent of the NAS backup claim |
+| `observability_backup_destination`, `observability_backup_endpoint` | Object/WAL option only: Grafana database backup prefix and HTTPS S3-compatible endpoint, with scoped tenant keys and independent custody |
 | `observability_manage_secrets` | False by default; an existing secret owner supplies native Kubernetes Secrets |
 | `observability_secrets` | Optional explicitly managed `namespace/name` to `stringData`, passed privately |
 | `observability_netdata_child_key`, `observability_netdata_peer_key` | Distinct private UUIDs; Helm stores streaming configuration as Secrets |
@@ -107,7 +111,7 @@ cluster tunnel, never a direct public UI. Accept that access path separately. [1
 | `observability` | `grafana-tls`, `grafana-admin` | TLS triplet including database CA; private local administrator `username`/`password` |
 | `observability` | `grafana-database` | `username: grafana`, `password`, common `secret-key`; restricted native PostgreSQL identity |
 | `observability` | `grafana-db-server-tls`, `grafana-db-ca` | Server TLS key/certificate; separate CA bundle with `ca.crt`; SAN `grafana-db-rw` and its namespace DNS |
-| `observability` | `grafana-backup-ca`, `grafana-backup-auth` | HTTPS backup CA `ca.crt`; restricted `access-key`/`secret-key` for the dedicated backup prefix |
+| `observability` | `grafana-backup-ca`, `grafana-backup-auth` | Object/WAL option only: HTTPS CA `ca.crt` and restricted `access-key`/`secret-key` |
 | `netdata-1` | `netdata-1-tls` | TLS triplet plus `kubelet-ca.crt`; Netdata service DNS and approved kubelet trust |
 | `netdata-2` | `netdata-2-tls` | TLS triplet; independent parent service identity |
 
@@ -156,10 +160,10 @@ or ingress policy; native chart probes use its pod-local HTTP API. Ingestion its
 
 ## Approved Search Projections
 
-**Explicit prerequisite:** the Tier 0 custodian supplies the approved read-only export
-adapter. The existing [application views](../../reference/logging-pipeline.md#storage-and-access)
-are a possible input; this recipe does not install a raw-archive reader or an export daemon.
-Until that adapter is accepted, projection search is configured but receives no evidence copies.
+Tier 0 supplies the [approved-copy publisher and native Collector exporter](protected-log-search.md).
+The Observability recipe does not install them or acquire original-archive access.
+Until the separate Tier 0 export recipe is installed and accepted, projection search
+is configured but receives no evidence copies.
 
 The adapter reads only the approved view through its separately authorized export identity,
 redacts before transfer and sends OTLP logs using its projection client certificate to the
@@ -183,13 +187,18 @@ data authorization boundary. Tier 1 index deletion/rebuild affects only derived 
 | Search | Three manager/data members, hard physical-domain anti-affinity, one replica shard in each scoped template |
 | Data Prepper | Replicated stateless source-to-index pipelines, bounded in-memory buffers; no stateful service-map aggregation |
 | Netdata | Two namespaces, parent DB/alarm PVCs, child failover and parent synchronization; one approved scrape owner |
-| Grafana | Native `grafana-db` CNPG Cluster has three instances, TLS, separate PVCs and scheduled encrypted object-store backups; UI pod disk is disposable |
+| Grafana | Native `grafana-db` CNPG Cluster has three instances, TLS and Proxmox/Ceph-backed live PVCs; backup copies go to the selected independent destination; UI pod disk is disposable |
 
-The database bootstrap identity must be `grafana`. Stage 4 must already supply CNPG and
-the Barman Cloud plugin. The native `ObjectStore`, Cluster plugin reference and
-`ScheduledBackup` use the same supported backup pattern as other control applications. [8]
-The role checks both established CRDs, waits for database readiness and a completed backup. A completed backup
-is not a tested restore. Retain the database/password/encryption secrets independently.
+The database bootstrap identity must be `grafana`; Stage 4 supplies CNPG. Scheduled
+verified full file backups write to a distinct NAS backup PVC, not the live database
+volume. They recover only to the latest completed set, with no later PITR promise.
+The object/WAL option additionally uses Barman Cloud, `ObjectStore` and
+`ScheduledBackup` resources for continuous transaction archiving. [8]
+The role gates the selected resources, database readiness and a completed backup.
+A completed backup is not a tested restore. Retain database/password/encryption
+secrets independently and qualify the actual recovery point and elapsed restore time.
+Use [NAS-file recovery](../../administration/recovery/cnpg-files.md) for scheduled file
+sets; the Barman recovery procedure applies only to the object/WAL variant.
 
 The initial Grafana/vmauth metrics view is for platform operators. It is one approved
 dataset, not per-application metric isolation. Application readers use their scoped

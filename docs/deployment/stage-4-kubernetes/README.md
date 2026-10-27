@@ -10,7 +10,8 @@ API endpoint outside this cluster. Retain bootstrap tools, images and credential
 without depending on FreeIPA, Keycloak or later Tier 1 delivery services.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Automation:** tier-local Terraform provisions nodes and bootstraps Kubernetes.
-The API endpoint must already exist. Tier-local Ansible inputs select reusable
+Prepare the [private endpoint](procedures/api-endpoint.md) before cluster bootstrap;
+a qualified existing endpoint is also valid. Tier-local Ansible inputs select reusable
 platform and protected cluster-source collection roles in Shared.
 See [coverage](../../reference/implementation-support.md#stage-coverage).
 **Design:** [Kubernetes runtime](../../architecture/compute/kubernetes.md).
@@ -100,8 +101,7 @@ flowchart TB
         TLS["cert-manager"]
         Ingress["traefik / private NodePorts"]
         Database["cloudnative-pg / operator"]
-        Backup["plugin-barman-cloud / backups"]
-        TLS ~~~ Ingress ~~~ Database ~~~ Backup
+        TLS ~~~ Ingress ~~~ Database
       end
       subgraph Reconcile["Reconciliation"]
         direction TB
@@ -112,7 +112,7 @@ flowchart TB
       subgraph NodeServices["Node services"]
         direction TB
         Network["cilium / CNI"]
-        Storage["csi-driver-nfs / CSI"]
+        Storage["Existing block CSI<br/>Qualified Proxmox/Ceph class"]
         Network ~~~ Storage
       end
       Apps ~~~ Reconcile ~~~ NodeServices
@@ -120,10 +120,10 @@ flowchart TB
     subgraph Existing["Independent existing prerequisites"]
       direction LR
       Git["Approved bootstrap Git source"]
-      NAS[("Qualified NAS export")]
-      Git ~~~ NAS
+      PVE[("Existing Proxmox/Ceph<br/>Block storage")]
+      Git ~~~ PVE
     end
-    Cluster -->|Read-only Git / NFS storage interfaces| Existing
+    Cluster -->|Read-only Git / block volumes| Existing
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -133,24 +133,26 @@ flowchart TB
   class T0,Flux,Network control
   class Cluster runtime
   class Apps,Reconcile,NodeServices,Existing boundary
-  class Source,Git,NAS data
+  class Source,Git,PVE data
 ```
 
 **IaC:** Tier 0's [platform playbook](../../../tier-0/ansible/playbooks/deployment/cluster-platform.yml)
 owns the selected pinned releases; reusable execution roles install them
 on the existing cluster. Follow the [basic platform procedure](procedures/basic-platform.md)
 to configure inputs, render privately and apply with readiness gates.
-Scope: the seven chart releases in the Tier 0 example and their Flux source/decryption
-objects. Existing Git/NAS interfaces are prerequisites; application databases are
-created later by their owning recipes, not implied by the operator box.
+Scope: the five chart releases in the Tier 0 example, their Flux source/decryption
+objects and the accepted existing block CSI prerequisite. Application databases
+are created later by their owning recipes, not implied by the operator box.
+NFS CSI for later backup/shared-file claims and Barman Cloud for object/WAL
+backups are separate selections, not installed by this pictured main path.
 
 | Capability | Supplied installation | Explicit prerequisite or remaining acceptance |
 | --- | --- | --- |
 | Networking | Talos-compatible Cilium | CNI/proxy preparation before bootstrap; cross-node traffic and DNS tests |
-| Persistence | NFS CSI and a retained, non-default class, or accepted existing CSI | Existing NAS export and node access; persistence and restore tests |
+| Persistence | Accepted existing Proxmox/Ceph-backed block CSI; optional separate NFS CSI for file claims | Qualified live disk and backup destinations; persistence and restore tests |
 | Certificates | cert-manager, optional ClusterIssuer and issuance probe | Qualified existing issuer, trust and enrollment credentials |
 | Ingress | Traefik with explicit NodePorts and ingress class | Private DNS, routing/firewall and end-to-end TLS tests |
-| PostgreSQL | CloudNativePG operator, Barman Cloud plugin and optional new database | Qualified CSI/image; application connection, backup and restore tests |
+| PostgreSQL | CloudNativePG operator and optional probe database; Barman Cloud only for the object/WAL option | Qualified block CSI/image; application connection, selected backup and restore tests |
 | Reconciliation/secrets | Flux controllers, pinned Git source, SOPS age decryption | Independent source/keys and encrypted acceptance canary |
 
 The installer applies networking, storage, certificates, ingress, database and Flux

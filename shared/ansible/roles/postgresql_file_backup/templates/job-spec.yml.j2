@@ -1,0 +1,50 @@
+backoffLimit: 0
+activeDeadlineSeconds: 3600
+template:
+  metadata:
+    labels: {app.kubernetes.io/name: postgresql-file-backup, backup.homelab/cluster: {{ postgresql_file_backup_target.cluster }}}
+  spec:
+    restartPolicy: Never
+    automountServiceAccountToken: false
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 26
+      runAsGroup: 26
+      fsGroup: 26
+      fsGroupChangePolicy: OnRootMismatch
+      seccompProfile: {type: RuntimeDefault}
+    containers:
+      - name: backup
+        image: {{ postgresql_file_backup_target.image | to_json }}
+        command: [/bin/bash, /scripts/backup.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: [ALL]}
+        resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {memory: 512Mi}}
+        env:
+          - {name: PGHOST, value: {{ (postgresql_file_backup_target.cluster ~ '-rw') | to_json }}}
+          - {name: PGPORT, value: '5432'}
+          - {name: PGUSER, value: streaming_replica}
+          - {name: PGDATABASE, value: postgres}
+          - {name: PGSSLMODE, value: verify-full}
+          - {name: PGSSLROOTCERT, value: /tls/ca.crt}
+          - {name: PGSSLCERT, value: /tls/tls.crt}
+          - {name: PGSSLKEY, value: /tls/tls.key}
+          - {name: PGCONNECT_TIMEOUT, value: '15'}
+          - {name: SOURCE_ID, value: {{ postgresql_file_backup_target.source_id | to_json }}}
+          - {name: SYSTEM_IDENTIFIER, value: {{ postgresql_file_backup_target.system_identifier | string | to_json }}}
+          - {name: DESTINATION_MARKER, value: {{ postgresql_file_backup_target.marker | to_json }}}
+          - {name: POSTGRES_IMAGE, value: {{ postgresql_file_backup_target.image | to_json }}}
+          - name: BACKUP_RUN
+            valueFrom: {fieldRef: {fieldPath: metadata.uid}}
+        volumeMounts:
+          - {name: repository, mountPath: /repository}
+          - {name: tls, mountPath: /tls, readOnly: true}
+          - {name: scripts, mountPath: /scripts, readOnly: true}
+          - {name: temporary, mountPath: /tmp}
+    volumes:
+      - {name: repository, persistentVolumeClaim: {claimName: {{ postgresql_file_backup_target.claim | to_json }}}}
+      - {name: tls, secret: {secretName: {{ postgresql_file_backup_target.tls_secret | to_json }}, defaultMode: 0440}}
+      - {name: scripts, configMap: {name: {{ postgresql_file_backup_target.cluster }}-files}}
+      - {name: temporary, emptyDir: {}}

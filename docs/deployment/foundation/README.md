@@ -57,6 +57,12 @@ network; the [UniFi starting path](procedures/unifi-zones.md#bring-up-the-networ
 includes controller adoption and VLAN/port preparation. Install
 [Proxmox](procedures/proxmox.md), then configure [host networking](procedures/host-network.md)
 and storage. Verify management access, DNS, time and permitted guest networks.
+Select existing [block, file and object interfaces](../../architecture/compute/runtime.md#storage-interfaces)
+deliberately. Use direct NAS file storage where supported; qualify an existing
+object endpoint only for consumers that require it. The
+[storage prerequisites](procedures/object-storage.md) add no gateway service.
+Object storage must be available before the first consuming database or application,
+not before unrelated early logging or trust deployments.
 
 The main path uses bridges and VLANs. **Before important guests**, select
 [1b: cluster HA](step-1b-cluster-ha.md) or [1c: SDN guest networks](step-1c-sdn.md)
@@ -98,6 +104,10 @@ Publication code and inputs are in Tier 0's
 [templates/proxmox.yml.example](../../../tier-0/templates/proxmox.yml.example).
 Approved consumer references are in Shared's
 [templates/proxmox-catalog.tfvars](../../../shared/templates/proxmox-catalog.tfvars).
+
+Qualify the [Linux guest security profile](procedures/host-security.md) on the disposable clone.
+Each later Linux deployment applies its tier-owned operator/service allowlist before acceptance;
+Talos and Proxmox retain their own native security configuration. The generic baseline alone is not hardening.
 
 Boot disposable clones and verify disks, network and access before creating service
 VMs. Back up and restore a disposable clone, including every required data disk,

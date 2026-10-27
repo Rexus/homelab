@@ -23,6 +23,7 @@ EXAMPLE = ROOT / "tier-0/ansible/group_vars/control_applications.yml.example"
 def fixture():
     values = yaml.safe_load(EXAMPLE.read_text())
     values.update({
+        "control_applications_backup_mode": "object",
         "control_applications_components": ["keycloak", "vault", "netbox", "headlamp"],
         "control_applications_hosts": {
             product: f"{product}.lab.test" for product in ("keycloak", "vault", "netbox", "headlamp")

@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow", "Action": ["s3:GetBucketLocation"],
+      "Resource": "arn:aws:s3:::{{ delivery_platform_spinnaker_backup_s3_bucket }}"
+    },
+    {
+      "Effect": "Allow", "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::{{ delivery_platform_spinnaker_backup_s3_bucket }}",
+      "Condition": {"StringLike": {"s3:prefix": ["{{ delivery_platform_spinnaker_backup_s3_prefix }}/*"]}}
+    },
+    {
+      "Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject", "s3:AbortMultipartUpload"],
+      "Resource": "arn:aws:s3:::{{ delivery_platform_spinnaker_backup_s3_bucket }}/{{ delivery_platform_spinnaker_backup_s3_prefix }}/*"
+    },
+    {
+      "Effect": "Allow", "Action": ["s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::{{ delivery_platform_spinnaker_backup_s3_bucket }}/{{ delivery_platform_spinnaker_backup_s3_prefix }}/locks/*"
+    }
+  ]
+}

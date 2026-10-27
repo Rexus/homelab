@@ -1,0 +1,28 @@
+# Copy to: ansible/group_vars/cluster_endpoint.yml
+# Guide: docs/deployment/stage-4-kubernetes/procedures/api-endpoint.md
+# The cluster-endpoint Terraform root provisions these Enterprise Linux gateways.
+platform_host_ips:
+  api-gw-1: 10.10.10.60
+  api-gw-2: 10.10.10.61
+
+# Set the real interface carrying the shared subnet; host vars may override it.
+cluster_endpoint_interface: eth0
+cluster_endpoint_fault_domains:
+  api-gw-1: pve01
+  api-gw-2: pve02
+# Confirm placement, storage/power dependencies and Proxmox HA anti-affinity.
+cluster_endpoint_fault_domains_validated: false
+# Confirm client/backend ACLs, return routes, SELinux and unicast VRRP protocol 112.
+cluster_endpoint_network_gates_validated: false
+
+# Endpoint inputs are approved address snapshots, not remote-state or cross-tier inventory imports.
+# Start with Tier 0 only; add Tier 1/2 only with separate VIPs, VRIDs, ACLs and backend maps.
+cluster_endpoint_endpoints:
+  - name: control
+    tier: 0
+    vip_cidr: 10.10.10.62/24
+    virtual_router_id: 40
+    control_planes:
+      k8ctl-1: 10.10.13.10
+      k8ctl-2: 10.10.13.11
+      k8ctl-3: 10.10.13.12

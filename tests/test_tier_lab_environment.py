@@ -9,6 +9,7 @@ import unittest
 import yaml
 
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
+from native_chart_test_support import native_chart_fixture
 
 
 class LabEnvironment(TierRepositoryTestCase):
@@ -16,6 +17,8 @@ class LabEnvironment(TierRepositoryTestCase):
                          and os.getenv('HOMELAB_NATIVE_CHART_TESTS') == '1', 'Requires native Helm chart tests')
     def test_native_scoped_collector_has_persistent_queues_and_authenticated_routes(self):
         self.generate()
+        chart_inputs, chart_environment = self.enterContext(native_chart_fixture(
+            Path(self.temp.name) / 'charts', 'kube_app'))
         for repo in (UPSTREAM / 'tier-2', self.root / 'verify-tier-2'):
             output = Path(self.temp.name) / ('telemetry-' + repo.name)
             values = {
@@ -29,12 +32,13 @@ class LabEnvironment(TierRepositoryTestCase):
                 'workload_telemetry_gateway_ports': [30317, 30400],
                 'workload_telemetry_output': str(output),
             }
+            values.update(chart_inputs)
             inputs = Path(self.temp.name) / 'telemetry-inputs.yml'
             inputs.write_text(yaml.safe_dump(values))
             result = subprocess.run(
                 ['ansible-playbook', '-i', 'localhost,', 'ansible/playbooks/deployment/workload-telemetry.yml',
                  '-e', f'@{inputs}'], cwd=repo, capture_output=True, text=True,
-                env=dict(os.environ, ANSIBLE_CONFIG=str(repo / 'ansible/ansible.cfg')))
+                env=dict(os.environ, ANSIBLE_CONFIG=str(repo / 'ansible/ansible.cfg'), **chart_environment))
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             manifests = list(filter(None, yaml.safe_load_all((output / 'otel-agent-manifests.yml').read_text())))
             stateful = next(obj for obj in manifests if obj['kind'] == 'StatefulSet')

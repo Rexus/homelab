@@ -1,0 +1,4 @@
+---
+# Main-path GitLab dependencies; the development setup retains the standalone VM alternative.
+- name: "Development: native data services"
+  ansible.builtin.import_playbook: deployment/development-data.yml

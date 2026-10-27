@@ -1,6 +1,6 @@
 # Operator walkthrough checklist
 
-Rechecked 2026-10-26 against the current worktree and the handoff corrections below, from the
+Rechecked 2026-10-27 against the current worktree and the handoff corrections below, from the
 perspective of a software engineer with newly installed servers and UniFi switches.
 This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
@@ -35,9 +35,11 @@ explicitly trusts the dedicated GitLab project and its control/hosting authoriti
 The [stage coverage](../docs/reference/implementation-support.md#stage-coverage)
 is the authoritative installation/prerequisite map. Independent API endpoints,
 prepared storage, approved images, certificate custody, external GitLab data services
-and selected product integrations still require commissioning. Optional HSM,
-Spinnaker product overlays and tenant allocation are not silently supplied.
-Household/team paths, complete product restores and live qualification remain open.
+and selected product interfaces still require commissioning. The separate gateway,
+S3 and GitLab data-service setups supply those reference realizations; existing
+qualified services remain valid. Native Spinnaker and Argo CD are explicit alternatives.
+Optional HSM and tenant allocation are not silently supplied. Household/team,
+maintenance and product-recovery procedures exist; live qualification remains open.
 No live acceptance box is checked by this consistency review.
 
 ## Corrected reading and execution gaps
@@ -125,7 +127,8 @@ No live acceptance box is checked by this consistency review.
   filesystem views. Actual NAS grants/snapshots/audit and physical independence need live proof.
   [Locked retention](../docs/deployment/stage-2-logging/step-3d-retention-lock.md), replicated intake
   remain separate variants, not supplied by this NAS implementation. Tier 1 search is
-  independently installed; protected-log projections need a separately qualified exporter.
+  independently installed; approved projections and their scoped persistent exporter
+  have a separate Tier 0 recipe and require live access/replay qualification.
 
 ## Remaining implementation before an end-to-end installation
 
@@ -145,29 +148,22 @@ supplied. Their live proof is tracked in the separate
 - [x] **P1: Independent monitoring and Observability installers.** Tier 1 native product
   releases and Tier 0 scoped infrastructure polling/export are supplied. Their budgets,
   replication/read routing and source coverage are explicit, not inferred from pod count.
-- [ ] **P1: Remaining product integrations.** Qualify the protected-log projection exporter,
-  NetBox audited-change export, Vault snapshot transport and independent media/data backups.
-  Keep approved search copies separate from Tier 0 originals. See the focused
-  [platform verification list](platform-verification.md) before accepting these interfaces.
-- [ ] **P1: Bounded workload requests.** The Stage 9 direct trusted-CI runner/Vault/saved-plan
-  path is supplied, with GitLab/hosting administrators explicitly trusted at Tier 0.
-  Implement the separate data-only request dispatcher, allocation and authorization
-  contract before ordinary tenant self-service. General runner registration and branch
-  protection do not implement that boundary. Live trusted-CI acceptance is tracked separately.
-- [ ] **P1: Destructive-change protection.** Rehearse allocation collisions, state
-  ownership, complete-map overlays and accidentally removed definitions. Consider a focused
-  preflight for concurrent environments; current naming/state separation is not an allocation service.
-- [ ] **P1: Clean-room recovery.** Write and execute product-specific restores for
-  directory/CA data, original cluster secrets/state plus etcd, persistent application data,
-  secret-service data/keys and protected logs. Restore is not another fresh-cluster bootstrap.
-- [ ] **P1: Exposure acceptance.** Verify gateway, host and workload enforcement, actual
-  TLS/listeners, IPv4/IPv6, VPN and same-subnet isolation before opening any service externally.
-  A firewall design or Ansible baseline is not an attack-resistance certification.
-- [ ] **P1: Host security baseline.** Supply or qualify template/OS policy for SSH,
-  time synchronization, host firewall and audit services. The common baseline currently
-  manages proxies, timezone and IPv6 only; removed unused defaults enforced no controls.
-  Vault/source-control listeners still need approved host/gateway rules. Verify effective
-  controls before accepting hosts; documentation and a true-valued setting are not enforcement.
+- [x] **P1: Product integration mechanisms.** Tier 0 supplies approved-copy publication,
+  non-root mTLS export, GET-only NetBox audit capture and independent native Vault
+  snapshot/input/media transport. Search copies never acquire original-archive authority.
+  Exact native qualifications and release gates are tracked in [implementation readiness](v1-readiness.md).
+- [x] **P1: Recovery procedures.** Product-specific clean-target procedures cover original
+  inputs/state/etcd, Vault, databases/media, identity and shared products. They do not
+  equate a new bootstrap, replica count or successful backup with recovery acceptance.
+- [x] **P1: Host security implementation.** Separate guarded tier-local recipes call
+  Shared's native key-only SSH, chrony, firewalld and audit profile. Site allowlists,
+  effective controls, out-of-band access and product compatibility still require verification.
+
+Destructive-change drills, actual exposure enforcement and clean-room restores belong
+to [manual operational verification](operational-verification.md) and
+[platform acceptance](platform-verification.md). None is checked by supplying these mechanisms.
+The separate tenant request dispatcher/allocation/expiry/portal is deferred, not part of
+the selected v1 reference. The direct trusted-CI path is not an ordinary-user self-service boundary.
 
 ## Paths reviewed
 
@@ -183,9 +179,9 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Kubernetes | [Stage 4](../docs/deployment/stage-4-kubernetes/README.md) | Native node/platform/audit recipes; independent endpoint, storage, enrollment and live acceptance required |
 | Identity | [Stage 5](../docs/deployment/stage-5-identity/README.md) | Dedicated directory, Keycloak/LDAP and staged Kubernetes SSO; ceremony, accounts and live denial/recovery acceptance required |
 | Secrets | [Stage 6](../docs/deployment/stage-6-secrets/README.md) | Native cluster Vault/NetBox/Headlamp and independent monitoring; initialization and qualified recovery custody required |
-| Delivery | [Stage 7](../docs/deployment/stage-7-delivery/README.md) | Native platform/Harbor/Argo CD; explicit controller choice and complete reviewed Spinnaker overlay where selected |
+| Delivery | [Stage 7](../docs/deployment/stage-7-delivery/README.md) | Native platform/Harbor plus Argo CD or complete native Spinnaker; exact selected controller, targets and live acceptance remain explicit |
 | Observability | [Stage 8](../docs/deployment/stage-8-observability/README.md) | Native Kubernetes signal backends/UIs and independent Tier 0 polling; scoped projections and live availability/access tests remain required |
-| Development platform | [Stage 9](../docs/deployment/stage-9-development/README.md) | Native GitLab/runner charts, dedicated infrastructure runner, Vault JWT root and saved-plan handover supplied; external data commissioning and live acceptance required |
+| Development platform | [Stage 9](../docs/deployment/stage-9-development/README.md) | Native GitLab/runner charts and separate native data VMs, dedicated infrastructure runner, Vault JWT root and saved-plan handover; data/backup commissioning and live acceptance required |
 | Lab environments | [Stage 10](../docs/deployment/stage-10-lab-environments/README.md) | VM/cluster, bounded application/policy/RBAC, scoped telemetry and opt-in HTTPS; profiles are not an allocator; live tenant acceptance required |
 | Proxmox HA | [Foundation 1b](../docs/deployment/foundation/step-1b-cluster-ha.md) | Quorum/storage/fencing separate from VM creation; physical failure tests outstanding |
 | Guest SDN | [Foundation 1c](../docs/deployment/foundation/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
@@ -211,27 +207,25 @@ inspected. Every selected path still needs its own live acceptance evidence.
 - [ ] **P2: First useful private app.** Provide one small, complete service example from
   owner/allocation through deployment, authentication, TLS, scoped logs and restoration;
   avoid requiring every optional platform service merely to validate an application.
-- [ ] **P2: Household access.** Add a short outcome path for family, guest and IoT devices:
-  client networks, Wi-Fi/ports, permitted apps, optional discovery/printers and denied Control
-  access. Include local Internet/DHCP/DNS behavior during platform outages.
-- [ ] **P2: Small-team access.** Add onboarding/offboarding and a tested role matrix for
-  administrator, developer, employee and guest. Verify repository/app/log scopes and session,
-  token and device removal; a shared identity source does not implement application authorization.
+- [x] **P2: Household/team procedures.** [Access lifecycle](../docs/administration/access-lifecycle.md)
+  covers client/guest/IoT networks, outage behavior, role scopes and join/leave duties.
+  Actual per-product mappings, session/token withdrawal and denied access remain live checks;
+  no automatic cross-product role synchronizer is claimed.
 - [ ] **P2: Remote entry and publication.** Public HTTP-01, origin verification and renewal
   now have a concrete guide/recipes. A chosen VPN/admin-entry path, complete private-app path
   and live DNS/NAT/IPv6, expiry-alert and failover checks are still needed.
-- [ ] **P2: Upgrade and hardware replacement.** Supply a routine calendar/runbook with
-  release compatibility, serial health gates, rollback, node/storage retirement and recovery
-  on replacement hardware. Existing worker-pool guidance is not a rolling-upgrade controller.
+- [x] **P2: Upgrade and hardware procedures.** [Maintenance](../docs/administration/maintenance.md)
+  defines compatibility, recovery, canary/serial health gates and host replacement.
+  No universal automatic patch or rolling-upgrade controller is supplied.
 - [ ] **P2: State and local inputs.** Test OS file permissions, encrypted off-host copies,
   one writer per state and retained ignored inputs. Git history alone excludes live inventory,
   secrets and state, so cloning the private repositories alone is not a disaster recovery.
-- [ ] **P2: Secret scanning.** Select a project enforcement mechanism for staged content,
-  CI output and artifacts; `.gitignore` does not prevent forced additions or tracked secrets.
-- [ ] **P2: Provider qualification.** Nine of the sixteen Terraform deployment roots
-  have no tracked provider lock file. Qualify and retain their resolved versions before
-  operational use. Schema validation passed with existing locks preserved and missing
-  locks generated only in scratch; this does not freeze future fresh installations.
+- [x] **P2: Secret scanning mechanism.** Native redacted staged/history/artifact commands
+  and an unprivileged fail-closed CI example are supplied. Project merge enforcement,
+  runner image admission and live leakage-response exercises remain administration duties.
+- [x] **P2: Provider reproducibility.** All 20 retained deployment roots have tracked provider
+  locks and pass isolated provider-schema validation. Retain these locks and qualify
+  future updates deliberately; no live infrastructure plan or OpenTofu parity is implied.
 - [ ] **P2: Cache hardening variants.** Implement client authentication or TLS/mTLS listener
   only for a selected requirement, with support/acceptance documented; keep the HTTP proxy
   reference's limits visible and avoid implying TLS interception is required.
@@ -262,6 +256,13 @@ be relabelled as a deployed-system pass.
 
 
 ## Repeat cadence
+
+Implementation release review, 2026-10-27: added native Spinnaker with SQL/cache and
+independent backup jobs, separate GitLab data services, native storage-interface contracts, private
+cluster API gateways, host controls, approved log-copy export, NetBox audit and recovery
+transport. The [release qualification](v1-readiness.md) records exact tests, corrected
+fixture failures, exclusions and remaining gates; historical results below are not a
+claim of a single clean current run. The platform/manual operational lists remain open.
 
 Native platform implementation review, 2026-10-26: all ten selected stages now have
 explicit native execution paths and commissioning contracts. Shared supplies reusable

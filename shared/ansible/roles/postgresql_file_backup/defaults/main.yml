@@ -1,0 +1,6 @@
+---
+postgresql_file_backup_action: render
+postgresql_file_backup_kubeconfig: ""
+postgresql_file_backup_context: ""
+postgresql_file_backup_output: ""
+postgresql_file_backup_target: {}

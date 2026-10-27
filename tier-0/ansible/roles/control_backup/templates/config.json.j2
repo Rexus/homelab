@@ -1,0 +1,20 @@
+{{ {
+  'directory': control_backup_directory,
+  'repository': control_backup_repository,
+  'repository_id': control_backup_repository_id,
+  'password_file': '/etc/control-backup/restic.password',
+  'inputs': control_backup_inputs,
+  'input_sources': control_backup_input_sources,
+  'media': {'enabled': control_backup_media_enabled | bool,
+            'mount': control_backup_media_mount, 'marker': control_backup_media_marker},
+  'vault': {'binary': control_backup_vault_binary, 'address': control_backup_vault_address,
+            'server_name': control_backup_vault_server_name, 'ca_file': '/etc/control-backup/vault-ca.pem',
+            'auth': control_backup_vault_auth, 'mount': control_backup_vault_approle_mount,
+            'cert_mount': control_backup_vault_cert_mount, 'cert_role': control_backup_vault_cert_role,
+            'client_cert': '/etc/control-backup/client.pem', 'client_key': '/etc/control-backup/client.key',
+            'cert_min_seconds': control_backup_vault_cert_min_seconds | int,
+            'bound_cidrs': control_backup_vault_bound_cidrs,
+            'role_id': '/etc/control-backup/role-id', 'secret_id': '/etc/control-backup/secret-id',
+            'token_file': '/etc/control-backup/token', 'policy': control_backup_vault_policy},
+  'health_config': '/etc/control-backup/health.curl'
+} | to_nice_json }}

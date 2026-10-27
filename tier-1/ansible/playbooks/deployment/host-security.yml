@@ -1,0 +1,10 @@
+---
+# Explicit --limit plus external input file; never automatically applied by baseline.
+- name: Apply the selected Linux host security profile in Tier 1
+  hosts: "{{ host_security_hosts | default('host_security') }}"
+  become: "{{ host_security_action | default('apply') == 'apply' }}"
+  gather_facts: true
+  serial: 1
+  any_errors_fatal: true
+  roles:
+    - host_security

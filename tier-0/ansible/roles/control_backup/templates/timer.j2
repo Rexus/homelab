@@ -1,0 +1,10 @@
+[Unit]
+Description=Schedule independent control recovery copies
+
+[Timer]
+OnCalendar={{ control_backup_calendar }}
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

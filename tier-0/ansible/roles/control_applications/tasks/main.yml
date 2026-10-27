@@ -20,6 +20,7 @@
   when:
     - control_applications_action == 'apply'
     - "'netbox' in control_applications_components"
+    - control_applications_backup_mode != 'files' or control_applications_backup_files_phase != 'prepare'
 
 - name: Render or apply native releases through Shared
   ansible.builtin.include_role:
@@ -32,10 +33,28 @@
     kube_apps_releases: "{{ control_applications_releases }}"
     kube_apps_manage_secrets: "{{ control_applications_manage_secrets }}"
     kube_apps_secrets: "{{ control_applications_secrets }}"
+  when: control_applications_backup_mode != 'files' or control_applications_backup_files_phase != 'prepare'
+
+- name: Export database-only preparation resources and actual system identifiers
+  ansible.builtin.include_tasks: database-prepare.yml
+  when:
+    - control_applications_backup_mode == 'files'
+    - control_applications_backup_files_phase == 'prepare'
+
+- name: Render or apply separately mounted PostgreSQL backups to NAS
+  ansible.builtin.include_tasks: database-files.yml
+  loop: "{{ control_applications_components | intersect(['keycloak', 'netbox']) }}"
+  loop_control:
+    loop_var: control_application_file_product
+  when:
+    - control_applications_backup_mode == 'files'
+    - control_applications_backup_files_phase == 'backup'
 
 - name: Check databases and application endpoints
   ansible.builtin.include_tasks: health.yml
-  when: control_applications_action == 'apply'
+  when:
+    - control_applications_action == 'apply'
+    - control_applications_backup_mode != 'files' or control_applications_backup_files_phase != 'prepare'
 
 - name: Configure FreeIPA federation on the selected Keycloak realm
   ansible.builtin.include_tasks: keycloak.yml
@@ -43,12 +62,14 @@
     - control_applications_action == 'apply'
     - "'keycloak' in control_applications_components"
     - control_applications_keycloak_configure | bool
+    - control_applications_backup_mode != 'files' or control_applications_backup_files_phase != 'prepare'
 
 - name: Register selected consumer clients on the existing identity provider
   ansible.builtin.include_tasks: clients.yml
   when:
     - control_applications_action == 'apply'
     - control_applications_register_clients | bool
+    - control_applications_backup_mode != 'files' or control_applications_backup_files_phase != 'prepare'
 
 - name: Configure or accept the operator-unsealed Vault
   ansible.builtin.include_tasks: vault.yml
@@ -56,3 +77,4 @@
     - control_applications_action == 'apply'
     - "'vault' in control_applications_components"
     - control_applications_vault_phase != 'install'
+    - control_applications_backup_mode != 'files' or control_applications_backup_files_phase != 'prepare'

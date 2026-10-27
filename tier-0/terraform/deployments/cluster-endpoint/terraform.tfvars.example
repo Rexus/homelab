@@ -1,0 +1,25 @@
+# Copy to: terraform/deployments/cluster-endpoint/terraform.tfvars
+# Guide: docs/deployment/stage-4-kubernetes/procedures/api-endpoint.md
+# IPs and naming come from Tier 0 inventory/group vars through environment_guests.
+# Set approved Enterprise Linux image/storage references in the shared catalog/profile.
+# Separate initial hosts are enforced; live anti-affinity and independent storage/power need qualification.
+vm_instances = {
+  api-gw-1 = {
+    proxmox_node_name = "pve01"
+    vm_id            = 270
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 20
+    network_zone_key = "management"
+    tags             = ["tier-0", "private-api", "restricted", "always-on"]
+  }
+  api-gw-2 = {
+    proxmox_node_name = "pve02"
+    vm_id            = 271
+    size             = "small"
+    storage_class    = "local"
+    disk_size_gb     = 20
+    network_zone_key = "management"
+    tags             = ["tier-0", "private-api", "restricted", "always-on"]
+  }
+}

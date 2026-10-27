@@ -32,6 +32,12 @@ not connect a guest or authorize access to it.
 Tier 0 approves infrastructure references; consumers may override permitted
 values. Refresh never replaces or recreates a project-owned profile.
 
+`proxmox_storage_classes` maps VM-disk classes to existing Proxmox datastore IDs;
+it does not describe an object-storage API. A datastore may use Ceph RBD or NAS
+storage without supplying application buckets. Record the chosen
+[storage interfaces](../architecture/compute/runtime.md#storage-interfaces) separately;
+object endpoints and scoped credentials belong to the consuming service inputs.
+
 ## Loading and overrides
 
 The shared Linux deployment helper passes variable files in this order:
@@ -98,7 +104,9 @@ It is not a full security, time-synchronization or service-installation role.
 
 SSH access policy, NTP/chrony, host-firewall rules and audit collection must be
 prepared and verified through approved templates/OS configuration and the relevant
-service procedures. Service-specific roles add only their implemented controls;
+service procedures. The separate guarded [Linux host security profile](../deployment/foundation/procedures/host-security.md)
+supplies native SSH, chrony, firewalld and audit controls with tier-owned inputs;
+it is not silently enabled by the baseline. Service-specific roles add only their implemented controls;
 an installed listener does not imply a permitted or safely restricted network path.
 
 Former `baseline_manage_packages`, `baseline_manage_ssh`,

@@ -112,6 +112,10 @@ gitlab:
     maxReplicas: 1
   toolbox:
     backups:
+      cron:
+        enabled: {{ development_platform_gitlab_backup_enabled | to_json }}
+        schedule: {{ development_platform_gitlab_backup_schedule | to_json }}
+        concurrencyPolicy: Forbid
       objectStorage:
         config:
           secret: gitlab-backup-storage

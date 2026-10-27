@@ -1,0 +1,26 @@
+services:
+  deck: {enabled: true, baseUrl: {{ ('https://' ~ delivery_platform_spinnaker_host) | to_json }}}
+{% for name, port in spinnaker_native_ports.items() if name != 'deck' %}
+  {{ name }}:
+    enabled: true
+    baseUrl: https://{{ name }}.{{ delivery_platform_spinnaker_namespace }}.svc.cluster.local:{{ port }}{{ '/api/v1' if name == 'gate' else '' }}
+{% if name == 'fiat' %}
+    legacyFallback: false
+{% endif %}
+{% endfor %}
+  igor: {enabled: false}
+  kayenta: {enabled: false}
+  keel: {enabled: false}
+  redis: {enabled: true, baseUrl: 'redis://:${REDIS_PASSWORD}@127.0.0.1:16379'}
+redis:
+  connection: 'redis://:${REDIS_PASSWORD}@127.0.0.1:16379'
+server:
+  ssl:
+    enabled: true
+    key-store: file:/tls/keystore.p12
+    key-store-type: PKCS12
+    key-store-password: ${KEYSTORE_PASSWORD}
+    enabled-protocols: [TLSv1.2, TLSv1.3]
+spring:
+  jackson:
+    default-property-inclusion: non_null

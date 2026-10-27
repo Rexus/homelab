@@ -1,0 +1,8 @@
+---
+- name: Reconcile private Kubernetes API gateways one at a time
+  hosts: cluster_endpoint
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  roles:
+    - cluster_endpoint

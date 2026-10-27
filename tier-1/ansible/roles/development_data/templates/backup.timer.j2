@@ -1,0 +1,11 @@
+[Unit]
+Description=Schedule encrypted GitLab data backups
+
+[Timer]
+OnCalendar={{ development_data_backup_calendar }}
+Persistent=true
+RandomizedDelaySec=15m
+Unit=development-data-backup.service
+
+[Install]
+WantedBy=timers.target

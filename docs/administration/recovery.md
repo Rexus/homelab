@@ -7,6 +7,7 @@ platform services and workloads. Offline investigation does not require a runnin
 
 - [Recovery inputs](#recovery-inputs)
 - [Recovery order](#recovery-order)
+- [Product procedures](#product-procedures)
 
 ## Recovery inputs
 
@@ -43,3 +44,11 @@ the [backup guide](compute/backup-restore.md) for recovery objectives and restor
 [secret strategy](secret-handling/strategy.md) for protected recovery material.
 For the software issuer, follow the [clean-target restore procedure](cryptography/issuer-recovery.md),
 not fresh key creation or initial token activation.
+
+## Product procedures
+
+The [product recovery index](recovery/README.md) provides clean-target procedures for original
+inputs/state and etcd, FreeIPA/CA, Vault, CNPG databases, Keycloak, NetBox/media and Tier 1 data.
+Install [scheduled control backup transport](backups/control-applications.md) before accepting
+the dependent services. Preserve the selected database/media recovery points and independent keys;
+a fresh bootstrap or an empty application deployment is not a restore.

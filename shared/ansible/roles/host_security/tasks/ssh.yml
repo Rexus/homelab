@@ -1,0 +1,55 @@
+---
+- name: Create the root-owned SSH authorization directory
+  ansible.builtin.file:
+    path: /etc/ssh/host-security-keys
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Authorize each user's complete approved public-key batch
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    path: "/etc/ssh/host-security-keys/{{ item.name }}"
+    key: "{{ query('ansible.builtin.file', *item.public_key_files) | join('\n') }}"
+    manage_dir: false
+    exclusive: true
+    state: present
+  loop: "{{ host_security_ssh_users }}"
+  no_log: true
+
+- name: Keep authorization files readable by sshd and writable only by root
+  ansible.builtin.file:
+    path: "/etc/ssh/host-security-keys/{{ item.name }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ host_security_ssh_users }}"
+
+- name: Install the owned SSH configuration after native validation
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: '0600'
+    backup: true
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Reload host security SSH
+
+- name: Ensure the selected SSH service remains enabled
+  ansible.builtin.systemd_service:
+    name: "{{ host_security_os[ansible_os_family].ssh_service }}"
+    enabled: true
+    state: started
+
+- name: Apply pending SSH and time changes before testing a fresh connection
+  ansible.builtin.meta: flush_handlers
+
+- name: Discard the existing SSH master connection
+  ansible.builtin.meta: reset_connection
+
+- name: Verify a fresh key-authenticated connection before tightening the firewall
+  ansible.builtin.wait_for_connection:
+    timeout: 60
+  become: false

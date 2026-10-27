@@ -1,7 +1,8 @@
 # Install the Tier 0 basic platform
 
 Tier-local Ansible installs pinned Cilium, optional NFS CSI, cert-manager, Traefik,
-CloudNativePG, its Barman Cloud backup plugin and Flux charts. Shared's reusable platform role executes the native
+CloudNativePG and Flux charts, with the Barman Cloud plugin as an object/WAL backup
+option. Shared's reusable platform role executes the native
 charts and health gates; Tier 0 owns selections, values and cluster resources. Rendering contacts chart
 repositories but never the Kubernetes API. It is not an air-gapped chart cache.
 
@@ -195,14 +196,16 @@ One instance is the example default; it carries no failover claim.
 The operator initializes database/owner `app` and generates its credential
 Secret; superuser access is disabled. [7]
 
-Choose CSI storage qualified for PostgreSQL durability, permissions and latency;
-NFS acceptance for ordinary claims does not qualify database storage. [8]
+Choose Proxmox/Ceph-backed block CSI storage qualified for live PostgreSQL durability,
+permissions and latency. NAS backup/shared-file claims are separate; accepting NFS
+for those claims does not select it for database data. [8]
 The selected `barman_cloud` component installs the native Barman Cloud plugin
 after cert-manager and CloudNativePG, including its service identity and ObjectStore
 CRD. Application recipes own ObjectStore credentials, WAL schedules and destinations;
-the optional probe database alone configures no backup. [10]
+the optional probe database alone configures no backup. Leave this component
+unselected for the scheduled file-backup path. [10]
 The role waits for `Cluster` Ready; it does not restore existing database data.
-Qualify a client connection, backups/WAL retention and a clean-target restore
+Qualify a client connection, the selected backup/retention method and a clean-target restore
 before placing control-service data here.
 
 ## Acceptance and recovery

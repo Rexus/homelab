@@ -1,0 +1,34 @@
+---
+- name: Require one ingress with matching class, hostname and TLS custody
+  ansible.builtin.assert:
+    that:
+      - ingresses | length == 1
+      - ingresses[0].spec.ingressClassName | default('') == delivery_platform_ingress_class
+      - ingresses[0].spec.rules | length == 1
+      - ingresses[0].spec.rules[0].host == delivery_platform_spinnaker_host
+      - not ingresses[0].spec.get('defaultBackend', {})
+      - >-
+        ingresses[0].spec.get('tls', []) | selectattr('secretName', 'equalto', 'spinnaker-tls')
+        | map(attribute='hosts') | flatten | select('equalto', delivery_platform_spinnaker_host) | list | length == 1
+    fail_msg: Use one selected ingress class and hostname with a matching spinnaker-tls binding.
+  vars:
+    ingresses: "{{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'Ingress') | list }}"
+
+- name: Require native Deck and Gate service routes
+  ansible.builtin.assert:
+    that:
+      - paths | length == 2
+      - deck_paths | length == 1
+      - gate_paths | length == 1
+      - deck_paths[0].backend.service.name == 'deck'
+      - deck_paths[0].backend.service.port.number | default(0) | int == 9000
+      - deck_paths[0].pathType == 'Prefix'
+      - gate_paths[0].backend.service.name == 'gate'
+      - gate_paths[0].backend.service.port.number | default(0) | int == 8084
+      - gate_paths[0].pathType == 'Prefix'
+    fail_msg: Route / to Deck:9000 and /api/v1 to Gate:8084; retain Gate's configured context path.
+  vars:
+    ingress: "{{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'Ingress') | first }}"
+    paths: "{{ ingress.spec.rules[0].http.paths }}"
+    deck_paths: "{{ paths | selectattr('path', 'equalto', '/') | list }}"
+    gate_paths: "{{ paths | selectattr('path', 'in', ['/api/v1', '/api/v1/']) | list }}"

@@ -46,7 +46,7 @@ flowchart TB
         Metrics["metrics-1 / metrics-2<br/>Separate persistent volumes"]
         Search["opensearch x3<br/>Heap and persistent volumes"]
         Diagnostics["netdata-1 / netdata-2<br/>netdata-metrics / selected bridge"]
-        Database["grafana-db / PostgreSQL x3<br/>Persistent data / object-store backups"]
+        Database["grafana-db / PostgreSQL x3<br/>Live Proxmox/Ceph-backed PVCs"]
         UIs["grafana / dashboards / metrics-query<br/>Two stateless replicas each"]
         Gateways ~~~ Metrics
         Search ~~~ Diagnostics
@@ -67,7 +67,10 @@ flowchart TB
 [role](../../../tier-1/ansible/roles/observability_platform/) and
 [inputs](../../../tier-1/ansible/group_vars/observability_platform.yml.example) own these workloads.
 The [cluster inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.tfvars.example)
-supply the existing runtime. This configured topology is not evidence of live deployment.
+supply the existing runtime. Scope: service runtimes; backup jobs/destinations have
+their own selected configuration. This topology is not evidence of live deployment.
+The [database backup realization](../../administration/backups/postgresql.md) separates
+Grafana's live block volumes from its scheduled NAS copies.
 
 1. Reuse the [platform cluster](../stage-7-delivery/procedures/platform-cluster.md); do not create another
    Linux VM fleet alongside it. Argo CD or Spinnaker remains the project's delivery choice.
@@ -259,8 +262,8 @@ defined in Step 2. Readers enter from the left and query Tier 1 only. Tier 0 ori
 this query view: no archive mount or write path is granted. Export/redaction remains
 separately authorized in Tier 0 before an approved copy reaches OpenSearch.
 
-1. Supply the [Tier 0-approved projection adapter](configuration.md#approved-search-projections)
-   as an explicit prerequisite. Authorize and redact exports in Tier 0 before transfer. The export identity receives
+1. Install the [Tier 0 approved-copy exporter](protected-log-search.md).
+   Authorize and filter exports in Tier 0 before transfer. The export identity receives
    only its approved scope; it has no archive write/delete, retention or backup powers.
    Authenticated routing assigns application ownership; submitted labels are not authority.
 2. Give readers the required index, document and field scopes in OpenSearch.
@@ -287,6 +290,7 @@ Changing or deleting a search copy does not change the original retained log.
 | Tier 1 | [terraform/deployments/kubernetes/](../../../tier-1/terraform/deployments/kubernetes/) | Existing cluster and separately sized workers |
 | Tier 1 | [terraform/deployments/observability/](../../../tier-1/terraform/deployments/observability/) | Explicit VM alternative only |
 | Tier 0 | [protected logging](../stage-2-logging/README.md) | Original evidence and approved export boundary |
+| Tier 0 | [logging-export playbook](../../../tier-0/ansible/playbooks/deployment/logging-export.yml) | Scoped native Collector; only approved read-only copies cross into search |
 | Tier 0 | [independent monitoring](../stage-6-secrets/monitoring.md) | Independent Netdata, local pollers/credentials, critical alerts and approved metric export |
 
 ## Capability available

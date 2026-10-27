@@ -18,7 +18,9 @@ The main path installs Community Edition; no paid Vault CI integration is requir
 1. Qualify the chart's current external-data requirements. PostgreSQL, Redis,
    Gitaly and object storage are separately managed prerequisites. The production
    reference is Cloud Native Hybrid, not an all-in-one Kubernetes installation. [1]
-2. Prepare the following interfaces before installation.
+2. Provision the dependency VMs, buckets, scoped accounts and backups with
+   [GitLab data services](data-services.md), or qualify existing services against
+   the following contracts before installation.
 3. Create the Keycloak confidential client using the
    [service SSO gate](../../stage-5-identity/procedures/service-sso.md).
 
@@ -59,9 +61,12 @@ ansible-galaxy collection install -r ansible/requirements.yml
 
 Qualify and pin these tools in the project toolchain. Current chart qualification
 uses Helm 4 and `kubernetes.core` 6.6 or newer. The precheck reports missing tooling.
+The main-path data-service recipe produces `secrets/development-data/platform-inputs.yml`;
+load it last to retain its endpoint, bucket and backup settings. For independently
+commissioned existing dependencies, author the same settings locally and omit that overlay.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml -e @secrets/development-data/platform-inputs.yml
 ```
 
 The default `render` action does not contact Kubernetes. Review private
@@ -95,12 +100,14 @@ args:
 After dependency/Secret preparation, choose `apply` for bootstrap-owned installation:
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml -e development_platform_action=apply
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml -e @secrets/development-data/platform-inputs.yml -e development_platform_action=apply
 ```
 
 For explicit bootstrap Secret management, add `-e @/absolute/private/gitlab-secrets.yml`;
 encrypt that file or keep it outside Git. Apply checks required Secrets and OIDC
 issuer/callback before Helm, then waits for release readiness. It never formats disks.
+The same release owner reconciles the native toolbox backup CronJob on every run;
+retain its independent-copy and restore duties from the data-service procedure.
 
 ## Delivery ownership
 

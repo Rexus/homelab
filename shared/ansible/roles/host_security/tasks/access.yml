@@ -1,0 +1,85 @@
+---
+- name: Refuse host types with separately owned network or control-plane policy
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: [/etc/pve, /var/lib/kubelet]
+  register: host_security_control_paths
+
+- name: Require a leaf Linux host rather than a hypervisor or Kubernetes node
+  ansible.builtin.assert:
+    that:
+      - host_security_control_paths.results | selectattr('stat.exists') | list | length == 0
+
+- name: Read the host's IPv4 forwarding state
+  ansible.builtin.command:
+    argv: [sysctl, -n, net.ipv4.ip_forward]
+  changed_when: false
+  register: host_security_forwarding
+
+- name: Refuse a routed host before changing its access policy
+  ansible.builtin.assert:
+    that:
+      - host_security_forwarding.stdout | trim == '0'
+
+- name: Read the host's IPv6 forwarding state
+  ansible.builtin.command:
+    argv: [sysctl, -n, net.ipv6.conf.all.forwarding]
+  changed_when: false
+  register: host_security_ipv6_forwarding
+
+- name: Refuse IPv6 routing before changing its access policy
+  ansible.builtin.assert:
+    that:
+      - host_security_ipv6_forwarding.stdout | trim == '0'
+
+- name: Read the actual unprivileged SSH transport source and listener
+  ansible.builtin.command:
+    argv: [printenv, SSH_CONNECTION]
+  become: false
+  changed_when: false
+  check_mode: false
+  register: host_security_connection
+
+- name: Guard the current controller access before tightening configuration
+  ansible.builtin.assert:
+    that:
+      - host_security_connection.stdout.split() | length == 4
+      - ansible_user | default('root') in host_security_ssh_users | map(attribute='name') | list
+      - host_security_connection.stdout.split()[3] | int == host_security_ssh_port | int
+      - >-
+        host_security_operator_sources |
+        map('ansible.utils.network_in_network', host_security_connection.stdout.split()[0]) |
+        select('equalto', true) | list | length > 0
+    fail_msg: >-
+      The current non-root SSH user, observed controller/NAT source and unchanged listener port
+      must be allowed. Test key-only sudo access and console recovery before acknowledging apply.
+
+- name: Look up existing SSH accounts without creating users or changing privilege
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ item.name }}"
+  loop: "{{ host_security_ssh_users }}"
+
+- name: Validate each external public key with the controller OpenSSH parser
+  ansible.builtin.command:
+    argv: [ssh-keygen, -l, -f, "{{ item.1 }}"]
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  check_mode: false
+  loop: "{{ host_security_ssh_users | subelements('public_key_files') }}"
+  no_log: true
+
+- name: Reject private key material or key-file options masquerading as key text
+  ansible.builtin.assert:
+    that:
+      - "'PRIVATE KEY' not in host_security_public_keys"
+      - >-
+        host_security_public_keys.splitlines() | reject('equalto', '') |
+        reject('match', '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-[A-Za-z0-9@.-]+) [A-Za-z0-9+/=]+( .*)?$') |
+        list | length == 0
+      - host_security_public_keys | trim | length > 0
+  vars:
+    host_security_public_keys: "{{ lookup('ansible.builtin.file', item.1) }}"
+  loop: "{{ host_security_ssh_users | subelements('public_key_files') }}"
+  no_log: true

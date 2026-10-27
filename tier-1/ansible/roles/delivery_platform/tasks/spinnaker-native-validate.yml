@@ -1,0 +1,53 @@
+---
+- name: Require the exact reviewed native render before apply
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_action != 'apply' or delivery_platform_spinnaker_review_sha256 is match('^[a-f0-9]{64}$')
+      - >-
+        delivery_platform_action != 'apply' or
+        delivery_platform_spinnaker_render | hash('sha256') == delivery_platform_spinnaker_review_sha256
+    fail_msg: Render and review the supplied native reference and set its exact SHA256 before apply.
+
+- name: Require complete native services, persistent databases and schema initialization
+  ansible.builtin.assert:
+    that:
+      - deployments | sort == spinnaker_native_ports.keys() | sort
+      - statefulsets | sort == ['spinnaker-mysql', 'spinnaker-redis']
+      - "'spinnaker-databases' in jobs"
+      - "'spinnaker-backup-verify' in jobs"
+      - "'spinnaker-backup' in backups"
+  vars:
+    deployments: >-
+      {{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'Deployment')
+         | map(attribute='metadata.name') | list }}
+    statefulsets: >-
+      {{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'StatefulSet')
+         | map(attribute='metadata.name') | list }}
+    jobs: >-
+      {{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'Job')
+         | map(attribute='metadata.name') | list }}
+    backups: >-
+      {{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'CronJob')
+         | map(attribute='metadata.name') | list }}
+
+- name: Reject cluster authority and undeclared destination scope
+  ansible.builtin.assert:
+    that:
+      - >-
+        item.kind in ['Namespace', 'ConfigMap', 'ServiceAccount', 'Role', 'RoleBinding', 'Secret',
+          'Service', 'Ingress', 'Certificate', 'ServersTransport', 'NetworkPolicy',
+          'PersistentVolumeClaim', 'Deployment', 'StatefulSet', 'Job', 'CronJob']
+      - >-
+        (item.kind == 'Namespace' and item.metadata.name in allowed_namespaces) or
+        (item.kind != 'Namespace' and item.metadata.get('namespace', '') in allowed_namespaces)
+      - item.kind not in ['Role', 'RoleBinding'] or item.metadata.namespace in delivery_platform_spinnaker_destinations
+      - item.kind != 'RoleBinding' or item.roleRef.kind == 'Role'
+      - >-
+        item.kind != 'Secret' or (item.type == 'kubernetes.io/service-account-token'
+        and item.metadata.namespace in delivery_platform_spinnaker_destinations
+        and not item.get('data', {}) and not item.get('stringData', {}))
+    fail_msg: Native delivery resources may own only their namespace and the explicitly declared local target Roles.
+  vars:
+    allowed_namespaces: "{{ [delivery_platform_spinnaker_namespace] + delivery_platform_spinnaker_destinations }}"
+  loop: "{{ delivery_platform_spinnaker_documents }}"
+  loop_control: {label: "{{ item.kind }}/{{ item.metadata.name }}"}

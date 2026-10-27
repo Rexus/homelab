@@ -1,0 +1,15 @@
+---
+- name: Reconfigure development data
+  ansible.builtin.command:
+    argv: [/opt/gitlab/bin/gitlab-ctl, reconfigure]
+  changed_when: true
+  no_log: true
+
+- name: Restart development data
+  ansible.builtin.command:
+    argv: [/opt/gitlab/bin/gitlab-ctl, restart, "{{ data_component }}"]
+  changed_when: true
+
+- name: Reload development backup units
+  ansible.builtin.systemd_service:
+    daemon_reload: true

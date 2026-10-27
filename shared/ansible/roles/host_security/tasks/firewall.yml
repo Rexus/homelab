@@ -1,0 +1,42 @@
+---
+- name: Install the complete owned public zone with scoped allows and a terminal drop
+  ansible.builtin.template:
+    src: public.xml.j2
+    dest: /etc/firewalld/zones/public.xml
+    owner: root
+    group: root
+    mode: '0644'
+    backup: true
+  notify: Reload host security firewall
+
+- name: Select the public zone for interfaces without an explicit network assignment
+  community.general.ini_file:
+    path: /etc/firewalld/firewalld.conf
+    section: null
+    option: DefaultZone
+    value: public
+    no_extra_spaces: true
+    mode: '0644'
+  notify: Reload host security firewall
+
+- name: Validate native firewall configuration before starting or reloading it
+  ansible.builtin.command:
+    argv: [firewall-offline-cmd, --check-config]
+  changed_when: false
+
+- name: Enable the validated firewall policy at boot and now
+  ansible.builtin.systemd_service:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: Activate the reviewed firewall configuration
+  ansible.builtin.meta: flush_handlers
+
+- name: Discard the previous transport after activating the firewall
+  ansible.builtin.meta: reset_connection
+
+- name: Verify a fresh connection through the enforced operator allowlist
+  ansible.builtin.wait_for_connection:
+    timeout: 60
+  become: false

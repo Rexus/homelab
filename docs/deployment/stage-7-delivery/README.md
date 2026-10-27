@@ -10,9 +10,10 @@ The temporary source must work before GitLab exists.
 **Working repositories:** `<prefix>-tier-1` for delivery and registry;
 `<prefix>-tier-2` for optional public edge. Tier 0 owns its existing Flux.
 **Automation:** cluster lifecycle, edge, native pinned Harbor/Argo CD Helm installation
-and a reviewed Spinnaker Kustomize executor are supplied. Follow the
-[native installer](procedures/delivery-installer.md); Spinnaker still requires a complete
-site-reviewed overlay and product configuration before installation.
+and a complete native Spinnaker installation with SQL/cache and backups are supplied.
+Follow the [common installer](procedures/delivery-installer.md) and the selected controller's
+contract. The [Spinnaker native reference](step-2b-spinnaker.md#installation-decision)
+requires commissioned site inputs, not an external product overlay.
 See the [stage coverage](../../reference/implementation-support.md#stage-coverage)
 for prerequisites, integration boundaries and live acceptance requirements.
 **Design:** [controller patterns](../../architecture/delivery/controllers.md).

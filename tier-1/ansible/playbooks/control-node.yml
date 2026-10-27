@@ -3,6 +3,14 @@
   ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
   vars:
     control_node_collection_catalog:
+      amazon.aws:
+        name: amazon.aws
+        version: '>=11.0.0,<12.0.0'
+        os_packages: {RedHat: [], Debian: []}
+      community.postgresql:
+        name: community.postgresql
+        version: '>=4.0.0,<5.0.0'
+        os_packages: {RedHat: [], Debian: []}
       ansible.utils:
         name: ansible.utils
         version: '>=6.0.0,<7.0.0'
@@ -18,9 +26,11 @@
     control_node_setup_collection_names:
       cluster-platform: [kubernetes.core]
       cluster-security-logging: [kubernetes.core, ansible.utils, community.crypto]
-      delivery-platform: [kubernetes.core]
+      delivery-platform: [kubernetes.core, ansible.utils]
       observability-platform: [kubernetes.core, ansible.utils]
       development-platform: [kubernetes.core, ansible.utils]
+      development-data: [community.general, ansible.posix, kubernetes.core, ansible.utils, amazon.aws, community.postgresql]
+      host-security: [community.general, ansible.posix, ansible.utils]
       development: [community.general, ansible.posix]
       observability: [community.general, ansible.posix]
       podman-runner: [community.general, ansible.posix]
