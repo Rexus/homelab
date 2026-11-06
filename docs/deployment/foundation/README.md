@@ -18,37 +18,17 @@ and a privileged workstation with independent console access.
 | Optional host availability | [Cluster/HA](step-1b-cluster-ha.md), [menu settings](../../reference/proxmox-ha.md), [failover example](proxmox/failover.md) |
 | Network equipment and policy | [UniFi setup](network/unifi.md), [firewall rollout](network/firewall.md) |
 | Storage | [Live storage interfaces and backup destinations](storage/README.md) |
+| Bootstrap execution | [Manual bootstrap VM, tooling, artifacts, CA trust and API inputs](proxmox/bootstrap.md) |
 
-1. [Prepare hosts and networks](#step-1-prepare-hosts-and-networks)
-2. [Protect provisioning access and state](#step-2-protect-provisioning-access-and-state)
+Prepare [hosts and networks](#before-starting-hosts-and-networks), then follow:
+
+1. [Create the first Linux template manually](#step-1-create-the-first-linux-template-manually)
+2. [Prepare the bootstrap execution host](#step-2-prepare-the-bootstrap-execution-host)
 3. [Publish and test VM templates](#step-3-publish-and-test-vm-templates)
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Admin["Privileged workstation<br/>Local Git, Terraform / OpenTofu, Ansible"]
-  State["Protected IaC state<br/>Bootstrap credentials and backups"]
-  subgraph Physical["Tier 0 / Control / manually prepared infrastructure"]
-    Network["Network equipment<br/>VLANs and firewall"]
-    PVE["Proxmox<br/>Compute and storage"]
-    Templates["Approved Linux and Kubernetes node templates"]
-    Bootstrap["Optional operator-provided bootstrap VM<br/>management network / no installer"]
-    Network --- PVE
-    PVE --> Templates --> Bootstrap
-  end
-  Admin <--> State
-  Admin -->|Configure| Network
-  Admin -->|Proxmox API| PVE
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Admin actor
-  class State,Templates data
-  class Physical,Network,PVE,Bootstrap control
-```
-
-**Manual:** host installation, switches, VLANs, storage and the optional bootstrap VM.
+The [bootstrap deployment view](proxmox/bootstrap.md#step-1-clone-the-bootstrap-vm)
+shows the VM created in Step 2 and its hosting/management boundaries.
+**Manual:** host installation, switches, VLANs, storage, first image and bootstrap VM clone.
 **IaC:** Tier 0 [template publisher](../../../tier-0/scripts/proxmox-templates.sh)
 uses [publication inputs](../../../tier-0/templates/proxmox.yml.example) and
 [publication resources](../../../tier-0/terraform/deployments/templates/main.tf).
@@ -56,10 +36,11 @@ Shared [consumer references](../../../shared/templates/proxmox-catalog.tfvars) s
 they do not create guests or install the physical foundation.
 
 <a id="step-1-prepare-compute-and-templates"></a>
+<a id="step-1-prepare-hosts-and-networks"></a>
 
-## Step 1: Prepare hosts and networks
+## Before starting: hosts and networks
 
-Prepare [local tools](../../development/local-setup.md) and bring up the external
+Use an independent privileged workstation to bring up the external
 network; the [UniFi starting path](network/unifi.md#bring-up-the-network)
 includes controller adoption and VLAN/port preparation. Install
 [Proxmox](proxmox/README.md), then configure [host networking](proxmox/network.md)
@@ -83,16 +64,36 @@ Keep persistent local host logs from first boot and export network-device logs w
 supported. Preserve these early records until the Stage 2 collector can receive them;
 central collection must not wait for FreeIPA or Kubernetes.
 
-## Step 2: Protect provisioning access and state
+## Step 1: Create the first Linux template manually
 
-Configure [scoped API access](proxmox/api-access.md) and protected local state
-or an independent backend. Back up local state, inventory and bootstrap inputs now;
+Use the [common VM template guide](proxmox/templates.md) to download/verify an
+approved AlmaLinux or Rocky Linux cloud image on the independent workstation,
+upload it through the Proxmox GUI and create the unbooted template. Clone-test
+it before using it as the bootstrap VM's source. No generated repository,
+Terraform API token or running GitLab is needed for this manual first image.
+
+Only one Linux template is needed here. Talos and other image candidates can
+be added from the bootstrap host in Step 3. Existing accepted templates are
+valid; do not rebuild them merely to follow the path.
+
+<a id="step-2-protect-provisioning-access-and-state"></a>
+
+## Step 2: Prepare the bootstrap execution host
+
+Follow [bootstrap execution host, Steps 1-3](proxmox/bootstrap.md): clone
+`bootstrap-1` onto the protected `management` network, install tools, obtain the kit,
+generate/restore the collection and stage approved image artifacts. An already
+accepted privileged Linux workstation may perform the same execution role instead.
+Install the verified **Proxmox cluster CA on that execution host**, then configure
+[scoped API access](proxmox/api-access.md); the earlier GUI browser's trust is not sufficient.
+
+Use protected local state or an independent backend. Back up local state, inventory and bootstrap inputs now;
 test their recovery before provisioning. Prepare the
 [backup destination](../../administration/compute/backup-restore.md), using PBS or
 a verified existing service. Guest backup/restore follows the first disposable clone in Step 3.
 Keep code, tools and recovery credentials outside the systems being created.
 
-A bootstrap VM is optional. It cannot replace recovery access outside Proxmox.
+A bootstrap VM cannot replace recovery access outside Proxmox.
 Software supply must work independently of future platform services; an existing
 mirror or approved offline artifacts are valid inputs.
 Select the [software-intake design](../../architecture/delivery/software-intake.md):
@@ -103,6 +104,12 @@ mirrors or offline copies provide independent approved content.
 
 Use the [common image import guide](proxmox/templates.md) for AlmaLinux,
 Rocky Linux and Talos, or the [local API publication workflow](../../administration/compute/template-lifecycle.md#local-workflow).
+Run publication from the accepted execution host (`bootstrap-1` in the VM path),
+inside the generated Tier 0 repository.
+For existing manual images/templates, use the
+[adoption plan](../../administration/compute/template-lifecycle.md#adopt-existing-templates)
+instead of trying to create the same VMIDs again. Adoption does not enroll the
+bootstrap VM itself into Terraform. Add the Kubernetes node image here when needed.
 Tier 0 publishes templates;
 other tiers consume approved references. No hosted CI is required.
 

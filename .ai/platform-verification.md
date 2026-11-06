@@ -17,6 +17,7 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
 | ID | Stage | Pass condition |
 | --- | --- | --- |
 | HOST-1 | Foundation | Key-only SSH, time, source-scoped host rules and audit survive reboot; required VRRP/ICMP/service traffic passes and unrelated sources are denied; console recovery works |
+| BOOT-1 | Foundation Step 2 | A manual Linux clone or accepted workstation can generate/restore the collection, verify Proxmox TLS, stage approved artifacts and recover original local inputs/state without GitLab, Vault, FreeIPA or Kubernetes; independent recovery survives loss of the bootstrap VM and its host |
 | HA-1 | Foundation HA option | Native 9.2+ HA recovers the same VMID after tested host death/fencing, preserves affinity and data, and accepts a clean Terraform plan; constrained/no-quorum cases wait safely; rebalancing and returned-host behavior are measured separately |
 | IMAGE-1 | Foundation | Approved UEFI raw/qcow2 imports boot disposable clones with correct EFI/storage/CPU and fixed Talos RAM; schematic agent, NoCloud static networking (or selected DHCP), native configuration and recovery are qualified; legacy BIOS inputs are not migrated implicitly |
 | IMAGE-2 | Foundation adoption | Existing manual template/file IDs import into the original Tier 0 state without replacement/re-upload; reviewed hardware and optional empty CloudInit media match, post-adoption plan is clean, and a disposable clone boots; remote artifact SHA256 is independently verified |

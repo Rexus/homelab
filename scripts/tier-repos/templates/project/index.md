@@ -37,7 +37,9 @@ installation and **Verified** only after the guide's acceptance checks; an exist
 accepted service can satisfy the step without reinstalling it. Link non-secret evidence.
 Unchecked boxes are deliberate: generation proves no operational result.
 
-- [ ] **Foundation accepted:** hosts, networks, storage, access/state and approved templates.
+- [ ] **Foundation accepted:** hosts/network/storage, first Linux template,
+  [bootstrap execution host](auto-docs/deployment/foundation/proxmox/bootstrap.md), CA/API trust,
+  protected inputs/state and approved templates.
   [Preparation](auto-docs/deployment/foundation/README.md).
 
 | Capability | Run from | Selected path / evidence | Deployed | Verified |

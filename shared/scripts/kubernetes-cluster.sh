@@ -19,13 +19,14 @@ fi
 action="$1"
 # Validate the execution directory before touching its saved plan. Do not run the
 # shared dependency precheck until an attempted re-plan invalidates the old plan.
-repo_root="$(cd "${DEPLOYMENT_REPO_DIR:-$PWD}" && pwd)"
-if [[ "$(pwd -P)" != "$repo_root" || ! -f "$repo_root/.deployment-setups" ]]; then
+repo_root="$(CDPATH= cd -- "${DEPLOYMENT_REPO_DIR:-.}" && pwd -P)"
+if [[ ! . -ef "$repo_root" || ! -f "$repo_root/.deployment-setups" ]]; then
   echo "Run from the owning tier repository root." >&2
+  echo "Expected: $repo_root; current: $(pwd -P)" >&2
   exit 1
 fi
 root="$repo_root/terraform/deployments/kubernetes"
-shared="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+shared="$(CDPATH= cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 state="$repo_root/.terraform/state/talos/terraform.tfstate"
 plan="$repo_root/.terraform/plans/talos.tfplan"
 plan_json="$repo_root/secrets/talos/plan.json"

@@ -86,6 +86,8 @@ bash scripts/proxmox-templates.sh init
 ```
 
 In a private source checkout, start in `tier-0/` and use the same commands.
+Access through a symlinked parent directory is supported; default state and working
+data remain in the physical Tier 0 checkout, not a second location under the alias.
 Edit `templates/proxmox.yml`; remove
 unused example entries before the first apply. Record exact releases and the
 unpacked image hashes, and use absolute local artifact paths. The initializer

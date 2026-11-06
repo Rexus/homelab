@@ -4,6 +4,7 @@
 
 - [Purpose](#purpose)
 - [Recommended usage models](#recommended-usage-models)
+- [Local history before hosted source control](#local-history-before-hosted-source-control)
 - [Publishing rules](#publishing-rules)
 - [File naming conventions](#file-naming-conventions)
 - [Bootstrap secret strategy](#bootstrap-secret-strategy)
@@ -48,6 +49,25 @@ Suggested model:
 
 Use a local clone or downloaded archive when no remote is required.
 This is simple and safe for one-user or offline setups.
+
+## Local history before hosted source control
+
+Repository generation does not initialize Git. On the bootstrap execution host,
+initialize each generated Tier 0, Tier 1, Tier 2, Shared and Architecture repository
+separately. Run from the selected repository's root, **never the collection directory**:
+
+```bash
+git init -b main
+git status --short --ignored
+```
+
+Review `.gitignore` and the publishing rules below before staging files. Create
+reviewed local commits using the project's identity/signing policy; no GitLab
+service is required. Never force-add ignored credentials, inventories, state or
+image artifacts. Ignored operational inputs need protected backups, not a Git push.
+After Stage 9 accepts hosted source control, add each private remote and push its
+existing history. The [CI handover](../deployment/stage-9-development/procedures/handover.md)
+transfers original state and ignored inputs separately; it does not recreate infrastructure.
 
 ## Publishing rules
 

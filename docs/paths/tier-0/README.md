@@ -13,9 +13,12 @@ Tier 1 or Tier 2. Start here for a new installation.
 
 ## Deployment order
 
-Record [project conventions](../../development/project-documentation.md#start-with-project-values)
-and prepare [local tools](../../development/local-setup.md) first.
-Verify the unnumbered [foundation prerequisites](../../deployment/foundation/README.md),
+Begin with the unnumbered [foundation prerequisites](../../deployment/foundation/README.md):
+first manual Linux template, then the
+[bootstrap execution host](../../deployment/foundation/proxmox/bootstrap.md), then template adoption/publication.
+The bootstrap guide covers local tools, artifacts, Proxmox CA/API access and repository generation;
+record [project conventions](../../development/project-documentation.md#start-with-project-values) there.
+Verify the foundation,
 then follow the [numbered capability stages](../../deployment/README.md), beginning
 with [Software intake](../../deployment/stage-1-software-intake/README.md).
 Each stage's README explains its numbered steps with diagrams and acceptance checks;
@@ -41,7 +44,9 @@ Protect access and backups from the first step; the
 
 ## Getting started
 
-**Templates before VMs.** From `homelab-iac/homelab-tier-0`:
+**Templates before managed VMs.** One manual Linux template creates the bootstrap
+VM first; the [bootstrap guide](../../deployment/foundation/proxmox/bootstrap.md)
+prepares the execution host before API publication. From `homelab-iac/homelab-tier-0`:
 
 ```bash
 bash scripts/proxmox-templates.sh init

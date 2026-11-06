@@ -71,8 +71,8 @@ host is a valid pilot; cluster membership, HA, and SDN are explicit choices.
 | 3. Prepare networking | Follow [host networking](network.md) and approved gateway/firewall policy | Management, cluster/storage links, and intended guest paths are tested |
 | 4. Optional cluster/HA | Follow [cluster and HA](../step-1b-cluster-ha.md), including shared storage and failure-domain planning | Quorum is healthy; guest mobility prerequisites are met |
 | 5. Optional SDN | Configure [guest VNets](network.md#optional-sdn-for-guest-networks) on eligible nodes | VNet/bridge IDs and VLAN policy match the tier inputs |
-| 6. Protect access and data | Configure [API access](api-access.md), [backups](../../../administration/compute/backup-restore.md), and the [hardening baseline](../../../administration/compute/hardening.md) | Scoped credentials, recovery access, and restore checks work |
-| 7. Publish templates | Run the [local template workflow](../../../administration/compute/template-lifecycle.md#local-workflow) | Disposable clones boot with the correct disks and networks |
+| 6. First Linux template | Follow the [manual GUI image import](templates.md); an accepted existing template is valid | An unconfigured Linux template can boot a disposable clone |
+| 7. Bootstrap and qualify | Prepare the [bootstrap execution host](bootstrap.md), then follow [foundation template acceptance](../README.md#step-3-publish-and-test-vm-templates) | Tools, artifact custody, CA/API trust, original state and clone/backup checks work |
 | 8. Start capabilities | Accept [Stage 1: Software intake](../../stage-1-software-intake/README.md), then begin [Stage 2: Protected logging](../../stage-2-logging/README.md) | Approved supply and protected collection work before trust, clusters and identity |
 
 The installer writes the selected disks; back up existing contents before

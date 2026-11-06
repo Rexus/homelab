@@ -4,6 +4,9 @@
 Each consuming tier supplies its own authorized credentials through local inputs, never Shared.
 
 **Design:** [protected provisioning](../../../architecture/compute/provisioning.md).
+For a first installation, prepare the [bootstrap execution host](bootstrap.md)
+after the first manual Linux template. API caller trust and local credentials
+belong on that execution host, not only on the workstation displaying these guides.
 
 ## Table of contents
 

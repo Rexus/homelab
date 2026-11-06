@@ -17,6 +17,9 @@ in private generated repositories, a private fork, or a local working copy.
 
 ## Getting started
 
+For a first installation without a prepared execution host, follow the
+[manual template and bootstrap-host steps](docs/deployment/foundation/README.md) first.
+
 From this cloned repository, generate the IaC collection:
 
 ```bash

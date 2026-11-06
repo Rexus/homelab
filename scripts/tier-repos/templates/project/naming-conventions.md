@@ -47,6 +47,7 @@ describe capabilities, independently of the deployed product.
 | `idm` | Identity management | Directory authority. |
 | `idp` | Identity provider | Application authentication and federation. |
 | `ca` | Certificate authority | Certificate issuance. |
+| `bootstrap` | Bootstrap execution host | Initial privileged operator tooling; separate from the later CI runner. |
 | `edge-lb` | Edge load balancer | Service entry point. |
 | `db` | Database | Data service. |
 | `k8node` | Kubernetes node | Cluster node role; not normally a service alias. |

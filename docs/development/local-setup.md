@@ -8,6 +8,7 @@
 - [Automation VM example](#automation-vm-example)
 - [Local repository files](#local-repository-files)
 - [Read more](#read-more)
+- [References](#references)
 
 ## Purpose
 
@@ -16,6 +17,10 @@ deployment. Start with the [generated repository model](generated-repositories.m
 for tier ownership and the generator's Python/PyYAML prerequisites.
 Generating repositories needs no platform access; deployment needs the inputs
 below.
+For the first installation, follow the
+[bootstrap execution-host guide](../deployment/foundation/proxmox/bootstrap.md):
+manual Linux template, bootstrap VM, tools/artifacts, verified CA/API access, then IaC.
+This document owns tooling installation, not the VM creation sequence.
 
 ## Platform prerequisites
 
@@ -46,9 +51,12 @@ Require these tools there:
 
 - Git
 - Bash (Linux or WSL for deployment)
+- Python 3 and PyYAML for generation and repository helpers
 - `terraform`
 - `ansible-core`
 - SSH client tools
+- `ca-certificates`, curl and OpenSSL for verified API access
+- `xz`, `unzip` and tar for approved artifact unpacking
 
 `Packer` is only needed when building templates from the same machine.
 
@@ -95,17 +103,37 @@ setup.
 
 After the first template exists, a small dedicated automation VM is often
 easier to keep stable than using a personal workstation.
+Create it with the [bootstrap deployment guide](../deployment/foundation/proxmox/bootstrap.md),
+then install the tools below on that VM. An accepted independent workstation is
+also valid. Proxmox hosts and Talos nodes are not general-purpose deployment machines.
 
-For a RHEL, CentOS Stream, AlmaLinux, or Rocky Linux automation VM, one current
-example is:
+For the AlmaLinux/Rocky Linux reference VM, use approved OS/vendor package sources.
+Enable EPEL only when permitted by the software-intake policy. Confirm repository
+signing keys through the official installation instructions before accepting them;
+never disable package-signature or TLS checks. [1][2]
 
 ```bash
 sudo dnf install -y epel-release
-sudo dnf install -y ansible-core
+sudo dnf install -y git bash python3 python3-pip python3-pyyaml ansible-core \
+  openssh-clients ca-certificates curl openssl xz unzip tar
 sudo dnf install -y yum-utils
 sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
 sudo dnf install -y terraform
 ```
+
+Check the installed tools before cloning/generation and before provisioning:
+
+```bash
+git --version
+python3 -c 'import yaml; print(yaml.__version__)'
+terraform version
+ansible-playbook --version
+```
+
+Use versions satisfying the selected Terraform roots and Ansible collections;
+an installed executable alone is not compatibility evidence. For an offline host,
+transfer approved packages/wheels/provider/collection archives first. Do not make
+this initial tool setup depend on the proxy/cache or hosted registry being deployed.
 
 For other distributions, follow the current official install guides for
 [Terraform](https://developer.hashicorp.com/terraform/install) and
@@ -160,3 +188,10 @@ encrypted off-host recovery separately.
 - [Windows and AD support](../architecture/identity/windows-integration.md)
 - [Deployment readiness](../deployment/readiness.md)
 - [Proxmox reference platform](../deployment/foundation/proxmox/README.md)
+
+## References
+
+Sources checked 2026-11-06.
+
+1. [HashiCorp Terraform installation](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli).
+2. [Ansible distribution packages and EPEL](https://docs.ansible.com/projects/ansible/latest/installation_guide/installation_distros.html).

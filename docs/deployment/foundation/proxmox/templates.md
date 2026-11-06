@@ -3,6 +3,8 @@
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** Proxmox VE 9+, approved image sources, unused template VMIDs,
 an image datastore with **Import** content, and live VM storage on the eligible hosts.
+For the first manual Linux image, use the independent workstation and Proxmox GUI;
+the generated repositories and API publisher are not prerequisites for this guide.
 
 One GUI disk-import workflow covers AlmaLinux, Rocky Linux and Talos. Choose the
 image below, then follow Steps 1-3. Talos-specific differences are explicit;
@@ -109,6 +111,10 @@ qualify live migration on mixed hardware.
 For EL packages or cleanup that require booting a builder, follow the
 [mutable Linux refresh](../../../administration/compute/template-lifecycle.md#mutable-linux-refresh); never capture a configured
 Talos node back into a base template. Disposable clone tests must not modify the template.
+
+For the initial foundation, continue with the [bootstrap execution host](bootstrap.md):
+clone the tested Linux template to prepare the machine that will run the remaining IaC.
+Do not capture that machine's credentials or state back into the reusable template.
 
 DNS defaults must resolve required bootstrap services without this cluster or
 later FreeIPA/Keycloak. If the host defaults cannot do that, commission independent

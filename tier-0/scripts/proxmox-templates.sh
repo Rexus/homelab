@@ -19,9 +19,10 @@ if [[ $# == 0 || ! "$1" =~ ^(init|plan|import|apply)$ ]]; then
 fi
 action="$1"
 shift
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ "$(pwd -P)" != "$repo_root" ]]; then
+repo_root="$(CDPATH= cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+if [[ ! . -ef "$repo_root" ]]; then
   echo "Run this command from the Tier 0 repository root." >&2
+  echo "Expected: $repo_root; current: $(pwd -P)" >&2
   exit 1
 fi
 terraform_dir="$repo_root/terraform/deployments/templates"
