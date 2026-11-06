@@ -27,6 +27,7 @@ This creates `../homelab-iac/`, beside this checkout. Requires Python 3 with
 PyYAML; see [local tooling](docs/development/local-setup.md).
 Use `--prefix mylab` to rename the collection and repos, `--root /path/to/parent`
 to choose their parent directory, or `--dry-run` to preview without writing.
+Prefix casing is preserved in document headings; generated folder names are lowercase.
 
 ```text
 homelab-iac/                 # collection directory, not a Git repository

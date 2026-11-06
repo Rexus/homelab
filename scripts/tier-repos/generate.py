@@ -24,6 +24,17 @@ UPSTREAM = Path(__file__).resolve().parents[2]
 REPOSITORIES = ["shared", *TIERS, "architecture"]
 
 
+def check_directory_case(path):
+    if path.parent.is_dir():
+        conflicts = [child for child in path.parent.iterdir()
+                     if child.name.lower() == path.name and child.name != path.name]
+        if conflicts:
+            raise ValueError(f"Existing mixed-case path: {conflicts[0]}. "
+                             f"Rename it to {path.name} before generation or refresh; "
+                             "no automatic directory/state migration is performed. "
+                             "See docs/development/generated-repositories.md#prefix-casing.")
+
+
 def tier_repo(writer, tier, prefix):
     setups = tier_setups(UPSTREAM, tier)
     copy_payload(writer, UPSTREAM, tier, prefix)
@@ -41,7 +52,8 @@ def tier_repo(writer, tier, prefix):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--prefix", default="homelab", help="Repository name prefix (default: homelab).")
+    parser.add_argument("--prefix", default="homelab",
+                        help="Display prefix; folder names use lowercase (default: homelab).")
     parser.add_argument("--root", type=Path, default=UPSTREAM.parent,
                         help="Parent of <prefix>-iac/ (default: beside this kit checkout).")
     parser.add_argument("--repo", action="append", choices=[*REPOSITORIES, "all"], help="Repeat to select repositories.")
@@ -50,19 +62,25 @@ def main():
     args = parser.parse_args()
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]*", args.prefix):
         parser.error("--prefix must start with a letter or number and contain only letters, numbers, and dashes")
-    collection = args.root / f"{args.prefix}-iac"
+    repo_prefix = args.prefix.lower()
+    collection = args.root / f"{repo_prefix}-iac"
+    check_directory_case(collection)
     if collection.is_symlink() or UPSTREAM.is_relative_to(collection.resolve()):
         parser.error(f"Collection must not contain the upstream or replace a symlink: {collection}")
     print(f"Collection: {collection.resolve()}")
     if (collection / ".git").exists():
         parser.error("The collection directory must not be a Git repository; each child owns its history")
     selected = REPOSITORIES if not args.repo or "all" in args.repo else list(dict.fromkeys(args.repo))
-    validate_layout(UPSTREAM)
-    for name in selected:
-        destination = collection / f"{args.prefix}-{name}"
+    # Check every sibling's casing: selected repositories may link to any of the others.
+    for name in REPOSITORIES:
+        check_directory_case(collection / f"{repo_prefix}-{name}")
+    destinations = {name: collection / f"{repo_prefix}-{name}" for name in selected}
+    for destination in destinations.values():
         if destination.is_symlink() or UPSTREAM.is_relative_to(destination.resolve()):
             parser.error(f"Output must not replace the upstream or a symlink: {destination}")
-        writer = RepositoryWriter(destination, args.refresh, args.dry_run)
+    validate_layout(UPSTREAM)
+    for name in selected:
+        writer = RepositoryWriter(destinations[name], args.refresh, args.dry_run)
         writer.write(".gitattributes", f"# {MARKER}\n* text=auto eol=lf\n")
         writer.write(".gitignore", f"# {MARKER}\n" + read_file(UPSTREAM / ".gitignore"))
         copy_attribution(writer, UPSTREAM, name)

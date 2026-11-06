@@ -9,7 +9,7 @@ alternatives; deployment records establish which results have been verified.
 
 ${scope}
 
-Start with the [platform selections](../../../${prefix}-architecture/docs/README.md#selected-design)
+Start with the [platform selections](../../../${repo_prefix}-architecture/docs/README.md#selected-design)
 and [reference domains](${docs}/architecture/README.md#technical-domains),
 then use this record to inspect the owned components. Project-wide conventions
 and topology belong in that architecture repository. The

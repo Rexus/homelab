@@ -22,7 +22,8 @@ def tier_readme(writer, tier, prefix, setups):
         "tier-2": ("- `terraform/deployments/kubernetes/` and `clusters/tier2/`: workload cluster and manifests\n"
                    "- `environments/` and `workloads/`: project and workload definitions"),
     }
-    docs = f"../{prefix}-architecture/{AUTO_DOCS}"
+    repo_prefix = prefix.lower()
+    docs = f"../{repo_prefix}-architecture/{AUTO_DOCS}"
     deployments = [
         f"| `{setup}` | [main.tf](terraform/deployments/{setup}/main.tf) "
         f"| [playbook](ansible/playbooks/{setup}.yml) |"
@@ -96,7 +97,7 @@ def tier_readme(writer, tier, prefix, setups):
             "Its native Helm recipe installs GitLab and on-demand Kubernetes job runners.\n"
             "External data services are prerequisites; the Linux VM quick start below is an alternative.\n"
         )
-    owned_template(writer, "readmes/tier.md", "README.md", prefix=prefix,
+    owned_template(writer, "readmes/tier.md", "README.md", prefix=prefix, repo_prefix=repo_prefix,
                    tier_title=tier.replace("-", " ").title(), purpose=descriptions[tier],
                    example="syslog" if tier == "tier-0" else setups[0], extra_paths=extra_paths[tier],
                    prerequisites=prerequisites, docs=docs, tier=tier,
@@ -106,7 +107,7 @@ def tier_readme(writer, tier, prefix, setups):
 
 def shared_readme(writer, prefix):
     owned_template(writer, "readmes/shared.md", "README.md", prefix=prefix,
-                   docs=f"../{prefix}-architecture/{AUTO_DOCS}")
+                   repo_prefix=prefix.lower(), docs=f"../{prefix.lower()}-architecture/{AUTO_DOCS}")
     repository_guides(writer, "shared", prefix, "reusable automation and common platform references")
 
 
@@ -121,7 +122,7 @@ def copy_documentation(writer, prefix, upstream):
             parts = source.parts
             if parts[0] not in ("shared", "tier-0", "tier-1", "tier-2"):
                 return match[0]
-            destination = writer.root.parent / f"{prefix}-{parts[0]}" / Path(*parts[1:])
+            destination = writer.root.parent / f"{prefix.lower()}-{parts[0]}" / Path(*parts[1:])
             return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
 
         # Preserve local doc links; source files and repository roots move between repos.

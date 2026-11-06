@@ -102,13 +102,14 @@ def validate_layout(upstream):
 
 def copy_payload(writer, upstream, name, prefix):
     root = upstream / name
+    repo_prefix = prefix.lower()
 
     def copy(path):
         relative = path.relative_to(root)
         content = read_file(path)
         # The source and generated collections have the same sibling layout.
-        content = re.sub(r"(?<=\.\./)shared(?=[/\"'\s]|$)", f"{prefix}-shared", content)
-        content = content.replace("check out shared beside", f"check out {prefix}-shared beside")
+        content = re.sub(r"(?<=\.\./)shared(?=[/\"'\s]|$)", f"{repo_prefix}-shared", content)
+        content = content.replace("check out shared beside", f"check out {repo_prefix}-shared beside")
         owned = (relative.parts[0] in OWNED_TREES
                  or relative.as_posix() == "templates/proxmox-catalog.tfvars"
                  or relative.as_posix() == "config/platform.tfvars"

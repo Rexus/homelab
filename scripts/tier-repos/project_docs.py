@@ -60,12 +60,13 @@ def repository_guides(writer, repo, prefix, scope):
                    "| Lab environments | Select isolated Linux VMs or Kubernetes environments | Lab root or cluster manifests; record acceptance checks |"),
         "shared": "| Common automation | Review platform references, sizes and image catalog | Scripts and baseline roles; no inventory or state |",
     }
-    docs = f"../../{prefix}-architecture/docs/auto-docs"
+    repo_prefix = prefix.lower()
+    docs = f"../../{repo_prefix}-architecture/docs/auto-docs"
     title = repo.replace("-", " ").title()
     owned_template(writer, "project/repository-index.md", "docs/README.md",
-                   title=title, prefix=prefix, docs=docs)
+                   title=title, prefix=prefix, repo_prefix=repo_prefix, docs=docs)
     owned_template(writer, "project/repository-design.md", "docs/architecture/README.md",
-                   legacy="docs/architecture.md", title=title, prefix=prefix,
+                   legacy="docs/architecture.md", title=title, prefix=prefix, repo_prefix=repo_prefix,
                    scope=f"This repository owns {scope}.", selections=selections[repo], docs=f"../{docs}")
     workflow_guides(writer, repo, f"../{docs}")
     if repo == "tier-0":
@@ -81,7 +82,7 @@ def architecture_scaffold(writer, prefix):
         ("project/index.md", "docs/README.md"),
         ("project/naming-conventions.md", "docs/naming-conventions.md"),
     ):
-        owned_template(writer, template, target, prefix=prefix,
+        owned_template(writer, template, target, prefix=prefix, repo_prefix=prefix.lower(),
                        legacy=previous_design if target == "docs/README.md" else None)
     if any((writer.root / path).exists() for path in ("docs/architecture", "docs/deployment",
                                                     "docs/development", "docs/administration")):

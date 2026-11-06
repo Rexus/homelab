@@ -2,22 +2,22 @@
 
 This repository owns ${purpose}.
 Workload definitions, service playbooks and roles, inventory, and separate state roots belong here.
-Common building blocks come from `${prefix}-shared`; design and operating documentation
-live in `${prefix}-architecture`.
+Common building blocks come from `${repo_prefix}-shared`; design and operating documentation
+live in `${repo_prefix}-architecture`.
 
 ## Getting started
 
-Review the project's [naming conventions](../${prefix}-architecture/docs/naming-conventions.md)
+Review the project's [naming conventions](../${repo_prefix}-architecture/docs/naming-conventions.md)
 before creating resources. Keep the sibling shared and architecture repositories
 available locally.
 
 Approved image IDs and titles come from the sibling shared repository's
-[template catalog](../${prefix}-shared/templates/proxmox-catalog.tfvars).
-The [shared deploy helper](../${prefix}-shared/scripts/deploy.sh) loads it;
+[template catalog](../${repo_prefix}-shared/templates/proxmox-catalog.tfvars).
+The [shared deploy helper](../${repo_prefix}-shared/scripts/deploy.sh) loads it;
 the tier-local [inventory resolver](terraform/modules/environment_guests)
 and [VM module](terraform/modules/vm) own the resources. Shared supplies
-[size profiles](../${prefix}-shared/config/guest-sizes.json), image references,
-and a project-owned [platform profile](../${prefix}-shared/config/platform.tfvars).
+[size profiles](../${repo_prefix}-shared/config/guest-sizes.json), image references,
+and a project-owned [platform profile](../${repo_prefix}-shared/config/platform.tfvars).
 Set workload tags here, not template recipes. Only Tier 0 publishes templates
 and approves catalog changes.
 
@@ -32,7 +32,7 @@ ${prerequisites}
 After the checklist's prerequisites, initialize a Linux VM setup from this root:
 
 ```bash
-bash ../${prefix}-shared/scripts/init-local-files.sh --setup ${example}
+bash ../${repo_prefix}-shared/scripts/init-local-files.sh --setup ${example}
 ```
 
 Use `--setup` to select an entry in `.deployment-setups`. These commands use the
@@ -50,7 +50,7 @@ in [platform inputs](${docs}/reference/platform-inputs.md). Follow the
 [setup guide](${docs}/reference/repository-scripts.md#available-setups), then plan:
 
 ```bash
-bash ../${prefix}-shared/scripts/deploy.sh ${example} --plan-only
+bash ../${repo_prefix}-shared/scripts/deploy.sh ${example} --plan-only
 ```
 
 Review the plan, then follow the setup guide's provisioning and configuration steps.
@@ -77,8 +77,8 @@ Start with a deployment's `main.tf`, then follow its module calls into
 See the [Terraform design map](${docs}/development/code-layout.md#terraform-structure)
 for file responsibilities and the inventory-to-resource flow.
 
-All entry points below belong to `${prefix}-${tier}`. Reusable execution code
-in `${prefix}-shared` does not own these deployments or their inventory and state.
+All entry points below belong to `${repo_prefix}-${tier}`. Reusable execution code
+in `${repo_prefix}-shared` does not own these deployments or their inventory and state.
 Upstream guides name their owners using the [repository map](${docs}/deployment/README.md#repository-locations).
 
 | Deployment | Terraform entry point | Host configuration or images |
@@ -89,7 +89,7 @@ ${deployments}
 
 - [Selected architecture](docs/architecture/README.md)
 - [Local deployment, development and administration guides](docs/README.md)
-- [Project documentation](../${prefix}-architecture/docs/README.md)
+- [Project documentation](../${repo_prefix}-architecture/docs/README.md)
 - [Deployment order](${docs}/paths/${tier}/README.md)
 - [Recovery guides](${docs}/administration/recovery.md)
 - [Architecture and tier boundaries](${docs}/architecture/tier-ownership.md)

@@ -59,10 +59,10 @@ This checklist tracks progress, not resource or state ownership.
 
 | Repository | Local code and inputs |
 | --- | --- |
-| [Tier 0](../../${prefix}-tier-0/README.md) | Hardware control, templates, trust, directory and control cluster |
-| [Tier 1](../../${prefix}-tier-1/README.md) | Platform cluster, delivery, Observability and development services |
-| [Tier 2](../../${prefix}-tier-2/README.md) | Edge/cache and isolated applications/labs |
-| [Shared](../../${prefix}-shared/README.md) | Reusable execution and stateless references; never inventory or state |
+| [Tier 0](../../${repo_prefix}-tier-0/README.md) | Hardware control, templates, trust, directory and control cluster |
+| [Tier 1](../../${repo_prefix}-tier-1/README.md) | Platform cluster, delivery, Observability and development services |
+| [Tier 2](../../${repo_prefix}-tier-2/README.md) | Edge/cache and isolated applications/labs |
+| [Shared](../../${repo_prefix}-shared/README.md) | Reusable execution and stateless references; never inventory or state |
 
 ## Operate and change
 

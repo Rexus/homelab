@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Purpose and prerequisites](#purpose-and-prerequisites)
+- [Prefix casing](#prefix-casing)
 - [Repository ownership](#repository-ownership)
 - [Licensing and attribution](#licensing-and-attribution)
 - [Inventory contract](#inventory-contract)
@@ -46,6 +47,32 @@ environment before later generation or refresh. Install the OS Python venv packa
 first if `python3 -m venv` is unavailable; do not bypass managed-system Python protections.
 Generation needs no server, provider credentials, or hosted source control.
 It creates directories and files; it does not initialize Git or create remotes.
+
+## Prefix casing
+
+`--prefix` preserves the selected display spelling in README headings and project
+records; collection/repository folders, sibling links and commands use lowercase.
+For example, `--prefix HomeLab` produces headings such as `HomeLab Tier 0` inside
+`homelab-iac/homelab-tier-0/`, alongside `homelab-shared/` and `homelab-architecture/`.
+The supplied `--root` path is not renamed or lowercased.
+
+Existing mixed-case folders are **not renamed automatically**. Generation and refresh
+stop before writing when a collection or repository sibling differs only in case;
+do not create a second collection or initialize a fresh state to work around this check.
+For an older collection:
+
+1. Stop automation and back up all repository contents, local inputs and original state.
+2. Rename the collection and all five repository folders to lowercase. On a case-insensitive
+   filesystem, use a temporary intermediate name when required. Preserve `.git`, ignored
+   files and state; do not copy only tracked files into a new checkout.
+3. Update project-owned README links, commands, CI working directories and explicit absolute
+   paths. Confirm that backend paths still select the **original state**, then run refresh
+   with the original display prefix, `--root` and `--dry-run` before applying the refresh.
+
+Refresh can update unchanged generated helpers/auto-docs to lowercase references;
+project-owned READMEs and local documentation remain untouched. They may retain older
+mixed-case links until explicitly edited. Rerunning with another casing of the same
+prefix reuses the lowercase directories and does not rewrite those owned documents.
 
 ## Repository ownership
 
