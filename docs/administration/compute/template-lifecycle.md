@@ -15,6 +15,7 @@ Tier 0-owned automation, not a prerequisite for creating templates.
 - [Prerequisites](#prerequisites)
 - [Ownership](#ownership)
 - [Local workflow](#local-workflow)
+- [Adopt existing templates](#adopt-existing-templates)
 - [Updates and promotion](#updates-and-promotion)
 - [Mutable Linux refresh](#mutable-linux-refresh)
 - [GitLab CI example](#gitlab-ci-example)
@@ -27,11 +28,12 @@ Tier 0-owned automation, not a prerequisite for creating templates.
 - A Proxmox host with protected Tier 0 administration, API access, and trusted TLS.
 - Proxmox VE 9 with `Import` content enabled on the image datastore. The Tier 0
   module uses API-backed image upload and disk import. [1][2]
-- Linux or WSL with Terraform; retain the provider lock file and a local
+- Linux or WSL with Terraform 1.7+; retain the provider lock file and a local
   provider mirror for recovery. The root constrains the supported provider.
 - Approved, unpacked images on the execution host, exact releases, SHA256
   values, unused VMIDs, and approved bridge/storage allocations.
-- A local Tier 0 checkout at a reviewed revision; this publisher does not need shared.
+- A local Tier 0 checkout at a reviewed revision. The shared platform profile supplies
+  storage-class references when available; explicit catalog datastore IDs also work without Shared.
 
 Verify vendor provenance before approving images for Tier 0. For an offline
 custody deployment, acquire and verify outside the air gap, then transfer through
@@ -42,8 +44,10 @@ Use the [common VM template guide](../../deployment/foundation/proxmox/templates
 for image selection and GUI import, including Talos Image Factory, unpacking and firmware.
 
 Fresh publication examples select UEFI (`bios: ovmf`, `machine: q35`) with a 4m
-EFI disk and pre-enrolled keys off. Talos also selects `virtio-scsi-pci` and its
-schematic's QEMU agent; fixed memory disables ballooning. Omitted firmware inputs
+EFI disk and pre-enrolled keys off. Common settings use `virtio-scsi-pci` and enable
+the QEMU agent; the image must contain it (Talos needs the Factory extension).
+Set `qemu_agent: false` for an image without that component. Fixed memory disables ballooning.
+Omitted firmware inputs
 retain existing BIOS templates. Add a new candidate VMID rather than changing
 an existing template's boot contract; consuming clusters must match it explicitly.
 
@@ -87,19 +91,27 @@ unused example entries before the first apply. Record exact releases and the
 unpacked image hashes, and use absolute local artifact paths. The initializer
 does not overwrite an existing catalog.
 
-Supply `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` through the shell or
-protected runner environment. The token format is `user@realm!token=secret`.
-This native-provider workflow does not load `.env.local` or the Linux wrapper's
-`TF_VAR_proxmox_*` aliases. TLS verification stays enabled. [3]
+Initialization also creates `.env.local` from `env.local.example` if absent, with
+owner-only permissions. Edit its endpoint, token ID and secret; it is ignored by Git.
+Use **`--env-file .env.local`** on local plan/import/apply commands. The script parses
+literal assignments without executing shell expressions and maps `PROXMOX_API_URL`,
+`PROXMOX_API_TOKEN_ID` and `PROXMOX_API_TOKEN_SECRET` to the provider's native variables.
+Do not run `source`, `set -a` or manual token concatenation.
+
+Runners may instead export `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`
+(`user@realm!token=secret`) or the three aliases and omit `--env-file`.
+Conflicting native/alias credentials are rejected. TLS verification stays enabled;
+complete the [bootstrap CA trust procedure](proxmox-tls.md#step-1-trust-the-bootstrap-ca)
+first, even before platform PKI exists. [3]
 
 ```bash
-bash scripts/proxmox-templates.sh plan
+bash scripts/proxmox-templates.sh plan --env-file .env.local
 ```
 
 Review the plan, then publish exactly that saved plan:
 
 ```bash
-bash scripts/proxmox-templates.sh apply
+bash scripts/proxmox-templates.sh apply --env-file .env.local
 ```
 
 The default state is `.terraform/state/proxmox-templates/terraform.tfstate`;
@@ -108,10 +120,80 @@ state location, set `TEMPLATE_STATE_PATH` to its absolute path **before both
 plan and apply**. `TEMPLATE_CATALOG_FILE` similarly selects an absolute catalog
 path. Back up state independently of the cluster and CI service.
 
-Only new stopped template candidates are published. No guest is booted,
+For fresh publication, only new stopped template candidates are published. No guest is booted,
 cluster created, existing template deleted, or consumer catalog changed.
 The module blocks resource destruction and replacement while its lifecycle
 guards remain in configuration. Do not remove those guards during normal updates.
+
+### Catalog fields and defaults
+
+The YAML catalog is an input file, not another IaC implementation. The resources live in
+Tier 0's `terraform/modules/proxmox_templates/`; `terraform/deployments/templates/main.tf`
+merges `all:` into each entry under `templates:`. A build overrides individual fields;
+lists such as `tags` replace the common list rather than deep-merging it.
+
+| Input | Meaning |
+| --- | --- |
+| `all:` | Common placement, hardware, firmware, agent and additional tags |
+| `storage_class` | Class in Shared `config/platform.tfvars`, selecting its `vm_disk` datastore |
+| `datastore_id` | Explicit live disk/EFI storage override; wins over `storage_class` |
+| `image_datastore_id` | Tier 0 staging datastore with Import content; independent of live storage |
+| `cloud_init_drive` / `cloud_init_datastore_id` | Empty NoCloud media at `ide2` / override of class `cloud_init_drive` or live disk storage |
+| `family` / `distribution` | OS family (`redhat`, `debian`, `talos`) / selected distribution (`alma`, `rocky`, etc.); Fedora uses the `redhat` family |
+| `tags` | Additional tags; `tier-0`, `template` and distribution tags are always added |
+| `image_path` / `sha256` | Absolute local unpacked artifact path / approved hash of those bytes |
+| `image_file_name` | Optional existing Import basename; defaults to `<vm_id>-<sha256>.raw` or `.qcow2` |
+| `release` / `schematic_id` | Exact build version / mandatory Talos Factory schematic |
+
+The script loads the sibling Shared platform profile if present. Use `--platform-file PATH`
+or `TEMPLATE_PLATFORM_FILE` for another profile; catalog `datastore_id` and `node_name`
+override shared references. A missing storage class fails validation rather than falling
+back silently. Shared owns no template resources, image staging inventory or state.
+
+Existing flat catalogs remain valid; `all:` is optional. Legacy `family: alma`/`rocky`
+is accepted. Preserve existing hardware/firmware and explicit `qemu_agent: false` where
+required; the new default is true. Changing a revision's inputs can cause drift even
+when its VMID is unchanged. Review before applying, never force replacement to fix adoption.
+Fresh examples include empty CloudInit media, matching the GUI guide; existing catalogs
+without `cloud_init_drive` keep the no-media behavior. All addresses/accounts stay clone-local.
+
+## Adopt existing templates
+
+For manually created templates, **adopt instead of creating another copy**. Stop other
+writers and back up any existing Terraform state. Confirm that no other root owns the
+VMIDs/files. Populate the catalog with the actual VMID, name, node, image datastore,
+hardware and original artifact/hash; keep map keys stable afterwards.
+
+1. Find the exact uploaded filename in **Node > storage > Import**, or run
+   `pvesm list <image_datastore_id> --content-type import` on the Proxmox host.
+   Set `image_file_name` to that basename, for example `nocloud-amd64.raw`; no rename
+   to the default hash-based convention is necessary. Independently confirm the remote
+   file's SHA256 against the approved artifact; discovery checks identity, **not remote bytes**.
+   Upload metadata is write-once: adoption does not re-upload or change existing file
+   contents. `image_file_name` is checked against the actual filename. A changed
+   artifact/version requires a new catalog key/VMID, not an in-place source edit.
+2. From the Tier 0 root, prepare the adoption plan:
+
+   ```bash
+   bash scripts/proxmox-templates.sh import --env-file .env.local
+   ```
+
+   Terraform reads the catalog, discovers matching files and VMIDs using the provider,
+   and adds native `import` blocks to the plan. A matching VM must be a stopped template
+   with exactly the configured name and node. Ordinary/running/mismatched VMs fail the
+   adoption gate. Unrelated resources are not imported. API visibility must cover every
+   selected VMID; an invisible resource cannot be distinguished from an absent one.
+3. Review **imports and all proposed changes**. Missing resources are planned as creations;
+   an existing VM may need input alignment. Adoption is not a guarantee of a no-change plan.
+   Stop on disk/firmware changes, replacement or unexpected deletion; do not remove lifecycle guards.
+   After acceptance, run the same `apply --env-file .env.local` command above.
+
+The `import` command prepares a plan only: it does not write state or change Proxmox.
+Applying that plan records imports and performs any other approved listed actions. [6]
+Then run a normal `plan --env-file .env.local` and confirm the expected no-change result.
+Already-managed identities are not re-imported. Partial adoption after an interrupted apply
+can be reconciled by rerunning `import` with the same catalog/state; never start with a fresh state.
+State, provider cache and saved-plan paths are identical for publication and adoption.
 
 ## Updates and promotion
 
@@ -245,3 +327,4 @@ They do not boot or verify real images; disposable clone tests remain required.
 3. [Proxmox provider authentication](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/docs/index.md), accessed 2026-09-17.
 4. [GitLab CI YAML reference](https://docs.gitlab.com/ci/yaml/), accessed 2026-09-17.
 5. [GitLab resource groups](https://docs.gitlab.com/ci/resource_groups/), accessed 2026-09-17.
+6. [Terraform configuration-driven imports](https://developer.hashicorp.com/terraform/language/import), checked 2026-11-06.

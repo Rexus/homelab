@@ -47,6 +47,12 @@ settings, host inventory, or Terraform state.
    Changing the selected source template may replace VMs; pin existing guests
    with `template_vm_id` when they must stay on their current revision.
 
+Use OS-family terms consistently: `redhat` for AlmaLinux/Rocky/Fedora, `debian`
+for Debian-derived images, and `talos` for Talos. Tier 0's publication catalog
+separately records `distribution`; consumer titles/tags retain that specificity.
+Existing consumer entries using `family: alma` or `rocky` remain accepted; changing
+metadata does not approve a different image or change its VMID.
+
 Retain old entries while guests or recovery procedures use them. Prefer a new
 VMID for each approved revision. The optional Tier 0 same-ID refresh workflow
 has its own explicit replacement gate and does not change this ownership model.

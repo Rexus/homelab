@@ -2,64 +2,66 @@
 # Compute foundation: publish templates locally before creating managed VMs or the control cluster.
 # Reference: docs/administration/compute/template-lifecycle.md
 # Replace every value. Keep only the images being managed by this state.
+# Each build overrides individual all fields; lists (including tags) are replaced, not merged.
 # Connected Tier 0 uses a protected control network; offline custody needs a separate isolated fabric.
 # Add a new entry and VMID for every revision; retain previous entries for rollback.
+all:
+  node_name: pve01
+  # Shared config/platform.tfvars: proxmox_storage_classes.shared.vm_disk.
+  # Explicit datastore_id here or in one build overrides storage_class.
+  storage_class: shared
+  # Tier 0-local image staging with Import content; not the live VM disk class.
+  image_datastore_id: local
+  bridge: control
+  bios: ovmf
+  machine: q35
+  scsi_hardware: virtio-scsi-pci
+  qemu_agent: true
+  cpu_type: x86-64-v3
+  cores: 2
+  memory_mb: 4096
+  disk_size_gb: 32
+  # Empty NoCloud drive at ide2, matching the GUI guide; configure networking only on clones.
+  cloud_init_drive: true
+  # Added to mandatory tier-0/template/distribution tags; override for individual builds.
+  tags: []
+
 templates:
   debian-build-1:
     family: debian
+    distribution: debian
     release: REPLACE_WITH_EXACT_DEBIAN_12_BUILD
     vm_id: 9103
     name: debian-template-build-1
-    node_name: pve01
-    datastore_id: local-lvm
-    image_datastore_id: local
     image_path: /srv/tier0/artifacts/debian-12-genericcloud-amd64.qcow2
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
-    bridge: control
-    bios: ovmf
-    machine: q35
   alma-build-1:
-    family: alma
+    family: redhat
+    distribution: alma
     release: REPLACE_WITH_EXACT_RELEASE_AND_BUILD
     vm_id: 9100
     name: alma-template-build-1
-    node_name: pve01
-    datastore_id: local-lvm
-    image_datastore_id: local
     image_path: /srv/tier0/artifacts/alma-build-1.qcow2
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
-    bridge: control
-    bios: ovmf
-    machine: q35
   rocky-build-1:
-    family: rocky
+    family: redhat
+    distribution: rocky
     release: REPLACE_WITH_EXACT_RELEASE_AND_BUILD
     vm_id: 9101
     name: rocky-template-build-1
-    node_name: pve01
-    datastore_id: local-lvm
-    image_datastore_id: local
     image_path: /srv/tier0/artifacts/rocky-build-1.qcow2
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
-    bridge: control
-    bios: ovmf
-    machine: q35
   talos-build-1:
     family: talos
+    distribution: talos
     release: REPLACE_WITH_EXACT_TALOS_VERSION
     schematic_id: REPLACE_WITH_IMAGE_FACTORY_SCHEMATIC_ID
     vm_id: 9102
     name: talos-template-build-1
-    node_name: pve01
-    datastore_id: local-lvm
-    image_datastore_id: local
     image_path: /srv/tier0/artifacts/nocloud-amd64.raw
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
-    bridge: control
+    # When adopting a GUI upload, preserve its exact basename instead of renaming it:
+    # image_file_name: nocloud-amd64.raw
     # Image Factory: Cloud server / NoCloud / amd64 / UEFI only (not Secure Boot).
     # Include siderolabs/qemu-guest-agent. Upload the unpacked .raw, not .raw.xz.
     # Firmware must match new consuming clusters; never change a live cluster implicitly.
-    bios: ovmf
-    machine: q35
-    scsi_hardware: virtio-scsi-pci
-    qemu_agent: true

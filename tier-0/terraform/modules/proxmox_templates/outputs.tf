@@ -6,6 +6,7 @@ output "catalog" {
       title         = image.name
       node_name     = image.node_name
       family        = image.family
+      distribution  = coalesce(image.distribution, image.family)
       release       = image.release
       sha256        = image.sha256
       schematic_id  = image.schematic_id

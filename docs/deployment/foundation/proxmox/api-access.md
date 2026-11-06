@@ -70,7 +70,8 @@ Use different endpoint formats depending on the tool:
 | --- | --- | --- |
 | Linux VM/LXC deployment wrapper | `PROXMOX_API_URL` | `https://pve.example.com:8006/` |
 | Packer Proxmox plugin | `PROXMOX_URL` | `https://pve.example.com:8006/api2/json` |
-| Native template publisher and Talos | `PROXMOX_VE_ENDPOINT` | `https://pve.example.com:8006/` |
+| Template publisher | `PROXMOX_API_URL` or `PROXMOX_VE_ENDPOINT` | `https://pve.example.com:8006/` |
+| Kubernetes cluster command (currently Talos) | `PROXMOX_VE_ENDPOINT` | `https://pve.example.com:8006/` |
 
 For Terraform in this repo, do not append `/api2/json`. The Linux deployment wrapper
 maps `PROXMOX_API_URL`, `PROXMOX_API_TOKEN_ID`, and
@@ -90,6 +91,11 @@ to install verified trust, use a matching endpoint name and remove any retained 
 from an older provider or runner. Installing a platform-issued certificate later does not automatically
 turn verification on. Do not treat a successful insecure plan as proof of server identity.
 Do not paste API tokens into commands or documents; follow the protected input paths below.
+
+On the Proxmox console, `/etc/pve/pve-root-ca.pem` is the public CA certificate to
+transfer. Install it on the bootstrap workstation before the first template plan;
+the linked procedure includes RHEL/Alma/Rocky and Debian/Ubuntu trust-store commands.
+Keep `insecure = false`; a self-signed bootstrap CA is not a reason to disable verification.
 
 ## Create Platform Automation Access
 
@@ -271,8 +277,10 @@ addition to the group ACLs.
 
 ## Use the token
 
-For Linux deployments, store the token in the ignored `.env.local` file or
-provide the same values through the runner.
+For Linux deployments and template publication, store the token in ignored
+`.env.local` or provide the same values through the runner. Template `init` creates
+the file if absent; for other paths create it with `cp -n env.local.example .env.local`
+and `chmod 600 .env.local`. Edit it before use:
 
 ```dotenv
 PROXMOX_API_URL=https://pve.example.com:8006/
@@ -280,11 +288,21 @@ PROXMOX_API_TOKEN_ID=automation@pve!provision
 PROXMOX_API_TOKEN_SECRET=replace-with-the-token-secret
 ```
 
-The Linux deployment wrapper combines the separate ID and secret for the
-Terraform provider. Tier 0's native [template publisher](../../../administration/compute/template-lifecycle.md)
-and [Kubernetes command](../../stage-4-kubernetes/procedures/talos-terraform.md#configure) instead consume exported
-`PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` (`user@realm!token=secret`);
-they do not load `.env.local` or map the Linux wrapper's aliases.
+The Linux wrapper loads `.env.local` by default. The
+[template publisher](../../../administration/compute/template-lifecycle.md#local-workflow)
+requires **`--env-file .env.local`** for local file loading and combines the aliases above;
+no `source`, exports or token concatenation are required:
+
+```bash
+bash scripts/proxmox-templates.sh plan --env-file .env.local
+```
+
+For manually created templates, follow
+[adoption](../../../administration/compute/template-lifecycle.md#adopt-existing-templates)
+and use `import --env-file .env.local` instead of the first publication plan.
+The separate [Kubernetes command](../../stage-4-kubernetes/procedures/talos-terraform.md#configure)
+still requires exported `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`
+(`user@realm!token=secret`); it does not load `.env.local`.
 
 ## Validate access
 

@@ -38,8 +38,8 @@ run "publish_unconfigured_templates" {
   }
 
   assert {
-    condition     = !proxmox_virtual_environment_vm.template["talos"].agent[0].enabled
-    error_message = "The QEMU agent must be opt-in for reviewed Talos schematics."
+    condition     = alltrue([for vm in proxmox_virtual_environment_vm.template : vm.agent[0].enabled])
+    error_message = "The publisher enables QEMU agent by default; the approved image must contain it."
   }
 
   assert {
@@ -54,6 +54,57 @@ run "publish_unconfigured_templates" {
     ])
     error_message = "Candidate references must report the actual Proxmox VMID and title."
   }
+}
+
+run "build_overrides_agent_tags_and_uploaded_filename" {
+  command = plan
+  variables {
+    images = { for key, image in var.images : key => merge(image, {
+      family          = key == "talos" ? "talos" : "redhat", distribution = key,
+      qemu_agent      = false, tags = ["approved"],
+      image_file_name = "${key}-original-upload.${key == "talos" ? "raw" : "qcow2"}"
+    }) }
+  }
+  assert {
+    condition = alltrue([for key, vm in proxmox_virtual_environment_vm.template :
+      !vm.agent[0].enabled && contains(vm.tags, "approved") && contains(vm.tags, key) &&
+      proxmox_virtual_environment_file.image[key].source_file[0].file_name == "${key}-original-upload.${key == "talos" ? "raw" : "qcow2"}"
+    ])
+    error_message = "Build overrides must preserve explicit agent settings, tags and existing upload names."
+  }
+}
+
+run "reject_missing_storage_class_resolution" {
+  command = plan
+  variables {
+    images = { for key, image in var.images : key => merge(image, { datastore_id = null }) }
+  }
+  expect_failures = [var.images]
+}
+
+run "empty_nocloud_media_matches_manual_templates" {
+  command = plan
+  variables {
+    images = { for key, image in var.images : key => merge(image, {
+      cloud_init_drive = true, cloud_init_datastore_id = "cloudinit-storage"
+    }) }
+  }
+  assert {
+    condition = alltrue([for vm in proxmox_virtual_environment_vm.template :
+      length(vm.initialization) == 1 && vm.initialization[0].type == "nocloud" &&
+      vm.initialization[0].interface == "ide2" && vm.initialization[0].datastore_id == "cloudinit-storage" &&
+      length(vm.initialization[0].user_account) == 0 && length(vm.initialization[0].ip_config) == 0
+    ])
+    error_message = "Template CloudInit media must be empty; machine identity and static IP belong to clones."
+  }
+}
+
+run "reject_image_filename_path" {
+  command = plan
+  variables {
+    images = { for key, image in var.images : key => merge(image, { image_file_name = "../other.qcow2" }) }
+  }
+  expect_failures = [var.images]
 }
 
 run "publish_uefi_image_profile" {

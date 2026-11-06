@@ -1,4 +1,14 @@
 output "template_candidates" {
   description = "Versioned candidates to test before promoting references into the shared consumer catalog."
   value       = module.templates.catalog
+  # A VMID match alone is not permission to adopt a running or unrelated machine.
+  precondition {
+    condition = alltrue([for key, id in local.vm_imports :
+      local.existing_vms[tostring(local.images[key].vm_id)].template &&
+      local.existing_vms[tostring(local.images[key].vm_id)].status == "stopped" &&
+      local.existing_vms[tostring(local.images[key].vm_id)].name == local.images[key].name &&
+      local.existing_vms[tostring(local.images[key].vm_id)].node_name == local.images[key].node_name
+    ])
+    error_message = "Adoption requires a stopped template with exactly the catalog VMID, name and node. Fix the catalog; never adopt an unrelated VM."
+  }
 }

@@ -39,7 +39,7 @@ these shared implementations.
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
 | `shared/scripts/gitlab-iac.sh` | executes explicitly trusted CI with Vault ID tokens and private saved plans | [Stage 9 handover](../deployment/stage-9-development/procedures/handover.md); not a tenant request API |
-| `tier-0/scripts/proxmox-templates.sh` | initializes, plans, or publishes Tier 0 templates | local recovery or template CD jobs |
+| `tier-0/scripts/proxmox-templates.sh` | initializes, plans publication/adoption, or applies Tier 0 templates | local recovery or template CD jobs |
 | `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../administration/logging-drill.md); no faults or service changes |
 | `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports private credentials/plan JSON; currently Talos | [Kubernetes cluster](../deployment/stage-4-kubernetes/procedures/kubernetes.md) |
 
@@ -78,8 +78,11 @@ Omit `--env <env>` for production.
 
 Template publication uses the separate
 [Tier 0 template workflow](../administration/compute/template-lifecycle.md#local-workflow),
-not `deploy.sh`. It uses provider-native environment variables, a local image
-catalog, and its own state; it never configures a Talos guest through Ansible.
+not `deploy.sh`. Pass `--env-file .env.local` to load local provider aliases, or
+export provider credentials in the runner. `import` discovers existing catalog-matching
+templates/files and prepares a reviewed adoption plan; only `apply` writes the imports.
+The YAML catalog and state stay Tier 0-owned; storage classes can reference Shared.
+It never configures a Talos guest through Ansible.
 
 Each tier's independent Kubernetes cluster currently uses the [Talos implementation](../deployment/stage-4-kubernetes/procedures/talos-terraform.md)
 and `bash scripts/kubernetes-cluster.sh init` from its own root. It owns a separate state

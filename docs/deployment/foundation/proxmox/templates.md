@@ -8,7 +8,9 @@ One GUI disk-import workflow covers AlmaLinux, Rocky Linux and Talos. Choose the
 image below, then follow Steps 1-3. Talos-specific differences are explicit;
 there is no separate ISO installation. For repeatable API publication instead,
 use the [template lifecycle](../../../administration/compute/template-lifecycle.md).
-Do not adopt the same template under both manual and Terraform ownership.
+After manual creation, either retain manual ownership or
+[adopt the existing templates into Terraform](../../../administration/compute/template-lifecycle.md#adopt-existing-templates).
+Never let two Terraform states manage the same VMID or image file.
 
 ## Contents
 
@@ -54,6 +56,7 @@ Keep artifacts independently of the factory/registry for Tier 0 recovery.
 For a Bash workstation, from the directory containing the verified Talos download:
 
 ```bash
+# Unpack before uploading to Proxmox Import; retain the verified .xz archive.
 unxz --keep nocloud-amd64.raw.xz
 sha256sum nocloud-amd64.raw
 ```
@@ -133,8 +136,10 @@ Shared holds its approved VMID/title/source node. Each consuming tier owns its
 
 For the [API publisher](../../../administration/compute/template-lifecycle.md#local-workflow),
 record the unpacked image/hash, version/schematic and explicit firmware in Tier 0's
-`templates/proxmox.yml`. It keeps base templates without initialization media;
-the consuming root creates the same network-only CloudInit drive per clone.
+`templates/proxmox.yml`. Fresh examples include an empty CloudInit drive at `ide2`;
+the consuming root supplies network-only settings per clone. Legacy catalogs that
+omit `cloud_init_drive` retain their previous no-media behavior. For adoption, set
+this field to match the manually created template rather than removing its drive.
 This reaches the same clone configuration as the GUI path above without putting
 site-specific network settings into a reusable image.
 

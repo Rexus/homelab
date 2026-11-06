@@ -65,9 +65,14 @@ replace `application` with a dedicated lab subnet. Include the complete attachme
 when overriding it. No per-field or cross-file deep merge is performed.
 See [network inputs](network-inputs.md) for the fields and override example.
 
-The independent template-publication and Kubernetes roots keep their existing
-input contracts; they do not load unrelated Linux guest settings. Their datastore
-choices should follow the same approved project design.
+The template publisher loads the shared platform profile (or `--platform-file PATH`)
+to resolve a catalog `storage_class` into its `vm_disk` datastore. Tier 0's YAML
+`all:` supplies common build settings; each template can override them, including
+an explicit `datastore_id`. `image_datastore_id` remains a Tier 0 staging reference,
+not a shared live-disk class. The
+[catalog contract](../administration/compute/template-lifecycle.md#catalog-fields-and-defaults)
+defines the complete merge and override rules.
+Kubernetes roots retain their separate input contract; neither path loads Linux guest inventory/settings.
 
 The cluster's `vm_firmware` matches its approved image. Fresh Talos examples use
 UEFI and a network-only NoCloud drive: `bootstrap_network` supplies prefix/gateway,

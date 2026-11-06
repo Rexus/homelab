@@ -42,6 +42,12 @@ certificate is already installed, obtain its approved issuer trust instead.
    openssl x509 -in /etc/pve/pve-root-ca.pem -noout -sha256 -fingerprint
    ```
 
+   Console-only transfer is also valid: run `cat /etc/pve/pve-root-ca.pem` there,
+   then save the complete public PEM block as
+   `$HOME/.config/homelab/trust/pve-root-ca.pem` on the execution host (create the
+   directory with `mkdir -p "$HOME/.config/homelab/trust"`). Compare the fingerprint
+   on both machines before installing it. Copy no private-key file.
+
    On the execution host, after independently verifying the SSH host key:
 
    ```bash

@@ -28,8 +28,11 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
         for source in (tier0 / "terraform/deployments/templates").glob("*.tf"):
             for module in re.findall(r'source\s*=\s*"(\.\./[^\"]+)"', source.read_text()):
                 self.assertTrue((source.parent / module).is_dir(), (source, module))
-        catalog = yaml.safe_load((tier0 / "templates/proxmox.yml.example").read_text())["templates"]
-        self.assertEqual({entry["family"] for entry in catalog.values()}, {"alma", "rocky", "talos", "debian"})
+        inputs = yaml.safe_load((tier0 / "templates/proxmox.yml.example").read_text())
+        catalog = {key: dict(inputs["all"], **entry) for key, entry in inputs["templates"].items()}
+        self.assertEqual({entry["family"] for entry in catalog.values()}, {"redhat", "talos", "debian"})
+        self.assertEqual({entry["distribution"] for entry in catalog.values()}, {"alma", "rocky", "talos", "debian"})
+        self.assertTrue(all("node_name" not in entry for entry in inputs["templates"].values()))
         self.assertTrue(all(entry["node_name"] == "pve01" and entry["bridge"] == "control"
                             for entry in catalog.values()))
         self.assertFalse((tier0 / "templates/proxmox.yml").exists())
@@ -95,7 +98,9 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
         fake.write_text("""#!/usr/bin/env python3
 import json, os, pathlib, sys
 with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
-    log.write(json.dumps({'args': sys.argv[1:], 'data': os.getenv('TF_DATA_DIR')}) + '\\n')
+    log.write(json.dumps({'args': sys.argv[1:], 'data': os.getenv('TF_DATA_DIR'),
+                         'endpoint': os.getenv('PROXMOX_VE_ENDPOINT'),
+                         'token': os.getenv('PROXMOX_VE_API_TOKEN')}) + '\\n')
 if os.getenv('FAIL_INIT') and 'init' in sys.argv:
     sys.exit(1)
 if 'plan' in sys.argv:
@@ -108,8 +113,8 @@ if 'plan' in sys.argv:
         for name in ("DEPLOYMENT_REPO_DIR", "TEMPLATE_STATE_PATH", "TEMPLATE_CATALOG_FILE"):
             env.pop(name, None)
 
-        def run(action, cwd=repo, **overrides):
-            return subprocess.run(["bash", str(repo / "scripts/proxmox-templates.sh"), action],
+        def run(action, *arguments, cwd=repo, **overrides):
+            return subprocess.run(["bash", str(repo / "scripts/proxmox-templates.sh"), action, *arguments],
                                   cwd=cwd, env=dict(env, **overrides), capture_output=True, text=True)
 
         (self.root / "verify-shared").rename(self.root / "unavailable-shared")
@@ -120,7 +125,7 @@ if 'plan' in sys.argv:
         self.assertEqual(catalog.read_text(), "# Owned catalog\n")
         self.assertNotEqual(run("apply").returncode, 0)
         for tier in ("tier-1", "tier-2"):
-            self.assertNotEqual(run("init", self.root / f"verify-{tier}").returncode, 0)
+            self.assertNotEqual(run("init", cwd=self.root / f"verify-{tier}").returncode, 0)
         self.assertNotEqual(run("plan", TEMPLATE_STATE_PATH="relative.tfstate").returncode, 0)
         self.assertEqual(run("plan").returncode, 0)
         plan = repo / ".terraform/plans/proxmox-templates.tfplan"
@@ -141,6 +146,39 @@ if 'plan' in sys.argv:
         init = next(call for call in calls if "init" in call["args"])
         self.assertIn(f"-backend-config=path={repo}/.terraform/state/proxmox-templates/terraform.tfstate",
                       init["args"])
+
+        # Local files are explicit, literal inputs; no source/export/token concatenation is required.
+        local_env = repo / ".env.local"
+        local_env.write_text("PROXMOX_API_URL=https://fixture.invalid:8006/\r\n"
+                             "PROXMOX_API_TOKEN_ID='test@pve!template'\r\n"
+                             "PROXMOX_API_TOKEN_SECRET=fixture-not-a-secret\r\n")
+        self.assertEqual(run("import", "--env-file", ".env.local").returncode, 0)
+        last = json.loads(log.read_text().splitlines()[-1])
+        self.assertEqual(last["endpoint"], "https://fixture.invalid:8006/")
+        self.assertEqual(last["token"], "test@pve!template=fixture-not-a-secret")
+        self.assertIn("-var=adopt_existing=true", last["args"])
+        self.assertFalse(any("import" == arg or "apply" == arg for arg in last["args"]))
+        self.assertNotEqual(run("plan", "--env-file", "missing").returncode, 0)
+        self.assertFalse(plan.exists())
+        self.assertNotEqual(run("plan", "--env-file").returncode, 0)
+        local_env.write_text("PROXMOX_VE_INSECURE=true\n")
+        result = run("plan", "--env-file", ".env.local")
+        self.assertIn("Refusing Proxmox TLS bypass", result.stderr)
+        self.assertFalse(plan.exists())
+        marker = repo / "should-not-exist"
+        local_env.write_text(f"PROXMOX_API_TOKEN_SECRET=$(touch {marker})\n")
+        run("plan", "--env-file", ".env.local")
+        self.assertFalse(marker.exists())
+        local_env.write_text("repo_root=/untrusted\n")
+        self.assertNotEqual(run("plan", "--env-file", ".env.local").returncode, 0)
+        local_env.write_text("PROXMOX_API_URL=https://fixture.invalid:8006/\n")
+        self.assertNotEqual(run("plan", "--env-file", ".env.local",
+                                PROXMOX_VE_ENDPOINT="https://other.invalid/").returncode, 0)
+        profile = self.root / "profile with spaces.tfvars"
+        profile.write_text("proxmox_storage_classes = {}\n")
+        self.assertEqual(run("plan", "--platform-file", str(profile)).returncode, 0)
+        last = json.loads(log.read_text().splitlines()[-1])
+        self.assertIn(f"-var-file={profile}", last["args"])
 
 
 if __name__ == "__main__":

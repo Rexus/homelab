@@ -15,27 +15,40 @@ resource "proxmox_virtual_environment_file" "image" {
   overwrite    = false
 
   source_file {
-    path      = each.value.image_path
-    checksum  = each.value.sha256
-    file_name = "${each.value.vm_id}-${each.value.sha256}.${each.value.family == "talos" ? "raw" : "qcow2"}"
+    path     = each.value.image_path
+    checksum = each.value.sha256
+    file_name = coalesce(
+      each.value.image_file_name,
+      "${each.value.vm_id}-${each.value.sha256}.${each.value.family == "talos" ? "raw" : "qcow2"}"
+    )
   }
 
   lifecycle {
     prevent_destroy = true
+    # Upload metadata is write-once and absent after import; never re-upload an adopted artifact.
+    # New revisions need a new catalog key/VMID, not an in-place source change.
+    ignore_changes = [source_file]
     precondition {
       condition     = try(filesha256(each.value.image_path) == each.value.sha256, false)
       error_message = "The approved local image is missing or its SHA256 does not match the catalog."
+    }
+    postcondition {
+      condition = self.file_name == coalesce(each.value.image_file_name,
+      "${each.value.vm_id}-${each.value.sha256}.${each.value.family == "talos" ? "raw" : "qcow2"}")
+      error_message = "The existing image filename differs from the catalog. Preserve its exact name or publish a new revision."
     }
   }
 }
 
 resource "proxmox_virtual_environment_vm" "template" {
-  for_each      = var.images
-  name          = each.value.name
-  node_name     = each.value.node_name
-  vm_id         = each.value.vm_id
-  description   = "${each.value.family} ${each.value.release}; sha256=${each.value.sha256}"
-  tags          = ["tier-0", "template", each.value.family]
+  for_each    = var.images
+  name        = each.value.name
+  node_name   = each.value.node_name
+  vm_id       = each.value.vm_id
+  description = "${each.value.family} ${each.value.release}; sha256=${each.value.sha256}"
+  tags = sort(distinct(concat(
+    ["tier-0", "template", coalesce(each.value.distribution, each.value.family)], each.value.tags
+  )))
   template      = true
   started       = false
   on_boot       = false
@@ -82,13 +95,22 @@ resource "proxmox_virtual_environment_vm" "template" {
     model   = "virtio"
   }
 
+  dynamic "initialization" {
+    for_each = each.value.cloud_init_drive ? [true] : []
+    content {
+      datastore_id = coalesce(each.value.cloud_init_datastore_id, each.value.datastore_id)
+      interface    = "ide2"
+      type         = "nocloud"
+    }
+  }
+
   operating_system {
     type = "l26"
   }
 
   serial_device {}
 
-  # Machine identity and cloud-init/Talos configuration belong to clones, never templates.
+  # Empty CloudInit media may match GUI templates; identities and static networking belong to clones.
   lifecycle {
     prevent_destroy = true
   }
