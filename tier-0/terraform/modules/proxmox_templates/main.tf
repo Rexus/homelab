@@ -7,6 +7,13 @@ terraform {
   }
 }
 
+locals {
+  # Talos uses the non-Single controller; other Linux images use the standard Single profile.
+  scsi_hardware = { for key, image in var.images : key => coalesce(
+    image.scsi_hardware, image.family == "talos" ? "virtio-scsi-pci" : "virtio-scsi-single"
+  ) }
+}
+
 resource "proxmox_virtual_environment_file" "image" {
   for_each     = var.images
   node_name    = each.value.node_name
@@ -54,7 +61,7 @@ resource "proxmox_virtual_environment_vm" "template" {
   on_boot       = false
   bios          = each.value.bios
   machine       = each.value.machine
-  scsi_hardware = each.value.scsi_hardware
+  scsi_hardware = local.scsi_hardware[each.key]
   boot_order    = ["scsi0"]
 
   cpu {
@@ -85,14 +92,16 @@ resource "proxmox_virtual_environment_vm" "template" {
     import_from  = proxmox_virtual_environment_file.image[each.key].id
     interface    = "scsi0"
     size         = each.value.disk_size_gb
-    iothread     = each.value.scsi_hardware == "virtio-scsi-single"
+    iothread     = local.scsi_hardware[each.key] == "virtio-scsi-single"
     discard      = "on"
   }
 
   network_device {
-    bridge  = each.value.bridge
-    vlan_id = each.value.vlan_id
-    model   = "virtio"
+    bridge   = each.value.bridge
+    vlan_id  = each.value.vlan_id
+    firewall = each.value.nic_firewall
+    mtu      = each.value.nic_mtu
+    model    = "virtio"
   }
 
   dynamic "initialization" {
@@ -100,7 +109,8 @@ resource "proxmox_virtual_environment_vm" "template" {
     content {
       datastore_id = coalesce(each.value.cloud_init_datastore_id, each.value.datastore_id)
       interface    = "ide2"
-      type         = "nocloud"
+      # Linux defaults to NoCloud. Leave the provider's computed type intact when
+      # adopting GUI templates; setting an implicit type explicitly forces replacement.
     }
   }
 

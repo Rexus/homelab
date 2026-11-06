@@ -84,13 +84,17 @@ The following values are a starting profile; clones receive their actual sizing/
 | Disks | Remove the default disk; click **Import**, choose the uploaded image, attach as **SCSI / scsi0** | Select the unpacked `.raw`; do not add another empty boot disk |
 | Disks: target | Approved Proxmox live storage; discard when supported; cache **None** for the clustered path | Same; leave IO thread off with the non-Single controller |
 | CPU | 2 cores initially; a common cluster CPU baseline, normally **x86-64-v3** on compatible hosts | Do not use `kvm64`; validate against the selected Talos release |
-| Memory | 4096 MiB initially; reserve the real capacity in the host plan | **Ballooning unchecked**; Talos does not support memory hotplug [2] |
-| Network | VirtIO NIC, selected bridge/VNet and VLAN where needed | Same; each clone receives its own static NoCloud IP |
+| Memory | 2048 MiB template default; size each clone for its actual role | **Ballooning unchecked**; Talos does not support memory hotplug [2] |
+| Network | VirtIO NIC, `vmbr0` by default, NIC firewall enabled, MTU 1500; select the actual VLAN | Same; each clone receives its own static NoCloud IP |
 | Confirm | Review imported disk/EFI storage; **do not start** | Same |
 
 Use a CPU model supported by **every eligible destination**, not `host` by default.
 Use the 9.2 CPU-model UI and actual CPU flags/requirements to select it;
 qualify live migration on mixed hardware.
+
+For IaC publication, set the shared template bridge/VLAN under `all:`; the publisher
+selects NIC and OS-specific controller defaults without per-image tuning. Optional
+overrides are listed in the [catalog reference](../../../administration/compute/template-lifecycle.md#catalog-fields-and-defaults).
 
 ## Step 3: Convert, clone-test and approve
 
@@ -127,6 +131,9 @@ After testing, Tier 0 promotes the VMID, title and source node in Shared's
 that VMID and matching firmware; the template ID is not allocated in every tier.
 Publication state belongs to Tier 0. A manually created template is not automatically
 managed/imported by the publication root.
+After preparing the bootstrap host, complete
+[Foundation Step 3: import or publish with IaC](../README.md#step-3-publish-and-test-vm-templates)
+before Stage 1. That step selects the plan for existing templates or new candidates.
 
 Fresh Talos publication and cluster examples explicitly select `ovmf`, `q35`,
 `virtio-scsi-pci`, an EFI disk without pre-enrolled keys, fixed RAM and the guest

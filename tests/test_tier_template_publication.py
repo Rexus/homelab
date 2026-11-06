@@ -19,7 +19,8 @@ class TemplatePublication(TierRepositoryTestCase):
     def test_catalog_common_fields_and_implementation_are_not_duplicated(self):
         catalog = yaml.safe_load((UPSTREAM / 'tier-0/templates/proxmox.yml.example').read_text())
         self.assertEqual(catalog['all']['storage_class'], 'shared')
-        self.assertTrue(catalog['all']['qemu_agent'])
+        self.assertEqual(catalog['all']['vlan_id'], 10)
+        self.assertFalse({'scsi_hardware', 'nic_mtu', 'nic_firewall', 'qemu_agent'} & catalog['all'].keys())
         shared = (UPSTREAM / 'shared/templates/proxmox-catalog.tfvars').read_text()
         self.assertNotIn('family    = "alma"', shared)
         self.assertNotIn('family    = "rocky"', shared)
@@ -55,12 +56,14 @@ class TemplatePublication(TierRepositoryTestCase):
         digest = hashlib.sha256(fixture.read_bytes()).hexdigest()
         catalog = {
             'all': dict(node_name='pve01', storage_class='shared', image_datastore_id='local',
-                        bridge='control', family='redhat', bios='ovmf', tags=['approved'], cloud_init_drive=True),
+                        bridge='control', vlan_id=10, family='redhat', bios='ovmf',
+                        tags=['approved'], cloud_init_drive=True),
             'templates': {
                 'alma': dict(distribution='alma', release='10.0', vm_id=9100, name='alma-template',
                              image_path=str(fixture), sha256=digest, image_file_name='manual.qcow2'),
                 'rocky': dict(distribution='rocky', release='10.0', vm_id=9101, name='rocky-template',
-                              image_path=str(fixture), sha256=digest, datastore_id='override', qemu_agent=False),
+                              image_path=str(fixture), sha256=digest, datastore_id='override',
+                              qemu_agent=False, vlan_id=20),
             },
         }
         path = tests / 'catalog.yml'
@@ -71,6 +74,7 @@ class TemplatePublication(TierRepositoryTestCase):
                         '-keyout', str(key), '-out', str(cert)], check=True, capture_output=True)
 
         requests = []
+        cloud_init_type = 'nocloud'
 
         class FilesApi(BaseHTTPRequestHandler):
             def do_GET(self):
@@ -91,12 +95,14 @@ class TemplatePublication(TierRepositoryTestCase):
                                 sockets=1, cpu='x86-64-v3', memory=4096, balloon=0,
                                 agent='enabled=1', scsihw='virtio-scsi-single', ostype='l26',
                                 boot='order=scsi0', serial0='socket', onboot=0,
-                                citype='nocloud', ide2='ceph-vm:vm-9100-cloudinit,media=cdrom',
+                                ide2='ceph-vm:vm-9100-cloudinit,media=cdrom',
                                 tags='alma;approved;template;tier-0',
                                 description=f'redhat 10.0; sha256={digest}',
                                 scsi0='ceph-vm:base-9100-disk-0,discard=on,iothread=1,size=32G',
                                 efidisk0='ceph-vm:base-9100-disk-1,efitype=4m,pre-enrolled-keys=0,size=4M',
-                                net0='virtio=02:00:00:00:00:01,bridge=control')
+                                net0='virtio=02:00:00:00:00:01,bridge=control,tag=10,firewall=1,mtu=1500')
+                    if cloud_init_type is not None:
+                        data['citype'] = cloud_init_type
                 elif api_path == '/api2/json/nodes/pve01/qemu/9100/status/current':
                     data = dict(status='stopped', qmpstatus='stopped')
                 elif api_path.startswith('/api2/json/nodes/pve01/storage/ceph-vm/content/'):
@@ -146,6 +152,10 @@ run "resolve_common_and_build_overrides" {
     error_message = "A build datastore must override the shared class."
   }
   assert {
+    condition = local.images.alma.vlan_id == 10 && local.images.rocky.vlan_id == 20
+    error_message = "A shared catalog VLAN must reach every build unless that build overrides it."
+  }
+  assert {
     condition = module.templates.catalog.alma.distribution == "alma" && length(local.vm_imports) == 0
     error_message = "Normal plans must not discover/adopt resources."
   }
@@ -184,6 +194,29 @@ run "discover_matching_template_and_file" {
                                     env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+        # Reproduce invalid operator inputs: each diagnostic must name the field and catalog key.
+        invalid_catalog = dict(catalog, templates={key: dict(image) for key, image in catalog['templates'].items()})
+        invalid_catalog['templates']['alma']['release'] = 'REPLACE_WITH_EXACT_RELEASE_AND_BUILD'
+        invalid_catalog['templates']['rocky']['vm_id'] = 99
+        invalid_path = tests / 'invalid-catalog.yml'
+        invalid_path.write_text(yaml.safe_dump(invalid_catalog))
+        tests.joinpath('publication.tftest.hcl').write_text('''mock_provider "proxmox" {}
+run "invalid_operator_inputs" {
+  command = plan
+  variables {
+    catalog_file = CATALOG_PATH
+    proxmox_storage_classes = { shared = { vm_disk = "ceph-vm" } }
+  }
+}
+'''.replace('CATALOG_PATH', json.dumps(str(invalid_path))))
+        result = subprocess.run(['terraform', f'-chdir={root}', 'test', '-no-color'],
+                                env=env, capture_output=True, text=True)
+        diagnostics = result.stdout + result.stderr
+        self.assertNotEqual(result.returncode, 0, diagnostics)
+        for expected in ('Invalid release:', 'alma.release=', 'REPLACE_WITH_EXACT_RELEASE_AND_BUILD',
+                         'Invalid vm_id:', 'rocky.vm_id=99'):
+            self.assertIn(expected, diagnostics)
+
         # Exercise real file and VM import refreshes against the same isolated provider API.
         imports.write_text((UPSTREAM / 'tier-0/terraform/deployments/templates/imports.tf').read_text())
         tests.joinpath('publication.tftest.hcl').write_text((root / 'fixture-provider.tf').read_text() + '''run "native_resource_imports" {
@@ -200,9 +233,13 @@ run "discover_matching_template_and_file" {
   }
 }
 '''.replace('CATALOG_PATH', json.dumps(str(path))))
-        result = subprocess.run(['terraform', f'-chdir={root}', 'test', '-no-color'],
-                                env=env, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr + str(requests))
+        # Both explicit publications and GUI defaults must import without replacement.
+        # prevent_destroy makes the test fail if an import tries to recreate the VM.
+        for cloud_init_type in ('nocloud', None):
+            result = subprocess.run(['terraform', f'-chdir={root}', 'test', '-no-color'],
+                                    env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0,
+                             f'citype={cloud_init_type!r}\n' + result.stdout + result.stderr + str(requests))
 
 
 if __name__ == '__main__':

@@ -189,6 +189,36 @@ GUI: add a `Group Permission` with path `/storage/local-lvm`, group
 When using a separate datastore for the cloud-init config drive, grant the same
 storage role there too.
 
+**Tier 0 template images:** include the catalog's `image_datastore_id`, even when
+it holds no live VM disks. For example, when images are staged in `local`:
+
+```bash
+pveum acl modify /storage/local \
+  --groups platform-automation \
+  --roles PlatformAutomationStorage
+```
+
+Discovery needs storage-content visibility; `PlatformAutomationStorage` already
+includes `Datastore.Audit`. Adding `PVEDatastoreUser` is not required when the custom
+role is assigned to the correct image-storage path. [6]
+
+Uploading **new** images also requires `Datastore.AllocateTemplate` on that image
+datastore. Grant this extra role only to Tier 0 template-publishing automation,
+not ordinary consuming-tier credentials. For the group's template-publishing path: [7]
+
+```bash
+pveum role add PlatformTemplateUpload --privs "Datastore.AllocateTemplate"
+pveum acl modify /storage/local \
+  --groups platform-automation \
+  --roles PlatformTemplateUpload
+```
+
+Replace `local` with the actual image datastore; a separate template identity needs
+these assignments on its own group/token. Importing existing files does not itself
+upload them, but an adoption plan can also propose creating missing files. Review
+those actions before applying. Privilege-separated tokens need matching token ACLs
+as described below; user/group grants alone do not expand such a token.
+
 ### 5. Grant Proxmox node read access to the group
 
 Repeat this for every Proxmox node automation may target.
@@ -402,3 +432,5 @@ lifecycle permissions.
 3. [Terraform Provider for Proxmox VE](https://bpg.sh/docs/)
 4. [HashiCorp Packer Proxmox ISO builder](https://developer.hashicorp.com/packer/plugins/builders/proxmox/iso)
 5. [BPG provider TLS behavior and security guidance](https://raw.githubusercontent.com/bpg/terraform-provider-proxmox/v0.112.0/docs/index.md), checked 2026-10-16.
+6. [Proxmox storage-content API permissions](https://raw.githubusercontent.com/proxmox/pve-storage/master/src/PVE/API2/Storage/Content.pm).
+7. [Proxmox image-upload API permissions](https://raw.githubusercontent.com/proxmox/pve-storage/master/src/PVE/API2/Storage/Status.pm).

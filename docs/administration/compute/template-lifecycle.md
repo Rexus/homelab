@@ -44,8 +44,10 @@ Use the [common VM template guide](../../deployment/foundation/proxmox/templates
 for image selection and GUI import, including Talos Image Factory, unpacking and firmware.
 
 Fresh publication examples select UEFI (`bios: ovmf`, `machine: q35`) with a 4m
-EFI disk and pre-enrolled keys off. Common settings use `virtio-scsi-pci` and enable
-the QEMU agent; the image must contain it (Talos needs the Factory extension).
+EFI disk and pre-enrolled keys off. The publisher selects VirtIO SCSI Single for
+Alma/Rocky/Debian and non-Single `virtio-scsi-pci` for Talos, including the matching
+IO-thread setting. The QEMU agent is enabled by default; the image must contain it
+(Talos needs the Factory extension). [9]
 Set `qemu_agent: false` for an image without that component. Fixed memory disables ballooning.
 Omitted firmware inputs
 retain existing BIOS templates. Add a new candidate VMID rather than changing
@@ -133,10 +135,19 @@ The YAML catalog is an input file, not another IaC implementation. The resources
 Tier 0's `terraform/modules/proxmox_templates/`; `terraform/deployments/templates/main.tf`
 merges `all:` into each entry under `templates:`. A build overrides individual fields;
 lists such as `tags` replace the common list rather than deep-merging it.
+Set common site choices such as bridge, VLAN and storage in `all:` once. Each image
+inherits them. Technical defaults stay in the implementation; add optional fields
+only when the selected image or site needs a different value.
 
 | Input | Meaning |
 | --- | --- |
 | `all:` | Common placement, hardware, firmware, agent and additional tags |
+| `bridge` | Template NIC bridge; defaults to `vmbr0`, with a per-build override where needed |
+| `vlan_id` | Common template VLAN in `all:`; starter uses example VLAN 10; set the site's value or `null` for untagged |
+| `nic_firewall` / `nic_mtu` | Optional overrides; omitted values enable the NIC firewall and select MTU 1500 |
+| `scsi_hardware` | Optional override; normally omitted so OS family selects Single for Alma/Rocky/Debian or non-Single for Talos |
+| `qemu_agent` / `cpu_type` | Optional overrides; defaults are `true` / `x86-64-v3` |
+| `memory_mb` | Template RAM; defaults to 2048 MiB, with actual service sizing applied to clones |
 | `storage_class` | Class in Shared `config/platform.tfvars`, selecting its `vm_disk` datastore |
 | `datastore_id` | Explicit live disk/EFI storage override; wins over `storage_class` |
 | `image_datastore_id` | Tier 0 staging datastore with Import content; independent of live storage |
@@ -145,7 +156,13 @@ lists such as `tags` replace the common list rather than deep-merging it.
 | `tags` | Additional tags; `tier-0`, `template` and distribution tags are always added |
 | `image_path` / `sha256` | Absolute local unpacked artifact path / approved hash of those bytes |
 | `image_file_name` | Optional existing Import basename; defaults to `<vm_id>-<sha256>.raw` or `.qcow2` |
-| `release` / `schematic_id` | Exact build version / mandatory Talos Factory schematic |
+| `release` / `schematic_id` | Exact build version, optional `v` prefix / mandatory Talos Factory schematic |
+
+`release` records the approved version/build, not the template name or image filename.
+For example, `10.0-20250601` and `v1.14.0` illustrate the accepted format; use the
+actual artifact's version. Replace all `REPLACE_WITH_*` values; `latest`/`stable` aliases
+are rejected. `vm_id` must be an integer of at least 100 and match the existing VMID
+when adopting. Validation errors identify the catalog key, field and rejected value.
 
 The script loads the sibling Shared platform profile if present. Use `--platform-file PATH`
 or `TEMPLATE_PLATFORM_FILE` for another profile; catalog `datastore_id` and `node_name`
@@ -156,8 +173,17 @@ Existing flat catalogs remain valid; `all:` is optional. Legacy `family: alma`/`
 is accepted. Preserve existing hardware/firmware and explicit `qemu_agent: false` where
 required; the new default is true. Changing a revision's inputs can cause drift even
 when its VMID is unchanged. Review before applying, never force replacement to fix adoption.
+For existing templates, set `bridge` and `memory_mb` to their actual values before
+adoption or refresh; omitted memory now defaults to 2048 MiB rather than 4096 MiB.
+Omitted NIC settings now use firewall enabled and MTU 1500. Explicit settings still
+win. An existing `all.scsi_hardware` overrides automatic selection for every image;
+remove it after review to use the OS profiles, or retain an explicit exception.
 Fresh examples include empty CloudInit media, matching the GUI guide; existing catalogs
 without `cloud_init_drive` keep the no-media behavior. All addresses/accounts stay clone-local.
+The publisher leaves the optional CloudInit format to Proxmox/provider state:
+Linux defaults to NoCloud, and an existing explicit format is retained. Forcing
+`nocloud` onto an imported template whose format was implicit can make the pinned
+provider propose replacement, despite equivalent Linux behavior. [7][8]
 
 ## Adopt existing templates
 
@@ -189,6 +215,19 @@ hardware and original artifact/hash; keep map keys stable afterwards.
    an existing VM may need input alignment. Adoption is not a guarantee of a no-change plan.
    Stop on disk/firmware changes, replacement or unexpected deletion; do not remove lifecycle guards.
    After acceptance, run the same `apply --env-file .env.local` command above.
+
+| Plan action | Effect when applied |
+| --- | --- |
+| Will be imported | Records an existing resource in this state; inspect any accompanying changes |
+| `+ create` | Creates a missing catalogued image file or template; expected for new entries |
+| `~ update in-place` | Changes the existing template's actual configuration |
+| `-/+` replacement | Deletes and recreates a resource; blocked by `prevent_destroy` |
+
+Importing does not automatically copy existing hardware into the catalog. Set common
+VLAN, storage and sizing under `all:`; use per-build overrides only for exceptions.
+MTU, NIC firewall and controller defaults normally need no entries. For an accepted
+template with different settings, record the exception explicitly. Review boot order and CloudInit
+account/network changes too; importing state is not approval to change those settings.
 
 The `import` command prepares a plan only: it does not write state or change Proxmox.
 Applying that plan records imports and performs any other approved listed actions. [6]
@@ -330,3 +369,6 @@ They do not boot or verify real images; disposable clone tests remain required.
 4. [GitLab CI YAML reference](https://docs.gitlab.com/ci/yaml/), accessed 2026-09-17.
 5. [GitLab resource groups](https://docs.gitlab.com/ci/resource_groups/), accessed 2026-09-17.
 6. [Terraform configuration-driven imports](https://developer.hashicorp.com/terraform/language/import), checked 2026-11-06.
+7. [Proxmox CloudInit format selection](https://raw.githubusercontent.com/proxmox/qemu-server/master/src/PVE/QemuServer/Cloudinit.pm), checked 2026-11-06.
+8. [Pinned provider CloudInit schema and import refresh](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/proxmoxtf/resource/vm/vm.go), checked 2026-11-06.
+9. [Talos Proxmox controller and guest-agent requirements](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/virtualized-platforms/proxmox), checked 2026-11-06.

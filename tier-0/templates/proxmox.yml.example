@@ -1,8 +1,9 @@
 # Copy to templates/proxmox.yml using Tier 0's scripts/proxmox-templates.sh init command.
 # Compute foundation: publish templates locally before creating managed VMs or the control cluster.
 # Reference: docs/administration/compute/template-lifecycle.md
-# Replace every value. Keep only the images being managed by this state.
+# Set site-specific values. Keep only the images being managed by this state.
 # Each build overrides individual all fields; lists (including tags) are replaced, not merged.
+# release: exact version/build (optional v prefix), not a filename, placeholder or latest/stable alias.
 # Connected Tier 0 uses a protected control network; offline custody needs a separate isolated fabric.
 # Add a new entry and VMID for every revision; retain previous entries for rollback.
 all:
@@ -12,19 +13,18 @@ all:
   storage_class: shared
   # Tier 0-local image staging with Import content; not the live VM disk class.
   image_datastore_id: local
-  bridge: control
+  bridge: vmbr0
+  # Select the prepared bootstrap/control VLAN once here; use null for untagged.
+  vlan_id: 10
+  # MTU 1500, NIC firewall and QEMU agent enabled; SCSI controller follows OS family.
+  # Add nic_mtu, nic_firewall, qemu_agent or scsi_hardware only to override defaults.
   bios: ovmf
   machine: q35
-  scsi_hardware: virtio-scsi-pci
-  qemu_agent: true
-  cpu_type: x86-64-v3
   cores: 2
-  memory_mb: 4096
+  memory_mb: 2048
   disk_size_gb: 32
   # Empty NoCloud drive at ide2, matching the GUI guide; configure networking only on clones.
   cloud_init_drive: true
-  # Added to mandatory tier-0/template/distribution tags; override for individual builds.
-  tags: []
 
 templates:
   debian-build-1:

@@ -13,11 +13,13 @@ variable "images" {
     image_path              = string
     image_file_name         = optional(string)
     sha256                  = string
-    bridge                  = string
+    bridge                  = optional(string, "vmbr0")
     vlan_id                 = optional(number)
+    nic_firewall            = optional(bool, true)
+    nic_mtu                 = optional(number, 1500)
     cpu_type                = optional(string, "x86-64-v3")
     cores                   = optional(number, 2)
-    memory_mb               = optional(number, 4096)
+    memory_mb               = optional(number, 2048)
     disk_size_gb            = optional(number, 32)
     qemu_agent              = optional(bool, true)
     tags                    = optional(list(string), [])
@@ -26,13 +28,13 @@ variable "images" {
     # Omitted values retain existing BIOS publications; select UEFI for new image revisions.
     bios          = optional(string, "seabios")
     machine       = optional(string)
-    scsi_hardware = optional(string, "virtio-scsi-single")
+    scsi_hardware = optional(string)
   }))
 
   validation {
     condition = alltrue([
       for image in var.images : contains(["seabios", "ovmf"], image.bios) &&
-      contains(["virtio-scsi-single", "virtio-scsi-pci"], image.scsi_hardware)
+      (image.scsi_hardware == null ? true : contains(["virtio-scsi-single", "virtio-scsi-pci"], image.scsi_hardware))
     ])
     error_message = "Select seabios/ovmf and virtio-scsi-single/virtio-scsi-pci for the approved image."
   }
@@ -75,11 +77,27 @@ variable "images" {
 
   validation {
     condition = alltrue([
-      for image in var.images : can(regex("^[0-9]", image.release)) &&
-      !can(regex("(?i)latest|stable", image.release)) &&
-      image.vm_id >= 100 && floor(image.vm_id) == image.vm_id
+      for image in var.images : can(regex("^v?[0-9]", image.release)) &&
+      !can(regex("(?i)latest|stable", image.release))
     ])
-    error_message = "Record an explicit release/build (starting with a digit) and an integer VMID >= 100."
+    error_message = format(
+      "Invalid release: %s. Use an exact version/build starting with a digit or v followed by a digit; placeholders and latest/stable aliases are not allowed.",
+      join(", ", [for key, image in var.images : format("%s.release=%s", key, jsonencode(image.release))
+        if !(can(regex("^v?[0-9]", image.release)) && !can(regex("(?i)latest|stable", image.release)))
+      ])
+    )
+  }
+
+  validation {
+    condition = alltrue([
+      for image in var.images : image.vm_id >= 100 && floor(image.vm_id) == image.vm_id
+    ])
+    error_message = format(
+      "Invalid vm_id: %s. Use an integer VMID >= 100, matching the existing template when adopting it.",
+      join(", ", [for key, image in var.images : format("%s.vm_id=%s", key, jsonencode(image.vm_id))
+        if !(image.vm_id >= 100 && floor(image.vm_id) == image.vm_id)
+      ])
+    )
   }
 
   validation {

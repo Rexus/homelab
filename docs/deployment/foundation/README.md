@@ -102,16 +102,50 @@ mirrors or offline copies provide independent approved content.
 
 ## Step 3: Publish and test VM templates
 
-Use the [common image import guide](proxmox/templates.md) for AlmaLinux,
-Rocky Linux and Talos, or the [local API publication workflow](../../administration/compute/template-lifecycle.md#local-workflow).
-Run publication from the accepted execution host (`bootstrap-1` in the VM path),
-inside the generated Tier 0 repository.
-For existing manual images/templates, use the
-[adoption plan](../../administration/compute/template-lifecycle.md#adopt-existing-templates)
-instead of trying to create the same VMIDs again. Adoption does not enroll the
-bootstrap VM itself into Terraform. Add the Kubernetes node image here when needed.
-Tier 0 publishes templates;
-other tiers consume approved references. No hosted CI is required.
+**Complete template import/publication here, before Stage 1: Software intake.**
+Run these commands on the accepted execution host (`bootstrap-1` in the VM path),
+from the generated Tier 0 repository root. No hosted CI or cluster is required.
+
+1. Initialize local inputs; existing files are preserved:
+
+   ```bash
+   bash scripts/proxmox-templates.sh init
+   ```
+
+   Edit `templates/proxmox.yml` and `.env.local`. Keep only selected images and
+   record their actual VMIDs, names, node, storage, unpacked artifact paths and hashes.
+   Common template defaults are `bridge: vmbr0` and `memory_mb: 2048`; each build
+   can override them. Set the common `vlan_id` under `all:`; the starter's VLAN 10
+   is an example. MTU 1500, NIC firewall enabled and OS-specific SCSI are automatic.
+   For adoption, match existing hardware rather than imposing
+   new defaults, and set `image_file_name` to the exact existing Import basename.
+   See the [catalog fields](../../administration/compute/template-lifecycle.md#catalog-fields-and-defaults).
+
+2. Choose **one** planning command for this catalog:
+
+   | Starting point | Command | Detailed guide |
+   | --- | --- | --- |
+   | Any catalogued templates or image files already exist, including the first manual template | `bash scripts/proxmox-templates.sh import --env-file .env.local` | [Adopt existing templates](../../administration/compute/template-lifecycle.md#adopt-existing-templates) |
+   | All catalogued resources are new | `bash scripts/proxmox-templates.sh plan --env-file .env.local` | [Publish new templates](../../administration/compute/template-lifecycle.md#local-workflow) |
+
+   `import` prepares a saved adoption plan; it does not write state yet. Missing
+   resources can still be planned as creations. Do not run a normal plan over
+   the adoption plan before applying it.
+
+3. Review imports **and all changes**. Stop on unexpected hardware updates,
+   replacements or deletion; align the catalog first. Apply only the accepted plan:
+
+   ```bash
+   bash scripts/proxmox-templates.sh apply --env-file .env.local
+   ```
+
+   Rerun `bash scripts/proxmox-templates.sh plan --env-file .env.local` and check
+   for the expected no-change result. Continue with the clone tests below.
+
+Adoption does not enroll the
+bootstrap VM itself into Terraform. Use the [common image guide](proxmox/templates.md) for AlmaLinux, Rocky Linux and
+Talos artifact/firmware choices. Add the Kubernetes node image here when needed.
+Tier 0 publishes templates; other tiers consume approved references.
 
 Publication code and inputs are in Tier 0's
 [terraform/deployments/templates/](../../../tier-0/terraform/deployments/templates) and

@@ -56,6 +56,10 @@ Follow the [local template workflow](../../administration/compute/template-lifec
 to configure, plan, publish, and test images. Tier 0 approves references in the
 [shared catalog](../../reference/template-catalog.md); other tiers consume them.
 Verified existing templates are valid. No hosted CI or cluster is required.
+For manual templates, select the
+[import path](../../administration/compute/template-lifecycle.md#adopt-existing-templates).
+[Foundation Step 3](../../deployment/foundation/README.md#step-3-publish-and-test-vm-templates)
+lists import/new-publication commands and the apply step; complete it before Stage 1.
 
 After templates, accept [software intake](../../deployment/stage-1-software-intake/README.md),
 then establish [foundational syslog](../../deployment/stage-2-logging/README.md)

@@ -12,7 +12,7 @@ output "catalog" {
       schematic_id  = image.schematic_id
       bios          = image.bios
       machine       = image.machine
-      scsi_hardware = image.scsi_hardware
+      scsi_hardware = proxmox_virtual_environment_vm.template[key].scsi_hardware
     }
   }
 }

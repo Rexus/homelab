@@ -33,13 +33,13 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
         self.assertEqual({entry["family"] for entry in catalog.values()}, {"redhat", "talos", "debian"})
         self.assertEqual({entry["distribution"] for entry in catalog.values()}, {"alma", "rocky", "talos", "debian"})
         self.assertTrue(all("node_name" not in entry for entry in inputs["templates"].values()))
-        self.assertTrue(all(entry["node_name"] == "pve01" and entry["bridge"] == "control"
+        self.assertTrue(all(entry["node_name"] == "pve01" and entry["bridge"] == "vmbr0"
                             for entry in catalog.values()))
         self.assertFalse((tier0 / "templates/proxmox.yml").exists())
         talos = next(entry for entry in catalog.values() if entry["family"] == "talos")
-        self.assertEqual((talos["bios"], talos["machine"], talos["scsi_hardware"]),
-                         ("ovmf", "q35", "virtio-scsi-pci"))
-        self.assertTrue(talos["qemu_agent"])
+        self.assertEqual((talos["bios"], talos["machine"], talos["vlan_id"]), ("ovmf", "q35", 10))
+        self.assertNotIn("scsi_hardware", talos)
+        self.assertNotIn("qemu_agent", talos)
         self.assertTrue((tier0 / "terraform/deployments/templates/.terraform.lock.hcl").exists())
         entry = tier0 / "ansible/playbooks/template-refresh.yml"
         recipe = yaml.safe_load(entry.read_text())[0]["ansible.builtin.import_playbook"]
