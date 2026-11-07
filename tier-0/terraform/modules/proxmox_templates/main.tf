@@ -8,10 +8,8 @@ terraform {
 }
 
 locals {
-  # This publisher configures x86 guests. Tags describe the guest profile, not host CPU detection.
-  cpu_architecture = "x86_64"
-  distributions    = { for key, image in var.images : key => lower(coalesce(image.distribution, image.family)) }
-  major_versions   = { for key, image in var.images : key => try(regex("^v?([0-9]+)", image.release)[0], "") }
+  distributions  = { for key, image in var.images : key => lower(coalesce(image.distribution, image.family)) }
+  major_versions = { for key, image in var.images : key => try(regex("^v?([0-9]+)", image.release)[0], "") }
   # Enterprise Linux shares a major track; Fedora/Ubuntu keep their independent release numbers.
   release_tracks = { for key, image in var.images : key => format("%s%s",
     contains(["redhat", "alma", "rocky"], image.family) &&
@@ -79,9 +77,9 @@ resource "proxmox_virtual_environment_vm" "template" {
   boot_order    = ["scsi0"]
 
   cpu {
-    architecture = local.cpu_architecture
-    type         = each.value.cpu_type
-    cores        = each.value.cores
+    # Leave architecture implicit; setting it explicitly requires root@pam on Proxmox.
+    type  = each.value.cpu_type
+    cores = each.value.cores
   }
 
   memory {

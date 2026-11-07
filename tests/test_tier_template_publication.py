@@ -60,6 +60,9 @@ output "test_disk_interfaces" {
 output "test_template_tags" {
   value = { for key, vm in proxmox_virtual_environment_vm.template : key => vm.tags }
 }
+output "test_cpu_architectures" {
+  value = { for key, vm in proxmox_virtual_environment_vm.template : key => vm.cpu[0].architecture }
+}
 ''')
         tests = root / 'tests'
         tests.mkdir()
@@ -250,6 +253,10 @@ run "invalid_operator_inputs" {
   assert {
     condition = toset(module.templates.test_template_tags.alma) == toset(["el10", "alma", "x86-64-v3", "cloud-init", "approved"])
     error_message = "Import must replace legacy template/tier tags with reusable image metadata without replacing the VM."
+  }
+  assert {
+    condition = module.templates.test_cpu_architectures.alma == ""
+    error_message = "Adoption must not introduce an explicit root-only CPU architecture override on an implicit x86 guest."
   }
 }
 '''.replace('CATALOG_PATH', json.dumps(str(path))))

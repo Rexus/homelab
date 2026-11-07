@@ -308,6 +308,20 @@ assign matching ACLs directly to `automation@pve!provision`. This provides a
 narrower token boundary, but it also requires maintaining token ACLs in
 addition to the group ACLs.
 
+For a privilege-separated **Tier 0 template-publishing token**, mirror the base
+storage and upload roles on its image datastore after creating the roles above:
+
+```bash
+pveum acl modify /storage/local \
+  --tokens 'automation@pve!provision' \
+  --roles PlatformAutomationStorage,PlatformTemplateUpload
+```
+
+Keep the base storage roles when adding a narrower token ACL; granting only the
+upload role there can hide inherited read/allocation permissions. Verify the
+[effective permissions](#validate-access) afterwards. Group/user and token ACLs
+must both allow the operation; token grants cannot expand the user's access. [1]
+
 ## Use the token
 
 For Linux deployments and template publication, store the token in ignored
@@ -339,6 +353,20 @@ still requires exported `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`
 
 ## Validate access
 
+Before Tier 0 publishes template images, check the publishing token's **effective**
+permissions from the Proxmox host shell. Substitute the actual token ID and image
+datastore; the command uses the ID only, never its secret:
+
+```bash
+pveum user permissions 'automation@pve!provision' --path /storage/local
+```
+
+Image publication needs `Datastore.AllocateTemplate` in addition to
+`Datastore.Audit` and `Datastore.AllocateSpace`. If only the latter two appear,
+apply the [Tier 0 upload grant](#4-grant-storage-permissions-to-the-group) and any
+matching privilege-separated token ACLs, then repeat this check. A successful
+discovery/plan does not prove upload access. [1][7]
+
 After initializing and editing the foundation inputs, run a plan from the
 Tier 0 repository root on the deployment machine:
 
@@ -367,6 +395,7 @@ Expected validation result:
 | VM clone | Terraform can clone the selected template |
 | guest agent read | Terraform can wait for guest network information when the QEMU guest agent is enabled |
 | disk allocation | Terraform can create disks only on the authorized datastores |
+| Tier 0 image publication | Effective token permissions include `Datastore.AllocateTemplate` on the image datastore; retain Audit/AllocateSpace access too |
 | network placement | Terraform can attach guests only to allowed bridges, VNets, or VLAN tags |
 | cleanup | `--destroy` removes the disposable test guests |
 | denied access | the token cannot modify Proxmox users, roles, cluster settings, or unrelated storage |

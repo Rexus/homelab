@@ -103,6 +103,8 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
                          'token': os.getenv('PROXMOX_VE_API_TOKEN')}) + '\\n')
 if os.getenv('FAIL_INIT') and 'init' in sys.argv:
     sys.exit(1)
+if os.getenv('FAIL_APPLY') and 'apply' in sys.argv:
+    sys.exit(42)
 if 'plan' in sys.argv:
     path = next(arg[5:] for arg in sys.argv if arg.startswith('-out='))
     pathlib.Path(path).write_text('test saved plan')
@@ -142,10 +144,24 @@ if 'plan' in sys.argv:
         calls = [json.loads(line) for line in log.read_text().splitlines()]
         apply = next(call for call in calls if "apply" in call["args"])
         self.assertEqual(apply["args"][-1], str(plan))
+        self.assertIn("-parallelism=1", apply["args"])
         self.assertTrue(all(call["data"].startswith(str(repo)) for call in calls))
         init = next(call for call in calls if "init" in call["args"])
         self.assertIn(f"-backend-config=path={repo}/.terraform/state/proxmox-templates/terraform.tfstate",
                       init["args"])
+
+        # Failed publication consumes the plan but never discards already-recorded imports.
+        state = repo / ".terraform/state/proxmox-templates/terraform.tfstate"
+        state.write_text("preserved import state")
+        self.assertEqual(run("import").returncode, 0)
+        failed = run("apply", FAIL_APPLY="1")
+        self.assertEqual(failed.returncode, 42, failed.stderr)
+        self.assertIn("Keep the existing state", failed.stderr)
+        self.assertFalse(plan.exists())
+        self.assertEqual(state.read_text(), "preserved import state")
+        self.assertNotEqual(run("apply").returncode, 0)
+        self.assertEqual(run("import").returncode, 0)
+        self.assertEqual(run("apply").returncode, 0)
 
         # Local files are explicit, literal inputs; no source/export/token concatenation is required.
         local_env = repo / ".env.local"

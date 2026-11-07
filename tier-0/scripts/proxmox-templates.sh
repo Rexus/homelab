@@ -211,6 +211,15 @@ if [[ "$action" == plan || "$action" == import ]]; then
   fi
   echo "Review the plan above. Apply publishes candidates; test clones before promoting them."
 else
-  terraform -chdir="$terraform_dir" apply -input=false -lock-timeout=60s "$plan"
+  apply_status=0
+  # Serialize image uploads/imports to bound temporary storage use on the bootstrap host and Proxmox.
+  terraform -chdir="$terraform_dir" apply -input=false -lock-timeout=60s -parallelism=1 "$plan" || apply_status=$?
+  # A partial apply may already have recorded imports or created resources in state.
   rm -f "$plan"
+  if [[ "$apply_status" != 0 ]]; then
+    echo "Template apply failed; the saved plan was discarded. Keep the existing state." >&2
+    echo "Resolve the reported error, rerun import --env-file .env.local (or plan), and review before apply." >&2
+    echo "Reference: docs/administration/compute/template-lifecycle.md#interrupted-publication" >&2
+    exit "$apply_status"
+  fi
 fi

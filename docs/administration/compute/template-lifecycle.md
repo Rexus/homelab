@@ -16,6 +16,7 @@ Tier 0-owned automation, not a prerequisite for creating templates.
 - [Ownership](#ownership)
 - [Local workflow](#local-workflow)
 - [Adopt existing templates](#adopt-existing-templates)
+- [Interrupted publication](#interrupted-publication)
 - [Updates and promotion](#updates-and-promotion)
 - [Replace a boot disk](#replace-a-boot-disk)
 - [Mutable Linux refresh](#mutable-linux-refresh)
@@ -27,12 +28,17 @@ Tier 0-owned automation, not a prerequisite for creating templates.
 ## Prerequisites
 
 - A Proxmox host with protected Tier 0 administration, API access, and trusted TLS.
+- The publishing token's [effective image-storage permissions](../../deployment/foundation/proxmox/api-access.md#validate-access)
+  include `Datastore.AllocateTemplate`, `Datastore.Audit` and `Datastore.AllocateSpace`.
+  Verify before the first upload; read-only discovery is not an upload permission check.
 - Proxmox VE 9 with `Import` content enabled on the image datastore. The Tier 0
   module uses API-backed image upload and disk import. [1][2]
 - Linux or WSL with Terraform 1.7+; retain the provider lock file and a local
   provider mirror for recovery. The root constrains the supported provider.
 - Approved, unpacked images on the execution host, exact releases, SHA256
   values, unused VMIDs, and approved bridge/storage allocations.
+- Free space for upload staging on the execution host and Proxmox, plus the retained
+  image files and template disks. See [space checks](#interrupted-publication).
 - A local Tier 0 checkout at a reviewed revision. The shared platform profile supplies
   storage-class references when available; explicit catalog datastore IDs also work without Shared.
 
@@ -194,6 +200,10 @@ Linux defaults to NoCloud, and an existing explicit format is retained. Forcing
 `nocloud` onto an imported template whose format was implicit can make the pinned
 provider propose replacement, despite equivalent Linux behavior. [7][8]
 
+The x86 publication path also leaves CPU architecture implicit. `cpu_type` still
+selects the configured CPU model and its tag; an explicit architecture assignment
+would request a root-restricted Proxmox operation that API tokens cannot perform. [3]
+
 Ten GiB is a base-image starting capacity, not the recommended disk size for every
 service. Check the verified image's virtual size before importing; increase the
 template setting when the image requires it. Existing larger disks are not shrunk
@@ -258,6 +268,70 @@ Then run a normal `plan --env-file .env.local` and confirm the expected no-chang
 Already-managed identities are not re-imported. Partial adoption after an interrupted apply
 can be reconciled by rerunning `import` with the same catalog/state; never start with a fresh state.
 State, provider cache and saved-plan paths are identical for publication and adoption.
+
+## Interrupted publication
+
+A failed apply can still record successful imports or completed resources. Keep the
+same catalog, keys and `.terraform/state/proxmox-templates/terraform.tfstate`; back up
+the state before recovery. The wrapper discards the saved plan after any apply attempt.
+For older wrappers that leave it behind, prepare a new `import` plan rather than retrying it.
+
+For upload `broken pipe` or `use of closed network connection`, inspect the first
+upload error and Proxmox logs. These messages alone do not identify the cause.
+Later postcondition errors can follow an unsuccessful creation; retain the filename guard.
+In Proxmox's journal, a client IP identifies the connection, not the filesystem that
+failed. Preserve the complete error/path; capacity readings after failed temporary
+files have been removed do not necessarily describe capacity during the upload.
+The bare `problem with client ...; No space left on device` message can also result
+from an AnyEvent connection-buffer limit: that library uses `ENOSPC` for buffer
+overflow. It does not by itself establish disk exhaustion. Check effective upload
+permissions and installed Proxmox HTTP-server packages as well as capacity; a missing
+upload privilege has produced misleading connection errors. [12][14][15]
+
+| Check | Location and expected result |
+| --- | --- |
+| Space | Identify the machine/path in the exact error. Check capacity and inodes on the execution host's temporary filesystem, Proxmox `/var/tmp`, and the image datastore; free Proxmox storage does not establish execution-host capacity. [1][12] |
+| Upload permission | Publishing identity has `Datastore.AllocateTemplate` on the image datastore; privilege-separated tokens need their own matching ACLs. [API access](../../deployment/foundation/proxmox/api-access.md#4-grant-storage-permissions-to-the-group) |
+| Storage content | Datacenter > Storage permits `Import` on the selected image datastore. Read/list access does not prove upload capability. [1] |
+| Connection | Check Proxmox service logs, `/var/log/pveproxy/access.log`, and any intervening proxy/firewall for rejected requests, resets or body/time limits. Do not disable TLS verification. |
+
+On the **target Proxmox host**, inspect the failure time; adjust the time window if needed:
+
+```bash
+journalctl -u pveproxy -u pvedaemon --since '-30 min' --no-pager | tail -n 80
+df -h / /var/tmp /var/lib/vz
+df -i /var/tmp /var/lib/vz
+pvesm status
+```
+
+On the **execution/bootstrap host**, inspect its own temporary filesystems separately:
+
+```bash
+df -h / /tmp /var/tmp
+df -i /tmp /var/tmp
+findmnt -T /tmp
+```
+
+`/var/lib/vz` is the default Proxmox `local` path; check the configured path if different.
+Free space on `local-zfs` does not establish free space in Proxmox `/var/tmp` or the
+bootstrap VM. The provider stages uploads on the **execution host**, documenting
+roughly twice the source size plus overhead. A memory-backed `/tmp` can fill even when
+the VM's disk has plenty of space. [1][3][12]
+For a different, sufficiently sized temporary filesystem, create a private writable
+directory there and set its **literal absolute path** as `PROXMOX_VE_TMPDIR` in Tier 0's
+ignored `.env.local`. The template wrapper loads it with `--env-file .env.local`;
+this provider-native setting affects execution-host staging, not Proxmox paths. [3]
+The wrapper applies with `-parallelism=1` so uploads/imports run sequentially. [13]
+This reduces peak temporary use; it does not supply capacity for even one image or
+the cumulative retained artifacts. Expand or free the affected filesystem after
+identifying its contents; do not delete `base-*` disks or files used by active uploads.
+
+Then inspect the image datastore's **Import** list. If a complete file exists without
+a state entry, verify its remote SHA256 and set its exact `image_file_name` before
+adopting it. Do not adopt incomplete bytes or delete state to make a retry succeed.
+Resolve the cause, then rerun `import --env-file .env.local` from **Tier 0** and review
+the new plan. Uploads and guest updates are separate actions; importing a VM does not
+mean its planned settings or boot-disk image have been applied.
 
 ## Updates and promotion
 
@@ -405,3 +479,7 @@ They do not boot or verify real images; disposable clone tests remain required.
 9. [Talos Proxmox controller and guest-agent requirements](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/virtualized-platforms/proxmox), checked 2026-11-06.
 10. [Proxmox disk discard support](https://github.com/proxmox/pve-docs/blob/master/qm.adoc#qm_hard_disk_discard), checked 2026-11-06.
 11. [Proxmox CloudInit networking and serial consoles](https://github.com/proxmox/pve-docs/blob/master/qm-cloud-init.adoc), checked 2026-11-06.
+12. [Proxmox API temporary upload files](https://github.com/proxmox/pve-http-server/blob/master/src/PVE/APIServer/AnyEvent.pm), checked 2026-11-07.
+13. [Terraform apply parallelism](https://developer.hashicorp.com/terraform/cli/commands/apply#parallelism-n), checked 2026-11-07.
+14. [AnyEvent connection-buffer limits and ENOSPC](https://metacpan.org/release/MLEHMANN/AnyEvent-7.17/view/lib/AnyEvent/Handle.pm), checked 2026-11-07.
+15. [Upload connection errors resolved by Datastore.AllocateTemplate](https://github.com/bpg/terraform-provider-proxmox/issues/2047), checked 2026-11-07.

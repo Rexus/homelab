@@ -158,6 +158,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - Template tags describe reusable images: `el10` plus `alma`/`rocky`/`rhel`, configured
   guest CPU model, conditional `cloud-init` and explicit per-build extras. Use the CPU
   model tag alone, without a redundant generic architecture tag such as `x86_64`.
+  Leave x86 CPU architecture implicit; explicitly setting it requests a root-restricted API operation.
   Do not inject `template`, tier ownership, bare `el` or redundant `rocky10`/`alma10` tags.
   Candidate outputs expose resolved tags; promotion into Shared remains reviewed and explicit.
 - Tier 0 owns all hardware-facing control, including hypervisors, physical networks,
