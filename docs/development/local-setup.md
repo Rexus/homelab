@@ -82,6 +82,8 @@ for native cluster applications; network-scoped recipes also use `ansible.utils`
 for address validation. Install the owning tier's `ansible/requirements.txt` in the
 accepted virtual environment, not the operating system's Python environment.
 Keep collection artifacts on the recovery host so the precheck needs no network.
+Tier 0 template `apply` and `verify` also use `community.proxmox` to complete and
+inspect raw template settings; they require no guest SSH or hosted control service.
 
 The repository deployment wrapper runs that precheck before Terraform or host
 playbooks. Follow the root README or the setup-specific guide for the actual

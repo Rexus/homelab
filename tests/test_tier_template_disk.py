@@ -239,7 +239,8 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook':
         self.assertIn('sudo dnf install -y /usr/bin/qemu-img', result.stderr)
         self.assertIn('sudo apt-get install -y qemu-utils', result.stderr)
         self.assertFalse(log.exists(), 'Missing OS tools must stop before Terraform or Ansible runs')
-        for missing in ('community.proxmox.proxmox_vm_info', 'community.proxmox.proxmox_disk'):
+        for missing in ('community.proxmox.proxmox_vm_info', 'community.proxmox.proxmox_kvm',
+                        'community.proxmox.proxmox_disk'):
             before = len(log.read_text().splitlines()) if log.exists() else 0
             result = run('replace-disk', '--template', 'rocky', MISSING_MODULE=missing)
             self.assertNotEqual(result.returncode, 0)

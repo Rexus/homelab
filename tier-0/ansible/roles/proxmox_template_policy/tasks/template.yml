@@ -1,0 +1,85 @@
+---
+- name: Read the raw Proxmox template configuration
+  community.proxmox.proxmox_vm_info:
+    vmid: "{{ template_policy_entry.value.vm_id }}"
+    type: qemu
+    config: current
+  register: template_policy_before
+  no_log: true
+
+- name: Require the exact stopped and unlocked published template
+  ansible.builtin.assert:
+    that:
+      - template_policy_before.proxmox_vms | length == 1
+      - template_policy_before.proxmox_vms[0].template | bool
+      - template_policy_before.proxmox_vms[0].status == 'stopped'
+      - template_policy_before.proxmox_vms[0].name == template_policy_entry.value.name
+      - template_policy_before.proxmox_vms[0].node == template_policy_entry.value.node_name
+      - template_policy_before.proxmox_vms[0].config.lock | default('', true) | length == 0
+    fail_msg: Policy requires the exact published VMID/name/node, stopped and unlocked.
+    quiet: true
+
+- name: Select only residual CloudInit account fields
+  ansible.builtin.set_fact:
+    template_policy_accounts: "{{ ['ciuser', 'cipassword', 'sshkeys'] | intersect(template_policy_before.proxmox_vms[0].config.keys() | list) | sort }}"
+
+# proxmox_kvm's delete action is separate from update; it does not modify other VM settings.
+- name: Clear template account credentials while retaining CloudInit media and networking
+  community.proxmox.proxmox_kvm:
+    node: "{{ template_policy_entry.value.node_name }}"
+    vmid: "{{ template_policy_entry.value.vm_id }}"
+    delete: "{{ template_policy_accounts | join(',') }}"
+  when: template_policy_apply | default(false) | bool and template_policy_accounts | length > 0
+  no_log: true
+
+- name: Read current settings before enforcing fixed RAM
+  community.proxmox.proxmox_vm_info:
+    vmid: "{{ template_policy_entry.value.vm_id }}"
+    type: qemu
+    config: current
+  register: template_policy_current
+  no_log: true
+  when: template_policy_apply | default(false) | bool
+
+- name: Explicitly disable ballooning without changing the RAM allocation
+  community.proxmox.proxmox_kvm:
+    node: "{{ template_policy_entry.value.node_name }}"
+    vmid: "{{ template_policy_entry.value.vm_id }}"
+    update: true
+    balloon: 0
+    digest: "{{ template_policy_current.proxmox_vms[0].config.digest | default(omit) }}"
+  when:
+    - template_policy_apply | default(false) | bool
+    - template_policy_current.proxmox_vms[0].config.balloon | default(none) not in [0, '0']
+  no_log: true
+
+- name: Read back the actual template policy
+  community.proxmox.proxmox_vm_info:
+    vmid: "{{ template_policy_entry.value.vm_id }}"
+    type: qemu
+    config: current
+  register: template_policy_after
+  no_log: true
+
+- name: Require fixed RAM and empty accounts with every other setting preserved
+  ansible.builtin.assert:
+    that:
+      - template_policy_after.proxmox_vms[0].config.balloon | default(none) in [0, '0']
+      - "['ciuser', 'cipassword', 'sshkeys'] | intersect(template_policy_after.proxmox_vms[0].config.keys() | list) | length == 0"
+      - >-
+        (template_policy_after.proxmox_vms[0].config | dict2items
+         | rejectattr('key', 'in', ['balloon', 'ciuser', 'cipassword', 'sshkeys', 'digest']) | items2dict) ==
+        (template_policy_before.proxmox_vms[0].config | dict2items
+         | rejectattr('key', 'in', ['balloon', 'ciuser', 'cipassword', 'sshkeys', 'digest']) | items2dict)
+    fail_msg: >-
+      Template policy is not satisfied. Run the normal template plan/apply workflow to enforce it,
+      then verify again. Disks, EFI, RAM size, CloudInit media and networking must remain unchanged.
+    quiet: true
+
+- name: Show the verified template settings without credentials
+  ansible.builtin.debug:
+    msg:
+      template: "{{ template_policy_entry.key }} / {{ template_policy_entry.value.vm_id }}"
+      ballooning_disabled: true
+      cloud_init_accounts_cleared: true
+      other_settings_preserved: true

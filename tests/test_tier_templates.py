@@ -55,6 +55,9 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
         self.assertFalse((shared / "packer/variables.auto.pkrvars.hcl.example").exists())
         self.assertTrue((tier0 / "terraform/modules/proxmox_templates/main.tf").is_file())
         self.assertTrue((tier0 / "scripts/proxmox-templates.sh").is_file())
+        self.assertTrue((tier0 / "ansible/vars/proxmox-api.yml").is_file())
+        self.assertTrue((tier0 / "ansible/playbooks/maintenance/template-policy.yml").is_file())
+        self.assertTrue((tier0 / "ansible/roles/proxmox_template_policy/tasks/template.yml").is_file())
         self.assertTrue((tier0 / "packer/templates/proxmox/talos-linux.pkr.hcl").is_file())
         self.assertFalse((shared / "terraform/modules/proxmox_templates").exists())
         self.assertFalse((shared / "scripts/proxmox-templates.sh").exists())
@@ -98,7 +101,7 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
         fake.write_text("""#!/usr/bin/env python3
 import json, os, pathlib, sys
 with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
-    log.write(json.dumps({'args': sys.argv[1:], 'data': os.getenv('TF_DATA_DIR'),
+    log.write(json.dumps({'tool': pathlib.Path(sys.argv[0]).name, 'args': sys.argv[1:], 'data': os.getenv('TF_DATA_DIR'),
                          'endpoint': os.getenv('PROXMOX_VE_ENDPOINT'),
                          'token': os.getenv('PROXMOX_VE_API_TOKEN')}) + '\\n')
 if os.getenv('FAIL_INIT') and 'init' in sys.argv:
@@ -108,8 +111,16 @@ if os.getenv('FAIL_APPLY') and 'apply' in sys.argv:
 if 'plan' in sys.argv:
     path = next(arg[5:] for arg in sys.argv if arg.startswith('-out='))
     pathlib.Path(path).write_text('test saved plan')
+if 'output' in sys.argv: print('{}')
+if pathlib.Path(sys.argv[0]).name == 'ansible-doc':
+    print(json.dumps({name: {'doc': {'module': name}} for name in sys.argv[1:]
+                      if name.startswith('community.proxmox.')}))
+if pathlib.Path(sys.argv[0]).name == 'ansible-playbook' and os.getenv('FAIL_POLICY'):
+    sys.exit(2)
 """)
         fake.chmod(0o755)
+        for tool in ('ansible-doc', 'ansible-playbook'):
+            (commands / tool).symlink_to(fake)
         log = self.root / "calls.jsonl"
         env = dict(os.environ, PATH=f"{commands}:{os.environ['PATH']}", TEST_COMMAND_LOG=str(log))
         for name in ("DEPLOYMENT_REPO_DIR", "TEMPLATE_STATE_PATH", "TEMPLATE_CATALOG_FILE"):
@@ -145,6 +156,9 @@ if 'plan' in sys.argv:
         apply = next(call for call in calls if "apply" in call["args"])
         self.assertEqual(apply["args"][-1], str(plan))
         self.assertIn("-parallelism=1", apply["args"])
+        policy = next(index for index, call in enumerate(calls) if call['tool'] == 'ansible-playbook')
+        refresh = next(index for index, call in enumerate(calls) if '-refresh-only' in call['args'])
+        self.assertLess(policy, refresh)
         self.assertTrue(all(call["data"].startswith(str(repo)) for call in calls))
         init = next(call for call in calls if "init" in call["args"])
         self.assertIn(f"-backend-config=path={repo}/.terraform/state/proxmox-templates/terraform.tfstate",
@@ -162,6 +176,20 @@ if 'plan' in sys.argv:
         self.assertNotEqual(run("apply").returncode, 0)
         self.assertEqual(run("import").returncode, 0)
         self.assertEqual(run("apply").returncode, 0)
+
+        # A policy failure cannot be reported as a complete publication or trigger a state refresh.
+        self.assertEqual(run('plan').returncode, 0)
+        before = len(log.read_text().splitlines())
+        failed = run('apply', FAIL_POLICY='1')
+        self.assertNotEqual(failed.returncode, 0)
+        self.assertIn('template policy verification failed', failed.stderr)
+        later = [json.loads(line) for line in log.read_text().splitlines()[before:]]
+        self.assertFalse(any('-refresh-only' in call['args'] for call in later))
+        self.assertFalse(plan.exists())
+        before = len(log.read_text().splitlines())
+        self.assertEqual(run('verify', '--template', 'rocky-build-1').returncode, 0)
+        later = [json.loads(line) for line in log.read_text().splitlines()[before:]]
+        self.assertFalse(any('apply' in call['args'] for call in later))
 
         # Local files are explicit, literal inputs; no source/export/token concatenation is required.
         local_env = repo / ".env.local"

@@ -1,0 +1,32 @@
+---
+- name: Require applied template identities
+  ansible.builtin.assert:
+    that:
+      - template_disk_sources.value is defined
+      - template_disk_sources.value is mapping
+      - template_disk_sources.value | length > 0
+      - not ansible_check_mode
+    fail_msg: Apply the template publication root first; policy uses its applied template identities.
+    quiet: true
+
+- name: Require the scoped API token from the execution environment
+  ansible.builtin.assert:
+    that:
+      - lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN') is match('^[^!]+![^=]+=.+$')
+    quiet: true
+  no_log: true
+
+- name: Require the selected applied catalog key when provided
+  ansible.builtin.assert:
+    that:
+      - template_policy_key | default('') == '' or template_policy_key in template_disk_sources.value
+    fail_msg: Select an applied catalog key, such as rocky-build-1, rather than a VMID.
+    quiet: true
+
+- name: Reconcile or inspect each selected template
+  ansible.builtin.include_tasks: template.yml
+  loop: "{{ template_disk_sources.value | dict2items }}"
+  loop_control:
+    loop_var: template_policy_entry
+    label: "{{ template_policy_entry.key }}"
+  when: template_policy_key | default('') == '' or template_policy_entry.key == template_policy_key

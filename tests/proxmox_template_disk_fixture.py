@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import hashlib
 import json
 import ssl
 import threading
@@ -68,6 +69,7 @@ class TemplateDiskApiFixture:
         self.fail_import = False
         self.fail_base_task = False
         self.fail_base_http = False
+        self.fail_policy = False
         fixture = self
 
         class Api(BaseHTTPRequestHandler):
@@ -91,7 +93,7 @@ class TemplateDiskApiFixture:
                 elif path == '/api2/json/nodes/pve01/qemu':
                     self.respond([vm])
                 elif path.endswith('/qemu/110/config'):
-                    self.respond(fixture.config)
+                    self.respond(dict(fixture.config, digest=fixture.digest))
                 elif path.endswith('/qemu/110/status/current'):
                     self.respond(dict(status=fixture.status))
                 elif '/tasks/' in path and path.endswith('/status'):
@@ -134,7 +136,23 @@ class TemplateDiskApiFixture:
             def do_PUT(self):
                 path, params = urlsplit(self.path).path, self.parameters()
                 fixture.writes.append(('PUT', path, params))
-                if path.endswith('/qemu/110/resize') and params.get('disk') == 'scsi0':
+                if path.endswith('/qemu/110/config') and set(params) <= {'balloon', 'delete', 'digest'}:
+                    if fixture.fail_policy:
+                        self.respond(None, 403)
+                        return
+                    if 'digest' in params and params['digest'] != fixture.digest:
+                        self.respond(None, 409)
+                        return
+                    fields = params.get('delete', '').split(',') if params.get('delete') else []
+                    if not set(fields) <= {'ciuser', 'cipassword', 'sshkeys'}:
+                        self.respond(None, 400)
+                        return
+                    for field in fields:
+                        fixture.config.pop(field, None)
+                    if 'balloon' in params:
+                        fixture.config['balloon'] = int(params['balloon'])
+                    self.respond(None)
+                elif path.endswith('/qemu/110/resize') and params.get('disk') == 'scsi0':
                     fields = [field for field in fixture.config['scsi0'].split(',') if not field.startswith('size=')]
                     fixture.config['scsi0'] = ','.join(fields + ['size=' + params['size']])
                     self.respond(None)
@@ -150,6 +168,10 @@ class TemplateDiskApiFixture:
         self.server.socket = context.wrap_socket(self.server.socket, server_side=True)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
+
+    @property
+    def digest(self):
+        return hashlib.sha1(json.dumps(self.config, sort_keys=True).encode()).hexdigest()
 
     def close(self):
         self.server.shutdown()

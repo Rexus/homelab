@@ -52,5 +52,6 @@
       immutable-template: [community.general, ansible.posix]
       template-refresh: []
       template-disk: [community.proxmox]
+      template-policy: [community.proxmox]
       proxmox-hosts: []
       site: [community.general, ansible.posix]

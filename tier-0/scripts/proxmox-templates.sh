@@ -4,9 +4,10 @@ set -euo pipefail
 umask 077
 
 usage() {
-  echo "Usage: bash ${BASH_SOURCE[0]} {init|plan|import|apply|replace-disk} [--env-file PATH] [--platform-file PATH]"
+  echo "Usage: bash ${BASH_SOURCE[0]} {init|plan|import|apply|verify|replace-disk} [--env-file PATH] [--platform-file PATH]"
   echo "import prepares a reviewed adoption plan; apply writes imports and any listed changes."
   echo "replace-disk --template KEY previews the operation, then prompts for execution."
+  echo "apply completes fixed-RAM/account policy; verify [--template KEY] checks live settings without changes."
   echo "Use --preview for read-only inspection; use --execute with --expected-disk VOLUME and --expected-sha256 SHA in automation."
   echo "Use --env-file .env.local for local credentials; otherwise only exported credentials are used."
 }
@@ -14,7 +15,7 @@ if [[ $# == 1 && ( "$1" == --help || "$1" == -h ) ]]; then
   usage
   exit 0
 fi
-if [[ $# == 0 || ! "$1" =~ ^(init|plan|import|apply|replace-disk)$ ]]; then
+if [[ $# == 0 || ! "$1" =~ ^(init|plan|import|apply|verify|replace-disk)$ ]]; then
   usage >&2
   echo "Run from Tier 0. Reference: docs/administration/compute/template-lifecycle.md" >&2
   exit 1
@@ -78,6 +79,11 @@ if [[ "$action" == replace-disk ]]; then
   elif [[ "$preview" == false ]]; then
     interactive=true
   fi
+elif [[ "$action" == verify ]]; then
+  if [[ -n "$expected_disk$expected_sha256" || "$execute" == true || "$preview" == true ]]; then
+    echo "verify accepts only an optional --template KEY selection." >&2; exit 1
+  fi
+  [[ -z "$template_key" || "$template_key" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] || exit 1
 elif [[ -n "$template_key$expected_disk$expected_sha256" || "$execute" == true || "$preview" == true ]]; then
   echo "Disk-maintenance flags are valid only with replace-disk." >&2; exit 1
 fi
@@ -184,12 +190,18 @@ if [[ "$action" == apply && ! -f "$plan" ]]; then
   exit 1
 fi
 
-if [[ "$action" == replace-disk ]]; then
+if [[ "$action" == replace-disk || "$action" == apply || "$action" == verify ]]; then
   export ANSIBLE_CONFIG="$repo_root/ansible/ansible.cfg"
   export ANSIBLE_COLLECTIONS_ON_ANSIBLE_VERSION_MISMATCH=error
-  for tool in ansible-playbook ansible-doc python3 qemu-img; do
+  template_tools=(ansible-playbook ansible-doc python3)
+  template_modules=(community.proxmox.proxmox_vm_info community.proxmox.proxmox_kvm)
+  if [[ "$action" == replace-disk ]]; then
+    template_tools+=(qemu-img)
+    template_modules+=(community.proxmox.proxmox_disk)
+  fi
+  for tool in "${template_tools[@]}"; do
     command -v "$tool" >/dev/null || {
-      echo "Disk maintenance requires $tool. See docs/administration/compute/template-disk.md#prerequisites." >&2
+      echo "Template apply/verification/maintenance requires $tool. See docs/administration/compute/template-lifecycle.md#prerequisites." >&2
       if [[ "$tool" == qemu-img ]]; then
         echo "Install on the execution host: sudo dnf install -y /usr/bin/qemu-img (Alma/Rocky/RHEL)" >&2
         echo "or sudo apt-get install -y qemu-utils (Debian/Ubuntu). This is an OS package, not a pip package." >&2
@@ -197,9 +209,8 @@ if [[ "$action" == replace-disk ]]; then
       exit 1
     }
   done
-  disk_modules=(community.proxmox.proxmox_vm_info community.proxmox.proxmox_disk)
   # ansible-doc can return zero for missing plugins; verify its structured result instead.
-  if ! ansible-doc --json -t module "${disk_modules[@]}" | python3 -c '
+  if ! ansible-doc --json -t module "${template_modules[@]}" | python3 -c '
 import json, sys
 try:
     modules = json.load(sys.stdin)
@@ -207,9 +218,9 @@ except ValueError:
     sys.exit("Cannot inspect Ansible modules; see the ansible-doc error above.")
 missing = [name for name in sys.argv[1:] if not modules.get(name, {}).get("doc")]
 if missing:
-    print("Missing disk-maintenance modules: " + ", ".join(missing), file=sys.stderr)
+    print("Missing template modules: " + ", ".join(missing), file=sys.stderr)
     sys.exit(1)
-' "${disk_modules[@]}"; then
+' "${template_modules[@]}"; then
     echo "Use ansible-core >=2.17 and community.proxmox >=2.1.0,<3.0.0 in the same accepted environment." >&2
     echo "Runtime setup: docs/development/local-setup.md#ansible-environment." >&2
     echo "Run: ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force" >&2
@@ -221,6 +232,13 @@ fi
 mkdir -p "$TF_DATA_DIR" "$(dirname "$state")" "$(dirname "$plan")"
 terraform -chdir="$terraform_dir" init -input=false -lockfile=readonly -reconfigure -backend-config="path=$state"
 terraform -chdir="$terraform_dir" validate
+if [[ "$action" == verify ]]; then
+  policy_inputs="$repo_root/.terraform/plans/template-policy-inputs.json"
+  terraform -chdir="$terraform_dir" output -json > "$policy_inputs"
+  ansible-playbook -i localhost, -c local "$repo_root/ansible/playbooks/maintenance/template-policy.yml" \
+    --extra-vars "@$policy_inputs" --extra-vars template_policy_apply=false --extra-vars "template_policy_key=$template_key"
+  exit 0
+fi
 if [[ "$action" == replace-disk ]]; then
   disk_inputs="$repo_root/.terraform/plans/template-disk-inputs.json"
   terraform -chdir="$terraform_dir" output -json > "$disk_inputs"
@@ -273,4 +291,15 @@ else
     echo "Reference: docs/administration/compute/template-lifecycle.md#interrupted-publication" >&2
     exit "$apply_status"
   fi
+  policy_inputs="$repo_root/.terraform/plans/template-policy-inputs.json"
+  terraform -chdir="$terraform_dir" output -json > "$policy_inputs"
+  if ! ansible-playbook -i localhost, -c local "$repo_root/ansible/playbooks/maintenance/template-policy.yml" \
+    --extra-vars "@$policy_inputs" --extra-vars template_policy_apply=true; then
+    echo "Terraform publication completed, but template policy verification failed. Keep the existing state." >&2
+    echo "Resolve the reported problem, then rerun plan/apply; do not replace disks to clear account or memory settings." >&2
+    exit 1
+  fi
+  terraform -chdir="$terraform_dir" apply -refresh-only -auto-approve -input=false \
+    -lock-timeout=60s "${var_args[@]}"
+  echo "Template settings verified: ballooning disabled; CloudInit accounts cleared; media and networking preserved."
 fi

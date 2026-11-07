@@ -36,6 +36,8 @@ Tier 0-owned automation, not a prerequisite for creating templates.
   module uses API-backed image upload and disk import. [1][2]
 - Linux or WSL with Terraform 1.7+; retain the provider lock file and a local
   provider mirror for recovery. The root constrains the supported provider.
+- Apply and live verification also require the accepted Ansible runtime and Tier 0's
+  Python/collection requirements. They complete template settings through native Proxmox modules.
 - Approved, unpacked images on the execution host, exact releases, SHA256
   values, unused VMIDs, and approved bridge/storage allocations.
 - Free space for upload staging on the execution host and Proxmox, plus the retained
@@ -74,7 +76,8 @@ an existing template's boot contract; consuming clusters must match it explicitl
 | `terraform/modules/proxmox_templates/` | Tier 0: file import and unbooted template resources |
 | `scripts/proxmox-templates.sh` | Tier 0: local publication entry point |
 | `packer/` | Tier 0: optional custom-image build definitions and inputs |
-| Tier 0 Ansible playbooks and roles | Linux builder configuration using shared baseline helpers, never Talos guest configuration |
+| Tier 0 Ansible playbooks and roles | Template API policy/verification and Linux builder configuration; no Talos guest SSH |
+| `ansible/vars/proxmox-api.yml` | Stateless API/TLS defaults for template plays; credentials come from the execution environment |
 | shared `templates/proxmox-catalog.tfvars` | one approved consumer catalog, maintained through Tier 0 review |
 | consuming tier's template selection | approved VMID for that tier's new guests, not another template recipe |
 
@@ -89,6 +92,19 @@ or recovery path. All Proxmox VM template automation remains Tier 0-owned,
 regardless of which tier will consume the resulting image.
 
 ## Local workflow
+
+On the prepared bootstrap host, install the apply/verification dependencies from
+the **Tier 0 root**. This is the same environment used by disk maintenance:
+
+```bash
+python3 -m venv "$HOME/.local/share/homelab/venv"
+source "$HOME/.local/share/homelab/venv/bin/activate"
+python3 -m pip install --upgrade 'ansible-core>=2.17' -r ansible/requirements.txt
+ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force
+```
+
+Activate that environment in each new deployment shell. Use approved pre-staged
+wheels/collections for offline installation; see [local tooling](../../development/local-setup.md#ansible-environment).
 
 From `homelab-iac/homelab-tier-0`, initialize the local catalog:
 
@@ -125,7 +141,24 @@ Review the plan, then publish exactly that saved plan:
 
 ```bash
 bash scripts/proxmox-templates.sh apply --env-file .env.local
+bash scripts/proxmox-templates.sh verify --env-file .env.local
 ```
+
+`apply` publishes the reviewed Terraform plan, then runs the Tier 0
+[template-policy play](../../../tier-0/ansible/playbooks/maintenance/template-policy.yml)
+against the applied template identities, using common
+[API defaults](../../../tier-0/ansible/vars/proxmox-api.yml). It explicitly disables ballooning and clears
+residual `ciuser`, `cipassword` and `sshkeys`, preserving CloudInit media, DHCP,
+disks, EFI, NICs and allocated RAM. A second apply makes no further policy writes.
+Only after successful raw API verification does the wrapper refresh the original state.
+Direct `terraform apply` omits this provider-compatibility phase; use the wrapper. [17]
+This clears Proxmox account settings, not files/accounts inside a previously booted
+image; use approved unbooted images or the [Linux builder cleanup](#mutable-linux-refresh).
+
+`verify` reads the actual API configuration and exits nonzero if the policy is not
+satisfied. It changes neither Proxmox settings nor Terraform state. To inspect one entry,
+add `--template rocky-build-1`; the default checks every applied template.
+The API token needs `VM.Config.Memory` and `VM.Config.Cloudinit` on the selected templates.
 
 The default state is `.terraform/state/proxmox-templates/terraform.tfstate`;
 working data and the saved plan stay in `.terraform/`. To use another recovery
@@ -278,29 +311,35 @@ but Proxmox enables the ballooning device when the field is absent. An adopted G
 template can therefore show a no-change plan while ballooning remains enabled.
 The configured `floating = 0` policy alone is not live acceptance evidence. [8][16]
 
-On the **Proxmox host currently holding the stopped template**, inspect its actual
-configuration. This command uses a VMID, unlike the publisher's catalog-key flag:
+Omitting `initialization.user_account` can also leave residual account fields in the
+API even when a plan shows their removal. The wrapper's native policy phase completes
+both operations without removing the CloudInit drive or its network configuration. [8][17]
+From **Tier 0**, use the normal workflow, including when Terraform itself has no changes:
 
 ```bash
-read -r -p "Stopped template VMID: " TEMPLATE_VMID
+bash scripts/proxmox-templates.sh plan --env-file .env.local
+bash scripts/proxmox-templates.sh apply --env-file .env.local
+bash scripts/proxmox-templates.sh verify --template rocky-build-1 --env-file .env.local
+```
+
+Require `ballooning_disabled: true`, `cloud_init_accounts_cleared: true` and
+`other_settings_preserved: true` in the verification output. A Terraform
+**Apply complete** line alone does not establish these live settings.
+The policy refuses running, locked, ordinary or mismatched VMs. It neither creates
+nor replaces guests, and existing clones keep their own configuration.
+
+For an independent read from the hosting Proxmox console:
+
+```bash
+read -r -p "Stopped template VMID (example: 110): " TEMPLATE_VMID
 qm config "$TEMPLATE_VMID" --current 1 | grep -E '^(name|template|memory|balloon):'
 ```
 
-Require `template: 1` and explicit **`balloon: 0`**. If the balloon field is absent
-or positive, uncheck **Hardware > Memory > Ballooning Device** for that template,
-or correct only that setting from the same Proxmox host console:
-
-```bash
-qm set "$TEMPLATE_VMID" --balloon 0
-qm config "$TEMPLATE_VMID" --current 1 | grep -E '^(name|template|memory|balloon):'
-```
-
-Return to Tier 0 and run the normal `plan --env-file .env.local` again. Do not force
-VM replacement or change the RAM size merely to trigger an update. Existing clones
-keep their own configuration; correcting the template does not update them.
+Require explicit `balloon: 0`. Inspect **Cloud-Init** in the GUI to confirm the account,
+password and SSH-key fields are empty; the CloudInit drive and networking remain present.
 The [disk-maintenance preview](template-disk.md#step-4-verify-the-replacement) also
 reports live `ballooning_disabled` without changing the memory setting.
-Review this workaround when upgrading the pinned provider.
+Review the compatibility phase when upgrading the pinned provider; retain live verification.
 
 ## Interrupted publication
 
@@ -517,3 +556,4 @@ They do not boot or verify real images; disposable clone tests remain required.
 14. [AnyEvent connection-buffer limits and ENOSPC](https://metacpan.org/release/MLEHMANN/AnyEvent-7.17/view/lib/AnyEvent/Handle.pm), checked 2026-11-07.
 15. [Upload connection errors resolved by Datastore.AllocateTemplate](https://github.com/bpg/terraform-provider-proxmox/issues/2047), checked 2026-11-07.
 16. [Proxmox enables ballooning unless explicitly disabled](https://github.com/proxmox/qemu-server/blob/master/src/PVE/QemuServer.pm#L3325), checked 2026-11-07.
+17. [Native Proxmox VM updates and selective setting deletion](https://docs.ansible.com/projects/ansible/latest/collections/community/proxmox/proxmox_kvm_module.html), checked 2026-11-07.
