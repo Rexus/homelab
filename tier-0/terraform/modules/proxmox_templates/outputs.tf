@@ -6,13 +6,14 @@ output "catalog" {
       title         = image.name
       node_name     = image.node_name
       family        = image.family
-      distribution  = coalesce(image.distribution, image.family)
+      distribution  = local.distributions[key]
       release       = image.release
       sha256        = image.sha256
       schematic_id  = image.schematic_id
       bios          = image.bios
       machine       = image.machine
       scsi_hardware = proxmox_virtual_environment_vm.template[key].scsi_hardware
+      tags          = local.template_tags[key]
     }
   }
 }

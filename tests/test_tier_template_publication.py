@@ -26,6 +26,7 @@ class TemplatePublication(TierRepositoryTestCase):
         self.assertNotIn('family    = "rocky"', shared)
         for build in catalog['templates'].values():
             self.assertFalse({'datastore_id', 'image_datastore_id', 'qemu_agent', 'bios', 'bridge'} & build.keys())
+            self.assertEqual(build['tags'], [])
         root = UPSTREAM / 'tier-0/terraform/deployments/templates'
         self.assertIn('merge(try(local.catalog.all, {}), image)', (root / 'main.tf').read_text())
         imports = (root / 'imports.tf').read_text()
@@ -55,6 +56,9 @@ class TemplatePublication(TierRepositoryTestCase):
             output.write('''
 output "test_disk_interfaces" {
   value = { for key, vm in proxmox_virtual_environment_vm.template : key => [for disk in vm.disk : disk.interface] }
+}
+output "test_template_tags" {
+  value = { for key, vm in proxmox_virtual_environment_vm.template : key => vm.tags }
 }
 ''')
         tests = root / 'tests'
@@ -242,6 +246,10 @@ run "invalid_operator_inputs" {
   assert {
     condition = length(module.templates.test_disk_interfaces.alma) == 1 && module.templates.test_disk_interfaces.alma[0] == "scsi0"
     error_message = "A retained unused rollback disk must not enter Terraform's managed disk list."
+  }
+  assert {
+    condition = toset(module.templates.test_template_tags.alma) == toset(["el10", "alma", "x86_64", "x86-64-v3", "cloud-init", "approved"])
+    error_message = "Import must replace legacy template/tier tags with reusable image metadata without replacing the VM."
   }
 }
 '''.replace('CATALOG_PATH', json.dumps(str(path))))

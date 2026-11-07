@@ -155,6 +155,10 @@ This file keeps durable context for AI-assisted work across sessions.
   `template-refresh` and `immutable-template` builders, all template modules,
   Packer definitions, and the local publication script; shared holds only approved
   consumer references, not image recipes or lifecycle ownership
+- Template tags describe reusable images: `el10` plus `alma`/`rocky`/`rhel`, configured
+  guest architecture/CPU model, conditional `cloud-init` and explicit per-build extras.
+  Do not inject `template`, tier ownership, bare `el` or redundant `rocky10`/`alma10` tags.
+  Candidate outputs expose resolved tags; promotion into Shared remains reviewed and explicit.
 - Tier 0 owns all hardware-facing control, including hypervisors, physical networks,
   storage administration, and every VM template lifecycle across all consuming tiers
 - initial template publication is foundation local automation, before managed VMs

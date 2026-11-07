@@ -37,8 +37,9 @@ settings, host inventory, or Terraform state.
 2. Test disposable clones on the destination cluster and network. Publication
    outputs show candidate VMIDs, titles, and source nodes; they are not approval.
 3. In shared `templates/proxmox-catalog.tfvars`, add the approved ID with its
-   exact Proxmox name as `title`, source `node_name`, `family`, and image tags.
-   Keep lifecycle tags such as `tier-0` and `template` out of consumer image tags.
+   exact Proxmox name as `title`, source `node_name`, `family`, and reusable image tags
+   reviewed from `template_candidates`. The [tag convention](proxmox-conventions.md#template-tags)
+   applies to both publication and consumer references; tier/workload ownership stays guest-local.
 4. Set `default_linux_vm_template_id` to the approved Linux ID when ready for
    consumers to adopt it. Talos references are listed too, but cannot be used by
    the Linux VM module; use the [Talos Kubernetes implementation](../deployment/stage-4-kubernetes/procedures/talos-terraform.md) or the

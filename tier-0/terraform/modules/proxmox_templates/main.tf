@@ -8,6 +8,22 @@ terraform {
 }
 
 locals {
+  # This publisher configures x86 guests. Tags describe the guest profile, not host CPU detection.
+  cpu_architecture = "x86_64"
+  distributions    = { for key, image in var.images : key => lower(coalesce(image.distribution, image.family)) }
+  major_versions   = { for key, image in var.images : key => try(regex("^v?([0-9]+)", image.release)[0], "") }
+  # Enterprise Linux shares a major track; Fedora/Ubuntu keep their independent release numbers.
+  release_tracks = { for key, image in var.images : key => format("%s%s",
+    contains(["redhat", "alma", "rocky"], image.family) &&
+    contains(["alma", "almalinux", "rocky", "rhel", "centos", "centos-stream", "oraclelinux"], local.distributions[key])
+    ? "el" : local.distributions[key], local.major_versions[key]
+  ) }
+  template_tags = { for key, image in var.images : key => sort(distinct(concat(compact([
+    local.release_tracks[key], local.distributions[key],
+    local.cpu_architecture, lower(image.cpu_type),
+    image.cloud_init_drive ? "cloud-init" : null,
+  ]), image.tags))) }
+
   # Talos uses the non-Single controller; other Linux images use the standard Single profile.
   scsi_hardware = { for key, image in var.images : key => coalesce(
     image.scsi_hardware, image.family == "talos" ? "virtio-scsi-pci" : "virtio-scsi-single"
@@ -48,14 +64,12 @@ resource "proxmox_virtual_environment_file" "image" {
 }
 
 resource "proxmox_virtual_environment_vm" "template" {
-  for_each    = var.images
-  name        = each.value.name
-  node_name   = each.value.node_name
-  vm_id       = each.value.vm_id
-  description = "${each.value.family} ${each.value.release}; sha256=${each.value.sha256}"
-  tags = sort(distinct(concat(
-    ["tier-0", "template", coalesce(each.value.distribution, each.value.family)], each.value.tags
-  )))
+  for_each      = var.images
+  name          = each.value.name
+  node_name     = each.value.node_name
+  vm_id         = each.value.vm_id
+  description   = "${each.value.family} ${each.value.release}; sha256=${each.value.sha256}"
+  tags          = local.template_tags[each.key]
   template      = true
   started       = false
   on_boot       = false
@@ -65,8 +79,9 @@ resource "proxmox_virtual_environment_vm" "template" {
   boot_order    = ["scsi0"]
 
   cpu {
-    type  = each.value.cpu_type
-    cores = each.value.cores
+    architecture = local.cpu_architecture
+    type         = each.value.cpu_type
+    cores        = each.value.cores
   }
 
   memory {

@@ -11,29 +11,30 @@ default_linux_vm_template_id = null
 # Keys are Proxmox VMIDs; title is the human-readable Proxmox template name.
 # Keep old approved IDs while consumers use them. Do not repoint an ID at a new image.
 # family describes the OS family; distribution-specific consumer metadata stays in title/tags.
+# Review template_candidates tags from Tier 0 after clone testing; copy reusable image tags below.
 proxmox_template_catalog = {
   # "9103" = {
   #   title     = "debian-template-build-1"
   #   node_name = "pve01"
   #   family    = "debian"
-  #   tags      = ["x86_64", "cloud-init", "debian"]
+  #   tags      = ["debian12", "debian", "x86_64", "x86-64-v3", "cloud-init"]
   # }
   # "9100" = {
   #   title     = "alma-template-build-1"
   #   node_name = "pve01"
   #   family    = "redhat"
-  #   tags      = ["x86_64", "cloud-init", "alma"]
+  #   tags      = ["el10", "alma", "x86_64", "x86-64-v3", "cloud-init"]
   # }
   # "9101" = {
   #   title     = "rocky-template-build-1"
   #   node_name = "pve01"
   #   family    = "redhat"
-  #   tags      = ["x86_64", "cloud-init", "rocky"]
+  #   tags      = ["el10", "rocky", "x86_64", "x86-64-v3", "cloud-init"]
   # }
   # "9102" = {
   #   title     = "talos-template-build-1"
   #   node_name = "pve01"
   #   family    = "talos"
-  #   tags      = ["talos"]
+  #   tags      = ["talos1", "talos", "x86_64", "x86-64-v3", "cloud-init"]
   # }
 }

@@ -15,6 +15,7 @@
 - [VM tags](#vm-tags)
 - [Naming boundaries](#naming-boundaries)
 - [Related references](#related-references)
+- [References](#references)
 
 ## Purpose
 
@@ -115,7 +116,8 @@ templates.
 
 ### Template tags
 
-Add tags one by one in the Proxmox GUI.
+For manual templates, add tags in the Proxmox GUI. Tier 0's publisher derives the
+standard image tags from its catalog; `tags: []` on each build accepts extra variant tags.
 
 Use template tags for image identity, not future workload identity.
 
@@ -133,10 +135,40 @@ Suggested tag categories:
 
 | Category | Purpose | Current examples |
 | --- | --- | --- |
-| `arch` | target architecture | `x86_64`, `aarch64` |
-| `family_release` | OS family or release track | `el10`, `debian12`, `windows_nt` |
-| `capability` | image capability or build style | `cloud-init`, `uefi`, `immutable`, `bootc` |
-| `image_source` | exact distro or OS image source | `alma10`, `rocky10`, `ubuntu2404`, `debian12`, `windows11` |
+| `arch` | Configured guest architecture | `x86_64` in the current publisher |
+| `cpu` | Configured Proxmox CPU model | `x86-64-v3`, `host` |
+| `release_track` | Shared family/major where applicable; otherwise distribution/major | `el10`, `debian12`, `talos1`, `fedora42` |
+| `distribution` | Selected OS distribution | `alma`, `rocky`, `rhel`, `debian`, `talos` |
+| `capability` | Configured image capability | `cloud-init` when NoCloud media is enabled |
+| `variant` | Optional additional image property | `test`, `hardened`, `immutable`, `bootc` |
+
+For example, a Rocky 10 template with the default CPU and CloudInit drive receives:
+
+```text
+el10, rocky, x86_64, x86-64-v3, cloud-init
+```
+
+`el10` identifies the Enterprise Linux release track shared by AlmaLinux, Rocky Linux
+and RHEL; the distribution tag distinguishes them. There is no redundant `el` or
+`rocky10` tag. `rhel` denotes the Red Hat Enterprise Linux distribution. The catalog's
+broader `family: redhat` matches Ansible's family terminology and also covers Fedora;
+Fedora's release number is not an Enterprise Linux version. [1][2]
+
+The publisher extracts the leading major number from the pinned `release`, including
+an optional `v` prefix. Debian 12 produces `debian12` and `debian`; Talos v1.14 produces
+`talos1` and `talos`. Derivatives with independent version numbers use their own track,
+such as `ubuntu24`; a known parent version can be added explicitly in `tags`.
+
+CPU tags describe the configured guest architecture/model, not detected physical host
+features or an inspected image's minimum requirement. Selecting `host` does not infer
+a `v3` tag. The default `x86-64-v3` profile must work on every eligible host. [3]
+The `cloud-init` tag records enabled CloudInit/NoCloud media; for Talos that media
+supplies networking, while the Talos API still owns machine configuration.
+
+Do not add `template` status or tier ownership to reusable image tags. Proxmox already
+records template status; future clones can belong to any tier. Extra tags such as
+`test` are deliberate and may be inherited by clones. Publication outputs expose the
+resolved `tags` for review and promotion into the shared consumer catalog.
 
 ## Virtual machines
 
@@ -261,5 +293,12 @@ guidelines:
 ## Related references
 
 - [Proxmox reference platform](../deployment/foundation/proxmox/README.md)
-- [Enterprise Linux template](../deployment/foundation/proxmox/templates.md)
+- [Proxmox VM templates](../deployment/foundation/proxmox/templates.md)
 - [Deployment readiness](../deployment/readiness.md)
+
+## References
+
+1. [Ansible OS-family mapping](https://github.com/ansible/ansible/blob/devel/lib/ansible/module_utils/facts/system/distribution.py),
+   checked 2026-11-07.
+2. [AlmaLinux Enterprise Linux comparison](https://wiki.almalinux.org/Comparison.html), checked 2026-11-07.
+3. [Proxmox CPU models](https://github.com/proxmox/pve-docs/blob/master/qm.adoc#_cpu_type), checked 2026-11-07.

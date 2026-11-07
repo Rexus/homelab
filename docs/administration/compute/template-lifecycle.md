@@ -155,10 +155,17 @@ only when the selected image or site needs a different value.
 | `image_datastore_id` | Tier 0 staging datastore with Import content; independent of live storage |
 | `cloud_init_drive` / `cloud_init_datastore_id` | NoCloud media at `ide2` with IPv4 DHCP / override of class `cloud_init_drive` or live disk storage |
 | `family` / `distribution` | OS family (`redhat`, `debian`, `talos`) / selected distribution (`alma`, `rocky`, etc.); Fedora uses the `redhat` family |
-| `tags` | Additional tags; `tier-0`, `template` and distribution tags are always added |
+| `tags` | Extra image/variant tags, such as `[test]`; standard [image tags](../../reference/proxmox-conventions.md#template-tags) are generated automatically |
 | `image_path` / `sha256` | Absolute local unpacked artifact path / approved hash of those bytes |
 | `image_file_name` | Optional existing Import basename; defaults to `<vm_id>-<sha256>.raw` or `.qcow2` |
 | `release` / `schematic_id` | Exact build version, optional `v` prefix / mandatory Talos Factory schematic |
+
+Each build includes `tags: []` for optional extras such as `[test]`. Standard tags
+describe the image and CPU profile, not template status or tier ownership. The
+`template_candidates` output includes the resolved tags for consumer-catalog review.
+Existing local `tags` remain explicit extras: remove old `template`, `tier-0` or
+redundant distribution-version entries there to adopt the current convention.
+Updating template tags does not retag already-created clones or rewrite Shared's catalog.
 
 `release` records the approved version/build, not the template name or image filename.
 For example, `10.0-20250601` and `v1.14.0` illustrate the accepted format; use the
@@ -195,7 +202,9 @@ DHCP remains enabled on reusable templates; a clone's explicit network configura
 replaces it. No site-specific account/password is stored in the template. [11]
 
 Discard remains enabled so supported guest filesystems can return unused blocks to
-thin-provisioned storage. Guest-side TRIM still needs to run. The socket-backed serial
+thin-provisioned storage. On adoption, `discard = "ignore" -> "on"` is intentional:
+it enables guest TRIM passthrough, not boot-disk replacement or capacity reduction.
+Guest-side TRIM still needs to run. The socket-backed serial
 port remains available for console diagnostics; visible output depends on the image's
 serial-console configuration. The graphical display is retained. [10][11]
 
