@@ -80,6 +80,12 @@ Unimplemented automation is recorded as outstanding work, not treated as availab
 
 ## Step 2: Provision the workload runtime
 
+For Linux labs, select the [tier-local application override](../../reference/network-inputs.md#guest-attachment)
+before provisioning untrusted guests. The starter `lab-1`/`support-1` definitions
+otherwise inherit the shared application subnet; their names do not isolate them.
+The Kubernetes example already selects VLAN 420. Record the selected Lab-zone
+policy and attachment in the [network plan](../../reference/network-plan.md#services-zone).
+
 The protected runner creates the approved resources using the owning tier's inputs
 and state. Shared supplies reusable helpers, never workload inventory or resources.
 

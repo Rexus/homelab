@@ -154,7 +154,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertIn("compute/provisioning.md", readme)
             self.assertNotIn("${", readme)
 
-    def test_naming_worksheet_keeps_conventions_separate_from_inventory(self):
+    def test_naming_worksheet_records_conventions_and_zone_network_plan(self):
         self.generate("--repo", "architecture")
         architecture = self.root / "verify-architecture"
         naming = architecture / "docs/naming-conventions.md"
@@ -176,16 +176,24 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         headers = [rows[index - 1] for index, row in enumerate(rows) if row.startswith("| ---")]
         for header in headers:
             self.assertNotRegex(header.lower(), r"example|choice|our")
+            if header == "| Zone — UniFi / Proxmox SDN | Included networks — VNet IDs |":
+                continue
             self.assertTrue(header.endswith("| Comments |"), header)
         self.assertIn("<env>-<role>-<n>", content)
         for example in ("idp.prod.corp.example.com", "critical", "restricted", "100-199", "9000-9999",
-                        "10 / Control", "120 / Services", "320 / DMZ"):
+                        "10.10.10.0/24", "10.20.20.0/24", "10.30.30.0/24"):
             self.assertIn(example, content)
         self.assertIn("Tier = owning repo and potential impact", content)
         self.assertIn("Zone = network protection", content)
         self.assertNotRegex(content, r"T[012]-(?:Edge|Application|Control)")
-        for column in ("Tier / layer", "CIDR", "Gateway"):
-            self.assertNotIn(column, content)
+        self.assertNotIn("Tier / layer", content)
+        self.assertIn("| VLAN ID | Name | Alias | Subnet | Gateway | Comments |", content)
+        self.assertIn("### Fabric zone", content)
+        self.assertNotIn("### Infrastructure zone", content)
+        for vnet in re.findall(r"^\| `\d+` \| `([^`]+)` \|", content, re.MULTILINE):
+            if vnet != "—":
+                self.assertRegex(vnet, r"^[a-z][a-z0-9]{1,7}$")
+        self.assertIn("auto-docs/reference/network-plan.md#deployment-mapping", content)
         for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", content):
             relative = target.split("#")[0]
             self.assertTrue((naming.parent / relative if relative else naming).is_file(), target)

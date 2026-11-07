@@ -4,13 +4,17 @@
 
 - [Prerequisites](#prerequisites)
 - [Guest attachment](#guest-attachment)
+- [SDN subnet lookup](#sdn-subnet-lookup)
 - [Field reference](#field-reference)
 - [Shared references and tier overrides](#shared-references-and-tier-overrides)
+- [References](#references)
 
 ## Prerequisites
 
 Use the [network plan](../architecture/networking/README.md) to create the required
 segments and [firewall policy](../architecture/networking/firewall-policy.md) first.
+The [allocation and deployment map](network-plan.md) connects each zone/VNet to
+the current source inputs and identifies optional network splits.
 Terraform combines `shared_network_zones` and tier-local `network_zones` to map logical guest-network keys to existing
 attachments. It does not create firewall zones, gateways, VLAN trunks, or rules.
 
@@ -39,6 +43,9 @@ On the gateway, assign the subnet to `Services` or a separate `Lab` zone when
 its policy differs. The firewall-zone
 name is not a Terraform field. With Proxmox SDN, use the short VNet ID as
 `bridge` and omit `vlan_id` when tagging is handled by the VNet.
+The [SDN field guide](../deployment/foundation/step-1c-sdn.md) maps these keys to
+zone IDs, VNet IDs, VLAN tags and gateway firewall zones. An SDN zone's DNS fields
+manage DNS records through an API integration; guest resolver settings are separate.
 
 Then select the logical network in the owning setup's `terraform.tfvars`:
 
@@ -61,6 +68,66 @@ Set the matching guest IP in that tier's Ansible group vars. The shared
 inventory mechanism supplies it to both Terraform and Ansible; do not
 maintain a second address list in VM placement variables.
 
+## SDN subnet lookup
+
+Use an existing Proxmox SDN subnet as the prefix/gateway source instead of
+repeating those values in IaC. This is optional; explicit network entries remain valid.
+
+1. Under the selected **VNet > Subnets**, record its IPv4 CIDR and existing
+   gateway, then **Apply** SDN. Keep UniFi as router/DHCP/DNS provider on the VLAN
+   path; do not enable Proxmox DHCP or SNAT just to use this lookup.
+2. Grant the execution token `SDN.Audit` on that VNet, in addition to its existing
+   attachment permissions; see [API access](../deployment/foundation/proxmox/api-access.md#6-grant-bridge-vlan-or-sdn-use-to-the-group).
+3. Replace the selected Linux network entry with the following form. Use Shared's
+   `config/platform.tfvars` / `shared_network_zones` for a shared network, or the
+   owning tier's `terraform/common.tfvars` / `network_zones` for a private one:
+
+```hcl
+network_zones = {
+  identity = {
+    bridge     = "ident"
+    sdn_lookup = true
+  }
+}
+```
+
+Preserve other entries in the map. Omit `vlan_id`, `cidr_ipv4` and `gateway_ipv4`
+from a lookup entry. Guest IPs remain in tier-local inventory inputs; each guest
+still selects its logical network. Plan with the normal deployment command.
+
+Kubernetes uses its separate input contract in the **selected tier's**
+`terraform/deployments/kubernetes/terraform.tfvars`:
+
+```hcl
+bootstrap_network = {
+  sdn_vnet = "control"
+}
+```
+
+All nodes must attach to that VNet with no NIC VLAN tag. Omit explicit
+`prefix_length` and `gateway`; optional `dns_servers` remains independently configured.
+`bootstrap_network = null` retains the existing DHCP path.
+
+The tier-owned [Linux resolver](../../tier-0/terraform/modules/environment_guests/networks.tf)
+and [Kubernetes root](../../tier-0/terraform/deployments/kubernetes/networks.tf) use
+Shared's stateless [lookup helper](../../shared/scripts/proxmox-sdn.py) through
+Terraform's external data source. Python 3 needs no additional packages. Authentication
+uses the normal environment-only `TF_VAR_proxmox_api_*`, `PROXMOX_VE_*` or
+`PROXMOX_API_*` token/endpoint settings. Conflicting settings are rejected;
+TLS uses the execution host's trusted CA store or `SSL_CERT_FILE`/`SSL_CERT_DIR`.
+The helper reads applied subnet metadata with GET only; it does not reserve addresses,
+change networks, create DNS records or configure a DHCP server. [1][2]
+
+Exactly one applied IPv4 subnet with a usable gateway is required per selected
+VNet. Missing, ambiguous or unreadable metadata fails the plan; explicit values
+are not a silent fallback. Inventory IPs outside that subnet, its network/broadcast
+addresses and the gateway itself are rejected. Linux deployments query only their
+selected networks. A plan stores the resolved values, not API credentials from the lookup.
+
+Keep the SDN/network backup with recovery records. Changing the subnet can change
+guest network configuration: review the plan. If SDN cannot be recovered yet,
+deliberately restore an explicit network entry from the approved record.
+
 ## Field reference
 
 Entries in both network maps use the same fields below. The tier-local entry
@@ -73,8 +140,9 @@ replaces the complete shared entry with the same key; other shared entries remai
 | `vm_instances.<key>.tags` | platform tags for filtering and ownership |
 | `network_zones.<key>.bridge` | SDN VNet ID or non-SDN Proxmox bridge |
 | `network_zones.<key>.vlan_id` | optional VM or LXC NIC VLAN tag for bridge attachment |
-| `network_zones.<key>.cidr_ipv4` | network prefix for the guest's static address |
-| `network_zones.<key>.gateway_ipv4` | optional in the schema; the static-guest check expects a value; DHCP guests obtain routing from DHCP |
+| `network_zones.<key>.cidr_ipv4` | IPv4 prefix for explicit networks; omitted with SDN lookup |
+| `network_zones.<key>.gateway_ipv4` | gateway for explicit static networks; omitted with SDN lookup; DHCP guests obtain routing from DHCP |
+| `network_zones.<key>.sdn_lookup` | default `false`; read the selected VNet's applied IPv4 subnet and gateway |
 | `vm_instances.*.network_zone_key` | logical network used by a VM |
 | `lxc_instances.*.network_zone_key` | logical network used by an LXC guest |
 
@@ -102,6 +170,7 @@ Applying a newly honored tag can change connectivity; verify trunk and firewall
 configuration before applying it. Omit the tag when the SDN VNet owns tagging.
 
 The current `environment_guests` static-guest check expects `gateway_ipv4`.
+An enabled SDN lookup supplies that value from the applied subnet.
 In custody, use only an actual custody-local router with no connected-tier
 or Internet path. If the design uses static guests without a gateway, resolve
 that module check before using the layout; do not invent a gateway or point
@@ -111,3 +180,8 @@ routing settings alone do not establish physical isolation.
 See [Generated repository model](../development/generated-repositories.md)
 for ownership and [Automation layout](../development/code-layout.md)
 for source locations.
+
+## References
+
+1. [Terraform external data source and execution environment](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external).
+2. [Proxmox subnet reads, running configuration and scoped permissions](https://raw.githubusercontent.com/proxmox/pve-network/master/src/PVE/API2/Network/SDN/Subnets.pm).

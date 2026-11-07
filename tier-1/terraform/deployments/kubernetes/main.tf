@@ -41,14 +41,20 @@ resource "terraform_data" "configuration" {
       error_message = "Every Talos node needs a unique IPv4 address in the tier-local platform_host_ips map."
     }
     precondition {
-      condition = var.bootstrap_network == null ? true : alltrue([for node in local.machines : try(
-        cidrhost("${node.ip}/${var.bootstrap_network.prefix_length}", 0) ==
-        cidrhost("${var.bootstrap_network.gateway}/${var.bootstrap_network.prefix_length}", 0) &&
-        node.ip != var.bootstrap_network.gateway &&
-        node.ip != cidrhost("${node.ip}/${var.bootstrap_network.prefix_length}", 0) &&
-        node.ip != cidrhost("${node.ip}/${var.bootstrap_network.prefix_length}", -1), false)
+      condition = local.effective_bootstrap_network == null ? true : alltrue([for node in local.machines : try(
+        cidrhost("${node.ip}/${local.effective_bootstrap_network.prefix_length}", 0) ==
+        cidrhost("${local.effective_bootstrap_network.gateway}/${local.effective_bootstrap_network.prefix_length}", 0) &&
+        node.ip != local.effective_bootstrap_network.gateway &&
+        node.ip != cidrhost("${node.ip}/${local.effective_bootstrap_network.prefix_length}", 0) &&
+        node.ip != cidrhost("${node.ip}/${local.effective_bootstrap_network.prefix_length}", -1), false)
       ])
       error_message = "Static bootstrap inventory IPs must be usable addresses on the selected gateway subnet."
+    }
+    precondition {
+      condition = try(var.bootstrap_network.sdn_vnet, null) == null ? true : alltrue([
+        for node in var.nodes : node.bridge == var.bootstrap_network.sdn_vnet && node.vlan_id == null
+      ])
+      error_message = "SDN bootstrap requires every node to use the selected VNet bridge with no second VLAN tag."
     }
     precondition {
       condition = try(local.template.family == "talos" && length(trimspace(local.template.node_name)) > 0 &&

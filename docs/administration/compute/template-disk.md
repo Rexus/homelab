@@ -107,6 +107,12 @@ An **Unused Disk N** row keeps the old volume registered with the template for
 rollback; it is already detached from its disk controller. Removing that row through
 Proxmox **also permanently deletes the stored disk**. The play never does this automatically. [1][6]
 
+Existing linked clones may still read that old base disk. While such dependents
+exist, it is required storage, not just history. Use
+[linked-clone migration](linked-clones.md) to preserve their contents in independent
+copies, or deploy replacement VMs from the new template. With no dependents, the
+old disk is optional rollback storage.
+
 For a ZFS template whose replacement still has a `vm-*` name,
 [complete base conversion](#complete-base-conversion) before cleanup.
 

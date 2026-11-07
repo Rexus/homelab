@@ -3,9 +3,17 @@ variable "network_zones" {
   type = map(object({
     bridge       = string
     vlan_id      = optional(number)
-    cidr_ipv4    = string
+    cidr_ipv4    = optional(string)
     gateway_ipv4 = optional(string)
+    sdn_lookup   = optional(bool, false)
   }))
+  validation {
+    condition = alltrue([for network in var.network_zones : network.sdn_lookup ? (
+      can(regex("^[A-Za-z][A-Za-z0-9]{1,7}$", network.bridge)) &&
+      network.vlan_id == null && network.cidr_ipv4 == null && network.gateway_ipv4 == null
+    ) : can(cidrnetmask(network.cidr_ipv4))])
+    error_message = "SDN lookup needs a VNet bridge with no vlan_id/cidr_ipv4/gateway_ipv4; explicit networks need an IPv4 CIDR."
+  }
 }
 
 variable "default_platform_node_name" {

@@ -39,7 +39,7 @@ resource "proxmox_virtual_environment_vm" "node" {
     wait_for_ip { disabled = true }
   }
   dynamic "initialization" {
-    for_each = var.bootstrap_network == null ? [] : [var.bootstrap_network]
+    for_each = local.effective_bootstrap_network == null ? [] : [local.effective_bootstrap_network]
     content {
       type         = "nocloud"
       interface    = "ide2"

@@ -18,7 +18,7 @@ Record only selected alternatives or local differences, not another copy of that
 
 | Area | Selected path / local exception | Reference |
 | --- | --- | --- |
-| Standards | Complete VM names, domains, tags, VMIDs and VLAN conventions | [Naming conventions](naming-conventions.md) |
+| Standards | Complete VM names, domains, tags, VMIDs and the zone/VNet network plan | [Naming conventions](naming-conventions.md) |
 | Compute | Reference: Proxmox VE 9.2+, three hosts, native HA and dynamic rebalancing | [HA and failover](auto-docs/deployment/foundation/step-1b-cluster-ha.md) |
 | Networks | Reference: VLAN-aware bridges; record SDN selection if used | [Network design](auto-docs/architecture/networking/README.md) |
 | Storage | Reference: Proxmox/Ceph live volumes, separate NAS backups | [Storage interfaces](auto-docs/architecture/compute/runtime.md#storage-interfaces) |

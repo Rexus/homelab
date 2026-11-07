@@ -24,6 +24,7 @@ or recovery dependencies requires a design review before execution.
 | Maintain hypervisor access and posture | [Hardening](compute/hardening.md), [update access](compute/update-access.md) |
 | Establish API trust and transition to platform PKI | [Proxmox TLS](compute/proxmox-tls.md) |
 | Publish, test and promote image revisions | [Template lifecycle](compute/template-lifecycle.md) |
+| Remove existing VMs' template dependencies | [Linked-clone migration](compute/linked-clones.md) |
 | Add cluster capacity and reserve worker pools | [Kubernetes pools](compute/kubernetes-pools.md) |
 | Maintain signing gateways and key replicas | [USB HSM maintenance](cryptography/usb-hsm.md) |
 | Maintain CA policy, publication and recovery | [Certificate authority operations](cryptography/certificate-authority.md) |

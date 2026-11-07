@@ -70,19 +70,30 @@ only current controller or workstation path without a tested cutover.
 
 ## Map the architecture
 
-Use the existing DMZ zone and add Services and Control zones as needed.
+Use the existing DMZ zone and purpose-named Services, Control and Fabric groups.
+Layers describe protection; zones group networks with compatible policy,
+independently of tier ownership.
 Assign each network to one zone. [1]
+
+For the optional Proxmox SDN path, use the matching `dmz`, `services` and
+`control` groups in the [SDN field guide](../step-1c-sdn.md). Create the VLAN
+membership on both platforms; SDN groups do not configure the gateway's policy.
 
 | Layer / purpose | Zone | Example member networks |
 | --- | --- | --- |
-| Edge | built-in `DMZ` | Tier 2 `external_edge` and separate `client`; Tier 1 `delivery_edge` |
+| Edge | built-in `DMZ` | separate `external_edge`, `client` and `delivery_edge` VLANs |
 | Application | custom `Services` | `application`, application-only `access`, telemetry |
-| Control | custom `Control` | `management`, `identity`, `control_cluster`, `cryptography` |
+| Control: privileged guest services | custom `Control` | `identity`, `control_cluster`, `cryptography`; selected VM-administration split |
+| Control: hardware and host transport | custom `Fabric` | host management, BMC/IPMI, Corosync and Ceph; guest-management split described in the network plan |
 | Offline custody | none on the connected gateway | isolated ceremony/recovery fabric |
 
 Use a separate `Lab` or other purpose-named zone when its policy differs.
 Do not put untrusted labs into a service subnet merely to keep the zone count low.
 Host-only cluster/storage fabrics can remain on controlled, non-routed switching.
+Fabric is the local UniFi policy name, not the Proxmox SDN Fabrics feature.
+The [network plan](../../../reference/network-plan.md) supplies the short VNet
+IDs, per-zone allocations and current deployment attachments. Prefer a separate
+Clients zone when workstation policy differs from edge servers.
 
 WAN stays External. Gateway covers the gateway's own traffic, not the Control
 layer. VPN membership is not administrative privilege. Review default Internal,
@@ -90,8 +101,9 @@ VPN, and same-zone policies; they are not this repository's intended rules. [1]
 
 Keep these as separate VLANs/subnets even when assigned to DMZ. Add explicit
 DMZ-to-DMZ rules for named listeners and retain a deny fallback. Client membership
-does not publish a WAN listener. Tier 0 jump hosts and bootstrap VMs stay in
-Control; a separate remote-access entry requires its own reviewed policy.
+does not publish a WAN listener. Privileged jump hosts and bootstrap VMs target
+Control; the [current mixed management attachment](../../../reference/network-plan.md#separate-host-and-vm-administration)
+needs explicit inputs to separate it from Fabric. A remote-access entry requires its own reviewed policy.
 
 ## Apply the policy
 

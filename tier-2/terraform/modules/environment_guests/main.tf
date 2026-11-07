@@ -15,7 +15,7 @@ locals {
     ]
   )...)
   network_zone_ipv4_prefixes = {
-    for zone_key, zone in var.network_zones : zone_key => try(
+    for zone_key, zone in local.effective_network_zones : zone_key => try(
       split("/", zone.cidr_ipv4)[1],
       null,
     )
@@ -62,7 +62,7 @@ locals {
       for key, vm in var.vm_instances :
       coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
       if local.platform_host_ips[key] != "dhcp"
-      && try(var.network_zones[
+      && try(local.effective_network_zones[
         coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
       ].gateway_ipv4, null) == null
     ],
@@ -70,7 +70,7 @@ locals {
       for key, lxc in var.lxc_instances :
       coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
       if local.platform_host_ips[key] != "dhcp"
-      && try(var.network_zones[
+      && try(local.effective_network_zones[
         coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
       ].gateway_ipv4, null) == null
     ],
@@ -100,11 +100,11 @@ locals {
         try(vm.network_zone_key, null),
         var.default_vm_network_zone_key,
       )
-      bridge = var.network_zones[
+      bridge = local.effective_network_zones[
         coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
       ].bridge
       vlan_id = try(
-        var.network_zones[
+        local.effective_network_zones[
           coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
         ].vlan_id,
         null,
@@ -120,7 +120,7 @@ locals {
         ],
       )
       ipv4_gateway = local.platform_host_ips[key] == "dhcp" ? null : try(
-        var.network_zones[
+        local.effective_network_zones[
           coalesce(try(vm.network_zone_key, null), var.default_vm_network_zone_key)
         ].gateway_ipv4,
         null,
@@ -149,11 +149,11 @@ locals {
         try(lxc.network_zone_key, null),
         var.default_lxc_network_zone_key,
       )
-      bridge = var.network_zones[
+      bridge = local.effective_network_zones[
         coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
       ].bridge
       vlan_id = try(
-        var.network_zones[
+        local.effective_network_zones[
           coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
         ].vlan_id,
         null,
@@ -166,7 +166,7 @@ locals {
         ],
       )
       ipv4_gateway = local.platform_host_ips[key] == "dhcp" ? null : try(
-        var.network_zones[
+        local.effective_network_zones[
           coalesce(try(lxc.network_zone_key, null), var.default_lxc_network_zone_key)
         ].gateway_ipv4,
         null,

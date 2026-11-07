@@ -156,6 +156,11 @@ gates pass, continue the broader operator journey:
 
 - [ ] Cold-start gateway/controller, switches and the first server with only the offline kit.
 - [ ] Boot a disposable clone; verify SSH, DNS, time, network denials and backup restore.
+- [ ] If [SDN subnet lookup](../docs/reference/network-inputs.md#sdn-subnet-lookup) is selected,
+  verify a disposable Linux/container and Kubernetes plan against applied Proxmox metadata.
+  Pass when inventory IPs retain the expected prefix/gateway, the token needs only scoped
+  read/attachment permissions, and missing permissions or ambiguous subnets fail the plan.
+  Record the SDN backup and explicit-input recovery path; never apply unrelated resources.
 - [ ] Run test and production concurrently with non-overlapping allocations and separate state.
 - [ ] Repeat plans after Proxmox migration and after an approved host-failure exercise.
 - [ ] Disable Tier 1/2 and normal SSO; verify Tier 0 logging, administration and critical alerts.

@@ -75,6 +75,11 @@ bash scripts/kubernetes-cluster.sh init
 Initialization copies missing examples only. Existing files are never overwritten
 or merged; add the Talos groups from the inventory example when upgrading.
 
+For an existing applied SDN subnet, select
+[`bootstrap_network.sdn_vnet`](../../../reference/network-inputs.md#sdn-subnet-lookup)
+instead of repeating prefix/gateway values. Node IPs remain in this tier's group vars;
+all node bridges must select that VNet with no additional VLAN tag.
+
 | Repository | File relative to that repository | Edit or purpose |
 | --- | --- | --- |
 | Selected tier | `ansible/inventory/hosts.yml` | Logical hosts in `talos_control_plane` and `talos_workers`, both under `talos` |

@@ -10,6 +10,8 @@ default_platform_node_name = null
 
 # Existing network shared by multiple tiers. Selection and guest IPs stay tier-local.
 # Tier network_zones entries override this map by network name, not by individual field.
+# Optional SDN lookup: keep bridge, set sdn_lookup = true, and omit VLAN/CIDR/gateway fields.
+# Contract: docs/reference/network-inputs.md#sdn-subnet-lookup
 shared_network_zones = {
   application = {
     bridge       = "app"

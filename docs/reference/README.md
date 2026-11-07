@@ -14,6 +14,7 @@ Exact inputs and command contracts. Use the [design](../architecture/README.md),
 | HSM signing and wrapping timings | [YubiHSM 2 vendor performance](yubihsm-performance.md) |
 | Shared defaults and tier-local overrides | [Platform inputs](platform-inputs.md) |
 | Guest network attachment fields | [Network inputs](network-inputs.md) |
+| Zone/VNet allocations and actual deployment attachments | [Network plan](network-plan.md) |
 | Approved image references | [Template catalog](template-catalog.md) |
 | VM names, tags and IDs | [Proxmox conventions](proxmox-conventions.md) |
 | HA menu, affinity and native balancing | [Proxmox HA controls](proxmox-ha.md) |

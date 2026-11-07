@@ -81,6 +81,8 @@ overrides qualified host defaults. No Linux users, SSH keys or machine-config
 snippets are supplied on that drive; the Talos API owns machine configuration.
 Omitted firmware and `bootstrap_network = null` preserve the older BIOS/DHCP contract.
 See the [cluster inputs](../deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure).
+The optional [SDN subnet lookup](network-inputs.md#sdn-subnet-lookup) replaces
+explicit prefix/gateway inputs with an existing VNet reference for either path.
 
 Network keys are guest attachments, not a list of every service a guest can
 contact. Tier 1/2 do not need `identity`, `cryptography`, or `ceremony` attachments

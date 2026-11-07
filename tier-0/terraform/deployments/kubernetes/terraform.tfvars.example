@@ -10,6 +10,8 @@ machine_config_patches = []
 # Leave user/password/SSH/custom user-data unset. DNS inherits the host default;
 # add dns_servers only if a qualified independent bootstrap DNS override is needed.
 # Null retains the earlier DHCP-reservation path for existing clusters.
+# SDN alternative: use sdn_vnet instead of prefix_length/gateway; match all node bridges and omit NIC tags.
+# Reference: docs/reference/network-inputs.md#sdn-subnet-lookup
 bootstrap_network = { prefix_length = 24, gateway = "10.10.13.1" }
 
 template_vm_id = 9102

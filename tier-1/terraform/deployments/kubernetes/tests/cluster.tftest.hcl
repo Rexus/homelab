@@ -1,4 +1,5 @@
 mock_provider "proxmox" {}
+mock_provider "external" {}
 mock_provider "talos" {}
 
 # Only local secrets/configuration generation uses the real provider below.
@@ -264,4 +265,44 @@ run "reject_empty_machine_patch" {
   command = plan
   variables { machine_config_patches = [" "] }
   expect_failures = [var.machine_config_patches]
+}
+
+
+run "sdn_subnet_supplies_static_bootstrap" {
+  command = plan
+  variables {
+    bootstrap_network = { sdn_vnet = "control", dns_servers = ["192.0.2.53"] }
+  }
+  override_data {
+    target = data.external.sdn_network[0]
+    values = { result = { cidr_ipv4 = "192.0.2.0/25", gateway_ipv4 = "192.0.2.126" } }
+  }
+  assert {
+    condition = (
+      proxmox_virtual_environment_vm.node["k8ctl-1"].initialization[0].ip_config[0].ipv4[0].address == "192.0.2.10/25" &&
+      proxmox_virtual_environment_vm.node["k8ctl-1"].initialization[0].ip_config[0].ipv4[0].gateway == "192.0.2.126" &&
+      proxmox_virtual_environment_vm.node["k8ctl-1"].initialization[0].dns[0].servers == tolist(["192.0.2.53"])
+    )
+    error_message = "SDN metadata must supply prefix/gateway without replacing tier-local IPs or explicit DNS."
+  }
+}
+
+run "reject_sdn_lookup_for_another_attachment" {
+  command = plan
+  variables { bootstrap_network = { sdn_vnet = "ident" } }
+  override_data {
+    target = data.external.sdn_network[0]
+    values = { result = { cidr_ipv4 = "192.0.2.0/24", gateway_ipv4 = "192.0.2.1" } }
+  }
+  expect_failures = [terraform_data.configuration]
+}
+
+run "reject_ambiguous_static_bootstrap_source" {
+  command = plan
+  variables { bootstrap_network = { sdn_vnet = "control", prefix_length = 24, gateway = "192.0.2.1" } }
+  override_data {
+    target = data.external.sdn_network[0]
+    values = { result = { cidr_ipv4 = "192.0.2.0/24", gateway_ipv4 = "192.0.2.1" } }
+  }
+  expect_failures = [var.bootstrap_network]
 }

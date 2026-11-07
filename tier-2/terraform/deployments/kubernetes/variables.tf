@@ -120,21 +120,32 @@ variable "qemu_agent" {
 }
 
 variable "bootstrap_network" {
-  description = "NoCloud network-only drive for static inventory IPs. Null preserves the existing DHCP bootstrap path."
+  description = "NoCloud network-only drive: explicit prefix/gateway or one existing SDN VNet lookup. Null retains DHCP."
   type = object({
-    prefix_length = number
-    gateway       = string
+    prefix_length = optional(number)
+    gateway       = optional(string)
+    sdn_vnet      = optional(string)
     dns_servers   = optional(list(string), [])
   })
   default = null
   validation {
     condition = var.bootstrap_network == null ? true : (
-      var.bootstrap_network.prefix_length >= 1 && var.bootstrap_network.prefix_length <= 30 &&
-      floor(var.bootstrap_network.prefix_length) == var.bootstrap_network.prefix_length &&
-      can(cidrnetmask("${var.bootstrap_network.gateway}/32")) &&
-      alltrue([for server in var.bootstrap_network.dns_servers : can(cidrnetmask("${server}/32"))])
+      var.bootstrap_network.sdn_vnet != null ? (
+        can(regex("^[A-Za-z][A-Za-z0-9]{1,7}$", var.bootstrap_network.sdn_vnet)) &&
+        var.bootstrap_network.prefix_length == null && var.bootstrap_network.gateway == null
+        ) : try(
+        var.bootstrap_network.prefix_length >= 1 && var.bootstrap_network.prefix_length <= 30 &&
+        floor(var.bootstrap_network.prefix_length) == var.bootstrap_network.prefix_length &&
+        can(cidrnetmask("${var.bootstrap_network.gateway}/32")), false
+      )
     )
-    error_message = "Static bootstrap needs an integer prefix 1-30, an IPv4 gateway and valid optional DNS addresses."
+    error_message = "Set either sdn_vnet alone or an explicit integer prefix 1-30 and IPv4 gateway."
+  }
+  validation {
+    condition = var.bootstrap_network == null ? true : alltrue([
+      for server in var.bootstrap_network.dns_servers : can(cidrnetmask("${server}/32"))
+    ])
+    error_message = "Optional bootstrap DNS servers must be IPv4 addresses."
   }
 }
 

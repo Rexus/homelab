@@ -94,8 +94,9 @@ This file keeps durable context for AI-assisted work across sessions.
 - README fast paths start with one real generation command and nearby flag
   tips; downstream root READMEs are short, developer-owned starter templates
 - all downstream root READMEs link to architecture's `docs/naming-conventions.md`;
-  this short worksheet records VM names, tags, VMID ranges, and VLAN conventions;
-  full live assignments stay in inventory, with design and recovery in separate docs
+  this worksheet records VM names, tags, VMID ranges and the selected per-zone
+  network plan (VLAN, short VNet ID, alias, subnet and gateway). Individual guest
+  assignments stay in inventory, with design and recovery in separate docs
 - `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
   notices; root READMEs and project templates are seeded once, never refreshed
 - Fresh architecture repositories contain only a short README, docs/README.md platform
@@ -115,6 +116,10 @@ This file keeps durable context for AI-assisted work across sessions.
   shared/config/platform.tfvars holds project-owned storage/placement and common network references
 - common network references use shared_network_zones; tier-local network_zones holds only
   tier-specific entries and complete per-network overrides; roots merge the two maps by name
+- optional SDN subnet lookup uses one applied IPv4 subnet/gateway per selected VNet:
+  Linux network entries select sdn_lookup; Kubernetes bootstrap_network selects sdn_vnet.
+  Tier-owned Terraform calls Shared's stateless read-only helper through the external provider;
+  token/TLS environment, SDN.Audit and tier-local IP inventory remain required. Explicit inputs still work.
 - refresh uses `.generated-files.json` and preserves local edits and deletions;
   Kubernetes Terraform currently uses Talos in tier-owned automation; `clusters/` service starters
   remain project-owned adoption points, not the native application installers
@@ -268,6 +273,9 @@ This file keeps durable context for AI-assisted work across sessions.
 - edge ownership refresh preserves old code, live inputs, registrations and state;
   migration is deliberate and must avoid a second state managing the same VM
 - use purpose-named networks and example firewall zones DMZ, Services, and Control;
+  Fabric groups hardware management, Corosync and Ceph host transport, outside guest SDN.
+  Control is the privileged VM-services zone; do not introduce Infrastructure as a zone alias.
+  Layers can contain several policy zones; tier ownership never names a zone.
   shared zones do not imply shared subnets or unrestricted access
 - `network_zones` remains a logical guest-network input, not a firewall zone;
   generation does not allocate subnets or configure gateway policy

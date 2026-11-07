@@ -10,6 +10,8 @@
 # Consuming DNS or an issuer does not require attaching to its provider's network.
 # SDN: use the VNet ID as bridge, without a second VLAN tag.
 # Non-SDN: use a VLAN-aware bridge plus vlan_id. Review every reference value.
+# Optional SDN lookup: keep bridge, set sdn_lookup = true, and omit VLAN/CIDR/gateway fields.
+# Contract: docs/reference/network-inputs.md#sdn-subnet-lookup
 network_zones = {
   external_edge = {
     bridge       = "vmbr0"

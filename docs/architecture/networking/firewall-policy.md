@@ -22,21 +22,56 @@ protocol, and listener, following default-deny guidance. [1]
 
 ## Connected-zone matrix
 
-Rows initiate traffic; columns receive it. Start with three connected zones,
-not separate zones for every repo. The codes are possible rule types below,
-**not permissions for the whole zone**. Add only the rules a service needs.
+Rows initiate traffic; columns receive it. Zones follow protection purpose and
+compatible policy, independently of repository ownership. Fabric adds the
+hardware/host boundary to DMZ, Services and Control. Its matrix entries apply
+only to routed management interfaces; Corosync/Ceph transport stays host-only
+and non-routed where the selected topology permits it.
+**Read the source row toward the destination column. Every cell is default-deny;
+the labels identify the exceptions that may be configured.** Colour expresses
+restriction, not a zone's architectural colour or permission for its whole subnet.
 
-| Source / destination | DMZ | Services | Control |
-| --- | --- | --- | --- |
-| **DMZ** | P, E, S | I, S | S, W |
-| **Services** | E | P, S, M | S, W |
-| **Control** | A, M, E | A, M, S | P, A, S, W |
+| Colour / label | Meaning |
+| --- | --- |
+| Green — Routine | Normal published-service or approved proxy paths; allow only their named endpoints/listeners |
+| Amber — Selective | Peer, monitoring or operational paths; allow only the specific participating systems |
+| Red — Restricted | Privileged boundaries or the temporary log-intake exception; tightly scoped allows only |
+
+```mermaid
+%%{init: {"theme":"base"}}%%
+block-beta
+  columns 5
+  Direction["Source ↓<br/>Destination →"] Ddmz["DMZ"] Dservices["Services"] Dcontrol["Control"] Dfabric["Fabric<br/>management"]
+  Sdmz["DMZ"] DD["Selective<br/>PEERS · EGRESS<br/>SERVICE"] DS["Routine<br/>INGRESS<br/>SERVICE"] DC["Restricted<br/>SERVICE<br/>ARCHIVE"] DF["Restricted<br/>LOG-IN†"]
+  Sservices["Services"] SD["Routine<br/>EGRESS"] SS["Selective<br/>PEERS · SERVICE<br/>MONITOR"] SC["Restricted<br/>SERVICE<br/>ARCHIVE"] SF["Restricted<br/>LOG-IN†"]
+  Scontrol["Control"] CD["Selective<br/>ADMIN · MONITOR<br/>EGRESS"] CS["Selective<br/>ADMIN · MONITOR<br/>SERVICE"] CC["Selective<br/>PEERS · ADMIN<br/>SERVICE<br/>ARCHIVE"] CF["Restricted<br/>ADMIN · MONITOR<br/>SERVICE"]
+  Sfabric["Fabric<br/>management"] FD["Routine<br/>EGRESS"] FS["Selective<br/>SERVICE"] FC["Restricted<br/>SERVICE<br/>ARCHIVE"] FF["Restricted<br/>PEERS · ADMIN<br/>SERVICE"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef fault fill:#fce8e6,stroke:#a3453d,color:#652c28
+  class Direction,Ddmz,Dservices,Dcontrol,Dfabric,Sdmz,Sservices,Scontrol,Sfabric boundary
+  class DS,SD,FD control
+  class DD,SS,CD,CS,CC,FS custody
+  class DC,DF,SC,SF,CF,FC,FF fault
+```
+
+**Policy view:** intended new-connection exceptions, not an installed ruleset.
+For example, DMZ → Services permits a named ingress proxy to its application
+backend; it does not permit arbitrary DMZ hosts to access every service.
+The [rule contracts](#rule-contracts) below define each label.
+
+† The current starter log receiver shares management VLAN 10. Permit only its
+authenticated intake listener from approved producers, not hardware access.
+The [dedicated VM-administration split](../../reference/network-plan.md#separate-host-and-vm-administration)
+places that receiver in Control when selected. Matrix membership does not perform the migration.
 
 For example, a proxy may reach its backend and designated DNS servers.
 It cannot administer the hypervisor. A workload may authenticate against an
 identity endpoint without gaining access to its management interface.
 
-DMZ contains separate Tier 2 client/edge subnets and Tier 1 build/mirror subnets.
+DMZ contains separate client, edge-server and build/mirror subnets.
 The diagonal is default-deny too: permit clients to named published listeners,
 approved consumers to the cache, and runners to named sources/registries only.
 Do not permit client-to-client or cross-tier access merely because both are DMZ.
@@ -56,18 +91,19 @@ does not require permission to initiate connections to every DMZ host.
 
 ## Rule contracts
 
-| Code | Purpose | Required scope |
+| Label | Purpose | Required scope |
 | --- | --- | --- |
-| I | ingress | exact proxy IPs to published backend listeners and health checks |
-| S | service access | named consumers to designated DNS, time, identity, secrets, registry, or other service endpoints |
-| E | controlled egress | approved clients to a proxy/cache listener, not every DMZ service |
-| A | administration | approved bastions or runners to specific admin endpoints with target-tier credentials |
-| W | backup/archive writes | named producers to a dedicated receiver; no storage administration or cluster fabric |
-| M | monitoring | named collectors to read-only exporters or health endpoints |
-| P | same-zone peers | explicit dependencies or replication between selected hosts/subnets; no implicit peer trust |
+| `INGRESS` | published application entry | exact proxy IPs to published backend listeners and health checks |
+| `SERVICE` | service consumption | named consumers to designated DNS, time, identity, secrets, registry, or other service endpoints |
+| `EGRESS` | controlled outbound access | approved clients to a proxy/cache listener, not every DMZ service |
+| `ADMIN` | administration | approved bastions or runners to specific admin endpoints with target-tier credentials |
+| `ARCHIVE` | backup/archive writes | named producers to a dedicated receiver; no storage administration or cluster fabric |
+| `MONITOR` | monitoring | named collectors to read-only exporters or health endpoints |
+| `PEERS` | same-zone dependencies | explicit dependencies or replication between selected hosts/subnets; no implicit peer trust |
+| `LOG-IN`† | current management-subnet log intake | approved producers to the protected receiver's authenticated listener; no hardware administration |
 
 Control-zone membership is not an administrative credential. An ordinary
-workload or Tier 1 runner must not gain Tier 0 authority through an `A` rule.
+workload or Tier 1 runner must not gain Tier 0 authority through an `ADMIN` rule.
 Privileged execution and its approval path must be protected at the target tier.
 
 Example rules, using addresses from the local plan:

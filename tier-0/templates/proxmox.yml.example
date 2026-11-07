@@ -15,6 +15,9 @@ all:
   storage_class: shared
   # Tier 0-local image staging with Import content; not the live VM disk class.
   image_datastore_id: local
+  # SDN alternative: use the existing VNet ID as bridge and set vlan_id: null.
+  # The VNet owns VLAN tagging; zones/VNets are prepared separately.
+  # Reference: docs/deployment/foundation/step-1c-sdn.md
   bridge: vmbr0
   # Select the prepared bootstrap/control VLAN once here; use null for untagged.
   vlan_id: 10

@@ -89,8 +89,9 @@ variable "shared_network_zones" {
   type = map(object({
     bridge       = string
     vlan_id      = optional(number)
-    cidr_ipv4    = string
+    cidr_ipv4    = optional(string)
     gateway_ipv4 = optional(string)
+    sdn_lookup   = optional(bool, false)
   }))
   default  = {}
   nullable = false
@@ -101,8 +102,9 @@ variable "network_zones" {
   type = map(object({
     bridge       = string
     vlan_id      = optional(number)
-    cidr_ipv4    = string
+    cidr_ipv4    = optional(string)
     gateway_ipv4 = optional(string)
+    sdn_lookup   = optional(bool, false)
   }))
   default  = {}
   nullable = false

@@ -273,6 +273,21 @@ or local bridge path that matches the network assigned to automation.
 If Proxmox returns a missing `SDN.Use` error, use the path shown in the error
 or in the API viewer as the source of truth for the cluster.
 
+For the optional [SDN subnet lookup](../../../reference/network-inputs.md#sdn-subnet-lookup),
+also grant `SDN.Audit` on each selected VNet. This read-only role does not grant
+network modification:
+
+```bash
+pveum role add PlatformAutomationNetworkRead --privs "SDN.Audit"
+pveum acl modify /sdn/zones/control/ident \
+  --groups platform-automation \
+  --roles PlatformAutomationNetworkRead
+```
+
+Create the role once; repeat the ACL command for the actual selected VNet paths.
+For privilege-separated tokens, the read permission must also be present in
+the token's effective permissions, as with the other grants below.
+
 ### 7. Create the automation user and assign the group
 
 ```bash

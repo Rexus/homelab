@@ -100,13 +100,19 @@ logical networks without making their policies or failure domains identical.
 
 ## Zone assignment
 
+Proxmox SDN zones group guest networks for deployment and permissions; gateway
+firewall zones group networks for traffic policy. Matching purpose names makes
+the two views easier to navigate, but does not synchronize their configuration
+or create firewall rules. The [SDN mapping](../../deployment/foundation/step-1c-sdn.md#step-2-create-the-vnets)
+connects the reference VNets and VLANs to both groups.
+
 The [layered view](../README.md#layered-model) reads left to right:
 
 | Layer | Firewall zone | Network purposes |
 | --- | --- | --- |
 | Edge | `DMZ` | public ingress, ordinary clients, outbound caches, Internet-facing build/supply services |
 | Application | `Services` | shared services, access front ends, workloads |
-| Control | `Control` | administration, directory authority, control cluster, cryptography |
+| Control | `Control`, `Fabric` | privileged guest services; separate hardware management and host transport |
 | Offline custody | none | root keys and authorized recovery ceremonies |
 
 A tier selects the owning repo, not a VLAN or zone. One subnet belongs to one
@@ -164,40 +170,23 @@ belong in the implementation procedures.
 
 ## Network catalog
 
-Reference allocations below are examples, not an automatically allocated plan.
-The logical keys are the Terraform `network_zones` names, **not firewall zones**.
-Short VNet names such as `edge`, `apps`, `control`, and `crypto` map to these
-purposes in the Proxmox examples.
+The [reference network plan](../../reference/network-plan.md) provides the selected
+example realization: a zone-to-VNet overview, per-zone VLAN/Name/Alias/subnet/gateway
+rows, and links to the owning deployment inputs. Exact allocations and deployed
+host names belong in that implementation view.
 
-| Network key | Purpose | VLAN / subnet example | Firewall zone |
-| --- | --- | --- | --- |
-| `external_edge` | Tier 2 public ingress and ordinary outbound proxies | 320 / `10.30.30.0/24` | DMZ |
-| `delivery_edge` | Tier 1 Internet-facing build runners and authoritative mirrors | 321 / `10.30.31.0/24` | DMZ; separate subnet from Tier 2 |
-| `client` | Tier 2 ordinary workstations/endpoints; policy reference only | site-defined separate VLAN / subnet | DMZ; no server provisioning implied |
-| `application` | internal shared services and workloads | 120 / `10.20.20.0/24` | Services |
-| `application` in the lab repo | isolated lab workloads | 420 / `10.42.20.0/24` | Services or separate Lab policy |
-| `access` | application-only access and SSO front ends | 11 / `10.10.11.0/24` | Services; privileged interfaces need Control protection |
-| `management` | Proxmox API/UI, bastions, protected runners and bootstrap log receivers | 10 / `10.10.10.0/24` | Control |
-| `identity` | directory authority, DNS, Kerberos | 12 / `10.10.12.0/24` | Control |
-| `control_cluster` | control-cluster nodes and private API | 13 / `10.10.13.0/24` | Control |
-| `cryptography` | online issuer, privileged secrets, HSM gateways | 220 / `10.20.21.0/24` | Control |
-| `storage` | archive/backup receivers; separate administration | 140 / `10.20.40.0/24` | Control or separate Storage policy |
+The Control zone groups privileged VM services. Fabric groups hardware management
+and host cluster/storage transport. Both occupy the foundational Control layer. Host-only transport remains outside guest SDN;
+an existing UniFi Fabric zone does not require Proxmox SDN Fabrics or a routed gateway.
 
-Additional networks are introduced only when needed:
-
-| Network key | Reference VLAN | Use |
-| --- | --- | --- |
-| `observability` | 130 | optional VM observability backends and gateways in Services; Kubernetes uses its selected cluster network |
-| `telemetry_gateway` | 230 | optional separate gateway network when intake isolation is required; not another security archive |
-| `corosync` | 20 | non-routed Proxmox quorum fabric |
-| `ceph_public` | 21 | non-routed storage client fabric; not public Internet |
-| `ceph_cluster` | 22 | non-routed storage replication fabric |
-| `ceremony` | 221 on a separate fabric | offline custody; example subnet `10.20.22.0/24`, no connected gateway |
+The [deployment mapping](../../reference/network-plan.md#deployment-mapping) shows
+current starter attachments and optional variants. In particular, protected
+management VMs currently share the host-management VLAN; selecting a dedicated
+VM-administration network requires explicit inputs and a planned cutover.
 
 A service may have separate client, backend, and administrative interfaces.
-Permit the required listeners without exposing authority or administration.
-Multi-interface hosts must not bridge zones. Offline custody needs physical
-separation: a VLAN, missing route, or deny rule on a connected fabric is not an air gap.
+Multi-interface hosts must not bridge zones. Offline custody requires physical
+separation: a VLAN, missing route or deny rule on a connected fabric is not an air gap.
 
 ## VLAN ID strategy
 
@@ -211,8 +200,9 @@ separation: a VLAN, missing route, or deny rule on a connected fabric is not an 
 
 These are allocations, not security labels or tier numbers. Keep one site plan
 and avoid duplicate IDs on shared trunks. Record chosen ranges and names in
-`docs/naming-conventions.md` in the generated architecture repo; keep complete
-subnets, gateways, and addresses in network inventory.
+`docs/naming-conventions.md` in the generated architecture repo, including the
+selected zone/VNet, subnet and gateway tables. Individual guest addresses remain
+in tier-local inventory; the selected SDN or explicit IaC inputs drive provisioning.
 
 ## Automation mapping
 

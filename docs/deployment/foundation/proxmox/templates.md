@@ -102,6 +102,10 @@ qualify live migration on mixed hardware.
 For IaC publication, set the shared template bridge/VLAN under `all:`; the publisher
 selects NIC and OS-specific controller defaults without per-image tuning. Optional
 overrides are listed in the [catalog reference](../../../administration/compute/template-lifecycle.md#catalog-fields-and-defaults).
+For an existing [SDN VNet](../step-1c-sdn.md), set `bridge` to its ID and
+`vlan_id: null`. The publisher attaches the template; it does not create zones,
+VNets, port-isolation settings or firewall rules. Managed Linux and Kubernetes
+clones select their own attachments from tier-owned inputs.
 The base template starts at 10 GiB when the verified image fits; use a larger value
 for a larger source image. Service clones receive their own disk sizing.
 Templates and server VMs in every tier use fixed RAM with ballooning disabled.
