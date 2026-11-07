@@ -7,6 +7,7 @@
 - [Deployment machine](#deployment-machine)
 - [Automation VM example](#automation-vm-example)
 - [Ansible environment](#ansible-environment)
+- [Automatic template runtime](#automatic-template-runtime)
 - [Local repository files](#local-repository-files)
 - [Read more](#read-more)
 - [References](#references)
@@ -83,7 +84,8 @@ for address validation. Install the owning tier's `ansible/requirements.txt` in 
 accepted virtual environment, not the operating system's Python environment.
 Keep collection artifacts on the recovery host so the precheck needs no network.
 Tier 0 template `apply` and `verify` also use `community.proxmox` to complete and
-inspect raw template settings; they require no guest SSH or hosted control service.
+inspect raw template settings; their [runtime setup](#automatic-template-runtime) is automatic
+and requires no guest SSH or hosted control service.
 
 The repository deployment wrapper runs that precheck before Terraform or host
 playbooks. Follow the root README or the setup-specific guide for the actual
@@ -173,6 +175,48 @@ collections through that environment's `ansible-galaxy`; avoid `sudo pip` and us
 installs mixed with a different system Ansible. Use approved pre-staged wheels and
 collections for offline installation; retain accepted versions for recovery.
 
+### Automatic template runtime
+
+Run the usual `scripts/proxmox-templates.sh apply`, `verify` or `replace-disk`
+command from **Tier 0**. It selects Python 3.12–3.14 and prepares
+`.venv/proxmox-templates-py<version>/`, using `ansible/runtime-requirements.txt`.
+It then runs `ansible/playbooks/prepare-template-runtime.yml` to install the tier's
+Python module requirements and the declared Proxmox collection. Disk maintenance
+also installs `qemu-img` when missing. Collection downloads stay under `.venv/collections/`.
+Later runs reuse compatible packages without forcing upgrades.
+
+| Setting or condition | Behavior |
+| --- | --- |
+| Default | Prepare and select the isolated runtime automatically; no `source` step |
+| Python missing or too old | Install bootstrap packages from configured DNF/APT repositories |
+| Missing OS packages | Use root/sudo; prompt for sudo locally when needed, never prompt in CI |
+| `TEMPLATE_PYTHON=/path/to/python` | Select an already installed Python 3.12–3.14 explicitly |
+| `TEMPLATE_RUNTIME_MODE=check` | Use preinstalled tools and existing checks; perform no dependency installation |
+| Offline package sources | Use normal pip/Galaxy configuration and pre-staged collections; `PIP_NO_INDEX` and `PIP_FIND_LINKS` apply |
+
+Pip packages stay inside the isolated runtime; system Ansible and the default Python
+selection are retained. New Python minor versions get separate runtime directories.
+The current runtime uses the tested Ansible 2.21 line. [6]
+Enterprise Linux 10 supplies Python 3.12 by default; Enterprise Linux 9 can install
+it alongside system Python. [7][8] Debian/Ubuntu must supply a compatible interpreter
+through their configured repositories; the bootstrap never adds third-party OS repositories.
+
+CI uses the same template command and exits before Terraform/Proxmox operations if
+runtime preparation fails. Preinstall OS tools in an unprivileged runner image, or
+provide noninteractive sudo for missing packages. For a fully prebuilt or disconnected
+runner, select `TEMPLATE_RUNTIME_MODE=check` and provide compatible Python, Ansible,
+module dependencies and collections. Keep wheel/collection artifacts available for recovery;
+generated repositories include the bootstrap code and dependency declarations.
+
+To prepare a runner or recovery host before platform access, run from Tier 0:
+
+```bash
+bash scripts/proxmox-templates.sh setup
+```
+
+This prepares all template tooling without accessing Terraform state or Proxmox.
+It is optional; normal Ansible-based template commands perform the same preparation.
+
 ## Local repository files
 
 Use the generated repository for the owning tier, or enter `tier-0/`,
@@ -225,3 +269,6 @@ Sources checked 2026-11-07.
 3. [Installing Ansible and extra Python dependencies](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html).
 4. [Proxmox collection's Ansible runtime requirement](https://github.com/ansible-collections/community.proxmox/blob/2.1.0/meta/runtime.yml).
 5. [Python virtual environments](https://docs.python.org/3/library/venv.html).
+6. [Ansible control-node Python support](https://docs.ansible.com/projects/ansible-core/2.21/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix).
+7. [Enterprise Linux 10 Python](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/installing_and_using_dynamic_programming_languages/installing-and-using-python).
+8. [Enterprise Linux 9 Python](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/installing_and_using_dynamic_programming_languages/assembly_installing-and-using-python_installing-and-using-dynamic-programming-languages).

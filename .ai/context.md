@@ -165,6 +165,10 @@ This file keeps durable context for AI-assisted work across sessions.
   storage administration, and every VM template lifecycle across all consuming tiers
 - initial template publication is foundation local automation, before managed VMs
   or hosted tooling; generated Tier 0 fast paths start with the template catalog
+- Template Ansible actions automatically prepare a tier-local ignored `.venv/` runtime;
+  `setup` prepares it without platform access. Keep bootstrap Python/Ansible separate
+  from native Ansible dependency convergence. `TEMPLATE_RUNTIME_MODE=check` uses
+  prebuilt tooling; CI never prompts for OS privilege escalation. Tier 0 remains standalone.
 - AlmaLinux/Rocky/Debian/Talos publication uses verified local images; Talos templates
   contain no machine configuration; Tier 0's separate Talos deployment creates
   VMs, machine configuration, and the cluster without Ansible guest configuration

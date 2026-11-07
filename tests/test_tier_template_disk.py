@@ -225,7 +225,8 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook':
             path.chmod(0o755)
         for tool in ('bash', 'dirname', 'basename', 'mkdir', 'python3'):
             (commands / tool).symlink_to(shutil.which(tool))
-        env = dict(os.environ, PATH=str(commands) + ':' + os.environ['PATH'], TEST_COMMAND_LOG=str(log))
+        env = dict(os.environ, PATH=str(commands) + ':' + os.environ['PATH'], TEST_COMMAND_LOG=str(log),
+                   TEMPLATE_RUNTIME_MODE='check')
 
         def run(*args, **overrides):
             return subprocess.run(['bash', 'scripts/proxmox-templates.sh', *args], cwd=repo,
@@ -306,6 +307,7 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook':
         terraform.chmod(0o755)
         env = dict(os.environ, PATH=str(commands) + ':' + os.environ['PATH'],
                    ANSIBLE_COLLECTIONS_PATH=str(collection_path), TEST_COMMAND_LOG=str(log),
+                   TEMPLATE_RUNTIME_MODE='check',
                    ANSIBLE_COLLECTIONS_ON_ANSIBLE_VERSION_MISMATCH='ignore')
         result = subprocess.run(['bash', 'scripts/proxmox-templates.sh', 'replace-disk',
                                  '--template', 'rocky-build-1'], cwd=repo, env=env,
@@ -313,5 +315,6 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook':
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('does not support Ansible version', result.stderr)
         self.assertIn('ansible-core >=2.17', result.stderr)
+        self.assertIn('TEMPLATE_RUNTIME_MODE=check', result.stderr)
         self.assertFalse(log.exists())
         self.assertFalse((repo / '.terraform/plans/template-disk-inputs.json').exists())

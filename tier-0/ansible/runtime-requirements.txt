@@ -1,0 +1,5 @@
+# Bootstrap tooling; module dependencies remain in requirements.txt.
+# Tested control-node line; review Python support before widening this range.
+ansible-core>=2.21,<2.22
+PyYAML>=6.0
+setuptools>=65

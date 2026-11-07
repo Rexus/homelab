@@ -30,33 +30,11 @@ and [disk replacement role](../../../tier-0/ansible/roles/proxmox_template_disk/
 - Keep the template stopped and unlocked. Back up its disks and original Terraform
   state, and pause clone creation and other template/state writers during maintenance.
 
-Install the image utility on the **deployment host**, using the block matching its
-package manager. This choice is independent of the template's operating system.
-
-**DNF-based host:**
-
-```bash
-sudo dnf install -y python3 python3-pip /usr/bin/qemu-img
-```
-
-**APT-based host:**
-
-```bash
-sudo apt-get install -y python3-venv python3-pip qemu-utils
-```
-
-Prepare or reuse the deployment user's **Python environment**, from the Tier 0 root:
-
-```bash
-python3 -m venv "$HOME/.local/share/homelab/venv"
-source "$HOME/.local/share/homelab/venv/bin/activate"
-python3 -m pip install --upgrade 'ansible-core>=2.17' -r ansible/requirements.txt
-ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force
-```
-
-Activate that environment in each new shell. For other hosts or offline installation,
-see [local tooling](../../development/local-setup.md#ansible-environment).
-The wrapper checks tools and modules before starting maintenance. [2]
+The command automatically prepares an isolated Python/Ansible environment and
+installs missing module requirements, the Proxmox collection and `qemu-img` on the
+**deployment host**. No manual environment activation is needed. Missing OS packages
+require root or sudo; CI must provide noninteractive privileges or preinstalled packages.
+See [runtime and offline options](../../development/local-setup.md#automatic-template-runtime). [2]
 
 ## Step 1: Select the template
 
@@ -125,12 +103,33 @@ Receipts record configuration; they do not replace independent disk backups.
 
 ## Retire the old disk
 
-Keep the old volume until clone tests and recovery copies are accepted. **Linked
-clones may still depend on that exact base volume**, even after the template uses
-a new boot disk. Retain it until those dependencies are removed. [5]
+An **Unused Disk N** row keeps the old volume registered with the template for
+rollback; it is already detached from its disk controller. Removing that row through
+Proxmox **also permanently deletes the stored disk**. The play never does this automatically. [1][6]
 
-Cleanup is manual: remove only the unused disk matching the recorded old volume,
-after confirming it has no dependent clones. The play never deletes it automatically.
+For a ZFS template whose replacement still has a `vm-*` name,
+[complete base conversion](#complete-base-conversion) before cleanup.
+
+1. Test a full clone of the new image and keep an independent backup of the old
+   boot disk. Confirm no linked clones depend on its old base; if uncertain, retain it. [5]
+2. Keep the template stopped and pause clone creation. Open the template's
+   **Hardware** tab in Proxmox.
+3. Match the old volume in the `.before.json` receipt's `old_scsi0` to an
+   **Unused Disk N** row. Match the full storage/volume ID, not just the row number.
+   Confirm the current **Hard Disk (scsi0)** uses the replacement volume.
+4. Select that **Unused Disk N** row and click **Remove**. No additional detach
+   step is needed. Remove only that unused entry; keep `scsi0`, EFI and CloudInit.
+5. Read the deletion confirmation, recheck the selected entry and confirm only
+   when the checks above are satisfied. If Proxmox reports a dependency or storage
+   error, stop and investigate; do not force deletion through the storage backend.
+6. Wait for successful completion and refresh **Hardware**. The old unused row
+   should be gone; the current `scsi0`, EFI and CloudInit entries must remain.
+   Check the storage's **VM Disks** view for the old volume's removal, then
+   [review a fresh template plan](#step-3-verify-and-clone-test).
+
+After deletion, rollback to that disk requires its independent backup; the receipt
+alone cannot restore it.
+
 Proxmox owns disk names: a new `base-…-disk-2` and retained `base-…-disk-1` are normal;
 CloudInit media may remain `vm-*`. Do not rename backing files or reuse old volume IDs.
 
@@ -145,6 +144,8 @@ same replacement command. Both values are required and checked before execution.
 For all flags, run `bash scripts/proxmox-templates.sh --help`.
 
 </details>
+
+<a id="complete-base-conversion"></a>
 
 <details>
 <summary>Complete base conversion after an older replacement recipe</summary>
@@ -171,3 +172,4 @@ Sources checked 2026-11-07.
 3. [Native Ansible disk import, replacement and retention](https://docs.ansible.com/projects/ansible/latest/collections/community/proxmox/proxmox_disk_module.html).
 4. [Terraform refresh-only mode](https://developer.hashicorp.com/terraform/cli/commands/plan#refresh-only-mode).
 5. [Proxmox full and linked clones](https://raw.githubusercontent.com/proxmox/pve-docs/master/qm.adoc).
+6. [Proxmox Hardware view: unused disks and removal](https://raw.githubusercontent.com/proxmox/pve-manager/master/www/manager6/qemu/HardwareView.js).

@@ -20,6 +20,7 @@ Never let two Terraform states manage the same VMID or image file.
 - [Step 1: Verify, unpack and upload](#step-1-verify-unpack-and-upload)
 - [Step 2: Create the VM shell and import the disk](#step-2-create-the-vm-shell-and-import-the-disk)
 - [Step 3: Convert, clone-test and approve](#step-3-convert-clone-test-and-approve)
+- [Clone and guest-control checks](#clone-and-guest-control-checks)
 - [Cluster handoff](#cluster-handoff)
 - [References](#references)
 
@@ -28,8 +29,14 @@ Never let two Terraform states manage the same VMID or image file.
 | Image | Download | Important selection |
 | --- | --- | --- |
 | AlmaLinux | Official [Generic Cloud](https://wiki.almalinux.org/cloud/Generic-cloud.html), x86_64 `.qcow2` | Review EL10's CPU baseline; use the explicitly selected x86_64_v2 variant only for older compatible hosts |
-| Rocky Linux | Official [GenericCloud Base](https://download.rockylinux.org/pub/rocky/10/images/x86_64/), x86_64 `.qcow2` | EL10 needs x86-64-v3-capable hosts |
+| Rocky Linux | Official [GenericCloud Base or LVM](https://download.rockylinux.org/pub/rocky/10/images/x86_64/), x86_64 `.qcow2` | Select the guest disk layout; EL10 needs x86-64-v3-capable hosts [6] |
 | Talos | [Image Factory](https://factory.talos.dev/) disk image, not ISO | Follow the selections below; retain version and schematic ID |
+
+Base and LVM are valid Rocky GenericCloud variants. LVM describes storage inside
+the guest; Proxmox clone support is determined by host storage and template disk
+conversion. Expanding a virtual disk still requires the guest's partition, volume
+and filesystem layers to consume the additional space. Verify the selected image's
+first-boot resize behavior on a disposable clone.
 
 For Talos, make these Image Factory selections in order: [1][2]
 
@@ -148,6 +155,48 @@ agent. Existing input files without firmware settings retain their legacy BIOS
 configuration. **Do not copy new firmware settings onto running VMs as an update**;
 publish/test a new template and use a reviewed replacement/migration plan.
 
+## Clone and guest-control checks
+
+Qualify these independently before promoting a template:
+
+| Check | Expected result |
+| --- | --- |
+| Full clone | Independent copy boots with its own network settings |
+| Linked clone, when selected | Host storage supports it and all attached disks have the required base/snapshot state |
+| Guest control | Proxmox's agent option is enabled, and the guest agent is installed and running inside the clone |
+
+For a ZFS template, an imported boot disk still named `vm-*` may need
+[single-disk base conversion](../../../administration/compute/template-disk.md#complete-base-conversion).
+An unused rollback disk is skipped during cloning; deleting it is not a clone repair. [7]
+Keep it until the new template has passed qualification. The current Linux VM
+Terraform modules request full clones explicitly.
+
+On the **Proxmox host**, test the running disposable clone's agent:
+
+```bash
+read -r -p "Disposable clone VMID: " CLONE_VMID
+qm agent "$CLONE_VMID" ping
+```
+
+If the agent does not respond, check **inside the cloned Linux VM**, not on Proxmox
+or the deployment host:
+
+```bash
+rpm -q qemu-guest-agent
+systemctl status qemu-guest-agent --no-pager
+```
+
+These package checks apply to RPM-based guests; use the guest distribution's package
+query elsewhere. Install/start the missing agent through that guest's approved package
+path. To include it in an Enterprise Linux base image, use the existing
+[template-refresh builder](../../../administration/compute/template-lifecycle.md#mutable-linux-refresh),
+which installs and starts the agent before publication. Do not boot or modify the
+published template directly. For Talos, use its Factory extension instead.
+
+When the Proxmox agent option is enabled but the guest agent is unavailable,
+shutdown requests can time out. A fresh VM start is required after enabling the
+Proxmox agent channel; a guest-only reboot does not recreate its virtual hardware. [8]
+
 ## Cluster handoff
 
 Tier 0 alone owns the reusable image and `terraform/deployments/templates/` state.
@@ -179,5 +228,9 @@ installer artifacts and recovery secrets independently of the cluster and hosted
 3. [Proxmox VM and disk configuration](https://pve.proxmox.com/pve-docs/qm.1.html).
 4. [Talos NoCloud configuration](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/cloud-platforms/nocloud).
 5. [Terraform Proxmox VM memory settings](https://registry.terraform.io/providers/bpg/proxmox/latest/docs/resources/virtual_environment_vm).
+6. [Rocky Linux cloud image variants](https://docs.rockylinux.org/latest/teams/rel_eng/image/).
+7. [Proxmox clone validation and unused-disk handling](https://raw.githubusercontent.com/proxmox/qemu-server/master/src/PVE/API2/Qemu.pm).
+8. [Proxmox guest-agent setup and shutdown troubleshooting](https://raw.githubusercontent.com/proxmox/pve-docs/master/qm.adoc).
 
-Sources reviewed 2026-10-27. Match the selected image's release documentation.
+Sources 6–8 checked 2026-11-07; other sources reviewed 2026-10-27.
+Match the selected image's release documentation.

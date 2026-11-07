@@ -20,7 +20,7 @@ SHARED_TREES = {
 }
 TIER_TREES = {
     "terraform": ("*.tf", "*.example", ".terraform.lock.hcl"),
-    "ansible": ("ansible.cfg", "requirements.txt", "*.example"),
+    "ansible": ("ansible.cfg", "*requirements.txt", "*.example"),
     "ansible/playbooks": ("*.yml", "*.yaml"),
     "ansible/vars": ("*.yml", "*.yaml"),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2", "*.py", "*.hcl", "*.sh", "*.js", "*.cnf", "*.conf",

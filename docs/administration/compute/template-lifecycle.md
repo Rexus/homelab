@@ -36,8 +36,8 @@ Tier 0-owned automation, not a prerequisite for creating templates.
   module uses API-backed image upload and disk import. [1][2]
 - Linux or WSL with Terraform 1.7+; retain the provider lock file and a local
   provider mirror for recovery. The root constrains the supported provider.
-- Apply and live verification also require the accepted Ansible runtime and Tier 0's
-  Python/collection requirements. They complete template settings through native Proxmox modules.
+- Apply and live verification prepare their Python/Ansible runtime automatically.
+  Missing bootstrap OS packages require root or sudo on supported DNF/APT hosts.
 - Approved, unpacked images on the execution host, exact releases, SHA256
   values, unused VMIDs, and approved bridge/storage allocations.
 - Free space for upload staging on the execution host and Proxmox, plus the retained
@@ -93,18 +93,12 @@ regardless of which tier will consume the resulting image.
 
 ## Local workflow
 
-On the prepared bootstrap host, install the apply/verification dependencies from
-the **Tier 0 root**. This is the same environment used by disk maintenance:
-
-```bash
-python3 -m venv "$HOME/.local/share/homelab/venv"
-source "$HOME/.local/share/homelab/venv/bin/activate"
-python3 -m pip install --upgrade 'ansible-core>=2.17' -r ansible/requirements.txt
-ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force
-```
-
-Activate that environment in each new deployment shell. Use approved pre-staged
-wheels/collections for offline installation; see [local tooling](../../development/local-setup.md#ansible-environment).
+`apply`, `verify` and `replace-disk` prepare and select an isolated runtime under
+the Tier 0 repository's ignored `.venv/` directory. They install only missing or
+incompatible declared dependencies; no manual activation or system Ansible upgrade is needed.
+The same commands work locally and in CI. See
+[automatic runtime setup](../../development/local-setup.md#automatic-template-runtime)
+for OS permissions, prebuilt runners and offline package sources.
 
 From `homelab-iac/homelab-tier-0`, initialize the local catalog:
 

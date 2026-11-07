@@ -4,18 +4,20 @@ set -euo pipefail
 umask 077
 
 usage() {
-  echo "Usage: bash ${BASH_SOURCE[0]} {init|plan|import|apply|verify|replace-disk} [--env-file PATH] [--platform-file PATH]"
+  echo "Usage: bash ${BASH_SOURCE[0]} {init|setup|plan|import|apply|verify|replace-disk} [--env-file PATH] [--platform-file PATH]"
   echo "import prepares a reviewed adoption plan; apply writes imports and any listed changes."
   echo "replace-disk --template KEY previews the operation, then prompts for execution."
   echo "apply completes fixed-RAM/account policy; verify [--template KEY] checks live settings without changes."
   echo "Use --preview for read-only inspection; use --execute with --expected-disk VOLUME and --expected-sha256 SHA in automation."
   echo "Use --env-file .env.local for local credentials; otherwise only exported credentials are used."
+  echo "Ansible actions prepare an isolated runtime automatically; TEMPLATE_RUNTIME_MODE=check requires preinstalled tools."
+  echo "setup prepares all template tooling without reading or changing Terraform state or Proxmox."
 }
 if [[ $# == 1 && ( "$1" == --help || "$1" == -h ) ]]; then
   usage
   exit 0
 fi
-if [[ $# == 0 || ! "$1" =~ ^(init|plan|import|apply|verify|replace-disk)$ ]]; then
+if [[ $# == 0 || ! "$1" =~ ^(init|setup|plan|import|apply|verify|replace-disk)$ ]]; then
   usage >&2
   echo "Run from Tier 0. Reference: docs/administration/compute/template-lifecycle.md" >&2
   exit 1
@@ -190,12 +192,14 @@ if [[ "$action" == apply && ! -f "$plan" ]]; then
   exit 1
 fi
 
-if [[ "$action" == replace-disk || "$action" == apply || "$action" == verify ]]; then
+if [[ "$action" == setup || "$action" == replace-disk || "$action" == apply || "$action" == verify ]]; then
   export ANSIBLE_CONFIG="$repo_root/ansible/ansible.cfg"
   export ANSIBLE_COLLECTIONS_ON_ANSIBLE_VERSION_MISMATCH=error
+  source "$repo_root/scripts/lib/template-runtime.sh"
+  prepare_template_runtime "$repo_root" "$action"
   template_tools=(ansible-playbook ansible-doc python3)
   template_modules=(community.proxmox.proxmox_vm_info community.proxmox.proxmox_kvm)
-  if [[ "$action" == replace-disk ]]; then
+  if [[ "$action" == setup || "$action" == replace-disk ]]; then
     template_tools+=(qemu-img)
     template_modules+=(community.proxmox.proxmox_disk)
   fi
@@ -222,11 +226,18 @@ if missing:
     sys.exit(1)
 ' "${template_modules[@]}"; then
     echo "Use ansible-core >=2.17 and community.proxmox >=2.1.0,<3.0.0 in the same accepted environment." >&2
+    echo "Automatic setup uses the tier-local .venv runtime. With TEMPLATE_RUNTIME_MODE=check, provision compatible tools in the runner first." >&2
     echo "Runtime setup: docs/development/local-setup.md#ansible-environment." >&2
     echo "Run: ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force" >&2
     echo "Python dependencies: ansible/requirements.txt. Guide: docs/administration/compute/template-disk.md#prerequisites." >&2
     exit 1
   fi
+fi
+
+if [[ "$action" == setup ]]; then
+  ansible-playbook --version
+  echo "Template runtime ready. No Terraform state or Proxmox configuration changed."
+  exit 0
 fi
 
 mkdir -p "$TF_DATA_DIR" "$(dirname "$state")" "$(dirname "$plan")"

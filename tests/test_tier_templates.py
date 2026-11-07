@@ -122,7 +122,8 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook' and os.getenv('FAIL_POLI
         for tool in ('ansible-doc', 'ansible-playbook'):
             (commands / tool).symlink_to(fake)
         log = self.root / "calls.jsonl"
-        env = dict(os.environ, PATH=f"{commands}:{os.environ['PATH']}", TEST_COMMAND_LOG=str(log))
+        env = dict(os.environ, PATH=f"{commands}:{os.environ['PATH']}", TEST_COMMAND_LOG=str(log),
+                   TEMPLATE_RUNTIME_MODE='check')
         for name in ("DEPLOYMENT_REPO_DIR", "TEMPLATE_STATE_PATH", "TEMPLATE_CATALOG_FILE"):
             env.pop(name, None)
 

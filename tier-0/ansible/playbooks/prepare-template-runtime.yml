@@ -1,0 +1,49 @@
+---
+# Bootstrap dependencies only; no inventory, state or Proxmox API access.
+- name: Prepare the local template execution environment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    template_runtime_collection: >-
+      {{ (lookup('ansible.builtin.file', playbook_dir ~ '/../requirements.yml') | from_yaml).collections
+         | selectattr('name', 'equalto', 'community.proxmox') | first }}
+  tasks:
+    - name: Install declared Python module requirements in the isolated runtime
+      ansible.builtin.pip:
+        requirements: "{{ playbook_dir }}/../requirements.txt"
+        executable: "{{ ansible_playbook_python | dirname }}/pip"
+        state: present
+      environment:
+        PIP_DISABLE_PIP_VERSION_CHECK: '1'
+
+    - name: Install the declared Proxmox collection using native Galaxy resolution
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python | dirname }}/ansible-galaxy"
+          - collection
+          - install
+          - "{{ template_runtime_collection.name }}:{{ template_runtime_collection.version }}"
+          - --collections-path
+          - "{{ playbook_dir }}/../../.venv/collections"
+      register: template_runtime_galaxy
+      changed_when: "'was installed successfully' in template_runtime_galaxy.stdout"
+
+    - name: Gather OS facts only when the image utility is missing
+      ansible.builtin.setup:
+        gather_subset: [min]
+      when: template_runtime_install_qemu | default(false) | bool
+
+    - name: Require a supported package family for automatic image utility setup
+      ansible.builtin.assert:
+        that: ansible_facts.os_family in ['RedHat', 'Debian']
+        fail_msg: Install qemu-img from this OS's approved packages before disk maintenance.
+      when: template_runtime_install_qemu | default(false) | bool
+
+    - name: Install only the missing OS image utility
+      ansible.builtin.package:
+        name: "{{ '/usr/bin/qemu-img' if ansible_facts.os_family == 'RedHat' else 'qemu-utils' }}"
+        state: present
+      become: true
+      when: template_runtime_install_qemu | default(false) | bool
