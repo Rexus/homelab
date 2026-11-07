@@ -8,6 +8,7 @@
       - template_disk_sources.value is mapping
       - template_disk_sources.value | length > 0
       - not ansible_check_mode
+      - not (template_disk_execute | default(false) | bool and template_disk_interactive | default(false) | bool)
     fail_msg: Use the Tier 0 template command after publication; preview is explicit, not Ansible check mode.
     quiet: true
 
@@ -33,6 +34,7 @@
 - name: Resolve the selected applied references
   ansible.builtin.set_fact:
     template_disk_selected: "{{ template_disk_sources.value[template_disk_key] }}"
+    template_disk_approved: "{{ template_disk_execute | default(false) | bool }}"
 
 - name: Verify the local approved artifact bytes
   ansible.builtin.stat:
@@ -91,12 +93,27 @@
     msg:
       template: "{{ template_disk_key }} / {{ template_disk_selected.vm_id }} / {{ template_disk_selected.name }}"
       old_boot_volume: "{{ template_disk_old_volume }}"
+      current_boot_disk: "{{ template_disk_before.proxmox_vms[0].config.scsi0 }}"
+      ballooning_disabled: "{{ template_disk_before.proxmox_vms[0].config.balloon | default(none) in [0, '0'] }}"
       new_image_volume: "{{ template_disk_selected.image_volume_id }}"
       approved_sha256: "{{ template_disk_selected.sha256 }}"
       disk_size_gb: "{{ template_disk_selected.disk_size_gb }}"
       operation: Replace scsi0 only; preserve the old disk as unused. Keep VMID, EFI, NICs and CloudInit.
       execute: "{{ template_disk_execute | default(false) | bool }}"
+      mode: "{{ 'confirm interactively' if template_disk_interactive | default(false) | bool else 'execute pinned request' if template_disk_execute | default(false) | bool else 'preview only' }}"
+
+- name: Request a decision after showing the resolved operation
+  ansible.builtin.include_tasks: confirm.yml
+  when: template_disk_interactive | default(false) | bool
 
 - name: Replace only after matching the reviewed disk and artifact
   ansible.builtin.include_tasks: replace.yml
-  when: template_disk_execute | default(false) | bool
+  when: template_disk_approved | bool
+
+- name: Return the verified run outcome to the owning wrapper
+  ansible.builtin.copy:
+    dest: "{{ template_disk_result_file }}"
+    content: "{{ {'changed': template_disk_approved | bool} | to_json }}"
+    mode: '0600'
+  changed_when: false
+  when: template_disk_result_file is defined

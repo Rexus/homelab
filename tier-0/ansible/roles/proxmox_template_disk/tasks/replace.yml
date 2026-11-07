@@ -5,6 +5,31 @@
       - template_disk_expected_disk | default('') == template_disk_old_volume
       - template_disk_expected_sha256 | default('') == template_disk_selected.sha256
     fail_msg: The reviewed disk or image changed. Preview again; do not retry an old execution command.
+  when: not template_disk_interactive | default(false) | bool
+
+- name: Re-read the template immediately before the approved write
+  community.proxmox.proxmox_vm_info:
+    vmid: "{{ template_disk_selected.vm_id }}"
+    type: qemu
+    config: current
+  register: template_disk_recheck
+  no_log: true
+
+- name: Require the template to match the displayed preview
+  ansible.builtin.assert:
+    that:
+      - template_disk_recheck.proxmox_vms | length == 1
+      - template_disk_recheck.proxmox_vms[0].status == 'stopped'
+      - template_disk_recheck.proxmox_vms[0].node == template_disk_selected.node_name
+      - template_disk_recheck.proxmox_vms[0].config == template_disk_before.proxmox_vms[0].config
+    fail_msg: The template changed after the preview. No disk was imported; run maintenance again and review it.
+    quiet: true
+
+- name: Invalidate the normal publication plan before the approved operation
+  ansible.builtin.file:
+    path: "{{ template_disk_plan_file }}"
+    state: absent
+  when: template_disk_plan_file is defined
 
 - name: Prepare the tier-local recovery receipt directory
   ansible.builtin.file:
@@ -49,6 +74,9 @@
         state: resized
         size: "{{ template_disk_selected.disk_size_gb }}G"
         timeout: 1800
+
+    - name: Finalize scsi0 as a Proxmox template base volume
+      ansible.builtin.include_tasks: base.yml
   always:
     - name: Read the resulting template, including on a failed import
       community.proxmox.proxmox_vm_info:
@@ -64,6 +92,7 @@
         mode: '0600'
         content: >-
           {{ {'vm_id': template_disk_selected.vm_id, 'old_scsi0': template_disk_before.proxmox_vms[0].config.scsi0,
+              'source': template_disk_selected.image_volume_id, 'sha256': template_disk_selected.sha256,
               'new_scsi0': template_disk_after.proxmox_vms[0].config.scsi0 | default(none),
               'unused_disks': template_disk_after.proxmox_vms[0].config | dict2items
                 | selectattr('key', 'match', '^unused[0-9]+$') | list} | to_nice_json }}
@@ -83,4 +112,14 @@
 
 - name: Show retained-disk recovery location
   ansible.builtin.debug:
-    msg: "Replacement completed. Retain {{ template_disk_old_volume }} and recovery receipts {{ template_disk_receipt }}.*.json."
+    msg:
+      verification: passed
+      template: "{{ template_disk_key }} / {{ template_disk_selected.vm_id }} / {{ template_disk_selected.name }}"
+      rollback_volume: "{{ template_disk_old_volume }}"
+      new_boot_volume: "{{ template_disk_after.proxmox_vms[0].config.scsi0.split(',')[0] }}"
+      current_boot_disk: "{{ template_disk_after.proxmox_vms[0].config.scsi0 }}"
+      ballooning_disabled: "{{ template_disk_after.proxmox_vms[0].config.balloon | default(none) in [0, '0'] }}"
+      retained_old_disk: true
+      base_conversion: completed
+      recovery_receipts: "{{ template_disk_receipt }}.*.json"
+      next: Retain the old volume; verify a disposable full clone boots before resuming consumption.

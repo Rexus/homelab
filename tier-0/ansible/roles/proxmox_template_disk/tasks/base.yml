@@ -1,0 +1,45 @@
+---
+# proxmox_kvm skips existing templates and does not expose the API's disk selector.
+# Use Proxmox's supported single-disk conversion; never rename backing volumes directly.
+- name: Convert only the imported boot disk through the Proxmox API
+  ansible.builtin.uri:
+    url: "{{ template_disk_api_url }}/nodes/{{ template_disk_selected.node_name | urlencode }}/qemu/{{ template_disk_selected.vm_id }}/template"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      disk: scsi0
+  register: template_disk_base_task
+  failed_when: false
+  changed_when: template_disk_base_task.status == 200
+  no_log: true
+
+- name: Require a conversion worker reference
+  ansible.builtin.assert:
+    that:
+      - template_disk_base_task.status == 200
+      - template_disk_base_task.json.data is string
+      - template_disk_base_task.json.data is match('^UPID:')
+    fail_msg: >-
+      Proxmox did not return a conversion task (HTTP {{ template_disk_base_task.status }}).
+      Check API trust/connectivity and VM.Allocate on the selected VM; inspect recovery receipts before retrying.
+    quiet: true
+
+- name: Show the Proxmox task reference for inspection
+  ansible.builtin.debug:
+    msg: "Base conversion task: {{ template_disk_base_task.json.data }}"
+
+- name: Wait for Proxmox to finish the single-disk base conversion
+  ansible.builtin.uri:
+    url: "{{ template_disk_api_url }}/nodes/{{ template_disk_selected.node_name | urlencode }}/tasks/{{ template_disk_base_task.json.data | urlencode }}/status"
+  register: template_disk_base_status
+  until: template_disk_base_status.json.data.status == 'stopped'
+  retries: 900
+  delay: 2
+  no_log: true
+
+- name: Require successful base conversion
+  ansible.builtin.assert:
+    that:
+      - template_disk_base_status.json.data.exitstatus == 'OK'
+    fail_msg: Base conversion failed; keep both disks and inspect the receipts and Proxmox task log.
+    quiet: true

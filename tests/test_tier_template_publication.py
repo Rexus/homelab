@@ -63,6 +63,9 @@ output "test_template_tags" {
 output "test_cpu_architectures" {
   value = { for key, vm in proxmox_virtual_environment_vm.template : key => vm.cpu[0].architecture }
 }
+output "test_memory_floating" {
+  value = { for key, vm in proxmox_virtual_environment_vm.template : key => vm.memory[0].floating }
+}
 ''')
         tests = root / 'tests'
         tests.mkdir()
@@ -89,6 +92,7 @@ output "test_cpu_architectures" {
 
         requests = []
         cloud_init_type = 'nocloud'
+        balloon = 0
 
         class FilesApi(BaseHTTPRequestHandler):
             def do_GET(self):
@@ -118,6 +122,8 @@ output "test_cpu_architectures" {
                                 unused0='ceph-vm:base-9100-disk-9')
                     if cloud_init_type is not None:
                         data['citype'] = cloud_init_type
+                    if balloon is None:
+                        data.pop('balloon')
                 elif api_path == '/api2/json/nodes/pve01/qemu/9100/status/current':
                     data = dict(status='stopped', qmpstatus='stopped')
                 elif api_path.startswith('/api2/json/nodes/pve01/storage/ceph-vm/content/'):
@@ -258,11 +264,16 @@ run "invalid_operator_inputs" {
     condition = module.templates.test_cpu_architectures.alma == ""
     error_message = "Adoption must not introduce an explicit root-only CPU architecture override on an implicit x86 guest."
   }
+  assert {
+    condition = module.templates.test_memory_floating.alma == 0
+    error_message = "The pinned provider maps absent balloon and explicit zero alike; raw Proxmox verification remains required."
+  }
 }
 '''.replace('CATALOG_PATH', json.dumps(str(path))))
         # Both explicit publications and GUI defaults must import without replacement.
         # prevent_destroy makes the test fail if an import tries to recreate the VM.
-        for cloud_init_type in ('nocloud', None):
+        # Also reproduce the balloon read ambiguity documented in the adoption guide.
+        for cloud_init_type, balloon in (('nocloud', 0), (None, 0), ('nocloud', None)):
             result = subprocess.run(['terraform', f'-chdir={root}', 'test', '-no-color'],
                                     env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0,

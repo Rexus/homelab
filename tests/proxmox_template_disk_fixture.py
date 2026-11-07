@@ -8,6 +8,46 @@ import threading
 from urllib.parse import parse_qs, urlsplit
 
 
+def run_with_terminal(arguments, environment, answer, on_prompt=None):
+    """Exercise Ansible's real pause action through a terminal, never piped stdin."""
+    import os
+    import select
+    import shlex
+    import subprocess
+    import time
+
+    # util-linux script provides a controlling foreground terminal, required by Ansible.
+    command = ['script', '--quiet', '--return', '--command', shlex.join(arguments), '/dev/null']
+    process = subprocess.Popen(command, env=environment, stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    output, replied = bytearray(), False
+    deadline = time.monotonic() + 60
+    try:
+        while time.monotonic() < deadline:
+            if select.select([process.stdout], [], [], 0.2)[0]:
+                chunk = os.read(process.stdout.fileno(), 65536)
+                if not chunk:
+                    break
+                output.extend(chunk)
+                if not replied and b'Type yes to execute' in output:
+                    if on_prompt:
+                        on_prompt()
+                    time.sleep(0.1)
+                    process.stdin.write((answer + '\n').encode())
+                    process.stdin.flush()
+                    replied = True
+            elif process.poll() is not None:
+                break
+        process.wait(timeout=5)
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        process.stdin.close()
+        process.stdout.close()
+    return subprocess.CompletedProcess(arguments, process.returncode, output.decode(errors='replace'), '')
+
+
 class TemplateDiskApiFixture:
     def __init__(self, cert, key):
         self.config = {
@@ -17,7 +57,7 @@ class TemplateDiskApiFixture:
             'ide2': 'local-zfs:vm-110-cloudinit,media=cdrom',
             'net0': 'virtio=02:00:00:00:00:01,bridge=vmbr0,tag=10,firewall=1,mtu=1500',
             'net1': 'virtio=02:00:00:00:00:02,bridge=vmbr1,tag=20,firewall=1',
-            'cores': 2, 'memory': 2048, 'scsihw': 'virtio-scsi-single',
+            'cores': 2, 'memory': 2048, 'balloon': 0, 'scsihw': 'virtio-scsi-single',
             'boot': 'order=scsi0', 'bios': 'ovmf', 'machine': 'q35',
             'ipconfig0': 'ip=dhcp', 'ciuser': 'automation',
         }
@@ -26,6 +66,8 @@ class TemplateDiskApiFixture:
         self.writes = []
         self.reads = []
         self.fail_import = False
+        self.fail_base_task = False
+        self.fail_base_http = False
         fixture = self
 
         class Api(BaseHTTPRequestHandler):
@@ -53,7 +95,8 @@ class TemplateDiskApiFixture:
                 elif path.endswith('/qemu/110/status/current'):
                     self.respond(dict(status=fixture.status))
                 elif '/tasks/' in path and path.endswith('/status'):
-                    self.respond(dict(status='stopped', exitstatus='OK'))
+                    failed = fixture.fail_base_task and 'qmtemplate' in path
+                    self.respond(dict(status='stopped', exitstatus='conversion failed' if failed else 'OK'))
                 elif path == '/api2/json/version':
                     self.respond(dict(version='9.2', release='9.2'))
                 else:
@@ -73,8 +116,18 @@ class TemplateDiskApiFixture:
                     fixture.config['unused0'] = fixture.config['scsi0'].split(',')[0]
                     options = [field for field in params['scsi0'].split(',')[1:]
                                if not field.startswith('import-from=')]
-                    fixture.config['scsi0'] = 'local-zfs:base-110-disk-2,size=1M,' + ','.join(options)
+                    fixture.config['scsi0'] = 'local-zfs:vm-110-disk-2,size=1M,' + ','.join(options)
                     self.respond('UPID:pve01:00000001:00000001:00000001:qmconfig:110:fixture@pve:')
+                elif path.endswith('/qemu/110/template') and params == {'disk': 'scsi0'}:
+                    if fixture.fail_base_http:
+                        self.respond(None, 403)
+                        return
+                    if self.headers.get('Authorization') != 'PVEAPIToken=fixture@pve!disk=fixture-not-a-secret':
+                        self.respond(None, 401)
+                        return
+                    if not fixture.fail_base_task:
+                        fixture.config['scsi0'] = fixture.config['scsi0'].replace('vm-110-disk-2', 'base-110-disk-2')
+                    self.respond('UPID:pve01:00000001:00000001:00000001:qmtemplate:110:fixture@pve:')
                 else:
                     self.respond(None, 400)
 

@@ -8,12 +8,21 @@
   vars:
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
     template_disk_receipt_dir: "{{ playbook_dir }}/../../../.terraform/maintenance/template-disk"
+    template_disk_plan_file: "{{ playbook_dir }}/../../../.terraform/plans/proxmox-templates.tfplan"
+    template_disk_api_url: "{{ lookup('ansible.builtin.env', 'PROXMOX_VE_ENDPOINT') | regex_replace('/$', '') }}/api2/json"
     # Use bootstrap OS trust even when a Python virtualenv carries its own certifi bundle.
     template_disk_system_ca: >-
       {{ lookup('ansible.builtin.first_found', {
           'files': ['/etc/pki/tls/certs/ca-bundle.crt', '/etc/ssl/certs/ca-certificates.crt'],
           'skip': true}) }}
   module_defaults:
+    ansible.builtin.uri:
+      headers:
+        Authorization: "PVEAPIToken={{ lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN') }}"
+      validate_certs: true
+      ca_path: "{{ lookup('ansible.builtin.env', 'PROXMOX_CA_FILE') | default(template_disk_system_ca | default(omit, true), true) }}"
+      follow_redirects: none
+      use_netrc: false
     group/community.proxmox.proxmox:
       api_host: "{{ lookup('ansible.builtin.env', 'PROXMOX_VE_ENDPOINT') | urlsplit('hostname') }}"
       api_port: "{{ lookup('ansible.builtin.env', 'PROXMOX_VE_ENDPOINT') | urlsplit('port') | default(8006, true) }}"

@@ -142,6 +142,10 @@ from the generated Tier 0 repository root. No hosted CI or cluster is required.
    Rerun `bash scripts/proxmox-templates.sh plan --env-file .env.local` and check
    for the expected no-change result. Continue with the clone tests below.
 
+   For adopted GUI templates, also verify
+   [explicitly disabled ballooning](../../administration/compute/template-lifecycle.md#verify-fixed-ram-after-adoption).
+   The pinned provider can report no change when the live Proxmox setting is implicit.
+
 Adoption does not enroll the
 bootstrap VM itself into Terraform. Use the [common image guide](proxmox/templates.md) for AlmaLinux, Rocky Linux and
 Talos artifact/firmware choices. Add the Kubernetes node image here when needed.

@@ -16,6 +16,7 @@ Tier 0-owned automation, not a prerequisite for creating templates.
 - [Ownership](#ownership)
 - [Local workflow](#local-workflow)
 - [Adopt existing templates](#adopt-existing-templates)
+- [Verify fixed RAM after adoption](#verify-fixed-ram-after-adoption)
 - [Interrupted publication](#interrupted-publication)
 - [Updates and promotion](#updates-and-promotion)
 - [Replace a boot disk](#replace-a-boot-disk)
@@ -270,6 +271,37 @@ Already-managed identities are not re-imported. Partial adoption after an interr
 can be reconciled by rerunning `import` with the same catalog/state; never start with a fresh state.
 State, provider cache and saved-plan paths are identical for publication and adoption.
 
+### Verify fixed RAM after adoption
+
+The pinned provider reads an **absent** Proxmox `balloon` field as `floating = 0`,
+but Proxmox enables the ballooning device when the field is absent. An adopted GUI
+template can therefore show a no-change plan while ballooning remains enabled.
+The configured `floating = 0` policy alone is not live acceptance evidence. [8][16]
+
+On the **Proxmox host currently holding the stopped template**, inspect its actual
+configuration. This command uses a VMID, unlike the publisher's catalog-key flag:
+
+```bash
+read -r -p "Stopped template VMID: " TEMPLATE_VMID
+qm config "$TEMPLATE_VMID" --current 1 | grep -E '^(name|template|memory|balloon):'
+```
+
+Require `template: 1` and explicit **`balloon: 0`**. If the balloon field is absent
+or positive, uncheck **Hardware > Memory > Ballooning Device** for that template,
+or correct only that setting from the same Proxmox host console:
+
+```bash
+qm set "$TEMPLATE_VMID" --balloon 0
+qm config "$TEMPLATE_VMID" --current 1 | grep -E '^(name|template|memory|balloon):'
+```
+
+Return to Tier 0 and run the normal `plan --env-file .env.local` again. Do not force
+VM replacement or change the RAM size merely to trigger an update. Existing clones
+keep their own configuration; correcting the template does not update them.
+The [disk-maintenance preview](template-disk.md#step-4-verify-the-replacement) also
+reports live `ballooning_disabled` without changing the memory setting.
+Review this workaround when upgrading the pinned provider.
+
 ## Interrupted publication
 
 A failed apply can still record successful imports or completed resources. Keep the
@@ -476,7 +508,7 @@ They do not boot or verify real images; disposable clone tests remain required.
 5. [GitLab resource groups](https://docs.gitlab.com/ci/resource_groups/), accessed 2026-09-17.
 6. [Terraform configuration-driven imports](https://developer.hashicorp.com/terraform/language/import), checked 2026-11-06.
 7. [Proxmox CloudInit format selection](https://raw.githubusercontent.com/proxmox/qemu-server/master/src/PVE/QemuServer/Cloudinit.pm), checked 2026-11-06.
-8. [Pinned provider CloudInit schema and import refresh](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/proxmoxtf/resource/vm/vm.go), checked 2026-11-06.
+8. [Pinned provider CloudInit and memory import refresh](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/proxmoxtf/resource/vm/vm.go), checked 2026-11-07.
 9. [Talos Proxmox controller and guest-agent requirements](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/virtualized-platforms/proxmox), checked 2026-11-06.
 10. [Proxmox disk discard support](https://github.com/proxmox/pve-docs/blob/master/qm.adoc#qm_hard_disk_discard), checked 2026-11-06.
 11. [Proxmox CloudInit networking and serial consoles](https://github.com/proxmox/pve-docs/blob/master/qm-cloud-init.adoc), checked 2026-11-06.
@@ -484,3 +516,4 @@ They do not boot or verify real images; disposable clone tests remain required.
 13. [Terraform apply parallelism](https://developer.hashicorp.com/terraform/cli/commands/apply#parallelism-n), checked 2026-11-07.
 14. [AnyEvent connection-buffer limits and ENOSPC](https://metacpan.org/release/MLEHMANN/AnyEvent-7.17/view/lib/AnyEvent/Handle.pm), checked 2026-11-07.
 15. [Upload connection errors resolved by Datastore.AllocateTemplate](https://github.com/bpg/terraform-provider-proxmox/issues/2047), checked 2026-11-07.
+16. [Proxmox enables ballooning unless explicitly disabled](https://github.com/proxmox/qemu-server/blob/master/src/PVE/QemuServer.pm#L3325), checked 2026-11-07.

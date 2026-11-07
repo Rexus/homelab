@@ -6,6 +6,7 @@
 - [Platform prerequisites](#platform-prerequisites)
 - [Deployment machine](#deployment-machine)
 - [Automation VM example](#automation-vm-example)
+- [Ansible environment](#ansible-environment)
 - [Local repository files](#local-repository-files)
 - [Read more](#read-more)
 - [References](#references)
@@ -57,6 +58,7 @@ Require these tools there:
 - SSH client tools
 - `ca-certificates`, curl and OpenSSL for verified API access
 - `xz`, `unzip` and tar for approved artifact unpacking
+- `qemu-img` for template boot-disk inspection/maintenance (`qemu-utils` on Debian/Ubuntu)
 
 `Packer` is only needed when building templates from the same machine.
 
@@ -114,22 +116,23 @@ never disable package-signature or TLS checks. [1][2]
 
 ```bash
 sudo dnf install -y epel-release
-sudo dnf install -y git bash python3 python3-pip python3-pyyaml ansible-core \
-  openssh-clients ca-certificates curl openssl xz unzip tar
+sudo dnf install -y git bash python3 python3-pip python3-pyyaml \
+  openssh-clients ca-certificates curl openssl xz unzip tar /usr/bin/qemu-img
 sudo dnf install -y yum-utils
 sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
 sudo dnf install -y terraform
 ```
 
-Check the installed tools before cloning/generation and before provisioning:
+Check the installed tools before cloning/generation:
 
 ```bash
 git --version
 python3 -c 'import yaml; print(yaml.__version__)'
 terraform version
-ansible-playbook --version
+qemu-img --version
 ```
 
+Before running Ansible, prepare the [Ansible environment](#ansible-environment) below.
 Use versions satisfying the selected Terraform roots and Ansible collections;
 an installed executable alone is not compatibility evidence. For an offline host,
 transfer approved packages/wheels/provider/collection archives first. Do not make
@@ -145,6 +148,28 @@ Keep the automation VM simple:
 - keep the local Terraform vars, inventory, and group vars there
 - give it access to the Proxmox API, Git remotes, and the package or collection
   sources it needs
+
+## Ansible environment
+
+Prepare a deployment-user virtual environment before running Ansible-based paths.
+An existing accepted environment is also valid. The Proxmox maintenance collection
+requires `ansible-core >=2.17`; an OS package may supply an older release. Installing
+`ansible/requirements.txt` installs module dependencies, not Ansible itself. [3][4]
+
+```bash
+python3 -m venv "$HOME/.local/share/homelab/venv"
+source "$HOME/.local/share/homelab/venv/bin/activate"
+python3 -m pip install --upgrade 'ansible-core>=2.17' PyYAML
+ansible-playbook --version
+```
+
+On Debian/Ubuntu, install `python3-venv` first if the OS packages do not yet provide
+venv support. Use the selected Python version's package where applicable. [5]
+Activate the same environment in each new deployment shell before invoking tier
+scripts. Install the owning tier's `ansible/requirements.txt` there and its declared
+collections through that environment's `ansible-galaxy`; avoid `sudo pip` and user-site
+installs mixed with a different system Ansible. Use approved pre-staged wheels and
+collections for offline installation; retain accepted versions for recovery.
 
 ## Local repository files
 
@@ -191,7 +216,10 @@ encrypted off-host recovery separately.
 
 ## References
 
-Sources checked 2026-11-06.
+Sources checked 2026-11-07.
 
 1. [HashiCorp Terraform installation](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli).
 2. [Ansible distribution packages and EPEL](https://docs.ansible.com/projects/ansible/latest/installation_guide/installation_distros.html).
+3. [Installing Ansible and extra Python dependencies](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html).
+4. [Proxmox collection's Ansible runtime requirement](https://github.com/ansible-collections/community.proxmox/blob/2.1.0/meta/runtime.yml).
+5. [Python virtual environments](https://docs.python.org/3/library/venv.html).

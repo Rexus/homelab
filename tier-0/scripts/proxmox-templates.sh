@@ -6,8 +6,8 @@ umask 077
 usage() {
   echo "Usage: bash ${BASH_SOURCE[0]} {init|plan|import|apply|replace-disk} [--env-file PATH] [--platform-file PATH]"
   echo "import prepares a reviewed adoption plan; apply writes imports and any listed changes."
-  echo "replace-disk --template KEY previews one boot-disk replacement from applied references."
-  echo "Add --execute --expected-disk VOLUME --expected-sha256 SHA only after reviewing that preview."
+  echo "replace-disk --template KEY previews the operation, then prompts for execution."
+  echo "Use --preview for read-only inspection; use --execute with --expected-disk VOLUME and --expected-sha256 SHA in automation."
   echo "Use --env-file .env.local for local credentials; otherwise only exported credentials are used."
 }
 if [[ $# == 1 && ( "$1" == --help || "$1" == -h ) ]]; then
@@ -42,7 +42,7 @@ if [[ "$action" == plan || "$action" == import ]]; then
 fi
 env_file=""
 platform_file="${TEMPLATE_PLATFORM_FILE:-}"
-template_key="" expected_disk="" expected_sha256="" execute=false
+template_key="" expected_disk="" expected_sha256="" execute=false preview=false interactive=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --env-file|--platform-file|--template|--expected-disk|--expected-sha256)
@@ -60,18 +60,25 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --execute) execute=true; shift ;;
+    --preview) preview=true; shift ;;
     *) usage >&2; exit 1 ;;
   esac
 done
 if [[ "$action" == replace-disk ]]; then
   [[ "$template_key" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] || { echo "Select one catalog key with --template KEY." >&2; exit 1; }
+  if [[ "$execute" == true && "$preview" == true ]]; then
+    echo "Choose --preview or --execute, not both." >&2; exit 1
+  fi
   if [[ "$execute" == true ]]; then
-    rm -f "$plan"
     [[ "$expected_disk" =~ ^[A-Za-z0-9_.-]+:[A-Za-z0-9_./-]+$ && "$expected_sha256" =~ ^[a-f0-9]{64}$ ]] || {
       echo "Execution requires the reviewed --expected-disk VOLUME and --expected-sha256 SHA." >&2; exit 1;
     }
+  elif [[ -n "$expected_disk$expected_sha256" ]]; then
+    echo "Expected disk/hash flags require --execute." >&2; exit 1
+  elif [[ "$preview" == false ]]; then
+    interactive=true
   fi
-elif [[ -n "$template_key$expected_disk$expected_sha256" || "$execute" == true ]]; then
+elif [[ -n "$template_key$expected_disk$expected_sha256" || "$execute" == true || "$preview" == true ]]; then
   echo "Disk-maintenance flags are valid only with replace-disk." >&2; exit 1
 fi
 for path in "$catalog" "$state"; do
@@ -177,14 +184,16 @@ if [[ "$action" == apply && ! -f "$plan" ]]; then
   exit 1
 fi
 
-mkdir -p "$TF_DATA_DIR" "$(dirname "$state")" "$(dirname "$plan")"
-terraform -chdir="$terraform_dir" init -input=false -lockfile=readonly -reconfigure -backend-config="path=$state"
-terraform -chdir="$terraform_dir" validate
 if [[ "$action" == replace-disk ]]; then
   export ANSIBLE_CONFIG="$repo_root/ansible/ansible.cfg"
+  export ANSIBLE_COLLECTIONS_ON_ANSIBLE_VERSION_MISMATCH=error
   for tool in ansible-playbook ansible-doc python3 qemu-img; do
     command -v "$tool" >/dev/null || {
       echo "Disk maintenance requires $tool. See docs/administration/compute/template-disk.md#prerequisites." >&2
+      if [[ "$tool" == qemu-img ]]; then
+        echo "Install on the execution host: sudo dnf install -y /usr/bin/qemu-img (Alma/Rocky/RHEL)" >&2
+        echo "or sudo apt-get install -y qemu-utils (Debian/Ubuntu). This is an OS package, not a pip package." >&2
+      fi
       exit 1
     }
   done
@@ -192,27 +201,53 @@ if [[ "$action" == replace-disk ]]; then
   # ansible-doc can return zero for missing plugins; verify its structured result instead.
   if ! ansible-doc --json -t module "${disk_modules[@]}" | python3 -c '
 import json, sys
-modules = json.load(sys.stdin)
+try:
+    modules = json.load(sys.stdin)
+except ValueError:
+    sys.exit("Cannot inspect Ansible modules; see the ansible-doc error above.")
 missing = [name for name in sys.argv[1:] if not modules.get(name, {}).get("doc")]
 if missing:
     print("Missing disk-maintenance modules: " + ", ".join(missing), file=sys.stderr)
     sys.exit(1)
 ' "${disk_modules[@]}"; then
-    echo "Install community.proxmox >=2.1.0,<3.0.0 in this Ansible environment." >&2
+    echo "Use ansible-core >=2.17 and community.proxmox >=2.1.0,<3.0.0 in the same accepted environment." >&2
+    echo "Runtime setup: docs/development/local-setup.md#ansible-environment." >&2
     echo "Run: ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force" >&2
     echo "Python dependencies: ansible/requirements.txt. Guide: docs/administration/compute/template-disk.md#prerequisites." >&2
     exit 1
   fi
+fi
+
+mkdir -p "$TF_DATA_DIR" "$(dirname "$state")" "$(dirname "$plan")"
+terraform -chdir="$terraform_dir" init -input=false -lockfile=readonly -reconfigure -backend-config="path=$state"
+terraform -chdir="$terraform_dir" validate
+if [[ "$action" == replace-disk ]]; then
   disk_inputs="$repo_root/.terraform/plans/template-disk-inputs.json"
   terraform -chdir="$terraform_dir" output -json > "$disk_inputs"
+  disk_result="$(mktemp "$repo_root/.terraform/plans/template-disk-result.XXXXXX")"
+  trap 'rm -f "$disk_result"' EXIT
+  result_args="$(python3 -c 'import json, sys; print(json.dumps({"template_disk_result_file": sys.argv[1]}))' "$disk_result")"
   ansible-playbook -i localhost, -c local "$repo_root/ansible/playbooks/maintenance/template-disk.yml" \
     --extra-vars "@$disk_inputs" --extra-vars "template_disk_key=$template_key" \
-    --extra-vars "template_disk_execute=$execute" --extra-vars "template_disk_expected_disk=$expected_disk" \
-    --extra-vars "template_disk_expected_sha256=$expected_sha256"
-  if [[ "$execute" == true ]]; then
+    --extra-vars "template_disk_execute=$execute" --extra-vars "template_disk_interactive=$interactive" \
+    --extra-vars "template_disk_expected_disk=$expected_disk" \
+    --extra-vars "template_disk_expected_sha256=$expected_sha256" --extra-vars "$result_args"
+  disk_changed="$(python3 -c '
+import json, sys
+result = json.load(open(sys.argv[1]))
+if not isinstance(result.get("changed"), bool):
+    sys.exit("Missing verified maintenance outcome; inspect recovery receipts before continuing.")
+print("true" if result["changed"] else "false")
+' "$disk_result")"
+  if [[ "$disk_changed" == true ]]; then
+    rm -f "$plan"
     # Refresh records the new volume identity; it does not reconcile or apply VM settings.
     terraform -chdir="$terraform_dir" apply -refresh-only -auto-approve -input=false \
       -lock-timeout=60s "${var_args[@]}"
+  elif [[ "$preview" == true ]]; then
+    echo "Preview only. No disk changed. Rerun without --preview to review and confirm execution."
+  else
+    echo "Replacement declined. No disk changed."
   fi
   exit 0
 fi

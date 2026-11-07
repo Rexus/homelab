@@ -1,0 +1,17 @@
+---
+- name: Confirm the displayed template disk replacement
+  ansible.builtin.pause:
+    prompt: >-
+      Replace scsi0 on {{ template_disk_key }} (VMID {{ template_disk_selected.vm_id }})
+      using the displayed approved image, retaining {{ template_disk_old_volume }} for rollback?
+      Type yes to execute; no or Enter ends without changes
+  register: template_disk_confirmation
+
+- name: Record the explicit interactive decision
+  ansible.builtin.set_fact:
+    template_disk_approved: "{{ template_disk_confirmation.user_input | default('') | trim | lower == 'yes' }}"
+
+- name: Explain a declined operation
+  ansible.builtin.debug:
+    msg: Replacement declined; no template disk changed.
+  when: not template_disk_approved | bool
