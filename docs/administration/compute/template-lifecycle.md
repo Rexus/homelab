@@ -17,6 +17,7 @@ Tier 0-owned automation, not a prerequisite for creating templates.
 - [Local workflow](#local-workflow)
 - [Adopt existing templates](#adopt-existing-templates)
 - [Updates and promotion](#updates-and-promotion)
+- [Replace a boot disk](#replace-a-boot-disk)
 - [Mutable Linux refresh](#mutable-linux-refresh)
 - [GitLab CI example](#gitlab-ci-example)
 - [Existing collections](#existing-collections)
@@ -148,10 +149,11 @@ only when the selected image or site needs a different value.
 | `scsi_hardware` | Optional override; normally omitted so OS family selects Single for Alma/Rocky/Debian or non-Single for Talos |
 | `qemu_agent` / `cpu_type` | Optional overrides; defaults are `true` / `x86-64-v3` |
 | `memory_mb` | Template RAM; defaults to 2048 MiB, with actual service sizing applied to clones |
+| `disk_size_gb` | Template capacity; defaults to 10 GiB, never below the source image's virtual size; cloned service disks are sized separately |
 | `storage_class` | Class in Shared `config/platform.tfvars`, selecting its `vm_disk` datastore |
 | `datastore_id` | Explicit live disk/EFI storage override; wins over `storage_class` |
 | `image_datastore_id` | Tier 0 staging datastore with Import content; independent of live storage |
-| `cloud_init_drive` / `cloud_init_datastore_id` | Empty NoCloud media at `ide2` / override of class `cloud_init_drive` or live disk storage |
+| `cloud_init_drive` / `cloud_init_datastore_id` | NoCloud media at `ide2` with IPv4 DHCP / override of class `cloud_init_drive` or live disk storage |
 | `family` / `distribution` | OS family (`redhat`, `debian`, `talos`) / selected distribution (`alma`, `rocky`, etc.); Fedora uses the `redhat` family |
 | `tags` | Additional tags; `tier-0`, `template` and distribution tags are always added |
 | `image_path` / `sha256` | Absolute local unpacked artifact path / approved hash of those bytes |
@@ -178,12 +180,24 @@ adoption or refresh; omitted memory now defaults to 2048 MiB rather than 4096 Mi
 Omitted NIC settings now use firewall enabled and MTU 1500. Explicit settings still
 win. An existing `all.scsi_hardware` overrides automatic selection for every image;
 remove it after review to use the OS profiles, or retain an explicit exception.
-Fresh examples include empty CloudInit media, matching the GUI guide; existing catalogs
+Fresh examples include DHCP CloudInit media, matching the GUI guide; existing catalogs
 without `cloud_init_drive` keep the no-media behavior. All addresses/accounts stay clone-local.
 The publisher leaves the optional CloudInit format to Proxmox/provider state:
 Linux defaults to NoCloud, and an existing explicit format is retained. Forcing
 `nocloud` onto an imported template whose format was implicit can make the pinned
 provider propose replacement, despite equivalent Linux behavior. [7][8]
+
+Ten GiB is a base-image starting capacity, not the recommended disk size for every
+service. Check the verified image's virtual size before importing; increase the
+template setting when the image requires it. Existing larger disks are not shrunk
+by changing this default. Production clones receive their own role-specific disk sizing.
+DHCP remains enabled on reusable templates; a clone's explicit network configuration
+replaces it. No site-specific account/password is stored in the template. [11]
+
+Discard remains enabled so supported guest filesystems can return unused blocks to
+thin-provisioned storage. Guest-side TRIM still needs to run. The socket-backed serial
+port remains available for console diagnostics; visible output depends on the image's
+serial-console configuration. The graphical display is retained. [10][11]
 
 ## Adopt existing templates
 
@@ -264,6 +278,14 @@ Use controlled distribution for connected platforms and offline handoff across
 custody boundaries. VMIDs are local to a Proxmox cluster: import into another
 cluster under one designated owner and record its destination ID. The kit does
 not automate cross-cluster transfer or open a route into offline custody.
+
+## Replace a boot disk
+
+To keep an existing template VMID and replace only its OS image, follow the
+[boot-disk maintenance path](template-disk.md). It uses the published artifact,
+previews the current disk, preserves the previous base volume for rollback and
+refreshes the original Terraform state. Normal adoption/apply does not replace
+the bytes of an existing boot disk; a changed `import_from` reference is not a reimage.
 
 ## Mutable Linux refresh
 
@@ -372,3 +394,5 @@ They do not boot or verify real images; disposable clone tests remain required.
 7. [Proxmox CloudInit format selection](https://raw.githubusercontent.com/proxmox/qemu-server/master/src/PVE/QemuServer/Cloudinit.pm), checked 2026-11-06.
 8. [Pinned provider CloudInit schema and import refresh](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/proxmoxtf/resource/vm/vm.go), checked 2026-11-06.
 9. [Talos Proxmox controller and guest-agent requirements](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/virtualized-platforms/proxmox), checked 2026-11-06.
+10. [Proxmox disk discard support](https://github.com/proxmox/pve-docs/blob/master/qm.adoc#qm_hard_disk_discard), checked 2026-11-06.
+11. [Proxmox CloudInit networking and serial consoles](https://github.com/proxmox/pve-docs/blob/master/qm-cloud-init.adoc), checked 2026-11-06.

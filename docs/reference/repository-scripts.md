@@ -39,7 +39,7 @@ these shared implementations.
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
 | `shared/scripts/gitlab-iac.sh` | executes explicitly trusted CI with Vault ID tokens and private saved plans | [Stage 9 handover](../deployment/stage-9-development/procedures/handover.md); not a tenant request API |
-| `tier-0/scripts/proxmox-templates.sh` | initializes, plans publication/adoption, or applies Tier 0 templates | local recovery or template CD jobs |
+| `tier-0/scripts/proxmox-templates.sh` | initializes, plans publication/adoption, applies templates or explicitly replaces one boot disk | [Template lifecycle](../administration/compute/template-lifecycle.md), [boot-disk maintenance](../administration/compute/template-disk.md) |
 | `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../administration/logging-drill.md); no faults or service changes |
 | `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports private credentials/plan JSON; currently Talos | [Kubernetes cluster](../deployment/stage-4-kubernetes/procedures/kubernetes.md) |
 

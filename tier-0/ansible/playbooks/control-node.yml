@@ -3,6 +3,10 @@
   ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
   vars:
     control_node_collection_catalog:
+      community.proxmox:
+        name: community.proxmox
+        version: '>=2.1.0,<3.0.0'
+        os_packages: {RedHat: [qemu-img], Debian: [qemu-utils]}
       containers.podman:
         name: containers.podman
         version: '>=1.18.0,<2.0.0'
@@ -47,5 +51,6 @@
       ingress: []
       immutable-template: [community.general, ansible.posix]
       template-refresh: []
+      template-disk: [community.proxmox]
       proxmox-hosts: []
       site: [community.general, ansible.posix]

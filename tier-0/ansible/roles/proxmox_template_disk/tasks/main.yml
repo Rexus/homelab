@@ -1,0 +1,88 @@
+---
+- name: Require applied publication references and a single selected template
+  ansible.builtin.assert:
+    that:
+      - template_disk_key is defined
+      - template_disk_sources is defined
+      - template_disk_key in template_disk_sources.value
+      - not ansible_check_mode
+    fail_msg: Use the Tier 0 template command after publication; preview is explicit, not Ansible check mode.
+    quiet: true
+
+- name: Require a complete token supplied through the environment
+  ansible.builtin.assert:
+    that:
+      - lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN') is match('^[^!]+![^=]+=.+$')
+    quiet: true
+  no_log: true
+
+- name: Resolve the selected applied references
+  ansible.builtin.set_fact:
+    template_disk_selected: "{{ template_disk_sources.value[template_disk_key] }}"
+
+- name: Verify the local approved artifact bytes
+  ansible.builtin.stat:
+    path: "{{ template_disk_selected.image_path }}"
+    checksum_algorithm: sha256
+  register: template_disk_artifact
+
+- name: Require the artifact recorded by publication
+  ansible.builtin.assert:
+    that:
+      - template_disk_artifact.stat.isreg | default(false)
+      - template_disk_artifact.stat.checksum | default('') == template_disk_selected.sha256
+    fail_msg: Restore the exact approved artifact; a maintenance command cannot approve different bytes.
+
+- name: Inspect the approved image's virtual capacity
+  ansible.builtin.command:
+    argv: [qemu-img, info, --output=json, "{{ template_disk_selected.image_path }}"]
+  changed_when: false
+  register: template_disk_image_info
+
+- name: Require a standalone image that fits the selected capacity
+  ansible.builtin.assert:
+    that:
+      - (template_disk_image_info.stdout | from_json)['virtual-size'] | int <= template_disk_selected.disk_size_gb | int * 1073741824
+      - "'backing-filename' not in (template_disk_image_info.stdout | from_json)"
+    fail_msg: Use a standalone image and a capacity at least its virtual size; maintenance never truncates an image.
+
+- name: Read the existing template without guest-agent access
+  community.proxmox.proxmox_vm_info:
+    vmid: "{{ template_disk_selected.vm_id }}"
+    type: qemu
+    config: current
+  register: template_disk_before
+  no_log: true
+
+- name: Require one visible stopped template
+  ansible.builtin.assert:
+    that:
+      - template_disk_before.proxmox_vms | length == 1
+      - template_disk_before.proxmox_vms[0].template | bool
+      - template_disk_before.proxmox_vms[0].status == 'stopped'
+      - template_disk_before.proxmox_vms[0].name == template_disk_selected.name
+      - template_disk_before.proxmox_vms[0].node == template_disk_selected.node_name
+      - template_disk_before.proxmox_vms[0].config.scsi0 is defined
+      - template_disk_before.proxmox_vms[0].config.lock | default('', true) | length == 0
+      - template_disk_before.proxmox_vms[0].config.scsi0.split(',')[0] is match('^[A-Za-z0-9_.-]+:.+$')
+    fail_msg: Maintenance requires the exact published VMID/name/node, stopped and unlocked, with scsi0 present.
+    quiet: true
+
+- name: Capture the original boot-disk reference
+  ansible.builtin.set_fact:
+    template_disk_old_volume: "{{ template_disk_before.proxmox_vms[0].config.scsi0.split(',')[0] }}"
+
+- name: Show the single-disk maintenance preview
+  ansible.builtin.debug:
+    msg:
+      template: "{{ template_disk_key }} / {{ template_disk_selected.vm_id }} / {{ template_disk_selected.name }}"
+      old_boot_volume: "{{ template_disk_old_volume }}"
+      new_image_volume: "{{ template_disk_selected.image_volume_id }}"
+      approved_sha256: "{{ template_disk_selected.sha256 }}"
+      disk_size_gb: "{{ template_disk_selected.disk_size_gb }}"
+      operation: Replace scsi0 only; preserve the old disk as unused. Keep VMID, EFI, NICs and CloudInit.
+      execute: "{{ template_disk_execute | default(false) | bool }}"
+
+- name: Replace only after matching the reviewed disk and artifact
+  ansible.builtin.include_tasks: replace.yml
+  when: template_disk_execute | default(false) | bool

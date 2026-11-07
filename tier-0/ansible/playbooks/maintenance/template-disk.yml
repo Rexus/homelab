@@ -1,0 +1,26 @@
+---
+# Explicit maintenance, not part of template adoption or normal Terraform apply.
+# Guide: docs/administration/compute/template-disk.md
+- name: Preview or replace one published template boot disk
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    template_disk_receipt_dir: "{{ playbook_dir }}/../../../.terraform/maintenance/template-disk"
+    # Use bootstrap OS trust even when a Python virtualenv carries its own certifi bundle.
+    template_disk_system_ca: >-
+      {{ lookup('ansible.builtin.first_found', {
+          'files': ['/etc/pki/tls/certs/ca-bundle.crt', '/etc/ssl/certs/ca-certificates.crt'],
+          'skip': true}) }}
+  module_defaults:
+    group/community.proxmox.proxmox:
+      api_host: "{{ lookup('ansible.builtin.env', 'PROXMOX_VE_ENDPOINT') | urlsplit('hostname') }}"
+      api_port: "{{ lookup('ansible.builtin.env', 'PROXMOX_VE_ENDPOINT') | urlsplit('port') | default(8006, true) }}"
+      api_user: "{{ lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN').split('!', 1)[0] }}"
+      api_token_id: "{{ lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN').split('!', 1)[1].split('=', 1)[0] }}"
+      api_token_secret: "{{ lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN').split('=', 1)[1] }}"
+      validate_certs: true
+      ca_path: "{{ lookup('ansible.builtin.env', 'PROXMOX_CA_FILE') | default(template_disk_system_ca | default(omit, true), true) }}"
+  roles:
+    - proxmox_template_disk

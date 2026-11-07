@@ -146,6 +146,10 @@ Adoption does not enroll the
 bootstrap VM itself into Terraform. Use the [common image guide](proxmox/templates.md) for AlmaLinux, Rocky Linux and
 Talos artifact/firmware choices. Add the Kubernetes node image here when needed.
 Tier 0 publishes templates; other tiers consume approved references.
+Adoption retains an existing template's OS disk. For an intentional disk-image
+replacement at the same VMID, use the separate
+[boot-disk maintenance path](../../administration/compute/template-disk.md)
+after applying the reviewed publication plan.
 
 Publication code and inputs are in Tier 0's
 [terraform/deployments/templates/](../../../tier-0/terraform/deployments/templates) and

@@ -4,15 +4,17 @@ set -euo pipefail
 umask 077
 
 usage() {
-  echo "Usage: bash ${BASH_SOURCE[0]} {init|plan|import|apply} [--env-file PATH] [--platform-file PATH]"
+  echo "Usage: bash ${BASH_SOURCE[0]} {init|plan|import|apply|replace-disk} [--env-file PATH] [--platform-file PATH]"
   echo "import prepares a reviewed adoption plan; apply writes imports and any listed changes."
+  echo "replace-disk --template KEY previews one boot-disk replacement from applied references."
+  echo "Add --execute --expected-disk VOLUME --expected-sha256 SHA only after reviewing that preview."
   echo "Use --env-file .env.local for local credentials; otherwise only exported credentials are used."
 }
 if [[ $# == 1 && ( "$1" == --help || "$1" == -h ) ]]; then
   usage
   exit 0
 fi
-if [[ $# == 0 || ! "$1" =~ ^(init|plan|import|apply)$ ]]; then
+if [[ $# == 0 || ! "$1" =~ ^(init|plan|import|apply|replace-disk)$ ]]; then
   usage >&2
   echo "Run from Tier 0. Reference: docs/administration/compute/template-lifecycle.md" >&2
   exit 1
@@ -40,19 +42,38 @@ if [[ "$action" == plan || "$action" == import ]]; then
 fi
 env_file=""
 platform_file="${TEMPLATE_PLATFORM_FILE:-}"
+template_key="" expected_disk="" expected_sha256="" execute=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --env-file|--platform-file)
+    --env-file|--platform-file|--template|--expected-disk|--expected-sha256)
       if [[ $# -lt 2 || -z "$2" || "$2" == --* ]]; then
         echo "Missing path for $1" >&2
         exit 1
       fi
-      if [[ "$1" == --env-file ]]; then env_file="$2"; else platform_file="$2"; fi
+      case "$1" in
+        --env-file) env_file="$2" ;;
+        --platform-file) platform_file="$2" ;;
+        --template) template_key="$2" ;;
+        --expected-disk) expected_disk="$2" ;;
+        --expected-sha256) expected_sha256="$2" ;;
+      esac
       shift 2
       ;;
+    --execute) execute=true; shift ;;
     *) usage >&2; exit 1 ;;
   esac
 done
+if [[ "$action" == replace-disk ]]; then
+  [[ "$template_key" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] || { echo "Select one catalog key with --template KEY." >&2; exit 1; }
+  if [[ "$execute" == true ]]; then
+    rm -f "$plan"
+    [[ "$expected_disk" =~ ^[A-Za-z0-9_.-]+:[A-Za-z0-9_./-]+$ && "$expected_sha256" =~ ^[a-f0-9]{64}$ ]] || {
+      echo "Execution requires the reviewed --expected-disk VOLUME and --expected-sha256 SHA." >&2; exit 1;
+    }
+  fi
+elif [[ -n "$template_key$expected_disk$expected_sha256" || "$execute" == true ]]; then
+  echo "Disk-maintenance flags are valid only with replace-disk." >&2; exit 1
+fi
 for path in "$catalog" "$state"; do
   if [[ "$path" != /* ]]; then
     echo "TEMPLATE_CATALOG_FILE and TEMPLATE_STATE_PATH must be absolute paths." >&2
@@ -137,7 +158,7 @@ for tls_option in PROXMOX_VE_INSECURE PM_VE_INSECURE; do
   esac
 done
 
-if [[ ( "$action" == plan || "$action" == import ) && ! -f "$catalog" ]]; then
+if [[ ( "$action" == plan || "$action" == import || "$action" == replace-disk ) && ! -f "$catalog" ]]; then
   echo "Missing catalog: $catalog. Run init first." >&2
   exit 1
 fi
@@ -159,6 +180,26 @@ fi
 mkdir -p "$TF_DATA_DIR" "$(dirname "$state")" "$(dirname "$plan")"
 terraform -chdir="$terraform_dir" init -input=false -lockfile=readonly -reconfigure -backend-config="path=$state"
 terraform -chdir="$terraform_dir" validate
+if [[ "$action" == replace-disk ]]; then
+  if ! command -v ansible-playbook >/dev/null || ! command -v ansible-doc >/dev/null ||
+     ! ansible-doc -t module community.proxmox.proxmox_disk >/dev/null 2>&1; then
+    echo "Disk maintenance requires Ansible and Tier 0's ansible/requirements.yml and requirements.txt." >&2
+    exit 1
+  fi
+  disk_inputs="$repo_root/.terraform/plans/template-disk-inputs.json"
+  terraform -chdir="$terraform_dir" output -json > "$disk_inputs"
+  export ANSIBLE_CONFIG="$repo_root/ansible/ansible.cfg"
+  ansible-playbook -i localhost, -c local "$repo_root/ansible/playbooks/maintenance/template-disk.yml" \
+    --extra-vars "@$disk_inputs" --extra-vars "template_disk_key=$template_key" \
+    --extra-vars "template_disk_execute=$execute" --extra-vars "template_disk_expected_disk=$expected_disk" \
+    --extra-vars "template_disk_expected_sha256=$expected_sha256"
+  if [[ "$execute" == true ]]; then
+    # Refresh records the new volume identity; it does not reconcile or apply VM settings.
+    terraform -chdir="$terraform_dir" apply -refresh-only -auto-approve -input=false \
+      -lock-timeout=60s "${var_args[@]}"
+  fi
+  exit 0
+fi
 if [[ "$action" == plan || "$action" == import ]]; then
   adopt=false
   [[ "$action" == import ]] && adopt=true

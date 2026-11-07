@@ -95,13 +95,16 @@ qualify live migration on mixed hardware.
 For IaC publication, set the shared template bridge/VLAN under `all:`; the publisher
 selects NIC and OS-specific controller defaults without per-image tuning. Optional
 overrides are listed in the [catalog reference](../../../administration/compute/template-lifecycle.md#catalog-fields-and-defaults).
+The base template starts at 10 GiB when the verified image fits; use a larger value
+for a larger source image. Service clones receive their own disk sizing.
 
 ## Step 3: Convert, clone-test and approve
 
 1. In **Hardware**, remove any unused CD/DVD drive. For **all three images**,
    retain/add a **CloudInit Drive**: **Hardware > Add >
    CloudInit Drive**, bus **IDE**, slot **2**, on the selected live VM storage.
-   Leave template values at defaults. In **Options > Boot Order**, enable `scsi0`
+   Retain IPv4 DHCP as the template network default; leave accounts/passwords unset.
+   In **Options > Boot Order**, enable `scsi0`
    first; add a serial console if needed. Do not put site IPs, accounts or secrets in the template.
 2. With the image **unbooted**, select **Convert to template**, then create a
    disposable full clone with its own VMID. Do not boot/configure the reusable template.
@@ -149,7 +152,7 @@ Shared holds its approved VMID/title/source node. Each consuming tier owns its
 
 For the [API publisher](../../../administration/compute/template-lifecycle.md#local-workflow),
 record the unpacked image/hash, version/schematic and explicit firmware in Tier 0's
-`templates/proxmox.yml`. Fresh examples include an empty CloudInit drive at `ide2`;
+`templates/proxmox.yml`. Fresh examples include a DHCP CloudInit drive at `ide2`;
 the consuming root supplies network-only settings per clone. Legacy catalogs that
 omit `cloud_init_drive` retain their previous no-media behavior. For adoption, set
 this field to match the manually created template rather than removing its drive.

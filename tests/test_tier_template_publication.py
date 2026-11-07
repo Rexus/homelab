@@ -50,6 +50,13 @@ class TemplatePublication(TierRepositoryTestCase):
         imports.write_text(discovery)
         module = terraform / 'modules/proxmox_templates'
         shutil.copytree(UPSTREAM / 'tier-0/terraform/modules/proxmox_templates', module)
+        # Observe the actual provider's disk model without adding a product output.
+        with (module / 'outputs.tf').open('a') as output:
+            output.write('''
+output "test_disk_interfaces" {
+  value = { for key, vm in proxmox_virtual_environment_vm.template : key => [for disk in vm.disk : disk.interface] }
+}
+''')
         tests = root / 'tests'
         tests.mkdir()
         fixture = module / 'tests/fixtures/template-image.qcow2'
@@ -57,7 +64,7 @@ class TemplatePublication(TierRepositoryTestCase):
         catalog = {
             'all': dict(node_name='pve01', storage_class='shared', image_datastore_id='local',
                         bridge='control', vlan_id=10, family='redhat', bios='ovmf',
-                        tags=['approved'], cloud_init_drive=True),
+                        tags=['approved'], cloud_init_drive=True, memory_mb=4096, disk_size_gb=32),
             'templates': {
                 'alma': dict(distribution='alma', release='10.0', vm_id=9100, name='alma-template',
                              image_path=str(fixture), sha256=digest, image_file_name='manual.qcow2'),
@@ -95,12 +102,13 @@ class TemplatePublication(TierRepositoryTestCase):
                                 sockets=1, cpu='x86-64-v3', memory=4096, balloon=0,
                                 agent='enabled=1', scsihw='virtio-scsi-single', ostype='l26',
                                 boot='order=scsi0', serial0='socket', onboot=0,
-                                ide2='ceph-vm:vm-9100-cloudinit,media=cdrom',
+                                ide2='ceph-vm:vm-9100-cloudinit,media=cdrom', ipconfig0='ip=dhcp',
                                 tags='alma;approved;template;tier-0',
                                 description=f'redhat 10.0; sha256={digest}',
                                 scsi0='ceph-vm:base-9100-disk-0,discard=on,iothread=1,size=32G',
                                 efidisk0='ceph-vm:base-9100-disk-1,efitype=4m,pre-enrolled-keys=0,size=4M',
-                                net0='virtio=02:00:00:00:00:01,bridge=control,tag=10,firewall=1,mtu=1500')
+                                net0='virtio=02:00:00:00:00:01,bridge=control,tag=10,firewall=1,mtu=1500',
+                                unused0='ceph-vm:base-9100-disk-9')
                     if cloud_init_type is not None:
                         data['citype'] = cloud_init_type
                 elif api_path == '/api2/json/nodes/pve01/qemu/9100/status/current':
@@ -230,6 +238,10 @@ run "invalid_operator_inputs" {
   assert {
     condition = length(local.file_imports) == 1 && local.file_imports.alma == "pve01/local:import/manual.qcow2" && length(local.vm_imports) == 1
     error_message = "The actual provider must accept the discovered file and VM identities for native import."
+  }
+  assert {
+    condition = length(module.templates.test_disk_interfaces.alma) == 1 && module.templates.test_disk_interfaces.alma[0] == "scsi0"
+    error_message = "A retained unused rollback disk must not enter Terraform's managed disk list."
   }
 }
 '''.replace('CATALOG_PATH', json.dumps(str(path))))

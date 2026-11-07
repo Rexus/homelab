@@ -20,7 +20,7 @@ variable "images" {
     cpu_type                = optional(string, "x86-64-v3")
     cores                   = optional(number, 2)
     memory_mb               = optional(number, 2048)
-    disk_size_gb            = optional(number, 32)
+    disk_size_gb            = optional(number, 10)
     qemu_agent              = optional(bool, true)
     tags                    = optional(list(string), [])
     cloud_init_drive        = optional(bool, false)

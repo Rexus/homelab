@@ -1,0 +1,86 @@
+---
+- name: Match the explicit execution intent to the preview
+  ansible.builtin.assert:
+    that:
+      - template_disk_expected_disk | default('') == template_disk_old_volume
+      - template_disk_expected_sha256 | default('') == template_disk_selected.sha256
+    fail_msg: The reviewed disk or image changed. Preview again; do not retry an old execution command.
+
+- name: Prepare the tier-local recovery receipt directory
+  ansible.builtin.file:
+    path: "{{ template_disk_receipt_dir }}"
+    state: directory
+    mode: '0700'
+
+- name: Select a receipt name that retains each prior replacement
+  ansible.builtin.set_fact:
+    template_disk_receipt: >-
+      {{ template_disk_receipt_dir }}/{{ template_disk_key }}-{{ template_disk_old_volume | hash('sha256') }}-{{ template_disk_selected.sha256 }}
+
+- name: Record the rollback reference before changing the disk
+  ansible.builtin.copy:
+    dest: "{{ template_disk_receipt }}.before.json"
+    mode: '0600'
+    force: false
+    content: >-
+      {{ {'vm_id': template_disk_selected.vm_id, 'node_name': template_disk_selected.node_name,
+          'name': template_disk_selected.name, 'old_scsi0': template_disk_before.proxmox_vms[0].config.scsi0,
+          'source': template_disk_selected.image_volume_id, 'sha256': template_disk_selected.sha256} | to_nice_json }}
+
+- name: Import the replacement and retain the previous base disk
+  block:
+    - name: Replace scsi0 using the native retained-disk operation
+      community.proxmox.proxmox_disk:
+        vmid: "{{ template_disk_selected.vm_id }}"
+        disk: scsi0
+        state: present
+        create: forced
+        storage: "{{ template_disk_selected.datastore_id }}"
+        import_from: "{{ template_disk_selected.image_volume_id }}"
+        discard: "{{ template_disk_selected.discard }}"
+        cache: "{{ template_disk_selected.cache }}"
+        iothread: "{{ template_disk_selected.iothread }}"
+        timeout: 1800
+
+    - name: Expand the imported disk to the selected capacity
+      community.proxmox.proxmox_disk:
+        vmid: "{{ template_disk_selected.vm_id }}"
+        disk: scsi0
+        state: resized
+        size: "{{ template_disk_selected.disk_size_gb }}G"
+        timeout: 1800
+  always:
+    - name: Read the resulting template, including on a failed import
+      community.proxmox.proxmox_vm_info:
+        vmid: "{{ template_disk_selected.vm_id }}"
+        type: qemu
+        config: current
+      register: template_disk_after
+      no_log: true
+
+    - name: Record disk references for recovery without storing credentials
+      ansible.builtin.copy:
+        dest: "{{ template_disk_receipt }}.after.json"
+        mode: '0600'
+        content: >-
+          {{ {'vm_id': template_disk_selected.vm_id, 'old_scsi0': template_disk_before.proxmox_vms[0].config.scsi0,
+              'new_scsi0': template_disk_after.proxmox_vms[0].config.scsi0 | default(none),
+              'unused_disks': template_disk_after.proxmox_vms[0].config | dict2items
+                | selectattr('key', 'match', '^unused[0-9]+$') | list} | to_nice_json }}
+
+- name: Require the old volume to remain available and the VM envelope to be unchanged
+  ansible.builtin.assert:
+    that:
+      - template_disk_after.proxmox_vms[0].config.scsi0.split(',')[0] != template_disk_old_volume
+      - template_disk_old_volume in (template_disk_after.proxmox_vms[0].config | dict2items | selectattr('key', 'match', '^unused[0-9]+$') | map(attribute='value') | map('split', ',') | map('first') | list)
+      - >-
+        (template_disk_after.proxmox_vms[0].config | dict2items
+         | rejectattr('key', 'match', '^(scsi0|unused[0-9]+|digest)$') | items2dict) ==
+        (template_disk_before.proxmox_vms[0].config | dict2items
+         | rejectattr('key', 'match', '^(scsi0|unused[0-9]+|digest)$') | items2dict)
+    fail_msg: Stop and inspect the receipts; do not retry replacement or delete unused volumes.
+    quiet: true
+
+- name: Show retained-disk recovery location
+  ansible.builtin.debug:
+    msg: "Replacement completed. Retain {{ template_disk_old_volume }} and recovery receipts {{ template_disk_receipt }}.*.json."

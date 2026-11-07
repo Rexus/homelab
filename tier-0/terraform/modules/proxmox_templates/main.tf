@@ -111,6 +111,11 @@ resource "proxmox_virtual_environment_vm" "template" {
       interface    = "ide2"
       # Linux defaults to NoCloud. Leave the provider's computed type intact when
       # adopting GUI templates; setting an implicit type explicitly forces replacement.
+      ip_config {
+        ipv4 {
+          address = "dhcp"
+        }
+      }
     }
   }
 
@@ -120,7 +125,7 @@ resource "proxmox_virtual_environment_vm" "template" {
 
   serial_device {}
 
-  # Empty CloudInit media may match GUI templates; identities and static networking belong to clones.
+  # DHCP is reusable template policy; identities and static networking belong to clones.
   lifecycle {
     prevent_destroy = true
   }

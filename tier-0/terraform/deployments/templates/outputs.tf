@@ -12,3 +12,8 @@ output "template_candidates" {
     error_message = "Adoption requires a stopped template with exactly the catalog VMID, name and node. Fix the catalog; never adopt an unrelated VM."
   }
 }
+
+output "template_disk_sources" {
+  description = "Applied template/artifact references for the Tier 0 boot-disk maintenance recipe."
+  value       = module.templates.disk_sources
+}

@@ -22,8 +22,9 @@ all:
   machine: q35
   cores: 2
   memory_mb: 2048
-  disk_size_gb: 32
-  # Empty NoCloud drive at ide2, matching the GUI guide; configure networking only on clones.
+  # Template baseline; use at least the source image's virtual size. Size service clones separately.
+  disk_size_gb: 10
+  # NoCloud drive at ide2 with IPv4 DHCP; static addresses and accounts belong to clones.
   cloud_init_drive: true
 
 templates:

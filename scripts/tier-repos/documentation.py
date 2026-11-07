@@ -70,6 +70,7 @@ def tier_readme(writer, tier, prefix, setups):
             f"the [template lifecycle]({docs}/administration/compute/template-lifecycle.md#local-workflow)\n"
             "to plan, publish, and test templates before deploying guests. For existing manual templates,\n"
             f"use [import and apply]({docs}/administration/compute/template-lifecycle.md#adopt-existing-templates).\n"
+            f"An intentional OS-disk replacement uses [boot-disk maintenance]({docs}/administration/compute/template-disk.md).\n"
             f"Complete [Foundation Step 3]({docs}/deployment/foundation/README.md#step-3-publish-and-test-vm-templates)\n"
             "before Stage 1; it lists the commands for both paths. No hosted CI or control cluster is required.\n\n"
             f"Accept [Stage 1: software intake]({docs}/deployment/stage-1-software-intake/README.md) first,\n"

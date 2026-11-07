@@ -45,6 +45,7 @@ run "publish_unconfigured_templates" {
   assert {
     condition = alltrue([for key, vm in proxmox_virtual_environment_vm.template :
       vm.network_device[0].firewall && vm.network_device[0].mtu == 1500 &&
+      vm.disk[0].size == 10 &&
       vm.scsi_hardware == (key == "talos" ? "virtio-scsi-pci" : "virtio-scsi-single") &&
       vm.disk[0].iothread == (key != "talos") && output.catalog[key].scsi_hardware == vm.scsi_hardware
     ])
@@ -94,7 +95,7 @@ run "reject_missing_storage_class_resolution" {
   expect_failures = [var.images]
 }
 
-run "empty_nocloud_media_matches_manual_templates" {
+run "dhcp_nocloud_media_matches_manual_templates" {
   command = plan
   variables {
     images = { for key, image in var.images : key => merge(image, {
@@ -105,9 +106,10 @@ run "empty_nocloud_media_matches_manual_templates" {
     condition = alltrue([for vm in proxmox_virtual_environment_vm.template :
       length(vm.initialization) == 1 && vm.operating_system[0].type == "l26" &&
       vm.initialization[0].interface == "ide2" && vm.initialization[0].datastore_id == "cloudinit-storage" &&
-      length(vm.initialization[0].user_account) == 0 && length(vm.initialization[0].ip_config) == 0
+      length(vm.initialization[0].user_account) == 0 && length(vm.initialization[0].ip_config) == 1 &&
+      vm.initialization[0].ip_config[0].ipv4[0].address == "dhcp"
     ])
-    error_message = "Template CloudInit media must be empty; machine identity and static IP belong to clones."
+    error_message = "Template CloudInit media must retain IPv4 DHCP; accounts and static IP belong to clones."
   }
 }
 
