@@ -17,24 +17,24 @@ proxmox_template_catalog = {
   #   title     = "debian-template-build-1"
   #   node_name = "pve01"
   #   family    = "debian"
-  #   tags      = ["debian12", "debian", "x86_64", "x86-64-v3", "cloud-init"]
+  #   tags      = ["debian12", "debian", "x86-64-v3", "cloud-init"]
   # }
   # "9100" = {
   #   title     = "alma-template-build-1"
   #   node_name = "pve01"
   #   family    = "redhat"
-  #   tags      = ["el10", "alma", "x86_64", "x86-64-v3", "cloud-init"]
+  #   tags      = ["el10", "alma", "x86-64-v3", "cloud-init"]
   # }
   # "9101" = {
   #   title     = "rocky-template-build-1"
   #   node_name = "pve01"
   #   family    = "redhat"
-  #   tags      = ["el10", "rocky", "x86_64", "x86-64-v3", "cloud-init"]
+  #   tags      = ["el10", "rocky", "x86-64-v3", "cloud-init"]
   # }
   # "9102" = {
   #   title     = "talos-template-build-1"
   #   node_name = "pve01"
   #   family    = "talos"
-  #   tags      = ["talos1", "talos", "x86_64", "x86-64-v3", "cloud-init"]
+  #   tags      = ["talos1", "talos", "x86-64-v3", "cloud-init"]
   # }
 }

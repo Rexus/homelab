@@ -124,7 +124,7 @@ Use template tags for image identity, not future workload identity.
 Recommended practice:
 
 - use tags in clear categories so they stay filterable in the Proxmox GUI
-- keep template tags focused on architecture, distro, release, and image
+- keep template tags focused on CPU model, distro, release, and image
   capabilities
 - avoid service or workload tags on templates because those belong on deployed
   VMs
@@ -135,7 +135,6 @@ Suggested tag categories:
 
 | Category | Purpose | Current examples |
 | --- | --- | --- |
-| `arch` | Configured guest architecture | `x86_64` in the current publisher |
 | `cpu` | Configured Proxmox CPU model | `x86-64-v3`, `host` |
 | `release_track` | Shared family/major where applicable; otherwise distribution/major | `el10`, `debian12`, `talos1`, `fedora42` |
 | `distribution` | Selected OS distribution | `alma`, `rocky`, `rhel`, `debian`, `talos` |
@@ -145,7 +144,7 @@ Suggested tag categories:
 For example, a Rocky 10 template with the default CPU and CloudInit drive receives:
 
 ```text
-el10, rocky, x86_64, x86-64-v3, cloud-init
+el10, rocky, x86-64-v3, cloud-init
 ```
 
 `el10` identifies the Enterprise Linux release track shared by AlmaLinux, Rocky Linux
@@ -159,7 +158,8 @@ an optional `v` prefix. Debian 12 produces `debian12` and `debian`; Talos v1.14 
 `talos1` and `talos`. Derivatives with independent version numbers use their own track,
 such as `ubuntu24`; a known parent version can be added explicitly in `tags`.
 
-CPU tags describe the configured guest architecture/model, not detected physical host
+Use the configured CPU model as the hardware tag; do not also add a generic `x86_64`
+architecture tag. CPU tags describe the guest model, not detected physical host
 features or an inspected image's minimum requirement. Selecting `host` does not infer
 a `v3` tag. The default `x86-64-v3` profile must work on every eligible host. [3]
 The `cloud-init` tag records enabled CloudInit/NoCloud media; for Talos that media

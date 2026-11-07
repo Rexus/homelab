@@ -156,7 +156,8 @@ This file keeps durable context for AI-assisted work across sessions.
   Packer definitions, and the local publication script; shared holds only approved
   consumer references, not image recipes or lifecycle ownership
 - Template tags describe reusable images: `el10` plus `alma`/`rocky`/`rhel`, configured
-  guest architecture/CPU model, conditional `cloud-init` and explicit per-build extras.
+  guest CPU model, conditional `cloud-init` and explicit per-build extras. Use the CPU
+  model tag alone, without a redundant generic architecture tag such as `x86_64`.
   Do not inject `template`, tier ownership, bare `el` or redundant `rocky10`/`alma10` tags.
   Candidate outputs expose resolved tags; promotion into Shared remains reviewed and explicit.
 - Tier 0 owns all hardware-facing control, including hypervisors, physical networks,

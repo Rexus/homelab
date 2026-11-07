@@ -20,7 +20,7 @@ locals {
   ) }
   template_tags = { for key, image in var.images : key => sort(distinct(concat(compact([
     local.release_tracks[key], local.distributions[key],
-    local.cpu_architecture, lower(image.cpu_type),
+    lower(image.cpu_type),
     image.cloud_init_drive ? "cloud-init" : null,
   ]), image.tags))) }
 

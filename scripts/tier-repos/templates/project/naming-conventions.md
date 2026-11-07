@@ -61,7 +61,7 @@ describe capabilities, independently of the deployed product.
 | Exposure | `public`, `internal`, `restricted`, `isolated` | Intended reachability, not an access grant. |
 | Lifecycle | `always-on`, `scheduled`, `ephemeral`, `maintenance` | Operating pattern. |
 | Owner | `platform`, `security`, `apps` | Responsible team. |
-| Image tags | `el10`, `alma`, `x86_64`, `x86-64-v3`, `cloud-init` | Inherited from the shared template catalog. |
+| Image tags | `el10`, `alma`, `x86-64-v3`, `cloud-init` | Inherited from the shared template catalog. |
 
 Tags describe the VM; they do not grant access. Product tags allow hostnames to
 remain stable. [Tag details](auto-docs/reference/proxmox-conventions.md#vm-tags).

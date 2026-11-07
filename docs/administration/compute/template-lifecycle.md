@@ -163,7 +163,7 @@ only when the selected image or site needs a different value.
 Each build includes `tags: []` for optional extras such as `[test]`. Standard tags
 describe the image and CPU profile, not template status or tier ownership. The
 `template_candidates` output includes the resolved tags for consumer-catalog review.
-Existing local `tags` remain explicit extras: remove old `template`, `tier-0` or
+Existing local `tags` remain explicit extras: remove old `template`, `tier-0`, `x86_64` or
 redundant distribution-version entries there to adopt the current convention.
 Updating template tags does not retag already-created clones or rewrite Shared's catalog.
 

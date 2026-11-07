@@ -248,7 +248,7 @@ run "invalid_operator_inputs" {
     error_message = "A retained unused rollback disk must not enter Terraform's managed disk list."
   }
   assert {
-    condition = toset(module.templates.test_template_tags.alma) == toset(["el10", "alma", "x86_64", "x86-64-v3", "cloud-init", "approved"])
+    condition = toset(module.templates.test_template_tags.alma) == toset(["el10", "alma", "x86-64-v3", "cloud-init", "approved"])
     error_message = "Import must replace legacy template/tier tags with reusable image metadata without replacing the VM."
   }
 }

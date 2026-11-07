@@ -28,7 +28,7 @@ run "reusable_image_tags_match_configured_profiles" {
   assert {
     condition = alltrue([for key in ["alma", "rocky", "rhel"] :
       toset(proxmox_virtual_environment_vm.template[key].tags) == toset([
-        "el10", key, "x86_64", "x86-64-v3", "cloud-init", "test"
+        "el10", key, "x86-64-v3", "cloud-init", "test"
       ])
     ])
     error_message = "Enterprise Linux needs one el10 track plus distribution, CPU, CloudInit and custom tags, without redundant versions or ownership."
@@ -36,7 +36,7 @@ run "reusable_image_tags_match_configured_profiles" {
   assert {
     condition = alltrue([for key, track in { debian = "debian12", talos = "talos1" } :
       toset(proxmox_virtual_environment_vm.template[key].tags) == toset([
-        track, key, "x86_64", "x86-64-v3", "cloud-init", "test"
+        track, key, "x86-64-v3", "cloud-init", "test"
       ])
     ])
     error_message = "Debian and v-prefixed Talos releases must produce their actual major track."
@@ -44,7 +44,7 @@ run "reusable_image_tags_match_configured_profiles" {
   assert {
     condition = alltrue([for key, vm in proxmox_virtual_environment_vm.template :
       output.catalog[key].tags == vm.tags &&
-      contains(vm.tags, vm.cpu[0].architecture) && contains(vm.tags, lower(vm.cpu[0].type)) &&
+      !contains(vm.tags, "x86_64") && contains(vm.tags, lower(vm.cpu[0].type)) &&
       !contains(vm.tags, "template") && !contains(vm.tags, "tier-0") &&
       length(vm.tags) == length(distinct(vm.tags))
     ])
@@ -69,7 +69,7 @@ run "cpu_and_cloudinit_tags_follow_actual_settings" {
   }
   assert {
     condition = alltrue([for vm in proxmox_virtual_environment_vm.template :
-      contains(vm.tags, "host") && !contains(vm.tags, "x86-64-v3") &&
+      contains(vm.tags, "host") && !contains(vm.tags, "x86-64-v3") && !contains(vm.tags, "x86_64") &&
       !contains(vm.tags, "cloud-init") && length(vm.initialization) == 0
     ])
     error_message = "Tags must follow configured CPU/CloudInit changes without inventing detected host capabilities."
