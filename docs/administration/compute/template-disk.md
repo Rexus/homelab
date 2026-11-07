@@ -9,21 +9,41 @@ normal Terraform adoption/apply does not re-import an existing boot disk. [1][2]
 **Code:** [maintenance play](../../../tier-0/ansible/playbooks/maintenance/template-disk.yml),
 [native disk recipe](../../../tier-0/ansible/roles/proxmox_template_disk/tasks/replace.yml),
 [applied artifact references](../../../tier-0/terraform/modules/proxmox_templates/outputs.tf).
-**Prerequisites:** accepted bootstrap tooling and CA trust, Ansible 2.17+ with
-Tier 0's `ansible/requirements.yml` and `ansible/requirements.txt`, `qemu-img`
-(`qemu-utils` on Debian/Ubuntu), and a stopped, unlocked template.
+**Prerequisites:** [bootstrap tooling](../../development/local-setup.md), accepted CA trust,
+the [maintenance dependencies](#prerequisites), and a stopped, unlocked template.
 The API modules use the Linux execution host's CA bundle. For a deliberately
 separate approved trust file, set `PROXMOX_CA_FILE` to its absolute path in
 `.env.local`; verification remains enabled.
 
 ## Contents
 
+- [Prerequisites](#prerequisites)
 - [Step 1: Prepare publication and recovery](#step-1-prepare-publication-and-recovery)
 - [Step 2: Preview the disk replacement](#step-2-preview-the-disk-replacement)
 - [Step 3: Execute and qualify](#step-3-execute-and-qualify)
 - [Recovery and linked clones](#recovery-and-linked-clones)
 - [Command reference](#command-reference)
 - [References](#references)
+
+## Prerequisites
+
+Run from **Tier 0** as the deployment user, using the same accepted Python/Ansible
+environment as the wrapper. Require Ansible 2.17+, `qemu-img` (`qemu-utils` on
+Debian/Ubuntu), and the dependencies in Tier 0's `ansible/requirements.txt` and
+`ansible/requirements.yml`. In the accepted virtual environment:
+
+```bash
+python3 -m pip install -r ansible/requirements.txt
+ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force
+```
+
+The collection supplies both `proxmox_vm_info` and `proxmox_disk`. [2][6] Installing it
+as another user or into another Ansible search path does not make it available
+to the current wrapper. If resolution still fails, inspect
+`ansible-galaxy collection list community.proxmox` and `ansible-doc --version`.
+The wrapper verifies both modules using the tier's Ansible configuration before
+starting the maintenance play; `ansible-doc`'s exit status alone is insufficient.
+Offline hosts must use approved pre-staged collection archives and Python wheels.
 
 ## Step 1: Prepare publication and recovery
 
@@ -52,10 +72,12 @@ distinguishes image staging from live disk storage.
 
 ## Step 2: Preview the disk replacement
 
-From the Tier 0 repository root, select the key in `templates/proxmox.yml`:
+From the Tier 0 repository root, select the **map key under `templates:`** in
+`templates/proxmox.yml`. For the starter's Rocky image, the key is `rocky-build-1`;
+its VMID is a separate value. Change the assignment to match the applied catalog:
 
 ```bash
-read -r -p "Template catalog key: " TEMPLATE_KEY
+TEMPLATE_KEY=rocky-build-1
 bash scripts/proxmox-templates.sh replace-disk --template "$TEMPLATE_KEY" --env-file .env.local
 ```
 
@@ -130,5 +152,6 @@ dependent clone has been retired or independently migrated. [3][5]
 3. [Proxmox disk import and template base-volume conversion](https://github.com/proxmox/qemu-server/blob/master/src/PVE/API2/Qemu.pm).
 4. [Terraform refresh-only mode](https://developer.hashicorp.com/terraform/cli/commands/plan#refresh-only-mode).
 5. [Proxmox full and linked clones](https://github.com/proxmox/pve-docs/blob/master/qm.adoc).
+6. [Native VM information module and Python requirements](https://docs.ansible.com/projects/ansible/latest/collections/community/proxmox/proxmox_vm_info_module.html).
 
-Sources checked 2026-11-06. Local API fixtures do not establish live storage or recovery acceptance.
+Sources checked 2026-11-07. Local API fixtures do not establish live storage or recovery acceptance.

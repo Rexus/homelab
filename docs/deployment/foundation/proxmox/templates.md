@@ -84,7 +84,7 @@ The following values are a starting profile; clones receive their actual sizing/
 | Disks | Remove the default disk; click **Import**, choose the uploaded image, attach as **SCSI / scsi0** | Select the unpacked `.raw`; do not add another empty boot disk |
 | Disks: target | Approved Proxmox live storage; discard when supported; cache **None** for the clustered path | Same; leave IO thread off with the non-Single controller |
 | CPU | 2 cores initially; a common cluster CPU baseline, normally **x86-64-v3** on compatible hosts | Do not use `kvm64`; validate against the selected Talos release |
-| Memory | 2048 MiB template default; size each clone for its actual role | **Ballooning unchecked**; Talos does not support memory hotplug [2] |
+| Memory | 2048 MiB template default; **Ballooning unchecked** for all server templates; size each clone for its actual role | Same; Talos does not support memory hotplug [2] |
 | Network | VirtIO NIC, `vmbr0` by default, NIC firewall enabled, MTU 1500; select the actual VLAN | Same; each clone receives its own static NoCloud IP |
 | Confirm | Review imported disk/EFI storage; **do not start** | Same |
 
@@ -97,6 +97,9 @@ selects NIC and OS-specific controller defaults without per-image tuning. Option
 overrides are listed in the [catalog reference](../../../administration/compute/template-lifecycle.md#catalog-fields-and-defaults).
 The base template starts at 10 GiB when the verified image fits; use a larger value
 for a larger source image. Service clones receive their own disk sizing.
+Templates and server VMs in every tier use fixed RAM with ballooning disabled.
+The Terraform VM modules set `memory.floating = 0` explicitly; size hosts for the
+configured guest RAM and HA failover capacity. [3][5]
 
 ## Step 3: Convert, clone-test and approve
 
@@ -127,7 +130,8 @@ DNS defaults must resolve required bootstrap services without this cluster or
 later FreeIPA/Keycloak. If the host defaults cannot do that, commission independent
 DNS first; an explicit DNS-only override is supported in the cluster inputs.
 The common import flow is the same for Linux and Talos. The Talos-specific changes
-are the raw image/Factory selections and fixed-memory/agent requirements, not another wizard.
+are the raw image/Factory selections and OS-specific firmware/controller/agent requirements,
+not another wizard. Disabling ballooning is common to all server templates.
 
 After testing, Tier 0 promotes the VMID, title and source node in Shared's
 [consumer catalog](../../../reference/template-catalog.md). The consuming tier selects
@@ -174,5 +178,6 @@ installer artifacts and recovery secrets independently of the cluster and hosted
 2. [Talos on Proxmox: firmware, controller, memory and agent](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/virtualized-platforms/proxmox).
 3. [Proxmox VM and disk configuration](https://pve.proxmox.com/pve-docs/qm.1.html).
 4. [Talos NoCloud configuration](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/cloud-platforms/nocloud).
+5. [Terraform Proxmox VM memory settings](https://registry.terraform.io/providers/bpg/proxmox/latest/docs/resources/virtual_environment_vm).
 
 Sources reviewed 2026-10-27. Match the selected image's release documentation.

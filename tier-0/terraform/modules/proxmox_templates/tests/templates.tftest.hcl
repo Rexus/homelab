@@ -45,11 +45,12 @@ run "publish_unconfigured_templates" {
   assert {
     condition = alltrue([for key, vm in proxmox_virtual_environment_vm.template :
       vm.network_device[0].firewall && vm.network_device[0].mtu == 1500 &&
+      vm.memory[0].dedicated == 2048 && vm.memory[0].floating == 0 &&
       vm.disk[0].size == 10 &&
       vm.scsi_hardware == (key == "talos" ? "virtio-scsi-pci" : "virtio-scsi-single") &&
       vm.disk[0].iothread == (key != "talos") && output.catalog[key].scsi_hardware == vm.scsi_hardware
     ])
-    error_message = "Omitted tuning must select the NIC policy and OS controller profile, including matching IO thread and output."
+    error_message = "Omitted tuning must select fixed RAM, the NIC policy and OS controller profile, including matching IO thread and output."
   }
 
   assert {

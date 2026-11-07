@@ -23,6 +23,11 @@ run "create_on_selected_node_from_remote_template" {
     condition     = proxmox_virtual_environment_vm.this.clone[0].node_name == "pve01"
     error_message = "The source template node must be independent of target placement."
   }
+
+  assert {
+    condition     = proxmox_virtual_environment_vm.this.memory[0].floating == 0
+    error_message = "Server VMs must use fixed RAM with ballooning disabled."
+  }
 }
 
 run "retain_current_placement_but_manage_hardware" {
@@ -39,7 +44,10 @@ run "retain_current_placement_but_manage_hardware" {
   }
 
   assert {
-    condition     = proxmox_virtual_environment_vm.this.memory[0].dedicated == 8192
-    error_message = "Ignoring placement must not ignore hardware changes."
+    condition = (
+      proxmox_virtual_environment_vm.this.memory[0].dedicated == 8192 &&
+      proxmox_virtual_environment_vm.this.memory[0].floating == 0
+    )
+    error_message = "RAM overrides must stay managed and retain disabled ballooning."
   }
 }

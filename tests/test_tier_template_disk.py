@@ -17,9 +17,10 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 class TemplateDiskMaintenance(TierRepositoryTestCase):
     def setUp(self):
         super().setUp()
-        check = subprocess.run(['ansible-doc', '-t', 'module', 'community.proxmox.proxmox_disk'],
+        modules = ['community.proxmox.proxmox_disk', 'community.proxmox.proxmox_vm_info']
+        check = subprocess.run(['ansible-doc', '--json', '-t', 'module', *modules],
                                capture_output=True, text=True)
-        if check.returncode or 'was not found' in check.stderr:
+        if check.returncode or not set(modules).issubset(json.loads(check.stdout)):
             self.skipTest('Install Tier 0 community.proxmox requirements')
         self.root.mkdir(parents=True)
         image = self.root / 'approved.raw'
@@ -98,6 +99,14 @@ class TemplateDiskMaintenance(TierRepositoryTestCase):
         self.assertEqual(len(self.api.writes), 1)
         self.assertEqual(len(list((self.root / 'receipts').glob('*.json'))), 2)
 
+    def test_vmid_instead_of_catalog_key_lists_choices_without_api_access(self):
+        result = self.run_recipe(template_disk_key='110')
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        for message in ("Unknown template catalog key '110'", 'rocky-build-1', 'VMID 110'):
+            self.assertIn(message, result.stdout)
+        self.assertEqual(self.api.reads, [])
+        self.assertEqual(self.api.writes, [])
+
 
 class TemplateDiskWrapper(TierRepositoryTestCase):
     def test_generated_recipe_and_native_sources_remain_tier_zero_owned(self):
@@ -128,23 +137,38 @@ class TemplateDiskWrapper(TierRepositoryTestCase):
             path.write_text('''#!/usr/bin/env python3
 import json, os, pathlib, sys
 with open(os.environ['TEST_COMMAND_LOG'], 'a') as output:
-    output.write(json.dumps({'tool': pathlib.Path(sys.argv[0]).name, 'args': sys.argv[1:]}) + '\\n')
+    output.write(json.dumps({'tool': pathlib.Path(sys.argv[0]).name, 'args': sys.argv[1:],
+                             'ansible_config': os.getenv('ANSIBLE_CONFIG')}) + '\\n')
 if 'output' in sys.argv: print('{}')
+if pathlib.Path(sys.argv[0]).name == 'ansible-doc':
+    print(json.dumps({name: {'doc': {'module': name}} for name in sys.argv[1:]
+                      if name.startswith('community.proxmox.') and name != os.getenv('MISSING_MODULE')}))
 ''')
             path.chmod(0o755)
         env = dict(os.environ, PATH=str(commands) + ':' + os.environ['PATH'], TEST_COMMAND_LOG=str(log))
 
-        def run(*args):
+        def run(*args, **overrides):
             return subprocess.run(['bash', 'scripts/proxmox-templates.sh', *args], cwd=repo,
-                                  env=env, capture_output=True, text=True)
+                                  env=dict(env, **overrides), capture_output=True, text=True)
 
         result = run('replace-disk', '--template', 'rocky', '--execute')
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(log.exists())
+        for missing in ('community.proxmox.proxmox_vm_info', 'community.proxmox.proxmox_disk'):
+            before = len(log.read_text().splitlines()) if log.exists() else 0
+            result = run('replace-disk', '--template', 'rocky', MISSING_MODULE=missing)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(missing, result.stderr)
+            self.assertIn('ansible-galaxy collection install', result.stderr)
+            calls = [json.loads(line) for line in log.read_text().splitlines()[before:]]
+            self.assertFalse(any(call['tool'] == 'ansible-playbook' for call in calls))
+            self.assertFalse(any('apply' in call['args'] for call in calls))
         result = run('replace-disk', '--template', 'rocky')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         calls = [json.loads(line) for line in log.read_text().splitlines()]
         self.assertFalse(any('apply' in call['args'] for call in calls))
+        self.assertTrue(all(call['ansible_config'] == str(repo / 'ansible/ansible.cfg')
+                            for call in calls if call['tool'] in ('ansible-doc', 'ansible-playbook')))
         plan = repo / '.terraform/plans/proxmox-templates.tfplan'
         plan.write_text('obsolete plan')
         result = run('replace-disk', '--template', 'rocky', '--execute',

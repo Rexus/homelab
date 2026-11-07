@@ -55,7 +55,8 @@ EFI disk and pre-enrolled keys off. The publisher selects VirtIO SCSI Single for
 Alma/Rocky/Debian and non-Single `virtio-scsi-pci` for Talos, including the matching
 IO-thread setting. The QEMU agent is enabled by default; the image must contain it
 (Talos needs the Factory extension). [9]
-Set `qemu_agent: false` for an image without that component. Fixed memory disables ballooning.
+Set `qemu_agent: false` for an image without that component. All server templates and
+VMs use fixed memory with ballooning disabled, regardless of OS family.
 Omitted firmware inputs
 retain existing BIOS templates. Add a new candidate VMID rather than changing
 an existing template's boot contract; consuming clusters must match it explicitly.
@@ -154,7 +155,7 @@ only when the selected image or site needs a different value.
 | `nic_firewall` / `nic_mtu` | Optional overrides; omitted values enable the NIC firewall and select MTU 1500 |
 | `scsi_hardware` | Optional override; normally omitted so OS family selects Single for Alma/Rocky/Debian or non-Single for Talos |
 | `qemu_agent` / `cpu_type` | Optional overrides; defaults are `true` / `x86-64-v3` |
-| `memory_mb` | Template RAM; defaults to 2048 MiB, with actual service sizing applied to clones |
+| `memory_mb` | Fixed template RAM; defaults to 2048 MiB with ballooning disabled for every OS; actual service sizing is applied to clones |
 | `disk_size_gb` | Template capacity; defaults to 10 GiB, never below the source image's virtual size; cloned service disks are sized separately |
 | `storage_class` | Class in Shared `config/platform.tfvars`, selecting its `vm_disk` datastore |
 | `datastore_id` | Explicit live disk/EFI storage override; wins over `storage_class` |

@@ -24,6 +24,7 @@ class TemplateDiskApiFixture:
         self.original = deepcopy(self.config)
         self.status = 'stopped'
         self.writes = []
+        self.reads = []
         self.fail_import = False
         fixture = self
 
@@ -37,6 +38,7 @@ class TemplateDiskApiFixture:
                 self.wfile.write(body)
 
             def do_GET(self):
+                fixture.reads.append(self.path)
                 path = urlsplit(self.path).path
                 vm = dict(vmid=110, name=fixture.config['name'], node='pve01', type='qemu',
                           template=fixture.config['template'], status=fixture.status)

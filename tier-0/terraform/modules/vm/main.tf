@@ -70,6 +70,7 @@ resource "proxmox_virtual_environment_vm" "this" {
 
   memory {
     dedicated = local.resolved_memory
+    floating  = 0
   }
 
   agent {

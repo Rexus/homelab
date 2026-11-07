@@ -4,9 +4,23 @@
     that:
       - template_disk_key is defined
       - template_disk_sources is defined
-      - template_disk_key in template_disk_sources.value
+      - template_disk_sources.value is defined
+      - template_disk_sources.value is mapping
+      - template_disk_sources.value | length > 0
       - not ansible_check_mode
     fail_msg: Use the Tier 0 template command after publication; preview is explicit, not Ansible check mode.
+    quiet: true
+
+- name: Require an applied catalog key rather than a VMID
+  ansible.builtin.assert:
+    that:
+      - template_disk_key in template_disk_sources.value
+    fail_msg: >-
+      Unknown template catalog key '{{ template_disk_key }}'. --template selects a key
+      under templates: in templates/proxmox.yml, not a VMID. Applied choices:
+      {% for key, image in template_disk_sources.value.items() %}
+      {{ key }} (VMID {{ image.vm_id }}){{ ', ' if not loop.last else '' }}
+      {% endfor %}
     quiet: true
 
 - name: Require a complete token supplied through the environment

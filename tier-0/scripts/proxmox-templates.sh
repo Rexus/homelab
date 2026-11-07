@@ -181,14 +181,30 @@ mkdir -p "$TF_DATA_DIR" "$(dirname "$state")" "$(dirname "$plan")"
 terraform -chdir="$terraform_dir" init -input=false -lockfile=readonly -reconfigure -backend-config="path=$state"
 terraform -chdir="$terraform_dir" validate
 if [[ "$action" == replace-disk ]]; then
-  if ! command -v ansible-playbook >/dev/null || ! command -v ansible-doc >/dev/null ||
-     ! ansible-doc -t module community.proxmox.proxmox_disk >/dev/null 2>&1; then
-    echo "Disk maintenance requires Ansible and Tier 0's ansible/requirements.yml and requirements.txt." >&2
+  export ANSIBLE_CONFIG="$repo_root/ansible/ansible.cfg"
+  for tool in ansible-playbook ansible-doc python3 qemu-img; do
+    command -v "$tool" >/dev/null || {
+      echo "Disk maintenance requires $tool. See docs/administration/compute/template-disk.md#prerequisites." >&2
+      exit 1
+    }
+  done
+  disk_modules=(community.proxmox.proxmox_vm_info community.proxmox.proxmox_disk)
+  # ansible-doc can return zero for missing plugins; verify its structured result instead.
+  if ! ansible-doc --json -t module "${disk_modules[@]}" | python3 -c '
+import json, sys
+modules = json.load(sys.stdin)
+missing = [name for name in sys.argv[1:] if not modules.get(name, {}).get("doc")]
+if missing:
+    print("Missing disk-maintenance modules: " + ", ".join(missing), file=sys.stderr)
+    sys.exit(1)
+' "${disk_modules[@]}"; then
+    echo "Install community.proxmox >=2.1.0,<3.0.0 in this Ansible environment." >&2
+    echo "Run: ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force" >&2
+    echo "Python dependencies: ansible/requirements.txt. Guide: docs/administration/compute/template-disk.md#prerequisites." >&2
     exit 1
   fi
   disk_inputs="$repo_root/.terraform/plans/template-disk-inputs.json"
   terraform -chdir="$terraform_dir" output -json > "$disk_inputs"
-  export ANSIBLE_CONFIG="$repo_root/ansible/ansible.cfg"
   ansible-playbook -i localhost, -c local "$repo_root/ansible/playbooks/maintenance/template-disk.yml" \
     --extra-vars "@$disk_inputs" --extra-vars "template_disk_key=$template_key" \
     --extra-vars "template_disk_execute=$execute" --extra-vars "template_disk_expected_disk=$expected_disk" \
