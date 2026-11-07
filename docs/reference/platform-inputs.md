@@ -18,7 +18,7 @@ each tier owns its specific networks, guest selections and overrides.
 | --- | --- |
 | Shared `config/platform.tfvars` | Project-owned storage, initial placement and common network references in `shared_network_zones` |
 | Shared `config/guest-sizes.json` | Reusable size profiles |
-| Shared `templates/proxmox-catalog.tfvars` | Approved image references; publication remains Tier 0 |
+| Shared `templates/proxmox-catalog.tfvars` | Published image references synchronized by Tier 0 apply; explicit default selection |
 | Tier `terraform/common.tfvars` | Tier-specific `network_zones`, overrides of shared networks, and optional platform overrides |
 | Tier deployment `.tfvars` | Guest hardware and resource selections |
 | Tier Ansible inventory/group vars | Host names, groups, IPs, and service configuration |

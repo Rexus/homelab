@@ -27,7 +27,9 @@ See [later extensions](#extend-the-capability-later) for repository management a
 
 ## Step 1: Deploy the policy proxy and cache
 
-Run from Tier 2. Follow [proxy configuration and deployment](proxy-cache.md#main-path)
+**Switch from the foundation's Tier 0 repository to Tier 2 for this step.**
+The first command block in [proxy configuration and deployment](proxy-cache.md#configuration)
+includes that directory change. Follow the guide
 to initialize inputs, review source CIDRs/domains, plan the guests and configure the service.
 
 ```mermaid

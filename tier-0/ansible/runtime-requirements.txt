@@ -3,3 +3,5 @@
 ansible-core>=2.21,<2.22
 PyYAML>=6.0
 setuptools>=65
+# Native HCL parsing/serialization for the Shared consumer-reference update after apply.
+python-hcl2>=8.1.4,<9

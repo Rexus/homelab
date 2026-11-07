@@ -59,17 +59,18 @@ before broad provisioning starts and keep it consistent.
 
 | Range | Purpose |
 | --- | --- |
-| `100-199` | Base templates and staged Linux template builders |
+| `100-199` | Staged Linux template builders and legacy base templates |
 | `200-299` | Infrastructure |
 | `300-399` | Shared services |
 | `400-499` | Databases |
 | `500-999` | Application and lab VMs |
-| `9000-9999` | Versioned template candidates in the publication catalog |
+| `9000-9999` | Versioned VM templates, including candidates and selected releases |
 
 VMID `200` means an infrastructure allocation, not Tier 2, VLAN 200, or an
 address. Reserve non-overlapping IDs across all repos and environments using
 the same Proxmox cluster. The publication catalog uses example candidates
-`9100-9102`; legacy base templates and staged refresh builders use `100-199`.
+`9100-9103`; templates retain their VMIDs after clone testing and selection.
+Legacy base templates and staged refresh builders can retain `100-199`.
 These are conventions, not a request to renumber deployed resources.
 
 Terraform examples should set `vm_id` explicitly for repo-managed guests so

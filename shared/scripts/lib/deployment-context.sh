@@ -25,6 +25,7 @@ bash "$repo_root/scripts/check-shared.sh"
 require_owned_setup() {
   local candidate="$1"
   local allowed
+  local setup_list
 
   for allowed in "${all_setups[@]}"; do
     if [[ "$candidate" == "$allowed" ]]; then
@@ -33,6 +34,15 @@ require_owned_setup() {
   done
   echo "Setup $candidate is not owned by $repo_root." >&2
   echo "Available setups: ${all_setups[*]}" >&2
+  for setup_list in "$repo_root"/../*/.deployment-setups; do
+    [[ -f "$setup_list" ]] || continue
+    while IFS= read -r allowed || [[ -n "$allowed" ]]; do
+      if [[ "$candidate" == "$allowed" ]]; then
+        echo "Run this setup from its owning repository: $(cd "$(dirname "$setup_list")" && pwd)" >&2
+        break
+      fi
+    done < "$setup_list"
+  done
   exit 1
 }
 

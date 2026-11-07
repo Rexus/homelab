@@ -55,6 +55,7 @@ not before unrelated early logging or trust deployments.
 The main path uses bridges and VLANs. **Before important guests**, select
 [1b: cluster HA](step-1b-cluster-ha.md) or [1c: SDN guest networks](step-1c-sdn.md)
 where required. These options return here after their own checks.
+For SDN, complete its activation and API permission steps before publishing templates.
 
 Apply the [firewall policy](network/firewall.md), using the
 [UniFi translation](network/unifi.md) where applicable. Verify permitted
@@ -146,6 +147,8 @@ from the generated Tier 0 repository root. No hosted CI or cluster is required.
    Apply completes [fixed RAM and empty template accounts](../../administration/compute/template-lifecycle.md#verify-fixed-ram-after-adoption)
    through native API modules, preserving the CloudInit drive and DHCP. The separate
    verification command checks raw settings that the pinned provider may miss.
+   Successful apply also refreshes Shared's [template references](../../reference/template-catalog.md).
+   After clone tests, select `default_linux_vm_template_id` there before deploying Linux services.
 
 Adoption does not enroll the
 bootstrap VM itself into Terraform. Use the [common image guide](proxmox/templates.md) for AlmaLinux, Rocky Linux and

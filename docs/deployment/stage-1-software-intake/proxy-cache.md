@@ -107,14 +107,22 @@ be introduced with an explicit policy, internal CA rollout, and audit model.
 
 ## Configuration
 
-From Tier 2, initialize local inputs before editing the examples' live counterparts:
+From the Tier 0 repository used for foundation, switch to its sibling **Tier 2**
+repository and initialize local inputs. The upstream example uses the default
+`homelab` prefix; generated auto-docs use the collection's selected folder prefix.
+If the terminal is already in Tier 2, omit the `cd` line.
 
 ```bash
+cd ../homelab-tier-2
 bash scripts/init-local-files.sh --setup cache
 ```
 
+Keep the remaining proxy deployment commands in Tier 2. Return to each consuming
+tier only for [consumer configuration](#how-other-paths-use-it); Stage 2 logging returns to Tier 0.
+
 | Repository | Path inside that repository | Configuration |
 | --- | --- | --- |
+| Shared | [`templates/proxmox-catalog.tfvars`](../../../shared/templates/proxmox-catalog.tfvars) | References populated by Tier 0 template apply; select a clone-tested `default_linux_vm_template_id` before deploying the cache |
 | Tier 2 | [`terraform/common.tfvars.example`](../../../tier-2/terraform/common.tfvars.example) | `external_edge` attachment and optional overrides; common storage and local SSH paths follow [platform inputs](../../reference/platform-inputs.md) |
 | Tier 2 | [`terraform/deployments/cache/terraform.tfvars.example`](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example) | cache VM count, size, OS disk, cache data disk, storage, and tags |
 | Tier 2 | [`ansible/inventory/hosts.yml.example`](../../../tier-2/ansible/inventory/hosts.yml.example) | `cache` host group |

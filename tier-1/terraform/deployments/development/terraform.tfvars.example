@@ -5,7 +5,7 @@
 
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
-# default_linux_vm_template_id = 111
+# default_linux_vm_template_id = 9101
 
 vm_instances = {
   # Default first development platform: one GitLab host on Podman.

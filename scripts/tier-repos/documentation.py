@@ -134,6 +134,8 @@ def copy_documentation(writer, prefix, upstream):
         # Preserve local doc links; source files and repository roots move between repos.
         content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012])(?:/[^)#]*)?(?=[)#])",
                          relocate, content)
+        # Keep executable sibling-repository changes aligned with the collection's folder names.
+        content = content.replace("\ncd ../homelab-tier-", f"\ncd ../{prefix.lower()}-tier-")
         project_docs = Path(os.path.relpath(writer.root / "docs/README.md",
                                            (writer.root / target).parent)).as_posix()
         notice = (

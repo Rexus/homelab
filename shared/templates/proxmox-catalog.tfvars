@@ -1,5 +1,6 @@
 # Project-owned consumer catalog. Upstream refresh never replaces this file.
-# Tier 0 approves these references after clone testing; every tier reads them.
+# Tier 0 apply refreshes published references here; every tier reads them.
+# Clone-test before selecting a default or per-VM template ID. Apply preserves that selection.
 # Build inputs, checksums, credentials, and publication state stay in Tier 0.
 # Loaded by shared/scripts/deploy.sh before tier-local Terraform inputs.
 # Resolved by each tier's Terraform; shared owns no Terraform resources or host inventory.
@@ -11,7 +12,8 @@ default_linux_vm_template_id = null
 # Keys are Proxmox VMIDs; title is the human-readable Proxmox template name.
 # Keep old approved IDs while consumers use them. Do not repoint an ID at a new image.
 # family describes the OS family; distribution-specific consumer metadata stays in title/tags.
-# Review template_candidates tags from Tier 0 after clone testing; copy reusable image tags below.
+# ID, title, node, family and image tags are refreshed from applied template_candidates.
+# Earlier entries remain until deliberately retired; template creation stays Tier 0-owned.
 proxmox_template_catalog = {
   # "9103" = {
   #   title     = "debian-template-build-1"

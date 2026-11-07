@@ -82,6 +82,8 @@ not `deploy.sh`. Pass `--env-file .env.local` to load local provider aliases, or
 export provider credentials in the runner. `import` discovers existing catalog-matching
 templates/files and prepares a reviewed adoption plan; only `apply` writes the imports.
 The YAML catalog and state stay Tier 0-owned; storage classes can reference Shared.
+Successful apply also refreshes the sibling Shared template references, preserving its
+default and older entries; see the [catalog contract](template-catalog.md#publish-references-and-select-a-default).
 It never configures a Talos guest through Ansible.
 
 Each tier's independent Kubernetes cluster currently uses the [Talos implementation](../deployment/stage-4-kubernetes/procedures/talos-terraform.md)

@@ -236,9 +236,8 @@ privileges.
 
 ### 6. Grant bridge, VLAN, or SDN use to the group
 
-If the Proxmox version enforces network permissions for guest NICs, grant
-`SDN.Use` on the narrowest path that matches the networks this repo may attach
-to guests. Proxmox SDN uses zones, VNets, and subnets to model virtual
+For Proxmox VE 9+, grant `SDN.Use` on the narrowest path that matches the networks
+this repo may attach to guests. Proxmox SDN uses zones, VNets, and subnets to model virtual
 networking, and local Linux bridges are exposed through the `localnetwork`
 zone.[2]
 
@@ -267,11 +266,37 @@ pveum acl modify /sdn/zones/localnetwork/vmbr0/20 \
   --roles PlatformAutomationNetwork
 ```
 
+Example for the existing VNet `edge` in SDN zone `dmz`:
+
+```bash
+pveum acl modify /sdn/zones/dmz/edge \
+  --groups platform-automation \
+  --roles PlatformAutomationNetwork
+```
+
+Changing a template or guest from `vmbr0` to a VNet also changes its permission
+path. The old local-bridge grant does not authorize the new VNet. Grant access
+before applying the NIC change; this also applies to stopped templates. [1][2]
+
 GUI: add a `Group Permission` under `Datacenter` > `Permissions`. Use the SDN
 or local bridge path that matches the network assigned to automation.
 
 If Proxmox returns a missing `SDN.Use` error, use the path shown in the error
 or in the API viewer as the source of truth for the cluster.
+
+For an existing privilege-separated token, mirror the selected VNet grant on the
+token as well, then check its effective permissions from the Proxmox host shell:
+
+```bash
+pveum acl modify /sdn/zones/dmz/edge \
+  --tokens 'automation@pve!provision' \
+  --roles PlatformAutomationNetwork
+pveum user permissions 'automation@pve!provision' --path /sdn/zones/dmz/edge
+```
+
+Substitute the actual group, token and VNet path. The result must include
+`SDN.Use`; a successful read or plan does not prove permission to update a NIC.
+The group/user and token must both allow the operation. [1]
 
 For the optional [SDN subnet lookup](../../../reference/network-inputs.md#sdn-subnet-lookup),
 also grant `SDN.Audit` on each selected VNet. This read-only role does not grant

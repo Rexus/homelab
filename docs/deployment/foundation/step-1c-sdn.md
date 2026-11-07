@@ -13,7 +13,8 @@ Consuming tiers own their guest-network inputs.
 - [Before starting](#before-starting)
 - [Step 1: Create the VLAN zones](#step-1-create-the-vlan-zones)
 - [Step 2: Create the VNets](#step-2-create-the-vnets)
-- [Step 3: Apply and connect IaC](#step-3-apply-and-connect-iac)
+- [Step 3: Activate SDN on the nodes](#step-3-activate-sdn-on-the-nodes)
+- [Step 4: Authorize and connect IaC](#step-4-authorize-and-connect-iac)
 - [DNS with an existing gateway](#dns-with-an-existing-gateway)
 - [Return to the main path](#return-to-the-main-path)
 - [References](#references)
@@ -113,12 +114,29 @@ UniFi continues providing the subnet gateway and any DHCP service; keep static
 guest addresses outside its dynamic pool. Without lookup/IPAM, the subnet record
 can be omitted and IaC retains its explicit prefix/gateway inputs.
 
-## Step 3: Apply and connect IaC
+<a id="step-3-apply-and-connect-iac"></a>
 
-1. Select **Apply** in the main **SDN** panel.
-2. Verify each VNet exists and carries the intended VLAN on every eligible node.
-3. Test a disposable guest's address, gateway, DNS and permitted connectivity.
-4. Update the owning repository's attachment values before provisioning normal guests.
+## Step 3: Activate SDN on the nodes
+
+**Creating zones, VNets and subnets only saves pending configuration.** Activate it
+in Proxmox before attaching templates or guests. The template publisher's Terraform
+`apply` does not apply SDN configuration. [1]
+
+1. Return to **Datacenter > SDN**, the main overview rather than **Zones** or **VNets**.
+   Review the pending changes; this action applies the pending SDN configuration cluster-wide.
+2. Click **Apply** and wait for the resulting task to finish successfully on all eligible nodes.
+   Resolve any failed node before attaching guests or allowing HA placement there.
+3. Check that the selected VNet bridges now exist on the eligible nodes and that
+   their VLANs match the prepared switch trunks. Listing a VNet in the datacenter
+   configuration alone is not evidence that it is active on a host.
+
+## Step 4: Authorize and connect IaC
+
+1. Grant automation [SDN use](proxmox/api-access.md#6-grant-bridge-vlan-or-sdn-use-to-the-group)
+   on each selected VNet. A `vmbr0` grant does not carry over to an SDN VNet;
+   privilege-separated tokens also need matching token ACLs.
+2. Test a disposable guest's address, gateway, DNS and permitted connectivity.
+3. Update the owning repository's attachment values before provisioning normal guests.
 
 For explicit settings, update the existing `identity` entry in **Tier 0's**
 `terraform/common.tfvars`; preserve the other map entries:
@@ -145,9 +163,12 @@ tier-local. Kubernetes roots use their own machine attachment inputs in
 `terraform/deployments/kubernetes/`; they do not load Linux `common.tfvars`.
 Use the selected VNet as `bridge` and omit/null the guest's `vlan_id` in either path.
 
-Grant automation [SDN use](proxmox/api-access.md#6-grant-bridge-vlan-or-sdn-use-to-the-group)
-on the selected VNet, for example `/sdn/zones/control/ident`.
-Prefer VNet-scoped grants when an identity must not attach guests to every VNet in a zone.
+For templates, edit **Tier 0's** `templates/proxmox.yml`: select the VNet in
+`all.bridge` (or one build's override) and set `vlan_id: null`. Then follow the
+[template plan/apply path](../../administration/compute/template-lifecycle.md#local-workflow).
+The VNet permission applies to the publishing token too. Existing clones keep
+their own NIC settings; changing the template does not move them.
+
 See [network input ownership and overrides](../../reference/network-inputs.md).
 
 ## DNS with an existing gateway

@@ -70,12 +70,12 @@ remain stable. [Tag details](auto-docs/reference/proxmox-conventions.md#vm-tags)
 
 | Type | Standard | Comments |
 | --- | --- | --- |
-| Base templates and staged Linux builders | `100-199` | Publication and build resources. |
+| Staged Linux builders and legacy templates | `100-199` | Existing template IDs remain valid; new templates use the range below. |
 | Infrastructure | `200-299` | Infrastructure guests. |
 | Shared services | `300-399` | Shared service guests. |
 | Databases | `400-499` | Database guests. |
 | Application and lab VMs | `500-999` | Workload guests. |
-| Versioned template candidates | `9000-9999` | Candidate images before promotion. |
+| Versioned VM templates | `9000-9999` | Examples use `9100-9103`; retain IDs after testing and selection. |
 
 Ranges describe **resource purpose**, not tier, zone, or VLAN. Reservations are
 cluster-wide across all repositories; exact assignments remain in Terraform.

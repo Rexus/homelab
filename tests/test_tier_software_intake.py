@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import unittest
@@ -12,6 +13,30 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 class SoftwareIntake(TierRepositoryTestCase):
+    @unittest.skipIf(os.name == "nt", "Generated Bash commands run under Linux/WSL")
+    def test_first_command_switches_to_owner_and_wrong_tier_creates_no_inputs(self):
+        self.generate()
+        tier0 = self.root / "verify-tier-0"
+        tier2 = self.root / "verify-tier-2"
+        environment = os.environ.copy()
+        environment.pop("DEPLOYMENT_REPO_DIR", None)
+        rejected = subprocess.run(["bash", "scripts/init-local-files.sh", "--setup", "cache"],
+                                  cwd=tier0, env=environment, capture_output=True, text=True)
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn(f"owning repository: {tier2}", rejected.stderr)
+        self.assertFalse((tier0 / ".env.local").exists())
+        self.assertFalse((tier0 / "ansible/inventory/hosts.yml").exists())
+
+        guide = (self.root / "verify-architecture/docs/auto-docs/deployment/"
+                 "stage-1-software-intake/proxy-cache.md").read_text()
+        commands = re.search(r"```bash\n(.*?)```", guide, re.DOTALL).group(1)
+        initialized = subprocess.run(["bash", "-e", "-c", commands], cwd=tier0, env=environment,
+                                     capture_output=True, text=True)
+        self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)
+        self.assertTrue((tier2 / "terraform/deployments/cache/terraform.tfvars").is_file())
+        self.assertTrue((tier2 / "ansible/inventory/hosts.yml").is_file())
+        self.assertFalse((tier0 / "ansible/inventory/hosts.yml").exists())
+
     def test_source_and_generated_docs_explain_transport_ownership_and_supply(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):

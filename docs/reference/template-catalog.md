@@ -1,13 +1,13 @@
 # Shared template references
 
-**Tier 0 creates and maintains Proxmox templates. Shared stores their approved consumer
+**Tier 0 creates and maintains Proxmox templates. Shared stores their published consumer
 references; every tier reads the same catalog.** A tag on a workload VM describes
 its source image or service, not ownership of the template lifecycle.
 
 ## Table of contents
 
 - [Where to edit](#where-to-edit)
-- [Approve a reference](#approve-a-reference)
+- [Publish references and select a default](#publish-references-and-select-a-default)
 - [How consumers use it](#how-consumers-use-it)
 - [Existing collections](#existing-collections)
 - [References](#references)
@@ -18,35 +18,52 @@ its source image or service, not ownership of the template lifecycle.
 | --- | --- |
 | Tier 0 `templates/proxmox.yml` | Build/publication details: source images, checksums, releases, schematic, node, storage, network, VMID |
 | Tier 0 template module, Packer, scripts, CI, and state | Create, test, update, and recover template artifacts |
-| Shared `templates/proxmox-catalog.tfvars` | Approved VMIDs and titles, source nodes, OS family, and reusable image tags |
+| Shared `templates/proxmox-catalog.tfvars` | Published VMIDs, titles, source nodes, family and tags; project-selected default |
 | Each tier's Terraform inputs | Select an approved template ID; define guest hardware and workload tags |
 | Each tier's `terraform/modules/environment_guests/` | Resolve that tier's template selections, inventory, placement, and combined guest tags |
 | Each tier's `terraform/modules/vm/` | Create Linux clones; tolerate subsequent Proxmox-managed node moves |
 | Tier 0 `terraform/deployments/kubernetes/` | Create Talos clones and configure the control cluster through its API |
 
 The [shared catalog starter](../../shared/templates/proxmox-catalog.tfvars)
-contains no approved images initially. It is project-owned from generation,
-versionable, and never overwritten by upstream refresh. Tier 0 reviews promotions
-to this shared contract; it contains no credentials, hashes, image paths, build
+contains no images initially. It is project-owned from generation,
+versionable, and never overwritten by upstream refresh. Successful Tier 0 template
+apply updates its references; it contains no credentials, hashes, image paths, build
 settings, host inventory, or Terraform state.
 
-## Approve a reference
+<a id="approve-a-reference"></a>
+
+## Publish references and select a default
 
 1. Use the Tier 0 [publication workflow](../administration/compute/template-lifecycle.md#local-workflow).
-   It works independently of shared and does not modify the consumer catalog.
+   After Terraform apply, template-policy checks and state refresh succeed, the script
+   updates the sibling Shared catalog from the applied `template_candidates` output.
+   VMID becomes the map key; name becomes `title`; node, family and image tags follow the template.
 2. Test disposable clones on the destination cluster and network. Publication
-   outputs show candidate VMIDs, titles, and source nodes; they are not approval.
-3. In shared `templates/proxmox-catalog.tfvars`, add the approved ID with its
-   exact Proxmox name as `title`, source `node_name`, `family`, and reusable image tags
-   reviewed from `template_candidates`. The [tag convention](proxmox-conventions.md#template-tags)
-   applies to both publication and consumer references; tier/workload ownership stays guest-local.
-4. Set `default_linux_vm_template_id` to the approved Linux ID when ready for
+   and catalog synchronization do not prove guest acceptance.
+3. Review the updated Shared file. Existing VMIDs are refreshed, older entries and
+   extra entry fields are retained, and `default_linux_vm_template_id` is preserved.
+   No-change synchronization leaves the file untouched. The reference map's formatting
+   is regenerated; settings and comments outside it remain. The
+   [tag convention](proxmox-conventions.md#template-tags) applies to the synchronized image tags.
+4. Set `default_linux_vm_template_id` in Shared to the tested Linux ID when ready for
    consumers to adopt it. Talos references are listed too, but cannot be used by
    the Linux VM module; use the [Talos Kubernetes implementation](../deployment/stage-4-kubernetes/procedures/talos-terraform.md) or the
    [manual procedure](../deployment/stage-4-kubernetes/step-1b-manual-cluster.md).
 5. Review and version the shared change, then review plans in consuming tiers.
    Changing the selected source template may replace VMs; pin existing guests
    with `template_vm_id` when they must stay on their current revision.
+
+The script edits the local Shared checkout; it never commits or pushes it. When Shared
+is absent, standalone Tier 0 publication still works and reports skipped synchronization.
+Restore the Shared checkout and rerun plan/apply to populate it; no template changes are
+required. A failed catalog update retains applied state and the existing Shared file.
+Correct the file/tooling and rerun plan/apply. Catalog updates do not run on `plan`,
+`import`, `verify`, disk replacement, or failed publication.
+
+CI can select another existing catalog with the exported absolute path
+`TEMPLATE_SHARED_CATALOG_FILE`. An explicitly selected missing file blocks apply.
+No Shared repository or catalog is created implicitly. For independently built or transferred
+images, add the same reference fields manually after testing; consumer selection is unchanged.
 
 Use OS-family terms consistently: `redhat` for AlmaLinux/Rocky/Fedora, `debian`
 for Debian-derived images, and `talos` for Talos. Tier 0's publication catalog

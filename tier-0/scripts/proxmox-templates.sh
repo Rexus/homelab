@@ -7,7 +7,8 @@ usage() {
   echo "Usage: bash ${BASH_SOURCE[0]} {init|setup|plan|import|apply|verify|replace-disk} [--env-file PATH] [--platform-file PATH]"
   echo "import prepares a reviewed adoption plan; apply writes imports and any listed changes."
   echo "replace-disk --template KEY previews the operation, then prompts for execution."
-  echo "apply completes fixed-RAM/account policy; verify [--template KEY] checks live settings without changes."
+  echo "apply completes fixed-RAM/account policy; verify [--template KEY] checks that policy only, without changes."
+  echo "Successful apply refreshes references in the sibling Shared catalog, preserving defaults and older entries."
   echo "Use --preview for read-only inspection; use --execute with --expected-disk VOLUME and --expected-sha256 SHA in automation."
   echo "Use --env-file .env.local for local credentials; otherwise only exported credentials are used."
   echo "Ansible actions prepare an isolated runtime automatically; TEMPLATE_RUNTIME_MODE=check requires preinstalled tools."
@@ -38,6 +39,7 @@ fi
 
 catalog="${TEMPLATE_CATALOG_FILE:-$repo_root/templates/proxmox.yml}"
 state="${TEMPLATE_STATE_PATH:-$repo_root/.terraform/state/proxmox-templates/terraform.tfstate}"
+shared_catalog="${TEMPLATE_SHARED_CATALOG_FILE:-$repo_root/../shared/templates/proxmox-catalog.tfvars}"
 plan="$repo_root/.terraform/plans/proxmox-templates.tfplan"
 if [[ "$action" == plan || "$action" == import ]]; then
   # A failed re-plan must not leave a previous apply target, even if validation or init fails.
@@ -89,9 +91,9 @@ elif [[ "$action" == verify ]]; then
 elif [[ -n "$template_key$expected_disk$expected_sha256" || "$execute" == true || "$preview" == true ]]; then
   echo "Disk-maintenance flags are valid only with replace-disk." >&2; exit 1
 fi
-for path in "$catalog" "$state"; do
+for path in "$catalog" "$state" "$shared_catalog"; do
   if [[ "$path" != /* ]]; then
-    echo "TEMPLATE_CATALOG_FILE and TEMPLATE_STATE_PATH must be absolute paths." >&2
+    echo "Template catalog, state and Shared catalog paths must be absolute." >&2
     exit 1
   fi
 done
@@ -161,7 +163,7 @@ if [[ -n "${PROXMOX_API_TOKEN_ID:-}" || -n "${PROXMOX_API_TOKEN_SECRET:-}" ]]; t
   unset token
 fi
 
-# This bootstrap entry point intentionally works without the Shared repository.
+# Template publication also works without a Shared checkout; reference synchronization is then skipped.
 for tls_option in PROXMOX_VE_INSECURE PM_VE_INSECURE; do
   case "${!tls_option:-}" in
     ''|0|f|F|false|False|FALSE) ;;
@@ -189,6 +191,10 @@ if [[ -n "$platform_file" ]]; then
 fi
 if [[ "$action" == apply && ! -f "$plan" ]]; then
   echo "No saved template plan. Run plan and review its output before apply." >&2
+  exit 1
+fi
+if [[ "$action" == apply && -n "${TEMPLATE_SHARED_CATALOG_FILE:-}" && ! -f "$shared_catalog" ]]; then
+  echo "Configured Shared catalog not found: $shared_catalog. Restore it before apply." >&2
   exit 1
 fi
 
@@ -239,6 +245,13 @@ if [[ "$action" == setup ]]; then
   echo "Template runtime ready. No Terraform state or Proxmox configuration changed."
   exit 0
 fi
+if [[ "$action" == apply && -f "$shared_catalog" ]]; then
+  python3 -c 'import hcl2' || {
+    echo "Shared catalog updates require python-hcl2 from ansible/runtime-requirements.txt." >&2
+    echo "Run setup, or install the declared runtime requirements in the prebuilt runner." >&2
+    exit 1
+  }
+fi
 
 mkdir -p "$TF_DATA_DIR" "$(dirname "$state")" "$(dirname "$plan")"
 terraform -chdir="$terraform_dir" init -input=false -lockfile=readonly -reconfigure -backend-config="path=$state"
@@ -248,6 +261,8 @@ if [[ "$action" == verify ]]; then
   terraform -chdir="$terraform_dir" output -json > "$policy_inputs"
   ansible-playbook -i localhost, -c local "$repo_root/ansible/playbooks/maintenance/template-policy.yml" \
     --extra-vars "@$policy_inputs" --extra-vars template_policy_apply=false --extra-vars "template_policy_key=$template_key"
+  echo "Template policy verified: fixed RAM and cleared CloudInit accounts only."
+  echo "Run plan to check NICs, disks and other Terraform-managed settings; verify does not confirm a failed apply."
   exit 0
 fi
 if [[ "$action" == replace-disk ]]; then
@@ -313,4 +328,16 @@ else
   terraform -chdir="$terraform_dir" apply -refresh-only -auto-approve -input=false \
     -lock-timeout=60s "${var_args[@]}"
   echo "Template settings verified: ballooning disabled; CloudInit accounts cleared; media and networking preserved."
+  if [[ -f "$shared_catalog" ]]; then
+    candidates_file="$repo_root/.terraform/plans/template-candidates.json"
+    terraform -chdir="$terraform_dir" output -json template_candidates > "$candidates_file"
+    python3 "$repo_root/scripts/lib/template-catalog.py" "$shared_catalog" "$candidates_file"
+  elif [[ -n "${TEMPLATE_SHARED_CATALOG_FILE:-}" ]]; then
+    echo "Templates applied, but the configured Shared catalog is missing: $shared_catalog" >&2
+    echo "Keep the applied state. Restore that catalog, then rerun plan/apply to synchronize references." >&2
+    exit 1
+  else
+    echo "Shared catalog not found; template publication completed without updating consumer references."
+    echo "Check out Shared beside Tier 0, then rerun plan/apply to synchronize references."
+  fi
 fi

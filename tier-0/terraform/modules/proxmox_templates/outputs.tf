@@ -1,5 +1,5 @@
 output "catalog" {
-  description = "Template candidates; clone testing and promotion remain explicit operator gates."
+  description = "Published template references; clone testing and consumer selection remain explicit."
   value = {
     for key, image in var.images : key => {
       vm_id         = proxmox_virtual_environment_vm.template[key].vm_id

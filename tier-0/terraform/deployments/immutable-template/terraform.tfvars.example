@@ -5,7 +5,7 @@
 
 # Optional: override the source mutable Linux template for this setup or
 # environment overlay, for example when converting another supported distro.
-# default_linux_vm_template_id = 111
+# default_linux_vm_template_id = 9101
 
 vm_instances = {
   # First run with template=false and started=true so Ansible can configure

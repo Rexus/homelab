@@ -125,7 +125,7 @@ the shared-code repository.
 | Ansible `all` group vars | hostname prefix or suffix, domain, and baseline inputs |
 | Ansible setup group vars | guest IP map, service settings, and host configuration inputs |
 | Terraform deployment tfvars | Proxmox VMID, tags, size, storage class, disk size, network zone, and optional Proxmox node override |
-| Shared template catalog | approved image IDs, titles, source nodes, family, image tags, and the default Linux selection |
+| Shared template catalog | published image IDs, titles, source nodes, family and tags; explicit default Linux selection |
 | Shared platform profile | common storage, initial placement and network references, with tier overrides |
 | Tier Terraform common tfvars | tier-specific guest networks and overrides of shared network/platform/template values |
 | Local environment | provider credentials and external SSH public-key file paths; see [platform inputs](../reference/platform-inputs.md) |

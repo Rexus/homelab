@@ -78,7 +78,7 @@ an existing template's boot contract; consuming clusters must match it explicitl
 | `packer/` | Tier 0: optional custom-image build definitions and inputs |
 | Tier 0 Ansible playbooks and roles | Template API policy/verification and Linux builder configuration; no Talos guest SSH |
 | `ansible/vars/proxmox-api.yml` | Stateless API/TLS defaults for template plays; credentials come from the execution environment |
-| shared `templates/proxmox-catalog.tfvars` | one approved consumer catalog, maintained through Tier 0 review |
+| shared `templates/proxmox-catalog.tfvars` | references refreshed after successful apply; default selection remains project-owned |
 | consuming tier's template selection | approved VMID for that tier's new guests, not another template recipe |
 
 Templates are stopped image artifacts, not managed guest hosts. Their catalog
@@ -134,7 +134,7 @@ bash scripts/proxmox-templates.sh plan --env-file .env.local
 Review the plan, then publish exactly that saved plan:
 
 ```bash
-bash scripts/proxmox-templates.sh apply --env-file .env.local
+bash scripts/proxmox-templates.sh apply --env-file .env.local &&
 bash scripts/proxmox-templates.sh verify --env-file .env.local
 ```
 
@@ -149,9 +149,20 @@ Direct `terraform apply` omits this provider-compatibility phase; use the wrappe
 This clears Proxmox account settings, not files/accounts inside a previously booted
 image; use approved unbooted images or the [Linux builder cleanup](#mutable-linux-refresh).
 
+After successful publication, policy checks and state refresh, `apply` updates the sibling
+Shared `templates/proxmox-catalog.tfvars` from applied outputs. It retains the selected
+default and older entries. Clone-test before selecting a new default or per-VM ID;
+review and commit Shared separately. Standalone publication reports skipped synchronization
+when Shared is absent. See the [catalog contract](../../reference/template-catalog.md#publish-references-and-select-a-default).
+
 `verify` reads the actual API configuration and exits nonzero if the policy is not
 satisfied. It changes neither Proxmox settings nor Terraform state. To inspect one entry,
 add `--template rocky-build-1`; the default checks every applied template.
+This checks fixed RAM and cleared CloudInit accounts only; it does not verify NICs,
+disks or completion of a failed Terraform apply. After a network change, rerun `plan`
+and confirm no NIC changes remain. For an SDN attachment, grant the publishing token
+[use of the selected VNet](../../deployment/foundation/proxmox/api-access.md#6-grant-bridge-vlan-or-sdn-use-to-the-group)
+before applying; local-bridge permissions do not carry over.
 The API token needs `VM.Config.Memory` and `VM.Config.Cloudinit` on the selected templates.
 
 The default state is `.terraform/state/proxmox-templates/terraform.tfstate`;
@@ -200,7 +211,8 @@ describe the image and CPU profile, not template status or tier ownership. The
 `template_candidates` output includes the resolved tags for consumer-catalog review.
 Existing local `tags` remain explicit extras: remove old `template`, `tier-0`, `x86_64` or
 redundant distribution-version entries there to adopt the current convention.
-Updating template tags does not retag already-created clones or rewrite Shared's catalog.
+Successful apply refreshes image tags in Shared's catalog. Existing clones change only
+through their consuming tier's reviewed deployment; synchronization does not apply those plans.
 
 `release` records the approved version/build, not the template name or image filename.
 For example, `10.0-20250601` and `v1.14.0` illustrate the accepted format; use the
@@ -405,8 +417,9 @@ mean its planned settings or boot-disk image have been applied.
 2. Plan and publish it; retain existing entries and artifacts for rollback.
 3. Boot disposable clones on approved test networks and test the OS-specific
    first-boot, shutdown, and provisioning path. Never boot the template itself.
-4. Record approval in project documentation. Promote references into the
-   [shared consumer catalog](../../reference/template-catalog.md) after destination-side checks pass.
+4. Record approval in project documentation. References are already synchronized;
+   select the tested default or per-VM ID using the
+   [shared consumer catalog](../../reference/template-catalog.md).
 5. Retire old artifacts only through a separate reviewed state/resource change,
    after confirming no clones or recovery procedures still require them.
 
@@ -477,6 +490,8 @@ by that project's developers. Enable it as `.gitlab-ci.yml` only after preparing
 - protected `TEMPLATE_STATE_PATH` and `TEMPLATE_CATALOG_FILE` values pointing
   to absolute paths available at the same locations in both jobs;
 - local images and a provider mirror, plus masked/protected provider credentials;
+- a writable sibling Shared checkout for reference synchronization, or an existing
+  catalog selected by exported `TEMPLATE_SHARED_CATALOG_FILE`; review/commit its changes separately;
 - a protected default branch and publish environment, restricted CI logs and
   artifacts, and project-member-only CI visibility.
 

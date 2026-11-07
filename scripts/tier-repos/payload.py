@@ -25,7 +25,7 @@ TIER_TREES = {
     "ansible/vars": ("*.yml", "*.yaml"),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2", "*.py", "*.hcl", "*.sh", "*.js", "*.cnf", "*.conf",
                       "LICENSE", "NOTICE", "LICENSE.txt", "NOTICE.txt", ".gitkeep"),
-    "scripts": ("*.sh",),
+    "scripts": ("*.sh", "*.py"),
     "packer": ("*.example", "*.pkr.hcl"),
     "templates": ("*.example", ".gitkeep"),
     "ci": ("*.example",),

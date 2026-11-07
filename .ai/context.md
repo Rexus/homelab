@@ -165,7 +165,11 @@ This file keeps durable context for AI-assisted work across sessions.
   model tag alone, without a redundant generic architecture tag such as `x86_64`.
   Leave x86 CPU architecture implicit; explicitly setting it requests a root-restricted API operation.
   Do not inject `template`, tier ownership, bare `el` or redundant `rocky10`/`alma10` tags.
-  Candidate outputs expose resolved tags; promotion into Shared remains reviewed and explicit.
+  Successful template apply synchronizes consumer references into the existing sibling Shared catalog
+  after Terraform, policy checks and state refresh succeed. It preserves the default selection and
+  older entries; clone tests and selecting a default/per-VM image remain explicit. No Git commit or push occurs.
+  Standalone publication without Shared reports skipped synchronization; exported absolute
+  TEMPLATE_SHARED_CATALOG_FILE selects another existing catalog for CI. Consumers never read Tier 0 state.
 - Tier 0 owns all hardware-facing control, including hypervisors, physical networks,
   storage administration, and every VM template lifecycle across all consuming tiers
 - initial template publication is foundation local automation, before managed VMs

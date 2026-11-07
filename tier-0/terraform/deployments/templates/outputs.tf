@@ -1,5 +1,5 @@
 output "template_candidates" {
-  description = "Versioned candidates to test before promoting references into the shared consumer catalog."
+  description = "Applied references synchronized to Shared; clone-test before selecting consumer templates."
   value       = module.templates.catalog
   # A VMID match alone is not permission to adopt a running or unrelated machine.
   precondition {

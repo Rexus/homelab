@@ -54,19 +54,6 @@ normalize_setup_name() {
   esac
 }
 
-setup_is_valid() {
-  local setup_name="$1"
-  local known_setup
-
-  for known_setup in "${all_setups[@]}"; do
-    if [[ "$setup_name" == "$known_setup" ]]; then
-      return 0
-    fi
-  done
-
-  return 1
-}
-
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --env)
@@ -111,11 +98,7 @@ if [[ -n "$deployment_env" && ! "$deployment_env" =~ ^[A-Za-z0-9-]+$ ]]; then
 fi
 
 for setup_name in "${selected_setups[@]}"; do
-  if ! setup_is_valid "$setup_name"; then
-    echo "Unknown setup for --setup: $setup_name" >&2
-    echo "Known setups: ${all_setups[*]}" >&2
-    exit 1
-  fi
+  require_owned_setup "$setup_name"
 done
 
 created=0
