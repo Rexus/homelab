@@ -51,7 +51,7 @@ flowchart TB
     T1Title["Tier 1 / GitLab data"]
     subgraph VMs["Three existing data VMs / per-host recipe"]
       direction RL
-      Disks[("Live Proxmox/Ceph-backed disks<br/>gitlab-db-1 / PostgreSQL<br/>gitlab-redis-1 / Redis<br/>gitlab-gitaly-1 / Gitaly")]
+      Disks[("Live Proxmox/Ceph-backed disks<br/>db-1 / PostgreSQL<br/>kv-1 / Redis<br/>repo-1 / Gitaly")]
       Jobs["On each VM<br/>development-data-backup.timer<br/>development-data-backup.service"]
       Disks -->|Cold component copy| Jobs
     end

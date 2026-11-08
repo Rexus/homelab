@@ -11,6 +11,7 @@
 - [Template tags](#template-tags)
 - [Virtual machines](#virtual-machines)
 - [VM names](#vm-names)
+- [Existing installations](#existing-installations)
 - [Service DNS names](#service-dns-names)
 - [VM tags](#vm-tags)
 - [Naming boundaries](#naming-boundaries)
@@ -162,15 +163,15 @@ resolved `tags` for review and promotion into the shared consumer catalog.
 
 ### VM names
 
-Use short, predictable VM names for deployed guests. The stable inventory key is:
+Prefer **3–8 characters including the hyphen and sequence number** for VM and LXC
+hostnames. Use lowercase role abbreviations; the stable inventory key is:
 
 ```text
 <role>-<n>
 ```
 
-Choose one order. The simplest default is `<env>-<role>-<n>`, with the
-environment omitted for production. The automation also supports a suffix
-before the number when that is the established convention:
+The default omits environment, tier and network information. When an environment
+marker is needed, keep it short and use one consistent order:
 
 ```text
 <env>-<role>-<n>
@@ -178,24 +179,42 @@ before the number when that is the established convention:
 <role>-<n>
 ```
 
-Do not add tier, zone, VLAN, IP, or VMID to the hostname. Those belong in
-ownership, inventory, or network records and can change independently.
+The length is a readability preference, not an automation validation limit.
+DNS labels allow up to 63 octets; these ASCII hostname examples use one octet per
+character. [4] Proxmox **SDN VNet IDs** have a separate hard 2–8 character restriction
+and disallow hyphens; see the [network plan](network-plan.md#read-the-mapping).
+The hostname preference does not shorten template titles, setup/group/role names
+or Kubernetes object/release names; those retain their own naming constraints.
+
+Do not add tier, zone, VLAN, IP, or VMID to the hostname. Those belong in ownership,
+inventory, or network records and can change independently.
 
 Name parts:
 
 | Part | Purpose | Current examples |
 | --- | --- | --- |
-| `env` | optional short, stable environment marker | `test`, `prod`, `dev` |
-| `role` | generic, stable workload role | `idm`, `idp`, `ca`, `ca-root`, `edge-lb`, `hsm`, `k8node`, `db`, `pbs` |
+| `env` | optional short, stable environment marker | `t` for test, `d` for development |
+| `role` | generic, stable workload role | `idm`, `idp`, `ca`, `lb`, `hsm`, `db` |
 | `n` | always-present numeric suffix | `1`, `2`, `3` |
 
-Current examples:
+Reference role abbreviations connect the naming convention to the maintained inputs:
 
-- `test-idm-1`
-- `idm-test-1`
-- `ca-root-test-1`
-- `dev-k8node-1`
-- `prod-db-1`
+| Abbreviation | Full name | Starter hostname |
+| --- | --- | --- |
+| `boot` | Bootstrap execution host | `boot-1` (manual) |
+| `idm` / `ca` | Directory / certificate authority | `idm-1`, `ca-1` |
+| `k8ctl` | Control-cluster control-plane node | `k8ctl-1` |
+| `pctl` / `wctl` | Platform / lab cluster control-plane node | `pctl-1`, `wctl-1` |
+| `lb` | Edge load balancer | `lb-1` |
+| `otel` / `metric` | Telemetry gateway / metrics backend, VM alternative | `otel-1`, `metric-1` |
+| `db` / `repo` / `kv` | Database / repository data / key-value service | `db-1`, `repo-1`, `kv-1` |
+| `util` | Lab utility guest | `util-1` |
+| `cadm` | Cryptography administration helper | `cadm-1` (optional) |
+
+Other short roles retain their existing names, such as `log-1`, `hsm-1`, `iac-1`
+and `api-gw-1`. Optional environment examples are `t-idm-1` and `idm-t-1`.
+Record project role definitions in `platform-standards.md`; keep individual hosts
+in tier-local inventories and matching hardware/IP inputs.
 
 Recommended practice:
 
@@ -207,6 +226,17 @@ Recommended practice:
   `idm-1` or `keycloak` on `idp-1`
 - always keep the numeric suffix, even for the first VM, because the deployment may later
   need more than one instance of the same role
+
+### Existing installations
+
+Shortened starter names apply to new projects. Refresh does not rename deployed
+guests or merge new host keys into private inventory, IP maps or Terraform inputs.
+Keep existing names unless a deliberate migration coordinates Terraform state
+addresses, guest/node identity, DNS and certificates. A changed map key can propose
+destroy/create; stop that plan until the existing resource mapping is resolved.
+Logging stream identities and Kubernetes object/release names remain independent
+of the shortened hostname.
+See [refresh ownership](../development/generated-repositories.md#refresh-and-local-ownership).
 
 ### Service DNS names
 
@@ -290,3 +320,4 @@ guidelines:
    checked 2026-11-07.
 2. [AlmaLinux Enterprise Linux comparison](https://wiki.almalinux.org/Comparison.html), checked 2026-11-07.
 3. [Proxmox CPU models](https://github.com/proxmox/pve-docs/blob/master/qm.adoc#_cpu_type), checked 2026-11-07.
+4. [RFC 1035, DNS size limits](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.4), checked 2026-11-08.

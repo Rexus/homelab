@@ -52,9 +52,9 @@ flowchart TB
       end
       subgraph Nodes["Kubernetes node VMs"]
         direction TB
-        CP1["platform-k8ctl-1"]
-        CP2["platform-k8ctl-2"]
-        CP3["platform-k8ctl-3"]
+        CP1["pctl-1"]
+        CP2["pctl-2"]
+        CP3["pctl-3"]
         CP1 ~~~ CP2 ~~~ CP3
       end
       Added ~~~ Nodes

@@ -26,9 +26,9 @@ The data VMs' encrypted recovery copies use a separate file/SFTP repository.
 
 | Component | Supplied realization | Boundary |
 | --- | --- | --- |
-| Database | `gitlab-db-1`, signed CE package `postgres_role`, TCP 5432 | One tenant database; TLS and client certificate plus password |
-| Queue/cache | `gitlab-redis-1`, CE package `redis_master_role`, TLS 6379 | One authenticated instance; no plaintext listener or eviction |
-| Repositories | `gitlab-gitaly-1`, CE package `gitaly_role`, TLS 8076 | `default` storage on its persistent VM disk; RPC and hook secrets |
+| Database | `db-1`, signed CE package `postgres_role`, TCP 5432 | One tenant database; TLS and client certificate plus password |
+| Queue/cache | `kv-1`, CE package `redis_master_role`, TLS 6379 | One authenticated instance; no plaintext listener or eviction |
+| Repositories | `repo-1`, CE package `gitaly_role`, TLS 8076 | `default` storage on its persistent VM disk; RPC and hook secrets |
 | Objects | Existing qualified object storage, ten versioned tenant buckets | S3-compatible API; separate application and toolbox identities; no Tier 0 storage-admin keys in Tier 1 |
 | Recovery | Per-host encrypted restic repositories on commissioned NAS mounts or existing SFTP destinations | Systemd jobs; independent custody and separately retained keys |
 
@@ -89,7 +89,7 @@ can own them; adding dependencies must not remove or replace a live `git-1`.
 | --- | --- |
 | `terraform/deployments/development-data/terraform.tfvars` | The three VM entries, unused VMIDs, accepted storage and explicitly approved EL9 `default_linux_vm_template_id` |
 | `ansible/inventory/hosts.yml` | All three matching host keys in `development_data` |
-| `ansible/group_vars/development_data.yml` | `platform_host_ips`, actual endpoints and full package/TLS/backup inputs below |
+| `ansible/group_vars/development_data.yml` | Matching `platform_host_ips` and `development_data_hosts` host/component maps, actual endpoints and package/TLS/backup inputs below |
 | `.env.local` | Tier 1 API credentials and local `TF_VAR_ssh_public_key_files` paths |
 
 Select an approved **EL9 x86_64** template explicitly through this deployment's

@@ -35,9 +35,9 @@ flowchart TB
     VIP["Configured VIP set<br/>Preferred owners / failover"]
     subgraph PVE["Existing Proxmox / edge VMs"]
       direction TB
-      A["edge-lb-1<br/>HAProxy / keepalived"]
-      B["edge-lb-2<br/>HAProxy / keepalived"]
-      C["edge-lb-3<br/>HAProxy / keepalived"]
+      A["lb-1<br/>HAProxy / keepalived"]
+      B["lb-2<br/>HAProxy / keepalived"]
+      C["lb-3<br/>HAProxy / keepalived"]
       A ~~~ B ~~~ C
     end
     VIP -. Address ownership .-> PVE
@@ -61,7 +61,7 @@ The drawn client/backend traffic exists only after reviewed listener, TLS and fi
 
 | Component | Terraform default | Inventory entry | Network key | Purpose |
 | --- | --- | --- | --- | --- |
-| edge load balancers | `edge-lb-1`, `edge-lb-2`, `edge-lb-3` active | present by default | `external_edge` | public ingress and application load balancing |
+| edge load balancers | `lb-1`, `lb-2`, `lb-3` active | present by default | `external_edge` | public ingress and application load balancing |
 | extra edge nodes | add matching inventory and IP entries | not present by default | `external_edge` | more capacity, site spread, or policy separation |
 
 The default uses three nodes so one edge host can be updated or changed while
@@ -79,16 +79,16 @@ The example rotates priority ownership:
 
 | VIP | Preferred owner | First backup | Second backup |
 | --- | --- | --- | --- |
-| `internal_prod` | `edge-lb-1` | `edge-lb-2` | `edge-lb-3` |
-| `internal_services` | `edge-lb-2` | `edge-lb-3` | `edge-lb-1` |
-| `dmz_ingress` | `edge-lb-3` | `edge-lb-1` | `edge-lb-2` |
+| `internal_prod` | `lb-1` | `lb-2` | `lb-3` |
+| `internal_services` | `lb-2` | `lb-3` | `lb-1` |
+| `dmz_ingress` | `lb-3` | `lb-1` | `lb-2` |
 
 Normal state:
 
 ```text
-edge-lb-1 owns internal_prod
-edge-lb-2 owns internal_services
-edge-lb-3 owns dmz_ingress
+lb-1 owns internal_prod
+lb-2 owns internal_services
+lb-3 owns dmz_ingress
 ```
 
 During a failure, the affected VIP moves to its next highest-priority backup.

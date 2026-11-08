@@ -14,6 +14,11 @@ variables {
 run "tagged_bridge" {
   command = plan
 
+  assert {
+    condition     = proxmox_virtual_environment_container.this.network_interface[0].firewall
+    error_message = "Container NICs must explicitly enable firewall participation."
+  }
+
   variables {
     vlan_id = 420
   }
@@ -26,6 +31,11 @@ run "tagged_bridge" {
 
 run "untagged_vnet" {
   command = plan
+
+  assert {
+    condition     = proxmox_virtual_environment_container.this.network_interface[0].firewall
+    error_message = "Using an SDN VNet must retain the NIC firewall flag."
+  }
 
   variables {
     bridge = "lab"

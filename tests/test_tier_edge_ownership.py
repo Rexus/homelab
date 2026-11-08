@@ -24,7 +24,7 @@ class EdgeOwnership(TierRepositoryTestCase):
             self.assertNotIn("edge_load_balancers", one_groups)
             self.assertNotIn("cache", one_groups)
             self.assertEqual(set(two_groups["edge_load_balancers"]["hosts"]),
-                             {"edge-lb-1", "edge-lb-2", "edge-lb-3"})
+                             {"lb-1", "lb-2", "lb-3"})
             self.assertEqual(set(two_groups["cache"]["hosts"]), {"cache-1", "cache-2"})
             for setup in ("edge", "cache"):
                 self.assertFalse((tier_one / f"terraform/deployments/{setup}").exists())
@@ -66,8 +66,8 @@ class EdgeOwnership(TierRepositoryTestCase):
             "verify-tier-1/terraform/deployments/edge/main.tf": "# Local legacy edge resources\n",
             "verify-tier-1/terraform/deployments/cache/main.tf": "# Local legacy cache resources\n",
             "verify-tier-1/ansible/playbooks/ingress.yml": "# Previous local signing integration\n",
-            "verify-tier-1/ansible/inventory/hosts.yml": "all: {hosts: {edge-lb-1: {}}}\n",
-            "verify-tier-1/ansible/group_vars/edge.yml": "platform_host_ips: {edge-lb-1: 192.0.2.10}\n",
+            "verify-tier-1/ansible/inventory/hosts.yml": "all: {hosts: {lb-1: {}}}\n",
+            "verify-tier-1/ansible/group_vars/edge.yml": "platform_host_ips: {lb-1: 192.0.2.10}\n",
             "verify-tier-1/.terraform/state/edge/prod/terraform.tfstate": '{"lineage":"edge-old"}\n',
             "verify-tier-1/.terraform/state/cache/prod/terraform.tfstate": '{"lineage":"cache-old"}\n',
             "verify-tier-2/ansible/inventory/hosts.yml": "all: {hosts: {lab-local: {}}}\n",

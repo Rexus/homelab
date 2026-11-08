@@ -142,7 +142,7 @@ class ClusterEndpoint(TierRepositoryTestCase):
         self.assertNotRegex(first, r"50000|\bssl\b|\bcrt\b|send-proxy|0\.0\.0\.0|\*:")
         values["cluster_endpoint_endpoints"].append({
             "name": "platform", "tier": 1, "vip_cidr": "10.10.10.63/24", "virtual_router_id": 41,
-            "control_planes": {"platform-k8ctl-1": "10.20.13.10"},
+            "control_planes": {"pctl-1": "10.20.13.10"},
         })
         rendered = render_haproxy(values)
         control, platform = rendered.split("frontend api_platform")

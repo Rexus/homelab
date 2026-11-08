@@ -4,6 +4,7 @@
 
 - [Prerequisites](#prerequisites)
 - [Guest attachment](#guest-attachment)
+- [Guest NIC firewall](#guest-nic-firewall)
 - [SDN subnet lookup](#sdn-subnet-lookup)
 - [Field reference](#field-reference)
 - [Shared references and tier overrides](#shared-references-and-tier-overrides)
@@ -67,6 +68,21 @@ vm_instances = {
 Set the matching guest IP in that tier's Ansible group vars. The shared
 inventory mechanism supplies it to both Terraform and Ansible; do not
 maintain a second address list in VM placement variables.
+
+## Guest NIC firewall
+
+Tier-owned Linux VM, Kubernetes node and LXC resources explicitly set the Proxmox
+interface's `firewall = true`. A clone's declared NIC must set this itself; an
+omitted field uses the provider's `false` default rather than preserving template
+policy. [3][4] Template publication separately defaults `nic_firewall` to `true`;
+an explicit `false` in `templates/proxmox.yml` overrides that default.
+
+This flag participates in Proxmox guest filtering; it does not enable the
+Datacenter/guest firewall, install rules, configure the guest OS firewall or replace
+gateway policy. Review those separate controls with the
+[firewall rollout checks](../deployment/foundation/network/firewall.md#proxmox-guest-interfaces).
+When upgrading existing guests, review the NIC change and accepted allow rules
+before applying it. SDN attachment does not remove this requirement.
 
 ## SDN subnet lookup
 
@@ -198,3 +214,5 @@ for source locations.
 
 1. [Terraform external data source and execution environment](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external).
 2. [Proxmox subnet reads, running configuration and scoped permissions](https://raw.githubusercontent.com/proxmox/pve-network/master/src/PVE/API2/Network/SDN/Subnets.pm).
+3. [Pinned VM provider NIC settings](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/docs/resources/virtual_environment_vm.md#argument-reference).
+4. [Pinned container provider NIC settings](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/docs/resources/virtual_environment_container.md#argument-reference).

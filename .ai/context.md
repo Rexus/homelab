@@ -27,6 +27,30 @@ This file keeps durable context for AI-assisted work across sessions.
   is explicit; otherwise qualify Proxmox's inherited defaults. bootstrap_network = null
   retains the previous DHCP path. The Talos API still owns machine configuration.
 - name capabilities by the goal, keeping implementation products explicit only where relevant
+- Prefer 3–8 character unqualified guest hostnames, including the instance suffix: boot-1,
+  idm-1, log-1. Keep role abbreviations in docs/conventions/proxmox-conventions.md.
+  This is a readability preference, not the DNS limit or SDN VNet's hard naming restriction;
+  template/build titles and Kubernetes release/object names have separate contracts.
+  Starter key/name changes never rename deployed guests, inventory or Terraform state automatically.
+- The manual bootstrap example is boot-1 with Cloud-Init user automation and one or more
+  approved workstation public keys, one per line. Their private keys stay on those workstations;
+  the bootstrap execution account's outbound deployment key is configured separately.
+- Create boot-1 as a full clone, never a linked clone. Retain an offline VM backup with
+  both OS/workspace disks and a tested restore path outside the failed platform. A full
+  clone alone is not disaster recovery; original state, keys and approved tooling must survive.
+- Bootstrap examples keep repos, private inputs/state, artifacts and upload staging on an
+  attached data filesystem (/srv/tier0), with independent recovery copies. Prepare OS tools,
+  Python wheels, Ansible collections and provider artifacts before restricted/offline deployment;
+  transfer bundles by verified SCP/media rather than depending on the cache being installed.
+  After Stage 1 acceptance, boot-1 consumes the approved internal proxy/mirrors for updates.
+- An optional pre-install bootstrap-home path bind-mounts /srv/tier0/home at /home;
+  preserve original homes for initial rollback, numeric ownership/ACLs/SSH keys and SELinux
+  home contexts. Require data-mount ordering and independent console/reboot acceptance;
+  both OS and data disks remain necessary for backup/restore. Do not change account paths.
+- Offline controller preparation uses source manifests, matching OS/Python/CPU, transferred
+  RPMs/wheels/collection archives and locked provider mirrors. CONTROL_NODE_COLLECTIONS_MODE=check
+  verifies installed collection bounds without acquisition; TEMPLATE_RUNTIME_MODE=check uses
+  accepted preinstalled tooling. Controller preparation is not all-stage disconnected readiness.
 - Kubernetes is the cluster goal; Talos is the current node-OS implementation example,
   not an architecture requirement. Immutable AlmaLinux or other OS support needs future lifecycle code
 - public cluster entry points are `terraform/deployments/kubernetes/` and
@@ -161,6 +185,10 @@ This file keeps durable context for AI-assisted work across sessions.
   This bounded-loss main path is not replicated intake or WORM. See `docs/reference/logging-pipeline.md`.
 - All source Linux, template and Kubernetes Terraform roots verify Proxmox TLS. Provisioning
   entry points reject current/legacy insecure environment flags; bootstrap trusts the Proxmox CA.
+- Linux VM, Kubernetes and LXC NIC resources explicitly enable Proxmox firewall participation;
+  provider omission defaults false and must not silently clear a clone's flag. Template
+  nic_firewall defaults true with explicit catalog overrides. This does not enable the
+  Datacenter/guest firewall or install rules; preserve the separate policy/acceptance gates.
 - .ai/operator-walkthrough.md tracks missing mechanisms separately from supplied code;
   .ai/operational-verification.md owns unchecked live pass conditions for the current priorities.
   .ai/v1-readiness.md records implementation qualification and its exact offline evidence.

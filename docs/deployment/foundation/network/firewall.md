@@ -21,6 +21,19 @@ Guest-specific inputs remain in the consuming tier; gateway changes are operator
 3. Apply to one pilot subnet; test same-zone, gateway-local and IPv6 paths as well
    as routed traffic. Use the [UniFi field guide](unifi.md#apply-the-policy) for that platform.
 
+### Proxmox guest interfaces
+
+The [guest NIC contract](../../../reference/network-inputs.md#guest-nic-firewall)
+enables each managed interface's **Firewall** checkbox. Before applying this to an
+existing guest, inspect **Datacenter > Firewall > Options**, that guest's
+**Firewall > Options**, and its accepted rules. The interface flag and general
+firewall enablement are separate controls. [1]
+
+Require permitted administration, DNS/time, package access and service traffic
+before enabling filtering. Cache guests also need their accepted proxy and VRRP
+paths. Keep console access and test one pilot guest first. The NIC change does
+not install those rules or enable the cluster firewall.
+
 ## Step 3: Verify and continue
 
 Run the relevant checks below from approved and unapproved source networks.
@@ -43,3 +56,7 @@ After pilot checks pass, export the reviewed configuration, move the remaining s
 networks and remove temporary access. Keep policy in project architecture and exports/test
 evidence in project operating records. Return to
 [foundation host/network preparation](../README.md#before-starting-hosts-and-networks).
+
+## References
+
+1. [Proxmox Datacenter and VM/container firewall controls](https://github.com/proxmox/pve-docs/blob/master/pve-firewall.adoc#vmcontainer-configuration).

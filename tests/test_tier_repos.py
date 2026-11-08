@@ -55,7 +55,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
         all_hosts = set().union(*inventories.values())
         self.assertEqual(sum(map(len, inventories.values())), len(all_hosts))
         self.assertIn("idm-1", inventories["tier-0"])
-        self.assertIn("edge-lb-1", inventories["tier-2"])
+        self.assertIn("lb-1", inventories["tier-2"])
         self.assertIn("lab-1", inventories["tier-2"])
         shared = self.root / "verify-shared"
         self.assertTrue((self.root / "verify-tier-0/ansible/playbooks/foundation.yml").is_file())

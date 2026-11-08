@@ -13,7 +13,7 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 class Observability(TierRepositoryTestCase):
     def test_source_and_generated_vm_alternative_separates_roles_without_syslog(self):
         self.generate()
-        expected = {"otel-1", "otel-2", "metrics-1", "metrics-2",
+        expected = {"otel-1", "otel-2", "metric-1", "metric-2",
                     "search-1", "search-2", "search-3"}
         for collection, prefix in ((UPSTREAM, ""), (self.root, "verify-")):
             tier = collection / f"{prefix}tier-1"

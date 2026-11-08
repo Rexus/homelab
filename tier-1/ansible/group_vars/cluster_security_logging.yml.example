@@ -24,19 +24,20 @@ cluster_security_logging_host_access_accepted: false
 cluster_security_logging_manage_secrets: false
 # Exact observed IPv4 and approved client certificate subject; no Tier 0 credentials are reused.
 cluster_security_logging_nodes:
-  - name: platform-k8ctl-1
+  # Node names match inventory; stream and Secret identities remain stable independently.
+  - name: pctl-1
     control_plane: true
     stream: platform-k8ctl-1
     source_address: REPLACE_WITH_OBSERVED_IP
     tls_secret: platform-k8ctl-1-tls
     tls_dn: CN=platform-k8ctl-1
-  - name: platform-k8ctl-2
+  - name: pctl-2
     control_plane: true
     stream: platform-k8ctl-2
     source_address: REPLACE_WITH_OBSERVED_IP
     tls_secret: platform-k8ctl-2-tls
     tls_dn: CN=platform-k8ctl-2
-  - name: platform-k8ctl-3
+  - name: pctl-3
     control_plane: true
     stream: platform-k8ctl-3
     source_address: REPLACE_WITH_OBSERVED_IP

@@ -15,6 +15,11 @@ run "create_on_selected_node_from_remote_template" {
   command = apply
 
   assert {
+    condition     = proxmox_virtual_environment_vm.this.network_device[0].firewall
+    error_message = "Clones must explicitly retain NIC firewall participation instead of the provider's false default."
+  }
+
+  assert {
     condition     = proxmox_virtual_environment_vm.this.node_name == "pve02"
     error_message = "The initial target node must be honored."
   }

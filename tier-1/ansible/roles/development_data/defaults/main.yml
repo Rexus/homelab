@@ -10,6 +10,8 @@ development_data_package_sha256: ""
 development_data_package_key_src: ""
 development_data_package_key_fingerprint: ""
 development_data_client_cidrs: []
+# Retain the legacy fallback for existing inputs; new projects set the short
+# host/component map explicitly in group_vars/development_data.yml.
 development_data_hosts:
   gitlab-db-1: postgresql
   gitlab-redis-1: redis

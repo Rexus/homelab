@@ -23,7 +23,7 @@ qemu_agent  = true # Requires siderolabs/qemu-guest-agent in the image and insta
 cluster = {
   name               = "platform"
   endpoint           = "https://kubernetes.platform.example.com:6443"
-  bootstrap_node     = "platform-k8ctl-1"
+  bootstrap_node     = "pctl-1"
   talos_version      = "REPLACE_WITH_EXACT_VERSION_WITH_v"
   kubernetes_version = "REPLACE_WITH_COMPATIBLE_VERSION_WITHOUT_v"
   installer_image    = "REPLACE_WITH_INSTALLER_MATCHING_TEMPLATE_SCHEMATIC_AND_VERSION"
@@ -36,15 +36,15 @@ cluster = {
 # TCP load balancer for these control planes; it cannot use in-cluster ingress.
 # Keep host placement, storage, bridges, and image source in the same Proxmox cluster.
 nodes = {
-  platform-k8ctl-1 = {
+  pctl-1 = {
     vm_id = 1001, node_name = "pve01", mac_address = "02:00:00:00:13:00"
     datastore_id = "shared", bridge = "app", size = "medium"
   }
-  platform-k8ctl-2 = {
+  pctl-2 = {
     vm_id = 1002, node_name = "pve02", mac_address = "02:00:00:00:13:01"
     datastore_id = "shared", bridge = "app", size = "medium"
   }
-  platform-k8ctl-3 = {
+  pctl-3 = {
     vm_id = 1003, node_name = "pve03", mac_address = "02:00:00:00:13:02"
     datastore_id = "shared", bridge = "app", size = "medium"
   }

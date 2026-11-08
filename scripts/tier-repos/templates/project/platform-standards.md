@@ -18,11 +18,18 @@ replace them with the selected project values.
 | --- | --- | --- |
 | Internal domain | `corp.example.com` | Private DNS namespace. |
 | External domain | `example.com` | Public DNS namespace. |
-| VM name-part order | `<env>-<role>-<n>` | Omit env for production; use [role abbreviations](#role-abbreviations). |
+| VM name-part order | `<role>-<n>` | Optional `<env>-<role>-<n>`; use [role abbreviations](#role-abbreviations). |
+| VM hostname length | Prefer 3–8 characters | Include hyphens and sequence; `boot-1`, `idm-1`, `api-gw-1`. |
 | Number format | `1`, `2`, `3` | First and subsequent instances. |
 | Internal service FQDN | `<role>.<env>.<internal-domain>` | Stable service endpoint. |
 | External service FQDN | `<role>.<env>.<external-domain>` | Selected published endpoint. |
 | Template name | `<os>-<release>-tmpl` | Candidate suffix where selected. |
+
+The hostname length is a preference; DNS labels allow 63 octets. SDN IDs below have
+a separate hard restriction. Template titles and Kubernetes object/release names
+keep their own conventions. Existing host keys require a deliberate
+[state and identity migration](docs/auto-docs/conventions/proxmox-conventions.md#existing-installations),
+not an automatic rename during refresh.
 
 ## Role abbreviations
 
@@ -31,10 +38,17 @@ replace them with the selected project values.
 | `idm` | Identity management | Directory authority. |
 | `idp` | Identity provider | Authentication and federation. |
 | `ca` | Certificate authority | Certificate issuance. |
-| `bootstrap` | Bootstrap execution host | Initial operator tooling. |
-| `edge-lb` | Edge load balancer | Service entry point. |
+| `boot` | Bootstrap execution host | `boot-1`; manual initial operator tooling. |
+| `lb` | Edge load balancer | `lb-1`; service entry point. |
 | `db` | Database | Data service. |
-| `k8node` | Kubernetes node | Cluster node. |
+| `repo` | Repository data | `repo-1`; Git repository storage. |
+| `kv` | Key-value service | `kv-1`; queue/cache backend. |
+| `k8ctl` | Control-cluster control-plane node | Tier 0 cluster. |
+| `pctl` | Platform-cluster control-plane node | Tier 1 cluster. |
+| `wctl` | Lab-cluster control-plane node | Tier 2 cluster. |
+| `otel` / `metric` | Telemetry gateway / metrics backend | Dedicated-VM alternative. |
+| `util` | Lab utility guest | `util-1`. |
+| `cadm` | Cryptography administration helper | Optional `cadm-1`. |
 
 ## Proxmox tags
 

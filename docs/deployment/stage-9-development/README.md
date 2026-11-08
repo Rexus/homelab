@@ -33,7 +33,7 @@ Steps 1–2 stay in Tier 1; Steps 3–4 explicitly switch to Tier 0.
 1. Choose **1a: Kubernetes GitLab** (main path) or
    [1b: source-control VM](step-1b-source-control-vm.md). Do not install both for one service.
 2. For 1a, complete [data services](procedures/data-services.md), Steps 1–4, **before** the chart:
-   provision `gitlab-db-1`, `gitlab-redis-1`, `gitlab-gitaly-1`; configure TLS,
+   provision `db-1`, `kv-1`, `repo-1`; configure TLS,
    qualified existing object storage and independent backups.
 3. Complete [GitLab installation](procedures/gitlab.md), Steps 1–3: edit application/IdP
    inputs, render/review, install and verify SSO, clone/push and clean-target recovery.
@@ -51,9 +51,9 @@ flowchart TB
     end
     subgraph Data["Prepared dedicated Tier 1 data VMs"]
       direction TB
-      DB["gitlab-db-1 / PostgreSQL"]
-      Cache["gitlab-redis-1 / Redis"]
-      Repos["gitlab-gitaly-1 / repositories"]
+      DB["db-1 / PostgreSQL"]
+      Cache["kv-1 / Redis"]
+      Repos["repo-1 / repositories"]
       DB ~~~ Cache ~~~ Repos
     end
     Cluster -->|Data interfaces / TLS| Data

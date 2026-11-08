@@ -1,6 +1,6 @@
 # Talos API inputs, not SSH configuration. Static NoCloud uses these IPs; reserve outside DHCP.
 # Legacy bootstrap_network = null requires matching DHCP reservations before creating VMs.
 platform_host_ips:
-  platform-k8ctl-1: 10.20.20.110
-  platform-k8ctl-2: 10.20.20.111
-  platform-k8ctl-3: 10.20.20.112
+  pctl-1: 10.20.20.110
+  pctl-2: 10.20.20.111
+  pctl-3: 10.20.20.112

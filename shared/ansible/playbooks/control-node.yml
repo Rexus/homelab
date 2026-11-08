@@ -5,6 +5,9 @@
   gather_facts: false
   vars:
     control_node_selected_setup: "{{ control_node_setup | default('site') }}"
+    # Disconnected/prebuilt controllers validate preinstalled collections without acquisition.
+    control_node_collections_mode: >-
+      {{ lookup('ansible.builtin.env', 'CONTROL_NODE_COLLECTIONS_MODE') | default('auto', true) }}
     control_node_base_collection_catalog:
       ansible.utils:
         name: ansible.utils
@@ -34,6 +37,11 @@
           Debian: [ansible]
 
   tasks:
+    - name: Validate collection preparation mode
+      ansible.builtin.assert:
+        that: control_node_collections_mode in ['auto', 'check']
+        fail_msg: CONTROL_NODE_COLLECTIONS_MODE must be auto or check.
+
     - name: Gather deployment control-node facts
       ansible.builtin.setup:
         gather_subset:
@@ -112,6 +120,15 @@
           }}
       loop: "{{ control_node_missing_collections | default([]) }}"
 
+    - name: Require preinstalled collections in check mode
+      ansible.builtin.assert:
+        that: control_node_missing_collections | length == 0
+        fail_msg: >-
+          Missing collections: {{ control_node_missing_collections | map(attribute='name') | join(', ') }}.
+          Install the prepared local Galaxy requirements before retrying; check mode never downloads dependencies.
+          See docs/deployment/foundation/proxmox/bootstrap-offline.md.
+      when: control_node_collections_mode == 'check'
+
     - name: Install missing Ansible collections from OS packages first
       ansible.builtin.package:
         name: "{{ control_node_collection_packages | unique | list }}"
@@ -119,7 +136,9 @@
       become: true
       register: control_node_os_package_install
       failed_when: false
-      when: (control_node_collection_packages | default([]) | length) > 0
+      when:
+        - control_node_collections_mode == 'auto'
+        - (control_node_collection_packages | default([]) | length) > 0
 
     - name: Re-check required Ansible collections after OS packages
       ansible.builtin.command:
@@ -145,9 +164,11 @@
       ansible.builtin.debug:
         msg: >-
           Check declared version ranges with Galaxy after the OS package attempt.
-          Compatible installed collections need no download; offline operators must pre-stage
-          every selected range. Incompatible shadowing copies must be corrected explicitly.
-      when: control_node_required_collections | length > 0
+          Pre-stage every selected range before using CONTROL_NODE_COLLECTIONS_MODE=check.
+          Incompatible shadowing copies must be corrected explicitly.
+      when:
+        - control_node_collections_mode == 'auto'
+        - control_node_required_collections | length > 0
 
     - name: Install missing or incompatible Ansible collections with native Galaxy ranges
       ansible.builtin.command:
@@ -157,7 +178,9 @@
           - install
           - "{{ item.name ~ (':' ~ item.version if item.version is defined else '') }}"
       loop: "{{ control_node_required_collections }}"
-      when: item.version is defined or item in control_node_still_missing_collections
+      when:
+        - control_node_collections_mode | default('auto') == 'auto'
+        - item.version is defined or item in control_node_still_missing_collections
       register: control_node_galaxy_install
       changed_when: "'was installed successfully' in control_node_galaxy_install.stdout"
 

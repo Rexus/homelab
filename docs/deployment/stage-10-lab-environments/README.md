@@ -87,7 +87,7 @@ Unimplemented automation is recorded as outstanding work, not treated as availab
 ## Step 2: Provision the workload runtime
 
 For Linux labs, select the [tier-local application override](../../reference/network-inputs.md#guest-attachment)
-before provisioning untrusted guests. The starter `lab-1`/`support-1` definitions
+before provisioning untrusted guests. The starter `lab-1`/`util-1` definitions
 otherwise inherit the shared application subnet; their names do not isolate them.
 The Kubernetes example already selects VLAN 420. Record the selected Lab-zone
 policy and attachment in the [network plan](../../conventions/network-plan.md#services-zone).
@@ -102,15 +102,15 @@ flowchart TB
     subgraph PVE["Existing Proxmox cluster"]
       subgraph Cluster["A: kubernetes root / lab network"]
         direction LR
-        CP1["workload-k8ctl-1"]
-        CP2["workload-k8ctl-2"]
-        CP3["workload-k8ctl-3"]
+        CP1["wctl-1"]
+        CP2["wctl-2"]
+        CP3["wctl-3"]
         CP1 ~~~ CP2 ~~~ CP3
       end
       subgraph Guests["B: lab root / application network"]
         direction LR
         VM["lab-1<br/>Linux VM"]
-        CT["support-1<br/>LXC container"]
+        CT["util-1<br/>LXC container"]
         VM ~~~ CT
       end
       Cluster ~~~ Guests

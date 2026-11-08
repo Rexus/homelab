@@ -12,7 +12,7 @@
 vm_instances = {
   # Main path: chart applications consume these dedicated native data services.
   # Select an approved EL9 x86_64 template for these hosts. No all-in-one GitLab VM.
-  "gitlab-db-1" = {
+  "db-1" = {
     vm_id            = 1211
     size             = "small-mem"
     storage_class    = "shared"
@@ -20,7 +20,7 @@ vm_instances = {
     network_zone_key = "application"
     tags             = ["gitlab", "postgresql", "internal", "always-on", "apps"]
   }
-  "gitlab-redis-1" = {
+  "kv-1" = {
     vm_id            = 1212
     size             = "tiny-mem"
     storage_class    = "shared"
@@ -28,7 +28,7 @@ vm_instances = {
     network_zone_key = "application"
     tags             = ["gitlab", "redis", "internal", "always-on", "apps"]
   }
-  "gitlab-gitaly-1" = {
+  "repo-1" = {
     vm_id            = 1213
     size             = "medium-mem"
     storage_class    = "shared"

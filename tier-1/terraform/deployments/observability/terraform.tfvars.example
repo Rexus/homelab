@@ -29,7 +29,7 @@ vm_instances = {
     network_zone_key  = "observability"
     tags              = ["otel-collector", "internal", "always-on", "platform"]
   }
-  "metrics-1" = {
+  "metric-1" = {
     vm_id             = 1411
     proxmox_node_name = "pve01"
     size              = "large"
@@ -38,7 +38,7 @@ vm_instances = {
     network_zone_key  = "observability"
     tags              = ["victoriametrics", "internal", "always-on", "platform"]
   }
-  "metrics-2" = {
+  "metric-2" = {
     vm_id             = 1412
     proxmox_node_name = "pve02"
     size              = "large"

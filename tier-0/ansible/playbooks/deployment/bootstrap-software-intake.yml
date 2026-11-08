@@ -1,0 +1,73 @@
+---
+# Local configuration only; boot-1 is not enrolled in inventory or Terraform.
+# Guide: docs/deployment/stage-1-software-intake/bootstrap-consumer.md
+- name: Check bootstrap intake tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: bootstrap-software-intake
+    control_node_require_terraform: false
+  tags: [bootstrap_tooling]
+
+- name: Configure the local bootstrap host's accepted software intake
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  gather_subset: [min]
+  become: true
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    repository_proxy_enabled: "{{ bootstrap_software_intake_mode | default('') == 'proxy' }}"
+    repository_proxy_manage_hosts_entry: false
+    shell_proxy_enabled: "{{ repository_proxy_enabled }}"
+  pre_tasks:
+    - name: Require an explicitly accepted intake path before changing local configuration
+      ansible.builtin.assert:
+        that:
+          - bootstrap_software_intake_mode | default('') in ['proxy', 'mirror']
+          - bootstrap_software_intake_accepted | default(false) is sameas true
+          - ansible_os_family in ['RedHat', 'Debian']
+          - repository_proxy_enabled | bool == (bootstrap_software_intake_mode == 'proxy')
+          - shell_proxy_enabled | bool == (bootstrap_software_intake_mode == 'proxy')
+        fail_msg: >-
+          Select proxy or mirror in the local bootstrap inputs and accept its verified
+          package/tool supply and firewall path first. This recipe supports RedHat and Debian families.
+
+    - name: Require a credential-free HTTP proxy endpoint
+      ansible.builtin.assert:
+        that:
+          - repository_proxy_url | default('') | urlsplit('scheme') in ['http', 'https']
+          - repository_proxy_url | urlsplit('hostname') | default('', true) | length > 0
+          - repository_proxy_url | urlsplit('username') is none
+          - repository_proxy_url | urlsplit('password') is none
+          - repository_proxy_url | urlsplit('path') in ['', '/']
+          - repository_proxy_url | urlsplit('query') == ''
+          - repository_proxy_url | urlsplit('fragment') == ''
+          - shell_proxy_no_proxy_extra | default([]) is not string
+          - shell_proxy_no_proxy_extra | default([]) | length > 0
+        fail_msg: >-
+          Set the accepted proxy URL without credentials, a request path or query.
+          Proxy settings are written to system-readable package and shell configuration.
+          List the actual Proxmox API hostname/IP and approved internal endpoints in
+          shell_proxy_no_proxy_extra; CIDR bypass is not supported by every client.
+      when: bootstrap_software_intake_mode == 'proxy'
+
+  tasks:
+    - name: Reuse only the package-manager proxy tasks
+      ansible.builtin.import_role:
+        name: baseline
+        tasks_from: repository_proxy
+        public: true
+
+    - name: Reuse only the login-shell proxy tasks
+      ansible.builtin.import_role:
+        name: baseline
+        tasks_from: shell_proxy
+        public: true
+
+    - name: Explain the remaining activation and acceptance steps
+      ansible.builtin.debug:
+        msg: >-
+          Local intake settings are reconciled. Open a fresh login session and verify
+          package and tool access through the selected supply. Existing mirror, pip,
+          Galaxy and Terraform configurations remain separately owned. Confirm direct-WAN
+          denial before retiring temporary bootstrap egress; this recipe changes no firewall rules.

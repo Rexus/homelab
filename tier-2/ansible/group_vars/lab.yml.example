@@ -4,4 +4,4 @@
 
 platform_host_ips:
   lab-1: 10.20.20.10
-  support-1: 10.20.20.11
+  util-1: 10.20.20.11

@@ -19,25 +19,31 @@ prepare and use the bootstrap VM before any hosted runner exists.
 - [Step 3: Prepare the execution account's SSH key](#step-3-prepare-the-execution-accounts-ssh-key)
 - [Step 4: Configure trust, credentials and platform inputs](#step-4-configure-trust-credentials-and-platform-inputs)
 - [Continue deployment and hand over later](#continue-deployment-and-hand-over-later)
+- [References](#references)
 
 ## Step 1: Clone the bootstrap VM
 
 1. In the Proxmox GUI, select the tested Linux template, then **Clone > Full Clone**.
+   A full clone removes the template/base-disk dependency; do not use a linked clone
+   for this recovery execution host.
 2. Enter the settings below; configure the clone's **Cloud-Init** before starting it.
 3. Start the clone. Verify its SSH host key through the console, then log in as
    `automation` and confirm `sudo -v` succeeds.
 
 An existing protected Linux workstation can satisfy Steps 2–4 instead. Do not use
-Talos as this general-purpose execution host. The VM is not an independent recovery copy.
+Talos as this general-purpose execution host. Export an accepted VM backup with both
+disks to independent offline storage and qualify its restore on a recovery host;
+a full clone running on this platform is not itself an independent recovery copy.
 
 | Setting | Reference choice |
 | --- | --- |
-| VM name | `bootstrap-1`, following the project's `<role>-<n>` convention |
+| VM name | `boot-1`; prefer a 3–8 character host label including the instance number |
 | VMID | `601` in the [VMID convention](../../../conventions/vmid-convention.md); reserve an unused automation ID if already occupied |
 | Compute | Start with 2 vCPUs / 4 GiB RAM; size for the selected tools and artifact processing |
-| Disks | Live Proxmox storage; allow separate capacity for unpacked images and provider upload staging |
+| OS disk | Live Proxmox storage, sized for the selected Linux OS and installed tools |
+| Data disk | Separate attached live-storage disk, mounted at `/srv/tier0` in this example; start with 60 GiB and size for retained images, expanded artifacts and upload staging |
 | Guest attachment | Current `management` network, example VLAN 10; follow the approved network plan |
-| Cloud-Init | Set clone-specific static IP/CIDR, gateway, independent DNS, user `automation` and an approved SSH public key |
+| Cloud-Init | Clone-specific static IP/CIDR, gateway and independent DNS; set **User** to `automation` and add each approved workstation's public key to **SSH public key**, one OpenSSH key per line [1] |
 | Administration | Verified SSH host key, authorized sudo, working time synchronization and console recovery |
 
 Use the selected [network plan](../../../conventions/network-plan.md) and
@@ -45,6 +51,11 @@ Use the selected [network plan](../../../conventions/network-plan.md) and
 prerequisite values, not new Terraform defaults. The management attachment can
 share the approved host-management subnet; it must not join the Corosync or Ceph
 transport networks. Sharing a subnet grants no API or SSH permissions.
+
+Add one or several approved public keys **on the clone before first boot**. Each
+workstation retains its own private key. Check login from each intended workstation;
+these keys authorize access to `boot-1`, not automatic access from it to later guests.
+Reusable templates retain no operator account or key list.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":10,"rankSpacing":6,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -55,12 +66,12 @@ flowchart LR
     T0Title["Tier 0 / Control layer"]
       subgraph PVE["Proxmox / management network"]
         direction LR
-        subgraph VM["bootstrap-1 / Linux VM"]
+        subgraph VM["boot-1 / Linux VM"]
           direction TB
           Tools["Git / Terraform<br/>Ansible / SSH"]
-          Artifacts[("Approved artifacts")]
-          Workspace[("Tier repositories<br/>Local inputs / state")]
-          Tools ~~~ Artifacts ~~~ Workspace
+          OS[("scsi0 / OS disk")]
+          Data[("scsi1 / data disk<br/>Repositories / state<br/>Artifacts / upload staging")]
+          Tools ~~~ OS ~~~ Data
         end
         subgraph Host["Host control / source"]
           direction TB
@@ -72,7 +83,7 @@ flowchart LR
       end
     T0Title ~~~ PVE
   end
-  Admin -->|SSH to bootstrap-1| T0
+  Admin -->|SSH to boot-1| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
@@ -85,16 +96,16 @@ flowchart LR
   class T0Title controlHeading
   class PVE boundary
   class VM,Tools runtime
-  class Image,Artifacts,Workspace data
+  class Image,OS,Data data
 ```
 
-**Manual:** this view adds one `bootstrap-1` VM using the profile above, not an IaC
+**Manual:** this view adds one `boot-1` VM with an OS disk and attached data disk, not an IaC
 resource. The initial template and host already exist. Its tools operate the
 owning tier's [template root](../../../../tier-0/terraform/deployments/templates/main.tf)
 and later deployment roots; they do not give Terraform ownership of this bootstrap VM.
 Independent encrypted backups/recovery copies remain **outside** this host/storage failure domain.
 The network label identifies the shown management interfaces, not the cluster/storage
-fabric. The SSH arrow enters `bootstrap-1`; it does not grant host-wide SSH access.
+fabric. The SSH arrow enters `boot-1`; it does not grant host-wide SSH access.
 
 Allow only the required paths, including same-subnet filtering where needed:
 
@@ -112,24 +123,71 @@ temporary acquisition path is not permission for unrestricted Tier 0 Internet ac
 
 ## Step 2: Prepare tools, repositories and artifacts
 
-**Run on `bootstrap-1` as `automation`.**
+**Run on `boot-1` as `automation`.** Prepare storage, then choose **2a** for approved
+network access or **2b** for a prepared offline bundle.
 
-1. Run the installation and verification commands in
-   [deployment tooling](../../../development/local-setup.md#automation-vm-example).
-   Return here after the matching OS/tooling steps. Git, Python/PyYAML and archive
-   utilities must work before generation; Terraform and Ansible are needed for deployments.
-2. Prepare and activate the [Ansible environment](../../../development/local-setup.md#ansible-environment).
-   Activate that same environment in later deployment shells. Template commands prepare
-   their own isolated runtime, but Linux `deploy.sh` also needs usable Ansible.
-3. Clone the kit and generate the collection below.
+### Prepare the attached workspace disk
+
+1. In **VM > Hardware > Add > Hard Disk**, add `scsi1` on the selected live-disk
+   datastore. Keep its **Backup** option enabled.
+2. In the guest, identify the attached disk with `lsblk -f`. Prepare its filesystem
+   and persistent mount using the selected OS's storage tools; confirm the device
+   before any formatting. Mount at `/srv/tier0` **before copying data there**.
+   An existing attached-disk mount is valid; adapt all absolute paths to that mount instead.
+   The Enterprise Linux storage manual covers filesystem preparation and UUID-based mounts. [3]
+3. Check the mount and free space:
+
+```bash
+findmnt -T /srv/tier0
+df -h / /srv/tier0 /tmp
+```
+
+Require the intended data filesystem, not `/` as an accidental fallback. Then create
+private workspace, artifact and upload directories on it:
+
+```bash
+(
+  mountpoint -q /srv/tier0 || { echo 'Mount the data filesystem before continuing.' >&2; exit 1; }
+  sudo install -d -m 0700 -o "$(id -un)" -g "$(id -gn)" \
+    /srv/tier0/src /srv/tier0/artifacts /srv/tier0/offline /srv/tier0/tmp/proxmox-upload
+)
+```
+
+Budget space for compressed downloads, unpacked images, Python/provider caches and
+upload copies together. This disk shares the VM/platform failure domain; back it up
+independently and include it in bootstrap VM backup jobs.
+
+**Optional, before installing tools/cloning:** follow [home directories on the data disk](bootstrap-home.md)
+to bind `/srv/tier0/home` at `/home`. This puts `.ssh` and user environments on the
+same attached disk while preserving the account and artifact paths. Rejoin at **2a/2b**.
+For an offline installation, that guide first obtains the bundle's OS tools, then
+moves homes before creating Python environments or cloning the kit.
+
+### 2a: Install through approved sources
+
+1. Run the OS/tool commands in the
+   [control-node reference](../../../reference/control-node-tooling.md#automation-vm-example).
+2. Prepare and activate its [Ansible environment](../../../reference/control-node-tooling.md#ansible-environment).
+   Keep it active for Linux `deploy.sh`; template commands select their own isolated runtime.
+3. Obtain the kit below. Restrict temporary acquisition access to approved sources.
+
+### 2b: Transfer a prepared bundle — offline alternative
+
+Follow the [offline bootstrap workflow](bootstrap-offline.md) to prepare on a matching
+connected machine, copy with `scp` or approved media, verify, then install without
+public package services. It lists OS packages, wheels, collections and providers
+separately from the images/repos required inside later guests and clusters.
+That path also restores the kit and generates the collection: skip the connected
+clone commands below and continue at **Step 3** after its checks pass.
+
+### 2a continued: Obtain the kit and generate the collection
 
 For a new workspace, obtain the reviewed kit revision using the approved source.
 The public clone example is:
 
 ```bash
 umask 077
-mkdir -p "$HOME/src"
-git clone https://github.com/Rexus/homelab.git "$HOME/src/homelab"
+git clone https://github.com/Rexus/homelab.git /srv/tier0/src/homelab
 ```
 
 A private mirror or transferred Git bundle is also valid. If a collection already
@@ -137,26 +195,20 @@ exists, restore it **including ignored inputs and original state**, not just tra
 code; do not initialize a replacement environment. For a new collection:
 
 ```bash
-cd "$HOME/src/homelab"
+cd /srv/tier0/src/homelab
 bash scripts/init-tier-repos.sh --prefix HomeLab
 ```
 
-This creates `$HOME/src/homelab-iac/`. Use `--root` to select another parent;
+This creates `/srv/tier0/src/homelab-iac/`. Use `--root` to select another parent;
 reuse that path/prefix during refresh. Keep the kit checkout separate from its
 five generated repositories; the collection directory is not a Git repository.
-Edit `$HOME/src/homelab-iac/homelab-architecture/platform-standards.md` with
+Edit `/srv/tier0/src/homelab-iac/homelab-architecture/platform-standards.md` with
 actual host names, VMIDs and network allocations. Record selected paths in the
 same repository's `docs/README.md`.
 Read the rendered upstream [Tier 0 checklist](../../../paths/tier-0/README.md) in
 the browser while executing commands from the named generated repository.
 
-4. Create the artifact directory outside Git:
-
-```bash
-sudo install -d -m 0700 -o "$(id -un)" -g "$(id -gn)" /srv/tier0/artifacts
-```
-
-Acquire the approved images/checksums and retain their provenance. Copy the first
+Acquire approved images/checksums into `/srv/tier0/artifacts` and retain their provenance. Copy the first
 manually uploaded Linux artifact here too if its file/template will be adopted.
 Follow [verify, unpack and upload](templates.md#step-1-verify-unpack-and-upload)
 for raw/qcow2 handling; catalog hashes describe the **unpacked** bytes. Retain
@@ -164,7 +216,7 @@ provider/tool/collection artifacts outside this VM for independent recovery.
 
 ## Step 3: Prepare the execution account's SSH key
 
-**Run on `bootstrap-1` as `automation`, outside the repositories.** The key used to
+**Run on `boot-1` as `automation`, outside the repositories.** The key used to
 log into this VM is not automatically available for connecting from it to new guests.
 Linux clone key lists are empty until configured in each consuming tier.
 
@@ -213,10 +265,10 @@ public key; Ansible uses its matching private key through SSH. See the
    the endpoint name. Browser trust on another workstation is insufficient.
 2. Follow [API setup](api-access.md#create-platform-automation-access) on a **Proxmox host**
    to create the scoped roles, group and token. Return here after its token permission checks.
-3. Back on **`bootstrap-1`**, initialize Tier 0's local files:
+3. Back on **`boot-1`**, initialize Tier 0's local files:
 
    ```bash
-   cd "$HOME/src/homelab-iac/homelab-tier-0"
+   cd /srv/tier0/src/homelab-iac/homelab-tier-0
    bash scripts/proxmox-templates.sh init
    ```
 
@@ -227,6 +279,7 @@ public key; Ansible uses its matching private key through SSH. See the
    PROXMOX_API_URL=https://pve01.example.internal:8006/
    PROXMOX_API_TOKEN_ID=automation@pve!provision
    PROXMOX_API_TOKEN_SECRET=replace-with-the-issued-secret
+   PROXMOX_VE_TMPDIR=/srv/tier0/tmp/proxmox-upload
    TF_VAR_ssh_public_key_files='["/home/automation/.ssh/id_ed25519.pub"]'
    ```
 
@@ -235,6 +288,7 @@ public key; Ansible uses its matching private key through SSH. See the
    Use a token scoped to that tier's authorized operations. Keep key contents out of
    `.tfvars`, templates and Git. Template commands require `--env-file .env.local`;
    Linux `deploy.sh` loads that file by default. No manual `source`/exports are needed.
+   `PROXMOX_VE_TMPDIR` keeps provider upload staging on the prepared data filesystem. [2]
 5. Edit **`../homelab-shared/config/platform.tfvars`** before the first managed guest:
 
    | Field | Enter |
@@ -268,6 +322,10 @@ Do not boot the reusable template or capture this credential-bearing VM back int
 ## Continue deployment and hand over later
 
 Keep using this collection for Stages 1-8 and the initial Stage 9 installation.
+After [Stage 1 consumer acceptance](../../stage-1-software-intake/README.md#step-3-connect-and-verify-consumers),
+configure `boot-1` to use the approved proxy/internal mirrors too. Remove temporary
+acquisition access only after package and tool downloads work through that policy;
+retain the offline bundle independently for recovery before the cache/mirrors exist.
 Create [local private Git history](../../../development/repository-workflow.md#local-history-before-hosted-source-control)
 before hosted source control exists. After
 GitLab and SSO are accepted, push each repository's reviewed code/history to its
@@ -277,9 +335,15 @@ A local checkout is not itself a reachable Flux source. Before Stage 4, provide
 the [independent bootstrap Git source](../../stage-4-kubernetes/procedures/flux-sops.md)
 and read credentials; later hosted GitLab must not be a bootstrap dependency.
 
-The later Tier 0 runner is **`iac-1`**, not another name for `bootstrap-1`.
+The later Tier 0 runner is **`iac-1`**, not another name for `boot-1`.
 Follow [bootstrap-to-CI handover](../../stage-9-development/procedures/handover.md)
 to restore the original collection/inputs/state, install CA trust on the runner,
 move routine credentials to scoped Vault job access and establish **one writer per root**.
 Keep independent recovery after handover; a VM on the same Proxmox platform cannot
 recover that platform's total loss by itself.
+
+## References
+
+1. [Proxmox Cloud-Init account and public-key fields](https://github.com/proxmox/pve-docs/blob/master/generated/qm-cloud-init-opts.adoc).
+2. [Proxmox provider upload staging and temporary directory](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/docs/index.md).
+3. [Enterprise Linux filesystem preparation and persistent mounts](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_file_systems/index).

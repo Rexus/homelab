@@ -127,6 +127,49 @@ class ControlNodeVersions(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn('changed=0', result.stdout)
 
+    def test_check_mode_never_acquires_missing_or_incompatible_collections(self):
+        binary_dir = self.root / 'bin'
+        binary_dir.mkdir()
+        log = self.root / 'galaxy-check.jsonl'
+        real_galaxy = shutil.which('ansible-galaxy')
+        shim = binary_dir / 'ansible-galaxy'
+        shim.write_text(
+            '#!/usr/bin/env python3\nimport json, os, sys\n'
+            'with open(os.environ["GALAXY_TEST_LOG"], "a") as log:\n'
+            '    log.write(json.dumps(sys.argv[1:]) + "\\n")\n'
+            'if sys.argv[1:3] != ["collection", "list"]:\n'
+            '    sys.exit("Offline precheck attempted dependency acquisition")\n'
+            f'os.execv({real_galaxy!r}, [{real_galaxy!r}, *sys.argv[1:]])\n')
+        shim.chmod(0o700)
+        self.env.update(PATH=f'{binary_dir}:{os.environ["PATH"]}', GALAXY_TEST_LOG=str(log),
+                        CONTROL_NODE_COLLECTIONS_MODE='check',
+                        ANSIBLE_GALAXY_SERVER='https://127.0.0.1:9', ANSIBLE_GALAXY_SERVER_TIMEOUT='1')
+        variables = dict(PLAY['vars'], control_node_setup='probe', control_node_require_terraform=False,
+                         control_node_setup_collection_names=dict(probe=['journey_probe.bounds']),
+                         control_node_collection_catalog={'journey_probe.bounds': dict(
+                             name='journey_probe.bounds', version='>=1.5.0,<2.0.0', os_packages={})})
+        for version, accepted, message in [
+                ('1.9.0', True, 'changed=0'),
+                ('1.0.0', False, 'Correct outdated or unversioned collections earlier'),
+                (None, False, 'check mode never downloads dependencies')]:
+            with self.subTest(version=version):
+                if version is None:
+                    shutil.rmtree(self.collections / 'ansible_collections/journey_probe/bounds')
+                else:
+                    self.collection(version)
+                result = self.run_tasks(deepcopy(PLAY['tasks']), variables)
+                self.assertEqual(result.returncode == 0, accepted, result.stdout + result.stderr)
+                self.assertIn(message, result.stdout + result.stderr)
+        calls = [json.loads(line) for line in log.read_text().splitlines()]
+        self.assertTrue(calls)
+        self.assertTrue(all(call[:2] == ['collection', 'list'] for call in calls), calls)
+
+    def test_invalid_collection_mode_fails_before_preparation(self):
+        self.env['CONTROL_NODE_COLLECTIONS_MODE'] = 'disabled'
+        result = self.run_tasks([task_named('Validate collection preparation mode')], PLAY['vars'])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('CONTROL_NODE_COLLECTIONS_MODE must be auto or check', result.stdout + result.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

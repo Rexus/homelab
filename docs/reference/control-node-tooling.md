@@ -9,6 +9,7 @@ start with [local development setup](../development/local-setup.md).
 - [Purpose](#purpose)
 - [Platform prerequisites](#platform-prerequisites)
 - [Deployment machine](#deployment-machine)
+- [Dependency inventory](#dependency-inventory)
 - [Automation VM example](#automation-vm-example)
 - [Ansible environment](#ansible-environment)
 - [Automatic template runtime](#automatic-template-runtime)
@@ -66,24 +67,28 @@ Require these tools there:
 
 Each deployment run starts with a local Ansible precheck on that deployment
 machine. That precheck is setup-aware: it verifies only the Ansible collections
-needed by the selected setup, tries to install missing collections from the OS
-package manager first, and falls back to `ansible-galaxy` only when the OS
-package path does not provide them.
+needed by the selected setup. Default `auto` mode tries missing collections from
+OS packages first, then uses Galaxy to converge declared version ranges; versioned
+requirements can still invoke Galaxy when installed. Set
+`CONTROL_NODE_COLLECTIONS_MODE=check` for a prepared disconnected controller:
+missing/incompatible effective collections fail without installing packages or
+contacting Galaxy for collection installation. This does not disable guest package tasks.
 For example, `foundation` includes directory and issuer requirements:
 `community.general`, `ansible.posix`, `freeipa.ansible_freeipa`, `community.crypto`
 and `ansible.mariadb`, while `cache` needs `community.general` and
 `ansible.posix`.
 
 Run the tier's `ansible/playbooks/control-node.yml`, which imports shared checks
-with tier-owned requirements. For offline use, pre-stage collections from
-`shared/ansible/requirements.yml` (the prefixed shared repo after generation)
-and any owning-tier `ansible/requirements.yml`. Shared owns `community.crypto`
+with tier-owned requirements. Follow the
+[offline bootstrap workflow](../deployment/foundation/proxmox/bootstrap-offline.md)
+for matching-host package/wheel preparation, transitive Galaxy archives, locked
+providers, verified SCP transfer and local installation. Shared owns `community.crypto`
 for private PKI and public ACME. Tier 0 adds `freeipa.ansible_freeipa` and
 `ansible.mariadb`. Each tier adds `kubernetes.core` and Python client dependencies
 for native cluster applications; network-scoped recipes also use `ansible.utils`
 for address validation. Install the owning tier's `ansible/requirements.txt` in the
 accepted virtual environment, not the operating system's Python environment.
-Keep collection artifacts on the recovery host so the precheck needs no network.
+Keep accepted artifacts independently and select collection `check` mode for recovery.
 Tier 0 template `apply` and `verify` also use `community.proxmox` to complete and
 inspect raw template settings; their [runtime setup](#automatic-template-runtime) is automatic
 and requires no guest SSH or hosted control service.
@@ -105,6 +110,23 @@ automatically with OpenSSH `StrictHostKeyChecking=accept-new`, while changed
 host keys still stop the run. When destroying and recreating test guests with the
 same IPs, use the deployment wrapper's `--reset-known-hosts` option for that
 setup.
+
+### Dependency inventory
+
+Use these declarations to prepare an execution host; retain the resolved artifacts
+with its reviewed kit revision. The manifests, not a second version list in prose,
+define package/collection bounds.
+
+| Dependency | Authoritative source / installation scope |
+| --- | --- |
+| OS commands | Git, Bash, Python/pip/venv, SSH, CA/curl/OpenSSL, archive utilities, Terraform and `qemu-img` listed above; [offline OS download/install](../deployment/foundation/proxmox/bootstrap-offline.md#1a-download-os-packages-and-reviewed-source) |
+| Optional home-directory migration | Pre-stage `rsync` and, on Enterprise Linux 10, `policycoreutils-python-utils` before restricting package access; included in the offline RPM download list for the [home-directory guide](../deployment/foundation/proxmox/bootstrap-home.md) |
+| Python execution runtime | Tier 0 [runtime requirements](../../tier-0/ansible/runtime-requirements.txt); accepted interpreter plus Ansible/PyYAML/HCL tooling |
+| Python module clients | Owning tier's requirements: [Tier 0](../../tier-0/ansible/requirements.txt), [Tier 1](../../tier-1/ansible/requirements.txt), [Tier 2](../../tier-2/ansible/requirements.txt); install in the accepted venv |
+| Ansible collections | [Shared](../../shared/ansible/requirements.yml) plus [Tier 0](../../tier-0/ansible/requirements.yml), [Tier 1](../../tier-1/ansible/requirements.yml), [Tier 2](../../tier-2/ansible/requirements.yml); include transitive archives |
+| Generator only | Upstream kit `scripts/tier-repos/requirements.txt`; [generation prerequisite contract](../development/generated-repositories.md#purpose-and-prerequisites) |
+| Terraform providers | Each selected tier-local `terraform/deployments/<setup>/.terraform.lock.hcl`; [mirror selected roots without upgrading](../deployment/foundation/proxmox/bootstrap-offline.md#1c-mirror-locked-providers-and-stage-guest-artifacts) |
+| Guest/service and Kubernetes software | Selected stage's roles, group vars, chart/product inputs and image sources; **outside** the controller dependency bundle, even when controller Python clients are included |
 
 ## Automation VM example
 
@@ -140,7 +162,8 @@ qemu-img --version
 Before running Ansible, prepare the [Ansible environment](#ansible-environment) below.
 Use versions satisfying the selected Terraform roots and Ansible collections;
 an installed executable alone is not compatibility evidence. For an offline host,
-transfer approved packages/wheels/provider/collection archives first. Do not make
+use the [connected-host bundle preparation and SCP handoff](../deployment/foundation/proxmox/bootstrap-offline.md).
+Do not make
 this initial tool setup depend on the proxy/cache or hosted registry being deployed.
 
 For other distributions, follow the current official install guides for
@@ -173,8 +196,8 @@ venv support. Use the selected Python version's package where applicable. [5]
 Activate the same environment in each new deployment shell before invoking tier
 scripts. Install the owning tier's `ansible/requirements.txt` there and its declared
 collections through that environment's `ansible-galaxy`; avoid `sudo pip` and user-site
-installs mixed with a different system Ansible. Use approved pre-staged wheels and
-collections for offline installation; retain accepted versions for recovery.
+installs mixed with a different system Ansible. For local-only installation, use
+the [offline workflow](../deployment/foundation/proxmox/bootstrap-offline.md#3b-restore-the-kit-and-install-the-isolated-pythonansible-environment).
 
 ### Automatic template runtime
 
@@ -193,7 +216,7 @@ Later runs reuse compatible packages without forcing upgrades.
 | Missing OS packages | Use root/sudo; prompt for sudo locally when needed, never prompt in CI |
 | `TEMPLATE_PYTHON=/path/to/python` | Select an already installed Python 3.12–3.14 explicitly |
 | `TEMPLATE_RUNTIME_MODE=check` | Use preinstalled tools and existing checks; perform no dependency installation |
-| Offline package sources | Use normal pip/Galaxy configuration and pre-staged collections; `PIP_NO_INDEX` and `PIP_FIND_LINKS` apply |
+| Offline package sources | Install local wheels/collection tarballs first, then select `check`; `PIP_NO_INDEX`/`PIP_FIND_LINKS` alone do not prevent Galaxy access |
 
 Pip packages stay inside the isolated runtime; system Ansible and the default Python
 selection are retained. New Python minor versions get separate runtime directories.
@@ -254,6 +277,7 @@ encrypted off-host recovery separately.
 ## Read more
 
 - [Environment variable conventions](../reference/environment-variables.md)
+- [Offline bootstrap preparation and later approved-source handover](../deployment/foundation/proxmox/bootstrap-offline.md)
 - [Repository scripts](../reference/repository-scripts.md)
 - [Secret strategy](../administration/secret-handling/strategy.md)
 - [Identity foundation path](../deployment/stage-5-identity/procedures/freeipa.md)

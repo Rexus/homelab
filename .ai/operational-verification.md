@@ -155,6 +155,15 @@ The focused sections above do not accept the rest of the platform. After those
 gates pass, continue the broader operator journey:
 
 - [ ] Cold-start gateway/controller, switches and the first server with only the offline kit.
+- [ ] Restore the full-clone bootstrap backup on a recovery host with the original platform
+  unavailable. Include its OS and workspace disks, original state, ignored inputs and key
+  custody. Verify logins for the approved workstation keys and outbound deployment access.
+  If data-disk homes are selected, verify mount order, SELinux/SSH permissions and recovery
+  with the data disk unavailable; stale homes must not silently become the active account data.
+- [ ] Install the bootstrap tools from the transferred bundle with public egress denied.
+  Record OS/Python/architecture and kit revision, dependency resolution, verified provider
+  initialization and a non-mutating API plan. After intake acceptance, verify bootstrap
+  updates through the approved proxy/mirrors and rejected direct WAN bypass.
 - [ ] Boot a disposable clone; verify SSH, DNS, time, network denials and backup restore.
 - [ ] If [SDN subnet lookup](../docs/reference/network-inputs.md#sdn-subnet-lookup) is selected,
   verify a disposable Linux/container and Kubernetes plan against applied Proxmox metadata.

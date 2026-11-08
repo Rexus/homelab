@@ -26,7 +26,7 @@ bash scripts/init-local-files.sh --setup lab
 ```
 
 Existing local files are preserved. This does not make untouched example values deployable.
-An enabled `support-1` LXC needs its actual `template_file_id`; a VM-only new project
+An enabled `util-1` LXC needs its actual `template_file_id`; a VM-only new project
 omits that host/IP and uses `lxc_instances = {}` before its first apply.
 Existing managed resources require their original inputs/state.
 

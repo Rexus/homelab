@@ -6,7 +6,7 @@ runner; each target tier keeps its definitions, inventory, inputs and state.
 GitLab backup/recovery and a maintained independent Tier 0 workstation.
 This path runs **trusted operator IaC**, not untrusted Tier 2 request code.
 It continues the [foundation bootstrap-host workflow](../../foundation/proxmox/bootstrap.md):
-`bootstrap-1` runs the initial deployments; the new `iac-1` becomes the protected runner.
+`boot-1` runs the initial deployments; the new `iac-1` becomes the protected runner.
 Push the reviewed local repository histories after GitLab is accepted, but transfer
 ignored inputs/state separately through the protected restore path below.
 

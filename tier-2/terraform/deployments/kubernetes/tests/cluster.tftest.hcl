@@ -44,6 +44,10 @@ variables {
 run "clone_and_bootstrap_contract" {
   command = plan
   assert {
+    condition     = alltrue([for vm in proxmox_virtual_environment_vm.node : vm.network_device[0].firewall])
+    error_message = "Control-plane and worker NICs must explicitly enable firewall participation."
+  }
+  assert {
     condition = (
       length(proxmox_virtual_environment_vm.node) == 4 &&
       proxmox_virtual_environment_vm.node["k8ctl-2"].clone[0].node_name == "pve-image" &&

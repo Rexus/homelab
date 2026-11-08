@@ -116,6 +116,9 @@ An empty domain list is rejected; there is no unrestricted fallback.
 
 The selected data device (`/dev/sdb` by default) is formatted for rebuildable cache data.
 Confirm that the cache VMs and their extra disks contain no required data.
+The plan enables each Proxmox NIC's Firewall flag; review the separate
+[guest-filtering controls](../foundation/network/firewall.md#proxmox-guest-interfaces)
+before applying it to existing guests. Ansible's guest `firewalld` settings are independent.
 
 ```bash
 bash scripts/deploy.sh cache
@@ -181,6 +184,15 @@ Continue at **3**.
 
 ## Step 3: Connect and verify consumers
 
+### 3a: Configure the existing bootstrap host
+
+Follow the [local bootstrap consumer steps](bootstrap-consumer.md) on `boot-1` in the Tier 0
+repository. Select proxy or native mirrors, apply the local recipe and verify access before
+retiring temporary acquisition egress. This manually created host is not automatically configured
+by the cache deployment; no inventory entry or Terraform adoption is required.
+
+### 3b: Configure later Linux deployments
+
 For each later Linux deployment, edit that tier's ignored `ansible/group_vars/all.yml`
 after its initialization step. Add or replace these consumer settings:
 
@@ -196,7 +208,10 @@ a temporary hosts entry before DNS exists. Leave the cache setup's own proxy ove
 The later deployment's Shared [baseline role](../../../shared/ansible/roles/baseline/tasks/repository_proxy.yml)
 applies these inputs; this step does not deploy those future hosts.
 
-From the bootstrap host and a permitted consumer network, test the selected endpoint:
+### 3c: Accept the consumer path
+
+From the bootstrap host and a permitted consumer network, test the selected proxy endpoint
+(native-mirror consumers use their commissioned package/tool checks instead):
 
 ```bash
 read -r -p "Proxy URL (example: http://10.30.30.22:3128): " PROXY_URL

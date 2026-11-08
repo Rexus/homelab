@@ -70,9 +70,9 @@ flowchart TB
     Controller["Existing Ansible controller<br/>Private order state / renewal timer"]
     subgraph PVE["Existing Proxmox / external_edge VMs"]
       direction TB
-      A["edge-lb-1<br/>HAProxy / local HTTP-01"]
-      B["edge-lb-2<br/>HAProxy / local HTTP-01"]
-      C["edge-lb-3<br/>HAProxy / local HTTP-01"]
+      A["lb-1<br/>HAProxy / local HTTP-01"]
+      B["lb-2<br/>HAProxy / local HTTP-01"]
+      C["lb-3<br/>HAProxy / local HTTP-01"]
       A ~~~ B ~~~ C
     end
     Controller -->|Challenges / verified PEM deployment| PVE

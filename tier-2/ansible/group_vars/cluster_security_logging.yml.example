@@ -24,19 +24,20 @@ cluster_security_logging_host_access_accepted: false
 cluster_security_logging_manage_secrets: false
 # Exact observed IPv4 and approved client certificate subject; no Tier 0/1 credentials are reused.
 cluster_security_logging_nodes:
-  - name: workload-k8ctl-1
+  # Node names match inventory; stream and Secret identities remain stable independently.
+  - name: wctl-1
     control_plane: true
     stream: workload-k8ctl-1
     source_address: REPLACE_WITH_OBSERVED_IP
     tls_secret: workload-k8ctl-1-tls
     tls_dn: CN=workload-k8ctl-1
-  - name: workload-k8ctl-2
+  - name: wctl-2
     control_plane: true
     stream: workload-k8ctl-2
     source_address: REPLACE_WITH_OBSERVED_IP
     tls_secret: workload-k8ctl-2-tls
     tls_dn: CN=workload-k8ctl-2
-  - name: workload-k8ctl-3
+  - name: wctl-3
     control_plane: true
     stream: workload-k8ctl-3
     source_address: REPLACE_WITH_OBSERVED_IP

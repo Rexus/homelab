@@ -31,14 +31,14 @@ flowchart TB
       subgraph A["pve01"]
         direction TB
         O1["otel-1"]
-        M1["metrics-1"]
+        M1["metric-1"]
         S1["search-1"]
         O1 ~~~ M1 ~~~ S1
       end
       subgraph B["pve02"]
         direction TB
         O2["otel-2"]
-        M2["metrics-2"]
+        M2["metric-2"]
         S2["search-2"]
         O2 ~~~ M2 ~~~ S2
       end
@@ -64,10 +64,10 @@ This is not an installed or accepted HA service.
 | Role | Starter hosts | Responsibility |
 | --- | --- | --- |
 | Telemetry gateways | `otel-1`, `otel-2` | Collector pipelines and bounded buffers |
-| Metrics backend | `metrics-1`, `metrics-2` | Independent VictoriaMetrics copies |
+| Metrics backend | `metric-1`, `metric-2` | Independent VictoriaMetrics copies |
 | Search backend | `search-1`, `search-2`, `search-3` | OpenSearch cluster members, not syslog receivers |
 
-`otel` is the recognized OpenTelemetry project abbreviation; `metrics` and
+`otel` is the recognized OpenTelemetry project abbreviation; `metric` and
 `search` name backend roles. Dashboards, query routing and processing are services,
 not an implied extra VM per box. Their runtime/resources must be selected explicitly.
 

@@ -25,7 +25,7 @@ vm_instances = {
 }
 
 lxc_instances = {
-  "support-1" = {
+  "util-1" = {
     vm_id            = 3202
     # Replace with the Proxmox LXC template file ID you actually uploaded.
     template_file_id = "local:vztmpl/linux-default-change-me.tar.xz"

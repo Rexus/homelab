@@ -254,6 +254,11 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                 continue
             self.assertTrue(header.endswith("| Comments |"), header)
         self.assertIn("<env>-<role>-<n>", content)
+        self.assertIn("| VM name-part order | `<role>-<n>`", content)
+        self.assertIn("Prefer 3–8 characters", content)
+        self.assertIn("state and identity migration", content)
+        for abbreviation in ("boot", "lb", "repo", "kv", "pctl", "wctl", "util", "cadm"):
+            self.assertIn(f"| `{abbreviation}` |", content)
         for example in ("critical", "restricted",
                         "10.10.10.0/24", "10.20.20.0/24", "10.30.30.0/24"):
             self.assertIn(example, content)

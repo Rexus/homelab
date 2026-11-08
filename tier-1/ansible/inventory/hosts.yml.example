@@ -14,16 +14,16 @@ all:
         git-1: {}
     development_data:
       hosts:
-        gitlab-db-1: {}
-        gitlab-redis-1: {}
-        gitlab-gitaly-1: {}
+        db-1: {}
+        kv-1: {}
+        repo-1: {}
     observability:
       hosts:
         # Dedicated-VM alternative only; normal services use the Tier 1 cluster.
         otel-1: {}
         otel-2: {}
-        metrics-1: {}
-        metrics-2: {}
+        metric-1: {}
+        metric-2: {}
         search-1: {}
         search-2: {}
         search-3: {}
@@ -39,9 +39,9 @@ all:
         talos_workers: null
     talos_control_plane:
       hosts:
-        platform-k8ctl-1: {}
-        platform-k8ctl-2: {}
-        platform-k8ctl-3: {}
+        pctl-1: {}
+        pctl-2: {}
+        pctl-3: {}
     talos_workers:
       hosts: {}
     guests:

@@ -68,6 +68,7 @@ resource "proxmox_virtual_environment_vm" "node" {
     vlan_id     = each.value.vlan_id
     model       = "virtio"
     mac_address = each.value.mac_address
+    firewall    = true
   }
 
   # NoCloud carries networking only; Talos API owns machine config, not Linux users or Ansible.

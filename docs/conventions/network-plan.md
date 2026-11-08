@@ -124,9 +124,9 @@ and [SDN lookup](../reference/network-inputs.md#sdn-subnet-lookup).
 | Optional external VM runner: `runner-1` | Tier 1 [Podman runner](../../tier-1/terraform/deployments/podman-runner/terraform.tfvars.example) | `delivery_edge` → `vmbr0`, VLAN 321; `build` is the SDN alternative | [Development platform](../deployment/stage-9-development/README.md) |
 | Optional VM observability: `otel-*`, `metrics-*`, `search-*` | Tier 1 [VM alternative](../../tier-1/terraform/deployments/observability/terraform.tfvars.example) | `observability` → `obs`, VLAN 130; OS baseline, not product installers | [VM option](../deployment/stage-8-observability/step-1b-dedicated-vms.md) |
 | Ordinary proxy/cache: `cache-1`, `cache-2` | Tier 2 [cache](../../tier-2/terraform/deployments/cache/terraform.tfvars.example) | `external_edge` → `vmbr0`, VLAN 320; `edge` is the SDN alternative | [Stage 1](../deployment/stage-1-software-intake/README.md) |
-| Edge load balancers: `edge-lb-*` | Tier 2 [edge](../../tier-2/terraform/deployments/edge/terraform.tfvars.example) | `external_edge` → VLAN 320 | [Edge publication](../deployment/stage-7-delivery/README.md) |
+| Edge load balancers: `lb-*` | Tier 2 [edge](../../tier-2/terraform/deployments/edge/terraform.tfvars.example) | `external_edge` → VLAN 320 | [Edge publication](../deployment/stage-7-delivery/README.md) |
 | Lab cluster | Tier 2 [cluster](../../tier-2/terraform/deployments/kubernetes/terraform.tfvars.example) | Nodes → `vmbr0`, VLAN 420; `lab` is the SDN alternative | [Stage 10](../deployment/stage-10-lab-environments/README.md) |
-| Linux lab: `lab-1`, `support-1` | Tier 2 [lab](../../tier-2/terraform/deployments/lab/terraform.tfvars.example) | `application` inherits shared VLAN 120 until the lab override is selected | [Lab attachment override](../reference/network-inputs.md#guest-attachment) |
+| Linux lab: `lab-1`, `util-1` | Tier 2 [lab](../../tier-2/terraform/deployments/lab/terraform.tfvars.example) | `application` inherits shared VLAN 120 until the lab override is selected | [Lab attachment override](../reference/network-inputs.md#guest-attachment) |
 
 ## Segmentation
 

@@ -6,7 +6,7 @@ not a numbered capability stage.
 
 **Start on:** an independent privileged workstation with physical/console recovery access.
 **Working repository:** `<prefix>-tier-0` after generation (source: `tier-0/`).
-**Continue on:** `bootstrap-1`, then the generated `homelab-tier-0` repository.
+**Continue on:** `boot-1`, then the generated `homelab-tier-0` repository.
 The examples use the **HomeLab** prefix; generated folder names are lowercase.
 **Design:** [compute](../../architecture/hosting/README.md) and
 [network boundaries](../../architecture/networking/README.md).

@@ -43,7 +43,7 @@ def settings(output, tier=0):
         "cluster_security_logging_receiver": "127.0.0.1",
         "cluster_security_logging_receiver_name": "localhost",
         "cluster_security_logging_nodes": [{
-            "name": ["k8ctl-1", "platform-k8ctl-1", "workload-k8ctl-1"][tier],
+            "name": ["k8ctl-1", "pctl-1", "wctl-1"][tier],
             "stream": "producer", "source_address": "127.0.0.1",
             "tls_secret": "node-tls", "tls_dn": "CN=producer", "control_plane": True,
         }],
@@ -68,6 +68,19 @@ def port():
 
 
 class SecurityLogging(TierRepositoryTestCase):
+    def test_short_node_names_keep_enrolled_stream_and_secret_identities(self):
+        for tier, short, stream in ((1, "pctl", "platform-k8ctl"), (2, "wctl", "workload-k8ctl")):
+            inputs = UPSTREAM / f"tier-{tier}/ansible/group_vars"
+            values = yaml.safe_load((inputs / "cluster_security_logging.yml.example").read_text())
+            nodes = values["cluster_security_logging_nodes"]
+            self.assertEqual([node["name"] for node in nodes], [f"{short}-{n}" for n in range(1, 4)])
+            for n, node in enumerate(nodes, 1):
+                self.assertEqual(node["stream"], f"{stream}-{n}")
+                self.assertEqual(node["tls_dn"], f"CN={stream}-{n}")
+                self.assertEqual(node["tls_secret"], f"{stream}-{n}-tls")
+            secrets = yaml.safe_load((inputs / "cluster_security_logging_secrets.yml.example").read_text())
+            self.assertIn(f"security-logging/{stream}-1-tls", secrets["cluster_security_logging_secrets"])
+
     def test_generated_ownership_and_tier_input_node_names(self):
         self.generate()
         self.assertTrue((self.root / "verify-shared/ansible/roles/cluster_security_logging/tasks/main.yml").is_file())

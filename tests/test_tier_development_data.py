@@ -35,8 +35,13 @@ class DevelopmentData(unittest.TestCase):
         defaults = yaml.safe_load((ROLE / "defaults/main.yml").read_text())
         inventory = yaml.safe_load((TIER / "ansible/inventory/hosts.yml.example").read_text())
         hosts = inventory["all"]["children"]["development_data"]["hosts"]
-        self.assertEqual(set(hosts), set(defaults["development_data_hosts"]))
-        ips = yaml.safe_load((TIER / "ansible/group_vars/development_data.yml.example").read_text())["platform_host_ips"]
+        inputs = yaml.safe_load((TIER / "ansible/group_vars/development_data.yml.example").read_text())
+        self.assertEqual(set(hosts), set(inputs["development_data_hosts"]))
+        self.assertEqual(inputs["development_data_hosts"], {"db-1": "postgresql", "kv-1": "redis", "repo-1": "gitaly"})
+        # Old private inputs without an explicit map keep their legacy role selection.
+        self.assertEqual(defaults["development_data_hosts"], {
+            "gitlab-db-1": "postgresql", "gitlab-redis-1": "redis", "gitlab-gitaly-1": "gitaly"})
+        ips = inputs["platform_host_ips"]
         self.assertTrue(set(hosts).issubset(ips))
         database = yaml.safe_load((ROLE / "tasks/postgresql.yml").read_text())
         self.assertEqual(database[0]["community.postgresql.postgresql_db"]["owner"], "gitlab")
@@ -99,6 +104,11 @@ class DevelopmentData(unittest.TestCase):
                 check=True, capture_output=True, text=True,
             )
             defaults = yaml.safe_load((ROLE / "defaults/main.yml").read_text())
+            # Simulate an older private inventory, which refresh must not rename.
+            legacy_inventory = yaml.safe_load(inventory.read_text())
+            legacy_inventory["all"]["children"]["development_data"]["hosts"] = {
+                name: {} for name in defaults["development_data_hosts"]}
+            inventory.write_text(yaml.safe_dump(legacy_inventory))
             password = work / "restic.password"
             password.write_text(hashlib.sha256(b"independent offline backup password").hexdigest())
             inputs = {
@@ -246,6 +256,22 @@ class DevelopmentData(unittest.TestCase):
                     result = run(overrides)
                     self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
                     self.assertNotIn("Gather the target operating system facts", result.stdout)
+
+            # New private inputs override the fallback explicitly; the same native
+            # recipe must render the short hostnames without migrating old inputs.
+            starter = yaml.safe_load((TIER / "ansible/group_vars/development_data.yml.example").read_text())
+            short_hosts = starter["development_data_hosts"]
+            shutil.copyfile(TIER / "ansible/inventory/hosts.yml.example", inventory)
+            short = run({
+                "development_data_hosts": short_hosts,
+                "platform_host_ips": {name: f"192.0.2.{n}" for n, name in enumerate(short_hosts, 10)},
+                "development_data_backup_repository": {
+                    name: f"sftp:backup@recovery.lab.test:/backups/{name}" for name in short_hosts},
+            })
+            self.assertEqual(short.returncode, 0, short.stdout + short.stderr)
+            for host in short_hosts:
+                self.assertTrue((output / f"{host}.rb").is_file(), host)
+                self.assertIn(f"/backups/{host}", (output / f"{host}-backup.env").read_text())
 
 
 if __name__ == "__main__":

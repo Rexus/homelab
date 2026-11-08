@@ -30,7 +30,7 @@ class DevelopmentDataFilesystemBackup(unittest.TestCase):
         self.mount.mkdir()
         self.command(["mount", "-t", "tmpfs", "-o", "size=64m", "development-data-test", str(self.mount)])
         self.addCleanup(lambda: self.command(["umount", "-l", str(self.mount)], check=False))
-        self.repository = self.mount / "gitlab-db-1"
+        self.repository = self.mount / "db-1"
         self.repository.mkdir()
         self.marker = self.mount / ".development-data-backup-target"
         self.marker.write_text("unique-commissioned-backup-target-0001\n")
@@ -38,11 +38,11 @@ class DevelopmentDataFilesystemBackup(unittest.TestCase):
         self.config.mkdir()
         (self.config / "backup.password").write_text("independent-restic-encryption-password")
         self.inputs = {
-            "inventory_hostname": "gitlab-db-1", "data_component": "postgresql",
+            "inventory_hostname": "db-1", "data_component": "postgresql",
             "development_data_backup_transport": "filesystem",
-            "development_data_backup_repository": {"gitlab-db-1": str(self.repository)},
+            "development_data_backup_repository": {"db-1": str(self.repository)},
             "development_data_backup_min_free_bytes": 1,
-            "development_data_backup_filesystem": {"gitlab-db-1": {
+            "development_data_backup_filesystem": {"db-1": {
                 # Exercise the real guard on a private local mount; production inputs reject tmpfs.
                 "mount": str(self.mount), "source": "development-data-test", "fstype": "tmpfs",
                 "marker": self.marker.read_text().strip(), "uid": 0, "gid": 0}},
@@ -116,7 +116,7 @@ class DevelopmentDataFilesystemBackup(unittest.TestCase):
         self.assertEqual((self.repository / "orphan-data").read_text(), "preserve")
 
     def test_wrong_source_type_marker_and_space_fail_before_writes(self):
-        contract = self.inputs["development_data_backup_filesystem"]["gitlab-db-1"]
+        contract = self.inputs["development_data_backup_filesystem"]["db-1"]
         for key, value in (("source", "wrong-nas"), ("fstype", "nfs4"), ("marker", "wrong-marker")):
             with self.subTest(key=key):
                 original = contract[key]
@@ -137,7 +137,7 @@ class DevelopmentDataFilesystemBackup(unittest.TestCase):
         self.marker.write_text("unique-commissioned-backup-target-0001")
         self.reject()
         self.assertEqual(list(self.repository.iterdir()), [])
-        self.inputs["development_data_backup_filesystem"]["gitlab-db-1"]["mount"] = "/"
+        self.inputs["development_data_backup_filesystem"]["db-1"]["mount"] = "/"
         self.render()
         self.reject()
 
@@ -159,8 +159,8 @@ class DevelopmentDataFilesystemBackup(unittest.TestCase):
         (self.repository / "config").unlink()
         alias = self.work / "alias"
         alias.symlink_to(self.mount)
-        self.inputs["development_data_backup_filesystem"]["gitlab-db-1"]["mount"] = str(alias)
-        self.inputs["development_data_backup_repository"]["gitlab-db-1"] = str(alias / self.repository.name)
+        self.inputs["development_data_backup_filesystem"]["db-1"]["mount"] = str(alias)
+        self.inputs["development_data_backup_repository"]["db-1"] = str(alias / self.repository.name)
         self.render()
         self.reject()
 
@@ -173,7 +173,7 @@ class DevelopmentDataFilesystemBackup(unittest.TestCase):
             self.command(["umount", str(self.repository)])
 
     def test_effective_uid_and_inaccessible_repository_fail_closed(self):
-        contract = self.inputs["development_data_backup_filesystem"]["gitlab-db-1"]
+        contract = self.inputs["development_data_backup_filesystem"]["db-1"]
         contract["uid"] = 65534
         self.render()
         self.reject()

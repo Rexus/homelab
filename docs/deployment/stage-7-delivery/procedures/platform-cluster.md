@@ -121,8 +121,8 @@ return to [Stage 7 Step 2](../README.md#step-2-select-and-qualify-delivery).
 
 ## Capacity and delivery choices
 
-The starter has three schedulable control-plane VMs, `platform-k8ctl-1` through
-`platform-k8ctl-3`. Add workers in the tier-local inputs before reserving control
+The starter has three schedulable control-plane VMs, `pctl-1` through
+`pctl-3`. Add workers in the tier-local inputs before reserving control
 planes for Kubernetes components. Review rendered Harbor, Spinnaker, Observability
 and GitLab requests; starter sizing is not capacity for every later service.
 Retain headroom for a physical-host failure, upgrades and recovery.

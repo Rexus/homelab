@@ -27,20 +27,34 @@ class VmidConventions(TierRepositoryTestCase):
             allocated[vmid] = location
 
         for tier in range(3):
+            inventory = yaml.safe_load((UPSTREAM / f"tier-{tier}/ansible/inventory/hosts.yml.example").read_text())
+            groups = inventory["all"]["children"]
+            inventory_hosts = {host for group in groups.values()
+                               for host in ((group or {}).get("hosts") or {})}
+            builders = {host for group in ("immutable_template_builders", "template_refresh_builders")
+                        for host in (groups.get(group, {}).get("hosts") or {})}
+            for name in inventory_hosts - builders:
+                self.assertTrue(3 <= len(name) <= 8, f"tier-{tier}: {name}")
+                self.assertRegex(name, r"^[a-z][a-z0-9-]*-[0-9]+$")
+            control_planes = set(groups["talos_control_plane"]["hosts"] or {})
+            workers = set(groups["talos_workers"]["hosts"] or {})
             for path in sorted((UPSTREAM / f"tier-{tier}/terraform/deployments").glob("*/terraform.tfvars.example")):
                 with path.open(encoding="utf-8") as stream:
                     values = hcl2.load(stream)
                 setup = path.parent.name
                 for name, guest in {**values.get("vm_instances", {}), **values.get("lxc_instances", {}),
                                     **values.get("nodes", {})}.items():
+                    name = name.strip('"')  # python-hcl2 may retain quoted object-key delimiters.
                     vmid = guest["vm_id"]
                     location = f"tier-{tier}/{setup}/{name}"
+                    self.assertIn(name, inventory_hosts, location)
                     reserve(vmid, location)
                     if setup in ("template-refresh", "immutable-template"):
                         self.assertTrue(9000 <= vmid <= 9999, location)
                         continue
                     if setup == "kubernetes":
-                        category = 0 if "k8ctl" in name else 1
+                        self.assertIn(name, control_planes | workers, location)
+                        category = 0 if name in control_planes else 1
                     else:
                         category = linux_categories[tier][setup]
                     group = 3 if tier == 2 and setup in ("lab", "kubernetes") else tier

@@ -12,9 +12,9 @@ all:
   children:
     edge_load_balancers:
       hosts:
-        edge-lb-1: {}
-        edge-lb-2: {}
-        edge-lb-3: {}
+        lb-1: {}
+        lb-2: {}
+        lb-3: {}
     cache:
       hosts:
         cache-1: {}
@@ -22,7 +22,7 @@ all:
     lab:
       hosts:
         lab-1: {}
-        support-1: {}
+        util-1: {}
     # Kubernetes hosts share this tier's inventory, but never the Linux baseline.
     talos:
       children:
@@ -30,9 +30,9 @@ all:
         talos_workers: null
     talos_control_plane:
       hosts:
-        workload-k8ctl-1: {}
-        workload-k8ctl-2: {}
-        workload-k8ctl-3: {}
+        wctl-1: {}
+        wctl-2: {}
+        wctl-3: {}
     talos_workers:
       hosts: {}
     guests:

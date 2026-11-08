@@ -46,9 +46,10 @@ resource "proxmox_virtual_environment_container" "this" {
   }
 
   network_interface {
-    name    = "eth0"
-    bridge  = var.bridge
-    vlan_id = var.vlan_id
+    name     = "eth0"
+    bridge   = var.bridge
+    vlan_id  = var.vlan_id
+    firewall = true
   }
 
   initialization {
