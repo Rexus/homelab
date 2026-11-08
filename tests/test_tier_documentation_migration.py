@@ -33,6 +33,12 @@ class DocumentationMigration(TierRepositoryTestCase):
             self.assertTrue((reference / new).is_file(), new)
         for domain in ("networking", "hosting", "data", "identity", "cryptography", "software", "operations"):
             self.assertTrue((reference / "architecture" / domain / "README.md").is_file())
+        self.assertFalse((reference / "administration/compute").exists())
+        for relative in ("hosts/proxmox-tls.md", "virtual-machines/template-lifecycle.md",
+                         "backups/virtual-machines.md", "backups/recovery-set.md", "terraform-state.md",
+                         "recovery/bootstrap.md", "recovery/virtual-machines.md",
+                         "recovery/host.md", "recovery/platform.md"):
+            self.assertTrue((reference / "administration" / relative).is_file(), relative)
         for repo in self.root.iterdir():
             self.assertFalse((repo / "docs/owned").exists())
             self.assertFalse((repo / "docs/architecture.md").exists())
@@ -95,7 +101,11 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "architecture/compute/README.md", "architecture/compute/runtime.md",
                     "architecture/delivery/README.md", "architecture/delivery/controllers.md",
                     "architecture/hosting/vmid-convention.md", "reference/proxmox-conventions.md",
-                    "reference/network-plan.md"]
+                    "reference/network-plan.md",
+                    "administration/compute/backup-restore.md",
+                    "administration/compute/proxmox-tls.md",
+                    "administration/compute/template-lifecycle.md",
+                    "administration/compute/reinstall.md"]
         for old in examples:
             relative = f"docs/auto-docs/{old}"
             path = repo / relative

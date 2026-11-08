@@ -73,7 +73,7 @@ used by other systems. Its builder consumes approved images with a local
 recovery copy; a live Tier 1 registry or runner must not be required to rebuild
 it. General build services can prepare candidates, but acceptance and privileged
 publication remain protected at Tier 0. Offline custody uses separate transfers.
-See [Template lifecycle](../../administration/compute/template-lifecycle.md).
+See [Template lifecycle](../../administration/virtual-machines/template-lifecycle.md).
 
 Harbor is not required to start with bootc. The first useful internal path can
 run during the GitLab stage by using a dedicated GitLab runner and GitLab's

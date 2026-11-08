@@ -307,7 +307,7 @@ an explicit resource/secret adoption plan before using this root; see
 Add workers explicitly to the owning tier's inventory, IP map and `nodes` map.
 Optional `pool = "compute"` emits `node-pool=compute`; Tier 1 may use infrastructure,
 stateful or compute pools, and Tier 2 development, testing or lab pools. No nodes
-are automatically scaled. Use the [pool operations](../../../administration/compute/kubernetes-pools.md)
+are automatically scaled. Use the [pool operations](../../../administration/kubernetes-pools.md)
 for selectors, taints and transition checks. Do not remove existing workers simply
 to match a newer example. `allow_scheduling_on_control_planes` defaults to false
 for existing input objects; new compact examples explicitly set it to true.

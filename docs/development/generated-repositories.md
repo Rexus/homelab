@@ -271,7 +271,7 @@ Do not replace the complete file or transfer existing resources/state implicitly
 Tier 0 also owns the template module, publication script, Packer definitions,
 `terraform/deployments/templates/`, `templates/proxmox.yml.example`, and the seed-only
 `ci/gitlab-templates.yml.example`. The
-[template publisher](../administration/compute/template-lifecycle.md) is a separate
+[template publisher](../administration/virtual-machines/template-lifecycle.md) is a separate
 Terraform-only workflow for unbooted AlmaLinux, Rocky Linux, Debian, and Talos images;
 it is not a Linux guest setup in `.deployment-setups`. Its catalog has no guest
 IPs or credentials. Template-builder VMs retain the normal inventory contract.
@@ -303,7 +303,7 @@ policy. Offline custody must never become a connected backend.
 
 ## Run the generated automation
 
-First complete Tier 0's [foundation template publication](../administration/compute/template-lifecycle.md#local-workflow)
+First complete Tier 0's [foundation template publication](../administration/virtual-machines/template-lifecycle.md#local-workflow)
 and verify the template IDs in the consuming tier's mappings. Hosted CI and the
 control cluster are not prerequisites for that local workflow.
 
@@ -415,8 +415,9 @@ another operating system does not invalidate those hashes or break Bash scripts.
 | --- | --- |
 | New upstream file, never generated at that path | create it |
 | Managed file still matches its recorded generated hash | update from the kit |
-| Locally edited or unrecognized existing file | preserve and report it |
-| Previously generated file deleted locally | preserve the deletion |
+| Locally edited or unrecognized existing file at a current generation target | preserve; report a yellow entry when it differs from the current template |
+| Previously generated file deleted locally | preserve the deletion; show the current template for review |
+| Previously generated file outside the current generation | retain; report an existing file in red |
 | Live inventory, local vars, credentials, state | never targeted |
 | Root READMEs, project docs, bootstrap/cluster skeletons, CI starter, `.deployment-setups` | seed once; preserve thereafter, even when unchanged |
 
@@ -432,6 +433,51 @@ Keep local designs in `docs/architecture/`, procedures in `docs/deployment/`,
 A locally edited example or tier module is also
 preserved, so adopting upstream changes to it requires a manual comparison.
 
+### Refresh review summary
+
+After all selected repositories finish, refresh prints one final review list:
+
+| Label / terminal color | Meaning | Comparison reference |
+| --- | --- | --- |
+| `YELLOW` | A current generation target differs but was preserved: local edit, project-owned starter, unverified existing file or recorded deletion | Exact rendered template and its upstream source |
+| `RED` | A formerly generated file/starter or legacy documentation redirect remains outside the current fresh generation | Review its consumers and local ownership before cleanup |
+
+Untracked project additions, private inputs and state are not classified as retired. The report
+uses the generation manifest; it does not treat every extra file as obsolete. Project-owned
+documents and compatibility redirects may still be needed even when listed in red.
+
+Rendered comparison files are saved under the collection, outside every Git repository:
+
+```text
+<prefix>-iac/.refresh-review/<prefix>-tier-0/<original-relative-path>
+```
+
+They contain the **current generated version**, including the selected prefix and path substitutions.
+Existing comparison files are replaced by the next applicable refresh; local repository files remain
+protected by the normal ownership rules. These are diff inputs, not another deployment checkout.
+Use the latest report's paths; older, unlisted comparison files may remain for manual cleanup.
+For example, compare the printed paths with:
+
+```bash
+# Run on the workstation holding the generated collection.
+read -r -p 'Preserved local file path: ' LOCAL_FILE
+read -r -p 'Rendered template path from the review report: ' CURRENT_TEMPLATE
+git diff --no-index -- "$LOCAL_FILE" "$CURRENT_TEMPLATE"
+```
+
+`git diff` returns `1` when differences exist. A recorded deletion has no local file to compare;
+inspect its template and retain or reverse the deletion deliberately.
+
+| Option/environment | Behavior |
+| --- | --- |
+| `--color auto` (default) | Yellow/red ANSI colors on an interactive terminal; plain labels in captured output |
+| `NO_COLOR` or `TERM=dumb` | Disable automatic colors |
+| `--color always` / `--color never` | Explicitly force or disable colors, including pipeline output |
+| `--dry-run` | Write nothing, including review files; yellow entries point to the upstream source instead |
+
+The raw source can contain template variables. Run refresh without `--dry-run` for an exact rendered
+comparison. `--repo` limits both refresh and the final report to the selected repositories.
+
 Existing READMEs become owned without being rewritten. Earlier
 `docs/generated/upstream/` copies remain untouched; follow the
 [documentation upgrade steps](project-documentation.md#existing-collections)
@@ -443,7 +489,7 @@ and Git histories. The generator does not move or import those repositories.
 
 Older collections placed template builder setups in Tier 1. Refresh adds the
 new Tier 0 roots without moving live inputs/state or editing owned setup lists.
-Follow the [template ownership migration](../administration/compute/template-lifecycle.md#existing-collections)
+Follow the [template ownership migration](../administration/virtual-machines/template-lifecycle.md#existing-collections)
 before applying them. Old files are preserved for review, not silently retired.
 
 Generation never imports or moves local data. Private copies of the former
@@ -479,7 +525,7 @@ Before deploying after this update:
    competing old and new jobs active against the same infrastructure.
 
 If template-builder inputs and state still belong to Tier 1, also complete the
-separate [template ownership migration](../administration/compute/template-lifecycle.md#existing-collections).
+separate [template ownership migration](../administration/virtual-machines/template-lifecycle.md#existing-collections).
 
 Existing inventories and owned READMEs are never merged. For the new Talos root,
 follow [initialization](../deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure) and add its groups

@@ -18,6 +18,7 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
 | --- | --- | --- |
 | HOST-1 | Foundation | Key-only SSH, time, source-scoped host rules and audit survive reboot; required VRRP/ICMP/service traffic passes and unrelated sources are denied; console recovery works |
 | BOOT-1 | Foundation Step 2 | A manual Linux clone or accepted workstation can generate/restore the collection, verify Proxmox TLS, stage approved artifacts and recover original local inputs/state without GitLab, Vault, FreeIPA or Kubernetes; independent recovery survives loss of the bootstrap VM and its host |
+| BOOT-2 | Offline new-install test | With public egress denied, a matching verified bundle installs a fresh boot-1; empty tier state adopts the recreated manual template, publishes and boots qualified candidates, then installs cache guests from prepared local package sources. Retain old state separately and record exact revision, paths, failures and limits; this does not establish all-stage offline support or original-identity recovery |
 | HA-1 | Foundation HA option | Native 9.2+ HA recovers the same VMID after tested host death/fencing, preserves affinity and data, and accepts a clean Terraform plan; constrained/no-quorum cases wait safely; rebalancing and returned-host behavior are measured separately |
 | IMAGE-1 | Foundation | Approved UEFI raw/qcow2 imports boot disposable clones with correct EFI/storage/CPU and fixed Talos RAM; schematic agent, NoCloud static networking (or selected DHCP), native configuration and recovery are qualified; legacy BIOS inputs are not migrated implicitly |
 | IMAGE-2 | Foundation adoption | Existing manual template/file IDs import into the original Tier 0 state without replacement/re-upload; reviewed hardware and optional DHCP CloudInit media match, post-adoption plan is clean, and a disposable clone boots; remote artifact SHA256 is independently verified |
@@ -52,6 +53,9 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
 | LAB-3 | 10 | Approved update/rollback and first-app recovery work; lab destruction cannot select shared/Tier 0 resources |
 | REL-1 | All | Changed/removed definitions, duplicate allocations and concurrent state writers are rejected or stopped by the reviewed plan/locking process; no example map is applied over a live deployment |
 | REL-2 | All | Actual host, gateway and workload rules enforce allowed/denied IPv4/IPv6 paths; no administrative listener is exposed accidentally; independent console recovery works |
+| REC-1 | Backup/recovery | Restore both bootstrap disks from independent backup without original hosts/SSO/CI; verify mounts, tools, current original state/inputs and newly accepted API trust before enabling one writer |
+| REC-2 | VM/host recovery | Restore a failed VM and a non-HA host's guests; fence originals, validate selected data age/disks and reconcile same/new VMID mappings before apply; record measured RPO/RTO |
+| REC-3 | Platform recovery | Recreate minimum Proxmox/network/live storage, reconnect independent backups, restore bootstrap and original service identities/data in dependency order; prove new backups without silently provisioning empty replacements |
 
 ## Integration Boundaries
 

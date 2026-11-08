@@ -96,7 +96,7 @@ into the same routine change.
 | Recovery | Independent console, original inputs/state, backups and keys are usable |
 | Logs and time | Time is synchronized and protected events are available |
 
-Return to [template operations](template-lifecycle.md) or the selected deployment
+Return to [template operations](../virtual-machines/template-lifecycle.md) or the selected deployment
 only after these checks pass. The table is an acceptance gate, not an installer.
 
 ## References

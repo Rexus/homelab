@@ -76,10 +76,10 @@ bootstrap execution host.
 | Host attachments, bonds and storage fabric | [Host networking](network.md) |
 | Scoped credentials and trust | [API setup](api-access.md) |
 | Import a verified image in the GUI | [VM templates](templates.md) |
-| Publish/adopt and maintain templates | [Template lifecycle](../../../administration/compute/template-lifecycle.md) |
+| Publish/adopt and maintain templates | [Template lifecycle](../../../administration/virtual-machines/template-lifecycle.md) |
 | HA controls and fault behavior | [Menu reference](../../../reference/proxmox-ha.md), [worked failover](failover.md) |
 | ProxLB instead of native rebalancing | [Alternative balancer](proxlb.md) |
-| Restore a disposable guest | [Backup/restore](../../../administration/compute/backup-restore.md) |
+| Restore a disposable guest | [Backup/restore](../../../administration/backups/virtual-machines.md) |
 | Apply the Linux service-VM profile | [Host security](host-security.md) |
 
 <a id="related-references"></a>

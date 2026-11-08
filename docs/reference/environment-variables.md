@@ -27,7 +27,7 @@ web/API root, such as `https://pve.example.com:8006/`. Do not append
 `/api2/json`; that full path is used by the HashiCorp Packer Proxmox plugin
 through its own `PROXMOX_URL` variable.
 
-The separate [template publisher](../administration/compute/template-lifecycle.md#local-workflow)
+The separate [template publisher](../administration/virtual-machines/template-lifecycle.md#local-workflow)
 loads local assignments only with **`--env-file .env.local`**. It maps the same three
 `PROXMOX_API_*` aliases to `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`, or accepts
 exported native variables directly. It rejects conflicting native/alias inputs.

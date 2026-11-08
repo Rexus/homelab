@@ -4,6 +4,9 @@ Prepare the hosts and the execution machine, then import or publish tested VM te
 Complete this path before **Stage 1: Software intake**. Foundation is a prerequisite,
 not a numbered capability stage.
 
+For planned teardown and a new installation, use [resource retirement](../../administration/provisioning.md).
+For an existing environment lost to failure, use [backup recovery](../../administration/recovery.md) with its original state.
+
 **Start on:** an independent privileged workstation with physical/console recovery access.
 **Working repository:** `<prefix>-tier-0` after generation (source: `tier-0/`).
 **Continue on:** `boot-1`, then the generated `<prefix>-tier-0` repository.
@@ -102,7 +105,7 @@ templates/proxmox.yml # Select builds, existing VMIDs and approved local image p
 
 Keep only managed builds. Use `sha256sum` on each approved unpacked artifact to obtain
 its catalog hash. For adoption, match existing hardware and firmware before reviewing
-changes. The [field reference](../../administration/compute/template-lifecycle.md#catalog-fields-and-defaults)
+changes. The [field reference](../../administration/virtual-machines/template-lifecycle.md#catalog-fields-and-defaults)
 contains optional settings; fixed RAM, 1500-MTU NICs, NIC firewall and OS-specific
 controller defaults do not need repeating for every build.
 
@@ -156,7 +159,7 @@ Continue at **3c**.
 3. [Boot and qualify disposable clones](proxmox/templates.md#clone-and-guest-control-checks).
    Check disks, network, guest control and operator access. Qualify the
    [Linux guest security profile](proxmox/host-security.md) with its console/SSH gates.
-4. [Back up and restore a disposable clone](../../administration/compute/backup-restore.md#quick-steps),
+4. [Back up and restore a disposable clone](../../administration/backups/virtual-machines.md#quick-steps),
    including required data disks. Record the result before relying on that backup path.
 5. Successful apply updates **Shared's `templates/proxmox-catalog.tfvars`**. After clone
    acceptance, edit its `default_linux_vm_template_id` to the tested Linux VMID:
@@ -173,7 +176,7 @@ Continue at **3c**.
 [resources/state](../../../tier-0/terraform/deployments/templates/main.tf).
 Shared holds [consumer references](../../../shared/templates/proxmox-catalog.tfvars).
 Adoption leaves the bootstrap VM outside Terraform and retains existing boot disks;
-intentional image replacement uses [boot-disk maintenance](../../administration/compute/template-disk.md).
+intentional image replacement uses [boot-disk maintenance](../../administration/virtual-machines/template-disk.md).
 
 <a id="capability-available"></a>
 

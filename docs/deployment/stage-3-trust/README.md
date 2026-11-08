@@ -136,7 +136,7 @@ not imply a CA migration or become a prerequisite for this service.
 The Community ACME adapter is a separate qualification gate, not an installed cert-manager integration.
 
 If the selected policy replaces Proxmox API certificates, complete the
-[API PKI transition](../../administration/compute/proxmox-tls.md#step-2-adopt-the-platform-pki)
+[API PKI transition](../../administration/hosts/proxmox-tls.md#step-2-adopt-the-platform-pki)
 and verify every caller. Retaining the independently trusted Proxmox CA is also valid;
 neither path retains an API verification bypass.
 

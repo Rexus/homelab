@@ -2,7 +2,7 @@
 
 Maintain one bounded component at a time using its native lifecycle procedure and the original
 tier-owned configuration/state. Successful convergence is not proof that an upgrade is compatible.
-Use [template lifecycle](compute/template-lifecycle.md),
+Use [template lifecycle](virtual-machines/template-lifecycle.md),
 [Ansible recipes](ansible-recipes.md) and the selected product's release documentation for exact commands.
 For ownership and storage boundaries, see [runtime design](../architecture/hosting/runtime.md).
 
@@ -107,8 +107,9 @@ The kit supplies no universal upgrade command. A maintenance reconciliation is n
    affected service, SSO/access denial, intake and backups before retiring the old host or media.
    Update project records and preserve a replacement-host restore result.
 
-If the original environment is lost, follow the [tier recovery order](recovery.md), not this planned
-maintenance procedure. Qualified hardware/storage failure behavior remains live acceptance work.
+For a failed host without automatic recovery, follow [host recovery](recovery/host.md).
+If the entire environment is lost, follow [platform recovery](recovery/platform.md).
+This section covers planned hardware replacement; failure recovery retains the original backup/state contract.
 
 **Stop:** if quorum/capacity, storage attachment or migration acceptance fails. Keep the original
 host/media intact until the replacement passes; suspected compromise uses clean-target recovery.

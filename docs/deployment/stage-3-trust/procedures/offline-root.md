@@ -78,7 +78,7 @@ the custody environment, approval and physical transfer remain manual.
    date, requests, approvals and media handling. Revocation enforcement is tested at clients.
 2. Back up the complete CA instance after each change. clca's archive backup is not by
    itself encryption, independent custody or HSM-key recovery. [1] Apply the
-   [backup policy](../../../administration/compute/backup-restore.md#backup-policy)
+   [backup policy](../../../administration/backups/virtual-machines.md#backup-policy)
    and preserve recovery material under separate authorization.
 3. Verify the offline recovery copy and close the ceremony: disconnect/secure devices
    and media, remove temporary transfer material under policy and confirm no online

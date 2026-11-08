@@ -112,7 +112,7 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("before provisioning", step2)
             self.assertIn("first disposable clone in Step 3", step2)
             self.assertIn("Back up and restore a disposable clone", step3)
-            backup = (docs / "administration/compute/backup-restore.md").read_text()
+            backup = (docs / "administration/backups/virtual-machines.md").read_text()
             self.assertIn("An existing qualified target is valid", backup)
             criteria = backup.split('id="done-criteria"', 1)[1].split('id="read-more"', 1)[0]
             self.assertNotIn("PBS is reachable", criteria)
@@ -166,7 +166,7 @@ class OperatorJourney(TierRepositoryTestCase):
 
     def test_bootstrap_tls_and_pki_cutover_are_reachable_in_generated_guides(self):
         self.generate()
-        relative = "administration/compute/proxmox-tls.md"
+        relative = "administration/hosts/proxmox-tls.md"
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             guide = (docs / relative).read_text()
             for heading in ("## Step 1: Trust the bootstrap CA", "## Step 2: Adopt the platform PKI",

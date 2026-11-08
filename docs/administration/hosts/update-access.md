@@ -117,7 +117,7 @@ see [transport limits](../../deployment/stage-1-software-intake/proxy-cache.md#t
 | --- | --- |
 | Manual artifact download | On the download host, pass the accepted proxy explicitly; verify the vendor release and unpacked bytes before publication |
 | Proxmox-managed downloads | Use the accepted Datacenter proxy above |
-| Linux builder packages | Set `repository_proxy_*` in the builder's local Ansible inputs; use [staged refresh](template-refresh.md) |
+| Linux builder packages | Set `repository_proxy_*` in the builder's local Ansible inputs; use [staged refresh](../virtual-machines/template-refresh.md) |
 | Reusable template cleanup | Clear machine-specific state/caches before conversion; clones receive their environment's proxy configuration |
 | Offline custody | Use approved retained mirrors/artifacts; this recipe creates no route across an air gap |
 
@@ -146,6 +146,6 @@ A successful download alone is not release approval.
 
 <a id="read-more"></a>
 
-**Related:** [template operations](template-lifecycle.md),
+**Related:** [template operations](../virtual-machines/template-lifecycle.md),
 [guest package intake](../../deployment/stage-1-software-intake/README.md#step-3-connect-and-verify-consumers),
 and [network policy](../../architecture/networking/firewall-policy.md).

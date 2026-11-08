@@ -14,7 +14,7 @@ def owned_template(writer, template, target, legacy=None, **values):
         content += (f"\nPrevious project record: [retained local document]({link}). "
                     "Review and transfer its decisions before adopting this record.\n")
         print(f"Project documentation retained at {legacy}; review the new {target} manually.")
-    writer.write(target, content, owned=True)
+    writer.write(target, content, owned=True, source=TEMPLATES / template)
 
 
 def workflow_guides(writer, repo, docs):

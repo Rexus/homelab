@@ -2,7 +2,7 @@
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 This reference owns catalog fields and pinned-provider behavior. For operator tasks,
-use [template lifecycle](../administration/compute/template-lifecycle.md).
+use [template lifecycle](../administration/virtual-machines/template-lifecycle.md).
 Image approval and promotion follow the [software-supply design](../architecture/software/artifact-supply.md).
 
 ## Contents

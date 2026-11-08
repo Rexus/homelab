@@ -303,7 +303,7 @@ guidelines:
 - use [Host networking](../deployment/foundation/proxmox/network.md) and
   [Network architecture](../architecture/networking/README.md)
   for bridge, VLAN, and subnet naming
-- use [Hardening baseline](../administration/compute/hardening.md) for the checkpoint that node, bridge,
+- use [Hardening baseline](../administration/hosts/hardening.md) for the checkpoint that node, bridge,
   and storage names are finalized before broad automation
 - keep environment-specific VM names, IP settings, and workload labels in local
   Terraform variables and Ansible inventory rather than in shared templates

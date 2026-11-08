@@ -125,7 +125,7 @@ to resolve a catalog `storage_class` into its `vm_disk` datastore. Tier 0's YAML
 `all:` supplies common build settings; each template can override them, including
 an explicit `datastore_id`. `image_datastore_id` remains a Tier 0 staging reference,
 not a shared live-disk class. The
-[catalog contract](../administration/compute/template-lifecycle.md#catalog-fields-and-defaults)
+[catalog contract](../administration/virtual-machines/template-lifecycle.md#catalog-fields-and-defaults)
 defines the complete merge and override rules.
 Kubernetes roots retain their separate input contract; neither path loads Linux guest inventory/settings.
 

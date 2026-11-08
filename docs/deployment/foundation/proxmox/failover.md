@@ -128,7 +128,7 @@ Never power-cut real identity or storage hosts as an unreviewed first test.
 4. Bring back the repaired host only after hardware/storage checks. Confirm no
    premature failback, rule violation or migration churn, then test planned maintenance separately.
 5. Record remaining capacity and constrained-recovery cases. Keep an independent
-   [backup/restore test](../../../administration/compute/backup-restore.md); HA does not cover lost shared disks.
+   [backup/restore test](../../../administration/backups/virtual-machines.md); HA does not cover lost shared disks.
 
 The repository's mocked plans verify creation/placement contracts only. They do
 not qualify host power loss, Ceph behavior, fencing or a recovery-time objective.

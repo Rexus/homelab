@@ -94,7 +94,9 @@ Review the design when team access, retention requirements, capacity or failure 
 
 ## Operational procedures
 
-[Backup and restore tasks](../../administration/compute/backup-restore.md) own execution.
+[Backup and restore tasks](../../administration/backups/virtual-machines.md) own execution.
+The [recovery-set checklist](../../administration/backups/recovery-set.md) connects those routines to
+[bootstrap, guest, host and platform recovery](../../administration/recovery.md).
 The [administration index](../../administration/README.md) leads to the selected product's
 backup, rotation and clean-target recovery runbooks.
 

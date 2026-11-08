@@ -53,7 +53,7 @@ class SoftwareIntake(TierRepositoryTestCase):
                 self.assertIn(expected, design)
             self.assertNotIn("```bash", design)
             for source in ("architecture/software/README.md", "architecture/software/artifact-supply.md",
-                           "administration/compute/update-access.md"):
+                           "administration/hosts/update-access.md"):
                 self.assertIn("software-intake.md", (docs / source).read_text(), source)
             self.assertIn("../stage-1-software-intake/README.md",
                           (docs / "deployment/foundation/README.md").read_text())

@@ -53,12 +53,12 @@ prepares the execution host before API publication.
 bash scripts/proxmox-templates.sh init
 ```
 
-Follow the [local template workflow](../../administration/compute/template-lifecycle.md#local-workflow)
+Follow the [local template workflow](../../administration/virtual-machines/template-lifecycle.md#local-workflow)
 to configure, plan, publish, and test images. Tier 0 approves references in the
 [shared catalog](../../reference/template-catalog.md); other tiers consume them.
 Verified existing templates are valid. No hosted CI or cluster is required.
 For manual templates, select the
-[import path](../../administration/compute/template-lifecycle.md#adopt-existing-templates).
+[import path](../../administration/virtual-machines/template-lifecycle.md#adopt-existing-templates).
 [Foundation Step 3](../../deployment/foundation/README.md#step-3-publish-and-test-vm-templates)
 lists import/new-publication commands and the apply step; complete it before Stage 1.
 

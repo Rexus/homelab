@@ -1,14 +1,14 @@
 # Kubernetes worker pools
 
 Use explicit node definitions for capacity and Kubernetes scheduling controls for
-placement. [Topology design](../../architecture/hosting/kubernetes.md) defines the
-boundaries; [cluster provisioning](../../deployment/stage-4-kubernetes/procedures/talos-terraform.md)
+placement. [Topology design](../architecture/hosting/kubernetes.md) defines the
+boundaries; [cluster provisioning](../deployment/stage-4-kubernetes/procedures/talos-terraform.md)
 owns hardware, inventory and state. No autoscaler or rolling node-upgrade controller is supplied.
 
 **Working repository:** the cluster's `<prefix>-tier-0`, `<prefix>-tier-1` or `<prefix>-tier-2` root.
 **Before starting:** accepted original state, node reservations, sufficient capacity,
 and that cluster's protected kubeconfig. Load the same
-[provider exports](../../deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure)
+[provider exports](../deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure)
 as cluster deployment; this script does not load `.env.local`. Confirm the target before every task:
 
 ```bash
@@ -29,7 +29,7 @@ kubectl get nodes -L node-pool
 
 ## How is a worker added?
 
-1. Reserve an unused worker [VMID](../../conventions/vmid-convention.md), MAC
+1. Reserve an unused worker [VMID](../conventions/vmid-convention.md), MAC
    and IP. Keep the existing cluster's endpoint, secrets and nodes.
 2. Edit these files in its owning tier:
 

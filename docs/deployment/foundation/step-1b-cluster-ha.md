@@ -186,7 +186,7 @@ test alone is not proof of recovery after host death.
 
 Offline mock tests cover the Terraform contract, not real failover. Recheck with
 the provider version locked by each consuming root. Keep the
-[backup and restore procedure](../../administration/compute/backup-restore.md) independent of HA.
+[backup and restore procedure](../../administration/backups/virtual-machines.md) independent of HA.
 
 Return to [Foundation Step 3](README.md#step-3-publish-and-test-vm-templates) for
 template/clone acceptance, then continue through its Stage 1 handoff.

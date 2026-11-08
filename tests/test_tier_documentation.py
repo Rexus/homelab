@@ -40,7 +40,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("## Step 2a: Prepare NAS file storage", guide)
         self.assertIn("## Step 2b: Qualify an object endpoint", guide)
         self.assertIn("does not deploy a storage gateway", guide)
-        backups = (docs / "administration/compute/backup-restore.md").read_text()
+        backups = (docs / "administration/backups/virtual-machines.md").read_text()
         self.assertIn('id="nas-file-target"', backups)
         self.assertIn("Datacenter > Storage > Add > NFS", backups)
         self.assertIn("neither path requires an object-storage API", backups)

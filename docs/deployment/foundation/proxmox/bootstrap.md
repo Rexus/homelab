@@ -32,7 +32,8 @@ prepare and use the bootstrap VM before any hosted runner exists.
 
 An existing protected Linux workstation can satisfy Steps 2–4 instead. Do not use
 Talos as this general-purpose execution host. Export an accepted VM backup with both
-disks to independent offline storage and qualify its restore on a recovery host;
+disks for the reference layout, or every disk required by the selected LVM layout,
+to independent offline storage and qualify its restore on a recovery host;
 a full clone running on this platform is not itself an independent recovery copy.
 
 | Setting | Reference choice |
@@ -41,7 +42,7 @@ a full clone running on this platform is not itself an independent recovery copy
 | VMID | `601` in the [VMID convention](../../../conventions/vmid-convention.md); reserve an unused automation ID if already occupied |
 | Compute | Start with 2 vCPUs / 4 GiB RAM; size for the selected tools and artifact processing |
 | OS disk | Live Proxmox storage, sized for the selected Linux OS and installed tools |
-| Data disk | Separate attached live-storage disk, mounted at `/srv/tier0` in this example; start with 60 GiB and size for retained images, expanded artifacts and upload staging |
+| Workspace capacity | Reference layout: separate attached live-storage disk at `/srv/tier0`, starting at 60 GiB; alternatively expand the existing LVM root disk using storage B below |
 | Guest attachment | Current `management` network, example VLAN 10; follow the approved network plan |
 | Cloud-Init | Clone-specific static IP/CIDR, gateway and independent DNS; set **User** to `automation` and add each approved workstation's public key to **SSH public key**, one OpenSSH key per line [1] |
 | Administration | Verified SSH host key, authorized sudo, working time synchronization and console recovery |
@@ -100,7 +101,8 @@ flowchart LR
 ```
 
 **Manual:** this view adds one `boot-1` VM with an OS disk and attached data disk, not an IaC
-resource. The initial template and host already exist. Its tools operate the
+resource. It shows the **separate-filesystem reference layout**; the LVM alternative can instead
+expand the existing OS disk. The initial template and host already exist. Its tools operate the
 owning tier's [template root](../../../../tier-0/terraform/deployments/templates/main.tf)
 and later deployment roots; they do not give Terraform ownership of this bootstrap VM.
 Independent encrypted backups/recovery copies remain **outside** this host/storage failure domain.
@@ -126,7 +128,14 @@ temporary acquisition path is not permission for unrestricted Tier 0 Internet ac
 **Run on `boot-1` as `automation`.** Prepare storage, then choose **2a** for approved
 network access or **2b** for a prepared offline bundle.
 
-### Prepare the attached workspace disk
+<a id="prepare-the-attached-workspace-disk"></a>
+
+### Prepare bootstrap storage
+
+Choose **A** for the separate workspace filesystem shown above, or **B** for an existing Rocky Linux
+LVM root. Complete only the selected path before installing tools or copying artifacts.
+
+#### A: Separate workspace filesystem — reference layout
 
 1. In **VM > Hardware > Add > Hard Disk**, add `scsi1` on the selected live-disk
    datastore. Keep its **Backup** option enabled.
@@ -164,6 +173,16 @@ to bind `/srv/tier0/home` at `/home`. This puts `.ssh` and user environments on 
 same attached disk while preserving the account and artifact paths. Rejoin at **2a/2b**.
 For an offline installation, that guide first obtains the bundle's OS tools, then
 moves homes before creating Python environments or cloning the kit.
+
+#### B: Expand the existing Rocky Linux root — LVM alternative
+
+Follow [Rocky Linux LVM expansion](bootstrap-lvm.md). Prefer enlarging the existing Proxmox
+disk, growing its partition and running `pvresize`, then extending the root LV/filesystem.
+That guide also supplies the optional new-disk `pvcreate`/`vgextend` path.
+
+For this layout, `/srv/tier0` is a directory on the expanded root filesystem. Use that guide's
+directory/verification steps, then continue at **2a** or **2b** below. The separate-mount check and
+home bind-mount option in **A** apply only to its separate-filesystem layout.
 
 ### 2a: Install through approved sources
 
@@ -270,7 +289,7 @@ public key; Ansible uses its matching private key through SSH. See the
 
 ## Step 4: Configure trust, credentials and platform inputs
 
-1. Complete [Proxmox CA trust: Step 1](../../../administration/compute/proxmox-tls.md#step-1-trust-the-bootstrap-ca)
+1. Complete [Proxmox CA trust: Step 1](../../../administration/hosts/proxmox-tls.md#step-1-trust-the-bootstrap-ca)
    and its caller-verification gate **on the bootstrap VM**. Obtain the public CA through
    console/verified SSH, compare fingerprints, install it in the OS trust store and verify
    the endpoint name. Browser trust on another workstation is insufficient.
@@ -324,9 +343,11 @@ public key; Ansible uses its matching private key through SSH. See the
    On a local-storage pilot, select the configured `local` class in each consuming
    setup, including Tier 0's template `all.storage_class`; the starter's `shared`
    selection is valid only after that shared datastore exists.
-6. Back up ignored inputs, inventories, `.env.local`, original state and recovery material
-   independently of this host/storage. Follow [backup planning](../../../administration/compute/backup-restore.md)
-   and test recovery. Git ignore rules are not access control or backup.
+6. Back up every required bootstrap disk and the selected [recovery set](../../../administration/backups/recovery-set.md)
+   independently of this host/storage, including ignored inputs, inventories, `.env.local`, original state
+   and required recovery material. Follow [backup planning](../../../administration/backups/virtual-machines.md)
+   and test [bootstrap recovery](../../../administration/recovery/bootstrap.md) before relying on this host.
+   Keep protecting newer state after later operations; Git ignore rules are not access control or backup.
 
 **Ready:** operator SSH/console, usable outbound SSH key/agent, tools, artifacts,
 verified API trust, scoped credentials, configured Shared profile and independent recovery.

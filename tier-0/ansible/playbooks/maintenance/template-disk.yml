@@ -1,6 +1,6 @@
 ---
 # Explicit maintenance, not part of template adoption or normal Terraform apply.
-# Guide: docs/administration/compute/template-disk.md
+# Guide: docs/administration/virtual-machines/template-disk.md
 - name: Preview or replace one published template boot disk
   hosts: localhost
   connection: local

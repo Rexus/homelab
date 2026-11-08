@@ -40,7 +40,7 @@ Do not run fault commands on the only collector, archive, backup or surviving ev
 | B: locked storage | Actual version-lock enforcement, including denied shortening/deletion |
 | Failure envelope | Versions/configuration, source identities, physical domains, rate, queue budget, outage limit and fault/undo commands |
 | Accepted records | Named durable-copy boundary and independent receipts/proof, separate from emitted records |
-| Recovery | Data disks, closed segments, catalogue, integrity metadata, keys and approved [RPO/RTO](compute/backup-restore.md#backup-policy) |
+| Recovery | Data disks, closed segments, catalogue, integrity metadata, keys and approved [RPO/RTO](backups/virtual-machines.md#backup-policy) |
 
 NAS sender queues release on transport submission, not archive commitment. Retain original
 source files for replay and measure the unprotected tail. TCP/RELP receipts and orderly shutdown

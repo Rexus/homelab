@@ -227,7 +227,7 @@ For the UniFi reference path:
   an SDN VNet name alone does not create host or service DNS records. [7]
 
 Keep bootstrap DNS independent of later services. When adding directory DNS, follow
-the [identity DNS prerequisites](../../deployment/stage-5-identity/procedures/freeipa.md)
+the [identity DNS prerequisites](../stage-5-identity/procedures/freeipa.md)
 so the selected resolver can resolve that domain as well.
 
 ## Return to the main path

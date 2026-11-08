@@ -110,7 +110,7 @@ choose its exact release/build, verified image and checksum, approve the clone,
 and retain its existing approved catalog reference. No new public template slot
 or catalog-ID reassignment is required. An Alma/Rocky family label alone does not
 establish the major version; the data role validates the actual guest as EL9
-before package installation. See [template lifecycle](../../../administration/compute/template-lifecycle.md).
+before package installation. See [template lifecycle](../../../administration/virtual-machines/template-lifecycle.md).
 
 Provision only the VMs first; the product recipe in Step 3 has its own explicit apply gate:
 

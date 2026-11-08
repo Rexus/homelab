@@ -41,7 +41,7 @@ destinations receive copies; they do not become the live database volume.
 
 | Consumer | Interface used by the supplied implementation | Procedure |
 | --- | --- | --- |
-| VM/CT backup files | Proxmox-managed NAS NFS target; PBS remains a separate alternative | [Native NAS backup path](../../../administration/compute/backup-restore.md#nas-file-target) |
+| VM/CT backup files | Proxmox-managed NAS NFS target; PBS remains a separate alternative | [Native NAS backup path](../../../administration/backups/virtual-machines.md#nas-file-target) |
 | Protected log archive | Direct encrypted SMB mount; local intake remains independent of the NAS | [NAS archive](../../stage-2-logging/step-3c-nas-archive.md) |
 | Control recovery copies | Commissioned mounted file repository; read-only source views, separately encrypted backup copies | [Control backups](../../../administration/backups/control-applications.md) |
 | NetBox shared media | Existing RWX-capable Kubernetes storage, such as qualified NAS-backed CSI | [Application storage](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership) |
@@ -122,7 +122,7 @@ state and credentials until its consumers and data are explicitly migrated and
 verified. Removing a starter from the reference is not permission to destroy it.
 
 Return to [foundation host/network preparation](../README.md#before-starting-hosts-and-networks).
-The first disposable guest's [backup/restore test](../../../administration/compute/backup-restore.md#quick-steps)
+The first disposable guest's [backup/restore test](../../../administration/backups/virtual-machines.md#quick-steps)
 is an acceptance gate before relying on this recovery path.
 
 ## References

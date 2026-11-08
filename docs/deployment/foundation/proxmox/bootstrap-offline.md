@@ -5,13 +5,20 @@ reviewed bundle, then install on `boot-1` without public package access.
 This supplies controller tooling and providers for templates and initial Linux
 deployments; it does **not** make every platform stage disconnected-ready.
 
+For a **new installation**, generate a fresh collection after [retiring old resources](../../../administration/provisioning.md)
+where applicable. For recovery, [restore the bootstrap and original inputs/state](../../../administration/recovery/bootstrap.md)
+instead of replacing them with generated examples.
+
 **Working repositories:** reviewed upstream kit for acquisition; `<prefix>-tier-0`
 and `<prefix>-tier-2` after generation, with sibling Shared automation.
 **Branch from:** [Bootstrap Step 2b](bootstrap.md#2b-transfer-a-prepared-bundle--offline-alternative).
 **Prerequisites:** [Bootstrap Step 2](bootstrap.md#step-2-prepare-tools-repositories-and-artifacts)
-has prepared the attached filesystem and private `automation`-owned directories
+has prepared the selected workspace filesystem and private `automation`-owned directories
 under `/srv/tier0`, including `offline/`; SSH/console and approved package-signing keys are available.
 An existing mount such as `/srv/src` is valid: substitute absolute paths consistently.
+For [root-LVM expansion](bootstrap-lvm.md), storage tools may be installed first from a verified
+bundle on independently mounted media. In Step 3a, set `BUNDLE` to that media path, then return
+to storage preparation before transferring the full bundle to the completed workspace.
 The connected host must match the target's **distribution, release, architecture
 and Python minor version**. The main example uses Enterprise Linux 10 / Python 3.12.
 Start from a clean matching VM with the same approved repositories and signing keys.
@@ -57,7 +64,8 @@ python3 --version > "$BUNDLE/acquisition-python.txt"
 dnf repolist --enabled > "$BUNDLE/acquisition-repositories.txt"
 dnf download --resolve --alldeps --destdir "$BUNDLE/rpms" \
   git bash python3 python3-pip python3-pyyaml openssh-clients ca-certificates \
-  curl openssl xz unzip tar qemu-img terraform rsync policycoreutils-python-utils
+  curl openssl xz unzip tar qemu-img terraform rsync policycoreutils-python-utils \
+  lvm2 cloud-utils-growpart parted xfsprogs
 curl --fail --location https://rpm.releases.hashicorp.com/gpg \
   --output "$BUNDLE/keys/hashicorp.asc"
 gpg --show-keys --with-fingerprint "$BUNDLE/keys/hashicorp.asc"
@@ -72,6 +80,8 @@ The bundle also includes `rsync` and Enterprise Linux 10's
 `policycoreutils-python-utils` for the optional
 [home-directory migration](bootstrap-home.md). Prepare these before restricting
 package access; installing the tools does not move `/home` or change SELinux policy.
+The LVM/growpart/partition/XFS tools support the optional root-capacity expansion; downloading
+or installing them does not resize or partition any disk.
 
 ### 1b. Download Python wheels and collection dependencies
 
@@ -190,10 +200,12 @@ Run as `automation` on `boot-1`. Import only the previously approved vendor
 key; the base OS must already trust its distribution's keys. Require successful
 RPM signature verification and retain signature checking during the local install.
 Local-package signature checking is explicitly enabled. [9]
+For the early storage-tools branch, keep `BUNDLE` set to the verified bundle on mounted media;
+otherwise the default below selects the transferred workspace copy.
 
 ```bash
 # Run on boot-1 as automation.
-BUNDLE=/srv/tier0/offline/homelab-bootstrap
+BUNDLE="${BUNDLE:-/srv/tier0/offline/homelab-bootstrap}"
 sudo rpm --import "$BUNDLE/keys/hashicorp.asc"
 rpmkeys --checksig "$BUNDLE"/rpms/*.rpm
 sudo dnf --disablerepo='*' --setopt=localpkg_gpgcheck=1 install "$BUNDLE"/rpms/*.rpm

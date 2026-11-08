@@ -137,7 +137,7 @@ class Observability(TierRepositoryTestCase):
             operations = (docs / "administration/security-logging.md").read_text()
             self.assertIn("no-journal-replay", operations)
             self.assertIn("never let reindexing modify originals", operations)
-            backup = (docs / "administration/compute/backup-restore.md").read_text()
+            backup = (docs / "administration/backups/virtual-machines.md").read_text()
             self.assertIn("architecture/operations/backup-recovery.md", backup)
             design = (docs / "architecture/operations/backup-recovery.md").read_text()
             for expected in ("**3-2-1**", "including the primary", "two media types"):

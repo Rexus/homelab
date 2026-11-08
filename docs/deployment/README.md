@@ -90,7 +90,7 @@ use their dedicated scripts. Every command runs from the named repository root.
 
 | Repository | Entry point | Capability / when | Walkthrough |
 | --- | --- | --- | --- |
-| Tier 0 | `templates` | Foundation: approved source images | [Publication](../administration/compute/template-lifecycle.md#local-workflow) |
+| Tier 0 | `templates` | Foundation: approved source images | [Publication](../administration/virtual-machines/template-lifecycle.md#local-workflow) |
 | Tier 0 | `template-refresh` | Foundation or maintenance: Linux image refresh | [Linux templates](foundation/proxmox/templates.md) |
 | Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1-3](stage-2-logging/README.md) |
 | Tier 0 | `foundation` | Stages 3/5: issuer and directory VM resources | [Trust](stage-3-trust/README.md), [directory deployment](stage-5-identity/procedures/freeipa.md) |

@@ -87,6 +87,7 @@ class BootstrapGuide(TierRepositoryTestCase):
     def test_manual_command_blocks_parse_without_executing_them(self):
         for relative in ('deployment/foundation/proxmox/bootstrap.md',
                          'deployment/foundation/proxmox/bootstrap-home.md',
+                         'deployment/foundation/proxmox/bootstrap-lvm.md',
                          'deployment/foundation/proxmox/bootstrap-offline.md', 'development/local-setup.md'):
             text = (UPSTREAM / 'docs' / relative).read_text()
             for block in re.findall(r'```bash\n(.*?)```', text, re.DOTALL):

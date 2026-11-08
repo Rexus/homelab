@@ -367,7 +367,7 @@ environment setting that only exists during one Ansible task.
 ## Read more
 
 - [Shared services path](../../reference/implementation-support.md)
-- [Using the cache from Proxmox](../../administration/compute/update-access.md)
+- [Using the cache from Proxmox](../../administration/hosts/update-access.md)
 - [Network architecture](../../architecture/networking/README.md)
 - [Security principles](../../architecture/principles.md)
 

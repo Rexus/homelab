@@ -19,7 +19,7 @@ prepared data storage, production configuration bundle and authorized custodians
 ## Step 1: Provision the host
 
 1. Publish an approved Debian image using the Tier 0
-   [template lifecycle](../../../administration/compute/template-lifecycle.md).
+   [template lifecycle](../../../administration/virtual-machines/template-lifecycle.md).
    The catalogue includes a Debian example; the image and checksum are supplied locally.
    Record the approved ID/title in Shared's consumer catalogue. The current native
    package path requires Debian 12 amd64; its LTS end is 2028-06-30. Revalidate the

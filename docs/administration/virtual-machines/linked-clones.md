@@ -33,7 +33,7 @@ Do not repoint an existing clone at a different OS image by editing its backing
 reference. Independent copies preserve the VM's current contents; guest updates
 or replacement deployments provide the OS upgrade.
 
-Before either copy path, take an [independent backup](backup-restore.md), check
+Before either copy path, take an [independent backup](../backups/virtual-machines.md), check
 destination capacity and arrange downtime. For IaC-managed guests, plan any
 VMID/storage changes in the owning repository before execution. A GUI copy does
 not automatically update inventory or Terraform state.

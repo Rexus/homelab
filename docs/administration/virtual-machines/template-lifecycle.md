@@ -22,6 +22,7 @@ and no concurrent publisher or clone-maintenance operation.
 | Recover a failed upload/apply? | [Recover publication](#what-if-publication-fails) |
 | Select or roll back the default image? | [Promote](#how-is-a-tested-image-promoted-or-rolled-back) |
 | Replace a disk, refresh packages or remove old images? | [Image maintenance](#how-are-template-disks-and-packages-maintained) |
+| Delete a retired template before a fresh installation? | [Remove a template](#how-is-a-template-removed) |
 | Run the same publication in CI? | [Protected CI](#how-is-publication-run-in-ci) |
 | Move old ownership or run code checks? | [Migration and maintenance references](#where-are-migration-and-maintainer-checks-documented) |
 
@@ -192,11 +193,43 @@ and offline custody remain explicit operations, not routes created by this workf
 | Refresh a staged AlmaLinux/Rocky package image | [Linux template refresh](template-refresh.md) |
 | Remove dependent linked clones before cleanup | [Linked-clone migration](linked-clones.md) |
 | Retire an old disk | [Reviewed disk cleanup](template-disk.md#retire-the-old-disk); check snapshots and linked-clone origins first |
-| Retire an entire published revision | Retain independent backups, prove no consumers/recovery paths need it, then review a separate resource/state retirement change |
+| Retire an entire published revision | [Template removal](#how-is-a-template-removed); retain backups and check consumer dependencies first |
 
 New versioned VMIDs are the main path. Same-ID replacement is explicitly destructive
 and separate; never give two Terraform roots ownership of the same template.
 Retain approved artifacts independently of a live Tier 1 registry or Git service.
+
+## How is a template removed?
+
+**Run in:** Proxmox GUI. The template wrapper has **no `destroy` action**; both template
+VMs and uploaded images have Terraform `prevent_destroy` guards. Keep those guards enabled.
+This is explicit manual retirement, followed by state/reference reconciliation.
+
+1. Stop publisher/clone jobs. Retain independent approved images/checksums and any
+   required guest backups. Verify the exact template name and VMID against Tier 0's catalog.
+2. Prove no linked clones or retained snapshots require its base disks. Check the
+   surviving bootstrap too: a **full clone** is independent; a linked clone still needs
+   its base. Use the [dependency checks](linked-clones.md#verify-zfs-dependencies).
+   Keep the template until the replacement bootstrap is full-cloned if it is still needed.
+3. Select that **template** in the Proxmox tree, then **More > Remove**. Check the displayed
+   identity and enter its VMID. This removes the template and its referenced disks. [18]
+4. Leave **Destroy unreferenced disks owned by guest** unchecked unless every additional
+   volume has been reviewed. It scans beyond the template's current disk references.
+   **Purge from job configurations** also removes its HA/replication/backup-job entries;
+   select it only for the retired identity. Wait for a successful removal task. [18]
+5. For a full reset, separately open **Node > image datastore > Import**, select only
+   the retired catalog's uploaded image and remove it when no other operation needs it.
+   This is the Proxmox upload, not the retained `.raw`/`.qcow2` source on the bootstrap disk.
+6. Repeat only for reviewed retired templates. For a complete rebuild, now follow
+   [deployment retirement](../provisioning.md) and [state archiving](../terraform-state.md#archive-a-retired-deployment).
+   For partial retirement, remove only the deleted revision's exact VM/image
+   [state bindings](../terraform-state.md#forget-a-deleted-resource), then update its catalog and
+   Shared consumer references. Retain state for all surviving resources before the next publisher run.
+
+**Expected:** retired templates are absent, retained clones still work, and approved local
+artifacts remain available. If Proxmox reports a base-disk dependency, stop and resolve it;
+do not force storage deletion. Until state/catalog reconciliation, publication can recreate
+the removed revision.
 
 <a id="gitlab-ci-example"></a>
 
@@ -252,3 +285,6 @@ operator acceptance still needs disposable-clone evidence.
 6. [Terraform configuration-driven imports](https://developer.hashicorp.com/terraform/language/import), checked 2026-11-06.
 9. [Talos Proxmox controller and guest-agent requirements](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/virtualized-platforms/proxmox), checked 2026-11-06.
 17. [Native Proxmox VM updates and selective setting deletion](https://docs.ansible.com/projects/ansible/latest/collections/community/proxmox/proxmox_kvm_module.html), checked 2026-11-07.
+18. Proxmox's [guest removal action](https://github.com/proxmox/pve-manager/blob/master/www/manager6/qemu/Config.js)
+    and [disk/job removal options](https://github.com/proxmox/pve-manager/blob/master/www/manager6/window/SafeDestroyGuest.js),
+    checked 2026-11-08.

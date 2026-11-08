@@ -116,7 +116,7 @@ ${deployments}
 - [Architecture and tier boundaries](${docs}/architecture/tier-ownership.md)
 - [Infrastructure control and delegated requests](${docs}/architecture/hosting/provisioning.md)
 - [Deployment commands](${docs}/reference/repository-scripts.md)
-- [Tier 0 template lifecycle](${docs}/administration/compute/template-lifecycle.md)
+- [Tier 0 template lifecycle](${docs}/administration/virtual-machines/template-lifecycle.md)
 
 ## Licensing
 

@@ -44,7 +44,7 @@ a personal administrator token for routine deployments. [1]
 
 <a id="tls-gate"></a>
 
-**TLS gate:** complete [bootstrap CA trust and caller verification](../../../administration/compute/proxmox-tls.md)
+**TLS gate:** complete [bootstrap CA trust and caller verification](../../../administration/hosts/proxmox-tls.md)
 on the execution host before using the token. Supplied provider roots set
 `insecure = false`; entry points reject bypass flags. Existing projects must review
 retained local provider edits too. Neither FreeIPA nor platform PKI is required first. [5]

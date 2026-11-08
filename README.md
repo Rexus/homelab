@@ -73,6 +73,7 @@ Reuse the `--prefix` and `--root` flags if customized. Add `--dry-run` to previe
 Refresh updates unchanged auto-docs, examples, and automation. It preserves
 repository READMEs, project documentation, local work, and recorded deletions. See the
 [refresh contract](docs/development/generated-repositories.md#refresh-and-local-ownership).
+A final review summary links preserved differences to current templates and lists retired generated files.
 
 <a id="find-your-way"></a>
 
@@ -86,6 +87,7 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 | Networks and VLANs | [Network map](docs/architecture/networking/README.md) |
 | Choose a deployment | [Reader paths](docs/paths/README.md) |
 | Run, plan, or destroy | [Repository scripts](docs/reference/repository-scripts.md) |
+| Back up or recover a VM, host or platform | [Administration and recovery](docs/administration/README.md) |
 | Find implementation files | [Automation layout](docs/development/code-layout.md) |
 | Handle secrets | [Secret strategy](docs/administration/secret-handling/strategy.md) |
 | Deploy private PKI and public HTTPS | [Software-backed PKI](docs/deployment/stage-3-trust/procedures/software-pki.md) |

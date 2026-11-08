@@ -69,10 +69,10 @@ def tier_readme(writer, tier, prefix, setups):
             "bash scripts/proxmox-templates.sh init\n"
             "```\n\n"
             "Set local images, placement, checksums, and protected API access, then follow\n"
-            f"the [template lifecycle]({docs}/administration/compute/template-lifecycle.md#local-workflow)\n"
+            f"the [template lifecycle]({docs}/administration/virtual-machines/template-lifecycle.md#local-workflow)\n"
             "to plan, publish, and test templates before deploying guests. For existing manual templates,\n"
-            f"use [import and apply]({docs}/administration/compute/template-lifecycle.md#adopt-existing-templates).\n"
-            f"An intentional OS-disk replacement uses [boot-disk maintenance]({docs}/administration/compute/template-disk.md).\n"
+            f"use [import and apply]({docs}/administration/virtual-machines/template-lifecycle.md#adopt-existing-templates).\n"
+            f"An intentional OS-disk replacement uses [boot-disk maintenance]({docs}/administration/virtual-machines/template-disk.md).\n"
             f"Complete [Foundation Step 3]({docs}/deployment/foundation/README.md#step-3-publish-and-test-vm-templates)\n"
             "before Stage 1; it lists the commands for both paths. No hosted CI or control cluster is required.\n\n"
             f"Accept [Stage 1: software intake]({docs}/deployment/stage-1-software-intake/README.md) first,\n"
@@ -155,10 +155,11 @@ def copy_documentation(writer, prefix, upstream):
             content = f"{heading}\n\n{notice}\n{body}"
         else:
             content = notice + "\n" + content
-        writer.write(target, content)
+        writer.write(target, content, source=path)
 
     for asset in ("reference/diagrams/palette.json", "conventions/vmid-convention.svg"):
-        writer.write(f"{AUTO_DOCS}/{asset}", (upstream / "docs" / asset).read_bytes())
+        writer.write(f"{AUTO_DOCS}/{asset}", (upstream / "docs" / asset).read_bytes(),
+                     source=upstream / "docs" / asset)
 
     redirect_moved_docs(writer, previous_paths)
 

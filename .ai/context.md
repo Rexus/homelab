@@ -38,7 +38,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - Create boot-1 as a full clone, never a linked clone. Retain an offline VM backup with
   both OS/workspace disks and a tested restore path outside the failed platform. A full
   clone alone is not disaster recovery; original state, keys and approved tooling must survive.
-- Bootstrap examples keep repos, private inputs/state, artifacts and upload staging on an
+- Reference bootstrap examples keep repos, private inputs/state, artifacts and upload staging on an
   attached data filesystem (/srv/tier0), with independent recovery copies. Prepare OS tools,
   Python wheels, Ansible collections and provider artifacts before restricted/offline deployment;
   transfer bundles by verified SCP/media rather than depending on the cache being installed.
@@ -47,10 +47,23 @@ This file keeps durable context for AI-assisted work across sessions.
   preserve original homes for initial rollback, numeric ownership/ACLs/SSH keys and SELinux
   home contexts. Require data-mount ordering and independent console/reboot acceptance;
   both OS and data disks remain necessary for backup/restore. Do not change account paths.
+- Bootstrap storage has an explicit Rocky LVM alternative: prefer enlarging the existing virtual
+  disk, growing its PV partition, pvresize and lvextend -r. A new PV/vgextend is optional and makes
+  root depend on all participating disks. For this layout /srv/tier0 is on root, so separate-data
+  mountpoint and home bind-mount steps do not apply; backup/recovery follows the actual PV layout.
 - Offline controller preparation uses source manifests, matching OS/Python/CPU, transferred
   RPMs/wheels/collection archives and locked provider mirrors. CONTROL_NODE_COLLECTIONS_MODE=check
   verifies installed collection bounds without acquisition; TEMPLATE_RUNTIME_MODE=check uses
   accepted preinstalled tooling. Controller preparation is not all-stage disconnected readiness.
+- Administration groups host operations under hosts/, VM/templates under virtual-machines/,
+  backups under backups/, and failure scenarios/product recovery under recovery/. Avoid the vague compute label.
+- provisioning.md owns destroy/retirement and terraform-state.md owns inspection, exact binding removal
+  and per-deployment retirement. Recovery retains original state, keys and data; new installations
+  use fresh collections after accepted teardown. Never forget resources awaiting restoration.
+- Recover a VM, failed non-HA host or whole Proxmox platform through the bootstrap and independent
+  recovery set. Restore both bootstrap disks and compare its state age with the latest independent
+  copy. Establish cluster membership on empty nodes before restoring guests; never generate new
+  service identities to disguise missing data. Offline tooling does not supply guest repositories.
 - Kubernetes is the cluster goal; Talos is the current node-OS implementation example,
   not an architecture requirement. Immutable AlmaLinux or other OS support needs future lifecycle code
 - public cluster entry points are `terraform/deployments/kubernetes/` and
@@ -157,6 +170,10 @@ This file keeps durable context for AI-assisted work across sessions.
 - refresh uses `.generated-files.json` and preserves local edits and deletions;
   Kubernetes Terraform currently uses Talos in tier-owned automation; `clusters/` service starters
   remain project-owned adoption points, not the native application installers
+- Refresh ends with a manifest-scoped review: yellow preserved differences get current rendered
+  templates under collection-level .refresh-review/, outside Git repositories; red identifies
+  retained retired outputs/legacy redirects. Do not classify private inputs or arbitrary project
+  additions as obsolete. Dry runs remain write-free and point to upstream source templates.
 - code ownership upgrades preserve retired shared files for manual review and
   do not port local edits into new tier paths, alter owned CI jobs, or move state
 - Tier 0 must remain bootstrapable and recoverable without higher-tier services

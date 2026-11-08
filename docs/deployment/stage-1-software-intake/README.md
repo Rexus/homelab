@@ -241,7 +241,7 @@ curl --fail --noproxy '' --proxy "$PROXY_URL" --output /dev/null "$APPROVED_URL"
 Apply the [firewall rules](../../architecture/networking/firewall-policy.md#rule-contracts) before
 removing temporary bootstrap egress. Detailed [validation](proxy-cache.md#validation) and
 [policy/storage reference](proxy-cache.md) are available when needed.
-Proxmox uses its [host update procedure](../../administration/compute/update-access.md);
+Proxmox uses its [host update procedure](../../administration/hosts/update-access.md);
 Kubernetes uses separate [image-access inputs](../stage-4-kubernetes/procedures/image-access.md).
 The cache does not provide unrestricted internet access or Tier 0 update authority.
 

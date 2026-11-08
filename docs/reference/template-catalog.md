@@ -34,7 +34,7 @@ settings, host inventory, or Terraform state.
 
 ## Publish references and select a default
 
-1. Use the Tier 0 [publication workflow](../administration/compute/template-lifecycle.md#local-workflow).
+1. Use the Tier 0 [publication workflow](../administration/virtual-machines/template-lifecycle.md#local-workflow).
    After Terraform apply, template-policy checks and state refresh succeed, the script
    updates the sibling Shared catalog from the applied `template_candidates` output.
    VMID becomes the map key; name becomes `title`; node, family and image tags follow the template.

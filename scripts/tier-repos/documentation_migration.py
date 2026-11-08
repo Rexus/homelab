@@ -32,4 +32,4 @@ def redirect_moved_docs(writer, previous_paths):
         content += "\n".join(f'<a id="{anchor}"></a>' for anchor in sorted(anchors))
         content += f"\n\nRead the [current guide]({link}) in the reorganized documentation.\n"
         # RepositoryWriter protects edited files, owned files, and recorded deletions.
-        writer.write(relative, content)
+        writer.write(relative, content, source=Path(__file__), legacy=True)

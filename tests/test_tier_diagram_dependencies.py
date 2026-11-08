@@ -14,7 +14,7 @@ class DiagramDependencies(unittest.TestCase):
         runtime = diagrams(DOCS / "architecture/hosting/runtime.md")[0]
         self.assertLess(runtime.index('Cluster["'), runtime.index('Dedicated["'))
         delivery = diagrams(DOCS / "architecture/software/README.md")[0]
-        for peers in (("Build", "Delivery", "Source"), ("Bootstrap", "Flux", "Gate")):
+        for peers in (("Build", "Deploy", "Source"), ("ControlDelivery", "Hosting")):
             positions = [delivery.index(f'{name}["') for name in peers]
             self.assertEqual(positions, sorted(positions))
 

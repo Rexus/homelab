@@ -209,7 +209,7 @@ Return here for Step 3; preserve early local records until delivery is verified.
 | Network policy | Narrow source-to-intake rules from every tier; no producer route to archive query/admin APIs; bounded rate/message size |
 | Raw archive | Tier 0 custody, selected NAS/locked-retention model, independent copies and keys; no producer overwrite/read/delete access |
 | Offline format | Portable text/JSON Lines, source catalogue and integrity metadata on the data volume; tested reader kit and separately held recovery keys |
-| Backups | Include the separate data disk or use a verified archive-level backup; apply the [backup policy](../../administration/compute/backup-restore.md#backup-policy), not only VM snapshots |
+| Backups | Include the separate data disk or use a verified archive-level backup; apply the [backup policy](../../administration/backups/virtual-machines.md#backup-policy), not only VM snapshots |
 | Readers | Explicit system-administrator/security-reader roles; queries and exports audited; no general developer access to raw evidence |
 | Unsupported sources | Document any UDP or unauthenticated first-hop exception and local relay; do not claim end-to-end zero loss |
 

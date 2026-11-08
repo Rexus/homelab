@@ -62,8 +62,11 @@ independent backup; paths in this guide refer to that verified extracted set.
    terraform -chdir="$RECOVERY_TERRAFORM_ROOT" state list
    ```
 
-5. Review a plan/refresh-only plan after backend/provider access is restored. Stop on unexplained
-   replacement/destruction; do not apply merely to test recovery. The
+5. Restore the resources whose original identities must survive before approving a state refresh
+   that would forget them. A normal plan can propose creation while a VM still awaits restore;
+   committing refresh-only at that point can remove its binding. Confirm endpoint/token visibility
+   and review through [state reconciliation](../terraform-state.md#restored-resources).
+   Stop on unexplained creation/replacement/destruction; do not apply merely to test recovery. The
    [cluster workflow](../../deployment/stage-4-kubernetes/procedures/talos-terraform.md)
    owns its original state/input contract. Fresh creation is not recovery.
 

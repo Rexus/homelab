@@ -1,6 +1,6 @@
 ---
 # Complete the declared template policy where the pinned Terraform provider omits deletion/default updates.
-# Guide: docs/administration/compute/template-lifecycle.md#verify-fixed-ram-after-adoption
+# Guide: docs/administration/virtual-machines/template-lifecycle.md#verify-fixed-ram-after-adoption
 - name: Reconcile or verify reusable Proxmox template settings
   hosts: localhost
   connection: local

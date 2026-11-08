@@ -9,9 +9,9 @@ the generated repositories and API publisher are not prerequisites for this guid
 One GUI disk-import workflow covers AlmaLinux, Rocky Linux and Talos. Choose the
 image below, then follow Steps 1-3. Talos-specific differences are explicit;
 there is no separate ISO installation. For repeatable API publication instead,
-use the [template lifecycle](../../../administration/compute/template-lifecycle.md).
+use the [template lifecycle](../../../administration/virtual-machines/template-lifecycle.md).
 After manual creation, either retain manual ownership or
-[adopt the existing templates into Terraform](../../../administration/compute/template-lifecycle.md#adopt-existing-templates).
+[adopt the existing templates into Terraform](../../../administration/virtual-machines/template-lifecycle.md#adopt-existing-templates).
 Never let two Terraform states manage the same VMID or image file.
 
 ## Contents
@@ -73,7 +73,7 @@ sha256sum nocloud-amd64.raw
 
 `--keep` retains the approved compressed artifact. If the raw output already exists,
 inspect it rather than overwriting it blindly. The optional
-[approved cache](../../../administration/compute/update-access.md) is not required for initial import.
+[approved cache](../../../administration/hosts/update-access.md) is not required for initial import.
 
 ## Step 2: Create the VM shell and import the disk
 
@@ -102,7 +102,7 @@ qualify live migration on mixed hardware.
 
 For IaC publication, set the shared template bridge/VLAN under `all:`; the publisher
 selects NIC and OS-specific controller defaults without per-image tuning. Optional
-overrides are listed in the [catalog reference](../../../administration/compute/template-lifecycle.md#catalog-fields-and-defaults).
+overrides are listed in the [catalog reference](../../../administration/virtual-machines/template-lifecycle.md#catalog-fields-and-defaults).
 For an existing [SDN VNet](../step-1c-sdn.md), set `bridge` to its ID and
 `vlan_id: null`. Complete that guide's **Datacenter > SDN > Apply** and VNet
 permission steps first. The publisher attaches the template; it does not create zones,
@@ -132,7 +132,7 @@ configured guest RAM and HA failover capacity. [3][5]
    [cluster procedure](../../stage-4-kubernetes/procedures/talos-terraform.md) for Talos configuration/bootstrap.
 
 For EL packages or cleanup that require booting a builder, follow the
-[mutable Linux refresh](../../../administration/compute/template-lifecycle.md#mutable-linux-refresh); never capture a configured
+[mutable Linux refresh](../../../administration/virtual-machines/template-lifecycle.md#mutable-linux-refresh); never capture a configured
 Talos node back into a base template. Disposable clone tests must not modify the template.
 
 For the initial foundation, continue with the [bootstrap execution host](bootstrap.md):
@@ -172,7 +172,7 @@ Qualify these independently before promoting a template:
 | Guest control | Proxmox's agent option is enabled, and the guest agent is installed and running inside the clone |
 
 For a ZFS template, an imported boot disk still named `vm-*` may need
-[single-disk base conversion](../../../administration/compute/template-disk.md#complete-base-conversion).
+[single-disk base conversion](../../../administration/virtual-machines/template-disk.md#complete-base-conversion).
 An unused rollback disk is skipped during cloning; deleting it is not a clone repair. [7]
 Keep it until the new template has passed qualification. The current Linux VM
 Terraform modules request full clones explicitly.
@@ -197,7 +197,7 @@ systemctl status qemu-guest-agent --no-pager
 These package checks apply to RPM-based guests; use the guest distribution's package
 query elsewhere. Install/start the missing agent through that guest's approved package
 path. To include it in an Enterprise Linux base image, use the existing
-[template-refresh builder](../../../administration/compute/template-lifecycle.md#mutable-linux-refresh),
+[template-refresh builder](../../../administration/virtual-machines/template-lifecycle.md#mutable-linux-refresh),
 which installs and starts the agent before publication. Do not boot or modify the
 published template directly. For Talos, use its Factory extension instead.
 
@@ -211,7 +211,7 @@ Tier 0 alone owns the reusable image and `terraform/deployments/templates/` stat
 Shared holds its approved VMID/title/source node. Each consuming tier owns its
 `terraform/deployments/kubernetes/`, inventory, clone disks and cluster secrets.
 
-For the [API publisher](../../../administration/compute/template-lifecycle.md#local-workflow),
+For the [API publisher](../../../administration/virtual-machines/template-lifecycle.md#local-workflow),
 record the unpacked image/hash, version/schematic and explicit firmware in Tier 0's
 `templates/proxmox.yml`. Fresh examples include a DHCP CloudInit drive at `ide2`;
 the consuming root supplies network-only settings per clone. Legacy catalogs that

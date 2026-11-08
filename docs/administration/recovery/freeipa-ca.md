@@ -22,7 +22,7 @@ Directory Manager credential and backup-decryption material. Preserve the extern
 | --- | --- |
 | Healthy surviving directory and CA | Prefer native replica replacement from the surviving authority; review topology/renewal/CRL ownership first [1] |
 | Total loss or corruption propagated to all replicas | Fence all old authorities; restore one known-good CA-enabled server in isolation |
-| Qualified stopped-VM copy | Restore to a new VM ID/disks with disconnected production NICs; follow [VM restore validation](../compute/backup-restore.md) |
+| Qualified stopped-VM copy | Restore to a new VM ID/disks with disconnected production NICs; follow [VM restore validation](../backups/virtual-machines.md) |
 | Only LDAP/data-only backup | Treat as incomplete for rebuilding the host/CA; recover the missing full set or use a surviving CA authority |
 | OpenXPKI infrastructure issuer | Use the existing [guarded issuer recovery recipe](../cryptography/issuer-recovery.md) |
 | Offline root or USB/HSM keys | Follow [root custody](../../deployment/stage-3-trust/procedures/offline-root.md), [issuer custody](../cryptography/certificate-authority.md) and the selected device's independent recovery procedure |

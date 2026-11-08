@@ -39,7 +39,7 @@ these shared implementations.
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
 | `shared/scripts/gitlab-iac.sh` | executes explicitly trusted CI with Vault ID tokens and private saved plans | [Stage 9 handover](../deployment/stage-9-development/procedures/handover.md); not a tenant request API |
-| `tier-0/scripts/proxmox-templates.sh` | initializes, plans publication/adoption, applies templates or explicitly replaces one boot disk | [Template lifecycle](../administration/compute/template-lifecycle.md), [boot-disk maintenance](../administration/compute/template-disk.md) |
+| `tier-0/scripts/proxmox-templates.sh` | initializes, plans publication/adoption, applies templates or explicitly replaces one boot disk | [Template lifecycle](../administration/virtual-machines/template-lifecycle.md), [boot-disk maintenance](../administration/virtual-machines/template-disk.md) |
 | `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../administration/logging-drill.md); no faults or service changes |
 | `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports private credentials/plan JSON; currently Talos | [Kubernetes cluster](../deployment/stage-4-kubernetes/procedures/kubernetes.md) |
 
@@ -77,7 +77,7 @@ Omit `--env <env>` for production.
 | Reset rebuilt host SSH keys | `bash scripts/deploy.sh <setup> --env <env> --reset-known-hosts` |
 
 Template publication uses the separate
-[Tier 0 template workflow](../administration/compute/template-lifecycle.md#local-workflow),
+[Tier 0 template workflow](../administration/virtual-machines/template-lifecycle.md#local-workflow),
 not `deploy.sh`. Pass `--env-file .env.local` to load local provider aliases, or
 export provider credentials in the runner. `import` discovers existing catalog-matching
 templates/files and prepares a reviewed adoption plan; only `apply` writes the imports.
@@ -261,6 +261,9 @@ bootstrap use their dedicated scripts and retain their documented plan/apply ste
 
 Destroy a disposable environment:
 
+Use [destroy and retirement](../administration/provisioning.md) for scope/backup checks and
+[state reconciliation](../administration/terraform-state.md) when objects were already removed on the host.
+
 ```bash
 # Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test --destroy
@@ -299,7 +302,7 @@ Useful options:
 All supplied Terraform roots verify Proxmox TLS. Provisioning entry points reject
 `PROXMOX_VE_INSECURE` and `PM_VE_INSECURE` values that enable or ambiguously request
 a bypass, including values loaded from the Linux wrapper's environment file.
-Install independently verified [bootstrap trust](../administration/compute/proxmox-tls.md)
+Install independently verified [bootstrap trust](../administration/hosts/proxmox-tls.md)
 before planning; platform PKI is not required. Ansible-only work and local initialization
 do not need Proxmox API verification exceptions.
 

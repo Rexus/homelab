@@ -130,7 +130,7 @@ Rehearse with a copy; do not test failure recovery on the only surviving evidenc
 
 Acceptance is a useful investigation with normal infrastructure shut down, followed
 by the same test from an independent backup. Record the recovery time and recoverable
-event range against the [backup objectives](compute/backup-restore.md#backup-policy).
+event range against the [backup objectives](backups/virtual-machines.md#backup-policy).
 This verifies readability, not live-collector HA or protection against every physical loss.
 
 <a id="automation-boundary"></a>

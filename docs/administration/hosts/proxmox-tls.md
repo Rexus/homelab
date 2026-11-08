@@ -181,7 +181,7 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
 
 3. Run each caller's existing **plan-only** workflow from its owning tier, with the
    same inputs, environment and state as before. See [deployment commands](../../reference/repository-scripts.md#run-a-deployment),
-   [template plans](template-lifecycle.md#local-workflow) and
+   [template plans](../virtual-machines/template-lifecycle.md#local-workflow) and
    [cluster plans](../../deployment/stage-4-kubernetes/procedures/talos-terraform.md#plan-and-deploy).
    Certificate cutover needs no VM replacement, state migration or fresh bootstrap.
    Stop on unrelated resource changes. In a disposable TLS test, confirm an

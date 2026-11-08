@@ -111,7 +111,7 @@ does not mean an unencrypted disk or unrestricted physical access. Recovery keys
 exist only inside the system being recovered. The contract covers an intact logical
 volume, not an arbitrary member disk from a RAID or distributed storage pool.
 
-[Backup policy](../../administration/compute/backup-restore.md#backup-policy) owns independent
+[Backup policy](../../administration/backups/virtual-machines.md#backup-policy) owns independent
 copies and recovery objectives. [Offline investigation](../../administration/security-logging.md#offline-investigation)
 owns preservation and read-only inspection. Tier 1 search indexes are rebuildable projections.
 

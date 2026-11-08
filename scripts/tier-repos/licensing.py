@@ -1,5 +1,7 @@
 """Preserve upstream attribution without selecting a downstream project license."""
 
+from pathlib import Path
+
 from documentation import AUTO_DOCS
 from payload import read_file
 
@@ -8,6 +10,8 @@ def copy_attribution(writer, upstream, name):
     legacy_license = writer.hashes.pop("LICENSE", None)
     if legacy_license is not None or (writer.root / "LICENSE").exists():
         writer.owned_paths.add("LICENSE")
+        # The project's legal file is deliberately outside the generated-file review scope.
+        writer.review.current_paths.add("LICENSE")
     if legacy_license is not None:
         print(f"Project LICENSE left unchanged at {writer.root / 'LICENSE'}; "
               "review its scope manually. Project licensing is no longer managed by the kit.")
@@ -22,6 +26,6 @@ def copy_attribution(writer, upstream, name):
         "project content. Project licensing is determined by the repository owners.\n\n"
         + license_text
     )
-    writer.write("UPSTREAM-NOTICE", notice)
+    writer.write("UPSTREAM-NOTICE", notice, source=Path(__file__))
     if name == "architecture":
-        writer.write(f"{AUTO_DOCS}/LICENSE", license_text)
+        writer.write(f"{AUTO_DOCS}/LICENSE", license_text, source=upstream / "LICENSE")

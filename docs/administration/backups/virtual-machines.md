@@ -2,8 +2,9 @@
 
 <a id="proxmox-backup-foundation"></a>
 
-Configure a VM/CT backup destination, run a backup and prove recovery on an isolated test guest.
-Host snapshots, guest replicas and copied files are not substitutes for an accepted restore.
+Configure VM/CT backups and a complete recovery set, then prove recovery on isolated capacity.
+Protect the bootstrap execution path as well as service data. Host snapshots, guest replicas
+and copied files are not substitutes for an accepted restore.
 
 **Run on:** Proxmox VE GUI or an authorized Proxmox host shell; PBS administration uses its own UI.
 **Prerequisites:** independent console access, commissioned backup storage and recoverable credentials.
@@ -14,10 +15,13 @@ Host snapshots, guest replicas and copied files are not substitutes for an accep
 ## Operator tasks
 
 - [How is a backup policy recorded?](#backup-policy)
+- [What must a complete recovery set contain?](#recovery-set)
+- [How is a recovery set captured before maintenance or destruction?](#capture-a-recovery-set)
 - [How to prepare a backup target?](#quick-steps)
 - [How to schedule and run a guest backup?](#schedule-and-run)
 - [How to list backups and restore a test VM?](#restore-a-test-vm)
 - [How to change retention or prune history?](#retention-and-pruning)
+- [Which recovery routine applies after a failure?](#choose-a-recovery-routine)
 - [When is the backup path accepted?](#done-criteria)
 - [References](#references)
 
@@ -40,7 +44,7 @@ The [design](../../architecture/operations/backup-recovery.md) owns 3-2-1, failu
 | --- | --- |
 | Dataset and owner | State/ignored inputs, application data and logs have named recovery procedures |
 | RPO / RTO | Maximum acceptable data age and measured restore duration, per dataset |
-| Included disks | Every required guest disk is enabled for backup; include the logger's separate data disk |
+| Included disks | Every required guest disk is enabled for backup; include bootstrap OS/data disks and the logger's separate data disk |
 | Retention | Approved history, expiry, legal/incident holds and pruning custodian |
 | Access | Separate creation/restore/retention duties; test actual storage permissions and record backup-writer/root deletion authority |
 | Independent copy | Offsite/offline or independently protected copy and keys survive the selected source failure |
@@ -49,6 +53,15 @@ The [design](../../architecture/operations/backup-recovery.md) owns 3-2-1, failu
 A writable backup credential, NAS administrator or recovery-host root may still remove or alter
 repository contents even when the backup job never prunes. Record that trust and independently
 enforced protection explicitly; a writable share or ordinary snapshot is not WORM storage. [2][3]
+
+<a id="recovery-set"></a>
+<a id="capture-a-recovery-set"></a>
+
+## What must a complete recovery set contain?
+
+Follow the [recovery-set checklist and capture routine](recovery-set.md). It covers the bootstrap
+OS/workspace disks, original state/ignored inputs, code/artifacts, host/network/storage records,
+application data and separately recoverable keys. Verify that set before relying on guest backup alone.
 
 <a id="quick-steps"></a>
 
@@ -95,7 +108,9 @@ An existing qualified target is valid; neither path requires an object-storage A
 
 1. In **Datacenter > Backup > Add/Edit**, select the exact guests, backup storage, node scope,
    schedule, consistency mode and notification target.
-2. Review each guest's **Hardware > disk > Backup** selection. VM backups do not automatically
+2. Review each guest's **Hardware > disk > Backup** selection. For `boot-1`, verify both OS and
+   attached data disks are included; for the collector, include its separate log-data disk.
+   VM backups do not automatically
    cover external Kubernetes PVCs, NAS shares or application objects; use their
    [product backup contracts](../../deployment/foundation/storage/README.md#choose-the-native-interface).
 3. Use the native schedule field for the approved frequency; select **Run now** and read the task log.
@@ -150,8 +165,14 @@ live-disk storage. Keep the original guest/state and backup intact.
    Prevent duplicate IPs, directory authorities, scheduled jobs and outward integrations.
 4. Boot the test guest through the console. Verify each required disk, known content, application
    recovery and independent credential access. Test with hosted identity/Vault/CI unavailable.
+   For a bootstrap restore, check `/srv/tier0` and any `/home` bind mount, original tier inputs/state,
+   offline tools and independently verified API/SSH access before allowing an IaC writer to run.
 5. Record backup ID, checks and measured RPO/RTO. Keep the test isolated until the product's
    own cutover procedure is accepted.
+
+A disposable test restore stays outside live Terraform state. Use the
+[VM recovery routine](../recovery/virtual-machines.md) for production identity/cutover and
+state reconciliation; never import a test VM into the original deployment merely to pass a drill.
 
 **Stop/rollback:** on failed restore or wrong target selection, leave the replacement stopped,
 preserve its task log/disks and investigate. Retry on another clean target; do not delete the
@@ -172,12 +193,30 @@ These UI/product policies are separate from the supplied control-copy and databa
 Those jobs do not install backup-data pruning. Do not infer retention from job-history limits.
 Deletion cannot be rolled back without another retained copy.
 
+<a id="choose-a-recovery-routine"></a>
+
+## Which recovery routine applies after a failure?
+
+Start from independent console/storage access and the retained bootstrap kit. Preserve surviving
+evidence and fence old automation before bringing a replacement online.
+
+| Failure scope | Numbered recovery routine | First acceptance gate |
+| --- | --- | --- |
+| Bootstrap VM unavailable | [Restore bootstrap execution](../recovery/bootstrap.md) | OS/data disks or replacement tools, original inputs/state and independent credentials work |
+| One guest lost or reset | [Recover virtual machines](../recovery/virtual-machines.md) | Isolated guest/data validation and original IaC resource/state identity are reconciled |
+| Proxmox host failed | [Recover a host](../recovery/host.md) | Host/network/storage and HA membership are qualified; no duplicate guest execution |
+| Entire platform unavailable | [Recover the platform](../recovery/platform.md) | Independent bootstrap and backups work before Tier 0, then dependent tiers resume |
+
+These routines select the sequence; [product procedures](../recovery/README.md) own service-specific
+consistency, original keys/history and cutover. A successful VM boot alone is not application recovery.
+
 <a id="done-criteria"></a>
 
 ## When is the backup path accepted?
 
 - [ ] Destination and independently held credentials work.
 - [ ] Guest backup and isolated restore complete with every required data disk.
+- [ ] The bootstrap recovery set, original tier state/inputs and network/storage records are recoverable independently.
 - [ ] Product content and known protected data are readable within recorded RPO/RTO.
 - [ ] Ordinary producer/query access is restricted; backup-writer/root deletion authority and independent protection are recorded and tested.
 - [ ] Offsite/offline copy and key recovery are verified without the source environment.

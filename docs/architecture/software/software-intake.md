@@ -119,7 +119,7 @@ secrets or security-log submission.
 [Software intake](../../deployment/stage-1-software-intake/README.md) deploys the
 Tier 2 Squid/keepalived reference. Each consuming tier owns its local proxy inputs;
 Shared supplies reusable package-manager and shell configuration.
-[Proxmox update access](../../administration/compute/update-access.md) covers the
+[Proxmox update access](../../administration/hosts/update-access.md) covers the
 Tier 0 host integration. [Artifact supply](artifact-supply.md) covers registry
 authority and distribution, not HTTP cache behavior.
 

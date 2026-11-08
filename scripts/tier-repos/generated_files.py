@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from refresh_review import RefreshReview
+
 MARKER = "Generated from the upstream homelab deployment kit."
 
 
@@ -19,14 +21,16 @@ class RepositoryWriter:
             manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
             self.hashes = manifest["files"]
             self.owned_paths = set(manifest.get("owned", []))
+        self.review = RefreshReview(self.root, set(self.hashes) | self.owned_paths, self.owned_paths)
         self.counts = dict(create=0, update=0, unchanged=0, preserve=0)
 
-    def write(self, relative, content, executable=False, owned=False):
+    def write(self, relative, content, executable=False, owned=False, source=None, legacy=False):
         path = self.root / relative
         if path.is_symlink() or not path.resolve().is_relative_to(self.root):
             raise ValueError(f"Refusing generated output through symlink: {path}")
         data = content.encode("utf-8") if isinstance(content, str) else content
         digest = hashlib.sha256(data).hexdigest()
+        existing = None
         if path.exists():
             existing = hashlib.sha256(path.read_bytes()).hexdigest()
             if not owned and relative not in self.hashes and relative not in self.owned_paths:
@@ -41,6 +45,17 @@ class RepositoryWriter:
             action = "preserve"
         else:
             action = "create"
+        reason = None
+        if action == "preserve" and existing != digest:
+            if existing is None:
+                reason = "recorded deletion"
+            elif owned or relative in self.owned_paths:
+                reason = "project-owned; compare the current starter"
+            elif relative not in self.hashes:
+                reason = "pre-existing file; generation ownership is unverified"
+            else:
+                reason = "locally edited generated file"
+        self.review.record(relative, data, source, reason, legacy=legacy)
         self.counts[action] += 1
         if action != "unchanged":
             print(f"{action:9} {path}")

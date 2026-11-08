@@ -17,6 +17,7 @@ from generated_files import MARKER, RepositoryWriter
 from documentation import copy_documentation, shared_readme, tier_readme
 from project_docs import architecture_scaffold
 from licensing import copy_attribution
+from refresh_review import print_refresh_review
 from payload import (TIERS, copy_payload, read_file, report_legacy_deployments,
                      report_edge_ownership, report_legacy_shared, tier_setups, validate_layout)
 
@@ -59,6 +60,8 @@ def main():
     parser.add_argument("--repo", action="append", choices=[*REPOSITORIES, "all"], help="Repeat to select repositories.")
     parser.add_argument("--refresh", action="store_true", help="Update unchanged generated files; preserve local edits.")
     parser.add_argument("--dry-run", action="store_true", help="Report changes without writing files.")
+    parser.add_argument("--color", choices=("auto", "always", "never"), default="auto",
+                        help="Refresh review colors (default: auto; respects NO_COLOR).")
     args = parser.parse_args()
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]*", args.prefix):
         parser.error("--prefix must start with a letter or number and contain only letters, numbers, and dashes")
@@ -79,10 +82,12 @@ def main():
         if destination.is_symlink() or UPSTREAM.is_relative_to(destination.resolve()):
             parser.error(f"Output must not replace the upstream or a symlink: {destination}")
     validate_layout(UPSTREAM)
+    reviews = []
     for name in selected:
         writer = RepositoryWriter(destinations[name], args.refresh, args.dry_run)
-        writer.write(".gitattributes", f"# {MARKER}\n* text=auto eol=lf\n")
-        writer.write(".gitignore", f"# {MARKER}\n" + read_file(UPSTREAM / ".gitignore"))
+        writer.write(".gitattributes", f"# {MARKER}\n* text=auto eol=lf\n", source=Path(__file__))
+        writer.write(".gitignore", f"# {MARKER}\n" + read_file(UPSTREAM / ".gitignore"),
+                     source=UPSTREAM / ".gitignore")
         copy_attribution(writer, UPSTREAM, name)
         if name == "shared":
             copy_payload(writer, UPSTREAM, name, args.prefix)
@@ -94,6 +99,9 @@ def main():
         else:
             tier_repo(writer, name, args.prefix)
         writer.finish()
+        reviews.append(writer.review)
+    if args.refresh:
+        print_refresh_review(reviews, collection, dry_run=args.dry_run, color=args.color)
 
 
 if __name__ == "__main__":

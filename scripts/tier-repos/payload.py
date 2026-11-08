@@ -115,7 +115,7 @@ def copy_payload(writer, upstream, name, prefix):
                  or relative.as_posix() == "templates/proxmox-catalog.tfvars"
                  or relative.as_posix() == "config/platform.tfvars"
                  or relative.name in (".deployment-setups", ".gitkeep"))
-        writer.write(relative.as_posix(), content, executable=path.suffix == ".sh", owned=owned)
+        writer.write(relative.as_posix(), content, executable=path.suffix == ".sh", owned=owned, source=path)
 
     trees = SHARED_TREES if name == "shared" else TIER_TREES
     for directory, patterns in trees.items():

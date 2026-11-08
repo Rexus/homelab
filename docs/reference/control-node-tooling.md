@@ -121,6 +121,7 @@ define package/collection bounds.
 | --- | --- |
 | OS commands | Git, Bash, Python/pip/venv, SSH, CA/curl/OpenSSL, archive utilities, Terraform and `qemu-img` listed above; [offline OS download/install](../deployment/foundation/proxmox/bootstrap-offline.md#1a-download-os-packages-and-reviewed-source) |
 | Optional home-directory migration | Pre-stage `rsync` and, on Enterprise Linux 10, `policycoreutils-python-utils` before restricting package access; included in the offline RPM download list for the [home-directory guide](../deployment/foundation/proxmox/bootstrap-home.md) |
+| Optional Rocky Linux root-LVM expansion | Pre-stage `lvm2`, `cloud-utils-growpart`, `parted` and `xfsprogs`; included in the offline RPM list; follow the [existing-disk or new-PV guide](../deployment/foundation/proxmox/bootstrap-lvm.md) |
 | Python execution runtime | Tier 0 [runtime requirements](../../tier-0/ansible/runtime-requirements.txt); accepted interpreter plus Ansible/PyYAML/HCL tooling |
 | Python module clients | Owning tier's requirements: [Tier 0](../../tier-0/ansible/requirements.txt), [Tier 1](../../tier-1/ansible/requirements.txt), [Tier 2](../../tier-2/ansible/requirements.txt); install in the accepted venv |
 | Ansible collections | [Shared](../../shared/ansible/requirements.yml) plus [Tier 0](../../tier-0/ansible/requirements.yml), [Tier 1](../../tier-1/ansible/requirements.yml), [Tier 2](../../tier-2/ansible/requirements.yml); include transitive archives |
@@ -264,7 +265,7 @@ then `terraform/common.tfvars` before the selected setup `terraform.tfvars`.
 Configure common storage, initial placement and network references once in the shared
 profile. Keep tier-specific networks and network overrides per tier, and public-key
 paths in ignored local environment inputs.
-See [platform inputs](../reference/platform-inputs.md) for precedence and SSH access.
+See [platform inputs](platform-inputs.md) for precedence and SSH access.
 Use `scripts/init-local-files.sh --setup <name>` to create only
 the local files for one deployment path plus the shared defaults.
 
@@ -280,9 +281,9 @@ encrypted off-host recovery separately.
 
 ## Read more
 
-- [Environment variable conventions](../reference/environment-variables.md)
+- [Environment variable conventions](environment-variables.md)
 - [Offline bootstrap preparation and later approved-source handover](../deployment/foundation/proxmox/bootstrap-offline.md)
-- [Repository scripts](../reference/repository-scripts.md)
+- [Repository scripts](repository-scripts.md)
 - [Secret strategy](../administration/secret-handling/strategy.md)
 - [Identity foundation path](../deployment/stage-5-identity/procedures/freeipa.md)
 - [Windows and AD support](../architecture/identity/windows-integration.md)

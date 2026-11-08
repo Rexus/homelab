@@ -38,7 +38,7 @@ terraform -chdir=tier-0/terraform/modules/proxmox_templates test
 ```
 
 These native mock tests do not contact Proxmox or establish real image/clone acceptance.
-Operator verification remains in the [template runbook](../administration/compute/template-lifecycle.md).
+Operator verification remains in the [template runbook](../administration/virtual-machines/template-lifecycle.md).
 
 Approve exact packages, checksums and tools before enabling native tests. Keep
 them outside tracked source. Some tests fetch pinned charts/CRD schemas over

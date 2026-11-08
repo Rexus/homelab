@@ -183,7 +183,7 @@ host file last and rerun separately for each collector or recovery host.
 Record source-to-copy lag and the latest verified snapshot/backup checkpoint.
 An asynchronous copy/snapshot interval creates an exposed tail; it is not zero RPO.
 RAID and another snapshot on the same NAS do not cover loss of the whole appliance.
-Protect decryption keys independently under the [backup policy](../../administration/compute/backup-restore.md#backup-policy).
+Protect decryption keys independently under the [backup policy](../../administration/backups/virtual-machines.md#backup-policy).
 The [pipeline contract](../../reference/logging-pipeline.md) defines exact paths,
 failure behavior, filesystem reader views and the distinction between transport,
 NAS checkpoint, NAS snapshot and independent backup. Snapshot coverage is
