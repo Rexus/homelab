@@ -8,13 +8,23 @@ The runtime must enforce NetworkPolicy and Pod Security Admission.
 ## 1. Prepare inputs
 
 ```bash
+# Run from <prefix>-tier-2/
 umask 077
 cp -n ansible/group_vars/lab_environment.yml.example ansible/group_vars/lab_environment.yml
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-2/
+ansible/group_vars/lab_environment.yml
+# Edit: Selected cluster, tenant identity, quotas, DNS and ingress fields below.
 ```
 
 Install the control-node requirements inside the prepared deployment virtual environment:
 
 ```bash
+# Run from <prefix>-tier-2/
 python3 -m pip install -r ansible/requirements.txt
 ansible-galaxy collection install -r ansible/requirements.yml
 ```
@@ -37,6 +47,7 @@ An arbitrary image is not guaranteed to fit this contract.
 ## 2. Render and install
 
 ```bash
+# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/lab-environment.yml -e @ansible/group_vars/lab_environment.yml
 ```
 
@@ -46,6 +57,7 @@ accepted certificate owner. It must contain the private hostname's trusted chain
 no self-signed certificate or CA key is silently generated. Set the private kubeconfig path.
 
 ```bash
+# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/lab-environment.yml -e @ansible/group_vars/lab_environment.yml -e lab_environment_action=apply
 ```
 

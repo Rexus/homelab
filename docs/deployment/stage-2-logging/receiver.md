@@ -30,6 +30,7 @@ never substitute Fedora RPMs, nightly packages or disabled signature checks. [1]
 1. On the receiver, identify the separate data disk by its actual device/serial:
 
    ```bash
+   # Run on the selected Tier 0 log receiver.
    lsblk --output NAME,SERIAL,SIZE,FSTYPE,UUID,MOUNTPOINTS
    ```
 
@@ -43,6 +44,7 @@ never substitute Fedora RPMs, nightly packages or disabled signature checks. [1]
    inventory host variables instead. Check UUID and free capacity on each host:
 
    ```bash
+   # Run on the selected Tier 0 log receiver.
    findmnt --mountpoint /srv/security-logging --output TARGET,SOURCE,UUID,FSTYPE,OPTIONS
    df -h /srv/security-logging
    ```
@@ -99,6 +101,7 @@ Set execution-host file paths interactively, without placing private-key content
 configuration or command history:
 
 ```bash
+# Run from <prefix>-tier-0/
 read -r -e -p 'Receiver CA bundle path: ' SYSLOG_NG_TLS_CA_FILE
 read -r -e -p 'Receiver certificate chain path: ' SYSLOG_NG_TLS_CERT_FILE
 read -r -e -p 'Receiver private key path: ' SYSLOG_NG_TLS_KEY_FILE
@@ -120,6 +123,7 @@ receiver events; the OS logger's journal/socket/configuration remain untouched.
 1. From the Tier 0 repository root, after reviewing local inputs:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh syslog --ansible-only
    ```
 
@@ -131,6 +135,7 @@ receiver events; the OS logger's journal/socket/configuration remain untouched.
 2. On the receiver, inspect service state and diagnose failures without deleting queues:
 
    ```bash
+   # Run on the selected Tier 0 log receiver.
    sudo systemctl status syslog-ng-receiver.service
    sudo journalctl --unit syslog-ng-receiver.service --since '-10 minutes'
    ```

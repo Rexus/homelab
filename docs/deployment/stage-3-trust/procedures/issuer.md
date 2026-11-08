@@ -27,19 +27,28 @@ prepared data storage, production configuration bundle and authorized custodians
 2. Initialize inputs:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/init-local-files.sh --setup foundation
    cp -n ansible/group_vars/issuer.yml.example ansible/group_vars/issuer.yml
    ```
 
-   Edit these Tier 0 files before provisioning:
+   Edit these files before provisioning:
 
-   | File | Set |
-   | --- | --- |
-   | `terraform/deployments/foundation/terraform.tfvars` | `vm_instances["ca-1"].template_vm_id` to the approved Debian VMID; its unused `vm_id`, placement/storage and `extra_disks` data capacity |
-   | `ansible/inventory/hosts.yml` | `ca-1` under `issuing_ca`; retain existing directory and other groups |
-   | `ansible/group_vars/foundation.yml` | Reserved `platform_host_ips.ca-1` and existing directory IPs |
-   | `terraform/common.tfvars` | Actual `network_zones.cryptography` attachment and prefix/gateway or applied SDN lookup |
-   | `.env.local` | Real Proxmox endpoint/token and an existing `TF_VAR_ssh_public_key_files` path; use the matching private key for Ansible |
+   ```text
+   # Edit in <prefix>-tier-0/
+   terraform/deployments/foundation/terraform.tfvars
+   # Edit: vm_instances["ca-1"].template_vm_id to the approved Debian VMID; its unused vm_id, placement/storage
+   #       and extra_disks data capacity
+   ansible/inventory/hosts.yml
+   # Edit: ca-1 under issuing_ca; retain existing directory and other groups
+   ansible/group_vars/foundation.yml
+   # Edit: Reserved platform_host_ips.ca-1 and existing directory IPs
+   terraform/common.tfvars
+   # Edit: Actual network_zones.cryptography attachment and prefix/gateway or applied SDN lookup
+   .env.local
+   # Edit: Real Proxmox endpoint/token and an existing TF_VAR_ssh_public_key_files path; use the matching
+   #       private key for Ansible
+   ```
 
    For a new Stage 3 installation, the desired guest map
    may contain only `ca-1`; later add the identity pair to this **same state**.
@@ -49,6 +58,7 @@ prepared data storage, production configuration bundle and authorized custodians
    plan and enter `yes` only for the approved resources:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh foundation --terraform-only
    ```
 
@@ -87,6 +97,7 @@ For the supplied software policy, first build the private artifact using
    changing them is not password rotation or database recovery:
 
    ```bash
+   # Run from <prefix>-tier-0/
    read -r -s -p 'Issuer database password: ' OPENXPKI_DATABASE_PASSWORD; echo
    read -r -s -p 'Issuer session database password: ' OPENXPKI_SESSION_PASSWORD; echo
    read -r -s -p 'Issuer session secret: ' OPENXPKI_SESSION_SECRET; echo
@@ -103,6 +114,7 @@ For the supplied software policy, first build the private artifact using
 3. For the first empty database only, set `openxpki_initialize_database: true`, then run:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 

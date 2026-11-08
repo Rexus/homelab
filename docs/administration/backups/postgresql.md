@@ -87,6 +87,7 @@ prerequisites first. Preparation creates only DB resources, not application char
 3. From the owning tier root, run **only the matching command**. Tier 0:
 
 ```bash
+# Run from <prefix>-tier-0/ on the protected execution host.
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/control-applications.yml \
   -e @ansible/group_vars/control_applications.yml -e @ansible/group_vars/control_applications_secrets.yml \
@@ -96,6 +97,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 Tier 1:
 
 ```bash
+# Run from <prefix>-tier-1/ on the protected execution host.
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml -e observability_action=apply
 ```
 Render first with `action=render` to inspect `*-database-prepare.yml`. All ordinary product
@@ -104,6 +106,7 @@ configuration prerequisites still apply; render outputs contain private configur
 4. After Ready, independently confirm the reported database identity:
 
 ```bash
+# Run on the authorized Kubernetes execution host with the selected source context.
 read -r -p "Source Kubernetes context: " SOURCE_CONTEXT
 read -r -p "Product namespace (keycloak, netbox or selected observability namespace): " PRODUCT_NAMESPACE
 read -r -p "CNPG cluster (keycloak-db, netbox-db or grafana-db): " CLUSTER
@@ -144,6 +147,7 @@ Source IDs are `tier-0/keycloak/keycloak-db`, `tier-0/netbox/netbox-db` and
 `tier-1/<observability_namespace>/grafana-db`. For example, with reviewed custodian variables:
 
 ```bash
+# Run on the NAS custodian's authorized mount host.
 set -euo pipefail
 read -r -p "NEW empty authorized NAS directory: " NAS_DIRECTORY
 read -r -p "Recorded source ID (for example tier-0/keycloak/keycloak-db): " SOURCE_ID
@@ -166,6 +170,7 @@ Never replace a mismatching marker to make a Job pass. Diagnose the source/PV/cu
 On the owning execution host, select the source cluster explicitly:
 
 ```bash
+# Run on the authorized Kubernetes execution host with the selected source context.
 read -r -e -p "Source kubeconfig path: " SOURCE_KUBECONFIG
 export KUBECONFIG="$SOURCE_KUBECONFIG"
 read -r -p "Source Kubernetes context: " SOURCE_CONTEXT
@@ -189,6 +194,7 @@ check that no backup of this database is active; CronJob `Forbid` does not seria
 independently created manual Jobs. [7]
 
 ```bash
+# Run on the authorized Kubernetes execution host with the selected source context.
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" get cronjob "$CLUSTER-files" -o yaml
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" get jobs
 BACKUP_JOB="$CLUSTER-files-$(date -u +%Y%m%d%H%M%S)"
@@ -216,6 +222,7 @@ verification only; qualify [clean-target CNPG recovery](../recovery/cnpg-files.m
 On the custodian's authorized NAS mount, list only completed sets; pending sets are not accepted backups:
 
 ```bash
+# Run on the NAS custodian's authorized mount host.
 read -r -e -p "Authorized NAS backup directory: " NAS_DIRECTORY
 find "$NAS_DIRECTORY/completed" -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
 read -r -p "Recorded completed set ID: " BACKUP_SET
@@ -227,6 +234,7 @@ Use the completed ID, exact image and source identity in [clean-target recovery]
 Pause **new scheduled** work during fault investigation:
 
 ```bash
+# Run on the authorized Kubernetes execution host with the selected source context.
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" patch cronjob "$CLUSTER-files" --type=merge -p '{"spec":{"suspend":true}}'
 ```
 
@@ -234,6 +242,7 @@ Suspending does not terminate an active Job. Preserve its logs/pending files and
 capacity. After correction, review missed-run behavior before resuming:
 
 ```bash
+# Run on the authorized Kubernetes execution host with the selected source context.
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" patch cronjob "$CLUSTER-files" --type=merge -p '{"spec":{"suspend":false}}'
 ```
 

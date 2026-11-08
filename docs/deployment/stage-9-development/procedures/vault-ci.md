@@ -19,7 +19,16 @@ This configures an existing Vault; it does not initialize, unseal or replace it.
 From the **Tier 0 root**, create the local input file:
 
 ```bash
+# Run from <prefix>-tier-0/
 cp -n terraform/deployments/ci-auth/terraform.tfvars.example terraform/deployments/ci-auth/terraform.tfvars
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-0/
+terraform/deployments/ci-auth/terraform.tfvars
+# Edit: GitLab issuer/project/ref claims, Vault policy and scoped credential paths.
 ```
 
 | Field in `terraform/deployments/ci-auth/terraform.tfvars` | Set |
@@ -37,6 +46,7 @@ cp -n terraform/deployments/ci-auth/terraform.tfvars.example terraform/deploymen
    this root. `VAULT_ADDR`, `VAULT_CACERT` and `VAULT_TOKEN` stay outside Git.
 
 ```bash
+# Run from <prefix>-tier-0/
 umask 077
 mkdir -p .terraform/state/ci-auth .terraform/plans
 terraform -chdir=terraform/deployments/ci-auth init -backend-config="path=$PWD/.terraform/state/ci-auth/terraform.tfstate"
@@ -46,6 +56,7 @@ terraform -chdir=terraform/deployments/ci-auth plan -out="$PWD/.terraform/plans/
 Review the authentication backend, exact claims, policy path and planned changes.
 
 ```bash
+# Run from <prefix>-tier-0/
 terraform -chdir=terraform/deployments/ci-auth apply "$PWD/.terraform/plans/ci-auth.tfplan"
 ```
 
@@ -66,6 +77,7 @@ Prepare a private JSON file with `proxmox_api_url`, `proxmox_api_token_id`,
 identities required for this repository; never reuse a human or root credential.
 
 ```bash
+# Run from <prefix>-tier-0/
 vault kv put kv/ci/tier0 @/absolute/private/tier0-ci.json
 ```
 

@@ -30,6 +30,7 @@ context and create the original product namespace **as a new namespace** there. 
 context or attach a live CNPG claim. Retain the source set and logs after every failed attempt.
 
 ```bash
+# Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
 set -euo pipefail
 read -r -p "Isolated Kubernetes recovery context: " RECOVERY_CONTEXT
 read -r -p "Original product namespace: " PRODUCT_NAMESPACE
@@ -104,6 +105,7 @@ This focused recipe supports one PGDATA/WAL volume and no user tablespaces.
 1. From the owning generated tier root, render using its existing Shared role search path:
 
 ```bash
+# Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, /dev/stdin \
   -e @secrets/cnpg-files-recovery.yml <<'YAML'
 - hosts: localhost
@@ -131,6 +133,7 @@ Complete [isolated input preparation](#prepare-isolated-inputs) and
 read-only recovery source; applications and old DB resources must be absent:
 
 ```bash
+# Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
 set -euo pipefail
 test "${RECOVERY_ISOLATED:-}" = yes
 test "${RECOVERY_APPROVAL:-}" = "$RECOVERY_CONTEXT/$PRODUCT_NAMESPACE/$CLUSTER"
@@ -172,6 +175,7 @@ not make an empty label selection fail early. [4]
 2. Wait for the source to become ready, inspect logs, then create the separate target:
 
 ```bash
+# Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
 kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait pod \
   -l "backup.homelab/restore=$CLUSTER" --for=create --timeout=5m
 kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait "job/$CLUSTER-files-restore" \
@@ -186,6 +190,7 @@ kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait "cluster/$CLU
 3. Inspect the new cluster and restored product data before cutover:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" get cluster "$CLUSTER" -o yaml
    kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" get pods
    ```
@@ -200,6 +205,7 @@ recipe or production Helm reconciliation over the recovery target. [1][3]
 4. After validation, stop the temporary server cleanly:
 
 ```bash
+# Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
 kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" exec "job/$CLUSTER-files-restore" \
   -- touch /work/release
 kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait "job/$CLUSTER-files-restore" \

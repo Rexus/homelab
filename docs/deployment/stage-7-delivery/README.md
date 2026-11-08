@@ -9,11 +9,7 @@ sources and [cluster-foundation gates](../stage-4-kubernetes/procedures/kubernet
 The temporary source must work before GitLab exists.
 **Working repositories:** `<prefix>-tier-1` for delivery and registry;
 `<prefix>-tier-2` for optional public edge. Tier 0 owns its existing Flux.
-**Start in Tier 1.** From the Tier 0 root:
-
-```bash
-cd ../homelab-tier-1
-```
+**Execution context:** `<prefix>-tier-1/`.
 
 **Automation:** cluster lifecycle, native Argo CD/Spinnaker and Harbor installers are supplied.
 They have separate installation commands below; TLS/backup commissioning and live acceptance remain explicit.
@@ -91,7 +87,16 @@ Retain the bootstrap source until Stage 9 GitLab source migration is accepted.
 Both branches use `ansible/group_vars/delivery_platform.yml`. Create it once:
 
 ```bash
+# Run from <prefix>-tier-1/
 cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-1/
+ansible/group_vars/delivery_platform.yml
+# Edit: Selected delivery controller, cluster context, SSO, storage and egress inputs.
 ```
 
 Set `delivery_platform_controller` to `argocd` (2a) or `spinnaker` (2b), and
@@ -99,6 +104,7 @@ Set `delivery_platform_controller` to `argocd` (2a) or `spinnaker` (2b), and
 host, kubeconfig/context, IdP, destination and TLS/backup fields before rendering:
 
 ```bash
+# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/delivery-platform.yml -e @ansible/group_vars/delivery_platform.yml
 ```
 
@@ -106,6 +112,7 @@ Review the private render. Spinnaker additionally requires its reviewed checksum
 commissioned certificate/backup inputs before apply. With pre-existing Secrets:
 
 ```bash
+# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/delivery-platform.yml -e @ansible/group_vars/delivery_platform.yml -e delivery_platform_action=apply
 ```
 

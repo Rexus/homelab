@@ -27,52 +27,60 @@ The main path works independently of later hosted repository and OCI services.
 
 ## Step 1: Prepare the cache inputs
 
-From the Tier 0 repository used for foundation, switch to **Tier 2** on the same bootstrap host:
+Initialize the Tier 2 cache inputs on the bootstrap host:
 
 ```bash
-cd ../homelab-tier-2
+# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup cache
 ```
 
-Generated guides substitute the collection prefix. If already in Tier 2, omit the `cd` line.
 Initialization creates ignored local files without overwriting existing configuration.
 
 ### Shared references: check once
 
-Open the sibling Shared files; these settings are reused by all Linux deployments:
+Shared references apply to all Linux deployments.
 
-```bash
-vi ../homelab-shared/config/platform.tfvars ../homelab-shared/templates/proxmox-catalog.tfvars
+Edit these files:
+
+```text
+# Edit in <prefix>-shared/
+config/platform.tfvars
+# Edit: default_platform_node_name is an existing destination node, such as pve01
+# Edit: proxmox_storage_classes.local: vm_disk is VM-image storage, such as local-zfs; omit cloud_init_drive
+#       to inherit it. Preserve other storage classes
+templates/proxmox-catalog.tfvars
+# Edit: default_linux_vm_template_id selects a clone-tested Linux image published by Tier 0; the example
+#       Rocky template is 9101
 ```
-
-| File | Set or verify |
-| --- | --- |
-| `config/platform.tfvars` | `default_platform_node_name` is an existing destination node, such as `pve01` |
-| Same file, `proxmox_storage_classes.local` | `vm_disk` is VM-image storage, such as `local-zfs`; omit `cloud_init_drive` to inherit it. Preserve other storage classes |
-| `templates/proxmox-catalog.tfvars` | `default_linux_vm_template_id` selects a clone-tested Linux image published by Tier 0; the example Rocky template is `9101` |
 
 The logical class `local` is **not** the datastore named `local`. Import storage may accept
 images for upload without supporting VM disks. See [storage mapping](../../reference/platform-inputs.md#vm-disk-storage).
 
 ### Tier 2 inputs: edit before deployment
 
-```bash
-vi .env.local terraform/common.tfvars terraform/deployments/cache/terraform.tfvars
-vi ansible/group_vars/all.yml ansible/group_vars/cache.yml
-```
+Edit these files:
 
-| File | Required edits |
-| --- | --- |
-| `.env.local` | Actual `PROXMOX_API_URL`, token ID/secret and `TF_VAR_ssh_public_key_files`. This file is separate from Tier 0's |
-| `terraform/common.tfvars` | `external_edge` bridge/VLAN, subnet and gateway, or the SDN alternative below |
-| `terraform/deployments/cache/terraform.tfvars` | Available VMIDs; keep `cache-1`/`cache-2` keys. Review OS disk and each extra `scsi1` cache disk |
-| `ansible/group_vars/all.yml` | `platform_domain`, hostname prefix/suffix and `ansible_user` matching the clone's login user |
-| `ansible/group_vars/cache.yml` | Both host IPs, VIP/prefix, unique VRRP ID, permitted client CIDRs and approved source domains |
-| Same file | `cache_validation_url` reachable through the selected policy; keep `repository_proxy_enabled: false` for the cache hosts |
+```text
+# Edit in <prefix>-tier-2/
+.env.local
+# Edit: Actual PROXMOX_API_URL, token ID/secret and TF_VAR_ssh_public_key_files. This file is separate from
+#       Tier 0's
+terraform/common.tfvars
+# Edit: external_edge bridge/VLAN, subnet and gateway, or the SDN alternative below
+terraform/deployments/cache/terraform.tfvars
+# Edit: Available VMIDs; keep cache-1/cache-2 keys. Review OS disk and each extra scsi1 cache disk
+ansible/group_vars/all.yml
+# Edit: platform_domain, hostname prefix/suffix and ansible_user matching the clone's login user
+ansible/group_vars/cache.yml
+# Edit: Both host IPs, VIP/prefix, unique VRRP ID, permitted client CIDRs and approved source domains
+# Edit: cache_validation_url reachable through the selected policy; keep repository_proxy_enabled: false for
+#       the cache hosts
+```
 
 In `.env.local`, uncomment and set the execution account's **public key file path**:
 
-```bash
+```dotenv
+# Edit in <prefix>-tier-2/.env.local
 TF_VAR_ssh_public_key_files='["/home/operator/.ssh/id_ed25519.pub"]'
 ```
 
@@ -82,6 +90,7 @@ on the execution host or agent. Empty clone key inputs do not inherit bootstrap-
 For SDN, replace only `external_edge` inside `network_zones` in `terraform/common.tfvars`:
 
 ```hcl
+# Edit in <prefix>-tier-2/terraform/common.tfvars (inside network_zones).
 external_edge = {
   bridge     = "edge"
   sdn_lookup = true
@@ -96,6 +105,7 @@ For a regular VLAN-aware bridge, edit the existing explicit VLAN/subnet/gateway 
 In `ansible/group_vars/cache.yml`, replace these values with reserved site addresses:
 
 ```yaml
+# Edit in <prefix>-tier-2/ansible/group_vars/cache.yml.
 platform_host_ips:
   cache-1: 10.30.30.20
   cache-2: 10.30.30.21
@@ -121,6 +131,7 @@ The plan enables each Proxmox NIC's Firewall flag; review the separate
 before applying it to existing guests. Ansible's guest `firewalld` settings are independent.
 
 ```bash
+# Run from <prefix>-tier-2/
 bash scripts/deploy.sh cache
 ```
 
@@ -214,6 +225,7 @@ From the bootstrap host and a permitted consumer network, test the selected prox
 (native-mirror consumers use their commissioned package/tool checks instead):
 
 ```bash
+# Run on the selected approved consumer host.
 read -r -p "Proxy URL (example: http://10.30.30.22:3128): " PROXY_URL
 read -r -p "Approved download URL: " APPROVED_URL
 curl --fail --noproxy '' --proxy "$PROXY_URL" --output /dev/null "$APPROVED_URL"
@@ -239,9 +251,7 @@ The cache does not provide unrestricted internet access or Tier 0 update authori
 that patches are installed, that releases are approved, or that a cache is an offline mirror.
 Return to Tier 0, then follow [Stage 2: Protected logging](../stage-2-logging/README.md):
 
-```bash
-cd ../homelab-tier-0
-```
+**Execution context:** `<prefix>-tier-0/`.
 
 ## Extend the capability later
 

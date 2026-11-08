@@ -35,17 +35,19 @@ Do not give workload users infrastructure-wide credentials to fill that gap.
 
 ## Getting started
 
-From `homelab-iac/homelab-tier-2`:
+Initialize the selected isolated context:
 
 ```bash
+# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup lab --env test
 ```
 
-Replace `homelab` with the prefix; omit `--env test` for production. Edit the
+Omit `--env test` for production. Edit the
 initialized inputs using the [script guide](../../reference/repository-scripts.md),
 then have the authorized operator deploy:
 
 ```bash
+# Run from <prefix>-tier-2/
 bash scripts/deploy.sh lab --env test
 ```
 

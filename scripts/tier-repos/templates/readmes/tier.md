@@ -34,6 +34,7 @@ ${prerequisites}
 After the checklist's prerequisites, initialize a Linux VM setup from this root:
 
 ```bash
+# Run from ${repo_prefix}-${tier}/
 bash scripts/init-local-files.sh --setup ${example}
 ```
 
@@ -43,9 +44,21 @@ add the same `--env test` to initialization and deployment, and complete
 [environment isolation](${docs}/reference/repository-scripts.md#environment-isolation)
 first; the flag does not allocate separate VMIDs or addresses.
 
-Edit `.env.local`, inventory and group vars under `ansible/`, and local
-Terraform inputs under `terraform/`. Set common storage, initial placement and
-network references once in the shared profile; keep tier-specific networks and overrides here.
+Edit these files:
+
+```text
+# Edit in ${repo_prefix}-${tier}/
+.env.local                                      # edit API access and local public-key paths
+ansible/inventory/hosts.yml                      # edit host groups
+ansible/group_vars/all.yml                       # edit domain and common guest settings
+ansible/group_vars/${example}.yml                # edit the selected service inputs and host IPs
+terraform/common.tfvars                         # edit tier-specific network references
+terraform/deployments/${example}/terraform.tfvars # edit guest IDs, sizing and storage selections
+# Edit in ${repo_prefix}-shared/
+config/platform.tfvars                          # edit shared placement, storage and network references
+templates/proxmox-catalog.tfvars                 # select approved consumer images
+```
+
 Keep SSH keys outside the
 repositories and set only public-key file paths in `.env.local`, as described
 in [platform inputs](${docs}/reference/platform-inputs.md). Follow the
@@ -53,6 +66,7 @@ in [platform inputs](${docs}/reference/platform-inputs.md). Follow the
 storage and TLS preparation before host configuration. Then deploy:
 
 ```bash
+# Run from ${repo_prefix}-${tier}/
 bash scripts/deploy.sh ${example}
 ```
 

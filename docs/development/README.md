@@ -87,6 +87,7 @@ The collection directory is not itself a Git repository.
 From the edited repository:
 
 ```bash
+# Run from the edited repository root
 git diff --check
 git diff --stat
 ```
@@ -94,6 +95,7 @@ git diff --stat
 For upstream generation changes, preview from the **kit root**:
 
 ```bash
+# Run from the upstream kit checkout
 bash scripts/init-tier-repos.sh --dry-run
 ```
 

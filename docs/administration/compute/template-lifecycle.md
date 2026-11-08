@@ -51,6 +51,7 @@ Talos uses fresh approved raw images; Linux package-refresh recipes do not apply
 1. Create missing local inputs. Existing catalogs are preserved:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh init
    ```
 
@@ -61,6 +62,7 @@ Talos uses fresh approved raw images; Linux package-refresh recipes do not apply
 3. Prepare the publication plan:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh plan --env-file .env.local
    ```
 
@@ -68,6 +70,7 @@ Talos uses fresh approved raw images; Linux package-refresh recipes do not apply
    **saved plan**, then verify policy:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh apply --env-file .env.local
    bash scripts/proxmox-templates.sh verify --env-file .env.local
    ```
@@ -95,6 +98,7 @@ before applying; policy verification alone does not check NICs.
 4. Prepare and inspect adoption:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh import --env-file .env.local
    ```
 
@@ -102,11 +106,19 @@ before applying; policy verification alone does not check NICs.
    must be a stopped template. Resolve conflicts before proceeding, then run:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh apply --env-file .env.local
+   ```
+
+   Optional: check for drift after the accepted apply; expect no changes:
+
+   ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
+   # Optional drift check; this creates a new saved plan, not another required apply.
    bash scripts/proxmox-templates.sh plan --env-file .env.local
    ```
 
-**Expected:** a no-change follow-up plan and passed [live policy verification](#how-is-template-policy-verified).
+**Expected:** adopted templates and passed [live policy verification](#how-is-template-policy-verified).
 Import writes are part of `apply`; `import` alone does not adopt anything. Existing
 uploaded bytes and boot disks are not reimaged by adoption. [6]
 
@@ -117,6 +129,7 @@ uploaded bytes and boot disks are not reimaged by adoption. [6]
 From Tier 0, check every applied template, or select one catalog key:
 
 ```bash
+# Run from <prefix>-tier-0/ on the protected execution host.
 read -r -p "Catalog key (example: rocky-build-1): " TEMPLATE_KEY
 bash scripts/proxmox-templates.sh verify --template "$TEMPLATE_KEY" --env-file .env.local
 ```
@@ -140,6 +153,7 @@ networking have their own acceptance checks. An **Apply complete** line is insuf
 3. Resolve the cause, then prepare a new adoption plan:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh import --env-file .env.local
    ```
 
@@ -194,6 +208,7 @@ Retain approved artifacts independently of a live Tier 1 registry or Git service
    or copy the starter only when no pipeline exists:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    cp -n ci/gitlab-templates.yml.example .gitlab-ci.yml
    ```
 

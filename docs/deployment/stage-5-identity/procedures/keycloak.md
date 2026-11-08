@@ -27,9 +27,18 @@ backup storage and protected cluster log delivery. None may depend on later Vaul
 Initialize the local file without overwriting existing selections:
 
 ```bash
+# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
 export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
 kubectl get nodes -o wide
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-0/
+ansible/group_vars/control_applications.yml
+# Edit: Component selection, cluster context, TLS/SSO, database and backup-phase inputs.
 ```
 
 Edit **`ansible/group_vars/control_applications.yml`**. Select only `keycloak` for
@@ -69,6 +78,7 @@ point-in-time recovery is required; a file backup recovers only to a completed s
 Create the encrypted input before entering secrets:
 
 ```bash
+# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/control_applications_secrets.yml.example ansible/group_vars/control_applications_secrets.yml
 ansible-vault encrypt ansible/group_vars/control_applications_secrets.yml
 ansible-vault edit ansible/group_vars/control_applications_secrets.yml
@@ -101,6 +111,7 @@ dependency belongs in these inputs. Keep TLS verification enabled on the control
 1. Keep `files` / `prepare` in the local application inputs. Render without live changes:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=render
    ```
 
@@ -108,6 +119,7 @@ dependency belongs in these inputs. Keep TLS verification enabled on the control
    resources and Secret references, then prepare the database:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
    ```
 
@@ -134,6 +146,7 @@ With the selected backup inputs complete, rerender using the Step 3a render comm
 Inspect database, backup, TLS, ingress and federation selections before applying:
 
 ```bash
+# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
 ```
 

@@ -24,11 +24,11 @@ while initialized operational inputs belong to the generated project.
 
 | Kit source | Generated repository | Owner of changes |
 | --- | --- | --- |
-| `tier-0/` | `homelab-tier-0/` | Hardware/trust services, templates and protected execution |
-| `tier-1/` | `homelab-tier-1/` | Shared platform services |
-| `tier-2/` | `homelab-tier-2/` | Edge/cache, labs and application definitions |
-| `shared/` | `homelab-shared/` | Stateless scripts/roles, size profiles and platform/image references |
-| `docs/` | `homelab-architecture/docs/auto-docs/` | Maintained guidance; project choices remain outside auto-docs |
+| `tier-0/` | `<prefix>-tier-0/` | Hardware/trust services, templates and protected execution |
+| `tier-1/` | `<prefix>-tier-1/` | Shared platform services |
+| `tier-2/` | `<prefix>-tier-2/` | Edge/cache, labs and application definitions |
+| `shared/` | `<prefix>-shared/` | Stateless scripts/roles, size profiles and platform/image references |
+| `docs/` | `<prefix>-architecture/docs/auto-docs/` | Maintained guidance; project choices remain outside auto-docs |
 
 HomeLab is the example prefix; generated directories are lowercase.
 **Each tier owns its inventory, Terraform resources and state.** Shared never owns

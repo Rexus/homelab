@@ -26,6 +26,14 @@ allocation are links to the maintained manual rather than copied rules.
 Replace the reference values with agreed standards; exact hosts and addresses remain
 in tier-local inventory, not a second documentation inventory.
 
+Edit these files:
+
+```text
+# Edit in <prefix>-architecture/
+platform-standards.md  # agreed naming, tags, VMID reservations and network choices
+docs/README.md        # selected paths and separate deployed/verified capability checks
+```
+
 The single platform record, `docs/README.md`, selects the paths and tracks each
 capability as deployed and verified separately. Its links point to the actual
 architecture, deployment, administration and development guides under `auto-docs/`.
@@ -82,6 +90,7 @@ update; edited or deleted copies retain the existing safety contract.
 From the upstream checkout, preview an update:
 
 ```bash
+# Run from upstream kit root
 bash scripts/init-tier-repos.sh --refresh --dry-run
 ```
 

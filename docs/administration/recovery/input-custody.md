@@ -46,7 +46,7 @@ runner lifecycle or qualify backend recovery before calling input backup complet
 ## How to expose a bounded read-only source view?
 
 On each source host, the source owner selects a directory containing the actual owning Git working
-trees and their ignored data (example `/srv/homelab-iac`). Use a qualified source snapshot or pause
+trees and their ignored data (example `/srv/<prefix>-iac`). Use a qualified source snapshot or pause
 Terraform/configuration writers during capture; client-side `ro` does not freeze source writes.
 Use full working trees, not `.git` worktree links pointing outside the export.
 
@@ -58,7 +58,7 @@ reader and recovery-host address. Preserve other services and the server's secur
 
 ```ini
 [recovery-inputs]
-    path = /srv/homelab-iac
+    path = /srv/<prefix>-iac
     read only = yes
     guest ok = no
     valid users = recovery-input-reader
@@ -96,10 +96,10 @@ control_backup_input_sources:
     marker: REPLACE_WITH_SOURCE_OWNER_MARKER
     credentials_file: /private/recovery/provisioner-reader.credentials
 control_backup_inputs:
-  - {repo: /mnt/control-inputs-provisioner/homelab-tier-0, path: .terraform/state}
-  - {repo: /mnt/control-inputs-provisioner/homelab-tier-0, path: ansible/inventory/hosts.yml}
-  - {repo: /mnt/control-inputs-provisioner/homelab-tier-0, path: ansible/group_vars/all.yml}
-  - {repo: /mnt/control-inputs-provisioner/homelab-tier-0, path: secrets}
+  - {repo: /mnt/control-inputs-provisioner/<prefix>-tier-0, path: .terraform/state}
+  - {repo: /mnt/control-inputs-provisioner/<prefix>-tier-0, path: ansible/inventory/hosts.yml}
+  - {repo: /mnt/control-inputs-provisioner/<prefix>-tier-0, path: ansible/group_vars/all.yml}
+  - {repo: /mnt/control-inputs-provisioner/<prefix>-tier-0, path: secrets}
 ```
 
 2. Add remaining local group vars, tfvars, IP maps and every required original tier/environment path explicitly.
@@ -123,6 +123,7 @@ The restic manifest records the source export/mount mapping and selected paths f
 2. On the recovery host, inspect the configured source mount:
 
    ```bash
+   # Run on the independent recovery host.
    read -r -p "Configured input-source mount (for example /mnt/control-inputs-provisioner): " INPUT_MOUNT
    findmnt -rn -M "$INPUT_MOUNT" -o TARGET,SOURCE,FSTYPE,OPTIONS
    ```

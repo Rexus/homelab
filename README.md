@@ -23,14 +23,17 @@ For a first installation without a prepared execution host, follow the
 From this cloned repository, generate the IaC collection:
 
 ```bash
+# Run from the upstream kit checkout
 bash scripts/init-tier-repos.sh
 ```
 
-This creates `../homelab-iac/`, beside this checkout. Requires Python 3 with
+By default, this creates `../homelab-iac/`, beside this checkout. Requires Python 3 with
 PyYAML; see [local tooling](docs/development/local-setup.md).
-Use `--prefix mylab` to rename the collection and repos, `--root /path/to/parent`
+Use `--prefix <prefix>` to rename the collection and repos (default: `homelab`), `--root /path/to/parent`
 to choose their parent directory, or `--dry-run` to preview without writing.
 Prefix casing is preserved in document headings; generated folder names are lowercase.
+
+Default collection:
 
 ```text
 homelab-iac/                 # collection directory, not a Git repository
@@ -41,9 +44,9 @@ homelab-iac/                 # collection directory, not a Git repository
   homelab-architecture/
 ```
 
-First, fill in `homelab-architecture/platform-standards.md` inside the
+First, fill in `<prefix>-architecture/platform-standards.md` inside the
 collection. Use the [VMID quick reference](docs/conventions/vmid-convention.md)
-before assigning Proxmox guest or template IDs. Then follow `homelab-tier-0/README.md`
+before assigning Proxmox guest or template IDs. Then follow `<prefix>-tier-0/README.md`
 from that tier's root; its
 commands use tier-local code and shared helpers with local inputs. Substitute
 the prefix if customized. Each README is a developer-owned starter template.
@@ -51,7 +54,7 @@ the prefix if customized. Each README is a developer-owned starter template.
 The [deployment checklist](docs/paths/tier-0/README.md#deployment-order) leads
 from foundation prerequisites through software intake, protected logging, trust, Kubernetes, identity,
 shared services and controlled automation. Each capability has a numbered deployment path.
-Use `homelab-architecture/docs/README.md` to record selected paths and deployed/verified
+Use `<prefix>-architecture/docs/README.md` to record selected paths and deployed/verified
 capabilities. Its links lead directly to the maintained `docs/auto-docs/` manual;
 add project documentation only for local differences or operating records.
 
@@ -62,6 +65,7 @@ add project documentation only for local differences or operating records.
 After updating this upstream checkout, run this **from the upstream repo**:
 
 ```bash
+# Run from the upstream kit checkout
 bash scripts/init-tier-repos.sh --refresh
 ```
 

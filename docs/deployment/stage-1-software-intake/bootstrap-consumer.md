@@ -22,9 +22,16 @@ and a tested Stage 1 endpoint reachable from the bootstrap network.
 From the Tier 2 checkout used in Stage 1, return to Tier 0 and create the ignored local input:
 
 ```bash
-cd ../homelab-tier-0
+# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/bootstrap.yml.example ansible/group_vars/bootstrap.yml
-vi ansible/group_vars/bootstrap.yml
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-0/
+ansible/group_vars/bootstrap.yml
+# Edit: Supply mode, accepted proxy/mirror settings and exact Proxmox no-proxy exclusions.
 ```
 
 Select **1a** or **1b**; both continue at **2**. This is not an `init-local-files.sh` deployment setup.
@@ -68,6 +75,7 @@ Use the accepted bootstrap venv. For disconnected execution, source its prepared
 first. The precheck below validates installed collections without attempting acquisition:
 
 ```bash
+# Run from <prefix>-tier-0/
 CONTROL_NODE_COLLECTIONS_MODE=check ANSIBLE_CONFIG=ansible/ansible.cfg \
   ansible-playbook -i localhost, ansible/playbooks/deployment/bootstrap-software-intake.yml \
   -e @ansible/group_vars/bootstrap.yml --ask-become-pass

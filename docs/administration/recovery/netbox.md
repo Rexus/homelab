@@ -31,6 +31,7 @@ NetBox media is a separate dataset from PostgreSQL; match its snapshot to the se
 On the authorized Linux mount host, with native GNU `cp` and `findmnt`:
 
 ```bash
+# Run on the authorized isolated media-recovery mount host.
 set -euo pipefail
 umask 077
 read -r -p "Verified extracted NetBox media directory: " RESTORED_MEDIA

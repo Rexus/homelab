@@ -25,6 +25,7 @@ The installed helper is also available at
 3. Choose a **new absolute target** under an existing canonical private parent, then run:
 
 ```bash
+# Run on the independent isolated recovery workstation.
 set -euo pipefail
 umask 077
 read -r -p "Independent restic repository path or URI: " RESTIC_REPOSITORY
@@ -58,6 +59,7 @@ and colon-containing subfolder selectors; use full extraction when that bounded 
    the expected independently held digests, then compare the snapshot to `vault_sha256` in the manifest:
 
    ```bash
+   # Run on the independent isolated recovery workstation.
    read -r -p "Extracted timestamped set directory: " RESTORED_SET
    read -r -p "Independently recorded manifest SHA-256: " EXPECTED_MANIFEST_SHA256
    read -r -p "Independently recorded Vault SHA-256: " EXPECTED_VAULT_SHA256

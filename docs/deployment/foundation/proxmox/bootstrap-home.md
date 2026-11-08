@@ -32,12 +32,14 @@ From the normal `automation` login, install the tools using the matching OS bloc
 Enterprise Linux / Fedora:
 
 ```bash
+# Run on boot-1 as automation.
 sudo dnf install -y rsync policycoreutils-python-utils
 ```
 
 Debian / Ubuntu without SELinux:
 
 ```bash
+# Run on boot-1 as automation.
 sudo apt-get install -y rsync
 ```
 
@@ -54,7 +56,12 @@ other user sessions. Keep this console open until SSH and reboot checks pass.
 Do not perform the cutover from the only SSH session.
 
 ```bash
+# Run on boot-1 from its independent console; enter the root shell first.
 sudo -i
+```
+
+```bash
+# Run on boot-1 as root from the independent console.
 cd /root
 findmnt -T /home
 findmnt -T /srv/tier0
@@ -72,6 +79,7 @@ existing homes, numeric owners, hidden files, permissions, hard links, ACLs and
 extended attributes. The dry run must show no differences before continuing. [1]
 
 ```bash
+# Run on boot-1 as root from the independent console.
 set -e
 mountpoint -q /srv/tier0
 test ! -e /srv/tier0/home
@@ -89,6 +97,7 @@ only the new home subtree. Keep SELinux enabled; do not relabel all artifacts/st
 as home data. Skip this block when SELinux is disabled. [2]
 
 ```bash
+# Run on boot-1 as root from the independent console.
 semanage fcontext -a -e /home /srv/tier0/home
 restorecon -RFv /srv/tier0/home
 ```
@@ -100,8 +109,9 @@ this **one** line; the dependency makes the data mount precede `/home`. Do not a
 `nofail`: a missing home disk must require console recovery, not silently use stale
 homes on the OS disk. [3]
 
-```bash
-vi /etc/fstab
+```text
+# Edit on boot-1 as root (OS configuration).
+/etc/fstab # Retain the UUID data mount; add the single bind entry below without nofail.
 ```
 
 ```fstab
@@ -111,6 +121,7 @@ vi /etc/fstab
 Validate and activate the mount:
 
 ```bash
+# Run on boot-1 as root from the independent console.
 findmnt --verify
 systemctl daemon-reload
 mount /home

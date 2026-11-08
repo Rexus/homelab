@@ -6,8 +6,7 @@ not a numbered capability stage.
 
 **Start on:** an independent privileged workstation with physical/console recovery access.
 **Working repository:** `<prefix>-tier-0` after generation (source: `tier-0/`).
-**Continue on:** `boot-1`, then the generated `homelab-tier-0` repository.
-The examples use the **HomeLab** prefix; generated folder names are lowercase.
+**Continue on:** `boot-1`, then the generated `<prefix>-tier-0` repository.
 **Design:** [compute](../../architecture/hosting/README.md) and
 [network boundaries](../../architecture/networking/README.md).
 
@@ -81,11 +80,16 @@ before provisioning; guest backup/restore is tested on the first disposable clon
 privileged Linux workstation can perform the same role. No hosted runner is required.
 
 ```bash
-cd ../homelab-tier-0
+# Run from <prefix>-tier-0/ on the protected execution host.
 bash scripts/proxmox-templates.sh init
 ```
 
-`init` preserves existing files. Edit **`templates/proxmox.yml`** before planning:
+`init` preserves existing files. Configure the selected builds before planning:
+
+```text
+# Edit in <prefix>-tier-0/
+templates/proxmox.yml # Select builds, existing VMIDs and approved local image paths/hashes.
+```
 
 | Field | Set to |
 | --- | --- |
@@ -107,6 +111,7 @@ controller defaults do not need repeating for every build.
 This is the normal first-run path after creating the manual template:
 
 ```bash
+# Run from <prefix>-tier-0/ on the protected execution host.
 bash scripts/proxmox-templates.sh import --env-file .env.local
 ```
 
@@ -119,6 +124,7 @@ adoption plan with a normal plan before applying it.
 Use this alternative only when none of the catalogued templates or uploaded files exists:
 
 ```bash
+# Run from <prefix>-tier-0/ on the protected execution host.
 bash scripts/proxmox-templates.sh plan --env-file .env.local
 ```
 
@@ -131,14 +137,22 @@ Continue at **3c**.
 2. Apply the accepted saved plan, then verify fixed RAM and empty template accounts:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh apply --env-file .env.local
    bash scripts/proxmox-templates.sh verify --env-file .env.local
+   ```
+
+   Unlike the Linux `deploy.sh` command, this template command
+   applies a previously reviewed saved plan; do not rely on another approval prompt.
+   `verify` checks RAM/accounts, not clone networking or image boot.
+   An optional drift check should produce a no-change plan:
+
+   ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
+   # Optional: check for drift after the accepted apply.
    bash scripts/proxmox-templates.sh plan --env-file .env.local
    ```
 
-   Expect a no-change plan. Unlike the Linux `deploy.sh` command, this template command
-   applies a previously reviewed saved plan; do not rely on another approval prompt.
-   `verify` checks RAM/accounts, not clone networking or image boot.
 3. [Boot and qualify disposable clones](proxmox/templates.md#clone-and-guest-control-checks).
    Check disks, network, guest control and operator access. Qualify the
    [Linux guest security profile](proxmox/host-security.md) with its console/SSH gates.

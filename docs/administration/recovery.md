@@ -45,6 +45,7 @@ Offline custody has no routed access from the connected management network.
    In each restored tier root, inspect the checkout and retained state locations:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    git status --short
    ls -ld .terraform/state
    ```

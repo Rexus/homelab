@@ -104,12 +104,19 @@ The runner is deployed like any other application-platform VM.
 
 Edit:
 
-| File | Configuration |
-| --- | --- |
-| `terraform/deployments/podman-runner/terraform.tfvars` | runner count, size, storage, network zone, and tags |
-| `ansible/inventory/hosts.yml` | `podman_runner` hosts when adding or removing runners |
-| `ansible/group_vars/podman_runner.yml` | `platform_host_ips` for each runner |
-| `ansible/group_vars/podman_runner.<env>.yml` | environment-specific runner IPs when `--env` is used |
+Edit these files:
+
+```text
+# Edit in <prefix>-tier-1/
+terraform/deployments/podman-runner/terraform.tfvars
+# Edit: runner count, size, storage, network zone, and tags
+ansible/inventory/hosts.yml
+# Edit: podman_runner hosts when adding or removing runners
+ansible/group_vars/podman_runner.yml
+# Edit: platform_host_ips for each runner
+ansible/group_vars/podman_runner.<env>.yml
+# Edit: environment-specific runner IPs when --env is used
+```
 
 Default Terraform shape:
 
@@ -126,6 +133,7 @@ Default Terraform shape:
 Initialize local inputs from Tier 1:
 
 ```bash
+# Run from <prefix>-tier-1/
 bash scripts/init-local-files.sh --setup podman-runner
 ```
 
@@ -139,11 +147,16 @@ Ansible configures the VM into a Podman-capable build runner.
 
 Edit:
 
-| File | Configuration |
-| --- | --- |
-| `ansible/group_vars/podman_runner.yml` | GitLab URL, registration mode, runner tags, and package behavior |
-| `ansible/group_vars/podman_runner.<env>.yml` | environment-specific runner settings when `--env` is used |
-| encrypted extra vars or secret platform | real runner authentication tokens and registry credentials |
+Edit these files:
+
+```text
+# Edit in <prefix>-tier-1/
+ansible/group_vars/podman_runner.yml
+# Edit: GitLab URL, registration mode, runner tags, and package behavior
+ansible/group_vars/podman_runner.<env>.yml
+# Edit: environment-specific runner settings when --env is used
+# Edit: encrypted extra vars or secret platform: real runner authentication tokens and registry credentials
+```
 
 The role handles:
 
@@ -176,6 +189,7 @@ runner secret, or external secret system.
 3. Ensure the signed Runner package repository is available to the VM, then provision:
 
    ```bash
+   # Run from <prefix>-tier-1/
    bash scripts/deploy.sh podman-runner --terraform-only
    ```
 
@@ -184,6 +198,7 @@ runner secret, or external secret system.
 4. Configure and register the runner using the private token file:
 
    ```bash
+   # Run from <prefix>-tier-1/
    bash scripts/deploy.sh podman-runner --ansible-only --ansible-vars /absolute/private/podman-runner-secrets.yml
    ```
 

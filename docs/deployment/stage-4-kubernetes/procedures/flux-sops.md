@@ -44,6 +44,7 @@ stringData:
 ```
 
 ```bash
+# Run from <prefix>-tier-0/
 read -r -p 'Public age recipient (age1...): ' AGE_RECIPIENT
 sops --encrypt --in-place --age "$AGE_RECIPIENT" --encrypted-regex '^(data|stringData)$' clusters/tier0/platform-sops-canary.yaml
 ```
@@ -54,6 +55,7 @@ Set `cluster_platform_flux_canary_sha256` to the SHA-256 of the exact decrypted
 value, excluding a trailing newline. For the example:
 
 ```bash
+# Run from <prefix>-tier-0/
 printf %s platform-sops-ok | sha256sum
 ```
 
@@ -92,6 +94,7 @@ them. An independent authorized bootstrap operator can create those Secrets,
 or explicitly use the encrypted extra-vars example:
 
 ```bash
+# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/cluster_platform_secrets.yml.example ansible/group_vars/cluster_platform_secrets.yml
 ansible-vault encrypt ansible/group_vars/cluster_platform_secrets.yml
 ansible-vault edit ansible/group_vars/cluster_platform_secrets.yml
@@ -118,12 +121,14 @@ After Cilium and storage prerequisites are ready, render the selected full platf
 with the private Secrets file:
 
 ```bash
+# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=render
 ```
 
 Inspect the private values/manifests under `secrets/cluster-platform/`, then apply:
 
 ```bash
+# Run from <prefix>-tier-0/
 export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=apply
 ```

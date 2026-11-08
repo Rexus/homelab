@@ -45,7 +45,16 @@ node/CSI access, permissions, retained PV and exact PVC binding before apply.
 From the **Tier 1 root**, create the local settings:
 
 ```bash
+# Run from <prefix>-tier-1/
 cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-1/
+ansible/group_vars/delivery_platform.yml
+# Edit: Selected delivery controller, cluster context, SSO, storage and egress inputs.
 ```
 
 Edit `ansible/group_vars/delivery_platform.yml` using the table below. Retain the approved
@@ -71,14 +80,24 @@ lists exact namespace/name/key contracts. Choose one owner:
 | Bootstrap inputs | Copy the example below, fill the selected Secret values and set its `delivery_platform_manage_secrets: true` |
 
 ```bash
+# Run from <prefix>-tier-1/
 umask 077
 mkdir -p secrets
 cp -n ansible/group_vars/delivery_platform_secrets.yml.example secrets/delivery-platform.yml
 ```
 
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-1/
+secrets/delivery-platform.yml
+# Edit: Follow the private-input/encryption steps below for secret values.
+```
+
 After editing the private file, encrypt it and retain the decryption material independently:
 
 ```bash
+# Run from <prefix>-tier-1/
 ansible-vault encrypt secrets/delivery-platform.yml
 ```
 
@@ -96,6 +115,7 @@ sensitive data: keep them private, encrypted in backup and outside Git/CI artifa
 From Tier 1, after preparing local inputs:
 
 ```bash
+# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/delivery-platform.yml \
   -e @ansible/group_vars/delivery_platform.yml \
@@ -113,6 +133,7 @@ resources under the private output directory. Follow the selected
 [Harbor](registry.md) preparation contracts before applying:
 
 ```bash
+# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/delivery-platform.yml \
   -e @ansible/group_vars/delivery_platform.yml \
@@ -149,6 +170,7 @@ Retain bootstrap Git/image supply until the replacement is accepted.
 From the upstream repository with the native tools and collections installed:
 
 ```bash
+# Run from the upstream deployment-kit checkout.
 python3 -B -m unittest discover -s tests -p test_tier_delivery_platform.py -v
 ```
 
@@ -160,6 +182,7 @@ preservation, schema/auth/TLS/storage wiring and stable private credentials.
 Install `kubernetes-validate` for strict Kubernetes schema checks. Run:
 
 ```bash
+# Run from the upstream deployment-kit checkout.
 python3 -B -m unittest discover -s tests -p test_tier_spinnaker_reference.py -v
 python3 -B -m unittest discover -s tests -p test_tier_spinnaker_backup.py -v
 ```

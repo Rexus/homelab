@@ -166,6 +166,7 @@ Use this flow:
 Initialize the selected context from Tier 0 before editing inputs:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup immutable-template --env test
 ```
 
@@ -198,6 +199,7 @@ Prepare the builder VM; review Terraform's inline plan and enter `yes` only for
 the intended changes (`--plan-only` is an optional preview, `--auto-approve` is for approved CI):
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh immutable-template --env test
 ```
 
@@ -213,6 +215,7 @@ Rerun Ansible, then set the builder VM to `template = true` and
 Run only Terraform for the final conversion:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh immutable-template --env test --terraform-only
 ```
 

@@ -11,11 +11,12 @@ class ReaderRoles(TierRepositoryTestCase):
         source = UPSTREAM / "docs/deployment"
         generated = self.root / "verify-architecture/docs/auto-docs/deployment"
         for root in (source, generated):
+            prefix = "<prefix>" if root == source else "verify"
             index = (root / "README.md").read_text(encoding="utf-8")
             self.assertIn("## Repository locations", index)
             self.assertIn("Run repository scripts from the owning tier's root", index)
             for name in ("tier-0", "tier-1", "tier-2", "shared", "architecture"):
-                self.assertIn(f"`<prefix>-{name}/`", index)
+                self.assertIn(f"`{prefix}-{name}/`", index)
             for name in ("tier-0", "tier-1", "tier-2", "shared"):
                 link = re.search(rf"\[{name}/\]\(([^)]+)\)", index)[1]
                 expected = UPSTREAM / name if root == source else self.root / f"verify-{name}"
@@ -24,7 +25,7 @@ class ReaderRoles(TierRepositoryTestCase):
                              *root.glob("stage-1-software-intake/**/*.md")]:
                 opening = "\n".join(document.read_text(encoding="utf-8").splitlines()[:22])
                 self.assertRegex(opening, r"\*\*Working repositor(?:y|ies):\*\*|## Working repositories", str(document))
-                self.assertIn("<prefix>-tier-", opening, str(document))
+                self.assertIn(f"{prefix}-tier-", opening, str(document))
             for relative, owner in (
                 ("stage-1-software-intake/proxy-cache.md", "tier-2"),
                 ("stage-3-trust/step-1b-usb-hsm.md", "tier-0"),
@@ -37,7 +38,7 @@ class ReaderRoles(TierRepositoryTestCase):
                 ("stage-7-delivery/procedures/edge-proxy.md", "tier-2"),
             ):
                 content = (root / relative).read_text(encoding="utf-8")
-                self.assertIn(f"**Working repository:** `<prefix>-{owner}`", content)
+                self.assertIn(f"**Working repository:** `{prefix}-{owner}`", content)
                 self.assertNotIn("| Shared Ansible role |", content)
         for tier in ("tier-0", "tier-1", "tier-2"):
             readme = (self.root / f"verify-{tier}/README.md").read_text(encoding="utf-8")

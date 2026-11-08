@@ -42,7 +42,7 @@ class BootstrapIntake(TierRepositoryTestCase):
                       (generated / 'ansible/ansible.cfg').read_text())
         guide = (self.root / 'verify-architecture/docs/auto-docs/deployment/'
                  'stage-1-software-intake/bootstrap-consumer.md').read_text()
-        self.assertIn('cd ../verify-tier-0', guide)
+        self.assertIn('# Run from verify-tier-0/', guide)
         self.assertIn('bootstrap-software-intake.yml', guide)
         self.assertIn('verify-tier-0/ansible/group_vars/bootstrap.yml.example', guide)
 

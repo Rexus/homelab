@@ -39,6 +39,7 @@ certificate is already installed, obtain its approved issuer trust instead.
    On the Proxmox console:
 
    ```bash
+   # Run on the selected Proxmox host as an authorized root operator.
    openssl x509 -in /etc/pve/pve-root-ca.pem -noout -sha256 -fingerprint
    ```
 
@@ -51,6 +52,7 @@ certificate is already installed, obtain its approved issuer trust instead.
    On the execution host, after independently verifying the SSH host key:
 
    ```bash
+   # Run on boot-1 as automation.
    read -r -p "Verified Proxmox SSH destination (user@host): " PVE_SSH
    mkdir -p "$HOME/.config/homelab/trust"
    scp "$PVE_SSH:/etc/pve/pve-root-ca.pem" "$HOME/.config/homelab/trust/pve-root-ca.pem"
@@ -64,6 +66,7 @@ certificate is already installed, obtain its approved issuer trust instead.
    AlmaLinux/Rocky/RHEL-family execution host:
 
    ```bash
+   # Run on boot-1 as automation.
    sudo install -m 0644 "$HOME/.config/homelab/trust/pve-root-ca.pem" \
      /etc/pki/ca-trust/source/anchors/homelab-pve.crt
    sudo update-ca-trust extract
@@ -72,6 +75,7 @@ certificate is already installed, obtain its approved issuer trust instead.
    Debian/Ubuntu execution host:
 
    ```bash
+   # Run on boot-1 as automation.
    sudo install -m 0644 "$HOME/.config/homelab/trust/pve-root-ca.pem" \
      /usr/local/share/ca-certificates/homelab-pve.crt
    sudo update-ca-certificates
@@ -109,6 +113,7 @@ Otherwise, after Stage 3 issuance is accepted:
    With approved files already staged on that node, run as an authorized administrator:
 
    ```bash
+   # Run on the selected Proxmox host as an authorized root operator.
    read -r -p "Approved PEM certificate chain file: " API_CHAIN
    read -r -p "Matching protected PEM server key file: " API_KEY
    pvenode cert set "$API_CHAIN" "$API_KEY" --force 1 --restart 1
@@ -141,6 +146,7 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
    In the current shell:
 
    ```bash
+   # Run on boot-1 as automation.
    unset PROXMOX_VE_INSECURE PM_VE_INSECURE
    ```
 
@@ -162,6 +168,7 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
 2. On each execution host, test the actual endpoint without a TLS bypass or API token:
 
    ```bash
+   # Run on boot-1 as automation.
    read -r -p "Proxmox API FQDN covered by the certificate: " PVE_FQDN
    curl -q --silent --show-error --output /dev/null --write-out 'HTTP %{http_code}\n' \
      "https://$PVE_FQDN:8006/api2/json/version"
@@ -189,6 +196,7 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
 On the certificate custodian's host, inspect the retained public leaf/chain:
 
 ```bash
+# Run on the certificate custodian's host.
 read -r -p "Public API certificate/chain file: " API_CHAIN
 openssl x509 -in "$API_CHAIN" -noout -dates -subject -issuer -ext subjectAltName
 ```

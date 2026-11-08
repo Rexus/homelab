@@ -46,9 +46,10 @@ Protect access and backups from the first step; the
 
 **Templates before managed VMs.** One manual Linux template creates the bootstrap
 VM first; the [bootstrap guide](../../deployment/foundation/proxmox/bootstrap.md)
-prepares the execution host before API publication. From `homelab-iac/homelab-tier-0`:
+prepares the execution host before API publication.
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/proxmox-templates.sh init
 ```
 
@@ -69,6 +70,7 @@ NAS snapshots/access custody and live acceptance remain commissioning gates; HA 
 After the trust stage, initialize the Kubernetes control cluster:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/kubernetes-cluster.sh init
 ```
 

@@ -16,6 +16,19 @@ development and administration maintain it.
 | Look up an input or command | [Reference](reference/README.md) | Naming, catalogs, input contracts and CLI options |
 | Understand a decision | [Decision log](decisions/README.md) | Rationale, consequences and review triggers |
 
+## Read command examples
+
+`<prefix>` means the generated repository folder prefix selected with `--prefix`;
+the default is `homelab`, giving the default Tier 0 folder `homelab-tier-0/`.
+It is separate from host/DNS naming choices. Other `<...>` values mark deployment-specific inputs.
+Generated auto-docs resolve repository markers to the selected collection prefix;
+replace remaining `<...>` inputs before executing an example.
+
+Shell comments name the repository root or machine where a command runs. Open that
+location before executing the block. **Edit these files** lists use `text` blocks;
+their paths and `# edit ...` notes describe edits with any suitable editor.
+See the [repository map](deployment/README.md#repository-locations) for ownership.
+
 ## Start here
 
 1. Read the [platform overview](architecture/README.md) and its connected functions.

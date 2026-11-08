@@ -35,6 +35,8 @@ and an independently tested console. This profile excludes Proxmox and Kubernete
    `--list-hosts` lists targets without executing the play. [3]
 
    ```bash
+   # Run from the owning tier's ansible/ directory on the execution host:
+   # <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
    read -r -p "Pilot inventory host matching host_security_hosts: " HOST_SECURITY_HOST
    ansible-playbook playbooks/maintenance/host-security.yml --limit "$HOST_SECURITY_HOST" -e "@$HOME/.config/homelab/host-security.yml" --list-hosts
    ```
@@ -43,6 +45,8 @@ and an independently tested console. This profile excludes Proxmox and Kubernete
    input's console/key/configuration-ownership acknowledgements remain valid:
 
 ```bash
+# Run from the owning tier's ansible/ directory on the execution host:
+# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 ansible-playbook playbooks/maintenance/host-security.yml --limit "$HOST_SECURITY_HOST" -e "@$HOME/.config/homelab/host-security.yml" -e host_security_action=apply -e host_security_acknowledgement=apply-linux-host-v1
 ```
 
@@ -99,6 +103,7 @@ running or enabled keepalived host is rejected before configuration changes.
 **Work on:** the managed host's console or approved SSH session. These commands are read-only:
 
 ```bash
+# Run on the managed Linux host through its approved console or SSH session.
 sudo sshd -T
 sudo firewall-cmd --get-default-zone
 sudo firewall-cmd --list-all-zones

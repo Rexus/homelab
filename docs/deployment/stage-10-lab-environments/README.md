@@ -25,11 +25,7 @@ See [coverage](../../reference/implementation-support.md#stage-coverage).
 Run local operator commands from Tier 2's root. Tier 0 execution does not move
 these definitions, inventory or state into Tier 0 or Shared.
 
-From the Tier 0 root:
-
-```bash
-cd ../homelab-tier-2
-```
+**Execution context:** `<prefix>-tier-2/`.
 
 ## Main path
 
@@ -149,22 +145,32 @@ They have independent roots and state. Deploy both only when both runtimes are r
 Initialize local inputs:
 
 ```bash
+# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup lab
 ```
 
 Edit these files together before deployment:
 
-| File | Required edits |
-| --- | --- |
-| `terraform/deployments/lab/terraform.tfvars` | Complete `vm_instances`/`lxc_instances`, unused VMIDs, sizes and storage |
-| `terraform/common.tfvars` | Tier-local `application` network override for the selected isolated lab subnet |
-| `ansible/inventory/hosts.yml` | Matching logical host keys and lab groups |
-| `ansible/group_vars/lab.yml` | Matching `platform_host_ips` |
-| `.env.local` | This tier's verified API endpoint/token and local SSH public-key paths |
+Edit these files:
+
+```text
+# Edit in <prefix>-tier-2/
+terraform/deployments/lab/terraform.tfvars
+# Edit: Complete vm_instances/lxc_instances, unused VMIDs, sizes and storage
+terraform/common.tfvars
+# Edit: Tier-local application network override for the selected isolated lab subnet
+ansible/inventory/hosts.yml
+# Edit: Matching logical host keys and lab groups
+ansible/group_vars/lab.yml
+# Edit: Matching platform_host_ips
+.env.local
+# Edit: This tier's verified API endpoint/token and local SSH public-key paths
+```
 
 Run with independently authorized execution credentials:
 
 ```bash
+# Run from <prefix>-tier-2/
 bash scripts/deploy.sh lab
 ```
 
@@ -177,6 +183,7 @@ commands; ordinary workload users receive no Proxmox credentials.
 1. From Tier 2, initialize the dedicated cluster inputs:
 
    ```bash
+   # Run from <prefix>-tier-2/
    bash scripts/kubernetes-cluster.sh init
    ```
 

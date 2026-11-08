@@ -14,7 +14,7 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 class SoftwareIntake(TierRepositoryTestCase):
     @unittest.skipIf(os.name == "nt", "Generated Bash commands run under Linux/WSL")
-    def test_first_command_switches_to_owner_and_wrong_tier_creates_no_inputs(self):
+    def test_first_command_names_owner_and_wrong_tier_creates_no_inputs(self):
         self.generate()
         tier0 = self.root / "verify-tier-0"
         tier2 = self.root / "verify-tier-2"
@@ -30,18 +30,21 @@ class SoftwareIntake(TierRepositoryTestCase):
         guide = (self.root / "verify-architecture/docs/auto-docs/deployment/"
                  "stage-1-software-intake/README.md").read_text()
         commands = re.search(r"```bash\n(.*?)```", guide, re.DOTALL).group(1)
-        initialized = subprocess.run(["bash", "-e", "-c", commands], cwd=tier0, env=environment,
+        self.assertIn("# Run from verify-tier-2/", commands)
+        initialized = subprocess.run(["bash", "-e", "-c", commands], cwd=tier2, env=environment,
                                      capture_output=True, text=True)
         self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)
         self.assertTrue((tier2 / "terraform/deployments/cache/terraform.tfvars").is_file())
         self.assertTrue((tier2 / "ansible/inventory/hosts.yml").is_file())
         self.assertFalse((tier0 / "ansible/inventory/hosts.yml").exists())
-        self.assertIn("vi ../verify-shared/config/platform.tfvars", guide)
+        self.assertIn("# Edit in verify-shared/", guide)
+        self.assertIn("config/platform.tfvars", guide)
         self.assertNotIn("../homelab-shared/", guide)
 
     def test_source_and_generated_docs_explain_transport_ownership_and_supply(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            prefix = "<prefix>" if docs == UPSTREAM / "docs" else "verify"
             design = (docs / "architecture/software/software-intake.md").read_text()
             for expected in ("## Connected proxy design", "## Supply choices", "## Transport and integrity",
                              "client-initiated requests", "one common policy", "not supplied",
@@ -55,7 +58,7 @@ class SoftwareIntake(TierRepositoryTestCase):
             self.assertIn("../stage-1-software-intake/README.md",
                           (docs / "deployment/foundation/README.md").read_text())
             guide = (docs / "deployment/stage-1-software-intake/proxy-cache.md").read_text()
-            for expected in ("**Working repository:** `<prefix>-tier-2`", "not cached",
+            for expected in (f"**Working repository:** `{prefix}-tier-2`", "not cached",
                              "no unrestricted", "direct WAN bypass fails", "not a cache hit",
                              "No cache-to-Tier-0 management rule"):
                 self.assertIn(expected, guide)

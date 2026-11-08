@@ -43,6 +43,7 @@ def tier_readme(writer, tier, prefix, setups):
         "operator-run workflows, not a self-service interface for workload users.\n"
         "For a new tier-owned Kubernetes cluster, initialize its local inputs:\n\n"
         "```bash\n"
+        f"# Run from {repo_prefix}-{tier}/\n"
         "bash scripts/kubernetes-cluster.sh init\n"
         "```\n\n"
         f"Follow the [cluster procedure]({docs}/deployment/stage-4-kubernetes/procedures/talos-terraform.md)\n"
@@ -64,6 +65,7 @@ def tier_readme(writer, tier, prefix, setups):
             "**Templates before VMs.** From this repository's root, initialize\n"
             "the local image catalog:\n\n"
             "```bash\n"
+            f"# Run from {repo_prefix}-tier-0/\n"
             "bash scripts/proxmox-templates.sh init\n"
             "```\n\n"
             "Set local images, placement, checksums, and protected API access, then follow\n"
@@ -83,6 +85,7 @@ def tier_readme(writer, tier, prefix, setups):
             f"After logging, complete [trust]({docs}/deployment/stage-3-trust/README.md) before the cluster.\n"
             "**Kubernetes control cluster.** Initialize its Tier 0 inputs:\n\n"
             "```bash\n"
+            f"# Run from {repo_prefix}-tier-0/\n"
             "bash scripts/kubernetes-cluster.sh init\n"
             "```\n\n"
             f"Follow [Stage 4: Kubernetes]({docs}/deployment/stage-4-kubernetes/README.md) and its\n"
@@ -134,9 +137,10 @@ def copy_documentation(writer, prefix, upstream):
         # Preserve local doc links; source files and repository roots move between repos.
         content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012])(?:/[^)#]*)?(?=[)#])",
                          relocate, content)
-        # Keep executable sibling-repository changes aligned with the collection's folder names.
-        content = content.replace("\ncd ../homelab-tier-", f"\ncd ../{prefix.lower()}-tier-")
-        content = content.replace("../homelab-shared/", f"../{prefix.lower()}-shared/")
+        # Upstream uses generic repository names; copied run/edit contexts name actual folders.
+        # A bare <prefix> can describe DNS or another domain concept, so restrict the suffixes.
+        content = re.sub(r"<prefix>-(?=tier-[012]\b|shared\b|architecture\b|iac\b)",
+                         f"{prefix.lower()}-", content)
         project_docs = Path(os.path.relpath(writer.root / "docs/README.md",
                                            (writer.root / target).parent)).as_posix()
         notice = (

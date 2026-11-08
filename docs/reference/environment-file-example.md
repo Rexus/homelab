@@ -14,7 +14,14 @@ the owning tier repository (or `tier-N/` inside a private source checkout).
 
 ## Example
 
-Minimal example:
+Edit these files:
+
+```text
+# Edit in the owning <prefix>-tier-N/ repository
+.env.local  # actual API endpoint, token ID/secret and local vault-password path
+```
+
+Minimal contents:
 
 ```dotenv
 PROXMOX_API_URL=https://proxmox.example.internal:8006/

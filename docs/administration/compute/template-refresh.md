@@ -18,6 +18,7 @@ state and SSH access. Talos uses [new image publication](template-lifecycle.md) 
    already deployed; a new environment flag is not a state migration.
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/init-local-files.sh --setup template-refresh
    ```
 
@@ -34,6 +35,7 @@ state and SSH access. Talos uses [new image publication](template-lifecycle.md) 
 3. Prepare the disposable staged clone; review the displayed plan and enter `yes`:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh template-refresh
    ```
 
@@ -52,6 +54,7 @@ Optional preview uses `--plan-only`; approved provisioning jobs can use `--auto-
 2. Run the cleanup recipe:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh template-refresh --ansible-only
    ```
 
@@ -60,6 +63,7 @@ Optional preview uses `--plan-only`; approved provisioning jobs can use `--auto-
 3. In its Terraform guest entry, set `template = true` and `started = false`, then run:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh template-refresh --terraform-only
    ```
 

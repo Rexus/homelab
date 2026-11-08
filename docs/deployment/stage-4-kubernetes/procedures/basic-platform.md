@@ -78,8 +78,17 @@ is not exhaustive detection or a supported live-CNI migration procedure.
 From the Tier 0 repository root, initialize local input files without overwriting:
 
 ```bash
+# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster_platform.yml
 export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-0/
+ansible/group_vars/cluster_platform.yml
+# Edit: Cluster context, selected components, chart/image pins, storage, network and DNS inputs.
 ```
 
 Install the coordinated tier-local collection/Python requirements and Helm on
@@ -129,6 +138,7 @@ image/mirror overrides through native values and retain artifacts for recovery.
    are expected to work:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e '{"cluster_platform_components":["cilium"]}' -e cluster_platform_action=render
    ```
 
@@ -141,6 +151,7 @@ image/mirror overrides through native values and retain artifacts for recovery.
 2. After inspecting the rendered Cilium resources, install it and check readiness:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e '{"cluster_platform_components":["cilium"]}' -e cluster_platform_action=apply
    kubectl get nodes -o wide
    kubectl get pods -n kube-system
@@ -152,12 +163,14 @@ image/mirror overrides through native values and retain artifacts for recovery.
    a qualified owner, retain `cluster_platform_manage_secrets: false` and use:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=render
    ```
 
    Inspect all selected resources, then:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=apply
    ```
 

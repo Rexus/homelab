@@ -20,11 +20,7 @@ Equivalent verified existing services can satisfy these contracts.
 **Automation:** the dedicated [Ansible deployment](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml)
 renders or applies the [native chart values](../../../tier-1/ansible/roles/observability_platform).
 The cluster directory remains an empty integration starter, not a second executor.
-Run commands from the **Tier 1 repository root**. From Tier 0:
-
-```bash
-cd ../homelab-tier-1
-```
+**Execution context:** `<prefix>-tier-1/`.
 
 Steps below select the inputs, run the installer and connect sources. Full field/Secret contracts
 are in [configuration](configuration.md); live boundaries are in [stage coverage](../../reference/implementation-support.md#stage-coverage).
@@ -87,9 +83,20 @@ Grafana's live block volumes from its scheduled NAS copies.
 Create local inputs before Step 2:
 
 ```bash
+# Run from <prefix>-tier-1/
 umask 077
 cp -n ansible/group_vars/observability_platform.yml.example ansible/group_vars/observability_platform.yml
 cp -n ansible/group_vars/observability_platform_secrets.yml.example ansible/group_vars/observability_platform_secrets.yml
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-1/
+ansible/group_vars/observability_platform.yml
+# Edit: Required site values in the following input fields.
+ansible/group_vars/observability_platform_secrets.yml
+# Edit: Follow the private-input/encryption steps below for secret values.
 ```
 
 Edit the local files using [configuration Step 1](configuration.md#inputs-and-execution):
@@ -123,12 +130,14 @@ contains the exact commands and the backup handoff; do not skip from prepare to 
 For each pass, render from Tier 1:
 
 ```bash
+# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass
 ```
 
 Review `secrets/observability-platform/`, then apply:
 
 ```bash
+# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass -e observability_action=apply
 ```
 

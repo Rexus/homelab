@@ -138,6 +138,7 @@ network access or **2b** for a prepared offline bundle.
 3. Check the mount and free space:
 
 ```bash
+# Run on boot-1 as automation.
 findmnt -T /srv/tier0
 df -h / /srv/tier0 /tmp
 ```
@@ -146,6 +147,7 @@ Require the intended data filesystem, not `/` as an accidental fallback. Then cr
 private workspace, artifact and upload directories on it:
 
 ```bash
+# Run on boot-1 as automation.
 (
   mountpoint -q /srv/tier0 || { echo 'Mount the data filesystem before continuing.' >&2; exit 1; }
   sudo install -d -m 0700 -o "$(id -un)" -g "$(id -gn)" \
@@ -186,6 +188,7 @@ For a new workspace, obtain the reviewed kit revision using the approved source.
 The public clone example is:
 
 ```bash
+# Run on boot-1 as automation.
 umask 077
 git clone https://github.com/Rexus/homelab.git /srv/tier0/src/homelab
 ```
@@ -195,16 +198,21 @@ exists, restore it **including ignored inputs and original state**, not just tra
 code; do not initialize a replacement environment. For a new collection:
 
 ```bash
-cd /srv/tier0/src/homelab
-bash scripts/init-tier-repos.sh --prefix HomeLab
+# Run from the reviewed upstream kit checkout on boot-1.
+bash scripts/init-tier-repos.sh
 ```
 
-This creates `/srv/tier0/src/homelab-iac/`. Use `--root` to select another parent;
+This creates `/srv/tier0/src/<prefix>-iac/`. Use `--root` to select another parent;
 reuse that path/prefix during refresh. Keep the kit checkout separate from its
 five generated repositories; the collection directory is not a Git repository.
-Edit `/srv/tier0/src/homelab-iac/homelab-architecture/platform-standards.md` with
-actual host names, VMIDs and network allocations. Record selected paths in the
-same repository's `docs/README.md`.
+Record site choices and completed capabilities:
+
+```text
+# Edit in <prefix>-architecture/
+platform-standards.md # Actual host names, VMIDs and network allocations.
+docs/README.md # Selected paths and deployment/verification progress.
+```
+
 Read the rendered upstream [Tier 0 checklist](../../../paths/tier-0/README.md) in
 the browser while executing commands from the named generated repository.
 
@@ -226,6 +234,7 @@ Create a dedicated execution-account key. Enter a passphrase when prompted; do n
 overwrite an existing key. Keep both files under the account's `.ssh/`, never in Git.
 
 ```bash
+# Run on boot-1 as automation.
 install -d -m 0700 "$HOME/.ssh"
 ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519" -C "homelab-bootstrap"
 ```
@@ -233,6 +242,7 @@ ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519" -C "homelab-bootstrap"
 Load the private key into a local agent for the deployment session:
 
 ```bash
+# Run on boot-1 as automation.
 eval "$(ssh-agent -s)"
 ssh-add "$HOME/.ssh/id_ed25519"
 ssh-add -l
@@ -248,6 +258,7 @@ Do not copy an administrator's private workstation key into a repository or temp
 **Both paths continue at Step 4.** Print the absolute public-key path for the input below:
 
 ```bash
+# Run on boot-1 as automation.
 realpath "$HOME/.ssh/id_ed25519.pub"
 ```
 
@@ -268,7 +279,7 @@ public key; Ansible uses its matching private key through SSH. See the
 3. Back on **`boot-1`**, initialize Tier 0's local files:
 
    ```bash
-   cd /srv/tier0/src/homelab-iac/homelab-tier-0
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh init
    ```
 
@@ -289,7 +300,12 @@ public key; Ansible uses its matching private key through SSH. See the
    `.tfvars`, templates and Git. Template commands require `--env-file .env.local`;
    Linux `deploy.sh` loads that file by default. No manual `source`/exports are needed.
    `PROXMOX_VE_TMPDIR` keeps provider upload staging on the prepared data filesystem. [2]
-5. Edit **`../homelab-shared/config/platform.tfvars`** before the first managed guest:
+5. Configure common platform references before the first managed guest:
+
+   ```text
+   # Edit in <prefix>-shared/
+   config/platform.tfvars # Set the initial node, live-disk classes and common network attachment.
+   ```
 
    | Field | Enter |
    | --- | --- |

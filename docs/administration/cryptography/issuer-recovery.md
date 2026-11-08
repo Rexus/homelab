@@ -30,6 +30,7 @@ Hardware providers need their separate qualified device recovery procedure.
    For first commissioning only, create a new identity at a protected unused path: [1]
 
    ```bash
+   # Run on the offline credential-custody system.
    umask 077
    read -r -e -p 'New absolute offline age identity file path: ' AGE_IDENTITY
    age-keygen --output "$AGE_IDENTITY"
@@ -50,6 +51,7 @@ Hardware providers need their separate qualified device recovery procedure.
 3. Reserve a maintenance window, then capture the consistent encrypted set:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki-backup.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 
@@ -73,6 +75,7 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
 1. Compare the archive SHA256 with the independent backup record:
 
    ```bash
+   # Run on the offline recovery system with encrypted working storage.
    read -r -e -p 'Encrypted issuer archive path: ' ISSUER_BACKUP
    sha256sum "$ISSUER_BACKUP"
    ```
@@ -81,6 +84,7 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
 2. Choose a new protected working directory; decrypt with the separately held identity: [1]
 
    ```bash
+   # Run on the offline recovery system with encrypted working storage.
    umask 077
    read -r -e -p 'Existing offline age identity file path: ' AGE_IDENTITY
    read -r -e -p 'New directory on encrypted recovery storage: ' RESTORE_WORK
@@ -94,6 +98,7 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
    After review, extract into a new subdirectory and record the manifest hash:
 
    ```bash
+   # Run on the offline recovery system with encrypted working storage.
    mkdir -m 0700 "$RESTORE_WORK/recovery" && tar -xzf "$RESTORE_WORK/recovery.tar.gz" -C "$RESTORE_WORK/recovery"
    sha256sum "$RESTORE_WORK/recovery/recovery.json"
    ```
@@ -131,6 +136,7 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
 5. Run only the restore recipe:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki-restore.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 
@@ -149,6 +155,7 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
    and run the normal issuer recipe against the same isolated target:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 

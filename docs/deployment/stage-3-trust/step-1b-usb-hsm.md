@@ -173,6 +173,7 @@ Basic `check` options alone prove only TCP reachability. [2]
 From the Tier 0 repository root, initialize local inputs:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup hsm
 ```
 
@@ -185,6 +186,7 @@ Edit the files above, then run the host deployment. Review the displayed plan an
 enter `yes` to provision the selected guests and apply their OS baseline:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh hsm
 ```
 

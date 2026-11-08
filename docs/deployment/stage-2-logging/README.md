@@ -19,11 +19,7 @@ NAS custody and live acceptance remain required. See [coverage](../../reference/
 2. [2a: Install the receiver; 2b: connect sources](#step-2-enable-protected-collection)
 3. [Install NAS retention and verify recovery](#step-3-protect-and-verify-retained-evidence)
 
-Start from the generated Tier 2 repository after Stage 1:
-
-```bash
-cd ../homelab-tier-0
-```
+**Execution context:** `<prefix>-tier-0/`.
 
 The required receiver, source and NAS instructions below are parts of this stage.
 Complete them in order, returning here at the end of each task. The adjacent
@@ -86,6 +82,7 @@ their original timestamps and source identity. Record any earlier unbuffered gap
 1. Initialize local inputs from the Tier 0 repository root:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/init-local-files.sh --setup syslog
    ```
 
@@ -105,6 +102,7 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    for the intended changes:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh syslog --terraform-only
    ```
 
@@ -113,6 +111,7 @@ their original timestamps and source identity. Record any earlier unbuffered gap
 4. Check SSH from the execution host, using the address set above:
 
    ```bash
+   # Run from <prefix>-tier-0/
    read -r -p 'Reserved log-1 IP: ' LOG_HOST_IP
    ssh "automation@$LOG_HOST_IP"
    ```

@@ -265,6 +265,17 @@ This file keeps durable context for AI-assisted work across sessions.
   numbered actions, exact local files/fields to edit, copyable commands and expected results.
   Required procedures are named parts of the main path; alternatives branch/rejoin as 2a/2b.
   Keep design explanations in their authoritative homes instead of burying actions in prose.
+- Command examples use `<prefix>` for the generated folder prefix (default homelab),
+  separate from hostname/environment prefixes. State the owning root or machine inside
+  each standalone shell block with a comment; replace pure repository-navigation cd lines
+  with that context. Retain operational cwd changes when command semantics require them.
+  File edits use separate text blocks with owner, relative paths and concise `# edit ...`
+  notes, without assuming vi/vim/nano or another editor. Do not execute path lists as shell.
+- Present deployment commands in operational order. Linux deploy.sh already displays its
+  plan before interactive apply; a separate preview is optional. Template/Kubernetes saved
+  plans retain their dedicated sequence. Label post-apply plans with their verification
+  purpose and required/optional status. Preserve explicit state-reconciliation and identity
+  acceptance gates; never present a later check as the prerequisite plan for an earlier apply.
 - administration uses task/FAQ navigation and short operator runbooks: execution host/repository,
   prerequisites, exact inputs, numbered commands, expected result and stop/rollback paths.
   Preserve recovery/custody gates; link design rationale to architecture. Backup theory lives in

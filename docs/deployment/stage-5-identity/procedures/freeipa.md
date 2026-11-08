@@ -27,6 +27,7 @@ image, repository access and protected bootstrap passwords.
 1. Initialize local inputs, using the same context/state used for the issuer in Stage 3:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/init-local-files.sh --setup foundation
    ```
 
@@ -49,6 +50,7 @@ image, repository access and protected bootstrap passwords.
 3. Review Terraform's displayed whole-state plan, then enter `yes` to provision:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh foundation --terraform-only
    ```
 
@@ -118,6 +120,7 @@ native installation. These inputs do not rechain an existing installed domain.
    In the protected execution shell, supply the bootstrap passwords without history:
 
    ```bash
+   # Run from <prefix>-tier-0/
    read -r -s -p 'FreeIPA Directory Manager password: ' FREEIPA_DM_PASSWORD; echo
    read -r -s -p 'FreeIPA administrator password: ' FREEIPA_ADMIN_PASSWORD; echo
    export FREEIPA_DM_PASSWORD FREEIPA_ADMIN_PASSWORD
@@ -128,6 +131,7 @@ native installation. These inputs do not rechain an existing installed domain.
 2. Run the directory recipe against the already-provisioned guests:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh foundation --ansible-only
    ```
 
@@ -157,6 +161,7 @@ native installation. These inputs do not rechain an existing installed domain.
 2. Resume with the same command:
 
    ```bash
+   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh foundation --ansible-only
    ```
 
@@ -170,6 +175,7 @@ native installation. These inputs do not rechain an existing installed domain.
 For routine read-only service/API checks:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --recipe maintenance
 ```
 

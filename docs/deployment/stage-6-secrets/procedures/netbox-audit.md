@@ -42,7 +42,16 @@ The implementation is the [Tier 0 recipe](../../../../tier-0/ansible/playbooks/d
 2. From the Tier 0 root, create local inputs:
 
 ```bash
+# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/netbox_audit.yml.example ansible/group_vars/netbox_audit.yml
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-0/
+ansible/group_vars/netbox_audit.yml
+# Edit: API endpoint, local credential/TLS inputs and audit acceptance gates.
 ```
 
 3. Edit `ansible/group_vars/netbox_audit.yml`: stable instance name, exact HTTPS API,
@@ -50,6 +59,7 @@ cp -n ansible/group_vars/netbox_audit.yml.example ansible/group_vars/netbox_audi
    before setting the two acceptance inputs true. Then install:
 
 ```bash
+# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/netbox-audit.yml -e @ansible/group_vars/netbox_audit.yml
 ```
 

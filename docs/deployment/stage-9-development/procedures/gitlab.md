@@ -51,8 +51,17 @@ host must match the server certificate. A password-only Secret is insufficient. 
 From Tier 1, seed private inputs without replacing existing files:
 
 ```bash
+# Run from <prefix>-tier-1/
 umask 077
 cp -n ansible/group_vars/development_platform.yml.example ansible/group_vars/development_platform.yml
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-1/
+ansible/group_vars/development_platform.yml
+# Edit: Selected source-control/runner components, context, TLS/SSO and dependency inputs.
 ```
 
 Edit `ansible/group_vars/development_platform.yml`:
@@ -70,6 +79,7 @@ load it last in every render/apply command below. In the accepted deployment
 virtual environment, install Tier 1's control-node dependencies from approved sources:
 
 ```bash
+# Run from <prefix>-tier-1/
 python3 -m pip install -r ansible/requirements.txt
 ansible-galaxy collection install -r ansible/requirements.yml
 ```
@@ -81,6 +91,7 @@ load it last to retain its endpoint, bucket and backup settings. For independent
 commissioned existing dependencies, author the same settings locally and omit that overlay.
 
 ```bash
+# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml -e @secrets/development-data/platform-inputs.yml
 ```
 
@@ -115,6 +126,7 @@ args:
 After dependency/Secret preparation, choose `apply` for bootstrap-owned installation:
 
 ```bash
+# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml -e @secrets/development-data/platform-inputs.yml -e development_platform_action=apply
 ```
 

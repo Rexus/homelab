@@ -133,6 +133,7 @@ directory becomes the matching generated repository; paths inside it stay the sa
 | Shared | `<prefix>-shared/` | [shared/](../../shared) | Reusable helpers, baseline roles and stateless platform references; no inventory, resources or state |
 | Architecture | `<prefix>-architecture/` | [docs/](../README.md) | Project records and upstream references in `docs/auto-docs/`; not a deployment working directory |
 
+`<prefix>` is the generated repository folder prefix; its default is `homelab`.
 Each guide names its **working repository**. File paths are relative to that
 repository unless another owner is named. For example, Tier 0
 `terraform/deployments/foundation/` means
@@ -142,6 +143,23 @@ Run repository scripts from the owning tier's root, even when their implementati
 is in Shared. `scripts/deploy.sh` delegates to Shared but uses the current tier's
 inventory, inputs and state. Host consoles and product CLIs run where the procedure
 specifies. For exact code responsibilities, use the [code map](../development/code-layout.md).
+
+Execution blocks name that location in a comment; repository navigation is not an
+installation action. File-edit lists are separate from shell commands:
+
+```bash
+# Run from <prefix>-tier-2/
+bash scripts/init-local-files.sh --setup cache
+```
+
+Edit these files:
+
+```text
+# Edit in <prefix>-tier-2/
+terraform/deployments/cache/terraform.tfvars  # edit guest IDs, sizes and storage class
+# Edit in <prefix>-shared/
+config/platform.tfvars                     # edit shared placement and storage references
+```
 
 ## Follow a stage
 
@@ -162,6 +180,10 @@ then configures the hosts. A separate `--plan-only` run is optional. Approved pi
 can use `--auto-approve`, or the [saved-plan workflow](../reference/repository-scripts.md#cheat-sheet)
 for separate review and execution. Dedicated template/cluster scripts keep their stated
 plan/apply contract; signing ceremonies and secret activation keep their manual pauses.
+A plan shown after apply states its verification purpose and whether it is optional
+or a required acceptance gate. Maintenance that changes a system through another
+tool can also require a separate Terraform state-reconciliation phase; those steps
+remain distinct from the initial installation plan.
 
 The [reference platform](../architecture/reference-platform.md) owns the complete
 design. Stages realize parts of it; [readiness](readiness.md) records what is verified.

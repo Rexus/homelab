@@ -13,11 +13,7 @@ policy are supplied. Data-service commissioning, live acceptance and automated l
 requests remain separate; see [coverage](../../reference/implementation-support.md#stage-coverage).
 **Design:** [development platform](../../architecture/software/development-platform.md).
 
-Start in **Tier 1**. From Tier 0:
-
-```bash
-cd ../homelab-tier-1
-```
+**Execution context:** `<prefix>-tier-1/`.
 
 Steps 1–2 stay in Tier 1; Steps 3–4 explicitly switch to Tier 0.
 
@@ -129,11 +125,7 @@ and cleanup after failure. Untrusted builds may require dedicated nodes or clust
 
 ## Step 3: Authorize CI through Vault
 
-Switch to the **Tier 0 root**:
-
-```bash
-cd ../homelab-tier-0
-```
+**Execution context:** `<prefix>-tier-0/`.
 
 Complete [Vault CI authentication](procedures/vault-ci.md), Steps 1–3: edit the
 exact project/branch claims, apply the policies with independent Vault authority,

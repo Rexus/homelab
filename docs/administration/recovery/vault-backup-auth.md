@@ -36,6 +36,7 @@ provisioning/root token.
    and `VAULT_TLS_SERVER_NAME`, create the policy and enable a dedicated cert mount **once**:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
    vault policy write control-raft-snapshot ansible/roles/control_backup/files/vault-snapshot.hcl
    vault auth enable -path=control-backup-cert cert
    ```
@@ -47,6 +48,7 @@ provisioning/root token.
    certificate/CA entries; renewal of this pinned leaf requires an explicit role update. [1][2]
 
    ```bash
+   # Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
    set -euo pipefail
    read -r -e -p "Approved client certificate PEM path: " BACKUP_CLIENT_CERT
    read -r -p "Exact approved client DNS SAN: " BACKUP_CLIENT_DNS
@@ -82,6 +84,7 @@ Inherited identity/group policies must not broaden this backup identity.
 2. Have the CA custodian issue the replacement client identity. On the administration workstation:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
    read -r -p "Approved replacement client certificate PEM: " BACKUP_CLIENT_CERT
    openssl x509 -in "$BACKUP_CLIENT_CERT" -noout -sha256 -fingerprint -dates
    openssl x509 -in "$BACKUP_CLIENT_CERT" -noout -checkend 604800
@@ -108,6 +111,7 @@ Use an existing reviewed `approle` mount and the same policy. Define the approve
 and use limit with its owner; these are not hidden permanent credentials or a daily-rotation default:
 
 ```bash
+# Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
 read -r -p "Approved recovery-host source CIDR: " RECOVERY_CIDR
 read -r -p "Approved SecretID lifetime: " BACKUP_SECRET_ID_TTL
 read -r -p "Approved SecretID login-use limit: " BACKUP_SECRET_ID_USES
@@ -124,6 +128,7 @@ vault write auth/approle/role/control-raft-snapshot \
 Capture the values directly into a **new private directory outside Git**, rather than printing them:
 
 ```bash
+# Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
 umask 077
 read -r -e -p "New absolute credential directory outside Git: " AUTH_DIRECTORY
 mkdir -m 0700 "$AUTH_DIRECTORY" &&

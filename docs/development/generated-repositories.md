@@ -22,6 +22,7 @@
 From the cloned kit, create the collection with one command:
 
 ```bash
+# Run from upstream kit root
 bash scripts/init-tier-repos.sh
 ```
 
@@ -34,6 +35,7 @@ The generator requires Python 3.9 or later and PyYAML. An existing Python
 environment containing PyYAML needs no additional install. If it is missing:
 
 ```bash
+# Run from upstream kit root
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -r scripts/tier-repos/requirements.txt
@@ -50,10 +52,11 @@ It creates directories and files; it does not initialize Git or create remotes.
 
 ## Prefix casing
 
+`<prefix>` in repository paths denotes the lowercase project prefix; the default is `homelab`.
 `--prefix` preserves the selected display spelling in README headings and project
 records; collection/repository folders, sibling links and commands use lowercase.
 For example, `--prefix HomeLab` produces headings such as `HomeLab Tier 0` inside
-`homelab-iac/homelab-tier-0/`, alongside `homelab-shared/` and `homelab-architecture/`.
+the corresponding lowercase repository folders.
 The supplied `--root` path is not renamed or lowercased.
 
 Existing mixed-case folders are **not renamed automatically**. Generation and refresh
@@ -85,17 +88,17 @@ prefix reuses the lowercase directories and does not rewrite those owned documen
 | `<prefix>-architecture` | maintained auto-docs, one local selection/progress record and naming conventions |
 
 The collection directory groups five sibling repositories and is not itself a
-Git repository. The prefix defaults to `homelab`:
+Git repository:
 
 ```text
 parent/
   upstream-kit/
-  homelab-iac/
-    homelab-tier-0/
-    homelab-tier-1/
-    homelab-tier-2/
-    homelab-shared/
-    homelab-architecture/
+  <prefix>-iac/
+    <prefix>-tier-0/
+    <prefix>-tier-1/
+    <prefix>-tier-2/
+    <prefix>-shared/
+    <prefix>-architecture/
 ```
 
 Each child can have its own private Git history and remote. Generation does
@@ -304,30 +307,44 @@ First complete Tier 0's [foundation template publication](../administration/comp
 and verify the template IDs in the consuming tier's mappings. Hosted CI and the
 control cluster are not prerequisites for that local workflow.
 
-From `homelab-iac/homelab-tier-0`, initialize local working files for the Linux setup:
+Initialize local working files from the Tier 0 repository root:
 
 ```bash
-bash ../homelab-shared/scripts/init-local-files.sh --setup syslog
+# Run from <prefix>-tier-0/
+bash scripts/init-local-files.sh --setup syslog
 ```
 
-Replace `homelab` if another prefix was selected. Edit the initialized local files
-and confirm network placement and permissions, then review a plan from that directory.
+Edit these files:
+
+```text
+# Edit in <prefix>-tier-0/
+.env.local                                         # actual API endpoint, token and public-key paths
+terraform/common.tfvars                            # selected private network attachment
+terraform/deployments/syslog/terraform.tfvars        # log-1 VMID, sizing, storage and data disk
+ansible/inventory/hosts.yml                         # foundation_logging host membership
+ansible/group_vars/all.yml                          # domain and SSH account
+ansible/group_vars/syslog.yml                       # reserved log-1 IP; receiver settings follow later
+```
+
+Confirm network placement and permissions before provisioning.
 This uses the same base context as [Stage 2 logging](../deployment/stage-2-logging/README.md).
 For a disposable environment, retain the same `--env` on every command and complete
 [environment isolation](../reference/repository-scripts.md#environment-isolation) first.
 
 ```bash
-bash ../homelab-shared/scripts/deploy.sh syslog --plan-only
+# Run from <prefix>-tier-0/
+bash scripts/deploy.sh syslog --terraform-only
 ```
 
-After reviewing the plan, follow Stage 2's separate provisioning, storage/TLS
-preparation and Ansible steps. Do not run the full receiver recipe on an unprepared disk.
+Terraform displays its plan and asks for `yes` before provisioning. Add `--plan-only` for
+an optional preview, or `--auto-approve` only in approved unattended CI.
+Then follow Stage 2's storage/TLS preparation and Ansible steps.
+Do not run the full receiver recipe on an unprepared disk.
 The existing [script options](../reference/repository-scripts.md) apply in every tier.
 In a private source checkout, start in `tier-0/` and use
 `bash scripts/init-local-files.sh` or `bash scripts/deploy.sh ...`.
-These same tier-local shortcuts work in generated repositories. Direct shared
-calls use `../shared/scripts/` in the source checkout. The kit root is not a
-deployment context.
+These same tier-local shortcuts work in generated repositories and delegate to Shared.
+The kit root is not a deployment context.
 
 ## Shared code and recovery
 
@@ -381,6 +398,7 @@ Refresh preserves its contents and recorded deletions. See the
 After updating the upstream kit, run this from its checkout:
 
 ```bash
+# Run from upstream kit root
 bash scripts/init-tier-repos.sh --refresh
 ```
 

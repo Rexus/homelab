@@ -117,9 +117,10 @@ Ansible/Helm recipe. See [Stage 9](../deployment/stage-9-development/README.md).
 
 ## Initialize tier repositories
 
-Create `../homelab-iac/` with the five repositories inside:
+Create `../<prefix>-iac/` with the five repositories inside:
 
 ```bash
+# Run from upstream kit root
 bash scripts/init-tier-repos.sh
 ```
 
@@ -129,12 +130,14 @@ to choose the collection's parent, and `--dry-run` to preview without writing.
 Generate only shared automation and Tier 0:
 
 ```bash
+# Run from upstream kit root
 bash scripts/init-tier-repos.sh --repo shared --repo tier-0
 ```
 
 Refresh generated files only:
 
 ```bash
+# Run from upstream kit root
 bash scripts/init-tier-repos.sh --refresh
 ```
 
@@ -152,14 +155,15 @@ seeded only once; `docs/auto-docs/` holds refreshable upstream guidance.
 
 Read [Generated repository model](../development/generated-repositories.md) for the
 authoritative ownership, inventory, prerequisite, and refresh contracts.
-From a tier root, call shared automation directly with a relative path:
+From the Tier 0 root, use the local shortcut to Shared automation:
 
 ```bash
-bash ../homelab-shared/scripts/init-local-files.sh --setup foundation --env test
+# Run from <prefix>-tier-0/
+bash scripts/init-local-files.sh --setup foundation --env test
 ```
 
-Use the selected prefix in that path. The tier-local `scripts/` shortcuts used
-below delegate to the same shared code. The same local shortcut commands also
+The tier-local `scripts/` shortcuts used below delegate to the same shared code.
+The same local shortcut commands also
 work from `tier-0/`, `tier-1/`, or `tier-2/` in a private source checkout,
 where the sibling is named `shared/`. Omitted `--setup` initializes
 only the setups registered in the current tier.
@@ -169,30 +173,35 @@ only the setups registered in the current tier.
 Create the base production files:
 
 ```bash
+# Run from the owning tier repository root
 bash scripts/init-local-files.sh
 ```
 
 Create only the shared defaults and foundation files:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup foundation
 ```
 
 Create foundation files plus a disposable `test` environment:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup foundation --env test
 ```
 
 Refresh local files from current examples and keep timestamped backups:
 
 ```bash
+# Run from the owning tier repository root
 bash scripts/init-local-files.sh --overwrite
 ```
 
 Remove timestamped backups created by `--overwrite`:
 
 ```bash
+# Run from the owning tier repository root
 bash scripts/init-local-files.sh --clean-backups
 ```
 
@@ -230,6 +239,7 @@ the same live resource into another state. Review every plan against the allocat
 After completing [environment isolation](#environment-isolation), deploy a setup from its owning tier:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test
 ```
 
@@ -240,6 +250,7 @@ add `--plan-only` to the same command.
 For an approved pipeline, suppress Terraform prompts and fail on missing Terraform inputs:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test --auto-approve
 ```
 
@@ -251,6 +262,7 @@ bootstrap use their dedicated scripts and retain their documented plan/apply ste
 Destroy a disposable environment:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test --destroy
 ```
 
@@ -258,6 +270,7 @@ When destroying and recreating VMs with the same IPs, clear stale SSH host keys
 for that setup before Ansible runs:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test --reset-known-hosts
 ```
 
@@ -270,12 +283,14 @@ rebuild and verify replacement fingerprints through a trusted channel.
 Run production by omitting `--env`:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation
 ```
 
 Use another environment file when `.env.local` is not the right source:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test --env-file secrets/proxmox-test.env
 ```
 
@@ -368,6 +383,7 @@ and shared baseline roles without setting an extra path variable.
 1. Prepare local files.
 
 ```bash
+# Run from <prefix>-tier-0/
 cp env.local.example .env.local
 cp terraform/common.tfvars.example terraform/common.tfvars
 cp terraform/deployments/foundation/terraform.tfvars.example \
@@ -379,9 +395,24 @@ cp ansible/group_vars/all.env.yml.example ansible/group_vars/all.test.yml
 cp ansible/group_vars/foundation.yml.example ansible/group_vars/foundation.test.yml
 ```
 
+Edit these files:
+
+```text
+# Edit in <prefix>-tier-0/
+.env.local                                        # verified endpoint and scoped API credentials
+terraform/common.tfvars                           # prepared private network attachments
+terraform/deployments/foundation/terraform.tfvars  # unused VMIDs, sizing and storage selections
+ansible/inventory/hosts.yml                        # authorized hosts and groups
+ansible/group_vars/all.yml                        # base domain and SSH account
+ansible/group_vars/foundation.yml                 # base IP map and service configuration
+ansible/group_vars/all.test.yml                   # test domain/name overrides
+ansible/group_vars/foundation.test.yml            # complete non-conflicting test IP/service values
+```
+
 2. Load or export provider credentials.
 
 ```bash
+# Run from <prefix>-tier-0/
 set -a
 . ./.env.local
 set +a
@@ -394,57 +425,51 @@ export TF_VAR_proxmox_api_token_secret="${PROXMOX_API_TOKEN_SECRET}"
 3. Prepare the deployment machine.
 
 ```bash
-cd ansible
-export ANSIBLE_CONFIG="$PWD/ansible.cfg"
-ansible-playbook -i localhost, playbooks/control-node.yml \
+# Run from <prefix>-tier-0/
+ANSIBLE_CONFIG="$PWD/ansible/ansible.cfg" ansible-playbook -i localhost, \
+  ansible/playbooks/control-node.yml \
   -e control_node_setup=foundation
-cd ..
 ```
 
 4. Run Terraform with the same state and var layering.
 
 The shared [platform profile](platform-inputs.md) and
 [template catalog](template-catalog.md) load before tier inputs.
-In these commands, `homelab-shared` is the generated sibling; substitute
-the prefix, or use `shared` in the source layout.
+The quoted sibling paths below use the selected project prefix;
+use `shared` for that sibling in the source layout.
+Commands remain at the repository root. `-chdir` resolves Terraform inputs from the deployment root;
+absolute data/backend paths retain the selected working data and original state. [2][3]
 
 ```bash
-cd terraform/deployments/foundation
-export TF_DATA_DIR="../../../.terraform/data/foundation/test"
+# Run from <prefix>-tier-0/
+export TF_DATA_DIR="$PWD/.terraform/data/foundation/test"
 
-terraform init -reconfigure \
-  -backend-config="path=../../../.terraform/state/foundation/test/terraform.tfstate"
+terraform -chdir=terraform/deployments/foundation init -reconfigure \
+  -backend-config="path=$PWD/.terraform/state/foundation/test/terraform.tfstate"
 
-terraform plan \
-  -var-file=../../../../homelab-shared/config/platform.tfvars \
-  -var-file=../../../../homelab-shared/templates/proxmox-catalog.tfvars \
+terraform -chdir=terraform/deployments/foundation apply \
+  -var-file='../../../../<prefix>-shared/config/platform.tfvars' \
+  -var-file='../../../../<prefix>-shared/templates/proxmox-catalog.tfvars' \
   -var-file=../../common.tfvars \
   -var-file=terraform.tfvars \
   -var='ansible_inventory_path=../../../ansible/inventory/hosts.yml' \
   -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]'
-
-terraform apply \
-  -var-file=../../../../homelab-shared/config/platform.tfvars \
-  -var-file=../../../../homelab-shared/templates/proxmox-catalog.tfvars \
-  -var-file=../../common.tfvars \
-  -var-file=terraform.tfvars \
-  -var='ansible_inventory_path=../../../ansible/inventory/hosts.yml' \
-  -var='ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/foundation.yml","../../../ansible/group_vars/all.test.yml","../../../ansible/group_vars/foundation.test.yml"]'
-
-cd ../../..
 ```
+
+Terraform displays the plan and requests confirmation before applying. For an optional preview,
+replace `apply` with `plan` in the same command; the standalone preview is not a deployment prerequisite.
 
 5. Run the mapped Ansible playbook.
 
 ```bash
-cd ansible
-ansible-playbook \
-  -i inventory/hosts.yml \
-  -e @group_vars/all.yml \
-  -e @group_vars/foundation.yml \
-  -e @group_vars/all.test.yml \
-  -e @group_vars/foundation.test.yml \
-  playbooks/foundation.yml
+# Run from <prefix>-tier-0/
+ANSIBLE_CONFIG="$PWD/ansible/ansible.cfg" ansible-playbook \
+  -i ansible/inventory/hosts.yml \
+  -e @ansible/group_vars/all.yml \
+  -e @ansible/group_vars/foundation.yml \
+  -e @ansible/group_vars/all.test.yml \
+  -e @ansible/group_vars/foundation.test.yml \
+  ansible/playbooks/foundation.yml
 ```
 
 The manual flow is useful for learning and troubleshooting. For normal use,
@@ -461,3 +486,5 @@ consistent.
 ## References
 
 1. [Terraform apply: automatic plan and saved-plan modes](https://developer.hashicorp.com/terraform/cli/commands/apply).
+2. [Terraform: working-directory selection with -chdir](https://developer.hashicorp.com/terraform/cli/commands#switching-working-directory-with-chdir).
+3. [Terraform: persistent TF_DATA_DIR selection](https://developer.hashicorp.com/terraform/cli/config/environment-variables#tf_data_dir).

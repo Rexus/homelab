@@ -76,6 +76,7 @@ nor revokes that externally supplied token. Return to managed auth for scheduled
 3. From the Tier 0 root, create the local configuration if absent:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    cp -n ansible/group_vars/control_backup.yml.example ansible/group_vars/control_backup.yml
    chmod 600 ansible/group_vars/control_backup.yml
    ```
@@ -97,6 +98,7 @@ nor revokes that externally supplied token. Return to managed auth for scheduled
 5. Install, or reapply after a schedule/credential edit:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/control-backup.yml -e @ansible/group_vars/control_backup.yml
    ```
 
@@ -112,6 +114,7 @@ of random delay. Wrong/missing repositories fail closed. [3][4]
 1. **On the recovery host**, inspect the schedule and run once:
 
    ```bash
+   # Run on the independent control_recovery host.
    sudo systemctl list-timers --all control-backup.timer
    sudo systemctl cat control-backup.timer
    sudo systemctl start control-backup.service
@@ -143,7 +146,12 @@ Monitor timestamp age and missed external pings, not file presence.
 **On the recovery host**, enter an authorized root shell and select the installed repository:
 
 ```bash
+# Run on the independent control_recovery host.
 sudo -i
+```
+
+```bash
+# Run on the independent control_recovery host as root.
 export RESTIC_REPOSITORY="$(python3 -c 'import json; print(json.load(open("/etc/control-backup/config.json"))["repository"])')"
 export RESTIC_PASSWORD_FILE=/etc/control-backup/restic.password
 restic cat config
@@ -155,6 +163,7 @@ Compare repository ID and the selected full snapshot ID with independently retai
 For a snapshot's contents:
 
 ```bash
+# Run on the independent control_recovery host as root, retaining the repository exports above.
 read -r -p "Full recorded snapshot ID: " RECOVERY_SNAPSHOT
 restic ls "$RECOVERY_SNAPSHOT"
 ```
@@ -184,6 +193,7 @@ them from Vault or relying on this host's installed files.
 2. With that custodian's repository access configured, preview one explicit full snapshot ID:
 
    ```bash
+   # Run on the independently authorized retention-custodian host.
    read -r -p "Full snapshot ID approved for retirement: " RETIRE_SNAPSHOT
    restic snapshots --json
    restic forget "$RETIRE_SNAPSHOT" --dry-run

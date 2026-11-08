@@ -12,6 +12,7 @@ and that cluster's protected kubeconfig. Load the same
 as cluster deployment; this script does not load `.env.local`. Confirm the target before every task:
 
 ```bash
+# Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
 export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
 kubectl config current-context
 kubectl get nodes -L node-pool
@@ -41,6 +42,7 @@ kubectl get nodes -L node-pool
 3. Prepare the saved plan:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    bash scripts/kubernetes-cluster.sh plan
    ```
 
@@ -49,6 +51,7 @@ kubectl get nodes -L node-pool
 4. Apply that reviewed plan, then check node and system health:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    bash scripts/kubernetes-cluster.sh apply
    kubectl get nodes -L node-pool
    kubectl get pods -A -o wide
@@ -73,6 +76,7 @@ administrator owns those changes. [1] Use the owning cluster's protected kubecon
 1. Select and inspect the node before changing scheduling:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    read -r -p "Worker node to reserve: " NODE
    kubectl describe node "$NODE"
    ```
@@ -80,6 +84,7 @@ administrator owns those changes. [1] Use the owning cluster's protected kubecon
 2. Apply the reservation:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    kubectl taint node "$NODE" dedicated=compute:NoSchedule --overwrite
    ```
 3. In the project-owned workload manifest, set both the selector and toleration below.
@@ -105,6 +110,7 @@ the reservation is verified. This is not a secure multi-tenant runner installer.
    remove only its `dedicated:NoSchedule` taint, then review workload selectors:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    kubectl taint node "$NODE" dedicated:NoSchedule-
    kubectl get pods -A -o wide
    ```

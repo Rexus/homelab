@@ -76,24 +76,22 @@ or chart is not authorization. Security evidence still follows the
 
 To enable the Tier 0 bridge after the Tier 1 metrics receiver is accepted:
 
-1. Switch from Tier 1 to Tier 0:
+1. Edit these existing files:
 
-   ```bash
-   cd ../homelab-tier-0
+   ```text
+   # Edit in <prefix>-tier-0/
+   ansible/group_vars/infrastructure_monitoring.yml
+   # Edit: infrastructure_monitoring_export_endpoint to the accepted private gateway/metrics port.
+   #       Restrict infrastructure_monitoring_export_metrics / _export_labels to approved data.
+   ansible/group_vars/infrastructure_monitoring_secrets.yml
+   # Edit: Encrypted private-file map with scoped export.crt/export.key and CA trust.
    ```
 
-2. Edit existing `ansible/group_vars/infrastructure_monitoring.yml`: set
-   `infrastructure_monitoring_export_endpoint` to the private gateway/metrics port,
-   and restrict `infrastructure_monitoring_export_metrics` / `_export_labels` to approved data.
-   Add its scoped `export.crt`/`export.key` and CA trust to the encrypted
-   `ansible/group_vars/infrastructure_monitoring_secrets.yml` private-file map.
-3. Render/review and reapply the [existing monitoring recipe](../stage-6-secrets/monitoring.md#step-3-enable-and-verify-independent-alerts).
+2. Render/review and reapply the [existing monitoring recipe](../stage-6-secrets/monitoring.md#step-3-enable-and-verify-independent-alerts).
    It retains local diagnostics/alerts and adds the selected bridge; it grants Tier 1 no poller credentials.
-4. Return to Tier 1 for sample/failure checks:
+3. Continue the Tier 1 sample/failure checks:
 
-   ```bash
-   cd ../homelab-tier-1
-   ```
+   **Execution context:** `<prefix>-tier-1/`.
 
 **Result:** live diagnostics and retained approved metrics, with separate resource budgets.
 

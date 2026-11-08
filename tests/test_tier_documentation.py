@@ -404,6 +404,33 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                     anchors.extend(re.findall(r'<a id="([^"]+)"></a>', target_content))
                     self.assertIn(anchor, anchors, f"{document}: {link}")
 
+    def test_generic_repository_contexts_resolve_without_rewriting_other_prefixes(self):
+        self.generate()
+        generated = self.root / "verify-architecture/docs/auto-docs"
+        overview = (generated / "README.md").read_text()
+        self.assertIn("`<prefix>` means the generated repository folder prefix", overview)
+        self.assertIn("the default is `homelab`", overview)
+        deployment = (generated / "deployment/README.md").read_text()
+        self.assertIn("# Run from verify-tier-2/", deployment)
+        self.assertIn("# Edit in verify-shared/", deployment)
+        self.assertNotIn("<prefix>-tier-", deployment)
+        for tier in range(3):
+            readme = (self.root / f"verify-tier-{tier}/README.md").read_text()
+            self.assertIn(f"# Run from verify-tier-{tier}/", readme)
+            self.assertIn(f"# Edit in verify-tier-{tier}/", readme)
+            self.assertIn("# Edit in verify-shared/", readme)
+
+    def test_file_edit_lists_do_not_invoke_an_assumed_editor(self):
+        for document in (UPSTREAM / "docs").rglob("*.md"):
+            blocks = re.findall(r"```(?:bash|sh|shell)\n(.*?)```", document.read_text(), re.DOTALL)
+            for block in blocks:
+                self.assertNotRegex(block, r"(?m)^\s*(?:sudo\s+)?(?:vi|vim|nano)\s+", str(document))
+                self.assertNotRegex(
+                    block,
+                    r"(?m)^\s*cd\s+[^\n]*(?:homelab|<prefix>)-(?:tier-[012]|shared|architecture|iac)(?:/|[\"']?$)",
+                    str(document),
+                )
+
     def test_refresh_keeps_legacy_section_links_in_owned_readmes_valid(self):
         self.generate()
         readme = self.root / "verify-tier-0/README.md"

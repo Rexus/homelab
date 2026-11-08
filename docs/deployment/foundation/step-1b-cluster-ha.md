@@ -58,6 +58,7 @@ failure model. Never lower expected votes to disguise a production partition. [1
 On a Proxmox host, verify membership:
 
 ```bash
+# Run on the selected Proxmox host as an authorized root operator.
 pvecm status
 pvecm nodes
 ```
@@ -172,7 +173,7 @@ cluster membership does not establish trusted API certificates.
 Use a disposable guest and a maintenance window; retain working out-of-band access.
 
 1. Create on a different node from its source template; confirm all disks and networks.
-2. Migrate with Proxmox, then run the owning tier's normal `--plan-only` workflow.
+2. Migrate with Proxmox, then use the owning tier's `--plan-only` preview to check placement drift.
    It must not propose recreation or moving the VM back solely because of placement.
 3. Exercise the reviewed host-failure/fencing procedure. Confirm restart on an
    eligible host, storage integrity, network reachability, and sufficient capacity.

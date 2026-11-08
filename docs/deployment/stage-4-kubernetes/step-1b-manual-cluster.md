@@ -107,6 +107,7 @@ Use the exact installer reference matching the template schematic and release,
 not the raw disk download URL. [3]
 
 ```bash
+# Run from <prefix>-tier-0/
 read -r -p "Cluster name: " CLUSTER_NAME
 read -r -p "Kubernetes API URL (https://name:6443): " KUBERNETES_ENDPOINT
 read -r -p "Approved installer image with exact tag or digest: " INSTALLER_IMAGE
@@ -142,6 +143,7 @@ For each node, inspect disks in maintenance mode and verify `machine.install.dis
 in the configuration intended for that node: [2]
 
 ```bash
+# Run from <prefix>-tier-0/
 read -r -p "Node IP from its console: " NODE_IP
 talosctl get disks --insecure --nodes "$NODE_IP"
 ```
@@ -153,6 +155,7 @@ worker file. Installation writes to the selected disk. Use `--insecure` only
 for initial maintenance-mode configuration on the protected bootstrap network. [2]
 
 ```bash
+# Run from <prefix>-tier-0/
 read -r -p "Node IP from its console: " NODE_IP
 read -r -p "Reviewed machine configuration file: " MACHINE_CONFIG
 talosctl apply-config --insecure --nodes "$NODE_IP" --file "$MACHINE_CONFIG"
@@ -163,6 +166,7 @@ before proceeding. Bootstrap **once, on one control-plane node**; this is not an
 update command and is not the disaster-recovery procedure. [1]
 
 ```bash
+# Run from <prefix>-tier-0/
 read -r -p "Control-plane IPs, separated by spaces: " -a CONTROL_PLANES
 export TALOSCONFIG="$CLUSTER_DIR/talosconfig"
 export KUBECONFIG="$CLUSTER_DIR/kubeconfig"

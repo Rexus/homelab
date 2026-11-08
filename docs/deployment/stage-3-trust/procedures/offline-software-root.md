@@ -31,6 +31,7 @@ They deliberately do not define a leaf-issuance profile.
 On the offline system, set these absolute paths to the actual mounted media:
 
 ```bash
+# Run on the authorized offline ceremony host.
 export CLCA=/media/tools/clca/bin/clca
 export INSTANCE=/media/encrypted/root-ca
 export TEMPLATES=/media/tools/tier-0/templates/offline-root
@@ -56,6 +57,7 @@ Review the mounted volume identity and confirm that no authoritative instance
 already exists. clca prompts for the passphrase; keep it out of shell history.
 
 ```bash
+# Run on the authorized offline ceremony host.
 flock --nonblock "$INSTANCE/ceremony.lock" "$CLCA" genkey
 flock --nonblock "$INSTANCE/ceremony.lock" "$CLCA" initialize
 openssl x509 -in ca/cacert.pem -noout -subject -issuer -dates -fingerprint -sha256
@@ -72,6 +74,7 @@ Receive only the issuer/FreeIPA CSR and an independently approved identity/publi
 key record. Use controlled media, not a network connection to the root.
 
 ```bash
+# Run on the authorized offline ceremony host.
 openssl req -in /media/transfer/subordinate.csr -verify -noout -text
 openssl req -in /media/transfer/subordinate.csr -pubkey -noout |
   openssl pkey -pubin -outform DER | openssl dgst -sha256
@@ -89,6 +92,7 @@ separately; no root key or CA database enters the return package.
 ## Publish and preserve state
 
 ```bash
+# Run on the authorized offline ceremony host.
 flock --nonblock "$INSTANCE/ceremony.lock" "$CLCA" issuecrl
 openssl crl -in crl/ca.crl -noout -issuer -lastupdate -nextupdate
 openssl crl -in crl/ca.crl -outform DER -out /media/transfer/root.crl

@@ -43,6 +43,7 @@ guarantee service availability. Keep the first deployment to one active schedule
 3. With the service stopped, review a one-shot dry run:
 
    ```bash
+   # Run on the commissioned ProxLB service host with the service stopped.
    proxlb --config /etc/proxlb/proxlb.yaml --dry-run
    ```
 

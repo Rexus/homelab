@@ -142,6 +142,7 @@ signing keys through the official installation instructions before accepting the
 never disable package-signature or TLS checks. [1][2]
 
 ```bash
+# Run on the bootstrap/deployment host
 sudo dnf install -y epel-release
 sudo dnf install -y git bash python3 python3-pip python3-pyyaml \
   openssh-clients ca-certificates curl openssl xz unzip tar /usr/bin/qemu-img
@@ -153,6 +154,7 @@ sudo dnf install -y terraform
 Check the installed tools before cloning/generation:
 
 ```bash
+# Run on the bootstrap/deployment host
 git --version
 python3 -c 'import yaml; print(yaml.__version__)'
 terraform version
@@ -185,6 +187,7 @@ requires `ansible-core >=2.17`; an OS package may supply an older release. Insta
 `ansible/requirements.txt` installs module dependencies, not Ansible itself. [3][4]
 
 ```bash
+# Run on the bootstrap/deployment host
 python3 -m venv "$HOME/.local/share/homelab/venv"
 source "$HOME/.local/share/homelab/venv/bin/activate"
 python3 -m pip install --upgrade 'ansible-core>=2.17' PyYAML
@@ -235,6 +238,7 @@ generated repositories include the bootstrap code and dependency declarations.
 To prepare a runner or recovery host before platform access, run from Tier 0:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/proxmox-templates.sh setup
 ```
 

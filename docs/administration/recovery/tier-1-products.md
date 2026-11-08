@@ -61,6 +61,7 @@ follow [security logging access boundaries](../security-logging.md) and record t
 For a native VictoriaMetrics restore, on the new isolated volume host with the product stopped:
 
 ```bash
+# Run on the isolated recovery-volume host with VictoriaMetrics stopped.
 set -euo pipefail
 : "${VM_BACKUP_SOURCE:?Set the approved vmbackup source URI}"
 : "${VM_NEW_DATA:?Set the NEW empty absolute data directory}"

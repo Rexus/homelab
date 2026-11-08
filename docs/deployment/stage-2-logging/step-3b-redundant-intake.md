@@ -72,6 +72,7 @@ sender failover and the stronger durable-handoff contract remain selected integr
 From Tier 0, provision after reviewing Terraform's displayed plan and entering `yes`:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh syslog --terraform-only
 ```
 
@@ -81,6 +82,7 @@ mount and its host-specific UUID/TLS inputs using the [receiver guide](receiver.
 then configure:
 
 ```bash
+# Run from <prefix>-tier-0/
 bash scripts/deploy.sh syslog --ansible-only
 ```
 

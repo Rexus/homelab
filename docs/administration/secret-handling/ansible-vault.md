@@ -50,6 +50,7 @@ For FreeIPA, on the Tier 0 execution host:
 2. Enter the independently retained passwords without adding them to shell history:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    read -r -s -p 'Directory Manager password: ' FREEIPA_DM_PASSWORD; echo
    read -r -s -p 'FreeIPA administrator password: ' FREEIPA_ADMIN_PASSWORD; echo
    export FREEIPA_DM_PASSWORD FREEIPA_ADMIN_PASSWORD
@@ -68,6 +69,7 @@ For FreeIPA, on the Tier 0 execution host:
    without the service being deployed. Then create the encrypted input: [3]
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    umask 077
    mkdir -p secrets
    read -r -e -p 'Absolute existing Vault password-file path: ' ANSIBLE_VAULT_PASSWORD_FILE
@@ -86,6 +88,7 @@ For FreeIPA, on the Tier 0 execution host:
    CSR/completion phase; the signing pause is still required:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --terraform-only
    bash scripts/deploy.sh foundation --ansible-only --ansible-vars secrets/ansible-bootstrap-vars.yml
    ```
@@ -99,6 +102,7 @@ For FreeIPA, on the Tier 0 execution host:
 2. Edit it without a plaintext export: [3]
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    ansible-vault edit secrets/ansible-bootstrap-vars.yml
    ```
 
@@ -115,6 +119,7 @@ This changes file encryption only, not any account password stored inside it. [3
 2. Rekey the selected file, then validate decryption without printing its contents:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    read -r -e -p 'Absolute current Vault password-file path: ' ANSIBLE_VAULT_PASSWORD_FILE
    read -r -e -p 'Absolute new Vault password-file path: ' NEW_ANSIBLE_VAULT_PASSWORD_FILE
    ansible-vault rekey --vault-password-file "$ANSIBLE_VAULT_PASSWORD_FILE" --new-vault-password-file "$NEW_ANSIBLE_VAULT_PASSWORD_FILE" secrets/ansible-bootstrap-vars.yml
@@ -124,6 +129,7 @@ This changes file encryption only, not any account password stored inside it. [3
 3. After successful validation, update the local/runner password-file reference:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    export ANSIBLE_VAULT_PASSWORD_FILE="$NEW_ANSIBLE_VAULT_PASSWORD_FILE"
    ```
 

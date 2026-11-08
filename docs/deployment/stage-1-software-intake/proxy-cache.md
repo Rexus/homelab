@@ -348,6 +348,7 @@ For a manual proxy check from the deployment host, use lowercase `-x` or
 `--proxy`:
 
 ```bash
+# Run on the selected approved consumer host.
 curl -x "http://<cache-ip>:3128" -I "https://mirrors.fedoraproject.org/"
 ```
 

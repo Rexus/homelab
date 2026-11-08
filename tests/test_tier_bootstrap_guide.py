@@ -52,7 +52,7 @@ class BootstrapGuide(TierRepositoryTestCase):
 
     def test_tools_artifacts_caller_trust_and_original_state_are_not_skipped(self):
         guide = (UPSTREAM / 'docs/deployment/foundation/proxmox/bootstrap.md').read_text()
-        for term in ('control-node-tooling.md#automation-vm-example', '--prefix HomeLab',
+        for term in ('control-node-tooling.md#automation-vm-example', 'bash scripts/init-tier-repos.sh',
                      '/srv/tier0/artifacts', 'unpacked', 'original state',
                      'proxmox-tls.md#step-1-trust-the-bootstrap-ca',
                      'Browser trust on another workstation is insufficient', '--env-file .env.local',

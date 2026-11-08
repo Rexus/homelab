@@ -25,6 +25,7 @@ maintenance compose the same roles without owning separate inventories or state.
 3. Run the selected recipe. For Tier 0 directory health checks:
 
 ```bash
+# Run from <prefix>-tier-0/ on the protected execution host.
 bash scripts/deploy.sh foundation --recipe maintenance
 ```
 
@@ -53,6 +54,7 @@ restore approved configuration using the product's runbook. Normal deployment wi
 2. Run the read-only service/configuration/API checks:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 

@@ -76,13 +76,23 @@ The application SDK, cluster, CSI class and Tier 1 gateway already exist.
 From Tier 2's root, prepare private inputs in the accepted deployment environment:
 
 ```bash
+# Run from <prefix>-tier-2/
 umask 077
 cp -n ansible/group_vars/workload_telemetry.yml.example ansible/group_vars/workload_telemetry.yml
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-2/
+ansible/group_vars/workload_telemetry.yml
+# Edit: Application identity, authorized destinations, TLS and selected cluster context.
 ```
 
 Install the control-node requirements inside that deployment virtual environment:
 
 ```bash
+# Run from <prefix>-tier-2/
 python3 -m pip install -r ansible/requirements.txt
 ansible-galaxy collection install -r ansible/requirements.yml
 ```
@@ -114,6 +124,7 @@ credentials. Tier 1 maps authenticated intake ports to fixed search scopes;
 caller-supplied labels never grant another application's read access.
 
 ```bash
+# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/workload-telemetry.yml -e @ansible/group_vars/workload_telemetry.yml
 ```
 
@@ -121,6 +132,7 @@ Review `secrets/workload-telemetry/otel-agent-values.yml` and native manifests.
 Set the explicit kubeconfig path, then apply:
 
 ```bash
+# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/workload-telemetry.yml -e @ansible/group_vars/workload_telemetry.yml -e workload_telemetry_action=apply
 ```
 

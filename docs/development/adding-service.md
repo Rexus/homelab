@@ -3,7 +3,7 @@
 Extend an existing setup when the new guest belongs to its lifecycle. Add a role/recipe
 for configuration behavior; create another Terraform root only for an independently managed resource set.
 
-**Working repository:** generated **Tier 2** (`homelab-tier-2`); source owner `tier-2/`.
+**Working repository:** `<prefix>-tier-2`; source owner `tier-2/`.
 **Prerequisites:** configured lab inputs, approved Linux template/storage/node, SSH access and
 a permitted network. [Platform inputs](../reference/platform-inputs.md) owns those selections.
 
@@ -18,10 +18,10 @@ a permitted network. [Platform inputs](../reference/platform-inputs.md) owns tho
 
 ## Step 1: Initialize the local inputs
 
-From an existing generated tier repository, enter Tier 2 and initialize only this setup:
+Initialize only this setup from the Tier 2 repository root:
 
 ```bash
-cd ../homelab-tier-2
+# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup lab
 ```
 
@@ -45,7 +45,14 @@ network and a free address outside DHCP. Unsafe workloads first need the
 
 ### 2a: Inventory identity
 
-Edit **`ansible/inventory/hosts.yml` → `all.children.lab.hosts`** and add:
+Edit these files:
+
+```text
+# Edit in <prefix>-tier-2/
+ansible/inventory/hosts.yml  # all.children.lab.hosts: add lab-2; retain existing hosts
+```
+
+Add this host entry:
 
 ```yaml
 lab-2: {}
@@ -53,7 +60,14 @@ lab-2: {}
 
 ### 2b: IP selection
 
-Edit **`ansible/group_vars/lab.yml` → `platform_host_ips`** and add:
+Edit these files:
+
+```text
+# Edit in <prefix>-tier-2/
+ansible/group_vars/lab.yml  # platform_host_ips: add lab-2 and its reserved IP
+```
+
+Add this address:
 
 ```yaml
 lab-2: 10.20.20.12
@@ -64,7 +78,14 @@ use the [environment contract](../reference/platform-inputs.md#loading-and-overr
 
 ### 2c: Hardware selection
 
-Edit **`terraform/deployments/lab/terraform.tfvars` → `vm_instances`** and add this entry:
+Edit these files:
+
+```text
+# Edit in <prefix>-tier-2/
+terraform/deployments/lab/terraform.tfvars  # vm_instances: add the matching lab-2 key
+```
+
+Add this hardware entry:
 
 ```hcl
 "lab-2" = {
@@ -113,36 +134,50 @@ The [lab recipe](../../tier-2/ansible/playbooks/deployment/lab-vms.yml) applies 
 Run from Tier 2 with the accepted Ansible environment:
 
 ```bash
+# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-inventory -i ansible/inventory/hosts.yml --graph lab
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible lab-2 -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/lab.yml -m ansible.builtin.debug -a var=ansible_host
 ```
 
 Require `lab-2` in the lab group and the selected IP. The debug action resolves inputs;
 it does not test SSH or install anything. [1]
-With authorized Proxmox access, review the actual resource plan:
+Optional provisioning preview, with authorized Proxmox access:
 
 ```bash
+# Run from <prefix>-tier-2/
 bash scripts/deploy.sh lab --plan-only
 ```
 
 Expect the new VM and no unexplained removal/replacement of existing guests.
-No apply is required to review this extension. After acceptance, `bash scripts/deploy.sh lab`
-shows the plan/confirmation and runs the baseline; `--auto-approve` is for approved unattended CI.
-Adding a guest does not install an application.
+The preview is not required before deployment. To provision the reviewed extension:
+
+```bash
+# Run from <prefix>-tier-2/
+bash scripts/deploy.sh lab
+```
+
+Terraform shows its plan and asks for `yes`, then Ansible runs the baseline.
+Use `--auto-approve` only for approved unattended CI. Adding a guest does not install an application.
 
 ## Option A: Add service configuration
 
-1. Reuse an existing role where its contract fits, or implement behavior in
-   **`ansible/roles/<service>/tasks/main.yml`**, with explicit inputs, templates and handlers.
+1. Reuse an existing role where its contract fits. Edit these files:
+
+   ```text
+   # Edit in <prefix>-tier-2/
+   ansible/roles/<service>/tasks/main.yml        # implementation, templates and handlers as needed
+   ansible/playbooks/deployment/lab-service.yml # target selected lab hosts; compose accepted roles
+   ansible/requirements.yml                    # add required collections
+   ansible/playbooks/control-node.yml          # collection catalog and lab precheck mapping
+   # Mapping fields: control_node_collection_catalog and control_node_setup_collection_names.lab
+   ```
+
    Shared is for reusable stateless behavior consumed by multiple tiers.
-2. Add **`ansible/playbooks/deployment/lab-service.yml`**, targeting selected lab hosts
-   and composing accepted roles. Maintenance recipes reuse roles for supported operations.
-3. Add required collections to `ansible/requirements.yml` and
-   `control_node_collection_catalog` / `control_node_setup_collection_names.lab` in
-   **`ansible/playbooks/control-node.yml`**.
-4. After implementing/reviewing the role and recipe, run configuration only:
+   Maintenance recipes reuse roles for supported operations.
+2. After implementing/reviewing the role and recipe, run configuration only:
 
    ```bash
+   # Run from <prefix>-tier-2/
    bash scripts/deploy.sh lab --ansible-only --playbook deployment/lab-service.yml
    ```
 
@@ -173,6 +208,7 @@ A genuinely Terraform-only workflow requires its dedicated command/validation co
 From the **kit root**, review generation without writing a collection:
 
 ```bash
+# Run from upstream kit root
 bash scripts/init-tier-repos.sh --dry-run
 ```
 

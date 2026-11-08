@@ -34,9 +34,10 @@ scope before planning a rollout.
 
 ## Getting started
 
-From `homelab-iac/homelab-tier-1`, initialize the platform cluster if it does not exist:
+Initialize the platform cluster if it does not exist:
 
 ```bash
+# Run from <prefix>-tier-1/
 bash scripts/kubernetes-cluster.sh init
 ```
 

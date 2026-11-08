@@ -30,6 +30,7 @@ recorded in the [generation contract](generated-repositories.md#purpose-and-prer
 For Linux/WSL Bash, from the kit root: [1]
 
 ```bash
+# Run from upstream kit root
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -r tests/requirements.txt
@@ -38,6 +39,7 @@ python3 -m pip install -r tests/requirements.txt
 For native Windows PowerShell, use the environment's interpreter directly:
 
 ```powershell
+# Run from upstream kit root
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r tests/requirements.txt
 ```
@@ -64,24 +66,28 @@ kit's `scripts/tier-repos/requirements.txt`; see the [generation contract](gener
 Preview without creating a collection:
 
 ```bash
-python3 scripts/tier-repos/generate.py --prefix HomeLab --dry-run
+# Run from upstream kit root
+python3 scripts/tier-repos/generate.py --dry-run
 ```
 
 When a generated checkout is needed, omit `--dry-run`:
 
 ```bash
-python3 scripts/tier-repos/generate.py --prefix HomeLab
+# Run from upstream kit root
+python3 scripts/tier-repos/generate.py
 ```
 
-This creates `../homelab-iac/` with lowercase sibling repository folders and
-HomeLab document headings. It creates files, not remotes or infrastructure.
-Use the [generator contract](generated-repositories.md) for destinations and refresh.
+This creates `../<prefix>-iac/` with lowercase sibling repository folders.
+It creates files, not remotes or infrastructure. Add the same `--prefix` and `--root`
+selections to both commands when customized; the
+[generator contract](generated-repositories.md#prefix-casing) defines prefix/default behavior.
 
 ## Step 3: Run a focused offline check
 
 For generator/ownership/refresh changes, from the kit root:
 
 ```bash
+# Run from upstream kit root
 python3 -B -m unittest discover -s tests -p 'test_tier_repos.py' -v
 ```
 

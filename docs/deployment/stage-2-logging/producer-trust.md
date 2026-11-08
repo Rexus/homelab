@@ -26,15 +26,25 @@ protected local storage and separately held encrypted backups/passphrase.
 2. Select local paths and the passphrase without putting secret values in history:
 
    ```bash
+   # Run from <prefix>-tier-0/
    read -r -e -p 'Protected authority directory: ' LOGGING_AUTHORITY_DIR
    read -r -s -p 'Authority key passphrase: ' LOGGING_AUTHORITY_PASSPHRASE
    export LOGGING_AUTHORITY_DIR LOGGING_AUTHORITY_PASSPHRASE
    cp -n ansible/group_vars/logging_authority.yml.example ansible/group_vars/logging_authority.yml
    ```
 
+   Edit these files using the fields below:
+
+   ```text
+   # Edit in <prefix>-tier-0/
+   ansible/group_vars/logging_authority.yml
+   # Edit: Approved request identities, CSR paths and authority custody/validity policy.
+   ```
+
 3. Review the local file, then approve first initialization on an empty directory:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/logging-authority.yml -e @ansible/group_vars/logging_authority.yml -e logging_authority_initialize=true
    ```
 
@@ -48,6 +58,7 @@ native `community.crypto` primitives and exports only `public/`. [1]
    outside Git; the unencrypted service key is later installed only on the receiver:
 
    ```bash
+   # Run from <prefix>-tier-0/
    read -r -e -p 'Protected receiver credential directory: ' LOGGING_RECEIVER_DIR
    read -r -p 'Receiver inventory name: ' LOGGING_RECEIVER_NAME
    read -r -p 'Approved receiver DNS name: ' LOGGING_RECEIVER_DNS
@@ -63,6 +74,7 @@ native `community.crypto` primitives and exports only `public/`. [1]
    Inspect its native metadata there:
 
    ```bash
+   # Run from <prefix>-tier-0/
    read -r -e -p 'Reviewed public CSR path: ' LOGGING_CSR
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible localhost -i localhost, -c local -m community.crypto.openssl_csr_info -a "path=$LOGGING_CSR"
    ```
@@ -100,6 +112,7 @@ native `community.crypto` primitives and exports only `public/`. [1]
 3. On the signing controller, issue or renew the approved requests and refresh the CRL:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/logging-authority.yml -e @ansible/group_vars/logging_authority.yml
    ```
 

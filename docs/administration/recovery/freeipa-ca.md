@@ -38,6 +38,7 @@ CSR/key-generation path as a restoration step.
 2. Run as an authorized root operator on that server:
 
    ```bash
+   # Run on the selected FreeIPA server as the authorized root operator.
    ipa-backup
    ipactl status
    ```
@@ -63,6 +64,7 @@ CSR/key-generation path as a restoration step.
    prevents retries into a partially restored host; build another replacement after a failed attempt.
 
    ```bash
+   # Run on the selected FreeIPA server as the authorized root operator.
    set -euo pipefail
    umask 077
    read -r -p "Extracted full native FreeIPA backup directory: " IPA_FULL_BACKUP
@@ -93,6 +95,7 @@ CSR/key-generation path as a restoration step.
    recovery credential before testing the directory API:
 
    ```bash
+   # Run on the selected FreeIPA server as the authorized root operator.
    ipactl status
    ipa ping
    ```

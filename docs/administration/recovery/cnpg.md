@@ -92,6 +92,7 @@ Run from the independent workstation with PyYAML and `kubectl`. Review the conte
 prefix and incident time first. Set `RECOVERY_APPROVAL` to the exact `context/product` being approved:
 
 ```bash
+# Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
 set -euo pipefail
 read -r -p "Isolated recovery Kubernetes context: " RECOVERY_CONTEXT
 read -r -p "Product (netbox or keycloak): " PRODUCT
@@ -138,6 +139,7 @@ Use the context and product established by [target guarding and creation](#guard
 1. Read status/logs for the created recovery cluster:
 
    ```bash
+   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT" get cluster "$PRODUCT-db" -o yaml
    kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT" get pods
    ```

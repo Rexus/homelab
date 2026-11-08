@@ -28,10 +28,19 @@ directory, cluster or registry is required.
    the supplied input template:
 
    ```bash
+   # Run from the producer owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
    cp -n ansible/group_vars/logging_producers.yml.example ansible/group_vars/logging_producers.yml
    mkdir -p ansible/host_vars
    read -r -e -p 'Protected public request directory for this tier: ' LOGGING_REQUEST_DIR
    export LOGGING_REQUEST_DIR
+   ```
+
+   Edit these files using the fields below:
+
+   ```text
+   # Edit in the producer owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
+   ansible/group_vars/logging_producers.yml
+   # Edit: Producer streams, receiver identity and host-local TLS/queue inputs.
    ```
 
 2. Set `log_forwarder_target` and exact `log_forwarder_peer` in the local file.
@@ -72,6 +81,7 @@ directory, cluster or registry is required.
    and any SSH overrides in its host file.
 
    ```bash
+   # Run from the producer owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
    read -r -p 'Producer inventory host (for example log-1): ' LOGGING_HOST
    read -r -e -p 'Existing setup vars path (empty for unmanaged hosts): ' LOGGING_SETUP_VARS
    logging_inputs=(-i ansible/inventory/hosts.yml --limit "${LOGGING_HOST:?Select one host}"
@@ -92,6 +102,7 @@ directory, cluster or registry is required.
 4. Prepare host-local keys and fetch only public CSRs:
 
    ```bash
+   # Run from the producer owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook "${logging_inputs[@]}" \
      ansible/playbooks/deployment/logging-producers.yml -e log_forwarder_mode=prepare
    ```
@@ -113,6 +124,7 @@ directory, cluster or registry is required.
    then install:
 
    ```bash
+   # Run from the producer owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
    read -r -e -p 'Approved public certificate handoff directory: ' LOGGING_PUBLIC_DIR
    export LOGGING_PUBLIC_DIR
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook "${logging_inputs[@]}" \
@@ -126,6 +138,7 @@ directory, cluster or registry is required.
 3. On a journal producer, submit a uniquely numbered test event:
 
    ```bash
+   # Run on the selected journal producer.
    logger -t logging-acceptance 'logging-acceptance-event-001'
    sudo systemctl status 'log-forwarder-*.service'
    ```

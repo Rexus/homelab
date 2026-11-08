@@ -38,19 +38,26 @@ Inventory, selected hosts, access policy and acceptance records remain tier-owne
 
 Activate the accepted controller virtual environment from
 [local setup](../../../development/local-setup.md). From the generated tier's
-`ansible/` directory, prepare dependencies (default `homelab` prefix shown):
+`ansible/` directory, prepare the Python dependencies:
 
 ```bash
+# Run from the owning tier's ansible/ directory on the execution host:
+# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 python3 -m pip install -r requirements.txt
-ansible-galaxy collection install -r ../../homelab-shared/ansible/requirements.yml
+```
+
+Install the shared collections from the Shared repository:
+
+```bash
+# Run from <prefix>-shared/ on the execution host, with the same venv active.
+ansible-galaxy collection install -r ansible/requirements.yml
 ```
 
 The controller needs OpenSSH `ssh-keygen`, `ansible.utils` and `netaddr`; managed
 hosts get distro-native firewalld/Python bindings, OpenSSH, chrony and audit packages.
 On Debian, Ansible's package service-start guard prevents a new package from
 activating a firewall before its approved configuration is written. [1]
-Use `../../<prefix>-shared/` for another collection prefix or `../../shared/`
-when working from a tier's source directory in this upstream checkout.
+In the upstream kit, the same collection manifest is under `shared/ansible/requirements.yml`.
 
 <a id="select-the-profile"></a>
 
@@ -59,6 +66,8 @@ when working from a tier's source directory in this upstream checkout.
 From the generated tier's **`ansible/` directory**, create a private input file:
 
 ```bash
+# Run from the owning tier's ansible/ directory on the execution host:
+# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 install -d -m 0700 "$HOME/.config/homelab"
 cp -n group_vars/host_security.yml.example "$HOME/.config/homelab/host-security.yml"
 chmod 600 "$HOME/.config/homelab/host-security.yml"
@@ -121,6 +130,8 @@ an existing unrestricted VRRP allow into the new zone. [4]
 Use a Linux controller or WSL. From the generated tier's `ansible/` directory:
 
 ```bash
+# Run from the owning tier's ansible/ directory on the execution host:
+# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 ansible-playbook -i localhost, playbooks/deployment/host-security.yml -c local \
   -e "@$HOME/.config/homelab/host-security.yml" \
   -e host_security_hosts=localhost -e host_security_action=render \
@@ -136,6 +147,8 @@ Native syntax validation also runs during apply; `--check` is deliberately rejec
 for apply because it cannot establish a fresh authenticated connection or enforce a firewall.
 
 ```bash
+# Run from the owning tier's ansible/ directory on the execution host:
+# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 ansible-playbook playbooks/deployment/host-security.yml --limit pilot-1 -e "@$HOME/.config/homelab/host-security.yml" -e host_security_acknowledgement=apply-linux-host-v1
 ```
 

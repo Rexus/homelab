@@ -7,11 +7,7 @@ FreeIPA, the issuer and the identity provider already exist.
 **Prerequisites:** accepted [Identity](../stage-5-identity/README.md),
 service storage/backups and independent recovery inputs.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Run commands from the Tier 0 repository root.** From Tier 1 or Tier 2:
-
-```bash
-cd ../homelab-tier-0
-```
+**Execution context:** `<prefix>-tier-0/`.
 
 **Automation:** native installation supplies Vault, NetBox and Headlamp. Initialization/unseal and
 recovery acceptance remain operator tasks; see [coverage](../../reference/implementation-support.md#stage-coverage).
@@ -101,7 +97,16 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
 2. For 1a, create the local application inputs without overwriting Stage 5 settings:
 
    ```bash
+   # Run from <prefix>-tier-0/
    cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
+   ```
+
+   Edit these files using the fields below:
+
+   ```text
+   # Edit in <prefix>-tier-0/
+   ansible/group_vars/control_applications.yml
+   # Edit: Component selection, cluster context, TLS/SSO, database and backup-phase inputs.
    ```
 
 3. Edit `ansible/group_vars/control_applications.yml`:
@@ -118,12 +123,14 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
    [application Steps 1–2](procedures/control-applications.md#configure-inputs), then render:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml
    ```
 
    Review the private output, then install the sealed service:
 
    ```bash
+   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e control_applications_action=apply
    ```
 

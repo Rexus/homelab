@@ -55,6 +55,7 @@ or overwrite the old volume.
 Run from the **Tier 0 root**:
 
 ```bash
+# Run from <prefix>-tier-0/ on the protected execution host.
 read -r -p "Template catalog key (example: debian-build-1): " TEMPLATE_KEY
 bash scripts/proxmox-templates.sh replace-disk --template "$TEMPLATE_KEY" --env-file .env.local
 ```
@@ -81,6 +82,7 @@ Terraform** notice during that refresh is expected. [4]
 3. Review a fresh plan before resuming template consumption:
 
 ```bash
+# Run from <prefix>-tier-0/ on the protected execution host.
 bash scripts/proxmox-templates.sh plan --env-file .env.local
 ```
 
@@ -163,6 +165,7 @@ If an older recipe replaced the disk but left `scsi0` as `vm-*`, complete conver
 on the Proxmox host holding the stopped template, without importing another disk: [1]
 
 ```bash
+# Run on the selected Proxmox host as an authorized root operator.
 read -r -p "Stopped template VMID (example: 9101): " TEMPLATE_VMID
 qm template "$TEMPLATE_VMID" --disk scsi0
 ```

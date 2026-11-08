@@ -128,6 +128,7 @@ not this Tier 2 edge deployment.
 Initialize local inputs from Tier 2 before editing their example-derived live files:
 
 ```bash
+# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup edge
 ```
 
@@ -153,6 +154,7 @@ Configure host IPs, unused VIPs/VRRP IDs and approved application frontends/back
 For multiple environments, complete [environment isolation](../../../reference/repository-scripts.md#environment-isolation).
 
 ```bash
+# Run from <prefix>-tier-2/
 bash scripts/deploy.sh edge
 ```
 

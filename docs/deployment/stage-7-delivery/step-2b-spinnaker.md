@@ -112,7 +112,16 @@ interface are consumed, never Tier 0 control credentials. No NAS gateway is adde
 From the **Tier 1 root**, create the local settings without replacing existing inputs:
 
 ```bash
+# Run from <prefix>-tier-1/
 cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
+```
+
+Edit these files using the fields below:
+
+```text
+# Edit in <prefix>-tier-1/
+ansible/group_vars/delivery_platform.yml
+# Edit: Selected delivery controller, cluster context, SSO, storage and egress inputs.
 ```
 
 Edit `ansible/group_vars/delivery_platform.yml` using the table below. Set the
@@ -175,6 +184,7 @@ Request approved leaf material from the PKI custodian. With files in private
 `$SPINNAKER_TLS_DIR/keystore.password`, import them from an authorized Tier 1 worker:
 
 ```bash
+# Run from <prefix>-tier-1/
 : "${KUBECONFIG:?Set the Tier 1-only kubeconfig}"
 : "${TIER1_CONTEXT:?Set the exact Tier 1 context}"
 : "${SPINNAKER_TLS_DIR:?Set the private preissued leaf directory}"
@@ -283,6 +293,7 @@ files writable by the backup pod's UID/GID `999`, including under NFS root squas
 Existing repositories keep their original password and marker; skip initialization.
 
 ```bash
+# Run from <prefix>-tier-1/
 export RESTIC_REPOSITORY="${SPINNAKER_NAS_MOUNT:?Set the verified NAS mountpoint}/spinnaker"
 export RESTIC_PASSWORD_FILE=/absolute/private/spinnaker-restic.password
 mountpoint -q "$SPINNAKER_NAS_MOUNT" || exit 1
@@ -340,6 +351,7 @@ and scoped target contracts are all included. The output directory contains:
 Read the rendered checksum:
 
 ```bash
+# Run from <prefix>-tier-1/
 cat secrets/delivery-platform/spinnaker.sha256
 ```
 

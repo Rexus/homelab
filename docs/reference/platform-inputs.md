@@ -51,6 +51,13 @@ The logical class `local` is not the Proxmox datastore ID `local`. In Shared's
 (`images`) content on the eligible node. For a ZFS installation, the existing
 `proxmox_storage_classes` map can contain this `local` entry:
 
+Edit these files:
+
+```text
+# Edit in <prefix>-shared/
+config/platform.tfvars  # proxmox_storage_classes: actual VM-disk datastore per class
+```
+
 ```hcl
 local = {
   vm_disk = "local-zfs"
@@ -66,6 +73,13 @@ raw/qcow2 artifacts can stay on `local` with **Import** content enabled.
 
 Before the first Linux deployment, set **Shared's** `config/platform.tfvars` to an
 existing Proxmox node name, as shown under **Datacenter**:
+
+Edit these files:
+
+```text
+# Edit in <prefix>-shared/
+config/platform.tfvars  # default_platform_node_name: initial destination node
+```
 
 ```hcl
 default_platform_node_name = "pve01"
@@ -138,6 +152,13 @@ not populate another tier. Reusable templates keep their CloudInit accounts/keys
 Keep both public and private key files outside the repositories, normally under
 the execution account's `.ssh/`. In the ignored tier-local `.env.local`, set the
 public-key **path**, not its contents:
+
+Edit these files:
+
+```text
+# Edit in the consuming <prefix>-tier-N/ repository
+.env.local  # TF_VAR_ssh_public_key_files: existing public-key file paths on the execution host
+```
 
 ```dotenv
 TF_VAR_ssh_public_key_files='["/home/operator/.ssh/id_ed25519.pub"]'

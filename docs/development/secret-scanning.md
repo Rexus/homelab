@@ -9,10 +9,11 @@ Detection is defense in depth, not a proof that arbitrary passwords or private d
 Install an approved Gitleaks CLI from verified release artifacts. Run from the owning tier repository:
 
 ```bash
-bash ../homelab-shared/scripts/check-secrets.sh staged
+# Run from the owning <prefix>-tier-N/ repository
+bash '../<prefix>-shared/scripts/check-secrets.sh' staged
 ```
 
-Substitute the generated prefix. `history` scans all locally available Git history;
+Keep the working directory in the repository being scanned. `history` scans all locally available Git history;
 `artifacts /absolute/path` scans the selected directory without uploading results.
 The helper fails if the tool is missing and always redacts findings from output.
 

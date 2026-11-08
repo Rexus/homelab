@@ -59,6 +59,7 @@ collection root. Hosted source control is optional for initial deployment;
    without Git history, initialize it and inspect ignored paths:
 
    ```bash
+   # Run from the owning generated repository root
    git init -b main
    git status --short --ignored
    ```
@@ -91,14 +92,17 @@ bootstrap/recovery custody under the [secret strategy](../administration/secret-
 From the **upstream kit root**, after updating its source, preview the same collection:
 
 ```bash
-python3 scripts/tier-repos/generate.py --prefix HomeLab --refresh --dry-run
+# Run from upstream kit root
+read -r -p 'Original project prefix: ' PROJECT_PREFIX
+python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh --dry-run
 ```
 
-Reuse the original `--prefix` and `--root` on both commands if customized. Review
+Reuse the original `--root` on both commands if customized. Keep the same prefix. Review
 the preview, preserve private changes/backups, then apply that refresh:
 
 ```bash
-python3 scripts/tier-repos/generate.py --prefix HomeLab --refresh
+# Run from upstream kit root
+python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh
 ```
 
 Follow the [refresh contract](generated-repositories.md#refresh-and-local-ownership): unchanged files can update.
@@ -114,6 +118,7 @@ After accepting hosted source control, create an empty **private** remote per re
 From each generated repo with reviewed local commits and no `origin` yet:
 
 ```bash
+# Run from the owning generated repository root
 read -r -p 'Private repository SSH or HTTPS URL without embedded credentials: ' PRIVATE_REMOTE_URL
 git remote add origin "$PRIVATE_REMOTE_URL"
 git push -u origin main
@@ -131,6 +136,7 @@ Infrastructure runners require the explicit Tier 0 trust contract, not general b
 ## Step 5: Review before publishing
 
 ```bash
+# Run from the owning generated repository root
 git status --short --ignored
 git diff --cached --check
 git diff --cached --stat

@@ -37,6 +37,7 @@ independent console and a known rollback configuration.
 3. Run the supplied host recipe:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    export ANSIBLE_CONFIG="$PWD/ansible/ansible.cfg"
    read -r -p "Proxmox host SSH user (example: root): " PVE_SSH_USER
    ansible-playbook -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e "ansible_user=$PVE_SSH_USER" ansible/playbooks/proxmox-hosts.yml
@@ -59,6 +60,7 @@ receives download requests, not Tier 0 administrative authority.
 3. On a Proxmox host, inspect the cluster-wide setting:
 
    ```bash
+   # Run on the selected Proxmox host as an authorized root operator.
    grep '^http_proxy:' /etc/pve/datacenter.cfg
    ```
 
@@ -74,6 +76,7 @@ receives download requests, not Tier 0 administrative authority.
 1. On the **Proxmox host**, select the accepted endpoint and test it explicitly:
 
    ```bash
+   # Run on the selected Proxmox host as an authorized root operator.
    read -r -p "Approved proxy URL (example: http://cache.corp.example.com:3128): " CACHE_PROXY_URL
    read -r -p "Approved small repository metadata URL: " SOURCE_URL
    curl --fail --noproxy '' --proxy "$CACHE_PROXY_URL" --output /dev/null "$SOURCE_URL"
@@ -85,6 +88,7 @@ receives download requests, not Tier 0 administrative authority.
    accepted literal endpoint. The shell expands the value in this block:
 
    ```bash
+   # Run on the selected Proxmox host as an authorized root operator.
    if [ -f /etc/apt/apt.conf.d/76pveproxy ]; then
      cp -a /etc/apt/apt.conf.d/76pveproxy /etc/apt/apt.conf.d/76pveproxy.before-change
    fi
@@ -120,6 +124,7 @@ see [transport limits](../../deployment/stage-1-software-intake/proxy-cache.md#t
 For a manual image fetch in the current download shell:
 
 ```bash
+# Run on the authorized acquisition host in its artifact download directory.
 read -r -p "Approved proxy URL: " CACHE_PROXY_URL
 read -r -p "Approved artifact URL: " IMAGE_URL
 no_proxy='' https_proxy="$CACHE_PROXY_URL" http_proxy="$CACHE_PROXY_URL" wget "$IMAGE_URL"

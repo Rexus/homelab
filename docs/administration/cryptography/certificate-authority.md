@@ -28,6 +28,7 @@ copies and the original package/configuration/schema binding.
    controller credentials, run the read-only service/configuration/API checks:
 
    ```bash
+   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 
@@ -36,6 +37,7 @@ copies and the original package/configuration/schema binding.
 2. On the issuer, inspect scheduled CRL publication:
 
    ```bash
+   # Run on the existing issuer host.
    systemctl status openxpki-crl.timer --no-pager
    ```
 
@@ -56,6 +58,7 @@ issuance. Use the qualified consumer procedure for those different profiles.
 1. On the authorized service/recovery host, inspect the current **public** leaf: [2]
 
    ```bash
+   # Run on the authorized service/certificate recovery host.
    read -r -e -p 'Current service certificate PEM path: ' CURRENT_LEAF
    openssl x509 -in "$CURRENT_LEAF" -noout -subject -issuer -serial -dates -ext subjectAltName
    ```
@@ -64,6 +67,7 @@ issuance. Use the qualified consumer procedure for those different profiles.
    directory outside Git. This command prompts for key encryption; it prints no private key. [3]
 
    ```bash
+   # Run on the authorized service/certificate recovery host.
    umask 077
    read -r -e -p 'New absolute protected request directory: ' LEAF_WORK
    read -r -p 'Approved service DNS name: ' SERVICE_DNS
@@ -79,6 +83,7 @@ issuance. Use the qualified consumer procedure for those different profiles.
 4. Verify the returned chain, SAN, validity and CSR/certificate public-key match: [2][5]
 
    ```bash
+   # Run on the authorized service/certificate recovery host.
    read -r -e -p 'Returned service certificate PEM path: ' NEW_LEAF
    read -r -e -p 'Approved root certificate PEM path: ' ROOT_CERT
    read -r -e -p 'Approved issuing chain PEM path: ' ISSUER_CHAIN
@@ -105,6 +110,7 @@ suspect credential. A file-copy or playbook success does not verify client trust
 2. On the issuer, as the authorized custodian, request native CRL publication: [1]
 
    ```bash
+   # Run on the issuer host as the authorized CA custodian.
    sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem workflow create --realm infrastructure --type crl_issuance
    ```
 
@@ -114,6 +120,7 @@ suspect credential. A file-copy or playbook success does not verify client trust
    independently approved issuer certificate: [4]
 
    ```bash
+   # Run on an authorized CRL consumer.
    read -r -p 'Configured issuer CRL URL: ' ISSUER_CRL_URL
    read -r -e -p 'Approved issuer certificate PEM path: ' ISSUER_CERT
    CRL_CHECK_DIR="$(mktemp -d)"

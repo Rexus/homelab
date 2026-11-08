@@ -70,6 +70,7 @@ namespace bindings and Headlamp registration. [2][4]
    change backend/state paths or apply the bootstrap plan in parallel.
 
 ```bash
+# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 bash scripts/kubernetes-cluster.sh plan
 bash scripts/kubernetes-cluster.sh export-plan
 ```
@@ -123,6 +124,7 @@ control_applications_sso_maintenance_accepted: false
 From the Tier 0 checkout, prepare its usual local public group vars, then render:
 
 ```bash
+# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/control-applications.yml \
   -e @/absolute/private/oidc-inputs.yml \
@@ -140,6 +142,7 @@ After reviewing maintenance, quorum, application disruption budgets, current
 etcd snapshot/recovery custody and direct certificate access, explicitly apply:
 
 ```bash
+# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/control-applications.yml \
   -e @/absolute/private/oidc-inputs.yml \
@@ -190,6 +193,7 @@ hide that difference. [9]
    unreviewed plan stops the state commit. Exit status alone is not sufficient.
 
 ```bash
+# Run from <prefix>-tier-0/
 umask 077
 talosctl --talosconfig /absolute/private/talosconfig --context selected-cluster \
   --endpoints NODE_IP --nodes NODE_IP apply-config --dry-run --mode auto \
@@ -201,7 +205,15 @@ talosctl --talosconfig /absolute/private/talosconfig --context selected-cluster 
    same helper, explicitly serializing provider operations:
 
 ```bash
+# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 TF_CLI_ARGS_apply=-parallelism=1 bash scripts/kubernetes-cluster.sh apply
+```
+
+5. Verify the completed state commit with a fresh plan and export. This is the
+   required post-commit no-op check, not another installation preview:
+
+```bash
+# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 bash scripts/kubernetes-cluster.sh plan
 bash scripts/kubernetes-cluster.sh export-plan
 ```
@@ -242,6 +254,7 @@ identity or OIDC plugin, against the rebooted control plane and then the normal
 endpoint. For example, using approved private IP/SAN values:
 
 ```bash
+# Run from <prefix>-tier-0/
 kubectl --kubeconfig /absolute/private/recovery.kubeconfig \
   --context retained-x509-admin-context --server https://CONTROL_PLANE_IP:6443 \
   --request-timeout=15s get namespaces
