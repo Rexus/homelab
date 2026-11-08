@@ -49,17 +49,18 @@ overview does not accumulate every possible optional box.
 
 | Stable platform function | Local choices already represented by the design | Design owner |
 | --- | --- | --- |
-| VM and cluster execution | Single Proxmox host or selected HA arrangement; VM or Kubernetes service placement; validated node OS/lifecycle | [Compute](compute/README.md), [runtime](compute/runtime.md) |
+| VM and cluster execution | Single Proxmox host or selected HA arrangement; VM or Kubernetes service placement; validated node OS/lifecycle | [Hosting and orchestration](hosting/README.md), [runtime](hosting/runtime.md) |
 | Purpose-based connectivity | VLAN-aware bridge or SDN VNet; selected host/storage fabrics | [Networking](networking/README.md) |
+| Persistent data | Qualified block/file/object interfaces; application-native data services; supported file or object backup targets | [Data and storage](data/README.md), [backup contract](operations/backup-recovery.md) |
 | Directory and federation | New dedicated directory pair or existing approved authority; explicit client integrations | [Identity](identity/README.md) |
 | Certificate key protection | Software, single USB, replicated USB gateways or network HSM | [Custody designs](cryptography/hsm-selection.md) |
 | Secret delivery | VM, cluster or existing secret service; separately selected Shamir, Transit or supported native PKCS#11 seal | [Cryptography](cryptography/README.md), [seals](cryptography/vault-seal.md) |
-| Approved software supply | Approved egress, cache, mirror or offline content; shared or dedicated supply | [Delivery](delivery/README.md) |
-| Artifact authority | Integrated registry, independent registry, or independent registry with distribution acceleration | [Artifacts](delivery/artifact-supply.md) |
-| Application delivery | Tier 0 Flux; unselected Tier 1 Argo CD or Spinnaker; scoped Tier 2 delivery | [Controller patterns](delivery/controllers.md) |
+| Approved software supply | Approved egress, cache, mirror or offline content; shared or dedicated supply | [Software lifecycle](software/README.md) |
+| Artifact authority | Integrated registry, independent registry, or independent registry with distribution acceleration | [Artifacts](software/artifact-supply.md) |
+| Application delivery | Tier 0 Flux; unselected Tier 1 Argo CD or Spinnaker; scoped Tier 2 delivery | [Controller patterns](software/controllers.md) |
 | Operational visibility | Independent Tier 0 security logging/critical monitoring; Tier 1 Kubernetes Observability with separate workloads; dedicated VMs or existing service as alternatives | [Telemetry](operations/telemetry.md), [protected evidence](operations/security-logging.md) |
 | Evidence retention | NAS snapshots and independent backups with trusted administrators; storage-enforced retention locks; combined local/locked copies | [Archive and custody choices](operations/log-retention.md) |
-| Resource changes | Reviewed protected operator execution or a separately implemented bounded request service | [Infrastructure control](compute/provisioning.md) |
+| Resource changes | Reviewed protected operator execution or a separately implemented bounded request service | [Infrastructure control](hosting/provisioning.md) |
 
 Selection is per component and decision, not one global option letter. Root-key
 custody, online signing-key custody and Vault seal protection are independent.
@@ -137,11 +138,11 @@ trust, data ownership or recovery dependence.
 
 Each domain's **Realization** section links to the deployment stages that build
 its result. Detailed options link to the applicable adjacent procedure. The
-[reference mapping](reference-platform.md#design-to-deployment) covers all six
-capabilities without turning the architecture into a chronological walkthrough.
+[reference mapping](reference-platform.md#design-to-deployment) connects these
+functions to capability stages without turning architecture into a walkthrough.
 
-For example, identity spans the directory work in the identity/runtime stage
-and federation work in the control-services stage. Its architecture shows the
+For example, the Identity stage establishes directory authority and federation;
+later service stages integrate their own access policies. Its architecture shows the
 directory, IdP and authorization boundaries together. Cryptography shows the
 complete root/issuer/provider arrangement even when a hardware deployment branch
 is selected partway through a trust walkthrough.

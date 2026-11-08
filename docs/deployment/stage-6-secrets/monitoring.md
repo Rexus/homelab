@@ -21,24 +21,32 @@ history, local health rules and independent notifications. Redfish jobs and a lo
 API exporter keep management credentials in Tier 0. Optional metric export is strictly allowlisted.
 It creates no VM and does not install agents on hypervisors.
 
-Prepare ignored local copies of the
-[settings](../../../tier-0/ansible/group_vars/infrastructure_monitoring.yml.example) and
-[private inputs](../../../tier-0/ansible/group_vars/infrastructure_monitoring_secrets.yml.example).
-Run from the Tier 0 `ansible/` directory:
-
-```bash
-ansible-playbook playbooks/deployment/infrastructure-monitoring.yml \
-  -e @group_vars/infrastructure_monitoring.yml \
-  -e @group_vars/infrastructure_monitoring_secrets.yml
-```
-
-The default `render` action writes private native configurations on the controller and
-does not connect to the target. Add the existing host to the `infrastructure_monitoring`
-inventory group. Explicit `-e infrastructure_monitoring_action=apply` installs the services;
-it requires independently verified placement and read-only polling identities.
+Run all commands below from the **Tier 0 root**, not its `ansible/` subdirectory.
 Protected `log-1` and optional `log-2` are rejected as monitoring targets by this recipe.
 
 ## Step 1: Prepare the monitoring runtime
+
+Create local settings and private inputs without replacing existing files:
+
+```bash
+umask 077
+cp -n ansible/group_vars/infrastructure_monitoring.yml.example ansible/group_vars/infrastructure_monitoring.yml
+cp -n ansible/group_vars/infrastructure_monitoring_secrets.yml.example ansible/group_vars/infrastructure_monitoring_secrets.yml
+```
+
+| File | Edit before installation |
+| --- | --- |
+| `ansible/inventory/hosts.yml` | Add the approved existing host to `infrastructure_monitoring`; preserve other groups |
+| `ansible/group_vars/infrastructure_monitoring.yml` | Actual listen address/allowed operator sources, pinned packages, Proxmox/Redfish targets and tested health rules |
+| Same settings file | Set `infrastructure_monitoring_export_endpoint: ""` until Stage 8's private metric intake exists |
+| `ansible/group_vars/infrastructure_monitoring_secrets.yml` | Target credentials, native TLS files, notification/watchdog inputs and approved exporter image |
+
+Set the outside-cluster and read-only-credential acceptance flags only after verifying
+those properties. Encrypt the filled private input file:
+
+```bash
+ansible-vault encrypt ansible/group_vars/infrastructure_monitoring_secrets.yml
+```
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -129,6 +137,15 @@ The existing receiver and cluster recipes do not install these services.
 
 **Result:** foundation diagnostics and critical history are usable without Tier 1 search.
 
+Render the complete selected configuration before changing the host:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass
+```
+
+Rendering is controller-local; it does not install the pictured services. Review the
+private output and complete notification inputs in Step 3 before apply.
+
 ## Step 3: Enable and verify independent alerts
 
 ```mermaid
@@ -178,6 +195,15 @@ through the external service to administrators outside that service boundary.
    and loss of the monitoring host. The external heartbeat detects failure of the local detector.
 3. Repeat required checks without Tier 1, hosted source control, normal SSO or secret services.
    Record delivery, silence/acknowledgement authority, recovery and remaining blind spots.
+
+After preparing notification/watchdog inputs, install the complete monitoring configuration:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass -e infrastructure_monitoring_action=apply
+```
+
+Then run the failure/delivery checks above. Apply changes the existing host immediately;
+it is not a Terraform plan and has no additional confirmation prompt.
 
 **Result:** required foundation failures produce independently delivered alerts.
 

@@ -9,7 +9,7 @@ Run repository scripts from this root; Tier 1 consumers keep their own workload 
 **Change:** Use image-based hosts while Tier 0 retains template ownership.
 **Return:** [Step 3](README.md#step-3-authorize-ci-through-vault) for secret integration before infrastructure handover.
 
-**Design:** [guest and image lifecycle variants](../../architecture/compute/README.md).
+**Design:** [guest and image lifecycle variants](../../architecture/hosting/README.md).
 
 ## Table of contents
 
@@ -151,7 +151,7 @@ CI/image publication is an existing prerequisite or project integration, not ins
 
 Figure: this workflow uses GitLab for the build and initial registry. Harbor is
 an optional promotion destination, not a required next stage. Other approved
-sources follow the selected [artifact-supply design](../../architecture/delivery/artifact-supply.md).
+sources follow the selected [artifact-supply design](../../architecture/software/artifact-supply.md).
 Dashed lines mark approval boundaries, not implicit live access. Custody uses
 offline transfer; host updates remain separate. The [Podman runner procedure](step-2b-podman-runner.md)
 supplies the first build host.
@@ -194,13 +194,8 @@ including a unique builder VMID and IP. Keep the builder in its original state t
 11. Point Terraform deployments at the bootc template only after the update and
     rollback workflow has been tested.
 
-Plan the builder first:
-
-```bash
-bash scripts/deploy.sh immutable-template --env test --plan-only
-```
-
-Prepare the builder VM:
+Prepare the builder VM; review Terraform's inline plan and enter `yes` only for
+the intended changes (`--plan-only` is an optional preview, `--auto-approve` is for approved CI):
 
 ```bash
 bash scripts/deploy.sh immutable-template --env test
@@ -276,7 +271,7 @@ keeps the previous deployment available.[4]
 - [Development platform path](step-1b-source-control-vm.md)
 - [Podman image runner guide](step-2b-podman-runner.md)
 - [Enterprise Linux template](../foundation/proxmox/templates.md)
-- [Proxmox planning guidelines](../../reference/proxmox-conventions.md)
+- [Proxmox planning guidelines](../../conventions/proxmox-conventions.md)
 - [Security principles](../../architecture/principles.md)
 
 ## References

@@ -31,7 +31,7 @@ class DocumentationMigration(TierRepositoryTestCase):
             self.assertFalse((UPSTREAM / "docs" / old).is_file(), old)
             self.assertFalse((reference / old).exists(), old)
             self.assertTrue((reference / new).is_file(), new)
-        for domain in ("networking", "compute", "identity", "cryptography", "delivery", "operations"):
+        for domain in ("networking", "hosting", "data", "identity", "cryptography", "software", "operations"):
             self.assertTrue((reference / "architecture" / domain / "README.md").is_file())
         for repo in self.root.iterdir():
             self.assertFalse((repo / "docs/owned").exists())
@@ -91,7 +91,11 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "deployment/foundation/procedures/talos-template.md",
                     "deployment/foundation/procedures/vm-template.md",
                     "deployment/foundation/procedures/unifi-zones.md",
-                    "deployment/foundation/procedures/object-storage.md"]
+                    "deployment/foundation/procedures/object-storage.md",
+                    "architecture/compute/README.md", "architecture/compute/runtime.md",
+                    "architecture/delivery/README.md", "architecture/delivery/controllers.md",
+                    "architecture/hosting/vmid-convention.md", "reference/proxmox-conventions.md",
+                    "reference/network-plan.md"]
         for old in examples:
             relative = f"docs/auto-docs/{old}"
             path = repo / relative
@@ -122,7 +126,7 @@ class DocumentationMigration(TierRepositoryTestCase):
         progress_pointer = repo / "docs/auto-docs" / examples[4]
         self.assertIn("(../../deployment/readiness.md)", progress_pointer.read_text())
         self.assertIn("(../README.md)", (repo / "docs/auto-docs" / examples[5]).read_text())
-        self.assertIn("(../../compute/README.md)", (repo / "docs/auto-docs" / examples[6]).read_text())
+        self.assertIn("(../../hosting/README.md)", (repo / "docs/auto-docs" / examples[6]).read_text())
         for old, target in ((examples[7], "foundation/README.md"),
                             (examples[8], "stage-3-trust/step-1b-usb-hsm.md")):
             pointer_text = (repo / "docs/auto-docs" / old).read_text()

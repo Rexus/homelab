@@ -11,54 +11,21 @@ The source fixtures use CNPG chart `0.26.0` / operator `1.27.0` and PostgreSQL i
 operator versions remain explicit inputs; CNPG 1.27 is outside current community support. Qualify current
 supported pins separately. The file job deliberately supports PostgreSQL 17 and no additional tablespaces.
 
-## Contents
+<a id="contents"></a>
 
-- [Storage and credentials](#storage-and-credentials)
-- [Selected realization](#selected-realization)
-- [Prepare the database](#prepare-the-database)
-- [Commission the NAS](#commission-the-nas)
-- [Enable and operate](#enable-and-operate)
-- [Recovery limits and mode changes](#recovery-limits-and-mode-changes)
+## Operator tasks
+
+- [How are storage and credential fields selected?](#storage-and-credentials)
+- [What runs in the selected backup path?](#selected-realization)
+- [How to prepare the database before enabling backups?](#prepare-the-database)
+- [How to commission the backup-only NAS area?](#commission-the-nas)
+- [How to enable, run and check scheduled backups?](#enable-and-operate)
+- [When to stop, restore or change backup mode?](#recovery-limits-and-mode-changes)
 - [References](#references)
 
-## Storage and credentials
+<a id="selected-realization"></a>
 
-| Input | Contract |
-| --- | --- |
-| `control_applications_database_storage_class` | Explicit commissioned Proxmox/Ceph RBD class for live Keycloak/NetBox; no NAS class |
-| `observability_database_storage_class` | Explicit commissioned Proxmox/Ceph RBD class for live Grafana |
-| `control_applications_storage_class` | Other persistent services such as Vault/cache; retain qualified block storage |
-| `control_applications_netbox_media_storage_class` | Separate commissioned RWX media class, such as CephFS |
-| `*_backup_mode` | `files` in fresh examples; absent input defaults to legacy `object` with Barman/WAL |
-| `*_backup_files_phase` | `prepare` creates only database resources; `backup` installs consumers and backup jobs |
-| `*_database_storage_accepted` | False until actual block-storage durability, permissions and recovery are qualified |
-| `*_backup_files_accepted` | False until per-database NAS privacy, permissions, identity, capacity and custody are commissioned |
-| `control_applications_backup_files` | Map keyed by `keycloak` / `netbox` |
-| `observability_backup_files` | Single Grafana destination map |
-
-Empty database/media class overrides fall back to the old common class for legacy object-mode inputs.
-Fresh files-mode deployments require explicit database classes; NetBox also requires a distinct media class.
-The runtime gate checks the database provisioner and the backup PV's exact NFS CSI volume handle.
-Neither class names nor CSI metadata alone establish physical backing, isolation or durability.
-
-The backup certificate's CN is `<cluster>-file-backup`, with `clientAuth` usage, signed by that database's
-client CA. Its Secret contains `tls.crt`, `tls.key` and `ca.crt`; the latter trusts the **server** CA.
-The database user is `streaming_replica`; `cnpg_streaming_replica` is the certificate-name mapping,
-not a role. CNPG 1.27's fixed rules permit certificate-authenticated replication and `postgres` database
-connections. Jobs use `sslmode=verify-full`; the DB server leaf must cover the `<cluster>-rw` DNS name. [3][4]
-
-Tier 0 uses existing `*-db-ca` / `*-db-replication` and adds `*-db-file-backup`. Grafana files mode uses
-external `grafana-db-client-ca`, `grafana-db-replication` and `grafana-db-file-backup`; ordinary object
-mode retains its existing certificate ownership. Rotate leaves through their owner; Jobs mount current
-Secrets read-only with no Kubernetes API token. Never distribute client CA private keys to Jobs.
-
-Commission pod-to-DNS and pod-to-DB TCP 5432 access. The conditional observability policy permits the
-labelled backup pod to reach DNS and Grafana DB only; existing same-namespace DB ingress admits it.
-Tier 0 adds no new database-selecting policy. **NFS CSI node/controller-to-NAS access is an underlay
-prerequisite**, typically TCP 2049 for the commissioned NFSv4 export, not pod TLS or an object endpoint.
-Validate actual routed CIDRs, root-squash behavior and CNI enforcement locally.
-
-## Selected realization
+## What runs in the selected backup path?
 
 Scope: Keycloak's files-mode backup after database-only preparation. NetBox and
 Grafana reuse the same code with their owning tier's inputs; they are not extra
@@ -100,14 +67,24 @@ The configured database has three instances; this is not an HA acceptance claim.
 The existing NAS claim is mounted only by backup jobs, never by database pods.
 The initial Job suffix is a code-derived revision, not an operator-assigned host name.
 
-## Prepare the database
+<a id="prepare-the-database"></a>
 
-Work from the owning generated Tier 0 or Tier 1 repository. Fill the existing private product inputs
-and DB certificate/credential Secrets first. Select `files`, `prepare`, the explicit database block
-class and `*_database_storage_accepted: true`. Leave NAS system identifiers/markers empty and backup
-acceptance false. No application chart, file Job or NAS marker is created in this phase.
+## How to prepare the database before enabling backups?
 
-Tier 0, from its repository root:
+Work from the owning generated Tier 0 or Tier 1 root. Complete the product's configuration/TLS
+prerequisites first. Preparation creates only DB resources, not application charts, file Jobs or NAS markers.
+
+1. Edit the existing local product inputs before running the installer:
+
+   | Owner | File | Preparation settings |
+   | --- | --- | --- |
+   | Tier 0 / Keycloak and NetBox | `ansible/group_vars/control_applications.yml` | `control_applications_backup_mode: files`, `control_applications_backup_files_phase: prepare`, qualified database block class and accepted storage |
+   | Tier 1 / Grafana | `ansible/group_vars/observability_platform.yml` | `observability_backup_mode: files`, `observability_backup_files_phase: prepare`, qualified database block class and accepted storage |
+
+2. Supply matching private credentials through `control_applications_secrets.yml` (Tier 0)
+   or `observability_platform_secrets.yml` (Tier 1). Keep NAS identifiers/markers empty and
+   backup acceptance false until commissioning. Set storage acceptance true only after qualification.
+3. From the owning tier root, run **only the matching command**. Tier 0:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
@@ -116,19 +93,26 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   -e control_applications_action=apply
 ```
 
-Tier 1 uses `ansible/playbooks/deployment/observability-platform.yml`, the corresponding
-`observability_platform*.yml` input files and `-e observability_action=apply`.
+Tier 1:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml -e observability_action=apply
+```
 Render first with `action=render` to inspect `*-database-prepare.yml`. All ordinary product
 configuration prerequisites still apply; render outputs contain private configuration.
 
-After Ready, preparation reports the real `status.systemID`. Independently confirm it:
+4. After Ready, independently confirm the reported database identity:
 
 ```bash
-kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" get cluster "$CLUSTER" \
-  -o jsonpath='{.status.systemID}{"\n"}'
+read -r -p "Source Kubernetes context: " SOURCE_CONTEXT
+read -r -p "Product namespace (keycloak, netbox or selected observability namespace): " PRODUCT_NAMESPACE
+read -r -p "CNPG cluster (keycloak-db, netbox-db or grafana-db): " CLUSTER
+kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" get cluster "$CLUSTER" -o jsonpath='{.status.systemID}{"\n"}'
 ```
 
-## Commission the NAS
+<a id="commission-the-nas"></a>
+
+## How to commission the backup-only NAS area?
 
 The custodian creates a private, retained, **backup-only** NFS CSI PV/PVC in each product namespace.
 Use separate exports/credentials or enforce equivalent server-side per-database isolation; a claim name
@@ -160,6 +144,11 @@ Source IDs are `tier-0/keycloak/keycloak-db`, `tier-0/netbox/netbox-db` and
 `tier-1/<observability_namespace>/grafana-db`. For example, with reviewed custodian variables:
 
 ```bash
+set -euo pipefail
+read -r -p "NEW empty authorized NAS directory: " NAS_DIRECTORY
+read -r -p "Recorded source ID (for example tier-0/keycloak/keycloak-db): " SOURCE_ID
+read -r -p "Actual source database system identifier: " SYSTEM_IDENTIFIER
+read -r -p "Custodian-generated destination marker: " MARKER
 test -d "$NAS_DIRECTORY" && test ! -L "$NAS_DIRECTORY"
 test -z "$(find "$NAS_DIRECTORY" -mindepth 1 -maxdepth 1 -print -quit)"
 umask 077
@@ -170,19 +159,42 @@ mkdir "$NAS_DIRECTORY/pending" "$NAS_DIRECTORY/completed"
 
 Never replace a mismatching marker to make a Job pass. Diagnose the source/PV/custody mismatch first.
 
-## Enable and operate
+<a id="enable-and-operate"></a>
 
-Set `*_backup_files_phase: backup` and `*_backup_files_accepted: true`, then render/apply the same
-product workflow. Shared renders `<cluster>-files.yml`: ConfigMap/CronJob `<cluster>-files` and initial
-Job `<cluster>-files-first-<revision>`. The revision hashes the native Job spec, backup script and
-destination handle. Apply waits for that configuration's Job; image, identity or script changes create
-a new verification Job without pruning older Jobs. Identical convergence reuses that revision's result;
-use a manually named Job for a fresh run without configuration changes.
+## How to enable, run and check scheduled backups?
+
+On the owning execution host, select the source cluster explicitly:
 
 ```bash
-kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" create job \
-  "$CLUSTER-files-$(date -u +%Y%m%d%H%M%S)" --from="cronjob/$CLUSTER-files"
+read -r -e -p "Source kubeconfig path: " SOURCE_KUBECONFIG
+export KUBECONFIG="$SOURCE_KUBECONFIG"
+read -r -p "Source Kubernetes context: " SOURCE_CONTEXT
+read -r -p "Product namespace: " PRODUCT_NAMESPACE
+read -r -p "Database cluster name (example: keycloak-db): " CLUSTER
+```
+
+1. In the same owning product file, set `*_backup_files_phase: backup` and
+   `*_backup_files_accepted: true` after the NAS contract is commissioned.
+2. Render/apply that product workflow. Expect ConfigMap/CronJob `<cluster>-files` and initial
+   Job `<cluster>-files-first-<revision>`; apply waits for its verified success.
+3. For another run without configuration changes, use a new manually named Job below.
+   Identical convergence reuses the original revision's success; it does not take a new backup.
+
+The revision includes the Job spec, backup script and destination handle. Changed configurations
+create a new verification Job without pruning earlier Jobs or backup sets.
+
+The schedule is the destination map's five-field UTC `schedule`. Edit that field in the
+owning product input and reapply the same workflow to change it. Before an immediate run,
+check that no backup of this database is active; CronJob `Forbid` does not serialize
+independently created manual Jobs. [7]
+
+```bash
+kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" get cronjob "$CLUSTER-files" -o yaml
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" get jobs
+BACKUP_JOB="$CLUSTER-files-$(date -u +%Y%m%d%H%M%S)"
+kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" create job "$BACKUP_JOB" --from="cronjob/$CLUSTER-files"
+kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" wait "job/$BACKUP_JOB" --for=condition=Complete --timeout=65m
+kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" logs "job/$BACKUP_JOB"
 ```
 
 Each attempt checks the exact persistent marker and source system identifier before streaming a full
@@ -199,7 +211,80 @@ so a stalled copy cannot exhaust production storage unnoticed. [1]
 The initial Job proves transport and
 verification only; qualify [clean-target CNPG recovery](../recovery/cnpg-files.md) before acceptance.
 
-## Recovery limits and mode changes
+### How to list completed recovery points or pause the schedule?
+
+On the custodian's authorized NAS mount, list only completed sets; pending sets are not accepted backups:
+
+```bash
+read -r -e -p "Authorized NAS backup directory: " NAS_DIRECTORY
+find "$NAS_DIRECTORY/completed" -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
+read -r -p "Recorded completed set ID: " BACKUP_SET
+cat "$NAS_DIRECTORY/completed/$BACKUP_SET/completed-at"
+cat "$NAS_DIRECTORY/completed/$BACKUP_SET/image"
+```
+
+Use the completed ID, exact image and source identity in [clean-target recovery](../recovery/cnpg-files.md).
+Pause **new scheduled** work during fault investigation:
+
+```bash
+kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" patch cronjob "$CLUSTER-files" --type=merge -p '{"spec":{"suspend":true}}'
+```
+
+Suspending does not terminate an active Job. Preserve its logs/pending files and monitor source WAL
+capacity. After correction, review missed-run behavior before resuming:
+
+```bash
+kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" patch cronjob "$CLUSTER-files" --type=merge -p '{"spec":{"suspend":false}}'
+```
+
+Do not change a marker or delete failed sets to force acceptance. [7]
+
+**Retention:** Job history keeps two successful/two failed scheduler records, not two database backups.
+The role prunes no NAS sets. The storage custodian alone retires approved sets/failed staging after
+independent-copy, recovery-point and hold checks; storage encryption/offsite custody remain separate.
+
+<a id="storage-and-credentials"></a>
+
+## How are storage and credential fields selected?
+
+| Input | Contract |
+| --- | --- |
+| `control_applications_database_storage_class` | Explicit commissioned Proxmox/Ceph RBD class for live Keycloak/NetBox; no NAS class |
+| `observability_database_storage_class` | Explicit commissioned Proxmox/Ceph RBD class for live Grafana |
+| `control_applications_storage_class` | Other persistent services such as Vault/cache; retain qualified block storage |
+| `control_applications_netbox_media_storage_class` | Separate commissioned RWX media class, such as CephFS |
+| `*_backup_mode` | `files` in fresh examples; absent input defaults to legacy `object` with Barman/WAL |
+| `*_backup_files_phase` | `prepare` creates only database resources; `backup` installs consumers and backup jobs |
+| `*_database_storage_accepted` | False until actual block-storage durability, permissions and recovery are qualified |
+| `*_backup_files_accepted` | False until per-database NAS privacy, permissions, identity, capacity and custody are commissioned |
+| `control_applications_backup_files` | Map keyed by `keycloak` / `netbox` |
+| `observability_backup_files` | Single Grafana destination map |
+
+Empty database/media class overrides fall back to the old common class for legacy object-mode inputs.
+Fresh files-mode deployments require explicit database classes; NetBox also requires a distinct media class.
+The runtime gate checks the database provisioner and the backup PV's exact NFS CSI volume handle.
+Neither class names nor CSI metadata alone establish physical backing, isolation or durability.
+
+The backup certificate's CN is `<cluster>-file-backup`, with `clientAuth` usage, signed by that database's
+client CA. Its Secret contains `tls.crt`, `tls.key` and `ca.crt`; the latter trusts the **server** CA.
+The database user is `streaming_replica`; `cnpg_streaming_replica` is the certificate-name mapping,
+not a role. CNPG 1.27's fixed rules permit certificate-authenticated replication and `postgres` database
+connections. Jobs use `sslmode=verify-full`; the DB server leaf must cover the `<cluster>-rw` DNS name. [3][4]
+
+Tier 0 uses existing `*-db-ca` / `*-db-replication` and adds `*-db-file-backup`. Grafana files mode uses
+external `grafana-db-client-ca`, `grafana-db-replication` and `grafana-db-file-backup`; ordinary object
+mode retains its existing certificate ownership. Rotate leaves through their owner; Jobs mount current
+Secrets read-only with no Kubernetes API token. Never distribute client CA private keys to Jobs.
+
+Commission pod-to-DNS and pod-to-DB TCP 5432 access. The conditional observability policy permits the
+labelled backup pod to reach DNS and Grafana DB only; existing same-namespace DB ingress admits it.
+Tier 0 adds no new database-selecting policy. **NFS CSI node/controller-to-NAS access is an underlay
+prerequisite**, typically TCP 2049 for the commissioned NFSv4 export, not pod TLS or an object endpoint.
+Validate actual routed CIDRs, root-squash behavior and CNI enforcement locally.
+
+<a id="recovery-limits-and-mode-changes"></a>
+
+## When to stop, restore or change backup mode?
 
 Backups are plaintext physical files on NAS. TLS does not encrypt them at rest. Commission protected
 NAS access and storage encryption separately, and retain a separately encrypted offsite copy through
@@ -229,3 +314,4 @@ Official source/API contracts reviewed 2026-10-27; native/live qualification is 
 4. [CNPG 1.27.0 fixed authentication rules](https://github.com/cloudnative-pg/cloudnative-pg/blob/v1.27.0/pkg/postgres/configuration.go)
 5. [NFS CSI storage contracts and permissions](https://github.com/kubernetes-csi/csi-driver-nfs/blob/master/docs/driver-parameters.md)
 6. [PostgreSQL 17 pg_verifybackup](https://www.postgresql.org/docs/17/app-pgverifybackup.html)
+7. [Kubernetes CronJob scheduling, concurrency and suspension](https://kubernetes.io/docs/tasks/job/automated-tasks-with-cron-jobs/)

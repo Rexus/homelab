@@ -28,7 +28,8 @@ directory, cluster or registry is required.
    the supplied input template:
 
    ```bash
-   cp ansible/group_vars/logging_producers.yml.example ansible/group_vars/logging_producers.yml
+   cp -n ansible/group_vars/logging_producers.yml.example ansible/group_vars/logging_producers.yml
+   mkdir -p ansible/host_vars
    read -r -e -p 'Protected public request directory for this tier: ' LOGGING_REQUEST_DIR
    export LOGGING_REQUEST_DIR
    ```
@@ -42,6 +43,27 @@ directory, cluster or registry is required.
    CA audit files once those exist. Example shapes are in each tier's template.
    Applications use separate `kind: application`, `input: files` identities and
    explicit paths, never a filtered shared security journal.
+
+   For the first receiver OS stream, edit these two Tier 0 files. Replace the
+   address, DNS identity and dead-man URL with the commissioned values:
+
+   **`ansible/group_vars/logging_producers.yml`**:
+
+   ```yaml
+   log_forwarder_target: 10.10.10.30
+   log_forwarder_peer: logs.internal.example.com
+   ```
+
+   **`ansible/host_vars/log-1.yml`**:
+
+   ```yaml
+   log_forwarder_watchdog_url: https://REPLACE_WITH_UNIQUE_EXTERNAL_DEAD_MAN_ENDPOINT
+   log_forwarder_streams:
+     - {name: log-1-os, kind: security, input: journal}
+   ```
+
+   Reuse this shape per host with a distinct stream name and health endpoint.
+   The target can be an IP; `log_forwarder_peer` must match the receiver's DNS SAN.
 3. Select one exact inventory host and its existing setup map, then prepare the
    ordered Ansible inputs. Run once per producer; the inventory stays shared with
    Terraform. The setup file is `syslog.yml` for the receiver, `foundation.yml` for
@@ -76,6 +98,9 @@ directory, cluster or registry is required.
 
    Complete [Tier 0 signing](producer-trust.md#3-approve-producer-requests). Before
    signing an application identity, verify its actual file scope and intended readers.
+
+   During first installation, return to [receiver Step 2](receiver.md#step-2-register-trust-and-producers)
+   to register this identity and install the listener before continuing below.
 
 ## 2. Install and test forwarding
 

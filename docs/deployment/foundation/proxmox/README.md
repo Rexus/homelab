@@ -1,97 +1,93 @@
 # Proxmox foundation
 
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+Install the virtualization hosts and prepare the network/storage that guest IaC consumes.
+Proxmox host administration and every template lifecycle belong to Tier 0.
 
-**Design:** [compute foundation](../../../architecture/compute/README.md).
+**Working repository:** `<prefix>-tier-0` after generation (source: `tier-0/`).
+**Run on:** an independent workstation and each host's console/GUI.
+**Target:** Proxmox VE 9+; the native dynamic-rebalancing branch requires 9.2+.
+**Design:** [compute foundation](../../../architecture/hosting/README.md).
 
-## Table of contents
+## Contents
 
-- [Purpose](#purpose)
-- [What this covers](#what-this-covers)
-- [Platform guides](#platform-guides)
 - [First deployment order](#first-deployment-order)
-- [Related references](#related-references)
+- [Platform guides](#platform-guides)
 - [References](#references)
 
-## Purpose
-
-Proxmox is the chosen virtualization platform in this repository.
-It provides the cluster, storage, networking, and API surface used by the first
-image build, provisioning, and configuration workflows.
-
-Target **Proxmox VE 9+**, with **9.2+** for the selected native dynamic-rebalancing
-path. Use current supported 9.x packages and matching installed-release help;
-older HA-group or pre-import workflows are not the new-deployment baseline.
-
-Its hardware-facing administration belongs to Tier 0: hosts, storage, network
-control, and every VM template lifecycle. Tier 1/2 workload definitions remain
-in their own repos; they do not grant their users Proxmox administration.
-See [Infrastructure control](../../../architecture/compute/provisioning.md).
-
-Use [Private cloud model](../../../architecture/private-cloud.md) to understand
-where Proxmox fits compared with a later Kubernetes layer or an OpenStack-style
-private cloud.
-
-## What this covers
-
-Use the Proxmox platform layer for:
-
-- shared Proxmox planning guidelines such as VM ID ranges and template naming
-- API token setup and least-privilege access
-- node, bridge, and storage naming conventions
-- template creation and refresh
-- VM provisioning from Terraform
-- host and guest configuration touchpoints from Ansible
-
-## Platform guides
-
-- [Planning guidelines](../../../reference/proxmox-conventions.md)
-- [Tier 0 template lifecycle and CD](../../../administration/compute/template-lifecycle.md)
-- [Shared template references](../../../reference/template-catalog.md)
-- [VM template import: AlmaLinux, Rocky Linux and Talos](templates.md)
-- [Using the cache from Proxmox](../../../administration/compute/update-access.md)
-- [Backup foundation](../../../administration/compute/backup-restore.md)
-- [API setup](api-access.md)
-- [Host networking](network.md)
-- [Cluster, HA, and Terraform placement](../step-1b-cluster-ha.md)
-- [HA menu and recommended starting values](../../../reference/proxmox-ha.md)
-- [Worked host failure and recovery](failover.md)
-- [Kubernetes clusters](../../stage-4-kubernetes/procedures/kubernetes.md)
-- [Hardening baseline](../../../administration/compute/hardening.md)
+<a id="purpose"></a>
+<a id="what-this-covers"></a>
 
 ## First deployment order
 
-Run these Tier 0 preparation steps before the first managed guest. A single
-host is a valid pilot; cluster membership, HA, and SDN are explicit choices.
+### Step 1: Record host values
 
-| Step | Action and detailed guide | Completion check |
+Record these in the project platform standards, or a temporary protected record before
+the [bootstrap host](bootstrap.md) generates that worksheet.
+
+| Item | Record before installation |
+| --- | --- |
+| Host | Final short name/FQDN, management IP/CIDR, gateway, DNS and time sources |
+| Disks | Boot targets, live guest storage and independent backup destination |
+| Network | Physical NICs, switch ports, management VLAN and permitted guest VLANs |
+| Recovery | Console/BMC path and verified installation sources |
+
+Use the [Proxmox conventions](../../../conventions/proxmox-conventions.md) and
+[network plan](../../../conventions/network-plan.md); replace example allocations with actual choices.
+
+### Step 2: Install and verify each host
+
+1. Boot the approved Proxmox installer and select only the intended boot disks.
+   **Installation removes existing contents on those disks.** Preserve required data first. [1]
+2. Enter the final hostname, management address, gateway and independent DNS.
+3. Complete installation. From the workstation, open `https://<host-name>:8006/`;
+   verify the host/certificate through the console before accepting initial browser trust.
+4. Check console access, DNS and time on every host before configuring the cluster.
+5. Follow [host networking: Step 1](network.md#step-1-prepare-the-guest-trunk) for the
+   initial `vmbr0`/VLAN path. Keep console access during network activation.
+
+### Step 3: Select optional branches before adding guests
+
+| Branch | Complete now | Return |
 | --- | --- | --- |
-| 1. Plan | Record [names, IDs, and tags](../../../reference/proxmox-conventions.md) in the project worksheet | No conflicting allocations |
-| 2. Install hosts | Use the official [Proxmox installer procedure][1] with final node names, addresses, DNS, and time | Protected UI/console access works on every host |
-| 3. Prepare networking | Follow [host networking](network.md) and approved gateway/firewall policy | Management, cluster/storage links, and intended guest paths are tested |
-| 4. Optional cluster/HA | Follow [cluster and HA](../step-1b-cluster-ha.md), including shared storage and failure-domain planning | Quorum is healthy; guest mobility prerequisites are met |
-| 5. Optional SDN | Configure [guest VNets](network.md#optional-sdn-for-guest-networks) on eligible nodes | VNet/bridge IDs and VLAN policy match the tier inputs |
-| 6. First Linux template | Follow the [manual GUI image import](templates.md); an accepted existing template is valid | An unconfigured Linux template can boot a disposable clone |
-| 7. Bootstrap and qualify | Prepare the [bootstrap execution host](bootstrap.md), then follow [foundation template acceptance](../README.md#step-3-publish-and-test-vm-templates) | Tools, artifact custody, CA/API trust, original state and clone/backup checks work |
-| 8. Start capabilities | Accept [Stage 1: Software intake](../../stage-1-software-intake/README.md), then begin [Stage 2: Protected logging](../../stage-2-logging/README.md) | Approved supply and protected collection work before trust, clusters and identity |
+| Single-host pilot | No cluster required; retain the selected host/storage inputs | Step 4 below |
+| 1b: Cluster and HA | [Join empty hosts](../step-1b-cluster-ha.md#prepare-and-join-hosts), qualify guest mobility; enroll/test disposable HA guests later | Step 4 below |
+| 1c: Guest SDN | [Create and activate VNets](../step-1c-sdn.md); this can accompany either host option | Step 4 below |
 
-The installer writes the selected disks; back up existing contents before
-installation. [1] [Cluster joining](../step-1b-cluster-ha.md#prepare-and-join-hosts) also needs
-empty/prepared nodes, so decide on the cluster before populating hosts with
-templates and important VMs.
+Joining a cluster replaces the joining node's configuration; decide before populating
+it with templates/VMs. HA needs usable shared/replicated storage, fencing, capacity and
+explicit resource enrollment; membership alone is insufficient.
 
-Return to the [Tier 0 checklist](../../../paths/tier-0/README.md) after preparation.
+### Step 4: Return to the foundation path
 
-## Related references
+1. Confirm [storage prerequisites](../storage/README.md) and [firewall checks](../network/firewall.md).
+2. Create the [first manual Linux template](templates.md).
+3. Follow [bootstrap execution host](bootstrap.md), then
+   [foundation template import/apply](../README.md#step-3-publish-and-test-vm-templates).
+4. Continue to [Stage 1: Software intake](../../stage-1-software-intake/README.md).
 
-- [Deployment readiness](../../readiness.md)
-- [Safe repository usage](../../../development/repository-workflow.md)
-- [Secret strategy](../../../administration/secret-handling/strategy.md)
-- [Security principles](../../../architecture/principles.md)
+The numbered [foundation path](../README.md) owns the full sequence; this page owns
+host preparation. API tokens and Terraform come after the first manual template and
+bootstrap execution host.
+
+## Platform guides
+
+| Task | Guide |
+| --- | --- |
+| Host attachments, bonds and storage fabric | [Host networking](network.md) |
+| Scoped credentials and trust | [API setup](api-access.md) |
+| Import a verified image in the GUI | [VM templates](templates.md) |
+| Publish/adopt and maintain templates | [Template lifecycle](../../../administration/compute/template-lifecycle.md) |
+| HA controls and fault behavior | [Menu reference](../../../reference/proxmox-ha.md), [worked failover](failover.md) |
+| ProxLB instead of native rebalancing | [Alternative balancer](proxlb.md) |
+| Restore a disposable guest | [Backup/restore](../../../administration/compute/backup-restore.md) |
+| Apply the Linux service-VM profile | [Host security](host-security.md) |
+
+<a id="related-references"></a>
+
+For broader context, see the [private-cloud model](../../../architecture/private-cloud.md)
+and [Tier 0 checklist](../../../paths/tier-0/README.md).
 
 ## References
 
-1. [Proxmox installation guide](https://github.com/proxmox/pve-docs/blob/master/pve-installation.adoc),
-   checked 2026-09-21. Use documentation matching the installed release.
-
-[1]: https://github.com/proxmox/pve-docs/blob/master/pve-installation.adoc
+1. [Proxmox installation guide](https://raw.githubusercontent.com/proxmox/pve-docs/master/pve-installation.adoc).
+   Use documentation matching the installed release.

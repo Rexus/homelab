@@ -1,83 +1,131 @@
-# PKI and public-edge security controls
+# PKI security checks and incident actions
 
-PKI authenticates identities and protects transport; it does not detect every
-intrusion, stop botnets or repair a compromised endpoint. Defend against behavior
-and exposure, not an attacker's claimed nationality. No configuration guarantees
-that man-in-the-middle attacks are impossible.
+<a id="pki-and-public-edge-security-controls"></a>
 
-**Prerequisites:** [private PKI](../../deployment/stage-3-trust/procedures/software-pki.md),
-[public HTTPS](../../deployment/stage-10-lab-environments/public-https.md), accepted
-[protected logging](../security-logging.md) and named incident responders.
 
-## Contents
+Verify the selected private PKI and public-edge controls, preserve evidence and
+record who responds. The certificate roles do not install a SIEM, IDS, WAF or
+external alerting service. Use the [trust design](../../architecture/cryptography/README.md)
+and [network policy](../../architecture/networking/firewall-policy.md) for the rationale.
 
-- [Prevent and contain](#prevent-and-contain)
-- [Detect and respond](#detect-and-respond)
-- [Production gate](#production-gate)
+**Run from:** an authorized client for TLS tests, the issuer for local test events,
+and the owning Tier 0/Tier 2 repository for its existing inputs.
+**Before starting:** accepted PKI/logging, independently retained recovery access,
+public HTTPS only when selected, and named incident responders.
+
+<a id="contents"></a>
+
+## Tasks
+
+- [How are trust and access checked before a change?](#prevent-and-contain)
+- [How are evidence delivery and alerts checked?](#how-are-evidence-delivery-and-alerts-checked)
+- [What happens after a suspected compromise?](#detect-and-respond)
+- [What evidence is required before returning to service?](#production-gate)
 - [References](#references)
 
-## Prevent and contain
+<a id="prevent-and-contain"></a>
 
-| Boundary | Required control |
+## How are trust and access checked before a change?
+
+1. Confirm the actual paths/owners before editing configuration:
+
+   | Owner / file | Verify |
+   | --- | --- |
+   | Tier 0 `ansible/group_vars/issuer.yml` | Existing portal/publication networks, issuer identity and immutable runtime binding |
+   | Tier 0 `ansible/group_vars/logging_producers.yml` and per-host overrides | CA journal/audit stream identities, real file paths and independent watchdogs |
+   | Tier 2 `ansible/group_vars/public-https.yml`, when selected | Exact public domains, ACME state custody and verified origin CA/hostname |
+   | Private access/registrar records | MFA boundary, named operators, scoped DNS credentials and independent recovery contacts |
+
+2. From an approved client, test the actual HTTPS listener without verification bypass:
+
+   ```bash
+   read -r -p 'Approved HTTPS service URL: ' SERVICE_URL
+   curl --proto '=https' --head --show-error "$SERVICE_URL"
+   ```
+
+   A deliberate HTTP 401/403 can be correct; this is a connection/trust check,
+   not application authorization acceptance. Never add `--insecure` to make it pass.
+3. Use [CA renewal/publication checks](certificate-authority.md) for the private issuer
+   and the [public HTTPS acceptance](../../deployment/stage-10-lab-environments/public-https.md#accept-and-operate)
+   for edge/origin chains. Test wrong CA/SAN, expiry and denied-origin paths with
+   disposable material, never by replacing live trust with an unverified root.
+
+Keep the accepted TLS policy and client compatibility; do not enable obsolete/static
+RSA exchange or weaken checks to repair an integration. Protocol/PQC changes require
+[algorithm qualification](../../architecture/cryptography/algorithm-selection.md). [1]
+
+## How are evidence delivery and alerts checked?
+
+1. On the issuer, emit a harmless OS marker:
+
+   ```bash
+   logger -t pki-acceptance 'pki-security-check-001'
+   ```
+
+2. Find that marker at the protected Tier 0 receiver under the enrolled host identity.
+   Then exercise a benign actual portal request/denial and confirm its native audit
+   records. The OS marker does **not** verify the product audit-file stream.
+3. Confirm the enrolled native files include actual
+   `/var/log/openxpki-server/audit.log` and `workflows.log`, plus OS/service events.
+   Follow [source forwarding](../../deployment/stage-2-logging/sources.md) for explicit
+   file streams; submitted labels cannot authorize access to another evidence scope.
+4. Trigger the independent test notification and a controlled missed-heartbeat test.
+   Confirm a responder receives it with portal, normal SSO and Tier 1 unavailable.
+   Restore the test condition, record delivery time and verify health recovers. [2]
+
+| Signal | Required operating response |
 | --- | --- |
-| Public client to edge | Trusted public chain, hostname checks, modern TLS, HSTS; no certificate-warning bypass |
-| Edge to origin | Private CA validation and exact hostname; restricted origin network paths |
-| Administrative access | Private management path, MFA at access boundary, named least-privilege operators and independent recovery |
-| CA authority | Offline root, distinct requester/approver, restricted names/profiles, audited signing and key access |
-| Public DNS/registrar | MFA, protected recovery contacts, scoped API credentials and reviewed CAA |
-| Workloads | Patch OS/proxy/application, authorization, secure sessions, input validation and least privilege |
-| Volumetric attacks | Upstream ISP/CDN/DDoS arrangement; local request limits cannot protect a saturated link |
-| Trust stores | Deliberate root installation and inventory; reject unknown/expired/revoked identities where the client enforces it |
+| Unexpected CA auth/role/config/token change | Correlate identity, approval and time; investigate privileged CLI use |
+| Issuance volume/name/profile anomaly | Correlate requester, approver, SANs, profile and serial; reject unapproved scope |
+| Missing events, queue/disk pressure or skew | Investigate source/forwarder/checkpoint health; preserve backlog and original records |
+| Renewal/CRL failure | Alert before observed certificate expiry or CRL nextUpdate, not merely on stopped timers |
+| Edge/origin verification errors or abuse | Correlate proxy/app/firewall events; retain raw evidence and apply the approved response |
+| DNS/CAA or unexpected public issuance | Review registrar audit and Certificate Transparency; CT is not proof of every interception attempt |
 
-TLS 1.3 is preferred; keep TLS 1.2 only for justified compatibility using ECDHE/AEAD.
-Do not enable obsolete/static RSA key exchange or weaken verification to fix a
-failed integration. PQC changes need a separate
-[end-to-end qualification](../../architecture/cryptography/post-quantum.md). [1]
+Keep private keys, passwords, session tokens and sensitive payloads out of test
+markers and exported diagnostics. Authentication/audit records themselves need restricted reads.
 
-## Detect and respond
+<a id="detect-and-respond"></a>
 
-The following is the project's acceptance policy, not a claim that a SIEM, IDS,
-WAF or notification service is installed by the certificate roles. Centralize
-high-value events, preserve independent evidence and test detection with benign
-injected events. Logging without reviewed alerts and responders is insufficient. [2]
+## What happens after a suspected compromise?
 
-| Signal | Collection and required response |
+1. Stop routine changes. Use independent privileged access, isolate affected
+   endpoints through the accepted network response and preserve Tier 0 evidence.
+   Do not delete queues, restore an old snapshot or initialize replacement trust.
+2. Identify the exposed authority: service leaf, account/token, issuer/provider,
+   offline root or recovery key. Involve its custodian; their revocation scopes differ.
+3. Revoke and reissue through the [CA operation](certificate-authority.md#how-is-a-certificate-revoked-and-its-crl-published)
+   or the credential issuer's native procedure. Issuer/root compromise requires a
+   separately approved trust rollover; moving the same suspect key into hardware is not recovery.
+4. Recover on clean targets from the latest qualified state, verify denial of exposed
+   credentials and protect new credentials before readmitting traffic.
+
+**Stop/rollback:** never roll back to a known exposed or revoked credential. Retain
+current issuance/revocation history and only one CA writer. Missing recovery proof
+keeps the affected service isolated; a successful redeploy does not close the incident.
+
+<a id="production-gate"></a>
+
+## What evidence is required before returning to service?
+
+| Exercise | Required result |
 | --- | --- |
-| CA authentication/privilege changes | Forward native audit/workflow/auth logs; alert on repeated failures and unexpected role/config/token changes |
-| Issuance anomaly | Correlate requester, approver, SANs, profile and serial; alert on unusual volume, scope or custodian CLI use |
-| Native audit coverage | Forward /var/log/openxpki-server/audit.log and workflows.log plus OS/service logs to accepted Tier 0 intake |
-| Public proxy/application | Forward HAProxy, nginx, app, firewall and administrator events; investigate spikes, 4xx/5xx and origin verification failures |
-| Lost evidence | Alert on missing source heartbeat, queue/disk exhaustion, clock skew or stopped forwarding |
-| Renewal failure | Monitor systemd failure/missed success independently; alert before externally observed certificate expiry |
-| CRL failure | Fetch and verify issuer/root CRLs independently; alert before nextUpdate, not merely when a timer stops |
-| Domain/public issuance | Monitor DNS/CAA changes and Certificate Transparency for unexpected certificates; CT detects issuance, not all active interception |
-| Host compromise | Monitor endpoint/network behavior and privileged access; isolate, preserve evidence and use incident revocation/reissuance |
+| Wrong CA/SAN, expiry, revocation | Selected enforcing clients reject the invalid identity; no bypass fallback |
+| Forbidden request/self-approval | Denied with attributable audit event and independent review |
+| Administrative boundary | Named least-privilege access, MFA at the management boundary and separate recovery; bootstrap passwords alone are not application MFA |
+| Evidence/alert outage | Expected source events and external notifications survive loss of portal, SSO and Tier 1 |
+| Independent recovery | Same accepted signing identity and latest history restored; separate key/controller custody works |
+| Public exposure, when selected | Origin isolation, scoped DNS/CAA control, patched services, measured request limits and the selected upstream volumetric-mitigation arrangement |
+| Provider/controller loss | Recorded failure budget, alerts and tested restoration; neither replica count nor TLS alone proves availability |
 
-Bootstrap local password authentication is independent of FreeIPA/SSO but is not
-application MFA. Restrict the portal to an MFA-protected management boundary.
-Protect logs against secrets and unnecessary personal data; do not log private
-keys, passwords, session tokens or complete sensitive HTTP payloads.
-
-## Production gate
-
-| Exercise | Pass condition |
-| --- | --- |
-| Wrong CA/SAN and expired cert | Both public/client and origin checks fail closed; no bypass fallback |
-| Forbidden request/self-approval | Denied with attributable audit event |
-| Revocation | Updated signed CRL and an enforcing client reject a revoked serial |
-| Alert outage | Test notification reaches a responder without CA portal, SSO or Tier 1 |
-| Recovery | Same signing identity and current history restored on an isolated replacement |
-| Public load/abuse | Rate-limit tuning, origin isolation and upstream mitigation tested |
-| Loss of controller/provider | Existing valid service survives within its budget; timely alerts and documented recovery |
-
-Check actual browser/client revocation behavior; publishing a CRL does not mean
-all consumers consult it. Public certificate status is the public CA's service,
-not the private issuer's CRL or an unimplemented OCSP endpoint.
+Retain results in private project records. A CRL must be enforced by the actual
+client; public certificate status belongs to the public CA, not the private issuer.
+Local rate limits do not protect a saturated upstream link. No extra protection
+service is implied by this checklist.
 
 ## References
 
-Sources checked 2026-10-18.
+Interfaces and guidance checked 2026-11-08.
 
-1. [IETF TLS recommendations and updates](https://www.rfc-editor.org/info/rfc9325/)
-2. [Joint ASD/ACSC, CISA, FBI, NSA and partner logging/detection guidance](https://www.cyber.gov.au/publication/best-practices-for-event-logging-and-threat-detection)
-3. [Let's Encrypt HTTP-01 behavior](https://letsencrypt.org/docs/challenge-types/)
+1. [IETF TLS recommendations and subsequent updates](https://www.rfc-editor.org/info/rfc9325/).
+2. [Joint event logging and detection guidance](https://www.cyber.gov.au/publication/best-practices-for-event-logging-and-threat-detection).

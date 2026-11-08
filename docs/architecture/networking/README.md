@@ -1,17 +1,23 @@
-# Network zones and IaC mapping
+# Networking and connectivity
 
-Networking connects the platform's services through approved entry points,
-scoped service interfaces and protected administration. A stable network map
-connects that design to Proxmox, Terraform and firewall policy. Names describe
-purpose: `management`, `identity`, `application`, `cryptography`, and so on.
+<a id="network-zones-and-iac-mapping"></a>
 
-This domain expands networking in the [platform overview](../README.md#technical-domains).
+Networking supplies reachability, service publication and isolation between
+clients, services, data interfaces and infrastructure. The capability applies
+across physical and virtual networks; a selected site translates its endpoint
+contracts into routing, attachment and enforcement configuration.
+
+This domain expands networking in the [platform overview](../README.md#foundational-capabilities).
 The [reference platform](../reference-platform.md) supplies service placement;
-the [firewall policy](firewall-policy.md) supplies the detailed traffic contract.
+the [firewall policy](firewall-policy.md) owns the detailed traffic contract.
+Software release acceptance belongs to [Software lifecycle](../software/README.md),
+while [Hosting](../hosting/README.md) supplies the connected runtimes and
+[Data and storage](../data/README.md) supplies their persistent interfaces.
 
 ## Table of contents
 
 - [Completed connectivity](#completed-connectivity)
+- [Service reachability and publication](#service-reachability-and-publication)
 - [Supplied and consumed interfaces](#supplied-and-consumed-interfaces)
 - [Zone assignment](#zone-assignment)
 - [Design choices](#design-choices)
@@ -19,6 +25,7 @@ the [firewall policy](firewall-policy.md) supplies the detailed traffic contract
 - [VLAN ID strategy](#vlan-id-strategy)
 - [Automation mapping](#automation-mapping)
 - [Attachment constraints](#attachment-constraints)
+- [Reference realization](#reference-realization)
 - [Continue reading](#continue-reading)
 - [References](#references)
 
@@ -37,11 +44,12 @@ flowchart LR
   AdminEntry["Approved<br/>administration entry"]
   subgraph Edge["Edge / DMZ"]
     Clients["Tier 2: clients<br/>Separate subnet"]
-    Gateways["Tier 2: public ingress<br/>Outbound cache"]
+    Gateways["Tier 2: public edge<br/>Named application entry"]
+    Cache["Tier 2: outbound proxy/cache<br/>Approved-source access"]
     Supply["Tier 1: build runners<br/>Authoritative mirrors"]
   end
   subgraph Application["Application / Services"]
-    Services["Shared services<br/>and workloads"]
+    Services["Shared services / workloads<br/>Runtime ingress or service listener"]
   end
   subgraph Control["Control"]
     Endpoints["Identity / trust<br/>Operations"]
@@ -51,8 +59,8 @@ flowchart LR
   Gateways -->|Named backend<br/>listeners| Services
   Clients -->|Approved application<br/>listeners| Services
   Services -->|Scoped service<br/>access| Endpoints
-  Services -->|Proxy or<br/>cache access| Gateways
-  Gateways -->|Approved<br/>upstreams| Internet
+  Services -->|Proxy or<br/>cache access| Cache
+  Cache -->|Approved<br/>upstreams| Internet
   Supply -->|Approved<br/>upstreams| Internet
   Supply -->|Scoped source /<br/>artifact access| Services
   AdminEntry -->|Target-specific<br/>access| Administration
@@ -62,7 +70,7 @@ flowchart LR
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   class Internet,AdminEntry actor
-  class Edge edge
+  class Edge,Gateways,Cache edge
   class Application services
   class Control control
 ```
@@ -83,18 +91,48 @@ Infrastructure also has attachments outside this routed service view:
 | Host quorum and storage transport | Carry the selected cluster and storage fabric traffic | Restricted membership; no general routed guest access |
 | Offline ceremony fabric | Support separately controlled custody and authorized transfers | Physically separate from connected hosts and networks; no routed gateway |
 
-The [compute runtime design](../compute/runtime.md) shows the guests and hosts
+The [hosting runtime design](../hosting/runtime.md) shows the guests and hosts
 that consume these attachments. The physical underlay can support multiple
 logical networks without making their policies or failure domains identical.
+
+## Service reachability and publication
+
+Publication exposes a deliberately selected application interface. It is separate
+from installing software or approving a release. A deployed backend can remain
+private; a published endpoint can route to an already existing service without
+changing that service's release owner.
+
+| Function | Placement and contract |
+| --- | --- |
+| Public edge load balancing | Tier 2 / DMZ; selected external listeners reach only named approved backends, never Tier 0 administration or foundational signing/recovery |
+| Runtime ingress or service listener | Owned by the consuming runtime/service; may route a cluster application or expose an approved direct backend without granting runtime administration |
+| Private service/API endpoint | Classified by its target authority; independent private access remains separate from public edge publication |
+| Outbound proxy/cache | Ordinary Tier 2 intake support; client-initiated approved-source access, not an inbound publication or artifact-promotion service |
+| DNS, routing and enforcement | Associate a service name with its selected entry and permitted source/backend paths; name resolution alone authorizes no access |
+
+An application path may use public edge load balancing followed by runtime ingress,
+or an approved direct service listener. Internal clients may use a private path.
+Each selected frontend/backend hop retains its own transport, TLS, authorization
+and failure contract. Neither an ingress controller nor a VIP count alone proves
+redundancy, isolation or backend readiness.
+
+The [firewall policy](firewall-policy.md#rule-contracts) owns source/destination/listener
+rules. [Software lifecycle](../software/README.md#domain-boundaries) owns accepted
+versions and application change authority; [Hosting](../hosting/provisioning.md) owns
+privileged infrastructure execution. Serving an application's traffic grants neither
+release-promotion rights nor control over the host, cluster or network.
 
 ## Supplied and consumed interfaces
 
 | Direction | Interface | Connected function | Required contract |
 | --- | --- | --- | --- |
-| Provides | Approved guest and host attachments | [Compute](../compute/README.md) | Purpose network, address identity, tagging owner and permitted transport |
-| Provides | Published and internal application paths | [Delivery](../delivery/README.md) and workloads | Named frontend/backend listeners and controlled egress |
+| Provides | Approved guest and host attachments | [Hosting](../hosting/README.md) | Purpose network, address identity, tagging owner and permitted transport |
+| Provides | Published and internal application paths | Application runtimes and [software consumers](../software/README.md) | Named frontend/backend listeners and controlled egress, separate from release authority |
+| Provides | Scoped storage transport | [Data and storage](../data/README.md) | Approved clients/protocols and fabric isolation; reachability grants no dataset or storage-administration rights |
 | Provides | Scoped service and administrative paths | Identity, cryptography and operations | Service consumption stays separate from administration |
 | Consumes | Service listeners and dependency requirements | Each service design | Explicit source, destination, protocol, enforcement point and owner |
+| Consumes | Runtime placement and interface requirements | [Hosting](../hosting/README.md) | Selected hosts/guests/runtimes consume attachments without acquiring network administration |
+| Consumes | Persistent network configuration and controller records | [Data and storage](../data/README.md) | Retained state/configuration with explicit dataset ownership; recovery policy belongs to Operations |
 | Consumes | Tier and authority classification | [Tier ownership](../tier-ownership.md) | Protection follows actual privileges, independently of subnet names |
 | Exchanges | Network inventory and policy evidence | [Operations](../operations/README.md) | Complete site assignments and evidence for intended access and isolation |
 
@@ -161,6 +199,7 @@ Each variant realizes the same attachment and traffic contracts. The
 | Policy grouping | Existing zones with explicit subnet rules, or an additional zone for different baseline policy | No implicit trust between member subnets; enforcement follows the required isolation |
 | Host transport | Shared physical underlay with separated logical fabrics, or selected dedicated links/switches | Required quorum/storage reachability, restricted membership and recorded physical failure domains |
 | Application publication | Existing shared proxy or a separately operated proxy | Explicit published listener and backend scope; administrative authority remains separately classified |
+| Endpoint resilience | Existing qualified entry or selected proxy/balancer members | Address ownership, failover and backend readiness need separate evidence; multiple VIPs alone are not load balancing or HA |
 
 The alternatives do not change tier ownership or automatically create redundant
 paths. Cabling, switch configuration and vendor-specific policy translation
@@ -170,7 +209,7 @@ belong in the implementation procedures.
 
 ## Network catalog
 
-The [reference network plan](../../reference/network-plan.md) provides the selected
+The [reference network plan](../../conventions/network-plan.md) provides the selected
 example realization: a zone-to-VNet overview, per-zone VLAN/Name/Alias/subnet/gateway
 rows, and links to the owning deployment inputs. Exact allocations and deployed
 host names belong in that implementation view.
@@ -179,7 +218,7 @@ The Control zone groups privileged VM services. Fabric groups hardware managemen
 and host cluster/storage transport. Both occupy the foundational Control layer. Host-only transport remains outside guest SDN;
 an existing UniFi Fabric zone does not require Proxmox SDN Fabrics or a routed gateway.
 
-The [deployment mapping](../../reference/network-plan.md#deployment-mapping) shows
+The [deployment mapping](../../conventions/network-plan.md#deployment-mapping) shows
 current starter attachments and optional variants. In particular, protected
 management VMs currently share the host-management VLAN; selecting a dedicated
 VM-administration network requires explicit inputs and a planned cutover.
@@ -200,7 +239,7 @@ separation: a VLAN, missing route or deny rule on a connected fabric is not an a
 
 These are allocations, not security labels or tier numbers. Keep one site plan
 and avoid duplicate IDs on shared trunks. Record chosen ranges and names in
-`docs/naming-conventions.md` in the generated architecture repo, including the
+`platform-standards.md` in the generated architecture repo, including the
 selected zone/VNet, subnet and gateway tables. Individual guest addresses remain
 in tier-local inventory; the selected SDN or explicit IaC inputs drive provisioning.
 
@@ -222,7 +261,7 @@ firewall rules.
 For example, Linux `network_zone_key = "cryptography"` selects that tier's
 `network_zones.cryptography` attachment. Cluster nodes instead select direct attachments:
 Tier 0 uses `control_cluster`, Tier 1 uses `application`, and Tier 2 uses its
-approved workload network in the [cluster reference](../compute/kubernetes.md).
+approved workload network in the [cluster reference](../hosting/kubernetes.md).
 Let either the VNet or the guest NIC own tagging; do not tag twice. Exact fields and runnable examples belong in
 [network inputs](../../reference/network-inputs.md).
 
@@ -250,10 +289,24 @@ The [Step 1 procedure](../../deployment/foundation/README.md#step-1-prepare-comp
 order; [firewall rollout](../../deployment/foundation/network/firewall.md)
 owns implementation and acceptance tests.
 
+## Reference realization
+
+The reference maps purpose networks to Proxmox bridges/SDN VNets and UniFi firewall
+zones. Those products realize the same reachability and policy contracts; matching
+labels do not synchronize configuration or grant access.
+
+The [Tier 2 edge guide](../../deployment/stage-7-delivery/procedures/edge-proxy.md)
+owns load-balancer installation and listener/VIP inputs. The
+[public HTTPS path](../../deployment/stage-10-lab-environments/public-https.md) owns selected
+external publication and origin trust. [Cluster platform installation](../../deployment/stage-4-kubernetes/procedures/basic-platform.md#certificates-and-ingress)
+owns the runtime ingress realization. These procedures provide implementation
+details and acceptance limits; no public listener is implied by this architecture.
+
 ## Continue reading
 
-- [Platform overview](../README.md#technical-domains) and [reference platform](../reference-platform.md)
-- [Runtime flows](../runtime-flows.md) and [compute runtime](../compute/runtime.md)
+- [Platform overview](../README.md#foundational-capabilities) and [reference platform](../reference-platform.md)
+- [Runtime flows](../runtime-flows.md) and [hosting runtime](../hosting/runtime.md)
+- [Software lifecycle](../software/README.md) and [data interfaces](../data/README.md)
 - [Firewall policy](firewall-policy.md) and [network input contract](../../reference/network-inputs.md)
 - [Deployment stages](../../deployment/README.md)
 - [Proxmox host networking](../../deployment/foundation/proxmox/network.md)

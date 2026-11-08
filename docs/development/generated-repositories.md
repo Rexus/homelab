@@ -109,7 +109,7 @@ a grant of infrastructure privileges to repository users. Commands are operator-
 or executed through the explicitly trusted Stage 9 infrastructure project. Its
 GitLab/control-plane administrators are then Tier 0 authorities, not ordinary tenants.
 Future bounded self-service accepts data-only workload requests, not arbitrary code; see
-[Infrastructure control](../architecture/compute/provisioning.md).
+[Infrastructure control](../architecture/hosting/provisioning.md).
 
 The upstream source already has this split: `tier-0/`, `tier-1/`, `tier-2/`,
 and `shared/` map directly to their prefixed repository names. The generator
@@ -162,7 +162,7 @@ only setups listed in that tier's `.deployment-setups`. Actual credentials,
 inventory, group vars, state, and local overrides are never copied from upstream.
 
 Every root README is a developer-owned starter, not a refresh target. The
-architecture repository includes `docs/naming-conventions.md` and project
+architecture repository includes `platform-standards.md` and project
 selections in `docs/README.md` alongside the `docs/auto-docs/` manual. Start with
 [Project documentation](project-documentation.md) for that layout and existing-collection upgrades.
 
@@ -361,7 +361,7 @@ or network policy by itself.
 
 Tier/Shared repositories receive project-owned design and operating records.
 The architecture repository starts with only `README.md`, `docs/README.md`
-(selected paths, deployment checkboxes and navigation), and `docs/naming-conventions.md`.
+(selected paths, deployment checkboxes and navigation), and `platform-standards.md`.
 Its `docs/auto-docs/` is the full maintained manual, not another local documentation hierarchy.
 Add local exceptions/runbooks as needed; no domain, workflow or site skeletons are generated there.
 Existing collections keep all previously generated project documents and recorded deletions;
@@ -410,7 +410,7 @@ Refresh does not delete retired files, merge local edits, or commit changes.
 Review reported preserved files and upstream removals before adopting an update.
 Keep local designs in `docs/architecture/`, procedures in `docs/deployment/`,
 `docs/development/` and `docs/administration/`, and project conventions in
-`docs/naming-conventions.md`; upstream guidance updates under `docs/auto-docs/`.
+`platform-standards.md`; upstream guidance updates under `docs/auto-docs/`.
 A locally edited example or tier module is also
 preserved, so adopting upstream changes to it requires a manual comparison.
 

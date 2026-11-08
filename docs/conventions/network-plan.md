@@ -1,9 +1,9 @@
 # Network plan and deployment mapping
 
-Reference allocations connect firewall zones, short Proxmox VNet names and the
+Reference allocations connect firewall zones, Proxmox SDN VNet IDs and the
 supplied deployment inputs. They are editable examples, not detected infrastructure
 or an installer. Record selected values in the generated architecture repository's
-`docs/naming-conventions.md`; individual guest IPs remain in tier-local inventory.
+`platform-standards.md`; individual guest IPs remain in tier-local inventory.
 
 ## Contents
 
@@ -19,8 +19,9 @@ or an installer. Record selected values in the generated architecture repository
 
 - **Layer:** architectural protection position, from Edge through Application / Services to Control.
 - **Firewall zone:** networks with compatible traffic policy. A layer can contain several zones.
-- **VNet Name:** Proxmox guest attachment ID, 2–8 alphanumeric characters starting with a letter;
-  this project's convention is lowercase. **Alias** is a readable label.
+- **SDN VNet ID:** the Proxmox **Name** field, 2–8 alphanumeric characters starting with a letter;
+  hyphens and underscores are not allowed. This project's convention is lowercase.
+- **Network label / Alias:** the readable name, separate from the restricted SDN identifier.
 - **Logical key:** the Terraform network selection, such as `identity`; it need not match the VNet ID.
 - **Tier:** owning repository and impact. It does not name a zone or allocate a VLAN.
 
@@ -50,13 +51,13 @@ Same-zone rules still require explicit review. [1]
 
 ## Network allocations
 
-**Name** below is the VNet ID in the selected SDN variant. `—` means no guest VNet
+**SDN VNet ID** below is the attachment ID in the selected SDN variant. `—` means no guest VNet
 is required. Existing direct-bridge examples continue using `vmbr0` plus the VLAN
 tag until deliberately changed to a prepared VNet. Aliases are suggested labels.
 
 ### DMZ zone
 
-| VLAN ID | Name | Alias | Subnet | Gateway | Comments |
+| VLAN ID | SDN VNet ID (2–8 chars) | Network label / Alias | Subnet | Gateway | Comments |
 | --- | --- | --- | --- | --- | --- |
 | `320` | `edge` | External edge | `10.30.30.0/24` | `10.30.30.1` | `external_edge`: public entry points and ordinary outbound proxy/cache. |
 | `321` | `build` | Delivery edge | `10.30.31.0/24` | `10.30.31.1` | `delivery_edge`: external runners; authoritative mirror installation is a separate selection. |
@@ -64,7 +65,7 @@ tag until deliberately changed to a prepared VNet. Aliases are suggested labels.
 
 ### Services zone
 
-| VLAN ID | Name | Alias | Subnet | Gateway | Comments |
+| VLAN ID | SDN VNet ID (2–8 chars) | Network label / Alias | Subnet | Gateway | Comments |
 | --- | --- | --- | --- | --- | --- |
 | `11` | `access` | Application access | `10.10.11.0/24` | `10.10.11.1` | Optional front-end network; not the current identity-provider node attachment. |
 | `120` | `app` | Application services | `10.20.20.0/24` | `10.20.20.1` | Shared `application` reference; platform cluster and development data services. |
@@ -73,7 +74,7 @@ tag until deliberately changed to a prepared VNet. Aliases are suggested labels.
 
 ### Control zone
 
-| VLAN ID | Name | Alias | Subnet | Gateway | Comments |
+| VLAN ID | SDN VNet ID (2–8 chars) | Network label / Alias | Subnet | Gateway | Comments |
 | --- | --- | --- | --- | --- | --- |
 | `12` | `ident` | Directory authority | `10.10.12.0/24` | `10.10.12.1` | `identity`: directory primary/replica, DNS and Kerberos. |
 | `13` | `control` | Control cluster | `10.10.13.0/24` | `10.10.13.1` | Cluster nodes hosting federation, secrets and control tools. |
@@ -83,7 +84,7 @@ tag until deliberately changed to a prepared VNet. Aliases are suggested labels.
 
 ### Fabric zone
 
-| VLAN ID | Name | Alias | Subnet | Gateway | Comments |
+| VLAN ID | SDN VNet ID (2–8 chars) | Network label / Alias | Subnet | Gateway | Comments |
 | --- | --- | --- | --- | --- | --- |
 | `10` | `—` | Host management | `10.10.10.0/24` | `10.10.10.1` | Existing Proxmox management underlay; starter `management` guests currently share this network. |
 | Site-defined | `—` | Out-of-band management | Site-defined | Site-defined or none | IPMI/BMC/controllers; only the approved administrative path. |
@@ -107,8 +108,8 @@ selected intake policy needs it; no default attachment or subnet is supplied.
 
 The following rows describe **current starter inputs**, including direct bridge
 attachments and optional variants. Creating a zone or writing a table does not
-move a resource. The [network input contract](network-inputs.md) defines overrides
-and [SDN lookup](network-inputs.md#sdn-subnet-lookup).
+move a resource. The [network input contract](../reference/network-inputs.md) defines overrides
+and [SDN lookup](../reference/network-inputs.md#sdn-subnet-lookup).
 
 | Deployment / example units | Owning repository and source inputs | Current attachment | Capability guide |
 | --- | --- | --- | --- |
@@ -125,7 +126,7 @@ and [SDN lookup](network-inputs.md#sdn-subnet-lookup).
 | Ordinary proxy/cache: `cache-1`, `cache-2` | Tier 2 [cache](../../tier-2/terraform/deployments/cache/terraform.tfvars.example) | `external_edge` → `vmbr0`, VLAN 320; `edge` is the SDN alternative | [Stage 1](../deployment/stage-1-software-intake/README.md) |
 | Edge load balancers: `edge-lb-*` | Tier 2 [edge](../../tier-2/terraform/deployments/edge/terraform.tfvars.example) | `external_edge` → VLAN 320 | [Edge publication](../deployment/stage-7-delivery/README.md) |
 | Lab cluster | Tier 2 [cluster](../../tier-2/terraform/deployments/kubernetes/terraform.tfvars.example) | Nodes → `vmbr0`, VLAN 420; `lab` is the SDN alternative | [Stage 10](../deployment/stage-10-lab-environments/README.md) |
-| Linux lab: `lab-1`, `support-1` | Tier 2 [lab](../../tier-2/terraform/deployments/lab/terraform.tfvars.example) | `application` inherits shared VLAN 120 until the lab override is selected | [Lab attachment override](network-inputs.md#guest-attachment) |
+| Linux lab: `lab-1`, `support-1` | Tier 2 [lab](../../tier-2/terraform/deployments/lab/terraform.tfvars.example) | `application` inherits shared VLAN 120 until the lab override is selected | [Lab attachment override](../reference/network-inputs.md#guest-attachment) |
 
 ## Segmentation
 

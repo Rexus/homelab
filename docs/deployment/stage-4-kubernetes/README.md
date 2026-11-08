@@ -14,7 +14,7 @@ Prepare the [private endpoint](procedures/api-endpoint.md) before cluster bootst
 a qualified existing endpoint is also valid. Tier-local Ansible inputs select reusable
 platform and protected cluster-source collection roles in Shared.
 See [coverage](../../reference/implementation-support.md#stage-coverage).
-**Design:** [Kubernetes runtime](../../architecture/compute/kubernetes.md).
+**Design:** [Kubernetes runtime](../../architecture/hosting/kubernetes.md).
 
 ## Main path
 
@@ -55,37 +55,22 @@ Each VM receives a network-only NoCloud drive at `ide2`, plus its live boot/EFI 
 the Talos API applies machine configuration. DHCP bootstrap remains an explicit legacy option.
 No workers are active in this starter; application and add-on manifests are separate inputs.
 
-From Tier 0, initialize the local inputs:
+1. **Prepare the independent endpoint first.** Complete
+   [API endpoint Steps 1-3](procedures/api-endpoint.md#configure-local-inputs): initialize
+   inputs, configure the two gateway VMs/VIP, deploy and verify ownership/DNS.
+   An accepted existing independent endpoint replaces that installation; retain
+   its original state owner. Do not use this cluster's ingress as its bootstrap endpoint.
+2. **Main path:** complete [Terraform cluster Steps 1-5](procedures/talos-terraform.md#configure).
+   The procedure names every input, loads the exported API credentials, prepares
+   CNI/logging patches and runs the required saved `plan`, `apply` and credential export.
+   **Option 1b:** [manual bootstrap](step-1b-manual-cluster.md) replaces those lifecycle
+   commands. Return here for Step 2; do not create a second owner for the same nodes.
+3. Check private API access. With CNI deliberately disabled, node/DNS readiness can
+   wait until Step 2 installs Cilium. Preserve the generated state and credentials
+   outside the cluster before continuing.
 
-```bash
-bash scripts/kubernetes-cluster.sh init
-```
-
-Before bootstrap, prepare the [Talos CNI/proxy patches](procedures/basic-platform.md#prepare-talos)
-and [node/API logging patches](procedures/security-logging.md#prepare-talos).
-The latter can be rendered without a live cluster; install its collectors after CNI is ready.
-Configure [inventory, node hardware, endpoint and pinned images](procedures/talos-terraform.md#configure)
-in Tier 0's [Kubernetes root](../../../tier-0/terraform/deployments/kubernetes).
-Verify the independent endpoint and static IP/gateway selections before planning:
-
-```bash
-bash scripts/kubernetes-cluster.sh plan
-```
-
-Review allocations, storage, network attachments and generated configuration.
-Apply only that accepted saved plan, then export the private client files:
-
-```bash
-bash scripts/kubernetes-cluster.sh apply
-bash scripts/kubernetes-cluster.sh credentials
-```
-
-The [implementation guide](procedures/talos-terraform.md#plan-and-deploy) owns the
-command side effects and state contract. The [common cluster procedure](procedures/kubernetes.md)
-applies to all three tiers, not a second Terraform owner.
-
-**Alternative:** [1b: manual bootstrap](step-1b-manual-cluster.md) replaces that lifecycle;
-it does not create a second state owner. Another OS requires its own implementation.
+The [common cluster procedure](procedures/kubernetes.md) is the cross-tier contract,
+not another installation to run. Another OS requires its own implementation.
 New-cluster inputs provide three schedulable control planes and no workers.
 Additional workers are an explicit capacity choice; existing clusters retain their local nodes.
 
@@ -139,9 +124,7 @@ flowchart TB
 ```
 
 **IaC:** Tier 0's [platform playbook](../../../tier-0/ansible/playbooks/deployment/cluster-platform.yml)
-owns the selected pinned releases; reusable execution roles install them
-on the existing cluster. Follow the [basic platform procedure](procedures/basic-platform.md)
-to configure inputs, render privately and apply with readiness gates.
+owns the selected pinned releases; reusable execution roles install them on the existing cluster.
 Scope: the five chart releases in the Tier 0 example, their Flux source/decryption
 objects and the accepted existing block CSI prerequisite. Application databases
 are created later by their owning recipes, not implied by the operator box.
@@ -157,6 +140,17 @@ backups are separate selections, not installed by this pictured main path.
 | PostgreSQL | CloudNativePG operator and optional probe database; Barman Cloud only for the object/WAL option | Qualified block CSI/image; application connection, selected backup and restore tests |
 | Reconciliation/secrets | Flux controllers, pinned Git source, SOPS age decryption | Independent source/keys and encrypted acceptance canary |
 
+1. Complete [basic platform Step 2](procedures/basic-platform.md#configure).
+   Copy `ansible/group_vars/cluster_platform.yml.example` to its local file, edit the
+   approved pins/storage/context fields.
+2. Follow [basic platform Step 3](procedures/basic-platform.md#render-and-apply) to
+   render, inspect and apply **Cilium first**. Wait for
+   nodes/DNS before installing the remaining components. Accept the live block CSI
+   prerequisite; the example does not install a Proxmox/Ceph block driver.
+3. Complete [Flux/SOPS Steps 1-3](procedures/flux-sops.md) before the remaining platform
+   apply. Publish the encrypted canary to an independently reachable Git source and
+   provide read-only source credentials/age keys. Return here for Step 3.
+
 The installer applies networking, storage, certificates, ingress, database and Flux
 in that order, waiting between products. Components can be selected independently;
 install ingress first when an enabled certificate probe uses HTTP-01.
@@ -168,8 +162,7 @@ is explicit; installing cert-manager does not supply that adapter or authorize e
 
 Tier 0's [clusters/tier0/](../../../tier-0/clusters/tier0) folders remain GitOps starters;
 the installer does not populate them or transfer Helm ownership to Flux.
-Prepare the [Flux source and canary](procedures/flux-sops.md), verify reconciliation,
-decryption, persistence, TLS and database health, and start backups as state appears.
+Verify reconciliation, decryption, persistence, TLS and database health, and start backups as state appears.
 Flux requires a reachable source with independent credentials, not merely a local checkout.
 Install and qualify [protected cluster-source collection](procedures/security-logging.md)
 before acceptance. It has a separate recipe from the add-on subset above; neither
@@ -211,14 +204,17 @@ and [node inputs](../../../tier-0/ansible/group_vars/cluster_security_logging.ym
 select these three releases from the [Shared role](../../../shared/ansible/roles/cluster_security_logging).
 Scope: cluster sources and bounded local queues; the receiver and its archive are existing Stage 2 services.
 
-Follow the [collection procedure](procedures/security-logging.md) to enroll distinct
-client leaves, install collectors and test source-to-intake delivery. No signing
-authority enters Kubernetes. A lost node, full queue or unavailable first-hop
-listener can lose records; protected intake is not an application-acknowledged replica.
+1. Finish [cluster logging Steps 3-6](procedures/security-logging.md#prepare-talos):
+   verify the prepared patches, enroll distinct node leaves at Tier 0, install
+   collectors and locate real node/pod/API events at protected intake.
+2. Run the [cluster verification commands](procedures/talos-terraform.md#verify-and-hand-over)
+   and accept every selected [foundation gate](procedures/kubernetes.md#cluster-foundation)
+   and recovery check below. Empty manifests or three running VMs are insufficient.
+3. Keep the results and independent recovery copies in the project records before
+   starting Identity.
 
-Run the [implementation checks](procedures/talos-terraform.md#verify-and-hand-over) and accept
-every selected [cluster-foundation gate](procedures/kubernetes.md#cluster-foundation).
-Empty manifests, three VMs or a successful bootstrap do not accept the platform.
+No signing authority enters Kubernetes. A lost node, full queue or unavailable first-hop
+listener can lose records; protected intake is not an application-acknowledged replica.
 
 | Check | Required evidence |
 | --- | --- |

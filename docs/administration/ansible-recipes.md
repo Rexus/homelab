@@ -3,37 +3,69 @@
 Playbooks are recipes; roles implement reusable configuration. Deployment and
 maintenance compose the same roles without owning separate inventories or state.
 
-## Table of contents
+<a id="table-of-contents"></a>
 
-- [Choose a recipe](#choose-a-recipe)
-- [Recipe map](#recipe-map)
-- [Maintenance boundaries](#maintenance-boundaries)
+## Find a task
 
-## Choose a recipe
+- [How is maintenance run on an existing service?](#choose-a-recipe)
+- [How is only the issuing CA inspected?](#inspect-the-issuer)
+- [Which recipe owns each operation?](#recipe-map)
+- [Does maintenance upgrade products or roll back failures?](#maintenance-boundaries)
 
-From the owning tier root, the normal deployment command provisions through
-Terraform and runs the deployment recipe. `--ansible-only` skips provisioning.
-For existing hosts, select maintenance explicitly:
+<a id="choose-a-recipe"></a>
+
+## How is maintenance run on an existing service?
+
+**Work from:** the owning tier's repository root; never Shared.
+**Prerequisites:** existing hosts, tier-local inventory/inputs, approved SSH/sudo and control-node tooling.
+
+1. Choose the setup and maintenance scope from the table below. Switch to its owning tier.
+2. Review `ansible/inventory/hosts.yml`, `ansible/group_vars/all.yml` and the setup's
+   `ansible/group_vars/<setup>.yml`; keep the accepted inputs and any environment overlay.
+3. Run the selected recipe. For Tier 0 directory health checks:
 
 ```bash
 bash scripts/deploy.sh foundation --recipe maintenance
 ```
 
-This Tier 0 example checks the directory services. Substitute an owned setup
-from the table; use `--env test` for its existing environment vars. Maintenance
-never runs Terraform. It rejects `--plan-only`, `--terraform-only`, and `--destroy`.
-The local precheck does not require Terraform for maintenance or `--ansible-only`.
+4. Check the service result and protected logs before expanding the maintenance scope.
+
+**Expected:** this example runs directory checks, not Terraform. Other recipes can change
+configuration or restart services; their scope is listed below. Use `--env test` only for
+an already configured test environment. Maintenance rejects `--plan-only`, `--terraform-only`
+and `--destroy`; its precheck does not require Terraform.
 
 The wrapper supplies the same inventory, ordered group vars, roles path, and
 precheck as deployment. Direct `ansible-playbook` execution is valid with those
 same inputs; see [command reference](../reference/repository-scripts.md).
 
-Use `--playbook deployment/openxpki.yml --ansible-only` with the `foundation`
-setup for the issuer-only recipe, plus `--ansible-vars ansible/group_vars/issuer.yml`.
-Select `maintenance/openxpki.yml` for read-only CA inspection. The override selects
-only a tier-local recipe; it never creates another Terraform root or state owner.
+**Stop/rollback:** investigate the first failure before retrying. No generic undo exists;
+restore approved configuration using the product's runbook. Normal deployment without
+`--recipe maintenance` provisions through Terraform; `--ansible-only` skips that provisioning.
 
-## Recipe map
+<a id="inspect-the-issuer"></a>
+
+## How is only the issuing CA inspected?
+
+**Work from:** Tier 0 root, with existing `foundation` and `issuer.yml` inputs.
+
+1. Review `ansible/group_vars/issuer.yml` and the `issuing_ca` inventory group.
+2. Run the read-only service/configuration/API checks:
+
+   ```bash
+   bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
+   ```
+
+3. Expect running issuer services, valid native configuration and a successful local API ping.
+   On failure, preserve logs and follow [issuer recovery](cryptography/issuer-recovery.md);
+   inspection never initializes or activates a token.
+
+The override selects only a tier-local recipe; it creates no new Terraform root/state owner.
+Initial deployment uses the separate [issuer procedure](../deployment/stage-3-trust/procedures/issuer.md).
+
+<a id="recipe-map"></a>
+
+## Which recipe owns each operation?
 
 Paths are relative to the tier's `ansible/playbooks/`. Legacy `<setup>.yml`
 entry points import the deployment recipe using native `import_playbook` [1].
@@ -84,11 +116,13 @@ Reconcile the same release with the same values owner; do not run direct apply a
 a GitOps controller against the same objects simultaneously. Stateful upgrades,
 schema migrations and restores require the product's separate acceptance runbook.
 
-The [domain catalog](../architecture/README.md#technical-domains) maps these variants to
+The [domain catalog](../architecture/README.md#foundational-capabilities) maps these variants to
 the platform architecture and deployment stages. A stage can combine Terraform, Ansible, GitOps,
 and manual procedures; it is not an Ansible playbook that deploys everything.
 
-## Maintenance boundaries
+<a id="maintenance-boundaries"></a>
+
+## Does maintenance upgrade products or roll back failures?
 
 Configuration reconciliation can install missing packages and restart services
 through existing handlers. It is not necessarily read-only, zero-downtime, or

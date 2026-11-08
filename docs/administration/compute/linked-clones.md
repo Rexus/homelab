@@ -7,14 +7,18 @@ can therefore still be required by running VMs. [1]
 
 **Execution:** Proxmox VE GUI; optional read-only checks on the storage-owning host.
 **IaC ownership:** inventory, VM definitions and state remain in the VM's Tier 0, 1 or 2 repository.
+**Why:** [provisioning ownership](../../architecture/hosting/provisioning.md) and
+[image promotion](../../architecture/software/artifact-supply.md) separate new image selection from existing guests.
 
-## Contents
+<a id="contents"></a>
 
-- [Choose the outcome](#choose-the-outcome)
-- [Option A: Full clone to a new VMID](#option-a-full-clone-to-a-new-vmid)
-- [Option B: Keep the VMID and copy its disks](#option-b-keep-the-vmid-and-copy-its-disks)
-- [Verify ZFS dependencies](#verify-zfs-dependencies)
-- [Release the old base](#release-the-old-base)
+## Find the task
+
+- [Keep current data or deploy a new OS?](#choose-the-outcome)
+- [Create an independent VM with a new VMID?](#option-a-full-clone-to-a-new-vmid)
+- [Keep the existing VMID?](#option-b-keep-the-vmid-and-copy-its-disks)
+- [Check whether a ZFS base is still required?](#verify-zfs-dependencies)
+- [Delete an old base safely?](#release-the-old-base)
 - [References](#references)
 
 ## Choose the outcome
@@ -74,7 +78,9 @@ to the same storage in the same format. [2]
 Storage moves do not migrate the VM's snapshot history. Keep the old base while
 retained snapshots or unused source disks still reference it. [2]
 
-## Verify ZFS dependencies
+<a id="verify-zfs-dependencies"></a>
+
+## How are ZFS dependencies checked?
 
 On the Proxmox host holding the local ZFS storage, inspect dataset origins:
 
@@ -82,13 +88,15 @@ On the Proxmox host holding the local ZFS storage, inspect dataset origins:
 zfs list -t filesystem,volume -o name,origin
 ```
 
-An `ORIGIN` ending in `base-110-disk-1@__base__`, for example, identifies a dependency
-on that base snapshot. A clone created after a switch to `base-110-disk-2` uses that
+An `ORIGIN` ending in `base-9101-disk-1@__base__`, for example, identifies a dependency
+on that base snapshot. A clone created after a switch to `base-9101-disk-2` uses that
 new base instead. `ORIGIN` of `-` means the dataset is not a ZFS clone. Inspect
 retained unused volumes as well as currently attached disks. Other storage types
 require their own dependency checks. [4]
 
-## Release the old base
+<a id="release-the-old-base"></a>
+
+## When can the old base be removed?
 
 Keep the old base until all dependent disks are removed or independently copied,
 including retained originals and snapshots. Then follow the template's

@@ -96,6 +96,18 @@ Install the common and Tier 0 Ansible requirements as described in
 
 ## Configure local inputs
 
+### Step 1: Initialize and edit the gateway inputs
+
+From the generated Tier 0 repository root:
+
+```bash
+bash scripts/init-local-files.sh --setup cluster-endpoint
+```
+
+For an existing collection, first review/register the setup under the
+[setup ownership contract](../../../development/generated-repositories.md#setup-ownership).
+Edit the local files below; keep example files unchanged.
+
 | Owned input or implementation | Action |
 | --- | --- |
 | [Tier 0 inventory](../../../../tier-0/ansible/inventory/hosts.yml.example) | Keep exactly two approved gateway hosts in `cluster_endpoint`; keep them in `guests` for baseline operations. Never place Talos nodes in this group. |
@@ -132,31 +144,23 @@ keep direct node addresses in `talosconfig` for bootstrap and recovery.
 
 ## Install the endpoint
 
-For an existing collection, first review/register the new `cluster-endpoint`
-setup under the [setup ownership contract](../../../development/generated-repositories.md#setup-ownership).
-
-From the generated Tier 0 repository root, initialize the local files:
-
-```bash
-bash scripts/init-local-files.sh --setup cluster-endpoint
-```
+### Step 2: Deploy the gateway pair
 
 Review the inputs above, `.env.local`, `terraform/common.tfvars` and the approved
-shared platform/image catalogs. The default hardware uses VMIDs 270/271, local
+shared platform/image catalogs. The default hardware uses VMIDs 401/402, local
 storage and the Tier 0 `management` attachment. Initial placement on separate
 hosts is enforced; Proxmox owns subsequent moves, so qualify ongoing anti-affinity
 and shared storage/power dependencies separately.
 
-```bash
-bash scripts/deploy.sh cluster-endpoint --plan-only
-```
-
-Review the saved plan, which must create only the gateway pair, then apply that
-exact plan and configure the hosts:
+Run once. Review the displayed plan, which must create only the gateway pair,
+then enter `yes` to provision and configure them:
 
 ```bash
 bash scripts/deploy.sh cluster-endpoint
 ```
+
+Optional preview: add `--plan-only`. An approved unattended CI job can add
+`--auto-approve`; neither option performs the physical/network acceptance tests.
 
 The helper selects this root's isolated state at
 `.terraform/state/cluster-endpoint/prod/terraform.tfstate` for the base environment.
@@ -197,6 +201,8 @@ acceptance check.
 
 ## Verify and hand over
 
+### Step 3: Verify the endpoint, then return to cluster bootstrap
+
 Run parser checks on both gateways after installation:
 
 ```bash
@@ -211,6 +217,11 @@ the owning tier's protected kubeconfig:
 kubectl get --raw='/readyz?verbose'
 kubectl get nodes -o wide
 ```
+
+Before bootstrap, complete DNS/VIP and parser checks; backend readiness is expected
+to fail until the control planes exist. Continue with
+[cluster input configuration](talos-terraform.md#configure), then return here for
+the live failover and isolation tests below.
 
 | Acceptance exercise | Required result |
 | --- | --- |

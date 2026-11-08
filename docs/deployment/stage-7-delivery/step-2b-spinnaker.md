@@ -109,6 +109,16 @@ interface are consumed, never Tier 0 control credentials. No NAS gateway is adde
 
 ## Step 1: Prepare Local Inputs
 
+From the **Tier 1 root**, create the local settings without replacing existing inputs:
+
+```bash
+cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
+```
+
+Edit `ansible/group_vars/delivery_platform.yml` using the table below. Set the
+existing Tier 1 kubeconfig/context explicitly; keep `delivery_platform_install_harbor: false`
+for this controller-only pass. Both delivery branches return to Stage 7 Step 3.
+
 Follow the [common installer prerequisites](procedures/delivery-installer.md#prerequisites)
 and populate the ignored local copy of
 [delivery_platform.yml.example](../../../tier-1/ansible/group_vars/delivery_platform.yml.example).
@@ -327,8 +337,17 @@ and scoped target contracts are all included. The output directory contains:
 | `spinnaker.sha256` | Exact checksum binding the complete render, including target grants |
 | `credentials/` | Private stable bootstrap passwords only when bootstrap ownership is selected |
 
-Set `delivery_platform_spinnaker_review_sha256` to the reviewed checksum and use
-the same inputs with `delivery_platform_action=apply`. Apply rebuilds and checks
+Read the rendered checksum:
+
+```bash
+cat secrets/delivery-platform/spinnaker.sha256
+```
+
+Copy that value into `delivery_platform_spinnaker_review_sha256` in
+`ansible/group_vars/delivery_platform.yml`, then run the
+[common apply command](procedures/delivery-installer.md#render-and-apply) with the same inputs.
+
+Apply rebuilds and checks
 the checksum before cluster access, validates credential fields and OIDC discovery,
 and then executes this dependency order:
 

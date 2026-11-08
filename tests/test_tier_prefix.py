@@ -35,7 +35,7 @@ class PrefixCasing(TierRepositoryTestCase):
                             self.assertTrue((path.parent / target).exists(), (path, target))
         architecture = collection / 'homelab-architecture'
         self.assertTrue((architecture / 'docs/README.md').read_text().startswith('# HomeLab '))
-        self.assertTrue((architecture / 'docs/naming-conventions.md').read_text().startswith('# HomeLab '))
+        self.assertTrue((architecture / 'platform-standards.md').read_text().startswith('# HomeLab '))
         self.assertIn('records for HomeLab.', (architecture / 'README.md').read_text())
         script = collection / 'homelab-tier-0/scripts/proxmox-templates.sh'
         self.assertIn('../homelab-shared/config/platform.tfvars', script.read_text())

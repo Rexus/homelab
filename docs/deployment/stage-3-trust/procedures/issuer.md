@@ -31,22 +31,29 @@ prepared data storage, production configuration bundle and authorized custodians
    cp -n ansible/group_vars/issuer.yml.example ansible/group_vars/issuer.yml
    ```
 
-   Set `ca-1`'s per-guest `template_vm_id`, extra data disk, `issuing_ca` inventory
-   entry and foundation IP. For a new Stage 3 installation, the desired guest map
+   Edit these Tier 0 files before provisioning:
+
+   | File | Set |
+   | --- | --- |
+   | `terraform/deployments/foundation/terraform.tfvars` | `vm_instances["ca-1"].template_vm_id` to the approved Debian VMID; its unused `vm_id`, placement/storage and `extra_disks` data capacity |
+   | `ansible/inventory/hosts.yml` | `ca-1` under `issuing_ca`; retain existing directory and other groups |
+   | `ansible/group_vars/foundation.yml` | Reserved `platform_host_ips.ca-1` and existing directory IPs |
+   | `terraform/common.tfvars` | Actual `network_zones.cryptography` attachment and prefix/gateway or applied SDN lookup |
+   | `.env.local` | Real Proxmox endpoint/token and an existing `TF_VAR_ssh_public_key_files` path; use the matching private key for Ansible |
+
+   For a new Stage 3 installation, the desired guest map
    may contain only `ca-1`; later add the identity pair to this **same state**.
    The unchanged starter includes all three guests; it is not an issuer-only plan.
    Never remove an already-managed guest to match a stage label.
-3. Review and provision, without running the identity recipe:
-
-   ```bash
-   bash scripts/deploy.sh foundation --plan-only
-   ```
-
-   After review:
+3. Provision without running the identity recipe. Review the displayed Terraform
+   plan and enter `yes` only for the approved resources:
 
    ```bash
    bash scripts/deploy.sh foundation --terraform-only
    ```
+
+   Add `--plan-only` for an optional preview or `--auto-approve` for an already
+   approved unattended provisioning job. Neither flag authorizes a CA ceremony.
 
 Retain the same `--env` context for every subsequent command if one was selected.
 The foundation extra-disk input now reaches the guest module without moving state.
@@ -66,6 +73,33 @@ For the supplied software policy, first build the private artifact using
    portal/publication networks. Supply passwords and portal TLS inputs through the
    protected controller environment or a secret-only Ansible override. No demo
    policy, account, key or password is generated. [1][3]
+
+   | Field in `ansible/group_vars/issuer.yml` | Enter |
+   | --- | --- |
+   | `openxpki_data_uuid` | Verified dedicated data filesystem UUID |
+   | `openxpki_configuration_src`, `openxpki_configuration_sha256` | Absolute private bundle path and reviewed archive SHA256 |
+   | `openxpki_repository_key_sha256`, `openxpki_package_versions` | Independently approved repository key hash and exact native package versions |
+   | `openxpki_admin_networks`, `openxpki_publication_networks` | Restricted portal clients and approved public-object readers |
+   | `openxpki_initialize_database`, `openxpki_activate_runtime` | First empty-database initialization only; activation remains `false` until Step 3 |
+
+   In the protected execution shell, load the stable credentials and TLS file
+   paths before running Ansible. Restore existing values from custody on reruns;
+   changing them is not password rotation or database recovery:
+
+   ```bash
+   read -r -s -p 'Issuer database password: ' OPENXPKI_DATABASE_PASSWORD; echo
+   read -r -s -p 'Issuer session database password: ' OPENXPKI_SESSION_PASSWORD; echo
+   read -r -s -p 'Issuer session secret: ' OPENXPKI_SESSION_SECRET; echo
+   read -r -e -p 'Absolute portal TLS certificate path: ' OPENXPKI_TLS_CERT_FILE
+   read -r -e -p 'Absolute matching portal TLS key path: ' OPENXPKI_TLS_KEY_FILE
+   export OPENXPKI_DATABASE_PASSWORD OPENXPKI_SESSION_PASSWORD OPENXPKI_SESSION_SECRET
+   export OPENXPKI_TLS_CERT_FILE OPENXPKI_TLS_KEY_FILE
+   ```
+
+   The software bundle supplies `portal-bootstrap.pem` / `portal-key.pem` in its
+   private build directory for initial commissioning only. Follow the policy
+   guide's independent fingerprint check, then replace that temporary certificate
+   before normal operations. Retain passwords/session secrets outside the issuer.
 3. For the first empty database only, set `openxpki_initialize_database: true`, then run:
 
    ```bash

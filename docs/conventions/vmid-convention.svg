@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="810" viewBox="0 0 1080 810"
+     role="img" aria-labelledby="title description">
+  <title id="title">Proxmox VMID naming convention</title>
+  <desc id="description">T is the tier or allocation group, C is the category and NN is instance 00-99.
+    Example 2103 is a Tier 2 Kubernetes worker, instance 03. Tier 0 uses three digits with shifted categories:
+    100-199 control plane, 200-299 workers. Lab, clients and templates are allocation groups, not extra tiers.</desc>
+  <style>
+    text { font-family: Arial, sans-serif; fill: #1f2937; font-size: 20px; }
+    .heading { font-size: 30px; font-weight: 700; }
+    .section { font-size: 24px; font-weight: 700; }
+    .digit { font-family: Consolas, monospace; font-weight: 700; }
+    .symbol { font-size: 40px; font-weight: 700; }
+    .muted { fill: #475569; font-size: 18px; }
+    .rule { stroke: #cbd5e1; stroke-width: 1; }
+  </style>
+  <rect width="1080" height="810" rx="16" fill="#f8fafc"/>
+  <text x="32" y="46" class="heading">Proxmox VMID naming convention</text>
+
+  <rect x="32" y="70" width="1016" height="212" rx="16" fill="#eef2f6" stroke="#64748b"/>
+  <text x="540" y="109" text-anchor="middle" class="heading">T C NN</text>
+  <rect x="52" y="128" width="312" height="112" rx="12" fill="#e2f3ed" stroke="#397366"/>
+  <rect x="384" y="128" width="312" height="112" rx="12" fill="#e7f0fc" stroke="#4d719b"/>
+  <rect x="716" y="128" width="312" height="112" rx="12" fill="#eeeafa" stroke="#78639b"/>
+  <g text-anchor="middle">
+    <text x="208" y="168" class="symbol">T</text>
+    <text x="208" y="197" font-weight="700">Tier</text>
+    <text x="208" y="223" class="muted">Thousands</text>
+    <text x="540" y="168" class="symbol">C</text>
+    <text x="540" y="197" font-weight="700">Category</text>
+    <text x="540" y="223" class="muted">Hundreds</text>
+    <text x="872" y="168" class="symbol">NN</text>
+    <text x="872" y="197" font-weight="700">Instance</text>
+    <text x="872" y="223" class="muted">00–99</text>
+    <text x="540" y="266" class="muted">Example: 2103 = Tier 2, Kubernetes worker, instance 03.</text>
+  </g>
+
+  <text x="32" y="333" class="section">Tier (T)</text>
+  <text x="556" y="333" class="section">Category (C)</text>
+  <text x="32" y="372" font-weight="700">Digit</text>
+  <text x="144" y="372" font-weight="700">Purpose</text>
+  <text x="556" y="372" font-weight="700">Digit</text>
+  <text x="668" y="372" font-weight="700">Purpose</text>
+  <path class="rule" d="M32 386H520 M556 386H1048"/>
+
+  <text x="32" y="415" class="digit">0</text><text x="144" y="415">Tier 0 — Core</text>
+  <text x="556" y="415" class="digit">0</text><text x="668" y="415">Kubernetes control plane</text>
+  <path class="rule" d="M32 430H520 M556 430H1048"/>
+  <text x="32" y="459" class="digit">1</text><text x="144" y="459">Tier 1 — Platform</text>
+  <text x="556" y="459" class="digit">1</text><text x="668" y="459">Kubernetes workers</text>
+  <path class="rule" d="M32 474H520 M556 474H1048"/>
+  <text x="32" y="503" class="digit">2</text><text x="144" y="503">Tier 2 — Applications</text>
+  <text x="556" y="503" class="digit">2</text><text x="668" y="503">Infrastructure services</text>
+  <path class="rule" d="M32 518H520 M556 518H1048"/>
+  <text x="32" y="547" class="digit">3</text><text x="144" y="547">Lab / Development</text>
+  <text x="556" y="547" class="digit">3</text><text x="668" y="547">Network / Edge</text>
+  <path class="rule" d="M32 562H520 M556 562H1048"/>
+  <text x="32" y="591" class="digit">4</text><text x="144" y="591">Clients</text>
+  <text x="556" y="591" class="digit">4</text><text x="668" y="591">Observability</text>
+  <path class="rule" d="M32 606H520 M556 606H1048"/>
+  <text x="32" y="635" class="digit">5–8</text><text x="144" y="635">Reserved</text>
+  <text x="556" y="635" class="digit">5</text><text x="668" y="635">Bootstrap / Automation</text>
+  <path class="rule" d="M32 650H520 M556 650H1048"/>
+  <text x="32" y="679" class="digit">9</text><text x="144" y="679">Templates</text>
+  <text x="556" y="679" class="digit">6–9</text><text x="668" y="679">Other / Reserved</text>
+
+  <text x="32" y="725" font-size="19">Instance (NN): 00–99, freely assigned within each category.</text>
+  <text x="32" y="756" class="muted">Tier 0 exception: 100–999, with shifted categories; 100 = control plane, 200 = workers.</text>
+  <text x="32" y="785" class="muted">3xxx / 4xxx are allocation groups, not extra security tiers. 9xxx uses template catalog allocations.</text>
+</svg>

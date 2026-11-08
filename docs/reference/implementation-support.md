@@ -71,7 +71,7 @@ Retain one values/resource owner when transferring a release to a delivery contr
 | 7/10 | Public edge | Tier 2 HAProxy/keepalived plus opt-in native HTTP-01, staging/production separation, verified origin TLS and controller renewal timer; real domain, SELinux/network behavior, failover/renewal and independent alert acceptance remain operator work |
 | 9 option | Image lifecycle | Tier 0 image builders/publication; Tier 1 general build runner where selected |
 | 9 | Trusted infrastructure CI | Tier 0 runner installation, native Vault JWT/policy root and manual saved-plan pipeline; explicitly trusts GitLab/hosting administrators. Live denial, state continuity and recovery qualification required |
-| 10 | Bounded workload requests | [Design contract](../architecture/compute/provisioning.md) and profile examples; no allocator, portal or complete request controller |
+| 10 | Bounded workload requests | [Design contract](../architecture/hosting/provisioning.md) and profile examples; no allocator, portal or complete request controller |
 | 8 | Observability | Tier 1 native Kubernetes releases include Netdata and OpenSearch initially; Tier 0 owns infrastructure collectors, private credentials and approved metric projections. Native values and policy bootstrap accompany the installer |
 | 8 alternative | Dedicated observability VM alternative | Separate Tier 1 gateway, metrics and search hosts/baseline; no product installer |
 | 10 | Workload collection | Tier 2 native scoped Collector with queue PVCs and distinct metrics/application client credentials; application-owned SDK instrumentation; security evidence follows the separate Tier 0 path |

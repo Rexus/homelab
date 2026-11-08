@@ -31,18 +31,24 @@ Replace every example address/domain with accepted local values. The bootstrap
 resolver and time source must work before FreeIPA or this Kubernetes cluster exists. [2]
 
 ```hcl
-machine_config_patches = [yamlencode({
-  machine = {
-    env = {
-      http_proxy  = "http://cache.example.com:3128"
-      https_proxy = "http://cache.example.com:3128"
-      no_proxy    = "127.0.0.1,localhost,10.10.13.0/24,10.244.0.0/16,10.96.0.0/12,.example.com,.svc,.cluster.local"
-    }
-    network = { nameservers = ["10.10.10.53"] }
-    time    = { servers = ["10.10.10.123"] }
-  }
-})]
+machine_config_patches = [<<-YAML
+  machine:
+    env:
+      http_proxy: http://cache.example.com:3128
+      https_proxy: http://cache.example.com:3128
+      no_proxy: 127.0.0.1,localhost,10.10.13.0/24,10.244.0.0/16,10.96.0.0/12,.example.com,.svc,.cluster.local
+    network:
+      nameservers: [10.10.10.53]
+    time:
+      servers: [10.10.10.123]
+  YAML
+]
 ```
+
+This example uses the Talos v1.13 schema. Use release-matched documents for a
+different schema. In `.tfvars`, use literal heredoc strings; Terraform function
+calls such as `yamlencode(...)` cannot be evaluated there. When CNI/logging
+patches already exist, append this string to the list instead of replacing it.
 
 Include all node/control endpoint addresses, node/pod/service CIDRs, internal
 registry endpoints and service domains in `no_proxy`. The example is not a

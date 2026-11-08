@@ -1,103 +1,119 @@
-# Secret strategy
+# Credential handling and rotation
 
-## Table of contents
+<a id="secret-strategy"></a>
 
-- [Purpose](#purpose)
-- [Design goal](#design-goal)
-- [Bootstrap minimum](#bootstrap-minimum)
-- [GitOps bootstrap secrets](#gitops-bootstrap-secrets)
-- [Secret-platform deployment milestone](#secret-platform-deployment-milestone)
-- [Secret-platform operating target](#secret-platform-operating-target)
-- [What goes where](#what-goes-where)
+
+Keep bootstrap/recovery credentials independent of the services they unlock.
+Use the accepted secret service for normal credential delivery after commissioning.
+The [cryptography design](../../architecture/cryptography/README.md) explains the boundaries;
+this page identifies the operating task and its supported procedure.
+
+**Run from:** the credential-owning tier repository on its authorized execution host.
+**Before starting:** identify the credential's issuer, consumers, recovery copy and
+revocation owner. Never replace an unknown credential merely because it is unavailable.
+
+<a id="table-of-contents"></a>
+
+## Tasks
+
+- [Where is each credential kept?](#what-goes-where)
+- [What is required before Vault exists?](#bootstrap-minimum)
+- [How are Flux bootstrap secrets maintained?](#gitops-bootstrap-secrets)
+- [When can applications use the secret service?](#secret-platform-deployment-milestone)
+- [How is an existing credential rotated?](#secret-platform-operating-target)
+- [What happens after a leak or lost credential?](#what-happens-after-a-leak-or-lost-credential)
 - [References](#references)
 
-## Purpose
+<a id="purpose"></a>
+<a id="design-goal"></a>
+<a id="what-goes-where"></a>
 
-This repository is designed to be easy to bootstrap while adopting a stronger
-secret model quickly. Vault is the current reference secret platform and should
-be introduced as early as the shared identity and PKI layer can support it
-safely.
+## Where is each credential kept?
 
-## Design goal
-
-The secret strategy should be:
-
-- simple enough for first use
-- safe enough to avoid publishing secrets by mistake
-- compatible with local execution and self-hosted runners
-- easy to transition into a secret platform without large repository changes
-- explicit about which small bootstrap secrets must still exist outside the
-  secret platform
-
-## Bootstrap minimum
-
-Before the secret platform is available:
-
-- keep structured non-secret configuration in ignored local files or a private
-  operational copy
-- keep sensitive runtime values in local environment variables or protected
-  runner variables
-- limit off-platform secrets to the minimum needed to create the bootstrap
-  shared identity and PKI layer, or to connect to existing shared services
-- keep plaintext secrets out of Git; encrypted GitOps payloads belong only in
-  private operational repositories with a reviewed key and recovery policy
-
-## GitOps bootstrap secrets
-
-For initial cluster services, use SOPS-encrypted Kubernetes Secrets with Flux
-decryption. A protected age key is a simple independent bootstrap option:
-provide it to Flux out of band before reconciling encrypted resources, and
-keep a recoverable copy outside the cluster. Follow the official procedure for
-the decryption Secret and Flux Kustomization configuration. [1]
-
-Commit ciphertext and public encryption-recipient settings, never private keys
-or plaintext Secret values. Source-control and registry access needed to start
-Flux must also be supplied without first depending on Flux reconciliation.
-Do not use the not-yet-deployed Vault instance as the only way to obtain the
-key or credentials needed to deploy it.
-
-Vault arrives with Stage 6 Secrets for the long-term secret-platform role. SOPS can remain
-the small encrypted bootstrap/recovery channel; it is not replaced merely
-because Vault exists. Enable external-secret consumers only after their backend
-and authentication path work. The kit does not configure SOPS or these
-integrations automatically; see the [cluster foundation checklist](../../deployment/stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation).
-
-## Secret-platform deployment milestone
-
-Once the shared identity, DNS, and PKI prerequisites are ready:
-
-- install the secret platform as a dedicated early shared service
-- initialize and unseal it before broader service deployment when required
-- enable an audit device and store the first shared secrets there
-- treat Ansible Vault and plain environment variables as fallback bootstrap
-  mechanisms, not the long-term system of record
-
-Read more in [Vault foundation deployment](../../deployment/stage-6-secrets/step-1b-vault-vm.md).
-
-## Secret-platform operating target
-
-After the first secret-platform deployment is online:
-
-- move long-lived and shared secrets into the secret system
-- reduce direct use of plain environment variables for persistent secrets
-- use environment variables mainly as references, bootstrap inputs, or injected
-  short-lived values
-
-## What goes where
-
-| Type of value | Preferred location |
+| Material | Location / owning procedure |
 | --- | --- |
-| platform API tokens | environment variables during bootstrap, then the secret platform |
-| secret-platform TLS private keys | local untracked secret files or private PKI workflow |
-| unseal or recovery material | encrypted offline storage, never in Git |
-| bootstrap passwords | environment variables during bootstrap, then the secret platform |
-| GitOps bootstrap Secret payloads | SOPS ciphertext in private Git; decryption keys outside Git with protected recovery copies |
-| network CIDRs | ignored local files or private operational copy |
-| node and bridge names | ignored local files or private operational copy |
-| inventory structure | ignored local files or private operational copy |
-| shared service credentials | secret platform |
-| PKI material | secret platform or another dedicated secure store |
+| Host inventories, IPs and network settings | Tier-local plain inputs; Shared owns no inventory |
+| Bootstrap API tokens/passwords | Protected shell/runner injection or ignored `.env.local`; [Ansible-only encryption](ansible-vault.md) when selected |
+| Routine service credentials | Accepted secret service with scoped workload access |
+| TLS private keys | Owning service's protected files/Secrets and independent encrypted backups |
+| SOPS payloads | Ciphertext in private Git; age private identities outside Git and independently backed up |
+| Vault unseal/recovery material | Separate authorized custody, outside Git and Vault itself |
+| Root keys, issuer keys and DataVault recovery secrets | Their separate CA/HSM custody and [issuer recovery set](../cryptography/issuer-recovery.md), never ordinary CI variables |
+
+<a id="bootstrap-minimum"></a>
+
+## What is required before Vault exists?
+
+1. Retain independent SSH, verified Proxmox API trust, state access and the small
+   credential set required by the current stage. Use local ignored inputs or
+   protected runner variables, not tracked examples.
+2. Supply FreeIPA passwords through [environment injection or an encrypted override](ansible-vault.md).
+   Keep inventory/IP files plain for Terraform.
+3. Record independent recovery holders and copies before deploying stateful services.
+   Never make bootstrap depend on later SSO, hosted Git or the Vault instance being created.
+
+<a id="gitops-bootstrap-secrets"></a>
+
+## How are Flux bootstrap secrets maintained?
+
+1. In Tier 0, follow [Flux/SOPS Steps 1-2](../../deployment/stage-4-kubernetes/procedures/flux-sops.md)
+   for the exact Git URL/commit, read-only credential and age Secret inputs.
+2. Commit only ciphertext/public recipient settings. Keep the private identity and
+   source-access recovery outside the cluster. Verify the encrypted canary after changes. [1]
+3. For recipient changes, retain the old identity until all affected ciphertext,
+   deployed Secrets and retained backups have qualified recovery. Use the native
+   SOPS/Flux procedure; no repository-wide automatic key rotation is supplied.
+
+SOPS can remain the bootstrap channel after Vault is installed. Controller
+installation alone does not migrate existing credentials or configure external-secret delivery.
+
+<a id="secret-platform-deployment-milestone"></a>
+
+## When can applications use the secret service?
+
+1. Complete [Stage 6 Secrets](../../deployment/stage-6-secrets/README.md) using the
+   selected Kubernetes or VM path. Initialization/unseal remains an operator ceremony.
+2. Verify TLS, scoped access, protected audit delivery, backups and independent recovery.
+3. Enable each consumer's accepted authentication/injection path. Move a credential
+   only after testing its consumer; keep the minimum recovery set outside Vault.
+
+<a id="secret-platform-operating-target"></a>
+
+## How is an existing credential rotated?
+
+Select one operation; the commands and gates differ:
+
+| Operation | Procedure / limit |
+| --- | --- |
+| Ansible encrypted-file password | [Rekey the file](ansible-vault.md#how-is-the-file-encryption-password-rotated); account values inside it remain unchanged |
+| TLS-server leaf/key | [Renew the service certificate](../cryptography/certificate-authority.md#how-is-a-service-certificate-renewed); the supplied private CA policy is TLS-server only |
+| Infrastructure issuer/root key | [CA change and recovery](../cryptography/certificate-authority.md#change-and-recovery); a new-key ceremony/rollover, not a file edit |
+| HSM custody | [Hardware migration](../cryptography/hardware-migration.md); provider and native token lifecycle must be qualified |
+| Proxmox provisioning token | Follow the [API access procedure](../../deployment/foundation/proxmox/api-access.md); retain scoped grants and verify consumers before revoking the old token |
+| Service database/API password | Use that product's native account change and update every consumer; storing another value does not perform the change |
+| OpenXPKI database/session/DataVault secrets | Routine playbooks reject binding changes; a tested product-specific migration is required |
+| Vault seal/unseal material | Separate native operator ceremony under the selected [seal design](../../architecture/cryptography/vault-seal.md); never rerun initialization |
+
+For supported product rotations:
+
+1. Back up the original binding and identify every consumer and expiry/revocation deadline.
+2. Use the product's supported overlap/change procedure with the narrowest existing privileges.
+3. Update the owning ignored/private inputs, apply only that consumer's accepted recipe
+   and verify authorized/denied use plus protected audit events.
+4. Revoke the old credential only after cutover verification; retain recovery copies
+   under policy. No generic batch rotation or account-migration installer is supplied.
+
+## What happens after a leak or lost credential?
+
+Stop routine rotation and preserve evidence. Revoke/isolate exposed authority using
+the [incident path](../cryptography/security-controls.md#detect-and-respond), then
+recover/reissue under independent custody. Removing a value from Git history or
+reverting `.env.local` cannot revoke a leaked credential.
+
+If a routine cutover fails before revocation, return consumers to the still-valid
+old credential using the product's rollback procedure. After revocation or suspected
+compromise, recover/reissue instead of restoring the exposed credential.
 
 ## References
 
-1. [Flux SOPS integration](https://fluxcd.io/flux/guides/mozilla-sops/), checked 2026-09-23.
+1. [Flux SOPS bootstrap, decryption identities and recovery](https://fluxcd.io/flux/guides/mozilla-sops/), checked 2026-11-08.

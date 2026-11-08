@@ -23,7 +23,7 @@ prerequisites; this is not a requirement to deploy every example.
 | --- | --- | --- |
 | 1. Confirm foundations | Read project conventions and obtain Tier 0-approved templates, networks, storage, and scoped operator access | Inputs are recorded locally; any identity/DNS/PKI prerequisites in the selected service guide exist |
 | 2. Confirm publication and supply | Obtain approved Tier 2 edge endpoints if needed; select authoritative mirrors and Tier 1 DMZ runner access | Named interfaces work; direct administrative and peer access is denied |
-| 3. Create a platform cluster, if needed | Run `bash scripts/kubernetes-cluster.sh init` from Tier 1; follow the [Kubernetes guide](../../deployment/stage-4-kubernetes/procedures/kubernetes.md) and select [Argo CD or Spinnaker](../../architecture/delivery/controllers.md) separately | Nodes/API and selected delivery are verified; recovery is tested |
+| 3. Create a platform cluster, if needed | Run `bash scripts/kubernetes-cluster.sh init` from Tier 1; follow the [Kubernetes guide](../../deployment/stage-4-kubernetes/procedures/kubernetes.md) and select [Argo CD or Spinnaker](../../architecture/software/controllers.md) separately | Nodes/API and selected delivery are verified; recovery is tested |
 | 4. Add Observability | Follow the [deployment](../../deployment/stage-8-observability/README.md) in Kubernetes with separate workload budgets; dedicated VMs are an alternative | Netdata, OpenTelemetry, metrics and OpenSearch; scoped queries; Tier 0 retains control credentials and evidence |
 | 5. Add development services | Follow [GitLab](../../deployment/stage-9-development/procedures/gitlab.md), [on-demand runners](../../deployment/stage-9-development/procedures/kubernetes-runners.md), and the Tier 0 handover | SSO, backups, bounded job access, Vault claims and original-state continuity are verified |
 
@@ -61,5 +61,5 @@ workload-user access to Tier 0 credentials. For VM mobility, confirm the
 | Inputs, state, and available setups | [Repository scripts](../../reference/repository-scripts.md) |
 | Shared prerequisites | [Shared services](../../reference/implementation-support.md) |
 | Platform Kubernetes design | [Kubernetes platform](../../deployment/stage-7-delivery/procedures/platform-cluster.md) |
-| Ownership and privileged execution | [Infrastructure control](../../architecture/compute/provisioning.md) |
+| Ownership and privileged execution | [Infrastructure control](../../architecture/hosting/provisioning.md) |
 | Refresh and project records | [Project documentation](../../development/project-documentation.md) |

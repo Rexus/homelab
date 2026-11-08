@@ -121,7 +121,8 @@ directory administration.
 | --- | --- |
 | Supplied to hosts | Directory enrollment, DNS, LDAP and Kerberos within the selected authority scope |
 | Supplied to applications | OIDC identity and group claims; each service owns its permission mappings |
-| Consumed from compute | Dedicated directory runtime; IdP runtime, persistent database and storage |
+| Consumed from hosting | Dedicated directory runtime and IdP runtime, with scoped lifecycle control |
+| Consumed from data services | Directory persistence and the IdP's database/storage contract; [data ownership](../data/README.md) remains explicit |
 | Consumed from cryptography | Certificate trust, service TLS and supported operator credential integration |
 | Consumed from operations | Independent recovery records, backup targets and access/audit visibility |
 

@@ -11,7 +11,15 @@ prepared GitLab data services, TLS, backups and independent recovery material.
 **Automation:** native Helm installation/rendering, a runner VM/role and Vault JWT
 policy are supplied. Data-service commissioning, live acceptance and automated lab
 requests remain separate; see [coverage](../../reference/implementation-support.md#stage-coverage).
-**Design:** [development platform](../../architecture/delivery/development-platform.md).
+**Design:** [development platform](../../architecture/software/development-platform.md).
+
+Start in **Tier 1**. From Tier 0:
+
+```bash
+cd ../homelab-tier-1
+```
+
+Steps 1–2 stay in Tier 1; Steps 3–4 explicitly switch to Tier 0.
 
 ## Main path
 
@@ -22,10 +30,16 @@ requests remain separate; see [coverage](../../reference/implementation-support.
 
 ## Step 1: Deploy source control and SSO
 
-Follow [GitLab Kubernetes installation](procedures/gitlab.md), including external
-[dedicated PostgreSQL, Redis and Gitaly VMs](procedures/data-services.md), scoped
-object-storage buckets and the Keycloak client. Tier 1 owns its data and credentials;
-the selected Tier 0 object-storage service owns the underlying storage interface.
+1. Choose **1a: Kubernetes GitLab** (main path) or
+   [1b: source-control VM](step-1b-source-control-vm.md). Do not install both for one service.
+2. For 1a, complete [data services](procedures/data-services.md), Steps 1–4, **before** the chart:
+   provision `gitlab-db-1`, `gitlab-redis-1`, `gitlab-gitaly-1`; configure TLS,
+   qualified existing object storage and independent backups.
+3. Complete [GitLab installation](procedures/gitlab.md), Steps 1–3: edit application/IdP
+   inputs, render/review, install and verify SSO, clone/push and clean-target recovery.
+
+Tier 1 owns its data and scoped credentials. The existing storage owner retains
+administration of the object endpoint; this stage installs no storage gateway.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -73,14 +87,17 @@ never storage-admin authority. This stage deploys no storage VM or gateway.
 A NAS file mount cannot replace the chart's object API requirement.
 Accept SSO, scoped membership, clone/push and
 backup/restore before ordinary use.
-**Alternative:** [1b: source-control VM](step-1b-source-control-vm.md).
 
 **Result:** accepted source control with SSO and independently recoverable data.
 
 ## Step 2: Add on-demand build execution
 
-Follow [Kubernetes runners](procedures/kubernetes-runners.md). One manager creates
-an ephemeral pod per accepted job. This scales job pods, not worker VMs.
+Choose **2a: [Kubernetes runners](procedures/kubernetes-runners.md)** (main path),
+Steps 1–3: create the GitLab runner identity, edit its inputs, install and test one job.
+One manager creates an ephemeral pod per accepted job; it does not scale worker VMs.
+Alternatively complete [2b: Podman runner](step-2b-podman-runner.md).
+[2c: image-based Linux](step-2c-image-based-linux.md) extends image building after a
+working build runner; it does not replace the runner installation.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -107,14 +124,20 @@ flowchart TB
 and [identity/network policy](../../../tier-1/ansible/roles/development_platform/templates/runner-support.yml.j2).
 Jobs have no Tier 0 credentials. Test actual policy enforcement, denied API access
 and cleanup after failure. Untrusted builds may require dedicated nodes or clusters.
-**Alternatives:** [2b: Podman](step-2b-podman-runner.md) and
-[2c: image-based Linux](step-2c-image-based-linux.md).
 
 **Result:** bounded build jobs run without infrastructure credentials.
 
 ## Step 3: Authorize CI through Vault
 
-Follow [Vault CI authentication](procedures/vault-ci.md). Tier 0 creates the
+Switch to the **Tier 0 root**:
+
+```bash
+cd ../homelab-tier-0
+```
+
+Complete [Vault CI authentication](procedures/vault-ci.md), Steps 1–3: edit the
+exact project/branch claims, apply the policies with independent Vault authority,
+store scoped credentials and prove denied jobs cannot read them. Tier 0 creates the
 `gitlab-ci` JWT backend and exact project/namespace/protected-branch roles.
 Human SSO uses Keycloak; CI uses GitLab-signed ID tokens. These are separate
 issuers and authorization paths.
@@ -176,6 +199,12 @@ and [CI example](../../../tier-0/ci/gitlab-iac.yml.example).
 Follow [runner preparation](procedures/infrastructure-runner.md), then
 [original-state handover](procedures/handover.md). The workstation is outside the
 hosted runtime, not outside Tier 0 trust; it is online while operating.
+
+1. From Tier 0, install and qualify `iac-1` using the runner procedure's three steps.
+2. Follow the handover procedure's three steps: restore the **original** state/inputs,
+   configure the protected pipeline, then review the plan and authorize its manual apply job.
+3. Keep workstation writes stopped during handover. Retain independent recovery before
+   restricting bootstrap credentials; an empty checkout is not a restored deployment.
 
 **Result:** the dedicated runner applies reviewed plans against the original state;
 the independent workstation remains available for recovery.

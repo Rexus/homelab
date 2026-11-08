@@ -21,6 +21,11 @@ ACME variants need integration; see [coverage](../../reference/implementation-su
 2. [Establish the certificate hierarchy](#step-2-establish-the-certificate-hierarchy)
 3. [Enable and verify routine issuance](#step-3-enable-and-verify-routine-issuance)
 
+Remain in the Tier 0 repository after Stage 2. Complete the numbered tasks below;
+the linked issuer, policy and ceremony pages are required parts of the selected path.
+The software path is the reference. Hardware pages replace key custody at Step 1,
+then return to this same hierarchy and acceptance sequence.
+
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart BT
@@ -71,20 +76,24 @@ Hardware options replace software key custody; they are not additional default V
 
 ## Step 1: Prepare issuer and key custody
 
-For a fresh software-backed root, issuer and FreeIPA domain, start with the
-[complete software PKI path](procedures/software-pki.md). It joins the policy
-builder, explicit fresh-key recipe, offline ceremony, native activation and recovery
-gates. Choose [algorithms](../../architecture/cryptography/algorithm-selection.md)
-before creating keys; hardware remains an independent migration decision.
+1. **Choose custody before creating keys.** Approve
+   [algorithms](../../architecture/cryptography/algorithm-selection.md), custodians,
+   recovery recipients and trust scope. Select one path:
 
-Follow [issuer setup](procedures/issuer.md): approve the package/OS exception, certificate
-policy and custodians, then prepare `ca-1` and its key store. The main path uses
-[protected software custody](procedures/local-key-custody.md).
+   | Step | Selected path | Required work and return |
+   | --- | --- | --- |
+   | 1a: main path | [Software-backed PKI](procedures/software-pki.md) | Follow Steps 1-3 there to build the policy, prepare the issuer and create its encrypted key/CSR; return here for Step 2 |
+   | 1b | [Replicated USB gateways](step-1b-usb-hsm.md) | Qualify hardware/provider integration, then return to issuer installation and Step 2 |
+   | 1c | [Network HSM](step-1c-network-hsm.md) | Qualify the device/provider and issuer binding, then return to Step 2 |
+   | 1d | [Single USB device](step-1d-single-usb.md) | Commission device/independent backup and issuer binding, then return to Step 2 |
 
-**Before creating keys**, select a hardware branch when required:
-[1b: replicated USB gateways](step-1b-usb-hsm.md), [1c: network HSM](step-1c-network-hsm.md)
-or [1d: single USB device](step-1d-single-usb.md). Root custody and online issuer
-protection are independent choices. Each branch returns to the hierarchy step.
+2. Complete [issuer host/runtime installation](procedures/issuer.md#step-1-provision-the-host)
+   as directed by the selected path. It gives the exact foundation init/provisioning
+   command and issuer input fields. **Do not run the identity recipe in Stage 3.**
+   If Step 1a already completed this installation, retain it; do not initialize a
+   second database or state.
+3. Stop with a prepared issuer key/CSR, reviewed policy bundle and independent
+   recovery copies. The offline signing operation is next; a running VM is not an active CA.
 
 A single device with an independently tested backup can satisfy initial custody
 requirements. Size the replicated service for consumer traffic and availability,
@@ -100,11 +109,15 @@ plan; do not remove existing resources to make its contents match a stage number
 
 ## Step 2: Establish the certificate hierarchy
 
-Follow the [offline root procedure](procedures/offline-root.md) for the authorized
-root/intermediate ceremony. The root signs the infrastructure issuer and, during Stage 5,
-the separate FreeIPA CA as sibling authorities.
-Transfer the signed intermediate certificate and public chain, then return root
-custody offline. Configure the issuing service without giving it the root key.
+1. For software custody, complete [software PKI Step 4](procedures/software-pki.md#sign-and-activate),
+   including its linked [offline software root ceremony](procedures/offline-software-root.md).
+   Hardware selections use the [offline root procedure](procedures/offline-root.md)
+   with the qualified provider. This is an authorized manual operation, not a CI job.
+2. Return only the signed issuer certificate and public chain to `ca-1`; verify
+   the recorded fingerprints and complete [native token activation](procedures/issuer-token.md).
+   Starting the runtime does not import or activate its signing token.
+3. Return root custody offline. Retain its recovery kit for the **separate** FreeIPA
+   CA ceremony in Stage 5; the identity CA is a sibling, not a subordinate of OpenXPKI.
 
 A ceremony VLAN or disconnected VM alone does not isolate root keys from a connected
 hypervisor administrator. Follow the [custody boundary](../../architecture/reference-platform.md#service-placement).
@@ -113,10 +126,13 @@ not imply a CA migration or become a prerequisite for this service.
 
 ## Step 3: Enable and verify routine issuance
 
-Configure authorized consumers, distribute public trust material and test issuance,
-renewal, revocation, denied requests and recovery with the root offline.
-For hardware variants, verify the selected device/host failure and backup behavior.
-Use the [CA acceptance matrix](../../administration/cryptography/certificate-authority.md#acceptance-evidence).
+1. Run the [CA acceptance matrix](../../administration/cryptography/certificate-authority.md#acceptance-evidence):
+   permitted and denied requests, renewal, revocation, publication and independent
+   restore, with the root offline. Hardware paths also test device/host loss and backup.
+2. Distribute only the approved public trust material to authorized consumers;
+   record enrollment, renewal and recovery ownership.
+3. Complete [software PKI acceptance](procedures/software-pki.md#accept-the-issuer-and-continue)
+   or the selected hardware path's equivalent, then record evidence before Stage 4.
 The Community ACME adapter is a separate qualification gate, not an installed cert-manager integration.
 
 If the selected policy replaces Proxmox API certificates, complete the

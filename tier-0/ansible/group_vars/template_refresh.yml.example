@@ -1,6 +1,7 @@
 # Copy to: ansible/group_vars/template_refresh.yml
 # Replace every value before use.
 # Setup guide: docs/deployment/foundation/proxmox/templates.md
+# VMID allocation: docs/conventions/vmid-convention.md
 
 platform_host_ips:
   alma-10-tmpl-stage: 10.20.20.41
@@ -23,7 +24,7 @@ template_refresh_replacements:
   # explicitly in environment overlays when test and production templates
   # should have different names.
   - name: alma-10-tmpl
-    staged_vm_id: 190
-    target_vm_id: 110
+    staged_vm_id: 9190
+    target_vm_id: 9100
     # Optional: set when the final clone should land on another datastore.
     # storage: local-lvm

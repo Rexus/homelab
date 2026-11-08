@@ -25,6 +25,12 @@ See [coverage](../../reference/implementation-support.md#stage-coverage).
 Run local operator commands from Tier 2's root. Tier 0 execution does not move
 these definitions, inventory or state into Tier 0 or Shared.
 
+From the Tier 0 root:
+
+```bash
+cd ../homelab-tier-2
+```
+
 ## Main path
 
 1. [Define the approved request](#step-1-define-the-approved-request)
@@ -71,7 +77,7 @@ feed a [Shared plan executor](../../../shared/scripts/deploy.sh); automated Tier
 1. Record the workload owner, permitted templates, sizes, networks and quotas in
    the [Tier 2 repository](../../paths/tier-2/README.md).
 2. Validate the request and review its plan under the
-   [provisioning contract](../../architecture/compute/provisioning.md).
+   [provisioning contract](../../architecture/hosting/provisioning.md).
 3. Verify that accepted and rejected requests follow Tier 0 authorization. The
    bounded request interface is a target design, not a shipped controller.
 
@@ -84,7 +90,7 @@ For Linux labs, select the [tier-local application override](../../reference/net
 before provisioning untrusted guests. The starter `lab-1`/`support-1` definitions
 otherwise inherit the shared application subnet; their names do not isolate them.
 The Kubernetes example already selects VLAN 420. Record the selected Lab-zone
-policy and attachment in the [network plan](../../reference/network-plan.md#services-zone).
+policy and attachment in the [network plan](../../conventions/network-plan.md#services-zone).
 
 The protected runner creates the approved resources using the owning tier's inputs
 and state. Shared supplies reusable helpers, never workload inventory or resources.
@@ -135,43 +141,64 @@ and [lab recipe](../../../tier-2/ansible/playbooks/deployment/lab-vms.yml).
 A and B are independent roots, not one command that creates both; choose the required runtime.
 The [Shared executor](../../../shared/scripts/deploy.sh) consumes Tier 2 inventory/state, never owns them.
 
-1. Execute the reviewed tier-local definition and verify the intended network boundaries.
-2. For a workload cluster, reuse the [common Kubernetes procedure](../stage-4-kubernetes/procedures/kubernetes.md)
-   with the tier-local `terraform/deployments/kubernetes/` root and
-   `bash scripts/kubernetes-cluster.sh init`. The current installer uses Talos;
-   it does not deploy applications or an autoscaler. Before applications, run the
-   [basic platform recipe](../stage-4-kubernetes/procedures/basic-platform.md) from
-   Tier 2 using its `ansible/group_vars/cluster_platform.yml` and kubeconfig.
-3. Verify runtime readiness, state locking and independent restoration before workloads.
+Choose **2a: Linux VM/LXC** or **2b: Kubernetes** below; both return to Step 3.
+They have independent roots and state. Deploy both only when both runtimes are required.
 
-For the operator-driven VM/LXC path, initialize from the Tier 2 repository root:
+### Step 2a: Linux VM/LXC labs
+
+Initialize local inputs:
 
 ```bash
 bash scripts/init-local-files.sh --setup lab
 ```
 
-Edit local `terraform/deployments/lab/terraform.tfvars`, inventory and
-`ansible/group_vars/lab.yml` together. With authorized execution credentials, plan:
+Edit these files together before deployment:
+
+| File | Required edits |
+| --- | --- |
+| `terraform/deployments/lab/terraform.tfvars` | Complete `vm_instances`/`lxc_instances`, unused VMIDs, sizes and storage |
+| `terraform/common.tfvars` | Tier-local `application` network override for the selected isolated lab subnet |
+| `ansible/inventory/hosts.yml` | Matching logical host keys and lab groups |
+| `ansible/group_vars/lab.yml` | Matching `platform_host_ips` |
+| `.env.local` | This tier's verified API endpoint/token and local SSH public-key paths |
+
+Run with independently authorized execution credentials:
 
 ```bash
-bash scripts/deploy.sh lab --plan-only
+bash scripts/deploy.sh lab
 ```
 
-Review the complete resource plan before `bash scripts/deploy.sh lab`. These are
-operator commands, not a command path that grants ordinary workload users Proxmox access.
+Review Terraform's plan and enter `yes` only for the intended changes. Add `--plan-only`
+for preview only; approved unattended jobs use `--auto-approve`. These are operator
+commands; ordinary workload users receive no Proxmox credentials.
 
-**Result:** the [compute runtime](../../architecture/compute/README.md) is ready within
+### Step 2b: Kubernetes labs
+
+1. From Tier 2, initialize the dedicated cluster inputs:
+
+   ```bash
+   bash scripts/kubernetes-cluster.sh init
+   ```
+
+2. Complete the [common cluster procedure](../stage-4-kubernetes/procedures/talos-terraform.md):
+   edit Tier 2's inventory, `ansible/group_vars/talos.yml` and
+   `terraform/deployments/kubernetes/terraform.tfvars`; supply unique addresses/VMIDs,
+   approved templates, private endpoint and native provider environment.
+3. Use that script's saved-plan sequence: `plan`, review, `apply`, then `credentials`.
+   It does not load `.env.local` or use the Linux deployment helper.
+4. Install and verify the [basic platform](../stage-4-kubernetes/procedures/basic-platform.md)
+   from **Tier 2**, with its kubeconfig and `ansible/group_vars/cluster_platform.yml`.
+
+Before either branch rejoins Step 3, verify isolation, readiness, original-state
+locking and independent recovery. No autoscaler or multi-cluster allocator is installed.
+
+**Result:** the [compute runtime](../../architecture/hosting/README.md) is ready within
 the workload's allocated scope, without changing Tier 0 ownership.
 
 ## Step 3: Deploy and verify applications
 
-For an internet-facing website, follow the
-[public HTTPS procedure](public-https.md): staging-first HTTP-01, verified private
-origins, multi-node challenge serving and controller-owned renewal.
-
-Follow the [workload collection deployment](telemetry.md), Steps 1-3:
-security/audit submissions go to protected Tier 0 intake; developer views expose
-only approved application logs in Tier 1. Local buffering does not imply local alerting.
+For the Kubernetes branch, complete the numbered application path below. The Linux
+branch needs application-specific automation; its OS baseline is not an app installer.
 
 Approved application revisions are reconciled inside the owning cluster. Rancher/Fleet
 can manage selected Tier 1/2 clusters, never Tier 0 infrastructure.
@@ -208,11 +235,15 @@ installed together. The cluster and trusted TLS Secret are explicit prerequisite
 See [application installation](application.md) for commands and acceptance.
 
 1. Install the [bounded application reference](application.md), then select
-   [scoped delivery](../../architecture/delivery/controllers.md) for subsequent revisions.
+   [scoped delivery](../../architecture/software/controllers.md) for subsequent revisions.
    This recipe does not install another delivery controller or tenant allocator.
-2. Exercise an update, rollback and restore, including the behavior when source control
+2. Connect [workload collection](telemetry.md), Steps 1–3. Security/audit submissions
+   still go directly to protected Tier 0 intake; Tier 1 exposes only approved copies.
+3. For a public website, take [3b: public HTTPS](public-https.md), then return here.
+   Private applications skip that branch.
+4. Exercise an update, rollback and restore, including the behavior when source control
    is unavailable. Source loss pauses new requests; it never authorizes deletion.
-3. Hand recurring operations to [administration](../../administration/README.md), retaining
+5. Hand recurring operations to [administration](../../administration/README.md), retaining
    independent recovery and separately authorized key ceremonies.
 
 **Result:** application delivery works independently of privileged infrastructure

@@ -2,6 +2,7 @@
 # Replace every value before use.
 # Setup guide: docs/deployment/stage-9-development/step-2b-podman-runner.md
 # Shared values live in ../../common.tfvars.
+# VMID allocations: docs/conventions/vmid-convention.md
 
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
@@ -11,7 +12,7 @@ vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
   # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
   "runner-1" = {
-    vm_id            = 310
+    vm_id            = 1501
     size             = "medium"
     storage_class    = "local"
     disk_size_gb     = 80
@@ -19,7 +20,7 @@ vm_instances = {
     tags             = ["gitlab-runner", "podman", "bootc", "restricted", "always-on", "delivery"]
   }
   # "runner-2" = {
-  #   vm_id            = 311
+  #   vm_id            = 1502
   #   size             = "medium"
   #   storage_class    = "local"
   #   disk_size_gb     = 80

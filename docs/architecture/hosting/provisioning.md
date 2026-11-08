@@ -119,7 +119,7 @@ edit the privileged controller, acceptance policy, or shared execution revision.
 
 ### Trusted CI option
 
-The selected [development-platform variant](../delivery/development-platform.md#privileged-ci)
+The selected [development-platform variant](../software/development-platform.md#privileged-ci)
 permits direct IaC from a dedicated GitLab project. GitLab and administrators able
 to alter its hosting are Tier 0 trusted principals in that option.
 It does not provide the independent authorization guarantee described above.

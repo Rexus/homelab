@@ -1,71 +1,131 @@
-# USB HSM gateway maintenance
+# USB HSM service operations
 
-Operate the selected [USB HSM gateway pattern](../../architecture/cryptography/usb-hsm.md)
-after completing [deployment and acceptance](../../deployment/stage-3-trust/step-1b-usb-hsm.md).
-These are operator checks, not automated device-lifecycle recipes.
+<a id="usb-hsm-gateway-maintenance"></a>
 
-The protected Tier 0 runner may maintain gateway VMs and software. Key
-initialization, sensitive key replication, and root-CA signing require
-separate authorized ceremonies; they are not routine CI jobs.
 
-## Table of contents
+Operate an already qualified [USB HSM deployment](../../deployment/stage-3-trust/step-1b-usb-hsm.md).
+The repository's `hsm` recipe supplies the **OS baseline only**. Device lifecycle,
+signing application, routing/readiness and key replication remain selected integrations.
+The [service design](../../architecture/cryptography/usb-hsm.md) owns their relationships.
 
-- [Health checks](#health-checks)
-- [Device identity](#device-identity)
-- [Replica updates](#replica-updates)
-- [Routine checks](#routine-checks)
+**Run from:** generated Tier 0 for host inputs; the selected gateway for native runtime checks.
+**Before starting:** actual application unit/provider, approved device/key records,
+independent wrapping/recovery material and an accepted failure/capacity budget.
 
-## Health checks
+<a id="table-of-contents"></a>
 
-Treat a gateway as healthy only when:
+## Tasks
 
-- the service is reachable
-- login and session setup work against the expected local token
-- a policy-safe readiness operation succeeds with the expected key label or ID
+- [Is a gateway healthy?](#health-checks)
+- [How is the attached device verified?](#device-identity)
+- [How is one gateway maintained?](#how-is-one-gateway-maintained)
+- [How are approved key objects replicated or rotated?](#replica-updates)
+- [Which checks are repeated after maintenance?](#routine-checks)
+- [References](#references)
 
-Do not rely on slot visibility or object listing alone.
-Keep probe privileges scoped; a proxy or health identity is not an unrestricted
-signing caller. Basic TCP checks only establish listener reachability.
+<a id="health-checks"></a>
 
-For E3, device/key readiness removes an unusable replica from backend selection.
-VIP ownership tracks usable frontend/backend capacity separately: loss of a
-local token need not discard a frontend that can still reach the other healthy
-replica. Follow the application's supported HA and session model, not generic retries.
+## Is a gateway healthy?
 
-## Device identity
+1. On the selected gateway, inspect its **actual commissioned** runtime unit:
 
-Keep one gateway bound to one expected local token:
+   ```bash
+   read -r -p 'Existing signing runtime systemd unit: ' HSM_UNIT
+   systemctl status "$HSM_UNIT" --no-pager
+   ```
 
-- do not rely on transient slot numbering alone
-- pin by stable reader, token label, serial, or similar identity when possible
-- start gateway services only after the expected local token is present
-- fail closed when the expected token is missing or mismatched
+   The repository creates no generic unit with this name; obtain it from the
+   selected application runbook. Review diagnostic logs locally without exporting credentials.
+2. Use that application's scoped readiness operation against the expected local
+   token/key. Confirm authenticated session setup and a permitted test operation;
+   port checks, slot visibility and object listings alone are insufficient.
+3. Verify unauthorized operations fail and measured surviving capacity meets the
+   accepted latency/error budget. Fail closed on a missing/mismatched key.
 
-## Replica updates
+For co-hosted proxies (E3), backend readiness and frontend VIP capacity are different
+checks. A failed local token need not disable a frontend that can serve another
+healthy backend. Use the qualified application/session model, not blind retries.
 
-When changing key material:
+<a id="device-identity"></a>
 
-1. Drain the affected replica according to the selected application/session model.
-2. Change the approved material on the source-of-truth device and export through
-   the supported wrapping or backup process.
-3. Restore permitted objects to the other device and reconcile application policy/state.
-4. Refresh the independent offline backup.
-5. Verify key identity, authorization, application state and readiness before returning traffic.
+## How is the attached device verified?
 
-Use the selected device's supported process from the
-[implementation references](../../deployment/stage-3-trust/step-1b-usb-hsm.md#references).
-Do not treat the offline backup device as a routine active peer.
+1. Compare the vendor/provider's reported stable serial/reader/token identity with
+   the private project record; never identify a production device only by transient slot number. [1]
+2. Compare expected key object IDs/labels, public fingerprints and operation attributes.
+   Do not export private keys to perform this check.
+3. Require the expected device before application startup. Stop and investigate on
+   mismatch; reinitializing an unknown device is not a repair.
 
-## Routine checks
+<a id="how-is-one-gateway-maintained"></a>
 
-Keep at least these checks in the normal maintenance cycle:
+## How is one gateway maintained?
 
-- verify gateway health through the selected private Tier 0 signing path
-- verify local PKCS#11 access on each gateway host
-- compare expected object inventory across active devices
-- repeat host-loss, USB-loss and VIP-owner/partition tests after relevant changes
-- verify Tier 0 operation while Tier 1/2 services are unavailable
-- test restore from the offline backup on a controlled schedule
-- review whether the current `vm_instances` layout still matches the load
-- measure pool capacity and VIP/proxy capacity separately, including peak traffic
-  with the accepted device/host losses or maintenance drain
+1. Verify another accepted member has capacity, then drain this member through the
+   application's native procedure. Preserve pending requests/session state and backups.
+2. For **OS-baseline reconciliation only**, from Tier 0 select one inventory host
+   and inspect the target list first: [3]
+
+   ```bash
+   read -r -p 'Gateway inventory host (for example hsm-1): ' HSM_HOST
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/hsm.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml --limit "${HSM_HOST:?Select one gateway}" --list-hosts
+   ```
+
+   Stop unless exactly the intended connected gateway is selected. Add approved
+   named-environment overlays last when used; never target the offline ceremony host.
+3. Reconcile only that accepted baseline target:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/hsm.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml --limit "${HSM_HOST:?Select one gateway}"
+   ```
+
+   This does not upgrade firmware/application/provider, drain traffic or install a VIP.
+   Those operations require the selected product's qualified maintenance procedure.
+4. Verify device identity, readiness, permitted/denied operations and protected audit
+   delivery before admitting traffic. Repeat separately for the next member.
+
+**Rollback:** keep the affected member drained on failure. Use the still-accepted
+peer within its capacity budget; restore the member through its tested provider/application
+procedure. Never reset a token, discard pending state or revert shared CA history.
+
+<a id="replica-updates"></a>
+
+## How are approved key objects replicated or rotated?
+
+1. Drain the affected member and authorize the key operation separately from CI.
+2. Use the device's supported wrapping/backup procedure, with its scoped credentials:
+   [Pico HSM](https://docs.picokeys.com/picohsm/backup-restore/) or the selected
+   [YubiHSM interface](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-cmd-reference.html). [1][2]
+3. Restore only permitted objects to each intended peer; verify the same public
+   identity/attributes and reconcile application policy/state. Copied keys do not
+   replicate issuance history or application sessions.
+4. Refresh the independent offline backup. Prove readiness, authorization and
+   recovery before returning that member to traffic.
+
+A new issuer identity requires [CA rollover](hardware-migration.md), not merely copying
+an object to more devices. Root signing, sensitive replication and device initialization
+remain authorized ceremonies; no batch key-rotation installer is supplied.
+
+<a id="routine-checks"></a>
+
+## Which checks are repeated after maintenance?
+
+| Check | Required evidence |
+| --- | --- |
+| Each device and consumer | Stable identity, permitted/denied operations and attributable audit events |
+| VM/USB/provider failure | Failed backend excluded even while its port remains open; remaining service usable |
+| VIP ownership/partition, when selected | Accepted ownership and reconnection behavior; no assumed session sharing |
+| Pool capacity | Measured device and frontend headroom under selected failures/maintenance |
+| Independence | Tier 0 operates with Tier 1/2 and the consuming secret service unavailable |
+| Offline recovery | Original approved objects, attributes, policy and startup credentials restore without online replicas |
+
+Retain results and review whether tier-owned `vm_instances`/placement still matches
+real failure domains. Matching replica counts alone do not prove HA.
+
+## References
+
+Native interfaces checked 2026-11-08.
+
+1. [YubiHSM provider and connector configuration](https://developers.yubico.com/yubihsm-shell/yubihsm-pkcs11.html).
+2. [Pico HSM wrapped-key backup and restore](https://docs.picokeys.com/picohsm/backup-restore/).
+3. [Ansible host listing and target limits](https://docs.ansible.com/projects/ansible/latest/cli/ansible-playbook.html).

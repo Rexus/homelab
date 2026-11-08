@@ -1,8 +1,8 @@
 locals {
-  effective_default_platform_node_name = coalesce(
+  effective_default_platform_node_name = try(coalesce(
     var.default_platform_node_name,
     var.default_proxmox_node_name,
-  )
+  ), null)
 }
 
 # Tier-local modules own inventory and resources; shared supplies platform/image references.

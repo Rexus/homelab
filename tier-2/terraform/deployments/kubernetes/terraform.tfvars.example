@@ -1,5 +1,7 @@
 # Cluster-owned hardware/configuration. This root does not load Linux common.tfvars.
 # IP reservations are in ansible/group_vars/talos.yml, hosts in ansible/inventory/hosts.yml.
+# VMID allocations: docs/conventions/vmid-convention.md
+# The 3xxx lab allocation group remains Tier 2-owned; it is not another security tier.
 # Set the image ID from the shared approved catalog, and pin matching releases/schematic.
 # Configure native proxy/DNS/time or approved mirrors before denying direct egress.
 # Reference: docs/deployment/stage-4-kubernetes/procedures/talos-terraform.md#controlled-image-access
@@ -36,21 +38,22 @@ cluster = {
 # Keep host placement, storage, bridges, and image source in the same Proxmox cluster.
 nodes = {
   workload-k8ctl-1 = {
-    vm_id = 2300, node_name = "pve01", mac_address = "02:00:00:00:23:00"
+    vm_id = 3001, node_name = "pve01", mac_address = "02:00:00:00:23:00"
     datastore_id = "shared", bridge = "vmbr0", vlan_id = 420, size = "medium"
   }
   workload-k8ctl-2 = {
-    vm_id = 2301, node_name = "pve02", mac_address = "02:00:00:00:23:01"
+    vm_id = 3002, node_name = "pve02", mac_address = "02:00:00:00:23:01"
     datastore_id = "shared", bridge = "vmbr0", vlan_id = 420, size = "medium"
   }
   workload-k8ctl-3 = {
-    vm_id = 2302, node_name = "pve03", mac_address = "02:00:00:00:23:02"
+    vm_id = 3003, node_name = "pve03", mac_address = "02:00:00:00:23:02"
     datastore_id = "shared", bridge = "vmbr0", vlan_id = 420, size = "medium"
   }
 }
 
 # Start with three schedulable control planes. Optional workers need matching
 # inventory hosts, DHCP/IP reservations, and hardware entries in nodes above.
+# Reserve optional worker VMIDs from 3101 onward; do not renumber existing guests.
 # Existing clusters must retain their workers; this example is not a removal plan.
 
 # Add specialized workers when needed. Set pool = "development" to emit

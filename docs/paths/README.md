@@ -22,7 +22,7 @@ these owners into generated checkout names and upstream source paths.
 ## Follow the model
 
 [Platform architecture](../architecture/README.md) ->
-[domain choice](../architecture/README.md#technical-domains) ->
+[domain choice](../architecture/README.md#foundational-capabilities) ->
 [deployment stage](../deployment/README.md) ->
 [implementation](../deployment/README.md) ->
 [administration](../administration/README.md).

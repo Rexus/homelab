@@ -6,6 +6,8 @@
 
 ## Table of contents
 
+- [Step 1: Prepare the guest trunk](#step-1-prepare-the-guest-trunk)
+- [Step 2: Select optional network branches](#step-2-select-optional-network-branches)
 - [Purpose](#purpose)
 - [Shared network reference](#shared-network-reference)
 - [What to implement on Proxmox](#what-to-implement-on-proxmox)
@@ -19,6 +21,47 @@
 - [Single-trunk fallback](#single-trunk-fallback)
 - [Host-side notes](#host-side-notes)
 - [Validation checklist](#validation-checklist)
+
+## Step 1: Prepare the guest trunk
+
+**Run in:** the Proxmox GUI, with a tested independent host console open.
+Use the existing switch/gateway VLANs from the [network plan](../../../conventions/network-plan.md).
+The initial path needs one VLAN-aware bridge, not every optional fabric below.
+
+1. Open **Node > System > Network**. Identify the current management bridge and
+   its physical uplink; inspect rather than replace the installer-created `vmbr0`.
+2. Edit that bridge, or create the planned **Linux Bridge** if absent:
+
+   | Field | Set to |
+   | --- | --- |
+   | Name | `vmbr0`, consistently on every eligible host |
+   | Bridge ports | Actual prepared uplink NIC or previously configured bond; no guessed NIC names |
+   | VLAN aware | Enabled for the selected tagged guest networks |
+   | VLAN IDs | Only approved VLANs carried by the upstream trunk |
+   | IPv4/CIDR and gateway | Preserve the verified host-management placement; guest VLAN gateways stay on the router |
+   | MTU | `1500` for the initial path, matching the prepared underlay |
+
+3. Confirm the switch port's tagged/native behavior matches the host configuration.
+   A management VLAN change needs a reviewed cutover; do not remove the only working route.
+4. Review pending network changes, then **Apply Configuration**. Verify GUI/console access
+   and a disposable guest's intended VLAN path before proceeding or repeating on other hosts.
+
+Host IPs belong on the selected bridge/VLAN interface, not its slave NIC. Do not
+attach offline custody to connected trunks. Use the [validation checklist](#validation-checklist)
+before declaring the path ready.
+
+## Step 2: Select optional network branches
+
+| Selection | Continue with | Return after |
+| --- | --- | --- |
+| Direct guest bridge/VLAN | Keep `bridge = "vmbr0"` and the actual `vlan_id` in guest inputs | [Foundation Step 1](../README.md#step-1-create-the-first-linux-template-manually) |
+| SDN VNet attachments | [1c: SDN setup and activation](../step-1c-sdn.md) | Activated VNets and matching switch trunks are checked |
+| Clustered hosts | [1b: Cluster/HA preparation](../step-1b-cluster-ha.md) | Every eligible host has the same guest attachment |
+| Additional NIC capacity/resilience | [Bonds and bridges](#bonds-and-bridges) | Switch-side aggregation and host path are verified |
+| Direct full-mesh Ceph fabric | [OVS/RSTP alternative](#storage-fabric-ovsrstp) | Separate storage path, MTU and loop recovery are qualified |
+
+The remaining sections explain these choices and their constraints. They are not
+additional steps required for the single-bridge starting path.
 
 ## Purpose
 

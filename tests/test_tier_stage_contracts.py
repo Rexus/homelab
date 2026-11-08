@@ -74,7 +74,7 @@ class StageContracts(TierRepositoryTestCase):
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             software = (docs / "deployment/stage-3-trust/procedures/software-pki.md").read_text()
             self.assertIn('id="complete-identity-and-acceptance"', software)
-            self.assertIn("## Accept the issuer and continue", software)
+            self.assertIn("## Step 5: Accept the issuer and continue", software)
             self.assertIn("In Stage 5", software)
             self.assertIn("not a Stage 3 acceptance dependency", software)
             migration = docs / "administration/cryptography/hardware-migration.md"

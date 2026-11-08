@@ -14,7 +14,7 @@ Existing installations retain their network values until an explicit migration.
 **Change:** Use a Podman-based general runner, not the protected Tier 0 runner.
 **Return:** [Step 3](README.md#step-3-authorize-ci-through-vault) for secret integration before infrastructure handover.
 
-**Design:** [build and execution boundaries](../../architecture/delivery/README.md).
+**Design:** [build and execution boundaries](../../architecture/software/README.md).
 
 ## Table of contents
 
@@ -119,38 +119,19 @@ Default Terraform shape:
 | VM name | generated from environment naming | for example `runner-test-1` or `runner-1` |
 | role tag | `runner` | generic role |
 | service tag | `gitlab-runner`, `podman` | exact implementation tags |
-| network zone | application or automation network | runner must reach GitLab and registries |
+| network zone | `delivery_edge` / DMZ | approved GitLab, registry and intake endpoints only |
 | size | small or medium | increase disk when builds cache many layers |
 | template | normal Linux template | bootc is built by the runner, not required on the runner OS |
 
-Initialize the selected test context from Tier 1:
+Initialize local inputs from Tier 1:
 
 ```bash
-bash scripts/init-local-files.sh --setup podman-runner --env test
+bash scripts/init-local-files.sh --setup podman-runner
 ```
 
-Edit the local inputs above, including the runner token supplied through protected
-controller inputs. Complete [environment isolation](../../reference/repository-scripts.md#environment-isolation)
-before planning; a test state must not reuse a production VMID, IP or registration.
-For the commands below, create `terraform/deployments/podman-runner/terraform.test.tfvars`
-with the complete test guest map and edit `ansible/group_vars/podman_runner.test.yml`
-for IPs and service settings. The copied test vars override the base setup vars;
-editing `podman_runner.yml` alone does not configure the test run.
-
-Plan a test environment first:
-
-```bash
-bash scripts/deploy.sh podman-runner --env test --plan-only
-```
-
-Deploy after reviewing the plan:
-
-```bash
-bash scripts/deploy.sh podman-runner --env test
-```
-
-Keep reusable runner VM shape in Terraform. Keep GitLab tokens, registry
-credentials, and package choices in Ansible or ignored local vars.
+Edit the files above and complete the Ansible/GitLab settings below before deployment.
+For a separate test environment, use the [environment-isolation contract](../../reference/repository-scripts.md#environment-isolation)
+with `--env test` on both initialization and deployment; allocate distinct VMIDs/IPs.
 
 ## Ansible configuration
 
@@ -185,29 +166,38 @@ runner secret, or external secret system.
 
 ## GitLab runner setup
 
-The Ansible role installs the build tools on the runner VM:
+1. In GitLab, create a project runner (or a deliberately shared group runner) using
+   the modern authentication-token flow. Set allowed projects, `bootc`/`podman` tags,
+   untagged-job behavior and protection **in GitLab**; token registration does not
+   establish those server-side policies. [1]
+2. In `ansible/group_vars/podman_runner.yml`, set `podman_runner_gitlab_url`,
+   `podman_runner_register: true` and the approved CA path. Supply
+   `podman_runner_authentication_token` through encrypted private extra-vars.
+3. Ensure the signed Runner package repository is available to the VM, then provision:
 
-```bash
-sudo dnf install -y podman buildah skopeo git
-```
+   ```bash
+   bash scripts/deploy.sh podman-runner --terraform-only
+   ```
 
-Install GitLab Runner from the official GitLab package flow for the runner
-host OS.[3] Register the runner with a project or group runner authentication
-token:
+   Review Terraform's plan and enter `yes`. Keep encrypted secret-only inputs out of
+   the Terraform inventory resolver; they are supplied to Ansible in the next command.
+4. Configure and register the runner using the private token file:
 
-```bash
-sudo gitlab-runner register \
-  --url "https://git.corp.example.com" \
-  --token "$RUNNER_AUTHENTICATION_TOKEN" \
-  --executor "shell" \
-  --description "podman-runner-1" \
-  --tag-list "bootc,podman" \
-  --run-untagged="false" \
-  --locked="true"
-```
+   ```bash
+   bash scripts/deploy.sh podman-runner --ansible-only --ansible-vars /absolute/private/podman-runner-secrets.yml
+   ```
 
-Use a project runner when only one bootc image project should use it. Use a
-group runner when several internal server image projects should share it.
+   For an Ansible-Vault-encrypted file, provide the accepted Ansible Vault password
+   source on the controller, for example `ANSIBLE_VAULT_PASSWORD_FILE`, before running.
+   The wrapper forwards this private file; it does not create a password prompt flag.
+   The role installs build packages and GitLab Runner, configures rootless IDs and registers only an unconfigured runner.
+   Do not also run `gitlab-runner register` manually against the same host config.
+5. Run a bounded test job and verify registration, approved images, isolation and cleanup.
+   A Shell executor runs trusted jobs on its host; it is not an untrusted-code sandbox.
+
+Add `--plan-only` for preview or `--auto-approve` for an approved unattended job.
+Return to [Stage 9 Step 3](README.md#step-3-authorize-ci-through-vault), or continue
+with the optional image-build example below.
 
 ## Bootc image project
 

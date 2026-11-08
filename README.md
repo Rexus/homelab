@@ -41,8 +41,10 @@ homelab-iac/                 # collection directory, not a Git repository
   homelab-architecture/
 ```
 
-First, fill in `homelab-architecture/docs/naming-conventions.md` inside the
-collection. Then follow `homelab-tier-0/README.md` from that tier's root; its
+First, fill in `homelab-architecture/platform-standards.md` inside the
+collection. Use the [VMID quick reference](docs/conventions/vmid-convention.md)
+before assigning Proxmox guest or template IDs. Then follow `homelab-tier-0/README.md`
+from that tier's root; its
 commands use tier-local code and shared helpers with local inputs. Substitute
 the prefix if customized. Each README is a developer-owned starter template.
 
@@ -75,6 +77,7 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 | Need | Start here |
 | --- | --- |
 | Documentation map | [Documentation](docs/README.md) |
+| Names, tags, VMIDs and network allocations | [Conventions](docs/conventions/README.md) |
 | Platform design | [Architecture overview](docs/architecture/README.md) |
 | Networks and VLANs | [Network map](docs/architecture/networking/README.md) |
 | Choose a deployment | [Reader paths](docs/paths/README.md) |
@@ -85,7 +88,7 @@ repository READMEs, project documentation, local work, and recorded deletions. S
 
 ## Repository Structure
 
-- `docs/architecture/`: platform relationships and technical-domain designs
+- `docs/architecture/`: foundational capabilities, platform relationships and implementation variants
 - `docs/deployment/`, `docs/development/`, `docs/administration/`: installation, code and operations
 - `docs/paths/` and `docs/reference/`: repository checklists and exact contracts
 - `tier-0/`: infrastructure and trust services, VM template code, Packer builds, and bootstrap

@@ -7,9 +7,11 @@ live in `${repo_prefix}-architecture`.
 
 ## Getting started
 
-Review the project's [naming conventions](../${repo_prefix}-architecture/docs/naming-conventions.md)
+Review the project's [platform standards](../${repo_prefix}-architecture/platform-standards.md)
 before creating resources. Keep the sibling shared and architecture repositories
 available locally.
+Use the [Proxmox VMID quick reference](${docs}/conventions/vmid-convention.md)
+when assigning or maintaining guest IDs; existing installations retain their local allocations.
 
 Approved image IDs and titles come from the sibling shared repository's
 [template catalog](../${repo_prefix}-shared/templates/proxmox-catalog.tfvars).
@@ -32,7 +34,7 @@ ${prerequisites}
 After the checklist's prerequisites, initialize a Linux VM setup from this root:
 
 ```bash
-bash ../${repo_prefix}-shared/scripts/init-local-files.sh --setup ${example}
+bash scripts/init-local-files.sh --setup ${example}
 ```
 
 Use `--setup` to select an entry in `.deployment-setups`. These commands use the
@@ -47,14 +49,16 @@ network references once in the shared profile; keep tier-specific networks and o
 Keep SSH keys outside the
 repositories and set only public-key file paths in `.env.local`, as described
 in [platform inputs](${docs}/reference/platform-inputs.md). Follow the
-[setup guide](${docs}/reference/repository-scripts.md#available-setups), then plan:
+[setup guide](${docs}/reference/repository-scripts.md#available-setups), completing its
+storage and TLS preparation before host configuration. Then deploy:
 
 ```bash
-bash ../${repo_prefix}-shared/scripts/deploy.sh ${example} --plan-only
+bash scripts/deploy.sh ${example}
 ```
 
-Review the plan, then follow the setup guide's provisioning and configuration steps.
-Some setups require storage or TLS preparation before host configuration.
+Review the displayed plan and enter `yes` to apply, or `no` to stop.
+Add `--plan-only` for a preview, or `--auto-approve` in an approved pipeline.
+For staged provisioning, use the setup guide's `--terraform-only` / `--ansible-only` steps.
 Shared scripts use this repository's inputs and state; run these commands from this root.
 
 ## Repository structure
@@ -76,6 +80,8 @@ Start with a deployment's `main.tf`, then follow its module calls into
 `ansible/` inputs.
 See the [Terraform design map](${docs}/development/code-layout.md#terraform-structure)
 for file responsibilities and the inventory-to-resource flow.
+Use [Add a service](${docs}/development/adding-service.md) for an extension, or
+[Find and fix a bug](${docs}/development/debugging.md) to trace a failure.
 
 All entry points below belong to `${repo_prefix}-${tier}`. Reusable execution code
 in `${repo_prefix}-shared` does not own these deployments or their inventory and state.
@@ -90,10 +96,11 @@ ${deployments}
 - [Selected architecture](docs/architecture/README.md)
 - [Local deployment, development and administration guides](docs/README.md)
 - [Project documentation](../${repo_prefix}-architecture/docs/README.md)
+- [Conventions: names, tags, VMIDs and networks](${docs}/conventions/README.md)
 - [Deployment order](${docs}/paths/${tier}/README.md)
 - [Recovery guides](${docs}/administration/recovery.md)
 - [Architecture and tier boundaries](${docs}/architecture/tier-ownership.md)
-- [Infrastructure control and delegated requests](${docs}/architecture/compute/provisioning.md)
+- [Infrastructure control and delegated requests](${docs}/architecture/hosting/provisioning.md)
 - [Deployment commands](${docs}/reference/repository-scripts.md)
 - [Tier 0 template lifecycle](${docs}/administration/compute/template-lifecycle.md)
 

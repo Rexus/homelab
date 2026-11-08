@@ -97,10 +97,21 @@ object for field queries such as `body.record.source`. Investigate
 3. Copy the Tier 0 `logging_export.yml.example` to local `logging_export.yml`.
    Set its endpoint and external credential paths; approve only that destination in the firewall.
 
+Switch from Tier 1 to the **Tier 0 root**, then create the settings:
+
+```bash
+cd ../homelab-tier-0
+cp -n ansible/group_vars/logging_export.yml.example ansible/group_vars/logging_export.yml
+```
+
+Edit `ansible/group_vars/logging_export.yml`: match each scope's `name`/`group` to
+the approved copy, set the actual Tier 1 `endpoint` and the external certificate/key/CA
+paths. Set `logging_export_allow_egress_accepted: true` only after verifying its firewall path.
+
 From Tier 0, after the first approved files exist:
 
 ```bash
-ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-export.yml -e @ansible/group_vars/logging_export.yml
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-export.yml -e @ansible/group_vars/logging_export.yml
 ```
 
 The role installs a non-root native Collector using Podman Quadlet. Each container mounts only its
@@ -111,6 +122,12 @@ explicit local custody; this is bounded asynchronous delivery, not replicated in
 SELinux relabelling applies only to the derived copy directory and the exporter's own state.
 
 ## Step 3: Verify access and recovery
+
+After the tests below, return to the **Tier 1 root** for Stage 8 reader acceptance:
+
+```bash
+cd ../homelab-tier-1
+```
 
 | Check | Expected result |
 | --- | --- |

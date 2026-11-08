@@ -7,12 +7,14 @@ FreeIPA, the issuer and the identity provider already exist.
 **Prerequisites:** accepted [Identity](../stage-5-identity/README.md),
 service storage/backups and independent recovery inputs.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Automation:** [native cluster installers](procedures/control-applications.md)
-supply Vault, NetBox, Headlamp and their supporting state. Initialization/unseal,
-recovery custody and acceptance remain explicit. Independent monitoring has its own path.
-The Vault VM alternative supplies a service recipe.
-See [stage coverage](../../reference/implementation-support.md#stage-coverage) for
-commissioning and live qualification boundaries.
+**Run commands from the Tier 0 repository root.** From Tier 1 or Tier 2:
+
+```bash
+cd ../homelab-tier-0
+```
+
+**Automation:** native installation supplies Vault, NetBox and Headlamp. Initialization/unseal and
+recovery acceptance remain operator tasks; see [coverage](../../reference/implementation-support.md#stage-coverage).
 **Design:** [identity](../../architecture/identity/README.md),
 [secrets](../../architecture/cryptography/README.md) and [operations](../../architecture/operations/README.md).
 
@@ -93,21 +95,54 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
 
 ## Step 1: Deploy the secret service
 
-Use the Tier 0 [application inputs and native recipe](procedures/control-applications.md).
-Product configuration stays in Tier 0; Shared owns reusable execution.
+1. Choose **1a: Kubernetes Vault** (main path) or
+   [1b: dedicated Vault VM](step-1b-vault-vm.md). Install only one realization.
+   [1c: seal integration](step-1c-seal-integration.md) is an additional explicit seal choice.
+2. For 1a, create the local application inputs without overwriting Stage 5 settings:
 
-Follow [Vault on Kubernetes](procedures/vault-kubernetes.md) for Raft storage,
-native audit forwarding, human OIDC and the operator initialization/unseal ceremony.
-Vault does not use CloudNativePG as its storage backend.
-**Alternative:** [1b: dedicated Vault VM](step-1b-vault-vm.md) replaces the cluster instance.
-[1c: seal integration](step-1c-seal-integration.md) changes unseal/recovery, not PKI signing.
+   ```bash
+   cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
+   ```
 
-Verify TLS, initialization, scoped access, protected audit forwarding and restore
-before storing service credentials. Keep unseal/recovery material outside Vault.
+3. Edit `ansible/group_vars/control_applications.yml`:
+
+   | Field | Set before installation |
+   | --- | --- |
+   | `control_applications_components` | `[vault]` |
+   | `control_applications_vault_phase` | `install` initially |
+   | `control_applications_kubeconfig`, `control_applications_context` | Existing Tier 0 cluster only |
+   | `control_applications_hosts.vault` | Approved private Vault DNS name |
+   | `control_applications_storage_class` | Accepted live block storage for Raft/audit PVCs |
+
+4. Prepare TLS and the accepted Secret owner using
+   [application Steps 1–2](procedures/control-applications.md#configure-inputs), then render:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml
+   ```
+
+   Review the private output, then install the sealed service:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e control_applications_action=apply
+   ```
+
+   These commands assume pre-existing Secrets. For encrypted bootstrap inputs, add
+   `-e @secrets/control-applications.yml --ask-vault-pass` to both, as described in the input procedure.
+5. Complete [Vault ceremony and acceptance](procedures/vault-kubernetes.md#operator-ceremony).
+   The first install leaves Vault sealed. Keep recovery shares outside Vault and Git.
+
+**Continue only after:** verified TLS, scoped access, protected audit delivery and a clean-target restore.
 
 ## Step 2: Add operational tools
 
-Select NetBox and Headlamp in the [control-application procedure](procedures/control-applications.md).
+1. In `ansible/group_vars/control_applications.yml`, change
+   `control_applications_components` to `[netbox, headlamp]`; retain the accepted Vault configuration.
+2. Complete [application installation](procedures/control-applications.md), Steps 1–3,
+   with NetBox database/media storage, NAS backup commissioning and the existing IdP clients.
+3. Install [NetBox change-audit collection](procedures/netbox-audit.md), Steps 1–3,
+   before accepting inventory changes as audited.
+
 The recipe creates/gates the CNPG database and backup resources before NetBox Helm,
 supplies a persistent TLS cache, and binds only selected human groups to namespace
 view access in Headlamp. Complete the native
@@ -116,13 +151,13 @@ including certificate access during issuer outage, before accepting Headlamp acc
 
 NetBox documents inventory. It never supplies the inventory needed to bootstrap
 its own platform. Test backups and restoration before other tiers depend on these services.
-Install [NetBox change-audit collection](procedures/netbox-audit.md) as part of this step;
-ordinary application logging does not preserve its complete change ledger.
+Ordinary application logging does not preserve NetBox's complete change ledger.
 
 ## Step 3: Integrate access and recovery
 
-Configure OIDC clients and service roles where supported. Test permitted and denied
-access, then rehearse privileged recovery without normal directory or IdP login.
+1. Apply the [service SSO checks](../stage-5-identity/procedures/service-sso.md) to each installed service.
+2. Test permitted/denied roles and privileged recovery without directory or IdP login.
+3. Record independent recovery custody before restricting bootstrap credentials.
 
 Optional [3b: hardware-backed authentication](step-3b-hardware-authentication.md)
 adds stronger operator login after recovery is working. Restrict routine bootstrap
@@ -130,9 +165,9 @@ credentials only after independent break-glass access and recovery custody are v
 
 ## Step 4: Establish independent monitoring
 
-Follow the [monitoring deployment](monitoring.md): prepare its independent runtime,
-add critical history/diagnostics, then enable and test external alerts. Each step
-shows what is added to the existing Tier 0 logging foundation.
+Complete [independent monitoring](monitoring.md), Steps 1–3: select the existing host,
+edit collector/alert inputs, install and test external alerts. This is part of the main path;
+the recipe creates no monitoring VM and cannot use `log-1` or `log-2` as its target.
 
 Required cluster-loss detection stays outside the observed cluster. Observability
 is a separate [Stage 8 capability](../stage-8-observability/README.md), not a prerequisite

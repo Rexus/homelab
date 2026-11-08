@@ -29,6 +29,17 @@ development_platform_components: [runners]
 development_platform_runner_concurrent: 4
 ```
 
+The file is **`ansible/group_vars/development_platform.yml`**. Preserve accepted GitLab
+settings; `[runners]` reconciles the runner only, without reinstalling GitLab.
+
+| Field in the same file | Set |
+| --- | --- |
+| `development_platform_kubeconfig` | Accepted Tier 1 cluster |
+| `development_platform_runner_version` | Exact qualified Runner chart version |
+| `development_platform_runner_image`, `development_platform_runner_helper_image` | Compatible approved non-root image digests |
+| `development_platform_runner_allowed_cidrs` | Actual GitLab/artifact/intake endpoint CIDRs |
+| `development_platform_runner_api_cidrs` | Tier 1 API service/backend CIDRs; manager access only |
+
 Pin the runner chart and compatible build/helper image digests. Configure exact
 GitLab/artifact/proxy endpoint CIDRs and Tier 1 API service/backend CIDRs.
 The manager alone may reach that API; jobs use a tokenless `ci-job` identity.

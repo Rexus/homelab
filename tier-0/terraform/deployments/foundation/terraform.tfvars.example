@@ -4,6 +4,7 @@
 # Shared root: Stage 3 issuer and Stage 5 directory resources use the same state.
 # Issuer: docs/deployment/stage-3-trust/procedures/issuer.md
 # Directory: docs/deployment/stage-5-identity/procedures/freeipa.md
+# VMID allocation: docs/conventions/vmid-convention.md
 # Tier network inputs live in ../../common.tfvars; the shared helper loads platform/image references.
 
 # Optional: override the shared default Linux VM template for this setup or
@@ -19,7 +20,7 @@ vm_instances = {
   "idm-1" = {
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 9100
-    vm_id             = 200
+    vm_id             = 301
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
@@ -27,7 +28,7 @@ vm_instances = {
     tags              = ["freeipa", "dns", "critical", "internal", "always-on", "platform"]
   }
   "idm-2" = {
-    vm_id             = 201
+    vm_id             = 302
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
@@ -37,7 +38,7 @@ vm_instances = {
   "ca-1" = {
     # OpenXPKI native packages require the separately approved Debian image.
     template_vm_id    = 9103
-    vm_id             = 210
+    vm_id             = 311
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 30

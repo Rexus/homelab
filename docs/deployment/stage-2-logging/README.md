@@ -16,8 +16,18 @@ NAS custody and live acceptance remain required. See [coverage](../../reference/
 ## Main path
 
 1. [Provision the log host](#step-1-provision-the-log-host)
-2. [Enable protected collection](#step-2-enable-protected-collection)
-3. [Protect and verify retained evidence](#step-3-protect-and-verify-retained-evidence)
+2. [2a: Install the receiver; 2b: connect sources](#step-2-enable-protected-collection)
+3. [Install NAS retention and verify recovery](#step-3-protect-and-verify-retained-evidence)
+
+Start from the generated Tier 2 repository after Stage 1:
+
+```bash
+cd ../homelab-tier-0
+```
+
+The required receiver, source and NAS instructions below are parts of this stage.
+Complete them in order, returning here at the end of each task. The adjacent
+redundant-intake and locked-retention pages are alternatives with separate gates.
 
 The IaC provisions hosts/disks, installs the isolated receiver, configures supported
 Linux producers and publishes NAS checkpoints with independent encrypted backups.
@@ -83,22 +93,32 @@ their original timestamps and source identity. Record any earlier unbuffered gap
 
    | Tier 0 file | Set |
    | --- | --- |
-   | `terraform/deployments/syslog/terraform.tfvars` | Hosts, VMIDs, size, placement and data-disk capacity |
-   | `ansible/inventory/hosts.yml` | Matching `foundation_logging` hosts |
-   | `ansible/group_vars/syslog.yml` | Matching host IPs and selected host settings |
-   | `terraform/common.tfvars` | Tier-local management network; verify independent credentials/state separately |
+   | `.env.local` | This tier's real `PROXMOX_API_URL`, token ID/secret and `TF_VAR_ssh_public_key_files`; use the matching private key through SSH configuration or an agent |
+   | Shared: `config/platform.tfvars` | Actual `default_platform_node_name` and `proxmox_storage_classes`; `local.vm_disk` must name storage accepting VM images, such as `local-zfs` |
+   | Shared: `templates/proxmox-catalog.tfvars` | `default_linux_vm_template_id` selects the approved Linux template, not the Talos image |
+   | `terraform/common.tfvars` | `network_zones.management` must match the intended private attachment, prefix and gateway, or applied SDN lookup |
+   | `terraform/deployments/syslog/terraform.tfvars` | Keep `log-1`; set its unused `vm_id`, size, `storage_class`, `disk_size_gb` and `extra_disks` capacity |
+   | `ansible/inventory/hosts.yml` | Include `log-1` under `foundation_logging`; retain existing groups/hosts |
+   | `ansible/group_vars/syslog.yml` | Set `platform_host_ips.log-1` to its reserved address; receiver fields are completed in Step 2a |
 
-3. Plan, review all VM/disk changes, then deploy:
-
-   ```bash
-   bash scripts/deploy.sh syslog --plan-only
-   ```
-
-   After review:
+3. Provision the VM and disks. Review Terraform's displayed plan; enter `yes` only
+   for the intended changes:
 
    ```bash
    bash scripts/deploy.sh syslog --terraform-only
    ```
+
+   Optional preview: add `--plan-only`. An approved unattended provisioning job
+   can add `--auto-approve`; this does not prepare the data mount or receiver trust.
+4. Check SSH from the execution host, using the address set above:
+
+   ```bash
+   read -r -p 'Reserved log-1 IP: ' LOG_HOST_IP
+   ssh "automation@$LOG_HOST_IP"
+   ```
+
+   Use the configured SSH account if different. Continue Step 2a on this host;
+   return to the Tier 0 execution shell for repository commands.
 
 Edit the local files seeded from examples. The starter creates `log-1`
 outside Kubernetes with an OS disk and a separate log-data disk. This Terraform-only
@@ -164,13 +184,23 @@ and [producer recipe](../../../tier-0/ansible/playbooks/deployment/logging-produ
 The reusable sender implementation is [Shared's `log_forwarder`](../../../shared/ansible/roles/log_forwarder/tasks/main.yml);
 each tier retains its own inventory and source selections.
 
-1. Follow [receiver setup, Steps 1-3](receiver.md): prepare the data mount,
-   [independent producer trust](producer-trust.md) and source catalogue, then run the Tier 0 recipe. It leaves the
-   OS logger intact and refuses missing storage or trust inputs.
-2. Follow [source preparation and installation](sources.md) in each owning tier,
-   including the collector's own OS and audit streams. A listener alone collects nothing.
-3. Submit numbered test events and verify source identity, timestamps and offline-readable
-   records. Preserve early local records; configure the remaining controls below before acceptance.
+### Step 2a: Install the receiver
+
+Complete [receiver Steps 1-3](receiver.md). Prepare the local data mount, issue its
+independent TLS identity and run the receiver installation. These are required
+steps, not optional background reading. The recipe refuses missing storage/trust.
+
+### Step 2b: Connect the first producers
+
+Receiver setup enrolls `log-1`'s own OS stream first. Extend coverage by completing
+[source Steps 1-2](sources.md) for each supported Proxmox host and additional
+approved stream. Prepare host keys/CSRs, approve them through [producer trust](producer-trust.md#3-approve-producer-requests),
+register each identity in Tier 0 and install forwarding. Add appliance exports using
+[source Step 3](sources.md#3-extend-coverage).
+
+Send the numbered test event shown there and locate it in the Tier 0 records.
+A working listener without enrolled producers is not a completed collection path.
+Return here for Step 3; preserve early local records until delivery is verified.
 
 | Configure | Required result |
 | --- | --- |
@@ -268,15 +298,17 @@ data into the recovery boundary. That group remains inside the Tier 0 ownership
 box, not inside the receiver's runtime or NAS custody. Choice B replaces or supplements
 the NAS custody boundary with qualified retention-locked storage.
 
-1. Select [A: NAS snapshots/backups](step-3c-nas-archive.md) or
-   [B: retention locks](step-3d-retention-lock.md), then establish independent backups
-   and reader/writer/custodian credentials. One homelab operator may hold all roles
-   under A's trusted-admin assumption; record that boundary explicitly.
-2. Test offline inspection, restoration and denied access using the matrix below.
-3. Record the achieved [readiness](../readiness.md#readiness-levels) and residual gaps.
-   Record NAS checkpoint/snapshot/backup lag and the transport-release limit. Select
-   [3b: redundant intake](step-3b-redundant-intake.md) if replicated intake/HA is required;
-   the asynchronous main path does not claim that stronger contract.
+1. **Main path:** complete [NAS archive Steps 1-3](step-3c-nas-archive.md), including
+   the archive installation and independent backup recipe. A trusted homelab operator
+   may hold the separate credentials; record that custody assumption.
+   **Alternative:** [locked retention](step-3d-retention-lock.md) replaces or supplements
+   NAS snapshots when privileged deletion must be prevented. Return here afterward.
+2. Complete the [numbered fault/restore drill](../../administration/logging-drill.md)
+   and the acceptance matrix below. Keep the live results with the project records.
+3. Record [readiness](../readiness.md#readiness-levels), checkpoint/snapshot/backup lag
+   and the transport-release limit. For an additional collector, follow
+   [3b: redundant intake](step-3b-redundant-intake.md), then repeat the same checks;
+   it does not convert asynchronous delivery into lossless HA.
 
 | Test | Acceptance |
 | --- | --- |

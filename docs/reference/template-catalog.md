@@ -44,7 +44,7 @@ settings, host inventory, or Terraform state.
    extra entry fields are retained, and `default_linux_vm_template_id` is preserved.
    No-change synchronization leaves the file untouched. The reference map's formatting
    is regenerated; settings and comments outside it remain. The
-   [tag convention](proxmox-conventions.md#template-tags) applies to the synchronized image tags.
+   [tag convention](../conventions/proxmox-conventions.md#template-tags) applies to the synchronized image tags.
 4. Set `default_linux_vm_template_id` in Shared to the tested Linux ID when ready for
    consumers to adopt it. Talos references are listed too, but cannot be used by
    the Linux VM module; use the [Talos Kubernetes implementation](../deployment/stage-4-kubernetes/procedures/talos-terraform.md) or the

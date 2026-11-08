@@ -3,7 +3,7 @@
 **Working repository:** the cluster owner's `<prefix>-tier-0`, `<prefix>-tier-1`
 or `<prefix>-tier-2` (source: matching `tier-N/`). Stage 4 uses Tier 0.
 
-**Design:** [cluster runtime variants](../../../architecture/compute/README.md).
+**Design:** [cluster runtime variants](../../../architecture/hosting/README.md).
 
 The goal is an independently recoverable Kubernetes cluster on Proxmox.
 Tier 0 uses it for control services; Tier 1 can use a separate cluster for
@@ -125,8 +125,8 @@ Shared procedures do not justify copying Tier 0 credentials or privileges into a
 
 ## Continue reading
 
-- [Cluster topology](../../../architecture/compute/kubernetes.md)
-- [Delivery controller choices](../../../architecture/delivery/controllers.md)
+- [Cluster topology](../../../architecture/hosting/kubernetes.md)
+- [Delivery controller choices](../../../architecture/software/controllers.md)
 - [Application-platform choices](../../stage-7-delivery/procedures/platform-cluster.md)
 - [Tier ownership and recovery](../../../architecture/tier-ownership.md)
 - [Cluster implementation and state](talos-terraform.md#state-and-lifecycle)

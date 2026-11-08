@@ -13,8 +13,8 @@ deployment, physical failover, protected retention or disaster recovery.
 
 ## Basic suite
 
-Use the accepted [deployment environment](local-setup.md#deployment-machine),
-with Python test dependencies installed in its virtual environment:
+Prepare the [developer environment](local-setup.md#step-1-prepare-the-developer-environment).
+From the upstream kit root, install test dependencies in that virtual environment:
 
 ```bash
 python3 -m pip install -r tests/requirements.txt
@@ -27,6 +27,16 @@ missing tools cause explicit skips; inspect the final skip list before reporting
 coverage. Tests create disposable files and local test services, not remote resources.
 
 ## Native checks
+
+For the standalone Tier 0 template module, run from the upstream kit root:
+
+```bash
+terraform -chdir=tier-0/terraform/modules/proxmox_templates init -backend=false
+terraform -chdir=tier-0/terraform/modules/proxmox_templates test
+```
+
+These native mock tests do not contact Proxmox or establish real image/clone acceptance.
+Operator verification remains in the [template runbook](../administration/compute/template-lifecycle.md).
 
 Approve exact packages, checksums and tools before enabling native tests. Keep
 them outside tracked source. Some tests fetch pinned charts/CRD schemas over

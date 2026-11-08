@@ -2,7 +2,7 @@
 
 Deployment adds and verifies capabilities in stages against a selected
 [platform architecture](../architecture/README.md) and its
-[domain designs](../architecture/README.md#technical-domains).
+[domain designs](../architecture/README.md#foundational-capabilities).
 Readiness describes what has been implemented and demonstrated, not a new architecture.
 
 ## Table of contents

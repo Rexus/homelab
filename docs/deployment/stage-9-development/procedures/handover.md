@@ -32,6 +32,17 @@ The supplied helper currently runs the Linux Terraform/Ansible setup path;
 cluster/template lifecycle retains its dedicated commands and state contracts.
 Do not imply that this example implements their upgrade/recovery workflows.
 
+From the **dedicated Tier 0 infrastructure project checkout**, create the pipeline starter:
+
+```bash
+cp -n ci/gitlab-iac.yml.example .gitlab-ci.yml
+```
+
+If `.gitlab-ci.yml` already exists, review and merge the protected jobs explicitly;
+`cp -n` does not modify it. In GitLab's project settings, protect the selected branch
+and add the following **protected variables**. Keep plans/state in the restored
+persistent runner workspace, never in CI artifacts.
+
 | Protected setting | Contract |
 | --- | --- |
 | `IAC_TRUST_CI_CONTROL_PLANE` | `true` only after the direct-CI trust decision |

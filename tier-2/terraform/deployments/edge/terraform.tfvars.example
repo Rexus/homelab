@@ -2,6 +2,7 @@
 # Replace every value before use.
 # Setup guide: docs/deployment/stage-7-delivery/procedures/edge-proxy.md
 # Shared values live in ../../common.tfvars.
+# VMID allocations: docs/conventions/vmid-convention.md
 
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
@@ -13,7 +14,7 @@ vm_instances = {
   # The default is a 3-node edge set. Keep matching Ansible inventory and IP
   # entries when you add or remove edge hosts.
   "edge-lb-1" = {
-    vm_id            = 220
+    vm_id            = 2301
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
@@ -21,7 +22,7 @@ vm_instances = {
     tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }
   "edge-lb-2" = {
-    vm_id            = 221
+    vm_id            = 2302
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
@@ -29,7 +30,7 @@ vm_instances = {
     tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }
   "edge-lb-3" = {
-    vm_id            = 222
+    vm_id            = 2303
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20

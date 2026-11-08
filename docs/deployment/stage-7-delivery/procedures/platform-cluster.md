@@ -4,86 +4,69 @@
 Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes) and
 [clusters/tier1/](../../../../tier-1/clusters/tier1); other clusters use their own tier repositories.
 
-**Design:** [delivery runtimes](../../../architecture/delivery/README.md).
+**Design:** [delivery runtimes](../../../architecture/software/README.md).
 
 ## Table of contents
 
 - [Purpose](#purpose)
-- [Dependency direction](#dependency-direction)
-- [Starting shape](#starting-shape)
-- [Delivery selection](#delivery-selection)
-- [Cluster foundation](#cluster-foundation)
+- [Step 1: Initialize and edit Tier 1 inputs](#initialize-tier-1)
+- [Step 2: Deploy and qualify the cluster](#deploy-tier-1)
+- [Step 3: Cluster foundation](#cluster-foundation)
+- [Capacity and delivery choices](#capacity-and-delivery-choices)
 - [Read more](#read-more)
 
 ## Purpose
 
-Use this path when the private cloud needs an application runtime layer above
-the Proxmox VM foundation.
+Create the Tier 1 application cluster, then install its basic platform. The same
+[cluster implementation](../../stage-4-kubernetes/procedures/talos-terraform.md)
+is reused with tier-owned inventory, state and credentials. Tier 0 remains independent.
 
-For installation and node-OS choices, follow the common
-[Kubernetes cluster guide](../../stage-4-kubernetes/procedures/kubernetes.md).
-Use the [Tier 1 checklist](../../../paths/tier-1/README.md) for platform services or the
-[Tier 0 checklist](../../../paths/tier-0/README.md) for the independent control cluster.
-This page explains application-platform choices. Every tier has its own
-[Kubernetes Terraform root](../../stage-4-kubernetes/procedures/talos-terraform.md), currently implemented
-with Talos. The native basic-platform installer supplies selected add-ons; application
-directories remain tier-owned delivery targets rather than automatically installed services.
+<a id="initialize-tier-1"></a>
 
-## Dependency direction
+## Step 1: Initialize and edit Tier 1 inputs
 
-Kubernetes should consume the shared services when they exist:
+From the **Tier 1 root**:
 
-These integrations are not prerequisites for creating the first control cluster.
-Keep Tier 0 bootstrap and recovery independent of higher-tier services.
+```bash
+bash scripts/kubernetes-cluster.sh init
+```
 
-| Shared service | How Kubernetes uses it |
+Edit the local files, retaining any existing cluster's original identities and state:
+
+| File | Required edits |
 | --- | --- |
-| identity | operator access, groups, SSO, and workload administration |
-| PKI | internal TLS, ingress certificates, and service identity |
-| secret platform | secrets, workload credentials, and dynamic secret patterns |
-| edge | north-south entry into selected cluster services |
-| cache | controlled outbound repository/update access for restricted clusters |
-| system control | metrics, logs, traces, audit events, and alert routing |
+| `ansible/inventory/hosts.yml` | Tier 1 `talos_control_plane` / `talos_workers` hosts |
+| `ansible/group_vars/talos.yml` | Their actual reserved `platform_host_ips` |
+| `terraform/deployments/kubernetes/terraform.tfvars` | Cluster name/private API endpoint, unique VMIDs, approved template/source node, releases/installer, Tier 1 attachment and native patches |
 
-Keep Proxmox as the infrastructure and VM boundary. Use Kubernetes as the
-application runtime on top when GitOps, namespaces, policies, and horizontal
-application scaling become the main need.
+Complete the [common cluster configuration](../../stage-4-kubernetes/procedures/talos-terraform.md#configure),
+including image access, firmware, CNI patches and an independent API endpoint.
+Use Tier 1's source inputs throughout. This command does **not** load `.env.local`:
+supply `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` through the accepted protected environment.
 
-## Starting shape
+<a id="deploy-tier-1"></a>
 
-Use the independent [Tier 1 cluster topology](../../../architecture/compute/kubernetes.md).
-The compact start runs trusted workloads on three control planes; add workers
-before reserving control planes for Kubernetes components:
+## Step 2: Deploy and qualify the cluster
 
-| Role | Example name | Notes |
-| --- | --- | --- |
-| control plane | `platform-k8ctl-1` to `platform-k8ctl-3` | Three nodes, scheduling configurable |
-| worker | Project-defined nodes | Optional infrastructure/stateful/compute pools |
-| ingress | cluster-native ingress | consumes the shared edge path instead of replacing it |
-| Delivery | Argo CD or Spinnaker; unselected | Application GitOps or release orchestration; scoped credentials and independent recovery |
+```bash
+bash scripts/kubernetes-cluster.sh plan
+```
 
-The starter node sizes establish the cluster, not capacity for every later service.
-Before installing Harbor, Spinnaker, Observability or GitLab, review their rendered
-resource requests and add appropriately sized workers. Retain headroom for the
-selected failures, upgrades, database recovery and JVM startup; VM count alone is not a budget.
+Review the saved plan's addresses, disks, templates and failure-domain placement, then apply:
 
-Use separate clusters for stronger project isolation when shared namespaces,
-RBAC, and policy are not enough.
+```bash
+bash scripts/kubernetes-cluster.sh apply
+bash scripts/kubernetes-cluster.sh credentials
+```
 
-## Delivery selection
+Apply uses the saved plan without an extra Terraform `yes` prompt. It creates/bootstrap-configures
+the selected cluster; it is not an adoption/recovery command. Keep the exported
+`secrets/talos/` client files and original state under independent recovery custody.
+Continue to **Step 3: Cluster foundation** below before any application installation.
 
-Record [A: Argo CD or B: Spinnaker](../../../architecture/delivery/controllers.md) in the
-project architecture before installation. Use the [native delivery installer](delivery-installer.md)
-with explicit controller selection, pinned charts/images, scoped destinations/accounts,
-RBAC/OIDC and secret handling. The
-[Spinnaker native reference](../step-2b-spinnaker.md#installation-decision) supplies its
-service base and SQL/cache dependencies; custom overlays remain optional.
-Tier 0's Flux remains independently owned.
+<a id="cluster-foundation"></a>
 
-Test approved delivery, rejected targets, health gates, rollback and recovery
-without the normal delivery service. Never register Tier 0 as a Tier 1 delivery target.
-
-## Cluster foundation
+## Step 3: Cluster foundation
 
 Follow the common [cluster foundation checklist](../../stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation)
 for networking, reconciliation, secrets, persistence, TLS, and databases.
@@ -94,8 +77,13 @@ from the **Tier 1 repository**, with its own
 Shared's `cluster_platform` role executes the add-ons; Tier 1 owns their selection,
 values, cluster credentials and resources. No add-on code is copied between tiers.
 
-Copy `ansible/group_vars/cluster_platform.yml.example` to its ignored `.yml`
-counterpart and configure Tier 1's kubeconfig/context, exact chart pins, image access,
+Create the local inputs:
+
+```bash
+cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster_platform.yml
+```
+
+Edit `ansible/group_vars/cluster_platform.yml`: Tier 1's kubeconfig/context, exact chart pins, image access,
 storage and issuer prerequisites. Retain Tier 1's explicit component selection:
 
 ```yaml
@@ -124,11 +112,28 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 
 The common procedure owns add-on prerequisites and readiness gates, including the
 distinction between installing CloudNativePG and creating an application database.
-Then continue with the [Tier 1 service checklist](../../../paths/tier-1/README.md).
+After accepting CNI, logging, storage, ingress, TLS and database-controller gates,
+return to [Stage 7 Step 2](../README.md#step-2-select-and-qualify-delivery).
+
+<a id="dependency-direction"></a>
+<a id="starting-shape"></a>
+<a id="delivery-selection"></a>
+
+## Capacity and delivery choices
+
+The starter has three schedulable control-plane VMs, `platform-k8ctl-1` through
+`platform-k8ctl-3`. Add workers in the tier-local inputs before reserving control
+planes for Kubernetes components. Review rendered Harbor, Spinnaker, Observability
+and GitLab requests; starter sizing is not capacity for every later service.
+Retain headroom for a physical-host failure, upgrades and recovery.
+
+Select one [Argo CD or Spinnaker path](../README.md#step-2-select-and-qualify-delivery).
+Keep bootstrap Git/OCI and Tier 0 recovery independent of the Tier 1 cluster.
+Separate clusters remain an option where namespace/RBAC isolation is insufficient.
 
 ## Read more
 
-- [Delivery stage](../README.md#step-2-select-and-qualify-delivery)
-- [Private cloud model](../../../architecture/private-cloud.md)
-- [Shared services model](../../../architecture/service-boundaries.md)
-- [Telemetry procedure](../../stage-8-observability/step-1b-dedicated-vms.md)
+- [Cluster topology and capacity](../../../architecture/hosting/kubernetes.md)
+- [Delivery choices and authority](../../../architecture/software/controllers.md)
+- [Shared service dependencies](../../../architecture/service-boundaries.md)
+- [Tier 1 deployment checklist](../../../paths/tier-1/README.md)

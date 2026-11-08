@@ -1,32 +1,40 @@
 # Extract control recovery files
 
-Run on an independent isolated recovery workstation, using verified restic and Python 3.9+.
-Obtain the repository, password, full known-good snapshot ID and expected Vault/manifest digests
-from independently protected custody. Preserve the incident copies before extraction.
+**Run on:** an independent isolated recovery workstation with verified restic and Python 3.9+.
+**Prepare:** independent repository/password, full known-good snapshot ID and recorded
+Vault/manifest hashes. Preserve incident copies; use encrypted private extraction storage.
+**Design:** [recovery custody](../../architecture/operations/backup-recovery.md).
 
-## Contents
+<a id="contents"></a>
 
-- [Extract into a new target](#extract-into-a-new-target)
-- [Verify and hand off](#verify-and-hand-off)
+## Operator tasks
+
+- [How to extract a known recovery point into a new target?](#extract-into-a-new-target)
+- [How to verify extracted files before product recovery?](#verify-and-hand-off)
 - [References](#references)
 
-## Extract into a new target
+<a id="extract-into-a-new-target"></a>
+
+## How to extract a known recovery point into a new target?
 
 The installed helper is also available at
 `tier-0/ansible/roles/control_backup/files/restore_files.py` in this source repository. Keep its
 `control_backup_io.py` sibling beside it when using an offline recovery kit.
-Use independent local credentials, not a Vault/SSO fetch from the unavailable platform:
+1. Supply the repository/password from independent custody, not a fetch from failed Vault/SSO.
+2. List snapshots and compare repository identity/full snapshot ID with the retained receipt.
+3. Choose a **new absolute target** under an existing canonical private parent, then run:
 
 ```bash
 set -euo pipefail
 umask 077
-: "${RESTIC_REPOSITORY:?Set the independent repository}"
-: "${RESTIC_PASSWORD_FILE:?Set the independently held password file}"
-: "${RECOVERY_SNAPSHOT:?Set the full known-good 64-character restic ID}"
-: "${RECOVERY_TARGET:?Set a new absolute directory under an existing private parent}"
+read -r -p "Independent restic repository path or URI: " RESTIC_REPOSITORY
+read -r -p "Independent restic password-file path: " RESTIC_PASSWORD_FILE
+export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
+restic cat config
+read -r -p "Full known-good 64-character restic snapshot ID: " RECOVERY_SNAPSHOT
+read -r -p "NEW absolute extraction target under a private parent: " RECOVERY_TARGET
 restic snapshots --tag control-recovery --json
-python3 /usr/local/lib/control-backup/restore_files.py \
-  --snapshot "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --approve-clean-target
+python3 /usr/local/lib/control-backup/restore_files.py --snapshot "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --approve-clean-target
 ```
 
 The helper creates the target exclusively, rejects `latest`, existing paths and symlink parents,
@@ -37,9 +45,12 @@ the target, so inspect the resulting tree before product use. [1]
 
 For a bounded dataset, inspect `restic ls "$RECOVERY_SNAPSHOT"` and pass `--subfolder /exact/tree/path`
 to extract only that subtree into another new target. This is useful for media or a state directory;
-use snapshot-tree paths as displayed by restic, including the drive prefix for Windows snapshots.
+use exact snapshot-tree paths as displayed by restic. The helper rejects relative, parent-traversal
+and colon-containing subfolder selectors; use full extraction when that bounded selector cannot apply.
 
-## Verify and hand off
+<a id="verify-and-hand-off"></a>
+
+## How to verify extracted files before product recovery?
 
 1. Compare repository identity and restic ID with the independently recorded receipt. Do not take
    an incident-modified local `last-success.json` as the only source of truth.
@@ -47,9 +58,9 @@ use snapshot-tree paths as displayed by restic, including the drive prefix for W
    the expected independently held digests, then compare the snapshot to `vault_sha256` in the manifest:
 
    ```bash
-   : "${RESTORED_SET:?Set the extracted timestamped set directory}"
-   : "${EXPECTED_MANIFEST_SHA256:?From independent custody}"
-   : "${EXPECTED_VAULT_SHA256:?From independent custody}"
+   read -r -p "Extracted timestamped set directory: " RESTORED_SET
+   read -r -p "Independently recorded manifest SHA-256: " EXPECTED_MANIFEST_SHA256
+   read -r -p "Independently recorded Vault SHA-256: " EXPECTED_VAULT_SHA256
    printf '%s  %s\n' "$EXPECTED_MANIFEST_SHA256" "$RESTORED_SET/manifest.json" | sha256sum -c -
    printf '%s  %s\n' "$EXPECTED_VAULT_SHA256" "$RESTORED_SET/vault.snap" | sha256sum -c -
    vault operator raft snapshot inspect "$RESTORED_SET/vault.snap"
@@ -60,6 +71,10 @@ use snapshot-tree paths as displayed by restic, including the drive prefix for W
 4. Continue with [Vault](vault.md), [original state](original-state-etcd.md), or [NetBox](netbox.md).
    Keep plaintext on encrypted recovery storage with restricted access. Never commit extracted state,
    credentials or private keys. Restic decryption/integrity does not validate product consistency.
+
+**Stop/rollback:** on any ID/hash/read-data failure, preserve the extracted target and source backup.
+Do not reuse the target, overwrite incident files or fall back to `latest`. Diagnose, select another
+known-good recovery point and extract into another new directory.
 
 ## References
 

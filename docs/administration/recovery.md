@@ -2,14 +2,20 @@
 
 Recover Tier 0 independently, preserve evidence before rebuilding, then restore
 platform services and workloads. Offline investigation does not require a running platform.
+The [service-boundary design](../architecture/service-boundaries.md) explains this recovery independence.
 
-## Table of contents
+<a id="table-of-contents"></a>
 
-- [Recovery inputs](#recovery-inputs)
-- [Recovery order](#recovery-order)
-- [Product procedures](#product-procedures)
+## Find a task
 
-## Recovery inputs
+- [What must survive outside the platform?](#recovery-inputs)
+- [What is the first action after total loss?](#first-action)
+- [In what order are services restored?](#recovery-order)
+- [Which restore procedure applies?](#product-procedures)
+
+<a id="recovery-inputs"></a>
+
+## What must survive outside the platform?
 
 Retain these outside the system being restored:
 
@@ -25,7 +31,34 @@ Retain these outside the system being restored:
 Record owners, backup locations, and restore results in project-owned runbooks.
 Offline custody has no routed access from the connected management network.
 
-## Recovery order
+<a id="first-action"></a>
+
+## What is the first action after total loss?
+
+**Work from:** a trusted isolated recovery host and the independently held recovery kit.
+**Prerequisites:** authorized custody, readable backups and original keys/state. Do not depend on hosted SSO or CI.
+
+1. Stop competing workstation/runner writers. Preserve surviving disks and logs before rebuilding.
+2. Retrieve the tier/Shared code, inventory, private inputs and **original** state from protected backup.
+   Keep their sibling repository layout and recorded revisions.
+3. Follow the [original-state restore procedure](recovery/README.md) before any apply.
+   In each restored tier root, inspect the checkout and retained state locations:
+
+   ```bash
+   git status --short
+   ls -ld .terraform/state
+   ```
+
+4. Verify backup identifiers, key availability, state lineage and resource addresses using that procedure.
+   Then continue in the order below; restore only onto accepted clean targets.
+
+**Expected:** the original deployment identity is recovered before provisioning resumes.
+**Stop:** on missing state/keys, unexplained resource differences or evidence of compromise.
+Do not replace missing state with an empty `init`, initialize new CA/Vault keys or bootstrap a replacement cluster.
+
+<a id="recovery-order"></a>
+
+## In what order are services restored?
 
 | Order | Action | Acceptance |
 | --- | --- | --- |
@@ -45,10 +78,19 @@ the [backup guide](compute/backup-restore.md) for recovery objectives and restor
 For the software issuer, follow the [clean-target restore procedure](cryptography/issuer-recovery.md),
 not fresh key creation or initial token activation.
 
-## Product procedures
+<a id="product-procedures"></a>
+
+## Which restore procedure applies?
 
 The [product recovery index](recovery/README.md) provides clean-target procedures for original
 inputs/state and etcd, FreeIPA/CA, Vault, CNPG databases, Keycloak, NetBox/media and Tier 1 data.
 Install [scheduled control backup transport](backups/control-applications.md) before accepting
 the dependent services. Preserve the selected database/media recovery points and independent keys;
 a fresh bootstrap or an empty application deployment is not a restore.
+
+1. Select the affected product in that index and match the backup to its original version/configuration.
+2. Restore on isolated capacity; keep duplicate guest identities and credentials off live networks.
+3. Verify data, permitted/denied access, logs and a measured recovery point/time before reconnecting consumers.
+
+**Stop/rollback:** keep failed restores isolated and preserve their diagnostics. Return to the retained
+backup and a fresh clean target; never overwrite the only surviving evidence or recovery set.

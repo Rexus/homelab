@@ -18,7 +18,7 @@ Keep clients, public edge and Tier 1 build/supply hosts in separate subnets.
 For an independent Kubernetes workload runtime, use this tier's
 `terraform/deployments/kubernetes/` and `bash scripts/kubernetes-cluster.sh init`.
 Follow the [common cluster procedure](../../deployment/stage-4-kubernetes/procedures/kubernetes.md),
-then record [scoped application delivery](../../architecture/delivery/controllers.md).
+then record [scoped application delivery](../../architecture/software/controllers.md).
 The Linux `lab` workflow below is a separate VM option, not the cluster installer.
 
 | Step | What to do | Ready to continue when |
@@ -30,7 +30,7 @@ The Linux `lab` workflow below is a separate VM option, not the cluster installe
 
 The kit supplies the lab VM baseline, not a complete application deployment.
 Future self-service requests are controlled by Tier 0; that controller is
-[not implemented yet](../../architecture/compute/provisioning.md#delegated-provisioning).
+[not implemented yet](../../architecture/hosting/provisioning.md#delegated-provisioning).
 Do not give workload users infrastructure-wide credentials to fill that gap.
 
 ## Getting started
@@ -38,18 +38,20 @@ Do not give workload users infrastructure-wide credentials to fill that gap.
 From `homelab-iac/homelab-tier-2`:
 
 ```bash
-bash ../homelab-shared/scripts/init-local-files.sh --setup lab --env test
+bash scripts/init-local-files.sh --setup lab --env test
 ```
 
 Replace `homelab` with the prefix; omit `--env test` for production. Edit the
 initialized inputs using the [script guide](../../reference/repository-scripts.md),
-then have the authorized operator review:
+then have the authorized operator deploy:
 
 ```bash
-bash ../homelab-shared/scripts/deploy.sh lab --env test --plan-only
+bash scripts/deploy.sh lab --env test
 ```
 
-Remove `--plan-only` only after review. Terraform and Ansible use this repo's
+Review the displayed plan and enter `yes` to apply, or `no` to stop. Add `--plan-only`
+for an optional preview; approved pipelines can use `--auto-approve`.
+Terraform and Ansible use this repo's
 same inventory; no separate shared inventory is required.
 
 <a id="find-your-way"></a>

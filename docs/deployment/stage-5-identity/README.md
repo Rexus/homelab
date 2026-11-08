@@ -12,12 +12,17 @@ service acceptance are separate operations.
 See [stage coverage](../../reference/implementation-support.md#stage-coverage) for
 prerequisites, optional variants and live acceptance.
 **Design:** [identity authority](../../architecture/identity/README.md) and
-[cluster runtime](../../architecture/compute/README.md).
+[cluster runtime](../../architecture/hosting/README.md).
 
 ## Main path
 
 1. [Deploy the directory pair](#step-1-deploy-the-directory-pair)
 2. [Deploy identity federation](#step-2-deploy-identity-federation)
+3. [Accept identity and human SSO](#step-3-accept-identity-and-human-sso)
+
+Remain in the Tier 0 repository after Stage 4. The FreeIPA and Keycloak pages below
+are the required installation steps, not optional variants. They use the existing
+foundation state and control cluster; no new state or inventory owner is introduced.
 
 ## Step 1: Deploy the directory pair
 
@@ -53,15 +58,15 @@ flowchart TB
 [directory recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml).
 Directory VMs may already be allocated by Stage 3; retain the existing CA and all state.
 
-Follow the [FreeIPA procedure](procedures/freeipa.md). Add the identity VMs to the
-Tier 0 [foundation root](../../../tier-0/terraform/deployments/foundation)
-and [inventory](../../../tier-0/ansible/inventory/hosts.yml.example)
-without removing the existing issuer definition.
-For the sibling FreeIPA CA, the [external-signing integration gate](procedures/freeipa.md#external-ca-integration-gate)
-selects the CSR/pause and certificate/completion phases now implemented by the recipe.
-Offline signing remains a separate authorized operation.
-Verify the primary before joining the replica; test DNS and replication before
-replacing temporary bootstrap dependencies.
+1. Complete [FreeIPA Step 1](procedures/freeipa.md#step-1-configure-and-provision-the-pair):
+   edit the existing foundation guest map, inventory and IPs, retain `ca-1`, and
+   provision any missing directory VMs. Unchanged Stage 3 allocations remain in place.
+2. Complete [FreeIPA Step 2](procedures/freeipa.md#step-2-generate-and-sign-the-identity-ca-request):
+   select `external` / `csr`, supply the protected passwords, run the directory recipe
+   and sign the public CSR in the separate authorized root ceremony.
+3. Complete [FreeIPA Step 3](procedures/freeipa.md#step-3-complete-the-primary-and-replica):
+   select `complete`, supply the approved certificate/chain paths and rerun the recipe.
+   Verify both hosts' directory/DNS/CA replication before replacing bootstrap dependencies.
 
 FreeIPA stays outside Kubernetes. Directory and cluster setup can proceed independently
 once their prerequisites exist. Preserve independent administrative credentials.
@@ -122,23 +127,34 @@ from its live volumes; the Barman plugin is required only for the object/WAL opt
 The [backup realization](../../administration/backups/postgresql.md) identifies the
 scheduled file jobs and NAS destinations omitted from this runtime view.
 
-Follow the [Keycloak procedure](procedures/keycloak.md) to render and install its
-database, TLS and FreeIPA federation. Configure OIDC clients, group mappings and scoped service roles; verify permitted
-and denied logins before granting administrative access. Each consumer retains
-its own authorization. The directory remains independent of the IdP.
+1. Complete [Keycloak Steps 1-2](procedures/keycloak.md#configure-and-install): copy the
+   local inputs, edit the IdP/LDAPS/storage fields and supply the private certificates
+   and credentials. These prerequisites must not depend on later Vault.
+2. Complete [Keycloak Step 3](procedures/keycloak.md#step-3-prepare-the-database-and-backup):
+   prepare its database, then commission the selected backup destination. Live database
+   volumes stay on the qualified Proxmox/Ceph block class; NAS is backup storage only.
+3. Complete [Keycloak Step 4](procedures/keycloak.md#step-4-install-keycloak-and-federation):
+   render, inspect and install Keycloak with FreeIPA federation, then return here for acceptance.
+
+## Step 3: Accept identity and human SSO
 
 Retain bootstrap credentials and test recovery without normal directory or IdP login.
-Then configure [Kubernetes API human SSO](procedures/kubernetes-sso.md) using the
-selected native Talos patch and serial rollout. Preserve X509/Talos recovery and
-accept certificate access during an issuer outage before enabling Headlamp.
+1. Complete [Keycloak acceptance](procedures/keycloak.md#accept-and-recover), including
+   permitted/denied logins, group removal, event delivery and independent restore.
+2. Before enabling Headlamp, complete [Kubernetes API human SSO](procedures/kubernetes-sso.md)
+   using its supported schema and serial rollout. Preserve X509/Talos recovery and
+   prove certificate access during an issuer outage. Unsupported schemas require
+   qualification; do not silently apply the 1.13 patch to 1.14.
+3. Apply the [service SSO gate](procedures/service-sso.md) to supported later consumers;
+   register their OIDC clients with exact callbacks, scoped roles and independent emergency access.
+
 Later stages register their service-specific clients against this identity provider;
 they do not deploy another provider. The empty Flux application starter is not a
 second reconciliation owner for the supplied Helm installation.
 
 ## Capability available
 
-Apply the [service SSO gate](procedures/service-sso.md) to every later supported
-service and review early administrative logins. Human SSO never replaces workload
+Review early administrative logins. Human SSO never replaces workload
 identity, application authorization or independent recovery credentials.
 
 **Result:** after the selected integrations and acceptance checks, replicated directory services,

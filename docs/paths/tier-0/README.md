@@ -89,7 +89,7 @@ Replace `homelab` in paths if another prefix was selected.
 | Target placement and certificate trust | [Control platform design](../../architecture/reference-platform.md) |
 | Network/VLAN choices and policy | [Network map](../../architecture/networking/README.md) |
 | File locations and commands | [Code map](../../development/code-layout.md), [scripts](../../reference/repository-scripts.md) |
-| Ownership and future workload requests | [Infrastructure control](../../architecture/compute/provisioning.md) |
+| Ownership and future workload requests | [Infrastructure control](../../architecture/hosting/provisioning.md) |
 
 ## Repository structure
 

@@ -15,10 +15,10 @@ The data VMs' encrypted recovery copies use a separate file/SFTP repository.
 
 - [Support and ownership](#support-and-ownership)
 - [Prerequisites](#prerequisites)
-- [Provision the VMs](#provision-the-vms)
-- [Prepare object storage](#prepare-object-storage)
-- [Render and apply](#render-and-apply)
-- [Connect the chart](#connect-the-chart)
+- [Step 1: Provision the VMs](#provision-the-vms)
+- [Step 2: Prepare object storage](#prepare-object-storage)
+- [Step 3: Render and apply data services](#render-and-apply)
+- [Step 4: Connect the chart and verify backups](#connect-the-chart)
 - [Backups and recovery](#backups-and-recovery)
 - [References](#references)
 
@@ -61,11 +61,13 @@ The baseline does not create firewall policy, issue certificates or commission t
 NAS export/mount or SFTP server. Restrict each identity to its own backup area. Set
 `development_data_backup_custody_accepted=true` only after independent copies and
 retention are configured: a data host's writable repository alone is not protected
-retention. The [storage-interface choice](../../../architecture/compute/runtime.md#storage-interfaces)
+retention. The [storage-interface choice](../../../architecture/data/README.md#storage-interfaces)
 adds no storage service. An existing object endpoint is a prerequisite for the chart;
 file-backed application variants do not change the chart's requirements.
 
-## Provision the VMs
+<a id="provision-the-vms"></a>
+
+## Step 1: Provision the VMs
 
 From Tier 1, initialize local inputs using the existing helper:
 
@@ -76,14 +78,19 @@ For an existing collection, first review/register `development-data` under the
 bash scripts/init-local-files.sh --setup development-data
 ```
 
-Set the full IP map and service inputs in `ansible/group_vars/development_data.yml`,
-guest identities in inventory, and the approved EL9 template and available VMIDs
-in the dedicated [development-data Terraform root](../../../../tier-1/terraform/deployments/development-data/terraform.tfvars.example).
-Its fresh example selects three data VMs using shared size profiles. This setup
+The dedicated [development-data root](../../../../tier-1/terraform/deployments/development-data/terraform.tfvars.example)
+selects three data VMs using shared size profiles. This setup
 has separate state from `development`, which retains the alternative Podman
 `git-1` host. Do not move existing resource maps or state implicitly: existing
 data VMs need an explicitly reviewed state migration/import before this root
 can own them; adding dependencies must not remove or replace a live `git-1`.
+
+| Local file | Edit |
+| --- | --- |
+| `terraform/deployments/development-data/terraform.tfvars` | The three VM entries, unused VMIDs, accepted storage and explicitly approved EL9 `default_linux_vm_template_id` |
+| `ansible/inventory/hosts.yml` | All three matching host keys in `development_data` |
+| `ansible/group_vars/development_data.yml` | `platform_host_ips`, actual endpoints and full package/TLS/backup inputs below |
+| `.env.local` | Tier 1 API credentials and local `TF_VAR_ssh_public_key_files` paths |
 
 Select an approved **EL9 x86_64** template explicitly through this deployment's
 `default_linux_vm_template_id`, or verify that its selected shared default already
@@ -95,29 +102,38 @@ or catalog-ID reassignment is required. An Alma/Rocky family label alone does no
 establish the major version; the data role validates the actual guest as EL9
 before package installation. See [template lifecycle](../../../administration/compute/template-lifecycle.md).
 
-```bash
-bash scripts/deploy.sh development-data --plan-only
-```
-
-Review the plan's three VM identities, EL9 template, placement and persistent
-disks. Apply only after confirming no existing resources will be removed or
-replaced:
+Provision only the VMs first; the product recipe in Step 3 has its own explicit apply gate:
 
 ```bash
 bash scripts/deploy.sh development-data --terraform-only
 ```
 
-These commands own only the VMs, not their data-service installation.
+Review Terraform's plan and enter `yes` only for the intended VM/disk changes.
+`--terraform-only` deliberately stops before service configuration. Add `--plan-only`
+for preview, or `--auto-approve` only in an approved unattended job.
 Follow the [VM alternative](../step-1b-source-control-vm.md)
 only when that separate deployment variant is selected.
 
-## Prepare object storage
+<a id="prepare-object-storage"></a>
+
+## Step 2: Prepare object storage
 
 For an existing endpoint, keep buckets/identities under the storage owner's
 administration and configure the `preprovisioned` endpoint/key contract below.
 The same consumer path accepts a qualified NAS object endpoint, Ceph RGW or
 another compatible service; it does not deploy them. Populate the private inputs
 from the endpoint, CA and separate application/toolbox keys supplied by its owner.
+
+Edit `ansible/group_vars/development_data.yml`:
+
+| Field | Set |
+| --- | --- |
+| `development_data_s3_mode` | `preprovisioned` for the main path |
+| `development_data_s3_endpoint`, `development_data_s3_ca_src` | Existing HTTPS object API and local trusted CA file |
+| `development_data_s3_denied_buckets` | An existing bucket outside both supplied identities |
+| `development_data_s3_preprovisioned_accepted` | `true` only after tenant/bucket access is commissioned |
+
+Keep both key pairs in the private extra-vars file prepared in Step 3, never in tracked examples.
 
 In this mode apply checks version IDs/history, read/write/copy/range/list/delete,
 multipart completion/abort and cross-tenant denial. It calls no IAM or bucket
@@ -167,7 +183,9 @@ because backup and restore read/write application objects. Neither policy grants
 bucket administration, IAM actions or deletion of historical object versions.
 Storage custody must separately protect and copy historical data. [2][5]
 
-## Render and apply
+<a id="render-and-apply"></a>
+
+## Step 3: Render and apply data services
 
 Native package downloads honor the existing
 [intake proxy inputs](../../stage-1-software-intake/proxy-cache.md#how-other-paths-use-it);
@@ -188,8 +206,20 @@ or signing fingerprint. Put the four independently generated service passwords/
 tokens and S3 key pairs in `/absolute/private/gitlab-data-secrets.yml`, encrypted
 with Ansible Vault or supplied through the accepted secret workflow.
 
+| Field in `ansible/group_vars/development_data.yml` | Required value |
+| --- | --- |
+| `development_data_chart_app_version`, `development_data_package_*` | Matching signed EL9 CE package, exact URL/checksum and verified signing key/fingerprint |
+| `development_data_endpoints`, `development_data_client_cidrs` | Real DNS names and only the cluster clients that reach these VMs |
+| `development_data_ca_src`, `development_data_tls`, PostgreSQL client certificate/key paths | Preissued leaf material; no CA private key |
+| `development_data_backup_transport`, `development_data_backup_repository` | Commissioned SFTP repositories or NAS file mounts; live data stays on VM block disks |
+| `development_data_backup_*_src`, `development_data_backup_custody_accepted` | Independently retained encryption/transport material and verified custody |
+
+The private extra-vars file supplies `development_data_postgresql_password`,
+`development_data_redis_password`, `development_data_gitaly_token`,
+`development_data_shell_token` and `development_data_s3_keys`. Encrypt it before use.
+
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/development-data.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml -e @/absolute/private/gitlab-data-secrets.yml
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/development-data.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass
 ```
 
 Default `render` contacts no VMs, Kubernetes or object-storage endpoint. It verifies input files and
@@ -198,9 +228,14 @@ scoped JSON policies, chart endpoint/backup inputs and dependency Secret values.
 Treat this whole directory as secret material.
 The playbook checks module and Python dependencies before any provisioning.
 
-After reviewing those files and network/storage prerequisites, run the same command
-with `-e development_data_action=apply -e development_data_apply_confirm=true`.
-For new empty restic destinations also set
+After reviewing those files and network/storage prerequisites, install:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/development-data.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass -e development_data_action=apply -e development_data_apply_confirm=true
+```
+
+Replace `/absolute/private/gitlab-data-secrets.yml` in both commands with the actual
+encrypted file path. For new empty restic destinations only, also set
 `-e development_data_backup_initialize=true`; existing or inaccessible repositories
 are not replaced. Apply uses signed native packages, prevents their automatic
 first reconfiguration, installs per-service TLS and configures only the selected
@@ -208,7 +243,9 @@ package role. PostgreSQL creates the owned database and `amcheck`, `pg_trgm`,
 `btree_gist` extensions before chart migrations. A certificate change restarts the
 affected service to load its new key. No disk formatting is performed. [3][6]
 
-## Connect the chart
+<a id="connect-the-chart"></a>
+
+## Step 4: Connect the chart and verify backups
 
 Load rendered `platform-inputs.yml` after the authored development-platform inputs
 when running the [GitLab installer](gitlab.md#render-and-install), on every render

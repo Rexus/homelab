@@ -5,7 +5,9 @@ NAS administrators and a measured unprotected tail are acceptable. Strict WORM
 retention is not required for this selected homelab model.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Branch from:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence), when trusted NAS administration is acceptable.
+**Branch from:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence).
+**Main path:** NAS-backed retention is the required default selection at this step.
+Select [locked retention instead](step-3d-retention-lock.md) when trusted NAS administration is insufficient.
 **Change:** Protect archive checkpoints with NAS-owned snapshots and independent backups, without claiming WORM.
 **Return:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence) to record the demonstrated protection boundary.
 **Design:** [choice A: NAS custody](../../architecture/operations/log-retention.md).
@@ -69,7 +71,7 @@ restrictions for that mode. [1]
 2. From the Tier 0 root, copy and edit the archive inputs:
 
    ```bash
-   cp ansible/group_vars/logging_archive.yml.example ansible/group_vars/logging_archive.yml
+   cp -n ansible/group_vars/logging_archive.yml.example ansible/group_vars/logging_archive.yml
    read -r -e -p 'Restricted NAS transfer credential file: ' LOGGING_NAS_CREDENTIALS_FILE
    export LOGGING_NAS_CREDENTIALS_FILE
    ```
@@ -80,6 +82,17 @@ restrictions for that mode. [1]
    and optional `domain=` lines. It is copied root-only, not placed in inventory/Git.
    Optionally map only approved application sources to dedicated reader groups;
    security-stream classification comes from Tier 0's source catalogue.
+
+   Edit **`ansible/group_vars/logging_archive.yml`** before running the recipe:
+
+   | Field | Enter |
+   | --- | --- |
+   | `logging_archive_source` | Actual `//NAS/share` SMB path |
+   | `logging_archive_marker` | Exact `.logging-target` contents commissioned on the NAS |
+   | `logging_archive_snapshot_contract` | Snapshot owner, runbook, interval and tested recovery window |
+   | `logging_archive_required_sources` | Active journal stream names, initially including `log-1-os` and commissioned host OS streams |
+   | `logging_archive_watchdog_url` | Unique external dead-man URL for this collector's checkpoints |
+   | `logging_archive_max_lag_seconds`, `logging_archive_min_free_bytes` | Accepted checkpoint lag and minimum free capacity |
 3. After the source heartbeats are arriving and the storage contract is reviewed,
    select one collector from `foundation_logging`. Reuse its host file from
    [source setup](sources.md#1-prepare-tier-owned-streams). Explicitly load global
@@ -105,7 +118,7 @@ restrictions for that mode. [1]
    in Tier 0 inventory, never `foundation_logging`. Copy/edit its backup inputs:
 
    ```bash
-   cp ansible/group_vars/logging_backup.yml.example ansible/group_vars/logging_backup.yml
+   cp -n ansible/group_vars/logging_backup.yml.example ansible/group_vars/logging_backup.yml
    read -r -e -p 'Read-only NAS recovery credential file: ' LOGGING_BACKUP_NAS_CREDENTIALS_FILE
    read -r -e -p 'Separately held restic password file: ' LOGGING_BACKUP_PASSWORD_FILE
    export LOGGING_BACKUP_NAS_CREDENTIALS_FILE LOGGING_BACKUP_PASSWORD_FILE
@@ -118,6 +131,16 @@ restrictions for that mode. [1]
    existing `ansible_host`, SSH account/key overrides and any per-host backup settings.
    The recovery host need not belong to a Terraform setup; never borrow a collector's
    address. Deploy against that one inventory host:
+
+   Edit **`ansible/group_vars/logging_backup.yml`**:
+
+   | Field | Enter |
+   | --- | --- |
+   | `logging_backup_source`, `logging_backup_marker` | Same commissioned NAS archive and marker; access uses the separate read-only account |
+   | `logging_backup_repository` | Independent mounted recovery filesystem path, outside the NAS/collector failure domain |
+   | `logging_backup_initialize` | `true` for the first approved empty repository only; return to `false` after success |
+   | `logging_backup_calendar` | Approved native systemd calendar, such as the supplied `hourly` |
+   | `logging_backup_watchdog_url` | Separate external dead-man URL for independent backups |
 
    ```bash
    read -r -p 'Independent recovery inventory host: ' LOGGING_RECOVERY_HOST

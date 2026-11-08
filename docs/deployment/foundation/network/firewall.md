@@ -7,13 +7,24 @@ Guest-specific inputs remain in the consuming tier; gateway changes are operator
 [firewall contracts](../../../architecture/networking/firewall-policy.md).
 **Prerequisites:** local console recovery and the approved endpoint/port policy.
 
-## Procedure
+## Step 1: Preserve recovery and define rules
 
 1. Export the current configuration and test local recovery access.
 2. Inventory routing, NAT/VPN rules, gateway services, and IPv6.
-3. Define endpoint/port objects and add scoped allows before terminal denies.
-4. Test a pilot subnet, including same-zone and gateway-local traffic.
-5. Record results, then move other networks and remove temporary access.
+3. Record every required source, destination, protocol and port in the project policy.
+   Use the [rule contracts](../../../architecture/networking/firewall-policy.md#rule-contracts).
+
+## Step 2: Apply a pilot policy
+
+1. Create the selected endpoint/port objects in the gateway's policy editor.
+2. Add those scoped allows before terminal denies. Keep console access open.
+3. Apply to one pilot subnet; test same-zone, gateway-local and IPv6 paths as well
+   as routed traffic. Use the [UniFi field guide](unifi.md#apply-the-policy) for that platform.
+
+## Step 3: Verify and continue
+
+Run the relevant checks below from approved and unapproved source networks.
+Record actual results rather than treating rule names as proof.
 
 | Test | Expected result |
 | --- | --- |
@@ -28,7 +39,7 @@ Guest-specific inputs remain in the consuming tier; gateway changes are operator
 | denied IPv4 path tested with IPv6 | also denied, or IPv6 unavailable by design |
 | connected system seeking an offline-custody route | no path exists |
 
-For UniFi, use the [platform translation](unifi.md).
-Keep intended policy in project architecture; exports and test evidence belong in
-project deployment and administration records.
-A naming convention is not evidence that the firewall enforces it.
+After pilot checks pass, export the reviewed configuration, move the remaining selected
+networks and remove temporary access. Keep policy in project architecture and exports/test
+evidence in project operating records. Return to
+[foundation host/network preparation](../README.md#before-starting-hosts-and-networks).

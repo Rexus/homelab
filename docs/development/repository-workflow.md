@@ -1,157 +1,140 @@
-# Safe repository usage
+# Work across the kit and private repositories
 
-## Table of contents
+The public upstream is the reusable deployment kit. A private generated collection
+contains separate tier, Shared and Architecture repositories with their own history
+and responsibility. The collection directory itself is not a Git repository.
 
-- [Purpose](#purpose)
-- [Recommended usage models](#recommended-usage-models)
-- [Local history before hosted source control](#local-history-before-hosted-source-control)
-- [Publishing rules](#publishing-rules)
-- [File naming conventions](#file-naming-conventions)
-- [Bootstrap secret strategy](#bootstrap-secret-strategy)
-- [Example: private mirror in GitLab](#example-private-mirror-in-gitlab)
-- [Pre-push checks](#pre-push-checks)
+<a id="safe-repository-usage"></a>
+<a id="purpose"></a>
 
-## Purpose
+<a id="table-of-contents"></a>
 
-This repository is meant to be shared safely. Treat it as a reusable baseline,
-not as the required home of the live configuration. This public repository is a
-curated upstream reference and is not intended to receive operational changes.
+## Contents
 
-This repository is an upstream deployment kit that can generate or refresh
-private downstream repositories. Those downstream repositories own the actual
-Tier 0, Tier 1, Tier 2, shared, and architecture content for one environment.
+- [Where does a change belong?](#where-does-a-change-belong)
+- [Step 1: Select the private working model](#recommended-usage-models)
+- [Step 2: Keep local history before hosted source control](#local-history-before-hosted-source-control)
+- [Step 3: Refresh from the kit without replacing project work](#step-3-refresh-from-the-kit-without-replacing-project-work)
+- [Step 4: Attach private source control later](#example-private-mirror-in-gitlab)
+- [Step 5: Review before publishing](#pre-push-checks)
 
-Source checkouts use the same ownership split under `tier-0/`, `tier-1/`,
-`tier-2/`, and `shared/`. Run local initialization and deployment from the
-owning tier, never the kit root. See the [source layout](code-layout.md).
+## Where does a change belong?
 
-## Recommended usage models
+| Change | Working location / owner |
+| --- | --- |
+| Reusable role, helper, module or safe starter | Upstream `tier-0/`, `tier-1/`, `tier-2/`, `shared/` or generator source; [code map](code-layout.md) |
+| Project resource definitions and application code | Owning private tier repository; retain its inventory and original state |
+| Site inventories, IPs, `.env.local`, local tfvars | Owning tier's ignored local files and protected backups |
+| Reusable stateless code, sizes and common platform/image references | Shared; never inventories, deployed resources, private keys or another tier's state |
+| Selected paths, naming and project runbooks | Project-owned Architecture/tier documents |
+| Maintained reference manual | Upstream `docs/`; generated Architecture `docs/auto-docs/` is refreshed from it |
 
-### Option 1: Private fork
+Reusable fixes belong in the kit and pass generation/refresh checks; project edits
+belong in their private owner. See [local setup](local-setup.md) and
+[generated ownership](generated-repositories.md#repository-ownership).
 
-Use a private fork for independent project history while keeping a clean path to
-pull updates from the curated upstream baseline. Continue development in the
-fork, not in this public upstream.
+<a id="recommended-usage-models"></a>
+<a id="option-1-private-fork"></a>
+<a id="option-2-private-mirror"></a>
+<a id="option-3-local-only-copy"></a>
 
-### Option 2: Private mirror
+## Step 1: Select the private working model
 
-Use a private mirror for a separate operational copy in private source
-control while keeping this repository as the public upstream reference.
+| Model | Use |
+| --- | --- |
+| Generated private repositories | Separate Tier 0/1/2, Shared and Architecture owners; normal collection workflow |
+| Private fork | Independent project history with reviewed upstream integration |
+| Private mirror/copy | Separate private operational repository, retaining the upstream reference |
+| Local-only checkout/archive | Local/offline work without a remote; independent protected backups still required |
 
-Suggested model:
+Run deployment from the owning source/generated tier root, never the upstream or
+collection root. Hosted source control is optional for initial deployment;
+[generation](generated-repositories.md#purpose-and-prerequisites) creates files without Git or remotes.
 
-- public upstream repository for examples and reusable automation
-- private mirror or generated downstream repository set for environment-specific
-  non-secret configuration
-- external secret storage or runner variables for secrets
+<a id="local-history-before-hosted-source-control"></a>
 
-### Option 3: Local-only copy
+## Step 2: Keep local history before hosted source control
 
-Use a local clone or downloaded archive when no remote is required.
-This is simple and safe for one-user or offline setups.
+1. On the bootstrap execution host, enter one generated repository. For a new repo
+   without Git history, initialize it and inspect ignored paths:
 
-## Local history before hosted source control
+   ```bash
+   git init -b main
+   git status --short --ignored
+   ```
 
-Repository generation does not initialize Git. On the bootstrap execution host,
-initialize each generated Tier 0, Tier 1, Tier 2, Shared and Architecture repository
-separately. Run from the selected repository's root, **never the collection directory**:
+2. Review `.gitignore`, stage explicit safe files and commit under the project's
+   identity/signing policy. Repeat per repo; never initialize the collection directory.
+3. Back up ignored operational inputs, original Terraform state and credentials
+   independently. A commit or future push does not contain or recover those files.
+
+<a id="publishing-rules"></a>
+<a id="file-naming-conventions"></a>
+<a id="bootstrap-secret-strategy"></a>
+
+| Material | Publishing/custody rule |
+| --- | --- |
+| Reusable code/docs, safe defaults and `*.example` | Eligible for upstream after content review; suffix alone is not a secret check |
+| Project-specific non-secret code/configuration | Private project history when deliberately selected; not public upstream |
+| `*.local`, `.env.local`, `secrets/`, private keys and tokens | Ignored/private custody; never force-add |
+| `ansible/inventory/hosts.yml`, local `group_vars/*.yml`, `terraform.tfvars` | Ignored live inputs; examples are tracked separately |
+| Packer `variables.auto.pkrvars.hcl` and Ansible environment overlays | Ignored live values; publish only reviewed examples |
+| State, plans and image artifacts | Protected operational storage/backups; not source commits |
+
+Keep structured non-secret inputs local/private and bootstrap credentials in
+protected injection or [Ansible-only encryption](../administration/secret-handling/ansible-vault.md).
+Use an accepted secret service for normal scoped delivery; retain independent
+bootstrap/recovery custody under the [secret strategy](../administration/secret-handling/strategy.md).
+
+## Step 3: Refresh from the kit without replacing project work
+
+From the **upstream kit root**, after updating its source, preview the same collection:
 
 ```bash
-git init -b main
-git status --short --ignored
+python3 scripts/tier-repos/generate.py --prefix HomeLab --refresh --dry-run
 ```
 
-Review `.gitignore` and the publishing rules below before staging files. Create
-reviewed local commits using the project's identity/signing policy; no GitLab
-service is required. Never force-add ignored credentials, inventories, state or
-image artifacts. Ignored operational inputs need protected backups, not a Git push.
-After Stage 9 accepts hosted source control, add each private remote and push its
-existing history. The [CI handover](../deployment/stage-9-development/procedures/handover.md)
-transfers original state and ignored inputs separately; it does not recreate infrastructure.
+Reuse the original `--prefix` and `--root` on both commands if customized. Review
+the preview, preserve private changes/backups, then apply that refresh:
 
-## Publishing rules
+```bash
+python3 scripts/tier-repos/generate.py --prefix HomeLab --refresh
+```
 
-Commit only:
+Follow the [refresh contract](generated-repositories.md#refresh-and-local-ownership): unchanged files can update.
+Project-owned READMEs/local documents, edited files and recorded deletions are preserved.
+Refresh does not merge live YAML/HCL/dotenv, move state or deploy infrastructure.
+Resolve reported differences in the owning repo before any affected deployment.
 
-- documentation
-- example files ending in `.example`
-- safe defaults
-- reusable code and modules
+<a id="example-private-mirror-in-gitlab"></a>
 
-Do not commit:
+## Step 4: Attach private source control later
 
-- passwords
-- private keys
-- tokens
-- live secret files
-- live local overlays
-- environment-specific files unless they are intentionally non-secret and stored
-  only in a private operational copy
+After accepting hosted source control, create an empty **private** remote per repo.
+From each generated repo with reviewed local commits and no `origin` yet:
 
-## File naming conventions
+```bash
+read -r -p 'Private repository SSH or HTTPS URL without embedded credentials: ' PRIVATE_REMOTE_URL
+git remote add origin "$PRIVATE_REMOTE_URL"
+git push -u origin main
+```
 
-Use these conventions consistently:
-
-- `*.example` = safe to publish
-- `*.local` = local-only and ignored
-- `secrets/` = untracked secret material
-- live files should either be ignored or kept in a private operational copy
-
-Examples below are relative to the owning tier; ignore rules also cover the
-nested source directories:
-
-- `packer/variables.auto.pkrvars.hcl.example` committed
-- `packer/variables.auto.pkrvars.hcl` ignored
-- `ansible/inventory/hosts.yml.example` committed
-- `ansible/inventory/hosts.yml` ignored
-- `ansible/group_vars/all.yml.example` committed
-- `ansible/group_vars/all.yml` ignored
-- `ansible/group_vars/all.env.yml.example` committed
-- `ansible/group_vars/all.lab1.yml` ignored
-
-## Bootstrap secret strategy
-
-Use a simple model first, then move to a secret platform quickly.
-
-Recommended order:
-
-1. external secret manager or secret platform when available
-2. protected runner variables or local environment variables for bootstrap
-3. ignored local files for structured non-secret configuration
-4. committed example files for defaults and templates only
-
-Practical guidance:
-
-- use ignored files for network plans, host group structure, names, and similar
-  non-secret values
-- use environment variables for API tokens, provider authentication, and other
-  sensitive runtime values
-- avoid storing long-lived secrets in plain-text local files when environment
-  variables or secret systems are available
-- reduce direct secret handling as soon as the secret platform is introduced
-
-## Example: private mirror in GitLab
-
-One workable pattern is:
-
-- keep this repository as the public upstream baseline
-- mirror or copy it into a private GitLab project
-- use self-hosted runners for infrastructure access
-- use masked and protected CI variables for secrets
-- keep private environment overlays in the private project, not upstream here
-
-GitLab is only one example. The same pattern applies to other private source
-control systems and runner platforms.
+Use the actual reviewed branch if different. Review existing remotes/history without
+reinitialization or force-push. GitLab is the reference; other private source control is valid.
+[CI handover](../deployment/stage-9-development/procedures/handover.md) transfers
+original state/ignored inputs separately; it never recreates the infrastructure.
+Infrastructure runners require the explicit Tier 0 trust contract, not general build access.
 
 <a id="before-you-push"></a>
+<a id="pre-push-checks"></a>
 
-## Pre-push checks
+## Step 5: Review before publishing
 
-Check these questions every time:
+```bash
+git status --short --ignored
+git diff --cached --check
+git diff --cached --stat
+```
 
-1. Is this file an example, default, or reusable automation?
-2. Does it contain a token, password, private key, real IP plan, or live host list?
-3. Should this live only in a private fork, mirror, local copy, or in runner
-   variables instead?
-4. Did `.gitignore` already cover the live version of this file?
-5. Is this exact content approved for permanent public disclosure?
+Inspect staged content locally; run the [secret scan](secret-scanning.md) and [focused checks](testing.md).
+Confirm the destination, exclude live secrets/state/host plans, and approve public disclosure.

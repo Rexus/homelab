@@ -9,7 +9,7 @@ Run repository scripts from this root; paths below are repository-relative.
 **Change:** Use the VM service deployment without changing runner authority.
 **Return:** [Step 2](README.md#step-2-add-on-demand-build-execution) to continue with delivery integration and runner handover.
 
-**Design:** [delivery service variants](../../architecture/delivery/README.md).
+**Design:** [delivery service variants](../../architecture/software/README.md).
 
 ## Table of contents
 
@@ -111,63 +111,42 @@ from the GitLab host.
 
 ## Configure the deployment
 
-Initialize the selected test context from Tier 1:
+### 1. Create local inputs
 
 ```bash
-bash scripts/init-local-files.sh --setup development --env test
+bash scripts/init-local-files.sh --setup development
 ```
 
-Complete [environment isolation](../../reference/repository-scripts.md#environment-isolation)
-before planning. Test and production require different VMIDs, IPs and service allocations.
+### 2. Edit these files
 
-For these `--env test` commands, create
-`terraform/deployments/development/terraform.test.tfvars` from the initialized
-`terraform.tfvars`, then set unused test VMIDs and the complete desired guest map.
-The initializer does not create this Terraform overlay. Keep production allocations
-in the base file; an overlay replaces a complete map rather than merging guest fields.
-
-| Value | What to choose |
+| File | Required edits |
 | --- | --- |
-| `vm_instances.git-1.size` | keep `xl` unless this is a small test deployment |
-| `vm_instances.git-1.disk_size_gb` | increase before storing important repositories |
-| `vm_instances.git-1.storage_class` | use storage that matches the backup and restore plan |
-| `vm_instances.git-1.network_zone_key` | normally `application` |
+| `terraform/deployments/development/terraform.tfvars` | `vm_instances.git-1`: unused VMID, `size`, `disk_size_gb`, `storage_class`, `network_zone_key` |
+| `ansible/inventory/hosts.yml` | Matching `git-1` key and service group |
+| `ansible/group_vars/development.yml` | `platform_host_ips.git-1`, `gitlab_container_image`, `gitlab_hostname`, `gitlab_external_url` |
+| Same service file | `gitlab_tls_cert_src`, `gitlab_tls_key_src`, `gitlab_ssh_host_port` |
+| `.env.local` | Tier 1 provider credentials and local SSH public-key paths |
 
-Edit `ansible/group_vars/development.test.yml`, including its `platform_host_ips`
-and the settings below. The initializer copies the complete example into this test
-file, which overrides `development.yml`; editing the base file alone does not change
-those test values.
+Use an approved CE image tag/digest and a preissued certificate/chain/key. Prepare
+scoped gateway/host rules before publishing listeners. This VM recipe does not
+configure OIDC; complete the [service SSO gate](../stage-5-identity/procedures/service-sso.md)
+through the product's supported configuration before accepting ordinary use.
 
-| Value | What to choose |
-| --- | --- |
-| `gitlab_container_image` | required approved CE version tag or immutable digest; no `latest` default |
-| `gitlab_hostname` | the DNS name GitLab should present to users |
-| `gitlab_external_url` | the final HTTPS URL for GitLab |
-| `gitlab_tls_cert_src` | approved service certificate/chain on the deployment machine |
-| `gitlab_tls_key_src` | matching service private key on the deployment machine, never a CA key |
-| `gitlab_ssh_host_port` | host port used for Git over SSH, default `2222` |
-
-Deploy a test environment first:
+### 3. Deploy and verify
 
 ```bash
-bash scripts/deploy.sh development --env test --plan-only
+bash scripts/deploy.sh development
 ```
 
-After reviewing the plan:
+Review Terraform's inline plan and enter `yes` only for the intended changes.
+Add `--plan-only` for preview; approved unattended jobs use `--auto-approve`.
+Verify HTTPS, SSO/denials, clone/push, protected logging and clean-target recovery,
+then return to [Stage 9 Step 2](README.md#step-2-add-on-demand-build-execution).
 
-```bash
-bash scripts/deploy.sh development --env test
-```
-
-For production, configure the base files with their own allocations, plan without
-`--env`, then apply after review:
-
-```bash
-bash scripts/deploy.sh development --plan-only
-```
-
-Use `bash scripts/deploy.sh development` only after that review; omitting `--env`
-selects production, not a promotion of the test state.
+For a separate test installation, follow [environment isolation](../../reference/repository-scripts.md#environment-isolation)
+and add `--env test` consistently to initialization/deployment. Test and production
+need different VMIDs, addresses and full Terraform guest maps; omitting `--env` is
+not a promotion or migration of test state.
 
 ## Ports and DNS
 

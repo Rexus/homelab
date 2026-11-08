@@ -10,12 +10,26 @@ The runtime must enforce NetworkPolicy and Pod Security Admission.
 ```bash
 umask 077
 cp -n ansible/group_vars/lab_environment.yml.example ansible/group_vars/lab_environment.yml
+```
+
+Install the control-node requirements inside the prepared deployment virtual environment:
+
+```bash
 python3 -m pip install -r ansible/requirements.txt
 ansible-galaxy collection install -r ansible/requirements.yml
 ```
 
-Set an approved image digest, private hostname, owner group and existing ingress
-class/namespace. The reference image must serve `/` on port 8080 as UID 10001 with
+Edit **`ansible/group_vars/lab_environment.yml`**:
+
+| Field | Set |
+| --- | --- |
+| `lab_environment_kubeconfig` | Private Tier 2 kubeconfig |
+| `lab_environment_name`, `lab_environment_owner_group` | Allocated namespace and exact authenticated reader group |
+| `lab_environment_image` | Approved non-root image pinned by SHA256 digest |
+| `lab_environment_host` | Actual private DNS name covered by `lab-tls` |
+| `lab_environment_ingress_class`, `lab_environment_ingress_namespace` | Accepted existing ingress |
+
+The reference image must serve `/` on port 8080 as UID 10001 with
 a read-only root filesystem and writable `/tmp`. Adapt the tier-owned template for
 applications needing different probes, volumes or carefully scoped outbound access.
 An arbitrary image is not guaranteed to fit this contract.

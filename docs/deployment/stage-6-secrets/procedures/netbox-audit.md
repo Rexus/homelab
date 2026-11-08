@@ -39,13 +39,18 @@ The implementation is the [Tier 0 recipe](../../../../tier-0/ansible/playbooks/d
    **security** file stream for `/var/lib/netbox-audit/events/*.jsonl` to its existing
    [producer settings](../../stage-2-logging/sources.md). Prepare its reviewed client certificate
    and register it in the receiver catalogue; never replace the host's OS/audit streams.
-2. Copy `netbox_audit.yml.example` to local `netbox_audit.yml`. Select a stable instance name,
-   exact HTTPS API endpoint and source-retention/polling budget. Verify the view-only token
-   and protected forwarding before setting the two acceptance inputs true.
-3. Run from Tier 0:
+2. From the Tier 0 root, create local inputs:
 
 ```bash
-ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/netbox-audit.yml -e @ansible/group_vars/netbox_audit.yml
+cp -n ansible/group_vars/netbox_audit.yml.example ansible/group_vars/netbox_audit.yml
+```
+
+3. Edit `ansible/group_vars/netbox_audit.yml`: stable instance name, exact HTTPS API,
+   source retention and polling budget. Verify the view-only token and protected forwarding
+   before setting the two acceptance inputs true. Then install:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/netbox-audit.yml -e @ansible/group_vars/netbox_audit.yml
 ```
 
 The timer issues GET requests only, with validated TLS and no redirects. It scans retained

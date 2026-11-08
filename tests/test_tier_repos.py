@@ -187,9 +187,12 @@ with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
         self.assertNotEqual(misplaced.returncode, 0)
         self.assertIn("tier repository root", misplaced.stderr)
         calls = [json.loads(line) for line in log.read_text().splitlines()]
-        plans = [call for call in calls if call["tool"] == "terraform" and call["args"][0] == "plan"]
-        self.assertEqual(len(plans), 3)
-        for plan in plans:
+        self.assertFalse(any(call["tool"] == "terraform" and call["args"][0] == "plan" for call in calls))
+        applies = [call for call in calls if call["tool"] == "terraform" and call["args"][0] == "apply"]
+        self.assertEqual(len(applies), 3)
+        for plan in applies:
+            self.assertIn("-auto-approve", plan["args"])
+            self.assertIn("-input=false", plan["args"])
             repo = Path(plan["cwd"]).parents[2]
             catalog_arg = f"-var-file={self.root}/verify-shared/templates/proxmox-catalog.tfvars"
             profile_arg = f"-var-file={self.root}/verify-shared/config/platform.tfvars"

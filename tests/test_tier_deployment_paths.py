@@ -69,7 +69,7 @@ class DeploymentPaths(TierRepositoryTestCase):
                 self.assertIn("**Prerequisites:**", content, relative)
             logging = stages[1].read_text()
             for command in ("scripts/init-local-files.sh --setup syslog",
-                            "scripts/deploy.sh syslog --plan-only", "scripts/deploy.sh syslog"):
+                            "scripts/deploy.sh syslog"):
                 self.assertIn(command, logging)
             self.assertIn("OS baseline", logging)
             self.assertIn("sources.md", logging)
@@ -105,13 +105,15 @@ class DeploymentPaths(TierRepositoryTestCase):
             cluster = (deployment / "stage-4-kubernetes/README.md").read_text()
             identity = (deployment / "stage-5-identity/README.md").read_text()
             self.assertEqual(re.findall(r"(?m)^## Step (\d+):", cluster), ["1", "2", "3"])
+            implementation = (deployment / "stage-4-kubernetes/procedures/talos-terraform.md").read_text()
+            self.assertIn("procedures/talos-terraform.md#configure", cluster)
             for action in ("init", "plan", "apply", "credentials"):
-                self.assertIn(f"bash scripts/kubernetes-cluster.sh {action}", cluster)
+                self.assertIn(f"bash scripts/kubernetes-cluster.sh {action}", implementation)
             for expected in ("independent DNS/time", "private", "API endpoint outside this cluster",
                              "cluster-security-logging.yml", "security-logging.md", "etcd",
                              "../stage-5-identity/README.md", "step-1b-manual-cluster.md"):
                 self.assertIn(expected, cluster)
-            self.assertEqual(re.findall(r"(?m)^## Step (\d+):", identity), ["1", "2"])
+            self.assertEqual(re.findall(r"(?m)^## Step (\d+):", identity), ["1", "2", "3"])
             self.assertIn("../stage-4-kubernetes/README.md", identity)
             self.assertNotIn("## Step 2: Create the Kubernetes cluster", identity)
             for procedure in ("kubernetes.md", "talos-terraform.md"):

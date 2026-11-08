@@ -6,6 +6,8 @@
 platform = "proxmox"
 
 # Set the default initial VM placement or LXC target; deployments can override it.
+# Replace null with the existing Proxmox node name (for example pve01), unless every
+# guest sets proxmox_node_name. The template source node does not select guest placement.
 default_platform_node_name = null
 
 # Existing network shared by multiple tiers. Selection and guest IPs stay tier-local.

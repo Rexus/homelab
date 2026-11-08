@@ -8,7 +8,7 @@ retain the independent recovery workstation.
 
 ## Step 1: Accept direct-CI trust
 
-Approve the [trusted-CI decision](../../../architecture/delivery/development-platform.md#privileged-ci).
+Approve the [trusted-CI decision](../../../architecture/software/development-platform.md#privileged-ci).
 The infrastructure project, GitLab administrators and administrators able to modify
 GitLab's cluster, data, signing keys or backups are Tier 0 authorities in this option.
 Do not grant those rights to ordinary platform developers. Argo CD/Spinnaker and
@@ -34,17 +34,30 @@ Terraform, Vault CLI, Ansible and optional cluster/image tools.
 Add pinned packages to `infrastructure_runner_tool_packages` where needed.
 No vendor `curl | bash` setup script is executed.
 
+| File | Edit before deployment |
+| --- | --- |
+| `terraform/deployments/infrastructure-runner/terraform.tfvars` | `iac-1` VMID, image, placement, management attachment and disk/size |
+| `ansible/inventory/hosts.yml` | Matching `iac-1` in `infrastructure_runner` |
+| `ansible/group_vars/infrastructure_runner.yml` | `platform_host_ips.iac-1`, actual GitLab URL, pinned runner version, local CA path and tool packages |
+| Same service file | `infrastructure_runner_trust_ci_control_plane: true` only after Step 1's trust decision |
+
+Enter the newly created **project runner** token without recording it in shell history:
+
 ```bash
-bash scripts/deploy.sh infrastructure-runner --plan-only
+read -r -s -p "Protected infrastructure runner authentication token: " INFRASTRUCTURE_RUNNER_TOKEN
+export INFRASTRUCTURE_RUNNER_TOKEN
 ```
 
-Review before deployment. Set the explicit trust acknowledgement to true,
-approved runner version, local GitLab CA path and the new runner authentication
-token through `INFRASTRUCTURE_RUNNER_TOKEN` or encrypted local inputs.
+Deploy from Tier 0:
 
 ```bash
 bash scripts/deploy.sh infrastructure-runner
+unset INFRASTRUCTURE_RUNNER_TOKEN
 ```
+
+Review Terraform's inline plan and enter `yes` only for the intended changes.
+`--plan-only` is an optional preview. Approved unattended jobs can use `--auto-approve`
+with the token supplied by the accepted secret source; trust/registration gates still apply.
 
 The role installs a serialized shell executor using native packages and a managed
 TOML file. Shell jobs are trusted code with the runner user's host access; this is

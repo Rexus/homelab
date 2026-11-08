@@ -78,12 +78,26 @@ From Tier 2's root, prepare private inputs in the accepted deployment environmen
 ```bash
 umask 077
 cp -n ansible/group_vars/workload_telemetry.yml.example ansible/group_vars/workload_telemetry.yml
+```
+
+Install the control-node requirements inside that deployment virtual environment:
+
+```bash
 python3 -m pip install -r ansible/requirements.txt
 ansible-galaxy collection install -r ansible/requirements.yml
 ```
 
-Set exact compatible chart/image pins, namespace, storage class and private gateway
-endpoints. Match the accepted Stage 8 NodePorts, DNS/server certificate names and
+Edit **`ansible/group_vars/workload_telemetry.yml`**:
+
+| Field | Set |
+| --- | --- |
+| `workload_telemetry_kubeconfig`, `workload_telemetry_namespace` | Tier 2 cluster and the application namespace |
+| `workload_telemetry_chart_version`, `workload_telemetry_image_tag` | Exact qualified Collector chart/image versions |
+| `workload_telemetry_storage_class` | Accepted persistent-queue CSI class |
+| `workload_telemetry_metrics_endpoint`, `workload_telemetry_application_endpoint` | Reachable private Tier 1 gateway names/ports |
+| `workload_telemetry_gateway_cidrs`, `workload_telemetry_gateway_ports` | Only those gateway destinations |
+
+Match the accepted Stage 8 NodePorts, DNS/server certificate names and
 gateway node CIDRs; a different cluster's `ClusterIP` is not a reachable endpoint.
 Allow only those destinations through network firewalls. Never expose them publicly.
 

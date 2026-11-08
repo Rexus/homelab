@@ -1,6 +1,7 @@
 # Copy to: terraform/deployments/immutable-template/terraform.tfvars
 # Replace every value before use.
 # Setup guide: docs/deployment/stage-9-development/step-2c-image-based-linux.md
+# VMID allocation: docs/conventions/vmid-convention.md
 # Shared values live in ../../common.tfvars.
 
 # Optional: override the source mutable Linux template for this setup or
@@ -16,8 +17,8 @@ vm_instances = {
   # Before final conversion, add or uncomment the matching target template ID
   # in the sibling shared repo's templates/proxmox-catalog.tfvars.
   "rhel-10-immu-tmpl" = {
-    vm_id               = 120
-    template_catalog_id = 120
+    vm_id               = 9200
+    template_catalog_id = 9200
     size                = "medium"
     storage_class       = "local"
     disk_size_gb        = 40

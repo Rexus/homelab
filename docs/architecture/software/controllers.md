@@ -69,7 +69,7 @@ right. Arrows show input delivery and scoped changes, not increasing authority.
 
 Tier 1 delivery has no Tier 0 Kubernetes credentials, Proxmox credentials or
 authority over infrastructure state. Infrastructure requests use the separate
-[protected execution contract](../compute/provisioning.md). Read-only source
+[protected execution contract](../hosting/provisioning.md). Read-only source
 retrieval by Tier 0 Flux does not transfer that authority to the source service.
 
 Each Kubernetes object has one reconciler or pipeline owner. Multiple tools must

@@ -4,6 +4,9 @@ Restore on isolated clean targets with independently held credentials and known-
 The [tier recovery order](../recovery.md) owns incident sequencing and evidence preservation;
 the [backup policy](../compute/backup-restore.md#backup-policy) owns custody and RPO/RTO.
 These procedures are executable operator recipes, not evidence of a completed live restore.
+Follow each selected runbook in order: preparation establishes the isolated target,
+credentials and explicit approval variables used by its later restore/validation tasks.
+Do not enter midway using variables retained from another incident or production shell.
 
 | Task | Procedure |
 | --- | --- |

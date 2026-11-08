@@ -1,132 +1,195 @@
-# Proxmox backup foundation
+# Proxmox backup and restore
 
-## Table of contents
+<a id="proxmox-backup-foundation"></a>
 
-- [Purpose](#purpose)
-- [Backup policy](#backup-policy)
-- [Target outcome](#target-outcome)
-- [Quick steps](#quick-steps)
-- [Done criteria](#done-criteria)
-- [Read more](#read-more)
+Configure a VM/CT backup destination, run a backup and prove recovery on an isolated test guest.
+Host snapshots, guest replicas and copied files are not substitutes for an accepted restore.
+
+**Run on:** Proxmox VE GUI or an authorized Proxmox host shell; PBS administration uses its own UI.
+**Prerequisites:** independent console access, commissioned backup storage and recoverable credentials.
+**Design:** [backup and recovery](../../architecture/operations/backup-recovery.md).
+
+<a id="table-of-contents"></a>
+
+## Operator tasks
+
+- [How is a backup policy recorded?](#backup-policy)
+- [How to prepare a backup target?](#quick-steps)
+- [How to schedule and run a guest backup?](#schedule-and-run)
+- [How to list backups and restore a test VM?](#restore-a-test-vm)
+- [How to change retention or prune history?](#retention-and-pruning)
+- [When is the backup path accepted?](#done-criteria)
 - [References](#references)
 
-## Purpose
+<a id="purpose"></a>
+<a id="target-outcome"></a>
 
-Protect recovery data before depending on the environment. Proxmox Backup Server
-(PBS) is the reference VM backup service; a verified existing service is also valid.
-Neither backup access nor recovery keys may depend solely on the systems being restored.
+Prepare the destination and protect original inputs during
+[Foundation Step 2](../../deployment/foundation/README.md#step-2-prepare-the-bootstrap-execution-host).
+Guest backup/restore tests follow the first disposable clone in Step 3.
+This guide configures existing products manually; no supplied role installs PBS or NAS storage.
 
-## Backup policy
+<a id="backup-policy"></a>
 
-Use **3-2-1** for critical data: three copies including the primary, two different
-media types and one copy offsite. Retain an offline or independently immutable copy
-against compromise of connected systems. Test restoration, not only job success. [1]
+## How is a backup policy recorded?
 
-| Control | Required record or check |
+Record these selections in project operating records before enabling scheduled deletion.
+The [design](../../architecture/operations/backup-recovery.md) owns 3-2-1, failure domains and custody. [1]
+
+| Record | Required operational check |
 | --- | --- |
-| Scope | IaC state/inventory, bootstrap material, application data and protected logs; include the collector's separate data disk and evidence metadata |
-| Recovery point objective (RPO) | Maximum acceptable data age/loss per dataset; scheduled backup intervals do not provide zero-loss logging |
-| Recovery time objective (RTO) | Time to inspect evidence and restore each tier, including access to offsite media and keys |
-| Retention | Approved history and expiry per dataset; security-evidence retention also follows the [archive contract](../../architecture/operations/security-logging.md#protected-retention) |
-| Authority | Separate backup creation, restoration and pruning identities; query users and producers receive no backup deletion/admin credentials |
-| Independence | Copies and keys survive the selected source-host/site loss and compromise envelope; collector/query credentials cannot delete every copy; trusted custodians are recorded explicitly |
-| Verification | Periodic isolated restore, offline log inspection and key-recovery test; record gaps or media-policy exceptions explicitly |
+| Dataset and owner | State/ignored inputs, application data and logs have named recovery procedures |
+| RPO / RTO | Maximum acceptable data age and measured restore duration, per dataset |
+| Included disks | Every required guest disk is enabled for backup; include the logger's separate data disk |
+| Retention | Approved history, expiry, legal/incident holds and pruning custodian |
+| Access | Separate creation/restore/retention duties; test actual storage permissions and record backup-writer/root deletion authority |
+| Independent copy | Offsite/offline or independently protected copy and keys survive the selected source failure |
+| Evidence | Isolated restore, key recovery and offline log-read results are recorded |
 
-Receiver replicas provide availability, not historical backups. RAID, same-pool
-snapshots and Tier 1 search copies do not substitute for independent recovery copies.
-Backups also do not turn a mutable archive into WORM storage.
-One homelab operator may hold several custody roles using separate credentials;
-the [log retention choices](../../architecture/operations/log-retention.md) distinguish
-that trusted-administrator model from enforced protection against privileged deletion.
+A writable backup credential, NAS administrator or recovery-host root may still remove or alter
+repository contents even when the backup job never prunes. Record that trust and independently
+enforced protection explicitly; a writable share or ordinary snapshot is not WORM storage. [2][3]
 
-For PBS, use separate namespace-scoped client tokens with `DatastoreBackup`, not
-`DatastorePowerUser` or administrator roles. `Datastore.Backup` permits creation and
-read/verification of owned backups; `Datastore.Prune` adds deletion authority. [2]
-Keep pruning under separate backup custody, and configure offsite synchronization
-not to propagate vanished-source deletions. PBS itself still needs independent protection
-against backup-server compromise. [3]
+<a id="quick-steps"></a>
 
-## Target outcome
+## How to prepare a backup target?
 
-This phase requires the following outcomes:
+Choose **1a or 1b**, then continue to [scheduling](#schedule-and-run).
+An existing qualified target is valid; neither path requires an object-storage API.
 
-- an approved backup destination with independently recoverable access and keys
-- protected copies of local state, inventory and bootstrap inputs before guest creation
-- at least one successful VM or LXC backup
-- at least one successful restore test
+<a id="nas-file-target"></a>
 
-Guest tests require a disposable clone. In the
-[foundation checklist](../../deployment/foundation/README.md), prepare the destination
-and test local-input recovery in Step 2, then test guest backup/restore in Step 3.
-A NAS or another existing service is valid when its selected backup tooling preserves
-the required data and passes the same recovery and authority checks. A shared folder
-or successful file transfer alone does not establish that result.
+### 1a: Existing NAS file target
 
-## Quick steps
+1. Have the storage custodian prepare a dedicated export, capacity and scoped Proxmox access.
+2. Open **Datacenter > Storage > Add > NFS** and enter:
 
-Choose an existing NAS file target or the PBS reference service. Both must pass
-the same restore and custody checks; neither requires an object-storage API.
-With a qualified existing target, installing PBS is not mandatory.
+   | Field | Enter |
+   | --- | --- |
+   | ID | Selected backup-storage ID, distinct from live VM disk storage |
+   | Server / Export | Actual commissioned NAS endpoint/export |
+   | Content | Backup-file content |
+   | Nodes | Only nodes authorized and able to reach that target |
 
-### NAS file target
+3. Check the added storage is available from its intended nodes. Proxmox manages the mount;
+   no guest-side mount or storage gateway is required. [4][5]
+4. Arrange the independent copy and recovery credentials with the storage custodian.
+   A second share on the same NAS is not an independent copy.
 
-1. Commission a dedicated NAS export with restricted Proxmox access and enough
-   capacity. In Proxmox, add it under `Datacenter -> Storage -> Add -> NFS`, select
-   the actual server/export and enable backup-file content. Proxmox manages the
-   mount; no gateway service or guest-side object API is required. [4][5]
-2. Under `Datacenter -> Backup`, select that target, guests, included disks,
-   consistency mode and schedule. Run the job and check the resulting backup
-   files. Snapshot mode is not proof of application-consistent database recovery;
-   use product-aware backups or an approved stopped-guest recovery point. [4]
-3. Restore a disposable guest under a new identity and verify its data. Arrange
-   an independently retained/offsite copy of the files and recovery credentials;
-   a second share on the same NAS does not provide that independence.
+<a id="pbs-reference"></a>
 
-VM backups do not automatically include external Kubernetes PVCs or NAS shares.
-Protect those datasets through their [application backup contracts](../../deployment/foundation/storage/README.md#choose-the-native-interface).
-The mounted file destination is not a claim of WORM, deduplication or HA.
+### 1b: PBS reference service
 
-### PBS reference
+1. Install/commission PBS independently; open its UI on HTTPS port `8007`.
+2. Create the selected datastore and namespace. Create a namespace-scoped backup token with
+   `DatastoreBackup`; retain prune/admin authority under separate custody. [2]
+3. In **Proxmox VE > Datacenter > Storage > Add > Proxmox Backup Server**, set the actual
+   server, datastore, namespace and backup token. Verify the fingerprint independently
+   against the PBS dashboard before accepting it.
+4. Check target access and independently retain PBS recovery credentials/keys.
+   Qualify offsite synchronization without propagating vanished-source deletions. [3]
 
-1. Install Proxmox Backup Server.
-2. Log in to the PBS web UI on port `8007`.
-3. Create a datastore.
-4. Add PBS to Proxmox VE under `Datacenter -> Storage`.
-5. Copy the PBS fingerprint from the PBS dashboard and use it when adding the
-   storage entry.
-6. Create a backup job in Proxmox VE under `Datacenter -> Backup`.
-7. Run the backup job.
-8. Restore one test VM or container from PBS.
-9. Verify inclusion and readability of every required data disk; test the independent
-   copy and recovery credentials with identity, secret and hosted delivery services unavailable.
+<a id="schedule-and-run"></a>
 
-## Done criteria
+## How to schedule and run a guest backup?
 
-Do not continue until all of these are true:
+1. In **Datacenter > Backup > Add/Edit**, select the exact guests, backup storage, node scope,
+   schedule, consistency mode and notification target.
+2. Review each guest's **Hardware > disk > Backup** selection. VM backups do not automatically
+   cover external Kubernetes PVCs, NAS shares or application objects; use their
+   [product backup contracts](../../deployment/foundation/storage/README.md#choose-the-native-interface).
+3. Use the native schedule field for the approved frequency; select **Run now** and read the task log.
+   A `snapshot` backup minimizes downtime but is not proof of database/application consistency.
+   Use product-aware backups or an approved stopped-guest point when required. [4]
+4. Confirm the finished backup appears under the storage's **Backups** view.
 
-- the selected backup destination is reachable from its intended client
-- storage and independently held recovery credentials are usable
-- a backup completes successfully
-- a restore completes successfully
-- the restored workload can boot or otherwise be validated
-- required data disks and keys are recoverable within the recorded RPO/RTO
-- client/query identities cannot prune backups or alter protected retention
-- the offsite/offline copy is verified independently of the source environment
+For one approved disposable guest, the equivalent manual run on a Proxmox host is:
 
-## Read more
+```bash
+read -r -p "Disposable guest VMID: " BACKUP_VMID
+read -r -p "Commissioned backup-storage ID: " BACKUP_STORAGE
+vzdump "$BACKUP_VMID" --storage "$BACKUP_STORAGE" --mode snapshot
+pvesm list "$BACKUP_STORAGE" --content backup
+```
 
-- [Deployment readiness](../../deployment/readiness.md)
-- [Host networking](../../deployment/foundation/proxmox/network.md)
-- [Hardening baseline](hardening.md)
-- [Offline security-log investigation](../security-logging.md#offline-investigation)
-- [Tier recovery order](../recovery.md#recovery-order)
+This is one immediate backup, not a new schedule. Treat a failed task, missing disk or unavailable
+destination as a failed recovery point; do not silently redirect it to another directory.
+
+<a id="restore-a-test-vm"></a>
+
+## How to list backups and restore a test VM?
+
+**Run on:** the authorized Proxmox host. Select a known-good point, a genuinely unused VMID and
+live-disk storage. Keep the original guest/state and backup intact.
+
+1. List the target's backups, then record the selected volume/file ID and backup time:
+
+   ```bash
+   read -r -p "Backup-storage ID: " BACKUP_STORAGE
+   pvesm list "$BACKUP_STORAGE" --content backup
+   ```
+
+2. In the GUI, select that backup and **Restore** to a **new VMID** and approved live storage.
+   Leave **Start after restore** and **Live restore** off. For a VM, the native CLI alternative is:
+
+   ```bash
+   read -r -p "Selected VM backup volume ID or archive path: " BACKUP_VOLUME
+   read -r -p "Unused test VMID, verified in Datacenter: " RESTORE_VMID
+   read -r -p "Approved live VM datastore ID: " RESTORE_STORAGE
+   qmrestore "$BACKUP_VOLUME" "$RESTORE_VMID" --storage "$RESTORE_STORAGE"
+   qm config "$RESTORE_VMID"
+   ```
+
+   Do not use `--force`, an existing VMID or live-restore. `qmrestore` is for VMs;
+   restore containers through their native GUI/`pct restore` procedure instead. [4][6]
+
+3. **Before starting**, disconnect production NICs or attach only the isolated recovery network.
+   Prevent duplicate IPs, directory authorities, scheduled jobs and outward integrations.
+4. Boot the test guest through the console. Verify each required disk, known content, application
+   recovery and independent credential access. Test with hosted identity/Vault/CI unavailable.
+5. Record backup ID, checks and measured RPO/RTO. Keep the test isolated until the product's
+   own cutover procedure is accepted.
+
+**Stop/rollback:** on failed restore or wrong target selection, leave the replacement stopped,
+preserve its task log/disks and investigate. Retry on another clean target; do not delete the
+original guest or backup to force a retry.
+
+<a id="retention-and-pruning"></a>
+
+## How to change retention or prune history?
+
+1. Have the backup custodian approve retention and confirm independent copies/incident holds.
+2. For **PBS**, review datastore/namespace **Prune Jobs** under its separate administration.
+   Backup clients retain `DatastoreBackup`; `Datastore.Prune` is separate deletion authority. [2]
+3. For **NAS backup files**, review the Proxmox backup job/storage retention settings under the
+   identity authorized to delete those files. Inspect the product's preview before enabling deletion.
+4. Verify retained recovery points and independent copies after the authorized operation.
+
+These UI/product policies are separate from the supplied control-copy and database file-backup jobs.
+Those jobs do not install backup-data pruning. Do not infer retention from job-history limits.
+Deletion cannot be rolled back without another retained copy.
+
+<a id="done-criteria"></a>
+
+## When is the backup path accepted?
+
+- [ ] Destination and independently held credentials work.
+- [ ] Guest backup and isolated restore complete with every required data disk.
+- [ ] Product content and known protected data are readable within recorded RPO/RTO.
+- [ ] Ordinary producer/query access is restricted; backup-writer/root deletion authority and independent protection are recorded and tested.
+- [ ] Offsite/offline copy and key recovery are verified without the source environment.
+
+<a id="read-more"></a>
+
+Continue with [tier recovery order](../recovery.md#recovery-order),
+[product recovery tasks](../recovery/README.md) or
+[offline log investigation](../security-logging.md#offline-investigation).
 
 ## References
 
-Policy sources checked 2026-10-19; native NAS backup path checked 2026-10-27.
-
-1. [HHS backup and recovery guidance: 3-2-1 and offline copies](https://www.hhs.gov/hipaa/for-professionals/security/guidance/cybersecurity-newsletter-october-2022/index.html)
-2. [PBS roles, privileges and namespace-scoped access](https://pbs.proxmox.com/docs/user-management.html)
-3. [PBS ransomware protection and independent copies](https://pbs.proxmox.com/docs/storage.html#ransomware-protection-recovery)
-4. [Proxmox native backup targets and consistency modes](https://github.com/proxmox/pve-docs/blob/master/vzdump.adoc)
-5. [Proxmox native NFS storage backend](https://github.com/proxmox/pve-docs/blob/master/pve-storage-nfs.adoc)
+1. [HHS backup/recovery guidance](https://www.hhs.gov/hipaa/for-professionals/security/guidance/cybersecurity-newsletter-october-2022/index.html).
+2. [PBS roles and namespace-scoped access](https://pbs.proxmox.com/docs/user-management.html).
+3. [PBS independent-copy protection](https://pbs.proxmox.com/docs/storage.html#ransomware-protection-recovery).
+4. [Proxmox backup modes, scheduling and restore](https://raw.githubusercontent.com/proxmox/pve-docs/master/vzdump.adoc).
+5. [Proxmox NFS storage](https://github.com/proxmox/pve-docs/blob/master/pve-storage-nfs.adoc).
+6. [Native qmrestore options](https://raw.githubusercontent.com/proxmox/qemu-server/master/src/PVE/CLI/qmrestore.pm).

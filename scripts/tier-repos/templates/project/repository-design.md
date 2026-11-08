@@ -10,7 +10,7 @@ alternatives; deployment records establish which results have been verified.
 ${scope}
 
 Start with the [platform selections](../../../${repo_prefix}-architecture/docs/README.md#selected-design)
-and [reference domains](${docs}/architecture/README.md#technical-domains),
+and [reference domains](${docs}/architecture/README.md#foundational-capabilities),
 then use this record to inspect the owned components. Project-wide conventions
 and topology belong in that architecture repository. The
 [upstream platform reference](${docs}/architecture/README.md) explains reusable

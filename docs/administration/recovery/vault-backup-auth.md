@@ -6,15 +6,23 @@ to the recovery host, verified Vault server TLS and an authorized Vault provisio
 The certificate/profile issuance and renewal procedure belongs to that existing CA's custodian.
 The reference OpenXPKI server-only profile is not a client certificate enrollment implementation.
 
-## Contents
+<a id="contents"></a>
 
-- [Configure the certificate role](#configure-the-certificate-role)
-- [Rotate and verify](#rotate-and-verify)
-- [AppRole alternative](#approle-alternative)
-- [Break-glass local token](#break-glass-local-token)
+## Operator tasks
+
+- [How to authorize certificate-based snapshots?](#configure-the-certificate-role)
+- [How to rotate and verify the client identity?](#rotate-and-verify)
+- [How to use an explicitly maintained AppRole instead?](#approle-alternative)
+- [How to take a one-off break-glass copy?](#break-glass-local-token)
 - [References](#references)
 
-## Configure the certificate role
+<a id="configure-the-certificate-role"></a>
+
+## How to authorize certificate-based snapshots?
+
+**Run on:** the authorized Vault administration workstation, from generated Tier 0 for
+repository policy files. Credential files stay outside Git; the backup host receives no
+provisioning/root token.
 
 1. Provide a private route that preserves TLS client authentication all the way to Vault: a direct
    private Vault listener or an independently qualified TCP TLS-passthrough endpoint. The normal
@@ -40,6 +48,9 @@ The reference OpenXPKI server-only profile is not a client certificate enrollmen
 
    ```bash
    set -euo pipefail
+   read -r -e -p "Approved client certificate PEM path: " BACKUP_CLIENT_CERT
+   read -r -p "Exact approved client DNS SAN: " BACKUP_CLIENT_DNS
+   read -r -p "Approved recovery-host source CIDR: " RECOVERY_CIDR
    : "${BACKUP_CLIENT_CERT:?Set the approved client leaf certificate PEM}"
    : "${BACKUP_CLIENT_DNS:?Set its exact approved DNS SAN}"
    : "${RECOVERY_CIDR:?Set the actual recovery host source CIDR}"
@@ -62,25 +73,44 @@ It validates self-lookup for the exact policy, short lifetime and CIDR binding b
 then revokes the minted token. Client key, repository password and all credential files remain root-only.
 Inherited identity/group policies must not broaden this backup identity.
 
-## Rotate and verify
+<a id="rotate-and-verify"></a>
 
-Record certificate fingerprint, issuer, expiry, renewal owner, role pin and approved monthly/yearly
-rotation interval. Keep CA credentials and key recovery independent of the target Vault/SSO cluster.
-Monitor expiry externally; the job's default seven-day `openssl x509 -checkend` margin causes missed
-health pings if rotation is overdue. An expired certificate never triggers a token/auth downgrade.
+## How to rotate and verify the client identity?
 
-Provision the replacement key/certificate, update the dedicated Vault pin and host files during an
-approved maintenance window, then run a verified backup. Retain a rollback plan until the new login
-and independent copy succeed; remove/revoke the previous identity through the CA/Vault custody process.
-Requalify after CA, endpoint/ingress, source-NAT, auth policy or certificate profile changes.
+1. Record fingerprint, issuer, expiry, CA renewal owner, role pin and approved rotation interval.
+   Keep issuance/recovery independent of Vault/SSO. Monitor before the default seven-day expiry margin.
+2. Have the CA custodian issue the replacement client identity. On the administration workstation:
 
-## AppRole alternative
+   ```bash
+   read -r -p "Approved replacement client certificate PEM: " BACKUP_CLIENT_CERT
+   openssl x509 -in "$BACKUP_CLIENT_CERT" -noout -sha256 -fingerprint -dates
+   openssl x509 -in "$BACKUP_CLIENT_CERT" -noout -checkend 604800
+   ```
+
+   Independently verify issuer, clientAuth EKU, key match and exact allowed SAN/CIDR.
+3. Update the pinned certificate role using the task above. Edit **Tier 0
+   `ansible/group_vars/control_backup.yml`** with the replacement controller-side cert/key paths.
+4. Reapply [backup configuration](../backups/control-applications.md#configure-and-schedule),
+   then require a new inspected backup, independent restic copy and external health ping.
+5. Only after acceptance, retire/revoke the old identity through its CA/Vault custodians.
+   Preserve the approved old pin/files for rollback until then.
+
+**Stop/rollback:** if new login or copying fails, restore the approved old role pin/file paths,
+reapply and prove a successful backup. Never broaden policy or downgrade authentication to
+bypass expiry. Requalify after CA, ingress, NAT, policy or certificate-profile changes.
+
+<a id="approle-alternative"></a>
+
+## How to use an explicitly maintained AppRole instead?
 
 Select `control_backup_vault_auth: approle` explicitly when the site operates SecretID rotation.
 Use an existing reviewed `approle` mount and the same policy. Define the approved SecretID lifetime
 and use limit with its owner; these are not hidden permanent credentials or a daily-rotation default:
 
 ```bash
+read -r -p "Approved recovery-host source CIDR: " RECOVERY_CIDR
+read -r -p "Approved SecretID lifetime: " BACKUP_SECRET_ID_TTL
+read -r -p "Approved SecretID login-use limit: " BACKUP_SECRET_ID_USES
 : "${RECOVERY_CIDR:?Set the approved source CIDR}"
 : "${BACKUP_SECRET_ID_TTL:?Set an explicitly maintained SecretID lifetime}"
 : "${BACKUP_SECRET_ID_USES:?Set an explicitly maintained login use limit}"
@@ -91,16 +121,38 @@ vault write auth/approle/role/control-raft-snapshot \
   token_bound_cidrs="$RECOVERY_CIDR" secret_id_bound_cidrs="$RECOVERY_CIDR"
 ```
 
-Read the role ID with `vault read -field=role_id auth/approle/role/control-raft-snapshot/role-id` and
-generate the SecretID with `vault write -f -field=secret_id auth/approle/role/control-raft-snapshot/secret-id`.
-Deliver raw values as protected `control_backup_vault_role_id_file` and
-`control_backup_vault_secret_id_file`; rotation/generation authority stays off the backup host.
+Capture the values directly into a **new private directory outside Git**, rather than printing them:
+
+```bash
+umask 077
+read -r -e -p "New absolute credential directory outside Git: " AUTH_DIRECTORY
+mkdir -m 0700 "$AUTH_DIRECTORY" &&
+vault read -field=role_id auth/approle/role/control-raft-snapshot/role-id > "$AUTH_DIRECTORY/role-id" &&
+vault write -f -field=secret_id auth/approle/role/control-raft-snapshot/secret-id > "$AUTH_DIRECTORY/secret-id"
+```
+
+Stop on failure; do not reuse partial files. Set `control_backup_vault_role_id_file` and
+`control_backup_vault_secret_id_file` to these controller-side paths, then reapply the
+[backup recipe](../backups/control-applications.md#configure-and-schedule).
+Rotation/generation authority stays off the backup host. Retire the previous SecretID only
+after the new identity completes an inspected independent backup.
 Replace the host files and prove a new login before retiring the old SecretID accessor. Record expiry
 and remaining-use monitoring; missed renewal must raise independent health failure. [3]
 
-## Break-glass local token
+<a id="break-glass-local-token"></a>
 
-`static-token-local` requires explicit acceptance and a protected local token file. It accepts only
+## How to take a one-off break-glass copy?
+
+1. In **Tier 0 `ansible/group_vars/control_backup.yml`**, explicitly set
+   `control_backup_vault_auth: static-token-local`, the protected
+   `control_backup_vault_static_token_file` path and
+   `control_backup_vault_static_token_local_accepted: true`.
+2. Apply [backup configuration](../backups/control-applications.md#configure-and-schedule).
+   The first run takes the copy; inspect its recorded result.
+3. Confirm `control-backup.timer` is disabled/stopped. Return to certificate auth or
+   maintained AppRole and reapply before scheduled operation.
+
+This path accepts only
 the same snapshot-only nonperiodic service token, with remaining TTL and explicit maximum lifetime
 at most one hour. It is for one-off manual recovery copies; the role stops/disables the timer in this
 mode. The credential custodian supplies a fresh token for another attempt. No renewal is attempted.

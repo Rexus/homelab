@@ -9,7 +9,7 @@ order does not determine the structure of this document.
 This view expands the services in the [capability map](README.md#functional-structure) into one
 reference placement across all three tiers, including separately isolated Tier 0 custody. The
 [runtime relationships](runtime-flows.md) connect those components during
-normal service use, change and recovery. [Domain designs](README.md#technical-domains)
+normal service use, change and recovery. [Domain designs](README.md#foundational-capabilities)
 expand their internals; [variants](variants.md) record alternative realizations.
 
 The reference fixes the hosting relationships below. Storage backends, capacity,
@@ -87,29 +87,29 @@ controlled environment; a VM or VLAN label alone does not establish an air gap.
 
 | Platform function | Reference component and placement | Interfaces or detailed design |
 | --- | --- | --- |
-| Compute, networking and data | Tier 0-operated Proxmox, host fabrics, selected storage and approved VM templates | [Runtime and failure domains](compute/runtime.md), [network attachments](networking/README.md) |
-| Storage interfaces | Direct NAS file storage where supported; existing qualified S3-compatible object endpoint for consumers requiring it, with scoped buckets/keys | [Storage interfaces and custody](compute/runtime.md#storage-interfaces); no extra storage gateway, inferred NAS feature or independent-backup claim |
-| Infrastructure lifecycle | Protected workstation and management VM/runner; independent tier-owned state | [Infrastructure acceptance](compute/provisioning.md) |
+| Hosting and orchestration | Tier 0-operated Proxmox and approved VM templates; independent tier clusters | [Runtime and failure domains](hosting/runtime.md), [network attachments](networking/README.md) |
+| Storage interfaces | Direct NAS file storage where supported; existing qualified S3-compatible object endpoint for consumers requiring it, with scoped buckets/keys | [Storage interfaces and custody](data/README.md#storage-interfaces); no extra storage gateway, inferred NAS feature or independent-backup claim |
+| Infrastructure lifecycle | Protected workstation and management VM/runner; independent tier-owned state | [Infrastructure acceptance](hosting/provisioning.md) |
 | Directory authority (IdM) | FreeIPA primary and replica on two dedicated VMs, outside Kubernetes | [Identity authority](identity/README.md) |
 | Identity provider (IdP / SSO) | Keycloak inside the Tier 0 cluster, using the directory pair | [Service access](runtime-flows.md#service-access) |
 | Offline trust authority | Offline root CA, ceremony environment and root recovery material in separate custody | [Certificate hierarchy](#certificate-trust) |
 | Routine certificate issuance | OpenXPKI Community on a dedicated Tier 0 issuer VM, local database and portal, with selected key provider; separate FreeIPA identity CA | [Certificate authority](cryptography/certificate-authority.md) |
 | Secrets | Vault inside the Tier 0 cluster; independent recovery/unseal material | [Secret service and seal](cryptography/vault-seal.md) |
-| Tier 0 cluster services | Flux, CNI, DNS, SOPS bootstrap inputs, storage, cert-manager, ingress and CloudNativePG HA | [Kubernetes topology](compute/kubernetes.md); separate cluster owners and state |
+| Tier 0 cluster services | Flux, CNI, DNS, SOPS bootstrap inputs, storage, cert-manager, ingress and CloudNativePG HA | [Kubernetes topology](hosting/kubernetes.md); separate cluster owners and state |
 | Inventory and scoped control UI | NetBox and Headlamp in Tier 0; bootstrap inputs retained independently | [Operations](operations/README.md) |
 | Security evidence | Tier 0 private receivers and protected archive; all tiers submit, only authorized administrator/security roles read raw evidence | [Security logging](operations/security-logging.md) |
 | Independent monitoring and Observability | Tier 0 critical alerts, Netdata and Proxmox/BMC collection; separate Tier 1 Kubernetes Netdata, gateway, metrics, OpenSearch and UI workloads; Tier 2 collection | [Telemetry](operations/telemetry.md) |
-| Source and artifacts | GitLab and Harbor in the Tier 1 platform cluster | [Artifact authority and delivery](delivery/artifact-supply.md) |
+| Source and artifacts | GitLab and Harbor in the Tier 1 platform cluster | [Artifact authority and delivery](software/artifact-supply.md) |
 | General builds and mirrors | Tier 1 DMZ runners and authoritative mirrors using scoped source/artifact access | [Application delivery](runtime-flows.md#application-delivery) |
-| Application delivery | Tier 0 Flux; Tier 1 Argo CD or Spinnaker remains unselected | [Delivery controller patterns](delivery/controllers.md) |
-| Service publication | Tier 2 public edge load balancers and the owning cluster/application ingress | [Delivery](delivery/README.md), [firewall policy](networking/firewall-policy.md) |
-| Workload management | Rancher/Fleet where selected, scoped to workload clusters | [Ownership](tier-ownership.md) and [compute](compute/README.md) |
-| Outbound supply | Tier 2 ordinary proxy/cache; Tier 1 authoritative mirrors; independent bootstrap/offline artifacts | [Delivery](delivery/README.md) |
-| Workloads | Tier 2 applications on approved Kubernetes runtimes or VMs | [Runtime design](compute/runtime.md), [bounded requests](compute/provisioning.md) |
+| Application delivery | Tier 0 Flux; Tier 1 Argo CD or Spinnaker remains unselected | [Delivery controller patterns](software/controllers.md) |
+| Service publication | Tier 2 public edge load balancers and the owning cluster/application ingress | [Networking](networking/README.md), [firewall policy](networking/firewall-policy.md) |
+| Workload management | Rancher/Fleet where selected, scoped to workload clusters | [Ownership](tier-ownership.md) and [hosting](hosting/README.md) |
+| Outbound supply | Tier 2 ordinary proxy/cache; Tier 1 authoritative mirrors; independent bootstrap/offline artifacts | [Software lifecycle](software/README.md) |
+| Workloads | Tier 2 applications on approved Kubernetes runtimes or VMs | [Runtime design](hosting/runtime.md), [bounded requests](hosting/provisioning.md) |
 | Backup and restoration | Owner-specific backup targets, independent recovery records and protected copies | [Data and recovery](#data-and-recovery) |
 
-The [cluster topology](compute/kubernetes.md) defines three independent tier APIs,
-compact control planes and optional worker pools. [Controller patterns](delivery/controllers.md)
+The [cluster topology](hosting/kubernetes.md) defines three independent tier APIs,
+compact control planes and optional worker pools. [Controller patterns](software/controllers.md)
 keep Tier 0 Flux separate from Tier 1 delivery and scoped Tier 2 application access.
 
 Keycloak and NetBox use the database service. Vault has its own storage and
@@ -154,7 +154,7 @@ changes, rather than a second installation sequence.
 
 The protected infrastructure runner is a Tier 0 management VM, separate from
 general Tier 1 runners. Source control coordinates changes but does not own
-infrastructure authority. See [infrastructure control](compute/provisioning.md)
+infrastructure authority. See [infrastructure control](hosting/provisioning.md)
 for the acceptance policy and state handover.
 
 ## Certificate trust
@@ -222,7 +222,7 @@ Detailed variants link to their own realization procedures inside the domains.
 
 | Finished function | Contributing deployment guides |
 | --- | --- |
-| Infrastructure, network attachment and approved templates | [Compute foundation](../deployment/foundation/README.md) |
+| Infrastructure, network attachment and approved templates | [Hosting foundation](../deployment/foundation/README.md) |
 | Offline trust and online issuance | [Cryptographic trust](../deployment/stage-3-trust/README.md) |
 | Directory, identity federation and the supporting cluster platform | [Identity](../deployment/stage-5-identity/README.md) |
 | Protected syslog and audit evidence | [Foundational logging](../deployment/stage-2-logging/README.md) |

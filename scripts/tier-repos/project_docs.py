@@ -24,6 +24,8 @@ def workflow_guides(writer, repo, docs):
         "development": (
             "Change, review and validation procedures for this repository.",
             [("Change IaC or documentation", "Record ownership, review and test commands", "development/code-layout.md"),
+             ("Add a guest or service", "Record the selected owner, inputs and recipe", "development/adding-service.md"),
+             ("Trace a failure", "Record the first error and focused regression check", "development/debugging.md"),
              ("Adopt upstream changes", "Record refresh and compatibility checks", "development/generated-repositories.md")],
         ),
         "administration": (
@@ -80,10 +82,18 @@ def architecture_scaffold(writer, prefix):
     for template, target in (
         ("readmes/architecture.md", "README.md"),
         ("project/index.md", "docs/README.md"),
-        ("project/naming-conventions.md", "docs/naming-conventions.md"),
     ):
         owned_template(writer, template, target, prefix=prefix, repo_prefix=prefix.lower(),
                        legacy=previous_design if target == "docs/README.md" else None)
+    previous_paths = ("naming-conventions.md", "docs/naming-conventions.md")
+    previous = next((path for path in previous_paths if (writer.root / path).is_file()), None)
+    tracked = next((path for path in previous_paths
+                    if path in writer.owned_paths or path in writer.hashes), None)
+    if tracked and not (writer.root / tracked).exists():
+        # A recorded deletion remains a deletion after changing the starter location.
+        writer.owned_paths.add("platform-standards.md")
+    owned_template(writer, "project/platform-standards.md", "platform-standards.md",
+                   legacy=previous, prefix=prefix)
     if any((writer.root / path).exists() for path in ("docs/architecture", "docs/deployment",
                                                     "docs/development", "docs/administration")):
         print("Existing project documents preserved. The compact starter uses docs/README.md "

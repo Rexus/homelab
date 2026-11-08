@@ -77,7 +77,7 @@ inspect it rather than overwriting it blindly. The optional
 ## Step 2: Create the VM shell and import the disk
 
 Select **Create VM**, enable **Advanced**, and leave **Start after created** off.
-Reserve an unused VMID using [project conventions](../../../reference/proxmox-conventions.md#vm-and-template-id-ranges).
+Reserve an unused `9xxx` template ID using the [VMID quick reference](../../../conventions/vmid-convention.md).
 The following values are a starting profile; clones receive their actual sizing/network inputs.
 
 | Wizard page | Common setting | Talos difference |

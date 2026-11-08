@@ -7,6 +7,8 @@ each tier owns its specific networks, guest selections and overrides.
 ## Table of contents
 
 - [Input ownership](#input-ownership)
+- [VM disk storage](#vm-disk-storage)
+- [Initial guest placement](#initial-guest-placement)
 - [Loading and overrides](#loading-and-overrides)
 - [Local SSH access](#local-ssh-access)
 - [OS baseline boundary](#os-baseline-boundary)
@@ -24,6 +26,10 @@ each tier owns its specific networks, guest selections and overrides.
 | Tier Ansible inventory/group vars | Host names, groups, IPs, and service configuration |
 | Local environment or secret injection | Provider access and local SSH public-key file paths |
 
+Guest IDs follow the [VMID allocation convention](../conventions/vmid-convention.md),
+including the Tier 0 offset and reserved lab/client/template groups. Reservations stay tier-local
+and unique across the cluster; Shared is not an allocator.
+
 The shared profile is a reference catalog, not a Terraform root. It contains
 no resources, state, guest assignments, host addresses, credentials, or keys.
 For example, the common `application` subnet is recorded here; `identity` and
@@ -35,8 +41,43 @@ values. Refresh never replaces or recreates a project-owned profile.
 `proxmox_storage_classes` maps VM-disk classes to existing Proxmox datastore IDs;
 it does not describe an object-storage API. A datastore may use Ceph RBD or NAS
 storage without supplying application buckets. Record the chosen
-[storage interfaces](../architecture/compute/runtime.md#storage-interfaces) separately;
+[storage interfaces](../architecture/data/README.md#storage-interfaces) separately;
 object endpoints and scoped credentials belong to the consuming service inputs.
+
+## VM disk storage
+
+The logical class `local` is not the Proxmox datastore ID `local`. In Shared's
+`config/platform.tfvars`, map each class to a datastore that accepts **Disk image**
+(`images`) content on the eligible node. For a ZFS installation, the existing
+`proxmox_storage_classes` map can contain this `local` entry:
+
+```hcl
+local = {
+  vm_disk = "local-zfs"
+}
+```
+
+Preserve the other classes. Use the actual datastore ID; LVM or Ceph installations
+can use different names. An omitted `cloud_init_drive` inherits `vm_disk`; an explicit
+value must also accept VM disks. Tier 0's `image_datastore_id` is separate: uploaded
+raw/qcow2 artifacts can stay on `local` with **Import** content enabled.
+
+## Initial guest placement
+
+Before the first Linux deployment, set **Shared's** `config/platform.tfvars` to an
+existing Proxmox node name, as shown under **Datacenter**:
+
+```hcl
+default_platform_node_name = "pve01"
+```
+
+Use the node name, not an IP address, API URL or cluster name. The template catalog's
+`node_name` identifies the clone source; it does not select the destination for new guests.
+Each guest can override the default with `proxmox_node_name` in its tier-owned deployment
+inputs. The default may stay `null` only when every selected guest supplies an override.
+
+This is initial placement. Later Proxmox-managed VM migration follows the
+[HA placement contract](../deployment/foundation/step-1b-cluster-ha.md#make-guests-movable).
 
 ## Loading and overrides
 
@@ -90,6 +131,10 @@ just to consume authentication or certificates. See [network inputs](network-inp
 
 ## Local SSH access
 
+Linux clone key lists are empty by default. Before deployment, uncomment and configure
+`TF_VAR_ssh_public_key_files` in the consuming tier's `.env.local`; Tier 0's setting does
+not populate another tier. Reusable templates keep their CloudInit accounts/keys clear.
+
 Keep both public and private key files outside the repositories, normally under
 the execution account's `.ssh/`. In the ignored tier-local `.env.local`, set the
 public-key **path**, not its contents:
@@ -104,6 +149,11 @@ that do not have single-line OpenSSH public-key syntax. This is a format check,
 not cryptographic key verification. Ansible uses the matching private
 key through `ssh-agent` or local SSH client configuration. Never pass a private
 key to Terraform. Cluster-node APIs such as Talos do not use this Linux SSH path.
+
+Linux VM clones receive these keys through `initialization.user_account.keys`, for
+the `automation` account by default. Rerun the plan after setting the path. If the
+plan redacts the enclosing initialization block, inspect the clone's **Cloud-Init >
+SSH public key** after apply; template account-policy verification does not check clone keys.
 
 Git ignore rules cover local inputs and common SSH-key filenames. Ignore rules
 do not protect files already tracked or added with `git add -f`; review the

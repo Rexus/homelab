@@ -6,13 +6,23 @@ and object-store credentials, complete product backups, an isolated clean recove
 and a known-good recovery point. Follow [tier sequencing](../recovery.md) and
 [original state recovery](original-state-etcd.md) first.
 
-## Contents
+<a id="contents"></a>
 
-- [Select the authoritative product procedure](#select-the-authoritative-product-procedure)
-- [Guard the target and validate](#guard-the-target-and-validate)
+## Operator tasks
+
+- [How to select the native product restore procedure?](#select-the-authoritative-product-procedure)
+- [How to guard the target and verify recovery?](#guard-the-target-and-validate)
 - [References](#references)
 
-## Select the authoritative product procedure
+<a id="select-the-authoritative-product-procedure"></a>
+
+## How to select the native product restore procedure?
+
+1. Identify the original installed product/variant and its independently recorded backup IDs.
+2. Select its native recovery row below; confirm every listed dataset exists before creating targets.
+3. Follow [target guards and acceptance](#guard-the-target-and-validate). Target provisioning,
+   native product restoration and cutover remain operator procedures, not automatic effects of
+   reinstalling charts.
 
 The control backup role does not back up arbitrary Tier 1 PVCs. Product-supported datasets and
 operator procedures remain authoritative; use the selected installed variant, not another product's
@@ -23,7 +33,7 @@ backup format. The table identifies data that must be present before a restore c
 | Harbor / `delivery_platform` | Registry blobs, database, secrets/configuration, jobservice and selected scanner data; matched point | [Harbor Velero restore][1] for the installed Helm variant; account for Redis/session/task limitations and external DB/object storage separately |
 | GitLab / `development_platform` | Toolbox backup, Rails encryption secrets, configuration, Gitaly repositories, external DB/Redis and all configured object buckets | [GitLab Helm recovery][2]; exact original release/type, isolated Toolbox, independent storage access, then repositories/uploads/artifacts and encrypted-variable checks |
 | Legacy container GitLab / `gitlab_container` | Native backup, `gitlab-secrets.json`, configuration and selected external storage | [GitLab Linux/container recovery][3]; match exact release/type, stop writers, verify restore and secrets before enabling runners |
-| Grafana / `observability_platform` | Existing `grafana-db` CNPG base backup/WAL, Grafana configuration/plugins and encryption secret | Native [Barman recovery][4] with the original `observability` namespace/database contract, then [Grafana recovery set][5]; preserve datasource-secret decryption |
+| Grafana / `observability_platform` | Selected `grafana-db` completed NAS set or object/WAL point, configuration/plugins and encryption secret | [NAS-file recovery](cnpg-files.md) for files mode, or native [Barman recovery][4] for object mode, with original namespace/database/Secrets; then [Grafana recovery set][5] |
 | VictoriaMetrics / `observability_platform` | Independent `vmbackup` data for each actual `metrics-*` instance and configuration/auth | [vmrestore][6] into an empty data volume while VictoriaMetrics is stopped; do not use raw live filesystem copies or conflate independent ingestion replicas with backups |
 | OpenSearch / `observability_platform` | Native index snapshots, mappings/templates and independently held security configuration | [Snapshot restore][7] into a compatible isolated cluster, source repository read-only; restrict index scope/global-state restore and restore security through its own procedure |
 | Argo CD, if selected / `delivery_platform` | Native export, encrypted repository/cluster credentials and declarative application definitions | [Argo CD recovery][8]; keep application reconciliation/destinations blocked until reviewed |
@@ -36,7 +46,9 @@ with its actual namespace, database credentials and original serverName. The gua
 Search projections may be rebuilt from approved Tier 0 copies instead of snapshot restoration;
 follow [security logging access boundaries](../security-logging.md) and record the available range.
 
-## Guard the target and validate
+<a id="guard-the-target-and-validate"></a>
+
+## How to guard the target and verify recovery?
 
 1. Record the exact product backup IDs, dependencies and known-good point. Fence the old writers,
    delivery controllers, runners, webhooks and external integrations. Preserve original evidence.
@@ -66,12 +78,23 @@ Then restore configuration/auth, start only that instance, and verify known seri
 The stopped-process acknowledgement follows actual runtime inspection. Repeat for each required
 instance's own backup; do not infer missing replica data from a successful restore elsewhere. [6]
 
-For every product, test known content and a denied access path: pull an artifact by digest, read a
-   repository/upload, decrypt a known protected setting, query a known metric range, or compare
-   projected security events against the protected source. Record gaps and observed RPO/RTO.
-Reconnect approved clients/controllers individually, validate TLS/SSO and authorization, then
-   enable new backups and independent health detection. Never give Tier 1 recovery identities Tier 0
-   archive deletion, infrastructure provisioning or root custody privileges.
+4. Verify known content and one denied access path using the selected product's native interface:
+
+   | Product | Minimum functional evidence |
+   | --- | --- |
+   | Registry | Pull a known artifact by digest and reject an unauthorized pull |
+   | Source control | Read a known repository/upload and decrypt a known protected setting |
+   | Metrics | Query the expected series/time range; verify tenant denial |
+   | Search | Compare projected events with protected source; verify index/role boundaries |
+   | Delivery | Inspect pipelines/configuration with triggers blocked before approving executions |
+
+5. Record missing data and measured RPO/RTO. Reconnect clients/controllers individually,
+   verify TLS/SSO/authorization, then enable new backups and independent health detection.
+   Tier 1 recovery identities receive no Tier 0 archive deletion, provisioning or root custody rights.
+
+**Stop/rollback:** on product/version/dataset or authorization mismatch, keep triggers, ingress and
+writers fenced. Preserve original backups and failed targets. Retry with another clean target after
+diagnosis; do not replay delivery jobs or overwrite live resources as a recovery shortcut.
 
 A product without its complete dataset and an executed acceptance record remains unqualified;
 reinstalling Helm releases restores software/configuration, not product data.

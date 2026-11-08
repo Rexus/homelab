@@ -138,8 +138,11 @@ class Observability(TierRepositoryTestCase):
             self.assertIn("no-journal-replay", operations)
             self.assertIn("never let reindexing modify originals", operations)
             backup = (docs / "administration/compute/backup-restore.md").read_text()
-            for expected in ("**3-2-1**", "including the primary", "two different",
-                             "DatastoreBackup", "Datastore.Prune", "RPO", "RTO"):
+            self.assertIn("architecture/operations/backup-recovery.md", backup)
+            design = (docs / "architecture/operations/backup-recovery.md").read_text()
+            for expected in ("**3-2-1**", "including the primary", "two media types"):
+                self.assertIn(expected, design)
+            for expected in ("DatastoreBackup", "Datastore.Prune", "RPO", "RTO"):
                 self.assertIn(expected, backup)
             recovery = (docs / "administration/recovery.md").read_text()
             self.assertLess(recovery.index("| 1 | Isolate"), recovery.index("| 3 | Restore Tier 0 intake"))

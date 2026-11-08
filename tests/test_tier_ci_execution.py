@@ -31,6 +31,58 @@ class CiExecution(TierRepositoryTestCase):
     def calls(self):
         return [json.loads(line) for line in self.log.read_text().splitlines()] if self.log.exists() else []
 
+    def test_interactive_preview_ci_and_cancel_use_one_terraform_operation(self):
+        self.generate()
+        repo = self.root / "verify-tier-2"
+        fake = """#!/usr/bin/env python3
+import json, os, sys
+tool = os.path.basename(sys.argv[0])
+with open(os.environ['TEST_CI_LOG'], 'a') as output:
+    output.write(json.dumps({'tool': tool, 'args': sys.argv[1:]}) + '\\n')
+if tool == 'terraform' and sys.argv[1] == 'apply' and os.getenv('TEST_CANCEL_APPLY') == 'true':
+    sys.exit(1)
+"""
+        for tool in ("terraform", "ansible-playbook"):
+            self.executable(tool, fake)
+        initialized = subprocess.run(["bash", "scripts/init-local-files.sh", "--setup", "cache"],
+                                     cwd=repo, env=self.environment, capture_output=True, text=True)
+        self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)
+        cases = (
+            ([], "apply", False, True),
+            (["--plan-only"], "plan", False, False),
+            (["--auto-approve"], "apply", True, True),
+            (["--destroy"], "destroy", False, False),
+            (["--destroy", "--plan-only"], "plan", False, False),
+            (["--destroy", "--auto-approve"], "destroy", True, False),
+        )
+        for flags, operation, unattended, configures in cases:
+            with self.subTest(flags=flags):
+                self.log.write_text("")
+                result = subprocess.run(["bash", "scripts/deploy.sh", "cache", *flags],
+                                        cwd=repo, env=self.environment, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                initialization = [call["args"] for call in self.calls()
+                                  if call["tool"] == "terraform" and call["args"][0] == "init"]
+                self.assertEqual(len(initialization), 1)
+                self.assertIn("-input=false", initialization[0])
+                operations = [call["args"] for call in self.calls() if call["tool"] == "terraform"
+                              and call["args"][0] != "init"]
+                self.assertEqual(len(operations), 1, operations)
+                self.assertEqual(operations[0][0], operation)
+                self.assertEqual("-auto-approve" in operations[0], unattended)
+                self.assertEqual("-input=false" in operations[0], unattended)
+                self.assertEqual("-destroy" in operations[0], "--destroy" in flags and operation == "plan")
+                recipes = [call for call in self.calls() if call["tool"] == "ansible-playbook"
+                           and call["args"][-1].endswith("/cache.yml")]
+                self.assertEqual(bool(recipes), configures)
+        self.log.write_text("")
+        result = subprocess.run(["bash", "scripts/deploy.sh", "cache"], cwd=repo,
+                                env=dict(self.environment, TEST_CANCEL_APPLY="true"),
+                                capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(any(call["tool"] == "ansible-playbook" and call["args"][-1].endswith("/cache.yml")
+                             for call in self.calls()))
+
     def test_saved_plan_is_private_context_bound_invalidated_and_consumed(self):
         self.generate()
         repo = self.root / "verify-tier-0"

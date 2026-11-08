@@ -12,6 +12,8 @@ the end, and links back to the architecture it implements.
 to identify supplied workflows, manual prerequisites and optional integrations.
 The diagrams map selected resources and existing dependencies to IaC; they are not live acceptance evidence.
 
+Use [Conventions](../conventions/README.md) when choosing names, tags, VMIDs or network allocations.
+
 ## Table of contents
 
 - [Deployment stages](#deployment-stages)
@@ -150,6 +152,16 @@ specifies. For exact code responsibilities, use the [code map](../development/co
 3. Follow each named capability's numbered deployment and diagrams; use linked
    procedures for exact product configuration. Record selected options
    and acceptance evidence in the project's deployment documents.
+
+Each action names its working repository, files to edit, command and expected result.
+Branches such as **2a** and **2b** are alternatives; follow the selected branch and its
+return link instead of executing every option.
+
+For Linux setups, `bash scripts/deploy.sh <setup>` displays the plan and asks for `yes`,
+then configures the hosts. A separate `--plan-only` run is optional. Approved pipelines
+can use `--auto-approve`, or the [saved-plan workflow](../reference/repository-scripts.md#cheat-sheet)
+for separate review and execution. Dedicated template/cluster scripts keep their stated
+plan/apply contract; signing ceremonies and secret activation keep their manual pauses.
 
 The [reference platform](../architecture/reference-platform.md) owns the complete
 design. Stages realize parts of it; [readiness](readiness.md) records what is verified.

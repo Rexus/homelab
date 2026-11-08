@@ -1,5 +1,6 @@
 # Cluster-owned hardware/configuration. This root does not load Linux common.tfvars.
 # IP reservations are in ansible/group_vars/talos.yml, hosts in ansible/inventory/hosts.yml.
+# VMID allocations: docs/conventions/vmid-convention.md
 # Set the image ID from the shared approved catalog, and pin matching releases/schematic.
 # Configure native proxy/DNS/time or approved mirrors before denying direct egress.
 # Reference: docs/deployment/stage-4-kubernetes/procedures/talos-terraform.md#controlled-image-access
@@ -36,21 +37,22 @@ cluster = {
 # Keep host placement, storage, bridges, and image source in the same Proxmox cluster.
 nodes = {
   platform-k8ctl-1 = {
-    vm_id = 1300, node_name = "pve01", mac_address = "02:00:00:00:13:00"
+    vm_id = 1001, node_name = "pve01", mac_address = "02:00:00:00:13:00"
     datastore_id = "shared", bridge = "app", size = "medium"
   }
   platform-k8ctl-2 = {
-    vm_id = 1301, node_name = "pve02", mac_address = "02:00:00:00:13:01"
+    vm_id = 1002, node_name = "pve02", mac_address = "02:00:00:00:13:01"
     datastore_id = "shared", bridge = "app", size = "medium"
   }
   platform-k8ctl-3 = {
-    vm_id = 1302, node_name = "pve03", mac_address = "02:00:00:00:13:02"
+    vm_id = 1003, node_name = "pve03", mac_address = "02:00:00:00:13:02"
     datastore_id = "shared", bridge = "app", size = "medium"
   }
 }
 
 # Start with three schedulable control planes. Optional workers need matching
 # inventory hosts, DHCP/IP reservations, and hardware entries in nodes above.
+# Reserve optional worker VMIDs from 1101 onward; do not renumber existing guests.
 # Existing clusters must retain their workers; this example is not a removal plan.
 
 # Add specialized workers when needed. Set pool = "compute" to emit

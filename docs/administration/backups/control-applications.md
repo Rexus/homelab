@@ -1,150 +1,225 @@
 # Control application recovery copies
 
-Schedule native Vault Raft snapshots and independently encrypted restic copies on a separately
-administered recovery host. The selected database jobs retain ownership of NetBox and Keycloak
-database backups. This procedure installs backup transport; live recovery qualification remains required.
+Schedule Vault Raft snapshots and encrypted restic copies of selected original inputs/media
+on an independent recovery host. Database backups retain their [separate scheduler](postgresql.md).
 
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Prerequisites:** independent Linux host with Python 3.9+, systemd, verified release-matched Vault
-CLI, authorized read-only exports of original provisioning inputs, an already initialized restic repository on
-an independent mount, its recorded repository ID/password, verified HTTPS to Vault, and an independent
-HTTPS dead-man monitor. Install Shared's `ansible.posix` collection through the normal control-node setup.
-The role supports Debian and RedHat families when these package/tool prerequisites are available.
+**Working repository:** generated Tier 0.
+**Run installation on:** the deployment host; run operational checks on the `control_recovery` host.
+**Design:** [backup/recovery boundaries](../../architecture/operations/backup-recovery.md).
+**Prerequisites:** independent Linux/systemd host, Python 3.9+, verified matching Vault CLI,
+commissioned read-only input exports, initialized independent restic repository and retained password/ID,
+verified private Vault TLS and an independent HTTPS dead-man monitor.
+The role supports Debian and RedHat families; install the declared Ansible collections first.
 
-## Contents
+<a id="contents"></a>
 
-- [Custody and scope](#custody-and-scope)
-- [Commission snapshot authentication](#commission-snapshot-authentication)
-- [Configure and schedule](#configure-and-schedule)
-- [Operate and verify](#operate-and-verify)
+## Operator tasks
+
+- [How to select protected datasets?](#custody-and-scope)
+- [How to authorize scheduled Vault snapshots?](#commission-snapshot-authentication)
+- [How to install or change the schedule?](#configure-and-schedule)
+- [How to run a backup and check success?](#operate-and-verify)
+- [How to list, inspect and restore a recovery point?](#list-and-restore)
+- [How to rotate credentials or retire old copies?](#custodian-retention)
+- [When to stop or roll back?](#stop-and-rollback)
 - [References](#references)
 
-## Custody and scope
+<a id="custody-and-scope"></a>
 
-| Dataset | Source and contract |
+## How to select protected datasets?
+
+| Dataset | Required selection |
 | --- | --- |
-| Vault | Recovery host pulls with `vault operator raft snapshot save`, then native `inspect`; no raw Raft volume copy [1] |
-| Original IaC inputs/state | Recovery host mounts bounded read-only exports from actual provisioning hosts and copies explicit ignored paths into independent restic custody |
-| NetBox media | Optional storage-owner-authorized CIFS view, mounted read-only with a separate reader credential and source marker |
-| NetBox/Keycloak PostgreSQL | [Selected scheduled full file backups](postgresql.md) or object/WAL path; this transport installs no duplicate database scheduler |
-| Logs, FreeIPA, issuer, etcd, Tier 1 | Separate product procedures in the [recovery directory](../recovery/README.md) |
+| Vault | Native `vault operator raft snapshot save` and `inspect`; not a live Raft-volume copy [1] |
+| Original inputs/state | Bounded marked read-only exports from actual provisioning owners; explicit ignored paths |
+| NetBox media, optional | Authorized read-only view of the actual media volume/snapshot, separate reader identity and source marker |
+| NetBox/Keycloak databases | [Scheduled NAS sets](postgresql.md) or existing object/WAL path; no duplicate DB scheduler here |
+| Logs, FreeIPA, issuer, etcd, Tier 1 | Their own [product procedures](../recovery/README.md) |
 
-The recovery host must survive the cluster/SSO/GitLab/Vault loss being planned for. Its console,
-DNS/time, repository password, CA trust and recovery credentials must work independently. Keep
-plaintext staging and local input copies on encrypted host storage with root-only access.
-The target repository is separately encrypted by restic. A writable filesystem repository still
-trusts recovery-host root; absence of pruning in this job does not enforce immutability.
-Commission offline/offsite or retention-locked custody separately under the
-[backup policy](../compute/backup-restore.md#backup-policy).
+1. Commission [input transport](../recovery/input-custody.md) from the actual owner;
+   a Git clone and arbitrary recovery-host directories are insufficient.
+2. Keep console, DNS/time, passwords, CA trust and keys independent of the failed platform.
+   Use encrypted root-only staging. Repository write credentials and host root can still alter/delete
+   file-backed history; this job's lack of pruning does not prevent that.
+3. If selecting NetBox media, have the storage owner supply `.control-backup-source` and a
+   consistent snapshot, or hold application writes while capturing the paired DB/media point.
+   A client-side `ro` mount does not freeze server writes. Record both IDs and their time gap.
+4. Leave media disabled without that authorized view. Accepting transport alone does not
+   establish complete NetBox recovery.
 
-Commission the [original-input transport](../recovery/input-custody.md) on each actual provisioning
-host/runner or backend custodian. A Git clone excludes ignored files. Local paths on the recovery host
-alone are rejected: selections must be inside configured, marked, read-only source mounts.
+<a id="commission-snapshot-authentication"></a>
 
-For media, authorize an export of the actual NetBox media volume or a storage snapshot of it, not an
-arbitrary NAS directory. The storage custodian places `.control-backup-source` containing the agreed
-random marker. The job verifies the exact mount, `ro` option and marker before each run. A read-only
-client mount does not freeze server-side writes: use a custodian-created consistent snapshot or hold
-NetBox writes while capturing the paired media/DB recovery point. Record both IDs and the time gap.
-Without an authorized export, leave media disabled and qualify an alternative product/storage backup;
-the role does not claim NetBox recovery completeness in that state.
+## How to authorize scheduled Vault snapshots?
 
-## Commission snapshot authentication
+1. Follow [certificate snapshot authentication](../recovery/vault-backup-auth.md).
+   Use an independently approved client CA/profile; OpenXPKI's server-only profile is insufficient.
+2. Qualify end-to-end client TLS to the private Vault listener. Ordinary HTTP-terminating
+   ingress does not carry the backup client's certificate. [2]
+3. Select certificate auth or a maintained AppRole. The job requires exactly the snapshot policy,
+   a nonperiodic service token with remaining TTL and explicit maximum lifetime of 60–3600 seconds,
+   and the certificate token's configured CIDRs. Broad/default/root/identity policies are rejected.
+4. Keep issuance, renewal and SecretID rotation with their custodians. Minted tokens are revoked
+   after capture, including inspection failure; no renewal or root-token fallback exists.
 
-Use native **certificate authentication** for the scheduled job. Commission the dedicated role, pinned
-backup client certificate and CIDR binding through [snapshot authentication](../recovery/vault-backup-auth.md).
-The client certificate comes from an existing independently approved client CA/profile; the reference
-OpenXPKI server-only profile does not supply it. Vault receives the actual client certificate through
-an end-to-end private TLS path, not the normal HTTP TLS-terminating ingress. [2]
+`static-token-local` is a separately accepted one-off path. It requires a protected token file,
+accepts the same narrow short-lived token and leaves the timer stopped/disabled. It neither renews
+nor revokes that externally supplied token. Return to managed auth for scheduled operation.
 
-The job checks self-lookup for exactly the selected policy, including inherited identity policies;
-requires a service token with remaining TTL of 60-3600 seconds and explicit max lifetime of 60-3600
-seconds; rejects periodic/root/default/broad tokens; verifies the certificate token's exact configured
-CIDRs; and revokes minted tokens after snapshot capture, including inspection failure.
-No renewal or root-token fallback exists. The job rejects a client certificate within its configured
-expiry margin (default seven days); monitor and rotate certificates on the approved monthly/yearly
-CA schedule before that margin. AppRole remains an alternative with explicit SecretID rotation.
+<a id="configure-and-schedule"></a>
 
-`control_backup_vault_auth: static-token-local` is **break-glass only**, requiring
-`control_backup_vault_static_token_local_accepted: true` and a controller-side
-`control_backup_vault_static_token_file`. It accepts the same narrow short-lived service token,
-copied locally mode `0600`. Run a single manual backup with an independently supplied token. The
-role leaves the timer disabled/stopped in this mode. The job never renews or revokes this token;
-return to certificate auth or explicitly maintained AppRole before enabling scheduled backups.
+## How to install or change the schedule?
 
-## Configure and schedule
-
-1. Commission the independent mounted repository separately with the native restic CLI. Initialization
-   is a one-time custodian operation on an approved empty target; the role has no initialization flag.
-   Retain its password independently and record the full `id` returned by `restic cat config`.
-2. Add the existing recovery host to `control_recovery` in Tier 0 inventory. This does not provision a
-   VM. Set `control_backup_independent_host_accepted: true` only after verifying the independence above.
-3. Copy [control_backup.yml.example](../../../tier-0/ansible/group_vars/control_backup.yml.example) to
-   the ignored local `ansible/group_vars/control_backup.yml`; supply absolute controller credential
-   files, host-local input selections, repository identity, health URL and optional media view.
-   Repo paths must be below configured `/mnt/control-inputs-*` mounts, not controller or home paths.
-4. From the Tier 0 root, run:
+1. Have the repository custodian initialize only an approved empty target and independently record
+   `restic cat config` → full `id` and password. This role never initializes repositories.
+2. Add the existing host to **Tier 0 `ansible/inventory/hosts.yml` → `control_recovery`**.
+   No VM is provisioned by this recipe.
+3. From the Tier 0 root, create the local configuration if absent:
 
    ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
-     -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/control-backup.yml \
-     -e @ansible/group_vars/control_backup.yml
+   cp -n ansible/group_vars/control_backup.yml.example ansible/group_vars/control_backup.yml
+   chmod 600 ansible/group_vars/control_backup.yml
    ```
 
-The [role](../../../tier-0/ansible/roles/control_backup) installs native distro restic and supporting
-tools, copies credentials mode `0600`, mounts optional media with `ansible.posix.mount`, runs the first
-backup, then enables a persistent systemd timer. An existing/wrong/unavailable repository fails closed;
-no target is silently initialized. systemd exposes selected inputs read-only and permits writes only
-to the backup repository and `/var/lib/control-backup`. [3][4]
+4. Edit **`ansible/group_vars/control_backup.yml`**:
 
-| Input | Default / action |
-| --- | --- |
-| `control_backup_repository`, `*_repository_id` | Required mounted absolute path and full commissioned ID |
-| `control_backup_password_file`, `*_vault_ca_file` | Required controller-side files |
-| `control_backup_vault_binary` | `/usr/local/bin/vault`; provision a verified compatible CLI separately |
-| `control_backup_vault_*` | Verified end-to-end TLS, cert auth/role, expected CIDRs and private client cert/key; alternate auth is explicit |
-| `control_backup_input_sources` | Nonempty marked read-only CIFS exports from actual input custodians |
-| `control_backup_inputs` | Nonempty explicit `{repo, path}` list below those mounted sources |
-| `control_backup_media_*` | Disabled until an authorized source, marker and credential are supplied |
-| `control_backup_calendar` | `hourly`; native systemd calendar expression |
-| `control_backup_watchdog_url` | Required HTTPS capability URL stored in a root-only curl configuration |
+   | Field | Set to |
+   | --- | --- |
+   | `control_backup_independent_host_accepted` | `true` only after independent access/recovery checks |
+   | `control_backup_repository`, `control_backup_repository_id` | Exact existing mounted path and full recorded repository ID |
+   | `control_backup_password_file`, `control_backup_vault_ca_file` | Protected absolute controller-side files |
+   | `control_backup_vault_binary` | Verified release-matched host CLI; default `/usr/local/bin/vault` |
+   | `control_backup_vault_*` | Auth role, end-to-end TLS, client files and actual permitted source CIDRs |
+   | `control_backup_input_sources`, `control_backup_inputs` | Marked read-only exports and explicit ignored selections below those mounts |
+   | `control_backup_media_*` | Enable only for a qualified authorized media view |
+   | `control_backup_calendar` | Native systemd expression; default `hourly` |
+   | `control_backup_watchdog_url` | Independent HTTPS dead-man capability URL |
 
-## Operate and verify
+5. Install, or reapply after a schedule/credential edit:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/control-backup.yml -e @ansible/group_vars/control_backup.yml
+   ```
+
+The [role](../../../tier-0/ansible/roles/control_backup/tasks/main.yml) installs native tools,
+root-only credential/config files, read-only input/media mounts, service and persistent timer.
+It requires a successful first backup before enabling the schedule. The timer adds up to 60 seconds
+of random delay. Wrong/missing repositories fail closed. [3][4]
+
+<a id="operate-and-verify"></a>
+
+## How to run a backup and check success?
+
+1. **On the recovery host**, inspect the schedule and run once:
+
+   ```bash
+   sudo systemctl list-timers --all control-backup.timer
+   sudo systemctl cat control-backup.timer
+   sudo systemctl start control-backup.service
+   sudo systemctl status control-backup.service --no-pager
+   sudo journalctl -u control-backup.service -n 80 --no-pager
+   sudo cat /var/lib/control-backup/health.json
+   sudo cat /var/lib/control-backup/last-success.json
+   ```
+
+2. Require a fresh `ok: true`, expected full restic ID, Vault/manifest hashes and a current
+   external health ping. The job inspects the native snapshot, verifies digests, runs
+   `restic check` and only then publishes success. Nonzero/partial restic exit 3 fails. [5]
+3. Record set age, input-source age, media/DB pairing and observed RPO/RTO. A fresh restic timestamp
+   does not prove its source export is current.
+4. Run periodic read-data checks and [isolated product restores](../recovery/README.md).
+   A successful file check does not prove application consistency.
+
+The receipt paths above use the default `control_backup_directory`. If overridden, inspect
+`/etc/control-backup/config.json` on that host and use its actual `directory` value.
+
+A kernel lock serializes systemd and direct CLI runs. Failed ordinary runs preserve last success
+but write `ok: false`; crashes or failures before Python starts can leave stale status.
+Monitor timestamp age and missed external pings, not file presence.
+
+<a id="list-and-restore"></a>
+
+## How to list, inspect and restore a recovery point?
+
+**On the recovery host**, enter an authorized root shell and select the installed repository:
 
 ```bash
-sudo systemctl list-timers control-backup.timer
-sudo systemctl start control-backup.service
-sudo systemctl status control-backup.service
-sudo cat /var/lib/control-backup/health.json
+sudo -i
+export RESTIC_REPOSITORY="$(python3 -c 'import json; print(json.load(open("/etc/control-backup/config.json"))["repository"])')"
+export RESTIC_PASSWORD_FILE=/etc/control-backup/restic.password
+restic cat config
+restic snapshots --tag control-recovery --json
+restic check --read-data
 ```
 
-Each attempt uses a unique private directory. Only an inspected nonempty snapshot is renamed from
-`.pending-*` to its permanent set; SHA-256 and manifest identify the file. Native restic backs up that
-set and the selections using a verbatim file list. Any nonzero exit, including partial backup exit 3,
-fails the job. `restic check`, a second source digest check and successful external health notification
-precede atomic `last-success.json` and `health.json` publication. [5]
+Compare repository ID and the selected full snapshot ID with independently retained records.
+For a snapshot's contents:
 
-An internal nonblocking Linux `flock` protects the entire job for systemd and direct Python CLI runs.
-Concurrent invocations exit without changing the active job's health; the kernel releases the lock
-after exit/crash. Do not bypass the entry point by importing the orchestration function manually.
+```bash
+read -r -p "Full recorded snapshot ID: " RECOVERY_SNAPSHOT
+restic ls "$RECOVERY_SNAPSHOT"
+```
 
-Failed ordinary runs write `ok: false` without replacing the last success. Host loss, forced termination
-or failure before Python starts can leave old status: monitor timestamp age and missed dead-man pings,
-not merely file existence. A lost health notification can occur after a usable backup; inspect restic
-and select its recorded ID manually. Local structural checks do not certify restore or live acceptance.
-Use periodic `restic check --read-data` and [clean extraction](../recovery/files.md) to verify data.
+Then follow [clean extraction](../recovery/files.md), followed by the product-specific restore.
+During a total outage, supply repository/password from independent custody rather than fetching
+them from Vault or relying on this host's installed files.
 
-No run deletes source files, pending sets, snapshots or repository history. Capacity monitoring and
-retention decisions belong to an independent custodian; growth eventually requires explicit action.
-Record known-good restic ID, Vault hash, media source/DB recovery time, input set age, observed RPO/RTO,
-missing datasets and isolated product restore results before accepting the service.
+<a id="custodian-retention"></a>
+
+## How to rotate credentials or retire old copies?
+
+**Credential rotation:**
+
+1. Have the CA/Vault custodian provision the replacement identity and update the pinned role;
+   follow [rotation checks](../recovery/vault-backup-auth.md#rotate-and-verify).
+2. Edit controller-side credential paths in `control_backup.yml` and reapply the installation command.
+3. Require a new inspected backup, independent copy and health ping before retiring the old identity.
+   Keep the approved old files/role selection for rollback until acceptance.
+
+**Retention — separately authorized repository custodian only:**
+
+1. Verify the exact repository, independent copy, expiry policy and absence of incident/legal holds.
+   Ordinary backup/query identities are not authorized to perform retention operations.
+   Writable file credentials may nevertheless permit deletion; enforce independent protection
+   on storage/copies rather than inferring it from the job's command list.
+2. With that custodian's repository access configured, preview one explicit full snapshot ID:
+
+   ```bash
+   read -r -p "Full snapshot ID approved for retirement: " RETIRE_SNAPSHOT
+   restic snapshots --json
+   restic forget "$RETIRE_SNAPSHOT" --dry-run
+   restic prune --dry-run
+   ```
+
+3. Review the selected ID before any real `forget`; review another `prune --dry-run` after
+   forgetting to see newly unreferenced data. Only the custodian executes approved deletion
+   through native restic, then `restic check`. Pruning locks the repository and needs a
+   nonoverlapping maintenance window. [6]
+
+The role deletes **no source files, pending sets, local snapshots or repository history**.
+Retention/pruning is not scheduled by this installer. Local staging cleanup is a separate explicit
+custodian decision; retain required receipts and independently accepted copies.
+
+<a id="stop-and-rollback"></a>
+
+## When to stop or roll back?
+
+| Condition | Action |
+| --- | --- |
+| Wrong repository/mount/marker or unavailable source | Stop; correct custody/transport, never initialize or replace a marker to force success |
+| Auth, expiry or CIDR check fails | Repair/rotate the narrow identity; no downgrade to broader credentials |
+| NAS full or source/backup age exceeds the objective | Alert independently; preserve failed sets and arrange authorized capacity/retention action |
+| Schedule must pause | `sudo systemctl stop control-backup.timer`; this does not terminate a running service |
+| Failed rotation | Restore the approved prior credential paths/role pin and reapply; prove a fresh backup before resuming normal operation |
+| Extraction/product restore fails | Preserve the failed target and use another clean target after diagnosis |
+
+Resume a deliberately paused managed-auth timer with `sudo systemctl start control-backup.timer`
+only after the cause is corrected. Never enable it in static-token break-glass mode.
 
 ## References
 
-Sources checked 2026-10-26.
-
-1. [Vault native Raft snapshot commands](https://developer.hashicorp.com/vault/docs/commands/operator/raft)
-2. [Vault certificate authentication](https://developer.hashicorp.com/vault/docs/auth/cert)
-3. [Ansible native mount module](https://docs.ansible.com/projects/ansible/latest/collections/ansible/posix/mount_module.html)
-4. [Ansible native systemd service module](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/systemd_service_module.html)
-5. [Restic backup file selection and exit status](https://restic.readthedocs.io/en/stable/040_backup.html)
+1. [Vault native Raft snapshot commands](https://developer.hashicorp.com/vault/docs/commands/operator/raft).
+2. [Vault certificate authentication](https://developer.hashicorp.com/vault/docs/auth/cert).
+3. [Ansible native mount module](https://docs.ansible.com/projects/ansible/latest/collections/ansible/posix/mount_module.html).
+4. [Ansible native systemd service module](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/systemd_service_module.html).
+5. [Restic backup file selection and exit status](https://restic.readthedocs.io/en/stable/040_backup.html).
+6. [Restic retention, preview and pruning](https://restic.readthedocs.io/en/stable/060_forget.html).

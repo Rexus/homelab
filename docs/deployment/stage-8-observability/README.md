@@ -20,9 +20,14 @@ Equivalent verified existing services can satisfy these contracts.
 **Automation:** the dedicated [Ansible deployment](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml)
 renders or applies the [native chart values](../../../tier-1/ansible/roles/observability_platform).
 The cluster directory remains an empty integration starter, not a second executor.
-Read [configuration, secrets and private intake](configuration.md) before beginning.
-See [stage coverage](../../reference/implementation-support.md#stage-coverage) for
-commissioning, optional variants and live acceptance boundaries.
+Run commands from the **Tier 1 repository root**. From Tier 0:
+
+```bash
+cd ../homelab-tier-1
+```
+
+Steps below select the inputs, run the installer and connect sources. Full field/Secret contracts
+are in [configuration](configuration.md); live boundaries are in [stage coverage](../../reference/implementation-support.md#stage-coverage).
 
 ## Main path
 
@@ -79,6 +84,18 @@ Grafana's live block volumes from its scheduled NAS copies.
 3. Select supported, pinned native operators/charts and persistent-volume classes.
    Configure topology spread/anti-affinity against physical failure domains, not only VM names.
 
+Create local inputs before Step 2:
+
+```bash
+umask 077
+cp -n ansible/group_vars/observability_platform.yml.example ansible/group_vars/observability_platform.yml
+cp -n ansible/group_vars/observability_platform_secrets.yml.example ansible/group_vars/observability_platform_secrets.yml
+```
+
+Edit the local files using [configuration Step 1](configuration.md#inputs-and-execution):
+kubeconfig/context, physical domains, block storage, private endpoints, IdP clients and source scopes.
+Prepare certificates/credentials using [Step 2](configuration.md#secrets-and-trust).
+
 The main path uses official product charts and native CNPG database resources. [1][2][3]
 Stage 4 must supply a compatible PostgreSQL operator. Qualify Netdata host access against
 the node OS and Pod Security policy. A pod in a guest does not monitor the Proxmox host.
@@ -90,6 +107,33 @@ replace the relevant hosting selection; they are not extra default capacity.
 <a id="step-2-deploy-scoped-ingestion-and-backends"></a>
 
 ## Step 2: Deploy the signal pipelines
+
+Complete [configuration Step 3](configuration.md#install-and-verify) in order:
+
+1. Render and apply the **database-only `prepare` pass**.
+2. Commission the independent NAS backup claim/marker, then change
+   `observability_backup_files_phase: backup` in `ansible/group_vars/observability_platform.yml`.
+3. For a **new empty search cluster only**, set `observability_search_bootstrap: true`.
+   Render, review and apply the full workload set.
+4. After the first green search check, set that flag back to `false` and reapply.
+
+The prepare pass has not installed the pictured gateways/backends. The detailed procedure
+contains the exact commands and the backup handoff; do not skip from prepare to source enrollment.
+
+For each pass, render from Tier 1:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass
+```
+
+Review `secrets/observability-platform/`, then apply:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass -e observability_action=apply
+```
+
+These commands use the encrypted private input file prepared in Step 1. `action=apply`
+is the explicit installation gate; Ansible does not ask Terraform's `yes` question.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%

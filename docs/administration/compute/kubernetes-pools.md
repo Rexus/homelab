@@ -1,45 +1,89 @@
 # Kubernetes worker pools
 
 Use explicit node definitions for capacity and Kubernetes scheduling controls for
-placement. [Topology design](../../architecture/compute/kubernetes.md) defines the
+placement. [Topology design](../../architecture/hosting/kubernetes.md) defines the
 boundaries; [cluster provisioning](../../deployment/stage-4-kubernetes/procedures/talos-terraform.md)
 owns hardware, inventory and state. No autoscaler or rolling node-upgrade controller is supplied.
 
+**Working repository:** the cluster's `<prefix>-tier-0`, `<prefix>-tier-1` or `<prefix>-tier-2` root.
+**Before starting:** accepted original state, node reservations, sufficient capacity,
+and that cluster's protected kubeconfig. Load the same
+[provider exports](../../deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure)
+as cluster deployment; this script does not load `.env.local`. Confirm the target before every task:
+
+```bash
+export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+kubectl config current-context
+kubectl get nodes -L node-pool
+```
+
 ## Table of contents
 
-- [Add capacity](#add-capacity)
-- [Reserve a pool](#reserve-a-pool)
-- [Dedicated control planes](#dedicated-control-planes)
+- [How is a worker added?](#add-capacity)
+- [How is a pool reserved or released?](#reserve-a-pool)
+- [How are control planes made dedicated?](#dedicated-control-planes)
 - [References](#references)
 
-## Add capacity
+<a id="add-capacity"></a>
 
-1. Work in the owning tier. Add the worker to `talos_workers.hosts`, its fixed IP
-   to `ansible/group_vars/talos.yml`, and its hardware to the Kubernetes root's
-   `nodes` map. Reserve the MAC/IP externally. Add `pool = "compute"`, for example,
-   to emit the `node-pool=compute` label.
-2. Run `bash scripts/kubernetes-cluster.sh plan`. Review the saved plan for the
-   intended additions only. Stop on replacement, bootstrap or secret changes.
-3. Apply the reviewed plan, verify node/system health, and inspect labels using
-   `kubectl get nodes -L node-pool`. Test placement and persistence before use.
+## How is a worker added?
+
+1. Reserve an unused worker [VMID](../../conventions/vmid-convention.md), MAC
+   and IP. Keep the existing cluster's endpoint, secrets and nodes.
+2. Edit these files in its owning tier:
+
+   | File | Edit |
+   | --- | --- |
+   | `ansible/inventory/hosts.yml` | Add the matching worker key under `talos_workers.hosts` |
+   | `ansible/group_vars/talos.yml` | Add its reserved address to `platform_host_ips` |
+   | `terraform/deployments/kubernetes/terraform.tfvars` | Add its `nodes` entry: VMID, host, MAC, live datastore, bridge and size; `pool = "compute"` emits `node-pool=compute` |
+
+3. Prepare the saved plan:
+
+   ```bash
+   bash scripts/kubernetes-cluster.sh plan
+   ```
+
+   Require only the intended additions. **Stop** on node replacement, bootstrap,
+   endpoint or secret changes; do not reset state to force the addition.
+4. Apply that reviewed plan, then check node and system health:
+
+   ```bash
+   bash scripts/kubernetes-cluster.sh apply
+   kubectl get nodes -L node-pool
+   kubectl get pods -A -o wide
+   ```
+
+5. Require the new worker to become Ready with its expected pool label. Test placement
+   and persistence before admitting normal work. If it fails, keep it out of scheduling
+   and diagnose; do not remove other nodes or regenerate cluster secrets.
 
 Tier 1 may use infrastructure, stateful and compute pools; Tier 2 may use development,
 testing and lab pools. Names describe scheduling intent, not a permission boundary.
 Keep untrusted build execution off sensitive infrastructure hosts.
 
-## Reserve a pool
+<a id="reserve-a-pool"></a>
+
+## How is a pool reserved or released?
 
 Talos accepts node labels in machine configuration. Default worker admission policy
 does not permit workers to modify their own taints; an authorized Kubernetes
 administrator owns those changes. [1] Use the owning cluster's protected kubeconfig.
 
-```bash
-read -r -p "Worker node to reserve: " NODE
-kubectl taint node "$NODE" dedicated=compute:NoSchedule --overwrite
-```
+1. Select and inspect the node before changing scheduling:
 
-For a compute workload, set both a selector and the matching toleration in its
-project-owned manifest. A toleration permits placement; the selector requests it. [2]
+   ```bash
+   read -r -p "Worker node to reserve: " NODE
+   kubectl describe node "$NODE"
+   ```
+
+2. Apply the reservation:
+
+   ```bash
+   kubectl taint node "$NODE" dedicated=compute:NoSchedule --overwrite
+   ```
+3. In the project-owned workload manifest, set both the selector and toleration below.
+   A toleration permits placement; the selector requests it. [2]
 
 ```yaml
 spec:
@@ -57,17 +101,27 @@ Install required CNI, storage and monitoring agents with appropriate tolerations
 also leaves an initial scheduling window; keep untrusted workloads disabled until
 the reservation is verified. This is not a secure multi-tenant runner installer.
 
-## Dedicated control planes
+4. Check actual pod placement and system-agent health. To roll back this reservation,
+   remove only its `dedicated:NoSchedule` taint, then review workload selectors:
 
-Add and verify sufficient workers first. Review system tolerations, workload
+   ```bash
+   kubectl taint node "$NODE" dedicated:NoSchedule-
+   kubectl get pods -A -o wide
+   ```
+
+<a id="dedicated-control-planes"></a>
+
+## How are control planes made dedicated?
+
+1. Add and verify sufficient workers first. Review system tolerations, workload
 selectors, persistent-volume placement and remaining capacity after a node failure.
-Then change `cluster.allow_scheduling_on_control_planes` to false and review the
+2. Change `cluster.allow_scheduling_on_control_planes` to false and review the
 configuration plan. Configuration apply is not a health-gated rolling controller;
 use the pinned Talos release's maintenance procedure where a reboot is required.
 
-Cordon/drain control planes one at a time using Kubernetes disruption-budget and
+3. Cordon/drain control planes one at a time using Kubernetes disruption-budget and
 storage checks; disabling scheduling alone does not move existing workloads.
-Verify service continuity after each move. Never remove nodes, regenerate secrets
+4. Verify service continuity after each move. Never remove nodes, regenerate secrets
 or replace state to match a newer starter example.
 
 ## References

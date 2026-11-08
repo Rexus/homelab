@@ -1,6 +1,7 @@
 # Copy to: terraform/deployments/template-refresh/terraform.tfvars
 # Replace every value before use.
 # Setup guide: docs/deployment/foundation/proxmox/templates.md
+# VMID allocation: docs/conventions/vmid-convention.md
 # Shared values live in ../../common.tfvars.
 
 vm_instances = {
@@ -10,8 +11,8 @@ vm_instances = {
   # vm_id is the temporary staged template ID. Keep it in the template range
   # and make it different from the final template ID until replacement runs.
   "alma-10-tmpl-stage" = {
-    vm_id               = 190
-    template_catalog_id = 110
+    vm_id               = 9190
+    template_catalog_id = 9100
     size                = "small"
     storage_class       = "local"
     disk_size_gb        = 20

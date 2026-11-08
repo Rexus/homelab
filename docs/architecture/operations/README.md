@@ -1,9 +1,13 @@
-# Operations and workloads
+# Operations and resilience
 
-Operations supplies independent visibility, inventory documentation, recovery and
-workload governance. Every stateful resource has a recovery owner, regardless
+<a id="operations-and-workloads"></a>
+
+Operations supplies independent visibility, inventory documentation, maintenance,
+incident response and recovery. Every stateful resource has a recovery owner, regardless
 of whether its monitoring is local or supplied by shared operational services.
 These capabilities cover the whole [platform architecture](../README.md).
+The [backup and recovery design](backup-recovery.md) defines independent copies,
+retention authority, compatible recovery sets and the evidence needed to trust them.
 
 ## Table of contents
 
@@ -80,6 +84,7 @@ approved copies, with application-owner read scopes separate from security reade
 | Consumed from tier owners | Infrastructure records, workload scope, retention requirements and recovery responsibilities |
 | Consumed from runtime and access services | Signals, backup streams, cluster APIs, authentication and service-local authorization |
 | Consumed from independent arrangements | Recovery storage and failure detection outside the affected service or cluster |
+| Exchanged with data services | [Qualified storage and data ownership](../data/README.md); operations defines retention, recovery objectives and restore evidence |
 
 ## Design choices
 
@@ -90,7 +95,7 @@ approved copies, with application-owner read scopes separate from security reade
 | Recovery target | Dedicated backup service; approved external target; protected offsite copy | Storage availability alone is not tested restore |
 | Log retention | NAS snapshots/backups with trusted administration; qualified retention locks | [Archive choices](log-retention.md) make deletion authority and growth recommendations explicit |
 | Workload runtime | Linux VMs, image-based Linux, Kubernetes applications | Definitions and inventory stay tier-local; runtime changes need explicit lifecycle ownership |
-| Workload execution | Reviewed operator action; bounded self-service | The latter needs the [request contract](../compute/provisioning.md), not unrestricted CI credentials |
+| Workload execution | Reviewed operator action; bounded self-service | The latter needs the [request contract](../hosting/provisioning.md), not unrestricted CI credentials |
 
 NetBox, Headlamp and monitoring are reference implementations, not prerequisites
 for creating the infrastructure on which they run.
@@ -118,7 +123,7 @@ A central dashboard alone is insufficient for independent failure detection.
 - [Security logging](security-logging.md) owns append-only submission, segmented reads and the evidence durability contract.
 - [Log archive choices](log-retention.md) compares NAS-backed recovery with retention locks and explains role separation as access grows.
 - [Service boundaries](../service-boundaries.md) defines shared and isolated operational services.
-- [Workload request contract](../compute/provisioning.md) connects governance to privileged execution.
+- [Workload request contract](../hosting/provisioning.md) connects governance to privileged execution.
 - [Component allocation](../reference-platform.md#service-placement) locates inventory, cluster interfaces and supporting services.
 
 ## Realization

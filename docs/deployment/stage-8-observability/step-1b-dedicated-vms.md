@@ -87,17 +87,15 @@ surviving capacity; three VMs on one or two hosts do not satisfy that failure co
 
 ## Step 2: Provision the baseline
 
-Review the plan before applying:
-
-```bash
-bash scripts/deploy.sh observability --plan-only
-```
-
-After approval:
+Deploy the reviewed baseline inputs:
 
 ```bash
 bash scripts/deploy.sh observability
 ```
+
+Review the inline Terraform plan and enter `yes` only for the intended changes.
+Add `--plan-only` for a preview without installation; approved unattended jobs use
+`--auto-approve`.
 
 The [baseline recipe](../../../tier-1/ansible/playbooks/deployment/telemetry-hosts.yml)
 reuses Shared's baseline role against Tier 1 inventory. No Collector, metric store,

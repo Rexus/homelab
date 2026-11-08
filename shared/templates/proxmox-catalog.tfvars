@@ -5,6 +5,7 @@
 # Loaded by shared/scripts/deploy.sh before tier-local Terraform inputs.
 # Resolved by each tier's Terraform; shared owns no Terraform resources or host inventory.
 # Reference: docs/reference/template-catalog.md
+# VMID allocation: docs/conventions/vmid-convention.md
 
 # Set this to an approved Linux entry below. Null deliberately selects no image.
 default_linux_vm_template_id = null
@@ -38,5 +39,12 @@ proxmox_template_catalog = {
   #   node_name = "pve01"
   #   family    = "talos"
   #   tags      = ["talos1", "talos", "x86-64-v3", "cloud-init"]
+  # }
+  # Optional immutable-template target; approve its own metadata after clone testing.
+  # "9200" = {
+  #   title     = "rhel-10-immu-tmpl"
+  #   node_name = "pve01"
+  #   family    = "redhat"
+  #   tags      = ["el10", "rhel", "x86-64-v3", "cloud-init"]
   # }
 }

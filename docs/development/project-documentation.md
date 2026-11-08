@@ -19,8 +19,10 @@ Generation must not require a team to author a second architecture before deploy
 
 ## Start with project values
 
-Every repository README links to the architecture repository's naming conventions:
-VM/DNS names, role abbreviations, domains, Proxmox tags, VMID ranges and VLAN rules.
+Every repository README links to the architecture repository's platform standards:
+VM/DNS names, role abbreviations, domains, Proxmox tags and the selected network plan.
+The root `platform-standards.md` records local choices; conventions such as VMID
+allocation are links to the maintained manual rather than copied rules.
 Replace the reference values with agreed standards; exact hosts and addresses remain
 in tier-local inventory, not a second documentation inventory.
 
@@ -33,9 +35,9 @@ An existing accepted service can satisfy a prerequisite without being redeployed
 
 ```text
 README.md                    # short front door: 1, 2, 3
+platform-standards.md        # local standards beside the front door
 docs/
   README.md                  # local selections, capability checklist and navigation
-  naming-conventions.md      # local standards
   auto-docs/                 # full upstream manual, refreshed with provenance notices
 ```
 
@@ -48,6 +50,10 @@ runbook is not evidence. Keep secrets and actual recovery credentials outside do
 Tier/Shared repositories retain their code-specific records. Their READMEs lead
 to owned inputs and the common platform record; shared never owns inventory/state.
 The architecture repository's single checklist is the cross-repository progress view.
+
+Earlier `naming-conventions.md` and `docs/naming-conventions.md` files stay preserved
+on refresh. The new root worksheet links the previous record for review; transfer approved choices before
+adopting the new worksheet. Existing project-owned READMEs remain unchanged.
 
 ## Operating order
 
@@ -98,7 +104,7 @@ reorganized. Do not delete `.generated-files.json` to force an update. See the
 
 `scripts/tier-repos/templates/readmes/architecture.md` owns the short front door;
 `templates/project/index.md` supplies the single local platform record;
-`templates/project/naming-conventions.md` supplies the standards worksheet.
+`templates/project/platform-standards.md` supplies the standards worksheet.
 `project_docs.py` seeds these records, while `documentation.py` publishes the full
 manual. Tier-specific project/workflow templates remain separate.
 

@@ -1,195 +1,180 @@
 # Foundation and prerequisites
 
-Prepare Proxmox, networks, approved VM templates and independent provisioning/recovery
-access before deploying platform capabilities. Existing infrastructure is valid when
-it passes these checks. Foundation is not a numbered capability stage.
+Prepare the hosts and the execution machine, then import or publish tested VM templates.
+Complete this path before **Stage 1: Software intake**. Foundation is a prerequisite,
+not a numbered capability stage.
 
-**Prerequisites:** physical hosts, network equipment, approved installation sources
-and a privileged workstation with independent console access.
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Design:** [compute](../../architecture/compute/README.md) and
+**Start on:** an independent privileged workstation with physical/console recovery access.
+**Working repository:** `<prefix>-tier-0` after generation (source: `tier-0/`).
+**Continue on:** `bootstrap-1`, then the generated `homelab-tier-0` repository.
+The examples use the **HomeLab** prefix; generated folder names are lowercase.
+**Design:** [compute](../../architecture/hosting/README.md) and
 [network boundaries](../../architecture/networking/README.md).
 
-## Preparation checklist
+## Contents
 
-| Area | Detailed guides |
-| --- | --- |
-| Proxmox | [Host setup](proxmox/README.md), [host networking](proxmox/network.md), [API access](proxmox/api-access.md), [VM templates](proxmox/templates.md) |
-| Optional host availability | [Cluster/HA](step-1b-cluster-ha.md), [menu settings](../../reference/proxmox-ha.md), [failover example](proxmox/failover.md) |
-| Network equipment and policy | [UniFi setup](network/unifi.md), [firewall rollout](network/firewall.md) |
-| Storage | [Live storage interfaces and backup destinations](storage/README.md) |
-| Bootstrap execution | [Manual bootstrap VM, tooling, artifacts, CA trust and API inputs](proxmox/bootstrap.md) |
-
-Prepare [hosts and networks](#before-starting-hosts-and-networks), then follow:
-
-1. [Create the first Linux template manually](#step-1-create-the-first-linux-template-manually)
-2. [Prepare the bootstrap execution host](#step-2-prepare-the-bootstrap-execution-host)
-3. [Publish and test VM templates](#step-3-publish-and-test-vm-templates)
-
-The [bootstrap deployment view](proxmox/bootstrap.md#step-1-clone-the-bootstrap-vm)
-shows the VM created in Step 2 and its hosting/management boundaries.
-**Manual:** host installation, switches, VLANs, storage, first image and bootstrap VM clone.
-**IaC:** Tier 0 [template publisher](../../../tier-0/scripts/proxmox-templates.sh)
-uses [publication inputs](../../../tier-0/templates/proxmox.yml.example) and
-[publication resources](../../../tier-0/terraform/deployments/templates/main.tf).
-Shared [consumer references](../../../shared/templates/proxmox-catalog.tfvars) select approved templates;
-they do not create guests or install the physical foundation.
+- [Before starting: hosts and networks](#before-starting-hosts-and-networks)
+- [Step 1: Create the first Linux template manually](#step-1-create-the-first-linux-template-manually)
+- [Step 2: Prepare the bootstrap execution host](#step-2-prepare-the-bootstrap-execution-host)
+- [Step 3: Publish and test VM templates](#step-3-publish-and-test-vm-templates)
+- [Foundation ready](#foundation-ready)
 
 <a id="step-1-prepare-compute-and-templates"></a>
 <a id="step-1-prepare-hosts-and-networks"></a>
 
 ## Before starting: hosts and networks
 
-Use an independent privileged workstation to bring up the external
-network; the [UniFi starting path](network/unifi.md#bring-up-the-network)
-includes controller adoption and VLAN/port preparation. Install
-[Proxmox](proxmox/README.md), then configure [host networking](proxmox/network.md)
-and storage. Verify management access, DNS, time and permitted guest networks.
-Select existing [block, file and object interfaces](../../architecture/compute/runtime.md#storage-interfaces)
-deliberately. Use direct NAS file storage where supported; qualify an existing
-object endpoint only for consumers that require it. The
-[storage prerequisites](storage/README.md) add no gateway service.
-Object storage must be available before the first consuming database or application,
-not before unrelated early logging or trust deployments.
+Complete these in order. Existing infrastructure is valid after the same checks.
 
-The main path uses bridges and VLANs. **Before important guests**, select
-[1b: cluster HA](step-1b-cluster-ha.md) or [1c: SDN guest networks](step-1c-sdn.md)
-where required. These options return here after their own checks.
-For SDN, complete its activation and API permission steps before publishing templates.
+| Order | Action | Complete when |
+| --- | --- | --- |
+| 1 | [Prepare the gateway, switches and VLANs](network/unifi.md#bring-up-the-network) | Management access, DNS/time, guest VLANs and a recovery path work |
+| 2 | [Install Proxmox and configure its host network](proxmox/README.md#first-deployment-order) | Console/UI work; `vmbr0` and the approved VLAN trunks are active |
+| 1b, optional branch | [Create the cluster and select HA](step-1b-cluster-ha.md) | Quorum and guest-mobility prerequisites pass; return here before populating hosts |
+| 1c, optional branch | [Configure guest SDN](step-1c-sdn.md) | VNets are activated with **Datacenter > SDN > Apply** on every eligible node |
+| 3 | [Select live storage and an independent backup destination](storage/README.md) | Actual datastore IDs and recovery access are recorded |
+| 4 | [Apply and test firewall policy](network/firewall.md) | Required paths work and unauthorized paths fail |
 
-Apply the [firewall policy](network/firewall.md), using the
-[UniFi translation](network/unifi.md) where applicable. Verify permitted
-and denied paths; cluster membership alone is not evidence of HA.
-
-Keep persistent local host logs from first boot and export network-device logs where
-supported. Preserve these early records until the Stage 2 collector can receive them;
-central collection must not wait for FreeIPA or Kubernetes.
+HA enrollment and failure testing need a disposable guest later; cluster membership
+alone does not establish HA. Retain persistent local host logs from first boot until Stage 2 can collect them.
+Object storage is needed before its first consuming application, not for these initial steps.
 
 ## Step 1: Create the first Linux template manually
 
-Use the [common VM template guide](proxmox/templates.md) to download/verify an
-approved AlmaLinux or Rocky Linux cloud image on the independent workstation,
-upload it through the Proxmox GUI and create the unbooted template. Clone-test
-it before using it as the bootstrap VM's source. No generated repository,
-Terraform API token or running GitLab is needed for this manual first image.
+Use the [VMID quick reference](../../conventions/vmid-convention.md) before reserving
+template or guest IDs; its allocation plan applies to Terraform-managed VMs and containers too.
 
-Only one Linux template is needed here. Talos and other image candidates can
-be added from the bootstrap host in Step 3. Existing accepted templates are
-valid; do not rebuild them merely to follow the path.
+Follow [VM templates: Steps 1–3](proxmox/templates.md):
+
+1. Download and verify one approved Linux cloud image; unpack it before uploading.
+2. Create the unbooted VM in Proxmox, import its disk and add the CloudInit drive.
+3. Convert it to a template and test a disposable clone.
+
+One AlmaLinux or Rocky Linux template is sufficient for the bootstrap VM. An accepted
+existing Linux template is also valid. Add Talos and other candidates in Step 3 below.
+No API token, Terraform or GitLab is needed for this first manual template.
 
 <a id="step-2-protect-provisioning-access-and-state"></a>
 
 ## Step 2: Prepare the bootstrap execution host
 
-Follow [bootstrap execution host, Steps 1-3](proxmox/bootstrap.md): clone
-`bootstrap-1` onto the protected `management` network, install tools, obtain the kit,
-generate/restore the collection and stage approved image artifacts. An already
-accepted privileged Linux workstation may perform the same execution role instead.
-Install the verified **Proxmox cluster CA on that execution host**, then configure
-[scoped API access](proxmox/api-access.md); the earlier GUI browser's trust is not sufficient.
+Follow [Bootstrap execution host: Steps 1–4](proxmox/bootstrap.md) without skipping ahead.
+That guide provides the VM, tooling, repository generation, SSH key and API setup.
 
-Use protected local state or an independent backend. Back up local state, inventory and bootstrap inputs now;
-test their recovery before provisioning. Prepare the
-[backup destination](../../administration/compute/backup-restore.md), using PBS or
-a verified existing service. Guest backup/restore follows the first disposable clone in Step 3.
-Keep code, tools and recovery credentials outside the systems being created.
+| Location | Configure before continuing |
+| --- | --- |
+| Bootstrap VM | Tooling, independently verified Proxmox CA trust and a usable execution-account SSH key/agent |
+| Architecture `platform-standards.md` | Actual node names, VMIDs, network/VLAN allocations and selected options |
+| Shared `config/platform.tfvars` | Initial destination node, live-disk storage classes and common application network |
+| Tier 0 `.env.local` | Verified API endpoint, scoped token and local public-key paths |
+| Outside the platform | Recoverable copies of original state, ignored inputs, tools and credentials |
 
-A bootstrap VM cannot replace recovery access outside Proxmox.
-Software supply must work independently of future platform services; an existing
-mirror or approved offline artifacts are valid inputs.
-Select the [software-intake design](../../architecture/delivery/software-intake.md):
-controlled proxy access can serve connected clients in every tier, while retained
-mirrors or offline copies provide independent approved content.
+**Gate:** verified API TLS and independent console/recovery access must work. A VM on
+Proxmox cannot be the only means of recovering Proxmox. Keep approved package/artifact
+access independent of the cache deployed in Stage 1.
+Test recovery of the original state and credentials on the independent execution path
+before provisioning; guest backup/restore is tested on the first disposable clone in Step 3.
 
 ## Step 3: Publish and test VM templates
 
-**Complete template import/publication here, before Stage 1: Software intake.**
-Run these commands on the accepted execution host (`bootstrap-1` in the VM path),
-from the generated Tier 0 repository root. No hosted CI or cluster is required.
+**Run on:** the bootstrap execution host, from generated **Tier 0**. An existing accepted
+privileged Linux workstation can perform the same role. No hosted runner is required.
 
-1. Initialize local inputs; existing files are preserved:
+```bash
+cd ../homelab-tier-0
+bash scripts/proxmox-templates.sh init
+```
 
-   ```bash
-   bash scripts/proxmox-templates.sh init
-   ```
+`init` preserves existing files. Edit **`templates/proxmox.yml`** before planning:
 
-   Edit `templates/proxmox.yml` and `.env.local`. Keep only selected images and
-   record their actual VMIDs, names, node, storage, unpacked artifact paths and hashes.
-   Common template defaults are `bridge: vmbr0` and `memory_mb: 2048`; each build
-   can override them. Set the common `vlan_id` under `all:`; the starter's VLAN 10
-   is an example. MTU 1500, NIC firewall enabled and OS-specific SCSI are automatic.
-   For adoption, match existing hardware rather than imposing
-   new defaults, and set `image_file_name` to the exact existing Import basename.
-   See the [catalog fields](../../administration/compute/template-lifecycle.md#catalog-fields-and-defaults).
+| Field | Set to |
+| --- | --- |
+| `all.node_name` | Actual node holding the templates |
+| `all.storage_class` | A live-disk class configured in Shared; an explicit `datastore_id` overrides it |
+| `all.image_datastore_id` | Existing datastore accepting **Import** files, often `local` |
+| `all.bridge`, `all.vlan_id` | Prepared `vmbr0`/VLAN, or activated SDN VNet with `vlan_id: null` |
+| Each selected build | Actual `vm_id`, `name`, OS family/distribution, exact release, local `image_path` and unpacked `sha256` |
+| Existing uploaded files | `image_file_name`: exact Import basename, even if its prefix uses an older VMID |
 
-2. Choose **one** planning command for this catalog:
+Keep only managed builds. Use `sha256sum` on each approved unpacked artifact to obtain
+its catalog hash. For adoption, match existing hardware and firmware before reviewing
+changes. The [field reference](../../administration/compute/template-lifecycle.md#catalog-fields-and-defaults)
+contains optional settings; fixed RAM, 1500-MTU NICs, NIC firewall and OS-specific
+controller defaults do not need repeating for every build.
 
-   | Starting point | Command | Detailed guide |
-   | --- | --- | --- |
-   | Any catalogued templates or image files already exist, including the first manual template | `bash scripts/proxmox-templates.sh import --env-file .env.local` | [Adopt existing templates](../../administration/compute/template-lifecycle.md#adopt-existing-templates) |
-   | All catalogued resources are new | `bash scripts/proxmox-templates.sh plan --env-file .env.local` | [Publish new templates](../../administration/compute/template-lifecycle.md#local-workflow) |
+### 3a: Adopt existing templates or uploaded images
 
-   `import` prepares a saved adoption plan; it does not write state yet. Missing
-   resources can still be planned as creations. Do not run a normal plan over
-   the adoption plan before applying it.
+This is the normal first-run path after creating the manual template:
 
-3. Review imports **and all changes**. Stop on unexpected hardware updates,
-   replacements or deletion; align the catalog first. Apply only the accepted plan:
+```bash
+bash scripts/proxmox-templates.sh import --env-file .env.local
+```
+
+`import` creates a **saved adoption plan**; imports are written to state only at apply.
+Missing resources may still be creations. Continue at **3c**. Do not replace this saved
+adoption plan with a normal plan before applying it.
+
+### 3b: Publish an entirely new catalog
+
+Use this alternative only when none of the catalogued templates or uploaded files exists:
+
+```bash
+bash scripts/proxmox-templates.sh plan --env-file .env.local
+```
+
+Continue at **3c**.
+
+### 3c: Review, apply and qualify
+
+1. Inspect imports and every hardware/disk change in the saved plan. Stop on unexpected
+   replacement/deletion; correct the catalog and repeat **3a** or **3b** first.
+2. Apply the accepted saved plan, then verify fixed RAM and empty template accounts:
 
    ```bash
    bash scripts/proxmox-templates.sh apply --env-file .env.local
    bash scripts/proxmox-templates.sh verify --env-file .env.local
+   bash scripts/proxmox-templates.sh plan --env-file .env.local
    ```
 
-   Rerun `bash scripts/proxmox-templates.sh plan --env-file .env.local` and check
-   for the expected no-change result. Continue with the clone tests below.
+   Expect a no-change plan. Unlike the Linux `deploy.sh` command, this template command
+   applies a previously reviewed saved plan; do not rely on another approval prompt.
+   `verify` checks RAM/accounts, not clone networking or image boot.
+3. [Boot and qualify disposable clones](proxmox/templates.md#clone-and-guest-control-checks).
+   Check disks, network, guest control and operator access. Qualify the
+   [Linux guest security profile](proxmox/host-security.md) with its console/SSH gates.
+4. [Back up and restore a disposable clone](../../administration/compute/backup-restore.md#quick-steps),
+   including required data disks. Record the result before relying on that backup path.
+5. Successful apply updates **Shared's `templates/proxmox-catalog.tfvars`**. After clone
+   acceptance, edit its `default_linux_vm_template_id` to the tested Linux VMID:
 
-   Apply completes [fixed RAM and empty template accounts](../../administration/compute/template-lifecycle.md#verify-fixed-ram-after-adoption)
-   through native API modules, preserving the CloudInit drive and DHCP. The separate
-   verification command checks raw settings that the pinned provider may miss.
-   Successful apply also refreshes Shared's [template references](../../reference/template-catalog.md).
-   After clone tests, select `default_linux_vm_template_id` there before deploying Linux services.
+   ```hcl
+   default_linux_vm_template_id = 9101
+   ```
 
-Adoption does not enroll the
-bootstrap VM itself into Terraform. Use the [common image guide](proxmox/templates.md) for AlmaLinux, Rocky Linux and
-Talos artifact/firmware choices. Add the Kubernetes node image here when needed.
-Tier 0 publishes templates; other tiers consume approved references.
-Adoption retains an existing template's OS disk. For an intentional disk-image
-replacement at the same VMID, use the separate
-[boot-disk maintenance path](../../administration/compute/template-disk.md)
-after applying the reviewed publication plan.
+   `9101` is the Rocky example; select the actual tested catalog entry. Apply preserves
+   this selection. Talos is not the default image for Linux services.
 
-Publication code and inputs are in Tier 0's
-[terraform/deployments/templates/](../../../tier-0/terraform/deployments/templates) and
-[templates/proxmox.yml.example](../../../tier-0/templates/proxmox.yml.example).
-Approved consumer references are in Shared's
-[templates/proxmox-catalog.tfvars](../../../shared/templates/proxmox-catalog.tfvars).
-
-Qualify the [Linux guest security profile](proxmox/host-security.md) on the disposable clone.
-Each later Linux deployment applies its tier-owned operator/service allowlist before acceptance;
-Talos and Proxmox retain their own native security configuration. The generic baseline alone is not hardening.
-
-Boot disposable clones and verify disks, network and access before creating service
-VMs. Back up and restore a disposable clone, including every required data disk,
-through the [backup procedure](../../administration/compute/backup-restore.md#quick-steps)
-before important guests depend on that path.
-After its VM prerequisites exist, deploy the separate
-[Software intake capability](../stage-1-software-intake/README.md) when controlled update
-access is needed. Keep its initial software supply independent of the cache being deployed.
-
-Before the later Kubernetes stage starts Flux, provide a reachable approved Git or OCI
-source with independent credentials. A local checkout is not itself a reachable Flux source.
+**IaC:** Tier 0 owns the [publication inputs](../../../tier-0/templates/proxmox.yml.example),
+[script](../../../tier-0/scripts/proxmox-templates.sh),
+[resources/state](../../../tier-0/terraform/deployments/templates/main.tf).
+Shared holds [consumer references](../../../shared/templates/proxmox-catalog.tfvars).
+Adoption leaves the bootstrap VM outside Terraform and retains existing boot disks;
+intentional image replacement uses [boot-disk maintenance](../../administration/compute/template-disk.md).
 
 <a id="capability-available"></a>
 
 ## Foundation ready
 
-**Result:** independently recoverable virtualization with tested templates and enforced
-network boundaries, realizing the compute portion of the
-[reference platform](../../architecture/reference-platform.md#service-placement).
+- [ ] Hosts/networks are reachable through protected, tested paths.
+- [ ] Bootstrap tools, verified API access, SSH and independent recovery copies work.
+- [ ] Template clones boot and the selected Linux VMID is recorded in Shared.
+- [ ] Guest backup/restore and original-state recovery have recorded results.
 
-Record template boot, network allow/deny and state-restore evidence. Begin numbered
-deployment with [Stage 1: Software intake](../stage-1-software-intake/README.md),
-then [Stage 2: Protected logging](../stage-2-logging/README.md), before PKI,
-FreeIPA or Kubernetes. Logging can start as soon as one approved Linux template and supply path are ready;
-it does not wait for every optional foundation variant.
+Continue to **[Stage 1: Software intake](../stage-1-software-intake/README.md)**.
+The cache is the next deployment in the main track and runs from **Tier 2**; stay on
+the bootstrap host and change repository as the stage directs. After that stage,
+return to Tier 0 for **[Stage 2: Protected logging](../stage-2-logging/README.md)**.
+Neither capability waits for FreeIPA or Kubernetes.
+
+This completes the compute portion of the
+[reference platform](../../architecture/reference-platform.md#service-placement).

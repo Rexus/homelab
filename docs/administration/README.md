@@ -1,38 +1,57 @@
-# Administration
+# Administration and operations
 
-Operate an existing platform using its selected architecture and verified local
-runbooks. Maintenance is separate from first deployment and does not imply
-automatic upgrades or recovery procedures.
+Open the task that matches the current question. Each runbook identifies the working
+repository or host, prerequisites, numbered actions, expected result and recovery path.
+Use the architecture links for the design behind an operation.
 
-Use the selected [domain design](../architecture/README.md#technical-domains) as
-the operating contract and retain its [acceptance evidence](../deployment/readiness.md).
-A routine change that alters trust, placement, interfaces
-or recovery dependencies requires a design review before execution.
+## Common tasks
 
-| Task | Guide |
+| Question | Runbook |
 | --- | --- |
-| Reconcile supported host configuration | [Ansible recipes](ansible-recipes.md) |
-| Maintain Linux SSH, time, audit and host-firewall policy | [Host security](host-security.md) |
-| Manage household/team roles and remote-entry boundaries | [Access lifecycle](access-lifecycle.md) |
-| Plan updates and replace physical hosts | [Maintenance](maintenance.md) |
-| Schedule control snapshots and independent encrypted copies | [Control backups](backups/control-applications.md) |
-| Send verified PostgreSQL backup copies to NAS | [PostgreSQL file backups](backups/postgresql.md) |
-| Back up GitLab data VMs to mounted files or SFTP | [GitLab data backups](backups/gitlab-data.md) |
-| Restore original product identities and data on clean targets | [Product recovery](recovery/README.md) |
-| Recover independently of hosted services | [Recovery](recovery.md) |
-| Test VM backup and restore | [Backup foundation](compute/backup-restore.md) |
-| Maintain hypervisor access and posture | [Hardening](compute/hardening.md), [update access](compute/update-access.md) |
-| Establish API trust and transition to platform PKI | [Proxmox TLS](compute/proxmox-tls.md) |
-| Publish, test and promote image revisions | [Template lifecycle](compute/template-lifecycle.md) |
-| Remove existing VMs' template dependencies | [Linked-clone migration](compute/linked-clones.md) |
-| Add cluster capacity and reserve worker pools | [Kubernetes pools](compute/kubernetes-pools.md) |
-| Maintain signing gateways and key replicas | [USB HSM maintenance](cryptography/usb-hsm.md) |
-| Maintain CA policy, publication and recovery | [Certificate authority operations](cryptography/certificate-authority.md) |
-| Change an existing issuer's signing custody | [Hardware migration](cryptography/hardware-migration.md) |
-| Verify security evidence, reader scopes and durability | [Security logging](security-logging.md) |
-| Exercise collector failures and independent restoration | [Logging drill](logging-drill.md) |
-| Protect bootstrap and runtime secrets | [Secret strategy](secret-handling/strategy.md), [Ansible Vault](secret-handling/ansible-vault.md) |
+| How to check, run or rotate backups? | [Backup and restore tasks](compute/backup-restore.md) |
+| How to restore a failed service or the whole platform? | [Recovery entry point](recovery.md), [product runbooks](recovery/README.md) |
+| How to renew or revoke a certificate? | [CA operations](cryptography/certificate-authority.md) |
+| How to rotate secrets or an Ansible Vault password? | [Secret handling](secret-handling/strategy.md), [Ansible Vault](secret-handling/ansible-vault.md) |
+| How to replace a template image and roll back? | [Boot-disk replacement](compute/template-disk.md) |
+| How to investigate missing logs or reader access? | [Security logging](security-logging.md), [fault/restore drill](logging-drill.md) |
 
-Record approvals, schedules, restore evidence and rollback procedures in the
-owning project's administration folder. Use [deployment guides](../deployment/README.md)
-for installation, not as a substitute for service-specific upgrade instructions.
+## Backups and recovery
+
+| Question | Runbook |
+| --- | --- |
+| How to back up and restore a Proxmox guest? | [VM backup tasks](compute/backup-restore.md) |
+| How to schedule and verify control-service recovery copies? | [Control backups](backups/control-applications.md) |
+| How to back up PostgreSQL to NAS and check the copy? | [PostgreSQL file backups](backups/postgresql.md) |
+| How to back up the GitLab data VMs? | [GitLab data backups](backups/gitlab-data.md) |
+| How to restore the original service identity and data? | [Product recovery](recovery/README.md) |
+
+**Why:** [backup and recovery design](../architecture/operations/backup-recovery.md)
+explains copy independence, retention authority, RPO/RTO and compatible recovery sets.
+
+## Compute and updates
+
+| Question | Runbook |
+| --- | --- |
+| How to review or restrict hypervisor access? | [Proxmox hardening](compute/hardening.md) |
+| How to configure or troubleshoot host update access? | [Repository proxy](compute/update-access.md) |
+| How to trust or rotate the Proxmox API certificate? | [Proxmox TLS](compute/proxmox-tls.md) |
+| How to publish, import, promote or recover a template? | [Template lifecycle](compute/template-lifecycle.md) |
+| How to remove a linked clone's base-disk dependency? | [Linked-clone tasks](compute/linked-clones.md) |
+| How to add a Kubernetes worker or reserve a pool? | [Worker pools](compute/kubernetes-pools.md) |
+| How to reconcile host configuration safely? | [Ansible recipes](ansible-recipes.md) |
+| How to update services or replace a physical host? | [Maintenance](maintenance.md) |
+
+## Trust, access and evidence
+
+| Question | Runbook |
+| --- | --- |
+| How to maintain CA policy, renewal and publication? | [CA operations](cryptography/certificate-authority.md) |
+| How to maintain an HSM host or key replica? | [USB HSM operations](cryptography/usb-hsm.md) |
+| How to move an existing issuer to another signing backend? | [Custody migration](cryptography/hardware-migration.md) |
+| How to add/remove household or team access? | [Access lifecycle](access-lifecycle.md) |
+| How to change Linux SSH, time, audit or firewall settings? | [Host security](host-security.md) |
+| How to inspect protected evidence or test restoration? | [Security logging](security-logging.md), [logging drill](logging-drill.md) |
+
+Record the selected targets, approvals, results and rollback evidence in the owning
+project's administration records. First installation remains in [deployment](../deployment/README.md).
+An operational command does not replace a product's version-specific upgrade or recovery contract.

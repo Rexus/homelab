@@ -1,4 +1,4 @@
-# Proxmox API TLS: bootstrap and PKI transition
+# Proxmox API certificate tasks
 
 Keep API certificate verification enabled independently of the platform PKI.
 Proxmox creates a cluster CA and node certificates during installation; trusting
@@ -12,19 +12,19 @@ execution host and runner container. Shared owns neither credentials nor CA priv
 **Prerequisites:** independent console access, authorized host administration,
 Linux/WSL tooling with OpenSSL, curl and `ca-certificates`, and a change window.
 
-## Contents
+<a id="contents"></a>
 
-- [Step 1: Trust the bootstrap CA](#step-1-trust-the-bootstrap-ca)
-- [Step 2: Adopt the platform PKI](#step-2-adopt-the-platform-pki)
-- [Step 3: Remove exceptions and verify callers](#step-3-remove-exceptions-and-verify-callers)
-- [Renewal and recovery](#renewal-and-recovery)
-- [References](#references)
+## Find the task
 
-For a new installation, complete Steps 1 and 3 during foundation. Revisit Steps 2
-and 3 after [cryptographic trust](../../deployment/stage-3-trust/README.md) if the
-selected policy replaces the API certificate. Existing installations with bypassed
-verification can use the same cutover; installing a certificate alone does not
-change the provider setting.
+| Question | Task |
+| --- | --- |
+| Trust the initial Proxmox CA? | [Step 1](#step-1-trust-the-bootstrap-ca), then [Step 3](#step-3-remove-exceptions-and-verify-callers) |
+| Install or renew a custom API certificate? | [Step 2](#step-2-adopt-the-platform-pki), then [Step 3](#step-3-remove-exceptions-and-verify-callers) |
+| Diagnose rejected TLS or stale bypass settings? | [Caller checks](#step-3-remove-exceptions-and-verify-callers) |
+| Check expiry or recover a failed cutover? | [Renewal and rollback](#renewal-and-recovery) |
+
+**Why:** [certificate authority design](../../architecture/cryptography/certificate-authority.md).
+Verified bootstrap trust does not require an online platform issuer.
 
 ## Step 1: Trust the bootstrap CA
 
@@ -87,10 +87,8 @@ certificate is already installed, obtain its approved issuer trust instead.
    Complete [Step 3](#step-3-remove-exceptions-and-verify-callers) now; the platform
    issuer, FreeIPA, Vault and Kubernetes are not required for this bootstrap trust.
 
-If an approved bootstrap exception remains necessary, restrict it to the isolated
-administration path, record its owner and expiry, and minimize token privileges.
-Encryption with verification bypassed does not authenticate the API server. Do not
-promote that exception into normal provisioning or hosted CI. [2][5]
+The supplied entry points reject TLS bypasses. If bootstrap verification fails,
+check the selected endpoint/SAN and installed CA rather than restoring an insecure flag.
 
 ## Step 2: Adopt the platform PKI
 
@@ -182,23 +180,44 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
    Stop on unrelated resource changes. In a disposable TLS test, confirm an
    untrusted CA and a wrong hostname are rejected before recording acceptance.
 
-## Renewal and recovery
+<a id="renewal-and-recovery"></a>
 
-Record certificate expiry alerts, renewal/reload ownership and tested rollback in
-Tier 0's project administration records. Test rotation before expiry. Recheck caller
-trust after replacing a host, runner image or Proxmox cluster.
+## How are certificates renewed or a failed cutover recovered?
 
-Keep approved public roots/fingerprints, endpoint names, independent DNS/host mappings,
-tools and protected server-key/certificate backups in the recovery kit. A running
-issuer is not required for ordinary chain validation of an already-issued, valid
-certificate; separately satisfy the selected revocation-check policy. Retain an
-authorized reissuance path for expiry or key loss. Do not repair trust failures by
-permanently restoring `insecure = true`.
+### Check expiry
 
-Retire the old root from **caller** trust only after confirming that no required
-endpoint or recovery path still uses it. Do not delete Proxmox's internal cluster CA.
-If cutover fails, restore the approved API certificate through the supported node
-interface, verify it against retained trust and investigate before retrying.
+On the certificate custodian's host, inspect the retained public leaf/chain:
+
+```bash
+read -r -p "Public API certificate/chain file: " API_CHAIN
+openssl x509 -in "$API_CHAIN" -noout -dates -subject -issuer -ext subjectAltName
+```
+
+Record expiry alerts, renewal/reload ownership and tested rollback in Tier 0 records.
+Recheck trust after replacing a host, runner image or Proxmox cluster.
+
+### Renew an accepted endpoint
+
+1. Obtain the approved renewed leaf/chain and matching protected node key using the
+   selected issuer. Confirm SANs, expiry and the caller trust path.
+2. Repeat [Step 2](#step-2-adopt-the-platform-pki) on one node at a time. Distribute
+   new caller trust first if the issuing chain changes; retain approved rollback material.
+3. Complete [Step 3](#step-3-remove-exceptions-and-verify-callers) for every affected caller.
+   Require verified API access and expected plans before closing the change.
+
+### Roll back a failed change
+
+1. Keep independent console access. Preserve the error and identify the affected node.
+2. Reinstall its retained approved API certificate/chain and matching key through the
+   supported certificate interface in Step 2. Do not replace/delete the internal
+   Proxmox cluster CA or `pve-ssl` files.
+3. Repeat the verified caller checks. Stop if the rollback certificate is expired,
+   its key is missing or no retained trust accepts it; use the authorized reissuance path.
+
+Keep public roots/fingerprints, endpoint names, independent DNS mappings, tools and
+protected certificate/key backups in the recovery kit. A valid retained chain can be
+verified without an online issuer, subject to the selected revocation-check policy.
+Retire an old caller root only after no required endpoint or recovery path needs it.
 
 ## References
 

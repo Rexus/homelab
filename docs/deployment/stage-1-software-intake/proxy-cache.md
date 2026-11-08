@@ -1,4 +1,4 @@
-# Configure the policy proxy and HTTP cache
+# Proxy/cache policy and sizing
 
 **Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
 Run repository scripts from this root; paths below are repository-relative.
@@ -9,15 +9,20 @@ Run repository scripts from this root; paths below are repository-relative.
 **Capability:** [Software intake](README.md).
 **Return:** [Step 2](README.md#step-2-connect-the-approved-consumers) after proxy deployment and validation.
 
-**Design:** [controlled software intake](../../architecture/delivery/software-intake.md).
+**Design:** [controlled software intake](../../architecture/software/software-intake.md).
 
-## Main path
+## Contents
 
-1. [Initialize and configure](#configuration)
-2. [Plan and deploy](#plan-and-deploy)
-3. [Verify node and VIP behavior](#validation)
+- [Configuration and deployment](#configuration)
+- [Service and transport](#service-shape)
+- [Cache storage](#cache-storage)
+- [Sizing](#sizing-and-throttling)
+- [Consumer behavior](#how-other-paths-use-it)
+- [Validation](#validation)
 
-The remaining sections explain policy, storage and sizing when those details are needed.
+Installation is part of the [Stage 1 main path](README.md), including the files to edit,
+the deployment command and the existing-supply alternative. This page owns the policy,
+storage and tuning reference.
 
 ## Purpose
 
@@ -97,7 +102,7 @@ or a TLS/mTLS proxy listener. Select another reviewed configuration when those a
 CONNECT tunnels are forwarded, **not cached**. Plain HTTP responses may be cached;
 transparent routing alone does not make HTTPS payloads visible. The supplied recipe
 is an explicit proxy, not a transparent/intercepting proxy. Internal HTTP mirrors
-are a separate [transport choice](../../architecture/delivery/software-intake.md#transport-and-integrity),
+are a separate [transport choice](../../architecture/software/software-intake.md#transport-and-integrity),
 not a reason to disable public-source TLS or package verification.
 
 Avoid TLS interception by default. It changes end-to-end trust and should only
@@ -107,54 +112,28 @@ be introduced with an explicit policy, internal CA rollout, and audit model.
 
 ## Configuration
 
-From the Tier 0 repository used for foundation, switch to its sibling **Tier 2**
-repository and initialize local inputs. The upstream example uses the default
-`homelab` prefix; generated auto-docs use the collection's selected folder prefix.
-If the terminal is already in Tier 2, omit the `cd` line.
+Follow [Stage 1, Step 1](README.md#step-1-prepare-the-cache-inputs) to initialize and edit
+Shared references and Tier 2 inputs. Guest names, IPs and inventory stay Tier 2-owned.
+The recipe uses Tier 2's [cache_proxy role](../../../tier-2/ansible/roles/cache_proxy);
+Shared's [deploy helper](../../../shared/scripts/deploy.sh) executes it with local inputs.
 
-```bash
-cd ../homelab-tier-2
-bash scripts/init-local-files.sh --setup cache
-```
-
-Keep the remaining proxy deployment commands in Tier 2. Return to each consuming
-tier only for [consumer configuration](#how-other-paths-use-it); Stage 2 logging returns to Tier 0.
-
-| Repository | Path inside that repository | Configuration |
-| --- | --- | --- |
-| Shared | [`templates/proxmox-catalog.tfvars`](../../../shared/templates/proxmox-catalog.tfvars) | References populated by Tier 0 template apply; select a clone-tested `default_linux_vm_template_id` before deploying the cache |
-| Tier 2 | [`terraform/common.tfvars.example`](../../../tier-2/terraform/common.tfvars.example) | `external_edge` attachment and optional overrides; common storage and local SSH paths follow [platform inputs](../../reference/platform-inputs.md) |
-| Tier 2 | [`terraform/deployments/cache/terraform.tfvars.example`](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example) | cache VM count, size, OS disk, cache data disk, storage, and tags |
-| Tier 2 | [`ansible/inventory/hosts.yml.example`](../../../tier-2/ansible/inventory/hosts.yml.example) | `cache` host group |
-| Tier 2 | [`ansible/group_vars/all.yml.example`](../../../tier-2/ansible/group_vars/all.yml.example) | hostname, domain, SSH, optional repository proxy URL, and baseline defaults |
-| Tier 2 | [`ansible/group_vars/cache.yml.example`](../../../tier-2/ansible/group_vars/cache.yml.example) | cache host IPs, VIP, FQDN, port, keepalived router ID, allowed client CIDRs, allowed software-source domains, and optional upstream proxy |
-
-The Tier 2 [deployment recipe](../../../tier-2/ansible/playbooks/deployment/outbound-cache.yml)
-uses its [cache_proxy role](../../../tier-2/ansible/roles/cache_proxy).
-Shared's [deploy helper](../../../shared/scripts/deploy.sh) executes this recipe
-with Tier 2 inputs; the cache service code is not in Shared.
+An empty or whitespace-only domain list is rejected; there is no unrestricted
+client fallback. Keep independent bootstrap software access for the cache hosts.
 
 ## Plan and deploy
 
-Set the allowed client networks/domains, host IPs, VIP and cache disk before planning.
-The role formats the selected cache data disk; confirm that it contains no required data.
-An empty or whitespace-only domain list is rejected; there is no unrestricted
-client fallback. Replace the broad starter domains with the selected repository endpoints.
-
-```bash
-bash scripts/deploy.sh cache --plan-only
-```
-
-Review the resources and disk choices, then deploy:
-
-```bash
-bash scripts/deploy.sh cache
-```
-
-Keep the cache hosts' own package access independent of the cache being built.
-Proceed to [validation](#validation) before pointing other hosts at its VIP.
+Run the [Stage 1 deployment command](README.md#step-2-deploy-the-selected-intake-path).
+It displays the Terraform plan and asks for confirmation before configuring the service.
+Use `--plan-only` for an optional preview; `--auto-approve` is available for approved CI jobs.
 
 ## Cache storage
+
+`storage_class = "local"` selects Shared's `proxmox_storage_classes.local`, not a
+datastore literally named `local`. Set its `vm_disk` to an existing VM-image store,
+such as `local-zfs`; see [VM disk storage](../../reference/platform-inputs.md#vm-disk-storage).
+The mapping applies to the OS disk, extra cache disk and, unless overridden, CloudInit.
+After a failed clone or disk move, follow the
+[partial-apply contract](../../reference/repository-scripts.md#partial-terraform-apply).
 
 Keep Squid cache data off the OS disk. The Terraform example attaches a
 dedicated `scsi1` data disk to each cache VM, and the Ansible cache role formats

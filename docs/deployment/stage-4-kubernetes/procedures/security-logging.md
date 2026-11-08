@@ -1,7 +1,7 @@
 # Forward cluster security logs to protected intake
 
 **Working repository:** the cluster owner's `<prefix>-tier-0`, `<prefix>-tier-1`
-or `<prefix>-tier-2` (source: matching `tier-N/`); run Ansible from its `ansible/`.
+or `<prefix>-tier-2` (source: matching `tier-N/`); run from its repository root.
 Shared owns the stateless
 [cluster_security_logging role](../../../../shared/ansible/roles/cluster_security_logging).
 Each tier owns node selections, release pins, credentials and local inputs.
@@ -16,15 +16,19 @@ application-metrics routing, and makes no zero-loss or deployment claim.
 ## Table of contents
 
 - [Prerequisites and trust](#prerequisites-and-trust)
-- [Configure and render](#configure-and-render)
-- [Prepare Talos](#prepare-talos)
-- [Enroll node streams](#enroll-node-streams)
-- [Install collectors](#install-collectors)
-- [Accept the complete path](#accept-the-complete-path)
+- [Step 1: Configure inputs](#configure-and-render)
+- [Step 2: Render before bootstrap](#render-before-bootstrap)
+- [Step 3: Prepare Talos](#prepare-talos)
+- [Step 4: Enroll node streams](#enroll-node-streams)
+- [Step 5: Install collectors](#install-collectors)
+- [Step 6: Accept the complete path](#accept-the-complete-path)
 - [Queues and maintenance](#queues-and-maintenance)
 - [References](#references)
 
 ## Prerequisites and trust
+
+Steps 1-3 prepare the initial cluster without a live Kubernetes API. Steps 4-6
+require the bootstrapped API/CNI and independently issued node credentials.
 
 - Working cluster API/CNI, approved image access, independent DNS/time and an
   execution host outside the cluster; no directory, Vault or hosted delivery dependency.
@@ -60,15 +64,15 @@ one dedicated writable queue directory and read-only leaf-key mounts. The namesp
 allows privileged pods; the container has no Kubernetes service-account token or
 cluster RBAC. Approve host access deliberately; this is a trusted node agent. [1][2]
 
-## Configure and render
+<a id="configure-and-render"></a>
+
+## Step 1: Configure inputs
 
 ```bash
-cp -n group_vars/cluster_security_logging.yml.example group_vars/cluster_security_logging.yml
-ansible-playbook -i localhost, playbooks/deployment/cluster-security-logging.yml \
-  -e @group_vars/cluster_security_logging.yml -e cluster_security_logging_action=render
+cp -n ansible/group_vars/cluster_security_logging.yml.example ansible/group_vars/cluster_security_logging.yml
 ```
 
-Fill the copied example before rendering. Include **every actual node**, with
+Edit **`ansible/group_vars/cluster_security_logging.yml`** before rendering. Include **every actual node**, with
 `control_plane: true` on API-server nodes and false on workers. Each entry needs
 its node name, unique stream/CN, unique TLS Secret, exact approved `tls_dn`, and
 IPv4 address as observed by intake. Names in examples match each tier's starter
@@ -89,7 +93,21 @@ certificate and receiver-observed IPv4, never labels or submitted metadata. [12]
 | `kubeconfig`, `context` | Explicit apply target; context defaults to that kubeconfig's selected context |
 
 All table keys have the `cluster_security_logging_` prefix. The example owns the
-complete input names. Review the native values/manifests and these private
+complete input names. Keep `cluster_security_logging_talos_configured`,
+`cluster_security_logging_receiver_enrolled` and
+`cluster_security_logging_host_access_accepted` false until their gates below pass.
+
+<a id="render-before-bootstrap"></a>
+
+## Step 2: Render before bootstrap
+
+From the tier root:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-security-logging.yml -e @ansible/group_vars/cluster_security_logging.yml -e cluster_security_logging_action=render
+```
+
+Review the native values/manifests and these private
 artifacts under the tier's `secrets/cluster-security-logging/`:
 
 | Artifact | Operator action |
@@ -103,7 +121,9 @@ Rendering fetches pinned charts but never contacts Kubernetes. Files are `0600`,
 directories `0700`; verify Windows ACLs on WSL-mounted storage. Secret names are
 rendered, private credential contents are not exported as manifests.
 
-## Prepare Talos
+<a id="prepare-talos"></a>
+
+## Step 3: Prepare Talos
 
 Preserve existing CNI, proxy, mirror and logging settings. The system patch uses
 the supported native `machine.logging` destination in both schemas: [3]
@@ -179,12 +199,19 @@ Terraform-managed nodes. Manual clusters can use matching `talosctl machineconfi
 patch`, offline `validate --mode metal`, and their established apply procedure.
 Validate the **complete merged configuration** with the matching Talos CLI.
 
+For the initial Stage 4 installation, return to
+[cluster Step 3](talos-terraform.md#plan-and-deploy) after adding both patches.
+Bootstrap, export credentials and install Cilium before continuing below. For an
+existing cluster, use its health-gated maintenance procedure instead of a fresh bootstrap.
+
 Before installation, verify the API is healthy and the expected audit file is
 written on each control plane. Early loopback logs cannot be delivered until the
 collector starts; Talos's first hop is not a durable acknowledged queue. Set
 `cluster_security_logging_talos_configured: true` after checking those settings.
 
-## Enroll node streams
+<a id="enroll-node-streams"></a>
+
+## Step 4: Enroll node streams
 
 Merge the rendered `receiver-sources.yml` entries into Tier 0's existing
 catalogue, then use the [receiver procedure](../../stage-2-logging/receiver.md).
@@ -202,7 +229,7 @@ Prepare each namespaced node Secret with `ca.crt`, `tls.crt` and `tls.key`.
 The default `manage_secrets: false` requires existing Secrets. For explicit
 bootstrap ownership, privately complete **every node entry** from the secrets
 example, encrypt it using `ansible-vault`, and pass it with `--ask-vault-pass
--e @group_vars/cluster_security_logging_secrets.yml`.
+-e @ansible/group_vars/cluster_security_logging_secrets.yml`.
 
 Before installing any agents, native certificate modules check current leaf/CA
 validity, non-CA/client-auth leaf purpose, stream CN and leaf/key matching.
@@ -210,11 +237,31 @@ Receiver-side chain/revocation/subject checks remain authoritative. Set
 `cluster_security_logging_receiver_enrolled: true` after enrollment and
 `cluster_security_logging_host_access_accepted: true` after approving host mounts.
 
-## Install collectors
+<a id="install-collectors"></a>
+
+## Step 5: Install collectors
+
+Set `cluster_security_logging_kubeconfig` to the absolute protected kubeconfig
+path and verify the selected context. With pre-existing enrolled node Secrets:
 
 ```bash
-ansible-playbook -i localhost, playbooks/deployment/cluster-security-logging.yml \
-  -e @group_vars/cluster_security_logging.yml -e cluster_security_logging_action=apply
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-security-logging.yml -e @ansible/group_vars/cluster_security_logging.yml -e cluster_security_logging_action=apply
+```
+
+For explicitly managed Secrets, first copy the private input example, encrypt it,
+then fill **every selected node** using the encrypted editor:
+
+```bash
+cp -n ansible/group_vars/cluster_security_logging_secrets.yml.example ansible/group_vars/cluster_security_logging_secrets.yml
+ansible-vault encrypt ansible/group_vars/cluster_security_logging_secrets.yml
+ansible-vault edit ansible/group_vars/cluster_security_logging_secrets.yml
+```
+
+Set `cluster_security_logging_manage_secrets: true` there and supply the issued
+leaf/key/CA for each existing node mapping. Then use this command instead:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-security-logging.yml -e @ansible/group_vars/cluster_security_logging.yml -e @ansible/group_vars/cluster_security_logging_secrets.yml --ask-vault-pass -e cluster_security_logging_action=apply
 ```
 
 The shared native executor gates required Secrets and Helm readiness. The role
@@ -227,7 +274,9 @@ The liveness probe checks process uptime; readiness checks output health, so a
 receiver outage can degrade readiness without making liveness restart the agent.
 Application metrics/OTLP follow their own deployment path, not this syslog output.
 
-## Accept the complete path
+<a id="accept-the-complete-path"></a>
+
+## Step 6: Accept the complete path
 
 | Check | Required live evidence |
 | --- | --- |
@@ -248,6 +297,9 @@ Pod collection includes container stdout/stderr under `/var/log/containers/`;
 application-private files require separate approved collection. Collector-own
 pod logs are excluded to avoid a forwarding feedback loop. No workload annotation
 can opt out of collection. Raw CRI fragments remain separate records.
+
+Return to [Stage 4 acceptance](../README.md#step-3-verify-operation-and-recovery)
+after recording all selected tests; installing collectors alone is insufficient.
 
 ## Queues and maintenance
 

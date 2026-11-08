@@ -33,7 +33,7 @@ Options:
   --recipe NAME     deployment (default) or maintenance. Maintenance runs
                    Ansible only, using existing inventory and service vars.
   --destroy         Destroy the Terraform resources for this setup.
-  --auto-approve    Pass -auto-approve to terraform apply.
+  --auto-approve    Apply/destroy without prompts; fail on missing Terraform inputs.
   --reset-known-hosts
                    Remove local SSH known_hosts entries for this setup's
                    static IPs before Ansible runs.
@@ -43,19 +43,19 @@ Options:
 Examples:
   bash scripts/deploy.sh foundation
   bash scripts/deploy.sh foundation --env test --plan-only
-  bash scripts/deploy.sh cluster-endpoint --plan-only
+  bash scripts/deploy.sh cluster-endpoint
   bash scripts/deploy.sh foundation --env-file secrets/proxmox.env
   bash scripts/deploy.sh foundation --env lab1
   bash scripts/deploy.sh foundation --env test --reset-known-hosts
   bash scripts/deploy.sh foundation --env test --destroy
-  bash scripts/deploy.sh edge --env test --plan-only
-  bash scripts/deploy.sh cache --env test --plan-only
-  bash scripts/deploy.sh vault --plan-only
-  bash scripts/deploy.sh development --env test --plan-only
-  bash scripts/deploy.sh observability --env test --plan-only
-  bash scripts/deploy.sh podman-runner --env test --plan-only
-  bash scripts/deploy.sh immutable-template --env test --plan-only
-  bash scripts/deploy.sh template-refresh --env test --plan-only
+  bash scripts/deploy.sh edge --env test
+  bash scripts/deploy.sh cache --env test
+  bash scripts/deploy.sh vault
+  bash scripts/deploy.sh development --env test
+  bash scripts/deploy.sh observability --env test
+  bash scripts/deploy.sh podman-runner --env test
+  bash scripts/deploy.sh immutable-template --env test
+  bash scripts/deploy.sh template-refresh --env test
   bash scripts/deploy.sh hsm --auto-approve
 EOF
 }
@@ -576,7 +576,7 @@ run_terraform() {
       echo "==> Refreshing Terraform module cache"
       rm -rf "$TF_DATA_DIR/modules"
     fi
-    terraform init -reconfigure -backend-config="path=$terraform_state_path"
+    terraform init -input=false -reconfigure -backend-config="path=$terraform_state_path"
 
     if [[ -n "$saved_plan" && "$plan_only" != true ]]; then
       context_path="$saved_plan.context"
@@ -601,6 +601,7 @@ run_terraform() {
     # Later files replace variable values; roots merge shared/tier network maps by name.
     platform_profile_path="$automation_root/config/platform.tfvars"
     if [[ -f "$platform_profile_path" ]]; then
+      echo "==> Shared platform references $platform_profile_path"
       terraform_args+=("-var-file=$platform_profile_path")
     else
       echo "Shared platform profile missing; using legacy tier-local defaults." >&2
@@ -638,14 +639,10 @@ run_terraform() {
     terraform_args+=("-var=ansible_group_vars_paths=$terraform_group_vars_arg")
 
     if [[ "$destroy" == true ]]; then
-      terraform plan -destroy "${terraform_args[@]}"
-
       if [[ "$plan_only" == true ]]; then
-        exit 0
-      fi
-
-      if [[ "$auto_approve" == true ]]; then
-        terraform destroy -auto-approve "${terraform_args[@]}"
+        terraform plan -destroy "${terraform_args[@]}"
+      elif [[ "$auto_approve" == true ]]; then
+        terraform destroy -input=false -auto-approve "${terraform_args[@]}"
       else
         terraform destroy "${terraform_args[@]}"
       fi
@@ -653,22 +650,22 @@ run_terraform() {
       exit 0
     fi
 
-    if [[ -n "$saved_plan" ]]; then
-      if ! terraform plan -input=false -lock-timeout=60s -out="$saved_plan" "${terraform_args[@]}"; then
-        rm -f -- "$saved_plan" "$saved_plan.context"
-        exit 1
-      fi
-      saved_plan_context > "$saved_plan.context"
-    else
-      terraform plan "${terraform_args[@]}"
-    fi
-
     if [[ "$plan_only" == true ]]; then
+      if [[ -n "$saved_plan" ]]; then
+        if ! terraform plan -input=false -lock-timeout=60s -out="$saved_plan" "${terraform_args[@]}"; then
+          rm -f -- "$saved_plan" "$saved_plan.context"
+          exit 1
+        fi
+        saved_plan_context > "$saved_plan.context"
+      else
+        terraform plan "${terraform_args[@]}"
+      fi
       exit 0
     fi
 
+    # Apply already plans and asks for approval; a separate preview is opt-in.
     if [[ "$auto_approve" == true ]]; then
-      terraform apply -auto-approve "${terraform_args[@]}"
+      terraform apply -input=false -auto-approve "${terraform_args[@]}"
     else
       terraform apply "${terraform_args[@]}"
     fi

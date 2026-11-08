@@ -1,97 +1,178 @@
 # Certificate authority operations
 
-Maintain the infrastructure issuer, offline root and identity CA as separate state
-and authority boundaries. OpenXPKI is the reference infrastructure portal; it does not
-replace FreeIPA's certificate administration or the secret service.
+Maintain the infrastructure issuer, offline root and FreeIPA CA separately.
+The [CA design](../../architecture/cryptography/certificate-authority.md) explains
+trust and custody; these tasks operate an already accepted issuer.
 
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) owns project runbooks,
-approved configuration and acceptance records, not private CA state in Git.
-**Design:** [certificate authority](../../architecture/cryptography/certificate-authority.md).
-**Prerequisites:** completed [issuer integration](../../deployment/stage-3-trust/procedures/issuer.md),
-independent access, application-consistent backups and authorized custodians.
-The supplied read-only maintenance recipe checks native services, configuration and
-the local backend API. It does not perform issuance, backup, restore or upgrades.
-Separate [software backup/restore recipes](issuer-recovery.md) require explicit
-inputs and a clean-target recovery gate:
+**Run from:** generated Tier 0 on the independent execution host unless a step
+names the issuer or offline system. Keep credentials and private CA state outside Git.
+**Before starting:** approved issuer inputs, independent access, current recovery
+copies and the original package/configuration/schema binding.
 
-```bash
-bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
-```
+<a id="contents"></a>
 
-## Contents
+## Tasks
 
-- [Routine controls](#routine-controls)
-- [Change and recovery](#change-and-recovery)
-- [Acceptance evidence](#acceptance-evidence)
+- [Is the issuer healthy?](#routine-controls)
+- [How is a service certificate renewed?](#how-is-a-service-certificate-renewed)
+- [How is a certificate revoked and its CRL published?](#how-is-a-certificate-revoked-and-its-crl-published)
+- [How are CA keys, packages or credentials changed?](#change-and-recovery)
+- [What evidence is required before closing the change?](#acceptance-evidence)
 - [References](#references)
 
-## Routine controls
+<a id="routine-controls"></a>
 
-Use the [PKI/public-edge security controls](security-controls.md) for prevention,
-event coverage, independent alerts and production exercises. A CA is not an IDS.
+## Is the issuer healthy?
 
-| Area | Required check |
+1. From Tier 0, with the existing `ansible/group_vars/issuer.yml` and protected
+   controller credentials, run the read-only service/configuration/API checks:
+
+   ```bash
+   bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
+   ```
+
+   Keep the original `--env NAME` if using a named environment. This recipe
+   installs no updates and performs no issuance, backup or key initialization.
+2. On the issuer, inspect scheduled CRL publication:
+
+   ```bash
+   systemctl status openxpki-crl.timer --no-pager
+   ```
+
+3. Verify public certificate/CRL downloads from an authorized consumer network,
+   current expiry/next-update dates, protected audit arrival and independent alerts.
+   The [security checks](security-controls.md) identify required event coverage.
+
+**Stop:** missing key, wrong identity, stale CRL or failed API/configuration checks.
+Preserve diagnostics; restore the original state rather than creating another key.
+A reachable portal or TCP listener alone is not signing readiness.
+
+## How is a service certificate renewed?
+
+The supplied `tls_server` policy accepts client-held keys and approved DNS names.
+It does not provide client-auth, code-signing, subordinate-CA or automatic ACME
+issuance. Use the qualified consumer procedure for those different profiles.
+
+1. On the authorized service/recovery host, inspect the current **public** leaf: [2]
+
+   ```bash
+   read -r -e -p 'Current service certificate PEM path: ' CURRENT_LEAF
+   openssl x509 -in "$CURRENT_LEAF" -noout -subject -issuer -serial -dates -ext subjectAltName
+   ```
+
+2. For a new P-384 key/CSR under the approved server policy, use a new protected
+   directory outside Git. This command prompts for key encryption; it prints no private key. [3]
+
+   ```bash
+   umask 077
+   read -r -e -p 'New absolute protected request directory: ' LEAF_WORK
+   read -r -p 'Approved service DNS name: ' SERVICE_DNS
+   mkdir -m 0700 "$LEAF_WORK" && openssl req -new -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout "$LEAF_WORK/leaf-key.pem" -out "$LEAF_WORK/leaf.csr" -subj "/CN=$SERVICE_DNS" -addext "subjectAltName=DNS:$SERVICE_DNS"
+   ```
+
+   Stop if the directory exists or any command fails. Multiple SANs/other algorithms
+   require the approved profile and consumer-specific request procedure; do not
+   broaden the CA policy for convenience. Keep the key at its owning service.
+3. In the existing infrastructure portal, submit **only the CSR** as the requester
+   under `tls_server`; obtain the separate approver's decision. Record workflow ID,
+   names, validity and issued serial. Renewal is another approved CSR workflow.
+4. Verify the returned chain, SAN, validity and CSR/certificate public-key match: [2][5]
+
+   ```bash
+   read -r -e -p 'Returned service certificate PEM path: ' NEW_LEAF
+   read -r -e -p 'Approved root certificate PEM path: ' ROOT_CERT
+   read -r -e -p 'Approved issuing chain PEM path: ' ISSUER_CHAIN
+   openssl verify -CAfile "$ROOT_CERT" -untrusted "$ISSUER_CHAIN" -verify_hostname "$SERVICE_DNS" "$NEW_LEAF"
+   openssl x509 -in "$NEW_LEAF" -noout -serial -dates -ext subjectAltName
+   openssl req -in "$LEAF_WORK/leaf.csr" -pubkey -noout | openssl pkey -pubin -outform DER | openssl dgst -sha256
+   openssl x509 -in "$NEW_LEAF" -pubkey -noout | openssl pkey -pubin -outform DER | openssl dgst -sha256
+   ```
+
+   The two public-key hashes must match. Stop on any mismatch or failed validation.
+5. Install the leaf/key through the owning service's native certificate procedure;
+   retain its key-encryption/unlock contract. Test verified TLS and protected audit
+   events from a real client before retiring the old leaf.
+
+**Rollback:** retain the old certificate/key only while still valid and uncompromised.
+Use the service's native rollback if cutover fails; do not restore a revoked or
+suspect credential. A file-copy or playbook success does not verify client trust.
+
+## How is a certificate revoked and its CRL published?
+
+1. In the issuer portal, identify the exact certificate by serial/fingerprint and
+   workflow. Record the approved revocation reason; perform the authorized native
+   revocation action. For suspected compromise, use the [incident path](security-controls.md#detect-and-respond).
+2. On the issuer, as the authorized custodian, request native CRL publication: [1]
+
+   ```bash
+   sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem workflow create --realm infrastructure --type crl_issuance
+   ```
+
+   Use the actual realm when different. Inspect the workflow to completion; its
+   creation ID alone does not prove publication. Keep CLI-key use audited.
+3. From a consumer, download the configured public DER CRL and verify it with the
+   independently approved issuer certificate: [4]
+
+   ```bash
+   read -r -p 'Configured issuer CRL URL: ' ISSUER_CRL_URL
+   read -r -e -p 'Approved issuer certificate PEM path: ' ISSUER_CERT
+   CRL_CHECK_DIR="$(mktemp -d)"
+   curl --fail --show-error --output "$CRL_CHECK_DIR/issuer.crl" "$ISSUER_CRL_URL"
+   openssl crl -inform DER -in "$CRL_CHECK_DIR/issuer.crl" -CAfile "$ISSUER_CERT" -verify -noout -issuer -lastupdate -nextupdate -text
+   ```
+
+4. Confirm the revoked serial and current dates, then prove an enforcing client
+   rejects it. Keep independent stale-CRL alerts. Publishing a CRL does not force
+   every browser/client to consult it; no OCSP service is supplied by this path.
+
+**Stop:** wrong issuer/signature, missing serial or stale publication. Repair delivery
+without undoing revocation or weakening client checks. Root CRLs are renewed only
+through the [offline root ceremony](../../deployment/stage-3-trust/procedures/offline-software-root.md#publish-and-preserve-state),
+not the online issuer command. FreeIPA's CA uses its own native administration.
+
+<a id="change-and-recovery"></a>
+
+## How are CA keys, packages or credentials changed?
+
+1. [Capture a current recovery set](issuer-recovery.md#capture-a-recovery-set).
+   Preserve the binding, schema receipt, DataVault secret, latest database/history,
+   provider key and independent portal/TLS/controller recovery inputs.
+2. Select the operation; routine convergence cannot substitute for its native lifecycle:
+
+   | Change | Required route |
+   | --- | --- |
+   | Key/provider/algorithm or CA rollover | [Hardware/custody migration](hardware-migration.md), approved overlap and native token lifecycle |
+   | Root key or subordinate signing | Separate authorized [offline ceremony](../../deployment/stage-3-trust/procedures/offline-root.md) |
+   | Package/configuration/schema | Isolated restored rehearsal and product-specific migration; routine binding checks reject a new archive/package set |
+   | Database/session/DataVault credentials | Separate tested product migration; changing YAML or deleting `deployment.json` is not rotation |
+   | Lost/failed issuer | [Clean-target recovery](issuer-recovery.md#prepare-and-restore-a-clean-target), with the old writer fenced |
+
+3. Accept the isolated result before cutover. Never run two copies of the same CA
+   as independent writers or return to older issuance/revocation state after new writes.
+   A second HSM or VIP does not establish application/database/session HA.
+
+<a id="acceptance-evidence"></a>
+
+## What evidence is required before closing the change?
+
+| Exercise | Required result |
 | --- | --- |
-| Portal and approval | Distinct requester/operator/custodian roles; request/approval/renewal/revocation history; independently retained recovery access |
-| Profiles and enrollment | Allowed identities, SAN/name scopes, key usages and validity; reject forbidden profiles, CA requests and cross-tier enrollment |
-| Publication | CA certificates and fresh issuer/root CRLs available at stable URLs; alert before next-update expiry; verify actual client revocation behavior |
-| Key access | Selected provider ready with the approved key identity/mechanisms; missing key is a fault, not permission to initialize another |
-| State and capacity | Database, session/workflow consistency, protected DataVault material, disk growth and backup status |
-| Audit | Issuance, administrative actions, failures and approved exports reach Tier 0 evidence with source identity; analytics copies cannot erase originals |
-| Independent alerts | Expiry, stale CRLs, failed signing, provider loss and restore failures remain visible without the portal, SSO or Tier 1 |
+| Issue, renew and revoke | Intended roles work; self-approval, unapproved names/usages and CA requests fail |
+| Publication | Correct chains and fresh issuer/root CRLs; revoked serial rejected by an enforcing client |
+| Provider loss | Selected key identity, permitted mechanisms and restore work after device/host restart or loss |
+| Audit and alerts | Attributable issuer events reach Tier 0; alerts work without portal, SSO or Tier 1 |
+| Recovery/rollback | Latest identity, serial/revocation history and DataVault contents recovered without later-tier services |
+| Optional enrollment adapter | Real issuance/renewal, denial, timeout, workflow correlation and adapter-state restoration pass |
 
-The ACME adapter, when accepted, retains separate accounts/order state and restricted
-backend credentials. Monitor order-to-workflow correlation and renewal failures without
-granting it portal administration or broad issuing profiles.
-
-## Change and recovery
-
-1. Record the exact application/configuration/schema/provider combination and take a
-   verified pre-change backup. Separate configuration convergence from schema migration,
-   token activation, CA rollover and custody ceremonies. Missing state must stop the change.
-   Routine deployment pins this combination in `deployment.json`; a different archive,
-   package set or database/session secret is deliberately rejected. Preserve the binding
-   and schema receipt with backups. Do not delete them to force an upgrade or restore.
-2. Rehearse the change on an isolated restored copy. Preserve current issuance history,
-   serial allocation and revocation state; an old VM/image snapshot is not a safe
-   substitute for application-consistent recovery. Never run two restored copies of
-   the same CA identity as independent writers.
-3. Restore onto a replacement host with Tier 1/2, the control cluster, normal SSO and
-   the secret service unavailable. Verify identity continuity before enabling issuance,
-   then verify portal workflows, publication, revocation, audit forwarding and alerting.
-
-| Recovery set | Custody requirement |
-| --- | --- |
-| OpenXPKI database, approved configuration, schema and artifacts | Restore as one tested application set, including workflow/session requirements |
-| OpenXPKI DataVault secret or token material | Recover independently with the database; unrelated to HashiCorp Vault; loss can make protected content unreadable [1] |
-| Issuer provider/key backup and authorization | Prove recovery of the same signing identity, attributes and allowed operations; devices alone are not interchangeable |
-| Portal/bootstrap administration and TLS | Recover without FreeIPA/Keycloak; rotate/revoke exposed credentials after recovery |
-| ACME bridge state and credentials, when selected | Preserve account/order continuity and backend authorization under the bridge procedure |
-| Root CA instance and separate device/key recovery | Update after each ceremony; verify encryption and custody separately from the clca backup archive [2] |
-
-Application HA requires database/workflow/session/key-access coordination. A second HSM
-or VIP alone does not make the CA application highly available. Introduce replicas only
-under a supported application/storage design with tested failure and recovery semantics.
-
-## Acceptance evidence
-
-| Test | Required result |
-| --- | --- |
-| Everyday portal | Submit/upload CSR, approve, inspect, renew and revoke using intended roles |
-| Hostile enrollment | Reject unapproved SANs/names, cross-tier scope, forbidden profiles and subordinate CA requests |
-| Automated enrollment, if selected | cert-manager issuance/renewal, backend audit correlation, denial, timeout and bridge-state restoration |
-| Revocation | Fresh CRL contains the revoked serial and an enforcing client rejects it; OCSP tested separately if selected |
-| Provider failure | Real selected software/HSM path signs certificates and CRLs; restart/device loss/recovery preserve identity |
-| Independent restoration | Replacement host retains issuance/revocation history and DataVault readability without later-tier services |
-| Upgrade and rollback | Compatible application/configuration/schema update succeeds; recovery does not regress current CA state |
-
-Keep transcripts, fingerprints, backup IDs, denied requests and RPO/RTO observations in
-the private project's administration records. A design decision, running package or
-successful VM apply is not evidence that this contract has passed.
+Keep workflow IDs, public fingerprints, backup IDs, denied tests and RPO/RTO in
+private project records. A running package or successful VM apply is not acceptance.
 
 ## References
 
-Sources checked 2026-10-17.
+Native interfaces checked 2026-11-08; qualify against the deployed package revision.
 
-1. [OpenXPKI configuration and DataVault protection](https://github.com/openxpki/openxpki-config/blob/community/QUICKSTART.md)
-2. [clca lifecycle, backup and provider interfaces](https://github.com/openxpki/clca/blob/master/README.md)
+1. [OpenXPKI native CLI, token and DataVault operations](https://github.com/openxpki/openxpki-config/blob/community/QUICKSTART.md).
+2. [OpenSSL certificate inspection](https://docs.openssl.org/3.5/man1/openssl-x509/).
+3. [OpenSSL CSR and encrypted key generation](https://docs.openssl.org/3.5/man1/openssl-req/).
+4. [OpenSSL CRL verification](https://docs.openssl.org/3.5/man1/openssl-crl/).
+5. [OpenSSL chain and hostname verification](https://docs.openssl.org/3.5/man1/openssl-verify/).

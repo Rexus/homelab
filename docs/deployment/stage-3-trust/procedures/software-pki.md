@@ -12,14 +12,16 @@ owning generated repository. Existing authorities need migration, not this proce
 
 ## Contents
 
-- [Decisions and recovery kit](#decisions-and-recovery-kit)
-- [Build the private policy bundle](#build-the-private-policy-bundle)
-- [Install and prepare the issuing key](#install-and-prepare-the-issuing-key)
-- [Sign and activate](#sign-and-activate)
-- [Accept the issuer and continue](#accept-the-issuer-and-continue)
+- [Step 1: Approve policy and custody](#decisions-and-recovery-kit)
+- [Step 2: Build the private policy bundle](#build-the-private-policy-bundle)
+- [Step 3: Install and prepare the issuing key](#install-and-prepare-the-issuing-key)
+- [Step 4: Sign and activate](#sign-and-activate)
+- [Step 5: Accept the issuer and continue](#accept-the-issuer-and-continue)
 - [References](#references)
 
-## Decisions and recovery kit
+<a id="decisions-and-recovery-kit"></a>
+
+## Step 1: Approve policy and custody
 
 Approve names, trust scope and [algorithms](../../../architecture/cryptography/algorithm-selection.md)
 before generating keys. The supplied policy has one TLS-server leaf profile,
@@ -40,43 +42,62 @@ Software encryption does not prevent a compromised running CA host from signing.
 Restrict host administration and qualify the
 [hardware migration path](../../../administration/cryptography/hardware-migration.md).
 
-## Build the private policy bundle
+<a id="build-the-private-policy-bundle"></a>
 
-On the Linux Tier 0 controller, copy the
-[policy example](../../../../tier-0/ansible/group_vars/issuer-policy.yml.example)
-to a private inputs file outside Git. Set real suffixes, publication URL, portal name,
-absolute private build directory and two named accounts with different custodians.
-Generate Argon2id password hashes with the native `argon2` CLI on the trusted
-controller (install the OS's `argon2` package first), independently for each
-account. The password travels on stdin, not the process command line: [2]
+## Step 2: Build the private policy bundle
 
-```bash
-read -rsp 'New account password: ' account_password; echo
-printf '%s' "$account_password" | argon2 "$(openssl rand -hex 16)" -id -e -t 3 -m 16 -p 4
-unset account_password
-```
+1. On the Linux Tier 0 controller, create the private policy input outside Git:
 
-Record the encoded hash in the private input and keep the password separately.
-These costs use 64 MiB and three passes; measure login load on the actual issuer.
-The product's native Argon2 hash facility is an alternative once installed.
+   ```bash
+   read -r -e -p 'Absolute private issuer policy file path: ' ISSUER_POLICY_FILE
+   cp -n ansible/group_vars/issuer-policy.yml.example "$ISSUER_POLICY_FILE"
+   ```
 
-Prepare independent secrets in a private shell:
+   Its parent directory must already be protected. Edit that file:
 
-```bash
-read -rsp 'Issuer key passphrase (32+ characters): ' OPENXPKI_SIGNER_PASSWORD; echo
-export OPENXPKI_SIGNER_PASSWORD
-export OPENXPKI_DATAVAULT_SECRET="$(openssl rand -hex 32)"
-```
+   | Field | Set |
+   | --- | --- |
+   | `openxpki_bundle_directory` | New absolute protected build directory; retain each completed immutable bundle |
+   | `openxpki_bundle_portal_fqdn` | Actual `ca-1` portal DNS name |
+   | `openxpki_bundle_publication_url` | Reachable CA public-object URL ending in `/download/` |
+   | `openxpki_bundle_dns_suffixes` | Approved internal certificate scope, no example suffixes |
+   | `openxpki_bundle_users` | Separate named requester/approver accounts and their independent Argon2id hashes |
 
-Back up these exact values securely **before** building. The signer passphrase is
-also required for key preparation. DataVault loss cannot be repaired by generating
-another random value. [1]
+2. Generate Argon2id password hashes with the native `argon2` CLI on the trusted
+   controller (install the OS's `argon2` package first), independently for each
+   account. The password travels on stdin, not the process command line: [2]
 
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg \
-  ansible-playbook -i localhost, ansible/playbooks/deployment/openxpki-bundle.yml \
-  -e @/absolute/private/issuer-policy.yml
-```
+   ```bash
+   read -rsp 'New account password: ' account_password; echo
+   printf '%s' "$account_password" | argon2 "$(openssl rand -hex 16)" -id -e -t 3 -m 16 -p 4
+   unset account_password
+   ```
+
+   Record the encoded hash in the private input and keep the password separately.
+   These costs use 64 MiB and three passes; measure login load on the actual issuer.
+   The product's native Argon2 hash facility is an alternative once installed.
+
+3. Prepare independent secrets in a private shell:
+
+   ```bash
+   read -rsp 'Issuer key passphrase (32+ characters): ' OPENXPKI_SIGNER_PASSWORD; echo
+   export OPENXPKI_SIGNER_PASSWORD
+   export OPENXPKI_DATAVAULT_SECRET="$(openssl rand -hex 32)"
+   ```
+
+   Back up these exact values securely **before** building. The signer passphrase is
+   also required for key preparation. DataVault loss cannot be repaired by generating
+   another random value. [1]
+
+4. Build from the Tier 0 repository root:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/openxpki-bundle.yml -e "@$ISSUER_POLICY_FILE"
+   ```
+
+   Retain the printed artifact path/SHA256. Set them as
+   `openxpki_configuration_src` / `openxpki_configuration_sha256` in
+   `ansible/group_vars/issuer.yml` after initialization in Step 3.
 
 The builder pins an upstream commit, copies native schemas/workflows and applies
 site policy with Ansible modules. It refuses an existing final archive.
@@ -89,28 +110,37 @@ fingerprint out of band and configure explicit trust on the isolated admin clien
 Never bypass TLS warnings or install it as a general-purpose CA. Replace it with
 an approved portal certificate before normal operations.
 
-## Install and prepare the issuing key
+<a id="install-and-prepare-the-issuing-key"></a>
 
-Follow [issuer host/runtime installation](issuer.md#step-1-provision-the-host).
-Set archive path/checksum, bootstrap TLS files, prepared mount UUID and package pins
-in protected issuer inputs. For this bundle set `openxpki_managed_cli: true`.
-Install with database initialization enabled once and runtime activation disabled;
-return initialization to false after success.
+## Step 3: Install and prepare the issuing key
 
-Set `openxpki_issuer_common_name`, an absolute private
-`openxpki_ceremony_directory` and `openxpki_create_issuer_key: true`
-in the protected inputs. The explicit fresh-key recipe creates an encrypted
-P-384 key on the issuer and fetches only its CSR:
+1. Complete [issuer Steps 1-2](issuer.md#step-1-provision-the-host), including data
+   mount, archive/checksum, TLS files, audit forwarding and approved native packages.
+   Set `openxpki_managed_cli: true` for this bundle. Initialize the empty database
+   only once and keep runtime activation disabled. Return initialization to false
+   after success; do not create a second state or repeat initialization.
+2. Edit **`ansible/group_vars/issuer.yml`**:
 
-```bash
-bash scripts/deploy.sh foundation --ansible-only \
-  --playbook deployment/openxpki-key.yml --ansible-vars ansible/group_vars/issuer.yml
-```
+   ```yaml
+   openxpki_managed_cli: true
+   openxpki_issuer_common_name: REPLACE_WITH_APPROVED_INFRASTRUCTURE_CA_NAME
+   openxpki_ceremony_directory: /REPLACE_WITH_ABSOLUTE_PRIVATE_HANDOFF_DIRECTORY
+   openxpki_create_issuer_key: true
+   ```
 
-Return the approval flag to false immediately. Never delete an existing key to
-make preparation pass; recover a partial CSR operation with that same key.
+   Keep `openxpki_activate_runtime: false`. The explicit fresh-key recipe creates
+   an encrypted P-384 key on the issuer and fetches only its CSR:
 
-## Sign and activate
+   ```bash
+   bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki-key.yml --ansible-vars ansible/group_vars/issuer.yml
+   ```
+
+3. Return `openxpki_create_issuer_key` to `false` immediately. Never delete an existing
+   key to make preparation pass; recover a partial CSR operation with that same key.
+
+<a id="sign-and-activate"></a>
+
+## Step 4: Sign and activate
 
 1. Verify the CSR signature, identity and public-key fingerprint independently.
    Follow the [offline software ceremony](offline-software-root.md) to sign only
@@ -127,7 +157,9 @@ make preparation pass; recover a partial CSR operation with that same key.
 
 <a id="complete-identity-and-acceptance"></a>
 
-## Accept the issuer and continue
+<a id="accept-the-issuer-and-continue"></a>
+
+## Step 5: Accept the issuer and continue
 
 Before accepting Stage 3, pass the selected
 [CA acceptance tests](../../../administration/cryptography/certificate-authority.md#acceptance-evidence),

@@ -64,7 +64,7 @@ The [rule contracts](#rule-contracts) below define each label.
 
 † The current starter log receiver shares management VLAN 10. Permit only its
 authenticated intake listener from approved producers, not hardware access.
-The [dedicated VM-administration split](../../reference/network-plan.md#separate-host-and-vm-administration)
+The [dedicated VM-administration split](../../conventions/network-plan.md#separate-host-and-vm-administration)
 places that receiver in Control when selected. Matrix membership does not perform the migration.
 
 For example, a proxy may reach its backend and designated DNS servers.

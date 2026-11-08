@@ -72,8 +72,16 @@ class ReaderRoles(TierRepositoryTestCase):
         root = UPSTREAM / "docs/architecture"
         overview = (root / "README.md").read_text()
         for target in ("reference-platform.md", "runtime-flows.md", "variants.md",
-                       "compute/runtime.md", "compute/kubernetes.md", "delivery/controllers.md"):
+                       "hosting/runtime.md", "hosting/kubernetes.md", "data/README.md", "software/controllers.md"):
             self.assertIn(f"({target})", overview)
+        capabilities = overview.split("## Foundational capabilities\n", 1)[1].split(
+            "## Functional structure\n", 1)[0]
+        for capability in ("Hosting and orchestration", "Networking and connectivity", "Data and storage",
+                           "Identity and access", "Cryptography and secrets", "Software lifecycle",
+                           "Operations and resilience"):
+            self.assertIn(f"[{capability}]", capabilities)
+        for principle in ("Zero trust", "scalability", "Managed services"):
+            self.assertIn(principle, capabilities)
         layers = overview.split("## Layered model\n", 1)[1].split("## Tiered model\n", 1)[0]
         tiers = overview.split("## Tiered model\n", 1)[1].split("## Tier and zone view\n", 1)[0]
         self.assertIn("block-beta\n  columns 3", layers)
@@ -82,13 +90,13 @@ class ReaderRoles(TierRepositoryTestCase):
         self.assertIn("block-beta\n  columns 1", tiers)
         self.assertLess(tiers.index('T2["'), tiers.index('T1["'))
         self.assertLess(tiers.index('T1["'), tiers.index('T0["'))
-        for domain in ("networking", "compute", "identity", "cryptography", "delivery", "operations"):
+        for domain in ("networking", "hosting", "data", "identity", "cryptography", "software", "operations"):
             content = (root / domain / "README.md").read_text()
             self.assertIn("```mermaid", content, domain)
             self.assertIn("runtime-flows.md", content, domain)
         for document in ("runtime-flows.md", "reference-platform.md", "variants.md"):
-            self.assertIn("delivery/controllers.md", (root / document).read_text(), document)
-        self.assertIn("kubernetes.md", (root / "compute/runtime.md").read_text())
+            self.assertIn("software/controllers.md", (root / document).read_text(), document)
+        self.assertIn("kubernetes.md", (root / "hosting/runtime.md").read_text())
 
     def test_capability_placement_and_identity_detail_use_the_same_roles(self):
         root = UPSTREAM / "docs/architecture"
@@ -129,17 +137,21 @@ class ReaderRoles(TierRepositoryTestCase):
 
     def test_domains_define_function_choices_and_constraints(self):
         root = UPSTREAM / "docs/architecture"
-        for domain in ("compute", "identity", "cryptography", "delivery", "operations"):
+        for domain in ("hosting", "identity", "cryptography", "software", "operations"):
             content = (root / domain / "README.md").read_text()
-            for heading in ("Components and interfaces", "Design constraints", "Realization"):
+            for heading in ("Components and interfaces", "Design constraints"):
                 self.assertIn(f"## {heading}", content, domain)
+            self.assertRegex(content, r"(?m)^## (?:Reference realization|Realization)$", domain)
+        data = (root / "data/README.md").read_text()
+        for heading in ("Storage interfaces", "Administration and consumption", "Reference realization"):
+            self.assertIn(f"## {heading}", data)
         custody = (root / "cryptography/hsm-selection.md").read_text()
         for option in ("A: Software", "B: Single USB", "C: Replicated USB gateways", "D: Network HSM"):
             self.assertIn(option, custody)
         seal = (root / "cryptography/vault-seal.md").read_text()
         for choice in ("S1: Shamir", "S2: Transit", "S3: Native PKCS#11", "OpenBao", "Enterprise"):
             self.assertIn(choice, seal)
-        delivery = (root / "delivery/artifact-supply.md").read_text()
+        delivery = (root / "software/artifact-supply.md").read_text()
         for choice in ("GitLab", "Harbor", "Dragonfly"):
             self.assertIn(choice, delivery)
 
@@ -172,14 +184,14 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertFalse((reference / old).exists(), old)
         architecture = self.root / "verify-architecture/docs/architecture"
         self.assertFalse(architecture.exists())
-        for domain in ("networking", "compute", "identity", "cryptography", "delivery", "operations"):
+        for domain in ("networking", "hosting", "data", "identity", "cryptography", "software", "operations"):
             self.assertTrue((reference.parent / "architecture" / domain / "README.md").is_file())
         for old in ("system", "subsystems", "system-design", "subsystem-design"):
             self.assertFalse((architecture / old).exists())
             self.assertFalse((reference.parent / "architecture" / old).exists())
         self.assertTrue((reference.parent / "architecture/reference-platform.md").is_file())
-        for document in ("runtime-flows.md", "variants.md", "compute/runtime.md",
-                         "compute/kubernetes.md", "delivery/controllers.md"):
+        for document in ("runtime-flows.md", "variants.md", "hosting/runtime.md",
+                         "hosting/kubernetes.md", "software/controllers.md"):
             self.assertTrue((reference.parent / "architecture" / document).is_file(), document)
         platform = (architecture.parent / "README.md").read_text()
         self.assertIn("auto-docs/architecture/runtime-flows.md", platform)

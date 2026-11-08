@@ -1,4 +1,5 @@
 # Cluster-owned hardware/configuration. This root does not load Linux common.tfvars.
+# VMID allocation: docs/conventions/vmid-convention.md
 # IP reservations are in ansible/group_vars/talos.yml, hosts in ansible/inventory/hosts.yml.
 # Set the image ID from the shared approved catalog, and pin matching releases/schematic.
 # Configure native proxy/DNS/time or approved mirrors before denying direct egress.
@@ -36,19 +37,20 @@ cluster = {
 # Keep host placement, storage, bridges, and image source in the same Proxmox cluster.
 nodes = {
   k8ctl-1 = {
-    vm_id = 300, node_name = "pve01", mac_address = "02:00:00:00:03:00"
+    vm_id = 101, node_name = "pve01", mac_address = "02:00:00:00:03:00"
     datastore_id = "shared", bridge = "control", size = "medium"
   }
   k8ctl-2 = {
-    vm_id = 301, node_name = "pve02", mac_address = "02:00:00:00:03:01"
+    vm_id = 102, node_name = "pve02", mac_address = "02:00:00:00:03:01"
     datastore_id = "shared", bridge = "control", size = "medium"
   }
   k8ctl-3 = {
-    vm_id = 302, node_name = "pve03", mac_address = "02:00:00:00:03:02"
+    vm_id = 103, node_name = "pve03", mac_address = "02:00:00:00:03:02"
     datastore_id = "shared", bridge = "control", size = "medium"
   }
 }
 
 # Start with three schedulable control planes. Optional workers need matching
 # inventory hosts, DHCP/IP reservations, and hardware entries in nodes above.
+# Reserve optional worker VMIDs from 201 upward; do not reuse directory VMIDs 301/302.
 # Existing clusters must retain their workers; this example is not a removal plan.

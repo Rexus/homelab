@@ -15,7 +15,7 @@ resources, guest assignments, credentials, or state.
 This repository deploys no services by itself. Follow the
 [shared automation checklist](${docs}/paths/shared/README.md) to prepare it.
 
-Review the project's [naming conventions](../${repo_prefix}-architecture/docs/naming-conventions.md),
+Review the project's [platform standards](../${repo_prefix}-architecture/platform-standards.md),
 then start from the owning deployment repository:
 
 - [Tier 0: recovery and control](../${repo_prefix}-tier-0/README.md)
@@ -38,7 +38,9 @@ repository and its dependencies available locally for recovery.
 - [Selected architecture](docs/architecture/README.md)
 - [Local development and administration guides](docs/README.md)
 - [Project documentation](../${repo_prefix}-architecture/docs/README.md)
+- [Conventions: names, tags, VMIDs and networks](${docs}/conventions/README.md)
 - [Automation layout](${docs}/development/code-layout.md)
+- [Find and fix a bug](${docs}/development/debugging.md)
 - [Template references and promotion](${docs}/reference/template-catalog.md)
 - [Script reference](${docs}/reference/repository-scripts.md)
 - [Upstream refresh contract](${docs}/development/generated-repositories.md#refresh-and-local-ownership)

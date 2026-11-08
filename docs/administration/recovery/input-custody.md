@@ -9,15 +9,19 @@ original paths and authority; independently administer the recovery host/reposit
 an encrypted read-only SMB export, local reader credential and firewall route per source.
 The backup role mounts commissioned shares; it does not install or administer source SMB servers.
 
-## Contents
+<a id="contents"></a>
 
-- [Identify original ownership](#identify-original-ownership)
-- [Commission a bounded source view](#commission-a-bounded-source-view)
-- [Configure transport and selections](#configure-transport-and-selections)
-- [Verify independence and freshness](#verify-independence-and-freshness)
+## Operator tasks
+
+- [How to identify the actual input/state owners?](#identify-original-ownership)
+- [How to expose a bounded read-only source view?](#commission-a-bounded-source-view)
+- [How to configure the input transport?](#configure-transport-and-selections)
+- [How to verify copy freshness and independence?](#verify-independence-and-freshness)
 - [References](#references)
 
-## Identify original ownership
+<a id="identify-original-ownership"></a>
+
+## How to identify the actual input/state owners?
 
 | Material | Authoritative source that must be exported or independently protected |
 | --- | --- |
@@ -28,24 +32,26 @@ The backup role mounts commissioned shares; it does not install or administer so
 | CI-generated inputs/state | Persistent owner-controlled runner data before job cleanup, or the original backend; ephemeral CI artifacts alone are insufficient |
 | Source/tool/provider/image versions | Pinned code and independent software-intake artifacts; preserve separately from this ignored-input allowlist |
 
-Name every tier/environment/setup and record the owning host, exact source root, state lineage/serial,
-export, recovery selection and freshness objective. Each original must have a real route into
-independent custody. Add a separate source entry for each owner; never substitute an empty example
-checkout when a source is unavailable. Do not place Tier 0 originals under ordinary Tier 1 runner custody.
+1. Record each tier/environment/setup, owner, exact root, state lineage/serial and freshness objective.
+2. Add one source export/selection per actual owner; an unavailable source is a failed backup prerequisite.
+3. Keep Tier 0 originals outside ordinary Tier 1 runner custody. Never substitute an empty example checkout.
 
 For CI, retain the actual state/input root on the authorized provisioning host and gate cleanup on an
 accepted independent recovery copy. Configure that persistent host path as the source export. If
 the runner deletes its workspace before this pull, the role cannot recover those files: change the
 runner lifecycle or qualify backend recovery before calling input backup complete.
 
-## Commission a bounded source view
+<a id="commission-a-bounded-source-view"></a>
+
+## How to expose a bounded read-only source view?
 
 On each source host, the source owner selects a directory containing the actual owning Git working
 trees and their ignored data (example `/srv/homelab-iac`). Use a qualified source snapshot or pause
 Terraform/configuration writers during capture; client-side `ro` does not freeze source writes.
 Use full working trees, not `.git` worktree links pointing outside the export.
 
-For a Linux Samba source, the authorized source administrator commissions an independent local reader
+**Linux source administrator:** edit the existing managed `/etc/samba/smb.conf` or its selected include.
+Commission an independent local reader
 with filesystem read/traverse access only to the approved scope and no interactive/provisioning
 rights. Add this focused service to the existing managed Samba configuration; adapt the actual root,
 reader and recovery-host address. Preserve other services and the server's security policy. [1]
@@ -75,7 +81,12 @@ readable to this reader but never writable by it. Store the SMB username/passwor
 mode `0600` credential file (`username=...` and `password=...`, optionally `domain=...`). This identity
 must be unable to change originals or administer snapshots, even from another client.
 
-## Configure transport and selections
+<a id="configure-transport-and-selections"></a>
+
+## How to configure the input transport?
+
+1. Edit **Tier 0 `ansible/group_vars/control_backup.yml`**. Preserve its other selections;
+   replace the source/selection entries with actual owner values:
 
 ```yaml
 control_backup_input_sources:
@@ -91,8 +102,9 @@ control_backup_inputs:
   - {repo: /mnt/control-inputs-provisioner/homelab-tier-0, path: secrets}
 ```
 
-Add the actual remaining local group vars, tfvars, IP maps and each other tier/environment's original
-paths explicitly. `repo` is the source Git root **as mounted on the recovery host**; `path` is bounded
+2. Add remaining local group vars, tfvars, IP maps and every required original tier/environment path explicitly.
+3. Apply [control backup configuration](../backups/control-applications.md#configure-and-schedule).
+ `repo` is the source Git root **as mounted on the recovery host**; `path` is bounded
 repo-relative and ignored. Directory selections must contain no tracked files. The role mounts every
 source with separate root-only credentials, SMB 3.1.1 encryption and `ro,nosuid,nodev,noexec`.
 Every run checks the exact mounted target, read-only flag, source marker, Git root/ignore status and
@@ -102,19 +114,34 @@ The job reads these original paths directly into independent restic custody; no 
 credential, deployment of the backup job onto the provisioning host, or Git-only replication is used.
 The restic manifest records the source export/mount mapping and selected paths for recovery provenance.
 
-## Verify independence and freshness
+<a id="verify-independence-and-freshness"></a>
 
-Freeze writers or commission a coherent source snapshot, run
-[the backup playbook](../backups/control-applications.md#configure-and-schedule), then extract a known
-set into a [new clean target](files.md). Compare original and restored state lineage/serial, environment,
-inventory and one protected input hash. Repeat with the provisioning host, cluster/SSO and hosted CI
-unavailable; only independent repository/key access may be required for extraction.
+## How to verify copy freshness and independence?
+
+1. Freeze source writers or select a coherent source snapshot, then run the
+   [control backup](../backups/control-applications.md#operate-and-verify).
+2. On the recovery host, inspect the configured source mount:
+
+   ```bash
+   read -r -p "Configured input-source mount (for example /mnt/control-inputs-provisioner): " INPUT_MOUNT
+   findmnt -rn -M "$INPUT_MOUNT" -o TARGET,SOURCE,FSTYPE,OPTIONS
+   ```
+
+   Require the exact source and read-only mount; compare its marker with the owner's record.
+3. Extract the known set into a [new clean target](files.md). Compare state lineage/serial,
+   environment, inventory and a protected input hash with the original records.
+4. Repeat extraction with the provisioning host, cluster/SSO and hosted CI unavailable.
+   Independent repository/key access must suffice.
 
 Prove the share reader cannot write/delete a disposable source canary and cannot administer source
 snapshots. Record that denied result without touching operational state. Record source snapshot time
 or writer-pause interval, input/state age and observed RPO/RTO. A fresh restic timestamp does not prove
 that an exported snapshot or CI workspace was itself current. Monitor source-generation lag separately.
 Requalify after moving runners, roots, state backends, credentials or cleanup behavior.
+
+**Stop/rollback:** if roots, markers, ACLs or freshness differ, stop accepting copies.
+Restore the approved source/configuration selection through its custodian, rerun a verified copy
+and retain earlier good sets. The role does not create source servers or repair runner cleanup.
 
 ## References
 

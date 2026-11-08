@@ -28,7 +28,7 @@ class SoftwareIntake(TierRepositoryTestCase):
         self.assertFalse((tier0 / "ansible/inventory/hosts.yml").exists())
 
         guide = (self.root / "verify-architecture/docs/auto-docs/deployment/"
-                 "stage-1-software-intake/proxy-cache.md").read_text()
+                 "stage-1-software-intake/README.md").read_text()
         commands = re.search(r"```bash\n(.*?)```", guide, re.DOTALL).group(1)
         initialized = subprocess.run(["bash", "-e", "-c", commands], cwd=tier0, env=environment,
                                      capture_output=True, text=True)
@@ -36,20 +36,24 @@ class SoftwareIntake(TierRepositoryTestCase):
         self.assertTrue((tier2 / "terraform/deployments/cache/terraform.tfvars").is_file())
         self.assertTrue((tier2 / "ansible/inventory/hosts.yml").is_file())
         self.assertFalse((tier0 / "ansible/inventory/hosts.yml").exists())
+        self.assertIn("vi ../verify-shared/config/platform.tfvars", guide)
+        self.assertNotIn("../homelab-shared/", guide)
 
     def test_source_and_generated_docs_explain_transport_ownership_and_supply(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            design = (docs / "architecture/delivery/software-intake.md").read_text()
+            design = (docs / "architecture/software/software-intake.md").read_text()
             for expected in ("## Connected proxy design", "## Supply choices", "## Transport and integrity",
                              "client-initiated requests", "one common policy", "not supplied",
                              "Tier 0 authorizes and executes its updates", "Internal HTTP mirror",
                              "Tier 1 owns authoritative shared mirrors", "independent of the cache"):
                 self.assertIn(expected, design)
             self.assertNotIn("```bash", design)
-            for source in ("architecture/delivery/README.md", "architecture/delivery/artifact-supply.md",
-                           "deployment/foundation/README.md", "administration/compute/update-access.md"):
+            for source in ("architecture/software/README.md", "architecture/software/artifact-supply.md",
+                           "administration/compute/update-access.md"):
                 self.assertIn("software-intake.md", (docs / source).read_text(), source)
+            self.assertIn("../stage-1-software-intake/README.md",
+                          (docs / "deployment/foundation/README.md").read_text())
             guide = (docs / "deployment/stage-1-software-intake/proxy-cache.md").read_text()
             for expected in ("**Working repository:** `<prefix>-tier-2`", "not cached",
                              "no unrestricted", "direct WAN bypass fails", "not a cache hit",

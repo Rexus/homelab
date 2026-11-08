@@ -3,13 +3,13 @@
 **Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
 Run repository scripts from this root; paths below are repository-relative.
 
-**Design:** [traffic boundaries](../../../architecture/delivery/README.md).
+**Design:** [traffic boundaries](../../../architecture/software/README.md).
 
 ## Main path
 
 1. [Initialize and configure](#configuration)
-2. [Plan and deploy](#plan-and-deploy)
-3. [Verify before publication](#verify-before-publication)
+2. [Step 2: Deploy](#plan-and-deploy)
+3. [Step 3: Verify before publication](#verify-before-publication)
 
 Defaults and VIP behavior below explain the pattern; the starter has no application
 frontends/backends enabled. Provisioning the edge set alone does not publish an application.
@@ -121,7 +121,9 @@ not this Tier 2 edge deployment.
 
 <a id="what-you-configure"></a>
 
-## Configuration
+<a id="configuration"></a>
+
+## Step 1: Configure inputs
 
 Initialize local inputs from Tier 2 before editing their example-derived live files:
 
@@ -143,22 +145,24 @@ Shared supplies the [deploy helper](../../../../shared/scripts/deploy.sh) and
 [Keepalived primitive](../../../../shared/ansible/roles/shared/tasks/keepalived.yml),
 not the edge inventory, Terraform or frontend definitions.
 
-## Plan and deploy
+<a id="plan-and-deploy"></a>
+
+## Step 2: Deploy
 
 Configure host IPs, unused VIPs/VRRP IDs and approved application frontends/backends.
 For multiple environments, complete [environment isolation](../../../reference/repository-scripts.md#environment-isolation).
 
 ```bash
-bash scripts/deploy.sh edge --plan-only
-```
-
-Review the resources and listeners, then deploy:
-
-```bash
 bash scripts/deploy.sh edge
 ```
 
-## Verify before publication
+Review the inline Terraform plan and enter `yes` only for the intended changes.
+Add `--plan-only` for a preview without installation; approved unattended jobs use
+`--auto-approve`.
+
+<a id="verify-before-publication"></a>
+
+## Step 3: Verify before publication
 
 For a browser-facing website, use the [public HTTPS procedure](../../stage-10-lab-environments/public-https.md)
 for HTTP-01, trusted public certificates, verified origin TLS and scheduled renewal.

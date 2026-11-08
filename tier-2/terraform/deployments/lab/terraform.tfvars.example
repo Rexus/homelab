@@ -1,6 +1,8 @@
 # Copy to: terraform/deployments/lab/terraform.tfvars
 # Replace every value before use.
 # Reference: docs/development/code-layout.md
+# VMID allocations: docs/conventions/vmid-convention.md
+# The 3xxx lab allocation group remains Tier 2-owned; it is not another security tier.
 # Shared values live in ../../common.tfvars.
 
 # Optional: override the shared default Linux VM template for this setup or
@@ -12,8 +14,8 @@ vm_instances = {
   # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
   "lab-1" = {
     # Optional per-guest template override when one VM uses another template.
-    # template_vm_id = 111
-    vm_id            = 500
+    # template_vm_id = 9100
+    vm_id            = 3201
     size             = "tiny"
     storage_class    = "local"
     disk_size_gb     = 20
@@ -24,7 +26,7 @@ vm_instances = {
 
 lxc_instances = {
   "support-1" = {
-    vm_id            = 501
+    vm_id            = 3202
     # Replace with the Proxmox LXC template file ID you actually uploaded.
     template_file_id = "local:vztmpl/linux-default-change-me.tar.xz"
     size             = "tiny"

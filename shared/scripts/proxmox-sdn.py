@@ -10,6 +10,7 @@ import ipaddress
 import json
 import os
 import re
+import socket
 import ssl
 import sys
 import urllib.error
@@ -100,9 +101,27 @@ def lookup(vnet, environ):
             payload = json.load(response)
         return resolve_subnet(payload["data"])
     except urllib.error.HTTPError as exc:
+        if exc.code == 403:
+            raise LookupError(
+                f"Proxmox SDN lookup returned HTTP 403 for VNet {vnet}; subnet reads require SDN.Audit, "
+                "not just SDN.Use. Check the effective VNet permissions of the token and owning user."
+            ) from exc
         raise LookupError(f"Proxmox SDN lookup returned HTTP {exc.code}; check the VNet and scoped SDN.Audit permissions.") from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        raise LookupError("Cannot read the SDN subnet over verified HTTPS; check endpoint, connectivity and trusted CA.") from exc
+        reason = exc.reason if isinstance(exc, urllib.error.URLError) else exc
+        if isinstance(reason, ssl.SSLCertVerificationError):
+            detail = "TLS certificate verification failed; check the approved CA, certificate dates and API hostname/SAN"
+        elif isinstance(reason, socket.gaierror):
+            detail = "cannot resolve the API hostname; check execution-host DNS"
+        elif isinstance(reason, (TimeoutError, socket.timeout)):
+            detail = "API connection timed out; check routing, firewall rules and port 8006"
+        elif isinstance(reason, ConnectionRefusedError):
+            detail = "API connection refused; check the endpoint port and Proxmox API service"
+        elif isinstance(reason, ssl.SSLError):
+            detail = "TLS handshake failed; check the API certificate and execution-host TLS configuration"
+        else:
+            detail = "check the endpoint, connectivity and execution-host CA trust files"
+        raise LookupError(f"Cannot read the SDN subnet over verified HTTPS: {detail}.") from exc
     except (KeyError, TypeError, json.JSONDecodeError) as exc:
         raise LookupError("Proxmox returned an invalid SDN API response.") from exc
 

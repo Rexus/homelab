@@ -8,10 +8,10 @@ Configuration is applied in the network controller, not by a supplied IaC instal
 ## Table of contents
 
 - [Prerequisites](#prerequisites)
-- [Bring up the network](#bring-up-the-network)
-- [Map the architecture](#map-the-architecture)
-- [Apply the policy](#apply-the-policy)
-- [Verify](#verify)
+- [Step 1: Bring up the network](#bring-up-the-network)
+- [Step 2: Assign networks to zones](#map-the-architecture)
+- [Step 3: Apply the policy](#apply-the-policy)
+- [Step 4: Verify and return](#verify)
 - [References](#references)
 
 ## Prerequisites
@@ -28,7 +28,9 @@ gateway plus its Network application, or apply equivalent policy on the existing
 router/firewall. Keep that control/recovery path available before the future
 Kubernetes cluster or hosted identity service exists. [1]
 
-## Bring up the network
+<a id="bring-up-the-network"></a>
+
+## Step 1: Bring up the network
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -52,9 +54,20 @@ controller and physical-network administration remain Tier 0 / Control.
 1. Commission the gateway and Network application using the selected model's
    procedure. Adopt switches/APs over a working management network before changing
    their VLANs. Retain local recovery access and a configuration export. [3]
-2. Create the approved networks from the [network plan](../../../architecture/networking/README.md#example-network-plan):
-   VLAN, subnet, gateway and DHCP/static reservations. Start with management, a client
-   subnet and the first guest network; add later purpose networks before their consumers.
+2. In **UniFi Network > Settings > Networks**, create the approved networks from the
+   [network plan](../../../conventions/network-plan.md#network-allocations).
+   Start with management, a client subnet and the first guest network; add later
+   purpose networks before their consumers. For each selected network, enter:
+
+   | Setting | Value source |
+   | --- | --- |
+   | Name | Selected purpose/alias in the project platform standards |
+   | VLAN ID | That network's actual allocation; not a tier number |
+   | Gateway/subnet | The selected gateway address and prefix |
+   | DHCP | A deliberate range excluding static guest addresses, or disabled when unused |
+   | DNS | Independent bootstrap resolver; the gateway resolver is valid when configured |
+
+   Field locations vary by gateway/release; use that model's matching help.
 3. Configure the port path end to end, then apply the [zone policy](#map-the-architecture).
    Move one test port/client first; verify management access before cutting over uplinks. [4]
 
@@ -68,7 +81,13 @@ Native traffic on an intentional client access port is not the same as an accide
 native VLAN on a server trunk. Do not copy a tagged-only server profile onto the
 only current controller or workstation path without a tested cutover.
 
-## Map the architecture
+<a id="map-the-architecture"></a>
+
+## Step 2: Assign networks to zones
+
+In the gateway's **Zone-Based Firewall** settings, create the selected custom zones,
+then assign each network to its recorded zone. Preserve management/recovery access
+while changing membership. Apply the endpoint/listener rules in Step 3 before accepting the result. [1]
 
 Use the existing DMZ zone and purpose-named Services, Control and Fabric groups.
 Layers describe protection; zones group networks with compatible policy,
@@ -91,7 +110,7 @@ Use a separate `Lab` or other purpose-named zone when its policy differs.
 Do not put untrusted labs into a service subnet merely to keep the zone count low.
 Host-only cluster/storage fabrics can remain on controlled, non-routed switching.
 Fabric is the local UniFi policy name, not the Proxmox SDN Fabrics feature.
-The [network plan](../../../reference/network-plan.md) supplies the short VNet
+The [network plan](../../../conventions/network-plan.md) supplies the short VNet
 IDs, per-zone allocations and current deployment attachments. Prefer a separate
 Clients zone when workstation policy differs from edge servers.
 
@@ -102,10 +121,12 @@ VPN, and same-zone policies; they are not this repository's intended rules. [1]
 Keep these as separate VLANs/subnets even when assigned to DMZ. Add explicit
 DMZ-to-DMZ rules for named listeners and retain a deny fallback. Client membership
 does not publish a WAN listener. Privileged jump hosts and bootstrap VMs target
-Control; the [current mixed management attachment](../../../reference/network-plan.md#separate-host-and-vm-administration)
+Control; the [current mixed management attachment](../../../conventions/network-plan.md#separate-host-and-vm-administration)
 needs explicit inputs to separate it from Fabric. A remote-access entry requires its own reviewed policy.
 
-## Apply the policy
+<a id="apply-the-policy"></a>
+
+## Step 3: Apply the policy
 
 In the Zone Matrix, select the source row and destination column. Narrow each
 allow by endpoint and listener, then keep a deny fallback. Review reverse
@@ -119,7 +140,9 @@ Use the [firewall contracts](../../../architecture/networking/firewall-policy.md
 for other flows. Preserve necessary gateway DHCP/DNS while restricting its
 admin interfaces. [1] Apply equivalent intent to IPv6 and review NAT/VPN paths.
 
-## Verify
+<a id="verify"></a>
+
+## Step 4: Verify and return
 
 Run the [policy tests](../../../architecture/networking/firewall-policy.md#rollout-and-validation),
 including same-zone pairs and admin-denial checks. Gateway rules do not replace
@@ -129,6 +152,10 @@ reviewed configuration into project-owned documentation.
 Renaming old tier-prefixed zones does not itself preserve policy. Review their
 member networks and scoped rules before combining anything; retain separate
 zones whenever access requirements differ.
+
+Return to [foundation host/network preparation](../README.md#before-starting-hosts-and-networks)
+and continue with Proxmox host setup. Revisit these rules when a later capability
+adds a listener; stage membership does not automatically open network access.
 
 ## References
 

@@ -23,11 +23,11 @@ Use this as the current source of truth for the Proxmox planning guidelines
 used across this repository.
 
 These are recommended patterns, not hard requirements. Record the selections
-in the generated architecture repo's short `docs/naming-conventions.md`
+in the generated architecture repo's short `platform-standards.md`
 worksheet. Keep the complete host list in inventory, not in that document.
 
-Names describe roles, tags add detail, and VMID ranges group resource types.
-None of them encode a tier or grant network access.
+Names describe roles, tags add detail, and VMID ranges group tiers and allocation purposes.
+The VMID plan can encode a tier; names and IDs do not grant network access.
 
 ## Why decide this early
 
@@ -53,30 +53,17 @@ This document currently owns the shared guidance for:
 
 ## VM and template ID ranges
 
-Use these ranges for a stable split between template, infrastructure,
-and application workloads. Select any alternative range plan
-before broad provisioning starts and keep it consistent.
-
-| Range | Purpose |
-| --- | --- |
-| `100-199` | Staged Linux template builders and legacy base templates |
-| `200-299` | Infrastructure |
-| `300-399` | Shared services |
-| `400-499` | Databases |
-| `500-999` | Application and lab VMs |
-| `9000-9999` | Versioned VM templates, including candidates and selected releases |
-
-VMID `200` means an infrastructure allocation, not Tier 2, VLAN 200, or an
-address. Reserve non-overlapping IDs across all repos and environments using
-the same Proxmox cluster. The publication catalog uses example candidates
-`9100-9103`; templates retain their VMIDs after clone testing and selection.
-Legacy base templates and staged refresh builders can retain `100-199`.
-These are conventions, not a request to renumber deployed resources.
+The [VMID convention](vmid-convention.md) owns the
+`T C NN` allocation plan, category table, three-digit Tier 0 offset and examples.
+It distinguishes the three security tiers from reserved lab/client/template groups.
+Record the selected plan and any deviations in the project platform standards.
+Existing local IDs and state remain authoritative after an upstream update.
 
 Terraform examples should set `vm_id` explicitly for repo-managed guests so
 deployments are predictable and do not depend on Proxmox auto-allocation.
 Change the example IDs before deployment when the range is already used in the
-cluster.
+cluster; [allocation rules](vmid-convention.md#allocation-and-existing-installations)
+cover cluster-wide uniqueness and additional instance blocks.
 
 ## Templates
 
@@ -129,7 +116,7 @@ Recommended practice:
   capabilities
 - avoid service or workload tags on templates because those belong on deployed
   VMs
-- register reusable image tags once in the [shared template catalog](template-catalog.md) so Terraform-created
+- register reusable image tags once in the [shared template catalog](../reference/template-catalog.md) so Terraform-created
   guests can carry source-image tags based on the selected template VM ID
 
 Suggested tag categories:
@@ -226,7 +213,7 @@ Recommended practice:
 VM names identify individual guests. Service FQDNs identify stable endpoints
 and omit the VM instance number. Record the internal and external domains,
 service patterns, and role abbreviation definitions in the project's
-`docs/naming-conventions.md`.
+`platform-standards.md`.
 
 The reference internal pattern is `<role>.<env>.<internal-domain>`, such as
 `idp.prod.corp.example.com`. The external pattern can use the external domain,

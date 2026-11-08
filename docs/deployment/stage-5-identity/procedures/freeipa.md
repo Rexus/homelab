@@ -36,30 +36,29 @@ image, repository access and protected bootstrap passwords.
    an already-managed `ca-1`. Select the supported Enterprise Linux image for the
    directory pair, not the Debian CA-specific image. Place replicas on independent
    failure domains and provide stable forward/reverse DNS before installation.
-3. Review the whole state, then provision:
+   Edit the local files, retaining the issuer and existing allocations:
 
-   ```bash
-   bash scripts/deploy.sh foundation --plan-only
-   ```
+   | Tier 0 file | Set |
+   | --- | --- |
+   | `terraform/deployments/foundation/terraform.tfvars` | Keep all existing `vm_instances`; select the approved EL image, VMIDs, storage and distinct placement for `idm-1/2` |
+   | `ansible/inventory/hosts.yml` | `idm-1` under `identity_primary`, `idm-2` under `identity_replicas`; preserve `issuing_ca` |
+   | `ansible/group_vars/all.yml` | Actual `platform_domain`, SSH account and hostname decoration |
+   | `ansible/group_vars/foundation.yml` | Reserved `platform_host_ips.idm-1/2`, realm/domain and the DNS/CA fields below; retain `ca-1` |
+   | `terraform/common.tfvars` | Actual `network_zones.identity` private attachment and subnet/gateway or applied SDN lookup |
 
-   After review:
+3. Review Terraform's displayed whole-state plan, then enter `yes` to provision:
 
    ```bash
    bash scripts/deploy.sh foundation --terraform-only
    ```
 
+   Add `--plan-only` only for a preview. Approved unattended VM provisioning can
+   use `--auto-approve`; directory installation and root signing remain separate.
+
 Before the CA/realm installation, register both hosts through
 [Stage 2 source forwarding](../../stage-2-logging/sources.md). Verify their OS
 security events at Tier 0, then add the actual identity/audit files as they appear.
 The FreeIPA recipe does not install the separate log-forwarding role.
-
-| Tier 0 input | Configuration |
-| --- | --- |
-| `terraform/deployments/foundation/terraform.tfvars` | Guest hardware, image IDs, storage, placement and identity network |
-| `ansible/inventory/hosts.yml` | Exactly one `identity_primary`, at least one `identity_replicas` |
-| `ansible/group_vars/all.yml` | SSH account/key path, internal domain and hostname decoration |
-| `ansible/group_vars/foundation.yml` | Static IPs, identity realm, DNS policy and CA phase |
-| Protected controller environment | `FREEIPA_DM_PASSWORD` and `FREEIPA_ADMIN_PASSWORD` |
 
 Keep `root_ca` empty in the connected inventory. It is no longer a child of
 `foundation`; the identity recipe targets only `identity`. The issuer and offline
@@ -100,6 +99,32 @@ native installation. These inputs do not rechain an existing installed domain.
    `foundation_freeipa_external_phase: csr` in local foundation vars. Inject the
    bootstrap passwords through the controller or an
    [Ansible-only secret override](../../../administration/secret-handling/ansible-vault.md).
+
+   Edit **`ansible/group_vars/foundation.yml`**, preserving its IP map and other fields:
+
+   ```yaml
+   baseline_disable_ipv6: false
+   foundation_freeipa_ca_mode: external
+   foundation_freeipa_external_phase: csr
+   foundation_freeipa_external_cert_files: []
+   ```
+
+   Set DNS forwarding in that same file: retain automatic forwarders only if the
+   host resolver is the approved bootstrap resolver, or set
+   `foundation_freeipa_auto_forwarders: false` and the actual
+   `foundation_freeipa_dns_forwarders` address list. Do not point the initial
+   installation only at the directory DNS service being created.
+
+   In the protected execution shell, supply the bootstrap passwords without history:
+
+   ```bash
+   read -r -s -p 'FreeIPA Directory Manager password: ' FREEIPA_DM_PASSWORD; echo
+   read -r -s -p 'FreeIPA administrator password: ' FREEIPA_ADMIN_PASSWORD; echo
+   export FREEIPA_DM_PASSWORD FREEIPA_ADMIN_PASSWORD
+   ```
+
+   Keep the exact values in independent recovery custody. Remove any conflicting
+   placeholder assignments from `.env.local`; the deployment helper loads that file.
 2. Run the directory recipe against the already-provisioned guests:
 
    ```bash
@@ -120,6 +145,15 @@ native installation. These inputs do not rechain an existing installed domain.
    subordinate constraints and expected root. Set the local phase to `complete`
    and populate `foundation_freeipa_external_cert_files` with absolute controller
    certificate/chain paths. Keep the same realm, hosts, passwords and state context.
+
+   In **`ansible/group_vars/foundation.yml`**, replace the phase and certificate list:
+
+   ```yaml
+   foundation_freeipa_external_phase: complete
+   foundation_freeipa_external_cert_files:
+     - /REPLACE_WITH_ABSOLUTE_APPROVED_IDENTITY_CA_CERTIFICATE_PATH
+     - /REPLACE_WITH_ABSOLUTE_PUBLIC_ROOT_OR_CHAIN_PATH
+   ```
 2. Resume with the same command:
 
    ```bash

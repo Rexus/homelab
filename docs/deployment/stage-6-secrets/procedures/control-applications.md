@@ -12,9 +12,9 @@ Keycloak additionally needs FreeIPA. Consumers need the accepted existing IdP.
 ## Table of contents
 
 - [Dependencies and ownership](#dependencies-and-ownership)
-- [Configure inputs](#configure-inputs)
-- [Secrets and certificates](#secrets-and-certificates)
-- [Render and apply](#render-and-apply)
+- [Step 1: Edit the application inputs](#configure-inputs)
+- [Step 2: Prepare Secrets and certificates](#secrets-and-certificates)
+- [Step 3: Render and apply](#render-and-apply)
 - [Persistence and recovery](#persistence-and-recovery)
 - [Service access and logging](#service-access-and-logging)
 - [References](#references)
@@ -42,7 +42,9 @@ Vault's first installation sets the Shared release's `wait: false`; later phases
 use normal readiness. There is no second installer in the empty Flux application starters;
 retain one reconciliation owner per resource.
 
-## Configure inputs
+<a id="configure-inputs"></a>
+
+## Step 1: Edit the application inputs
 
 From Tier 0, prepare local inputs:
 
@@ -50,8 +52,21 @@ From Tier 0, prepare local inputs:
 cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
 ```
 
-Replace example hosts, ingress class, storage class, directory bases, endpoint,
-archive prefixes and approved image/chart pins. Keycloak and Vault use native
+Edit **`ansible/group_vars/control_applications.yml`**, not the `.example` file.
+Preserve previously accepted Stage 5 identity settings; select only the components being installed.
+
+| Field to edit | Required value |
+| --- | --- |
+| `control_applications_components` | `[vault]` for Stage 6 Step 1; `[netbox, headlamp]` for Step 2 |
+| `control_applications_kubeconfig`, `control_applications_context` | Private Tier 0 kubeconfig and its exact context |
+| `control_applications_hosts` | Actual private service DNS names |
+| `control_applications_ingress_class` | Accepted cluster ingress class |
+| `control_applications_storage_class`, `control_applications_database_storage_class` | Qualified live block storage; the latter is explicit in files mode |
+| `control_applications_netbox_media_storage_class` | Qualified RWX class for NetBox media |
+| `control_applications_backup_mode`, `control_applications_backup_files_phase` | Main NAS path: `files`, initially `prepare` |
+| Acceptance flags | Set true only after their named prerequisite has been verified |
+
+Retain approved chart/image pins. Keycloak and Vault use native
 Traefik `ServersTransport` resources with explicit server names and CA Secrets.
 Enable the Stage 4 Traefik CRD provider before accepting this integration. NetBox and Headlamp
 terminate TLS at ingress and use cluster-internal HTTP; qualify network isolation.
@@ -73,11 +88,29 @@ terminate TLS at ingress and use cluster-internal HTTP; qualify network isolatio
 | `control_applications_cluster_logging_accepted` | `false`; apply requires evidence of protected stdout delivery for the selected namespaces |
 | `control_applications_traefik_crd_accepted` | `false`; Keycloak/Vault require the existing CRD provider and verified upstream transport |
 
-## Secrets and certificates
+<a id="secrets-and-certificates"></a>
+
+## Step 2: Prepare Secrets and certificates
 
 The [private input example](../../../../tier-0/ansible/group_vars/control_applications_secrets.yml.example)
-lists every required namespace/name and key. Populate only selected products in
-an encrypted private file and pass it explicitly with `-e @path`. Render never
+lists every required namespace/name and key. For an existing Secret controller, create
+the listed Secrets through that owner and keep `control_applications_manage_secrets: false`.
+For explicit bootstrap ownership, create a private file:
+
+```bash
+umask 077
+mkdir -p secrets
+cp -n ansible/group_vars/control_applications_secrets.yml.example secrets/control-applications.yml
+```
+
+Fill only selected products in `secrets/control-applications.yml` and set its
+`control_applications_manage_secrets: true`. Then encrypt it:
+
+```bash
+ansible-vault encrypt secrets/control-applications.yml
+```
+
+Retain independently held decryption/recovery material. Render never
 contacts Kubernetes or applies Secrets. Output files are private even when values
 only contain Secret references.
 
@@ -101,11 +134,17 @@ Certificates, bootstrap secrets and backup credentials must be provisioned throu
 independent custody/SOPS or an already accepted secret controller. This path does
 not generate a CA/key, request a certificate through future Vault, or initialize Vault.
 
-## Render and apply
+<a id="render-and-apply"></a>
+
+## Step 3: Render and apply
+
+Use the prepared deployment virtual environment and Tier 0 requirements. From the
+**Tier 0 root**, render the selected components:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/control-applications.yml
+  ansible/playbooks/deployment/control-applications.yml \
+  -e @secrets/control-applications.yml --ask-vault-pass
 ```
 
 Review native workloads, CNPG/backup resources, ingress, required Secret names,
@@ -122,6 +161,17 @@ Apply creates/gates database Secrets, Clusters and the selected backup resources
 database and authenticated TLS cache before installing application Helm releases. The role checks the
 first post-install physical backup. A manifest render proves neither controllers
 nor live services work. Do not apply these inputs against another tier's cluster.
+
+When using externally owned Secrets, omit `-e @secrets/control-applications.yml --ask-vault-pass`
+from both commands. No Ansible confirmation prompt is provided: `action=apply` is the explicit gate.
+For NAS database backups, stop after the `prepare` pass, complete
+[backup commissioning](../../../administration/backups/postgresql.md), then edit
+`control_applications_backup_files_phase: backup` and the verified claim/marker fields
+before repeating apply. A prepare-only pass has not installed the dependent application.
+
+For Vault, continue with [initialization/unseal and configuration](vault-kubernetes.md#operator-ceremony).
+For NetBox/Headlamp, complete service/backup verification below, then
+[NetBox audit collection](netbox-audit.md) and [Stage 6 Step 3](../README.md#step-3-integrate-access-and-recovery).
 
 ## Persistence and recovery
 
@@ -170,15 +220,10 @@ file audit PVC is not visible to the pod-log collector. A local log or running
 collector does not prove protected delivery.
 
 NetBox's audited object changes remain in its database; ordinary stdout does not
-export the complete `ObjectChange` history. Before acceptance, provide a protected
-exporter for `/api/core/object-changes/` in the pinned NetBox release, or reviewed
-native event rules/webhooks. Confirm the endpoint against the installed API. [6]
-The export contract requires authenticated TLS delivery, actor/object/action/time,
-request ID and before/after change data, durable cursor/retry state, replay-safe
-record identity, and tests for loss/restart and denied destination access. The
-exporter's credentials must permit only the required reads/delivery. This role
-does not install that exporter; record it as an outstanding integration until
-complete. Its backup is also separate from live protected event delivery.
+export the complete `ObjectChange` history. Complete the separate
+[NetBox audit installation](netbox-audit.md), Steps 1–3, before acceptance.
+That recipe supplies the read-only API collector and retained local ledger;
+this application role does not install it. Confirm the API endpoint against the installed release. [6]
 
 Apply the [SSO acceptance gate](../../stage-5-identity/procedures/service-sso.md),
 including denied access and IdP outage. Record source enrollment, retention,

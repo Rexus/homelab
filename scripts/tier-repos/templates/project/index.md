@@ -15,16 +15,19 @@ Exact hosts, addresses and resources remain in the owning tier's inputs.
 The [reference architecture](auto-docs/architecture/README.md) is the baseline:
 Tier 2, Tier 1, Tier 0 from top to bottom; Edge, Application, Control left to right.
 Record only selected alternatives or local differences, not another copy of that design.
+The [foundational capability map](auto-docs/architecture/README.md#foundational-capabilities)
+connects these implementation choices to the overall system design.
 
 | Area | Selected path / local exception | Reference |
 | --- | --- | --- |
-| Standards | Complete VM names, domains, tags, VMIDs and the zone/VNet network plan | [Naming conventions](naming-conventions.md) |
-| Compute | Reference: Proxmox VE 9.2+, three hosts, native HA and dynamic rebalancing | [HA and failover](auto-docs/deployment/foundation/step-1b-cluster-ha.md) |
+| Standards | Record local names, domains, tags and the zone/VNet network plan | [Platform standards](../platform-standards.md) |
+| VMID allocation | Follow the convention; keep individual assignments in tier-local Terraform | [VMID quick reference](auto-docs/conventions/vmid-convention.md) |
+| Hosting | Reference: Proxmox VE 9.2+, three hosts, native HA and dynamic rebalancing | [HA and failover](auto-docs/deployment/foundation/step-1b-cluster-ha.md) |
 | Networks | Reference: VLAN-aware bridges; record SDN selection if used | [Network design](auto-docs/architecture/networking/README.md) |
-| Storage | Reference: Proxmox/Ceph live volumes, separate NAS backups | [Storage interfaces](auto-docs/architecture/compute/runtime.md#storage-interfaces) |
+| Storage | Reference: Proxmox/Ceph live volumes, separate NAS backups | [Storage interfaces](auto-docs/architecture/data/README.md#storage-interfaces) |
 | Trust | Reference: software custody; record USB/network HSM selection if used | [Cryptography variants](auto-docs/architecture/cryptography/README.md) |
-| Kubernetes | Reference: Talos; retain exact image/schematic in Tier 0 inputs | [Cluster design](auto-docs/architecture/compute/kubernetes.md) |
-| Delivery | Select Argo CD or Spinnaker in Tier 1; Flux in Tier 0 | [Controller choices](auto-docs/architecture/delivery/controllers.md) |
+| Kubernetes | Reference: Talos; retain exact image/schematic in Tier 0 inputs | [Cluster design](auto-docs/architecture/hosting/kubernetes.md) |
+| Delivery | Select Argo CD or Spinnaker in Tier 1; Flux in Tier 0 | [Controller choices](auto-docs/architecture/software/controllers.md) |
 
 Check compatibility in the [variant contracts](auto-docs/architecture/variants.md).
 The [runtime relationships](auto-docs/architecture/runtime-flows.md) explain cross-tier flows.

@@ -6,9 +6,11 @@
 
 **Branch from:** [Step 1](README.md#step-1-prepare-compute-and-templates), before important guests exist.
 **Change:** Add clustered placement and tested failover.
-**Return:** [Step 1](README.md#step-1-prepare-compute-and-templates) to continue with access, templates and a test guest.
+**Return:** [Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually)
+after cluster/mobility preparation; complete guest HA enrollment and fault tests after
+a disposable clone exists.
 
-**Design:** [compute availability](../../architecture/compute/README.md).
+**Design:** [compute availability](../../architecture/hosting/README.md).
 
 Optional foundation setup in Tier 0, **before templates and important guests**. A single
 host is valid for a pilot. A cluster adds shared administration; HA must be
@@ -26,15 +28,17 @@ not automatically detected by guest-level HA. [2]
 
 ## Table of contents
 
-- [Prepare and join hosts](#prepare-and-join-hosts)
-- [Make guests movable](#make-guests-movable)
-- [Enable HA](#enable-ha)
-- [Select rebalancing](#select-rebalancing)
-- [Terraform against the cluster](#terraform-against-the-cluster)
-- [Prove failover](#prove-failover)
+- [Step 1: Prepare and join hosts](#prepare-and-join-hosts)
+- [Step 2: Make guests movable](#make-guests-movable)
+- [Step 3: Enable HA](#enable-ha)
+- [Step 4: Select rebalancing](#select-rebalancing)
+- [Step 5: Configure Terraform placement](#terraform-against-the-cluster)
+- [Step 6: Prove failover](#prove-failover)
 - [References](#references)
 
-## Prepare and join hosts
+<a id="prepare-and-join-hosts"></a>
+
+## Step 1: Prepare and join hosts
 
 Start with [host installation and preparation](proxmox/README.md#first-deployment-order).
 
@@ -58,7 +62,9 @@ pvecm status
 pvecm nodes
 ```
 
-## Make guests movable
+<a id="make-guests-movable"></a>
+
+## Step 2: Make guests movable
 
 | Requirement | Check before enabling HA |
 | --- | --- |
@@ -77,7 +83,13 @@ For SDN, complete [optional guest SDN](proxmox/network.md#optional-sdn-for-guest
 on **every eligible node** now. An SDN zone is a network implementation group,
 not the architecture's DMZ/Services/Control firewall zone.
 
-## Enable HA
+**Before any guests exist:** return to [Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually)
+after these preparations. Continue below when a disposable clone is ready. Do not
+enroll an untested important guest merely to finish this page.
+
+<a id="enable-ha"></a>
+
+## Step 3: Enable HA
 
 1. Qualify shared live storage, remaining-host capacity and watchdog/fencing on all nodes.
    Prefer the server's supported hardware watchdog; do not change watchdog settings without console access.
@@ -96,7 +108,9 @@ etcd quorum, while the third waits. Do not describe this as three recovered repl
 This kit does not create the host cluster, storage, fencing, HA membership, or
 affinity rules. Those are Tier 0 operator steps, not implied by Terraform VM creation.
 
-## Select rebalancing
+<a id="select-rebalancing"></a>
+
+## Step 4: Select rebalancing
 
 In **Datacenter > Options > HA Settings**, select `migrate` for planned single-node
 maintenance after migration has been qualified. For **Cluster Resource Scheduling**,
@@ -112,7 +126,9 @@ for another scope, follow its [separate rollout and compatibility checks](proxmo
 The [worked failover example](proxmox/failover.md) shows the directory pair
 before and after a node failure, including where recovery must wait.
 
-## Terraform against the cluster
+<a id="terraform-against-the-cluster"></a>
+
+## Step 5: Configure Terraform placement
 
 Use one reachable Proxmox API endpoint for the cluster and permissions covering
 the intended nodes, storage, and guests; see [API setup](proxmox/api-access.md).
@@ -120,13 +136,15 @@ The endpoint is not a placement selector. Keep a working alternate endpoint or
 independent API frontend for recovery; never host the only access path on the
 cluster being rebuilt. The provider does not select healthy target nodes. [4]
 
-| Tier-local input | Meaning |
+Edit the existing fields in these files; preserve other configured entries.
+
+| File / field | Meaning |
 | --- | --- |
-| `default_platform_node_name` | Initial VM creation node (or LXC target node), not a cluster name |
-| `vm_instances.<key>.proxmox_node_name` | Per-VM initial placement override |
-| Shared `proxmox_template_catalog["<vmid>"].node_name` | Node holding the source template for cross-node cloning |
-| `proxmox_storage_classes` | Real datastore IDs available to the selected nodes |
-| `network_zones.<key>.bridge` | Consistent Linux bridge or SDN VNet attachment |
+| Shared `config/platform.tfvars`: `default_platform_node_name` | Initial VM creation node (or LXC target), not a cluster name; consuming roots can override |
+| Tier `terraform/deployments/<setup>/terraform.tfvars`: `vm_instances.<key>.proxmox_node_name` | Per-VM initial placement override |
+| Shared `templates/proxmox-catalog.tfvars`: `proxmox_template_catalog["<vmid>"].node_name` | Node holding the source template for cross-node cloning |
+| Shared `config/platform.tfvars`: `proxmox_storage_classes` | Real datastore IDs available to the selected nodes |
+| Tier `terraform/common.tfvars`: `network_zones.<key>.bridge` | Consistent Linux bridge or SDN VNet attachment; shared application reference stays in the Shared profile |
 
 Each tier's **VM** module ignores later `node_name` drift. Proxmox owns relocation,
 HA, and maintenance moves; changing the configured initial node no longer moves
@@ -147,7 +165,9 @@ not the Linux cloud-init module; see [Talos bootstrap](../stage-4-kubernetes/ste
 Complete the [API TLS gate](proxmox/api-access.md#tls-gate) before live deployment;
 cluster membership does not establish trusted API certificates.
 
-## Prove failover
+<a id="prove-failover"></a>
+
+## Step 6: Prove failover
 
 Use a disposable guest and a maintenance window; retain working out-of-band access.
 
@@ -166,6 +186,9 @@ test alone is not proof of recovery after host death.
 Offline mock tests cover the Terraform contract, not real failover. Recheck with
 the provider version locked by each consuming root. Keep the
 [backup and restore procedure](../../administration/compute/backup-restore.md) independent of HA.
+
+Return to [Foundation Step 3](README.md#step-3-publish-and-test-vm-templates) for
+template/clone acceptance, then continue through its Stage 1 handoff.
 
 ## References
 

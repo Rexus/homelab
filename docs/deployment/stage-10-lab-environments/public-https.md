@@ -20,10 +20,18 @@ then return here before publishing a website.
 - [Accept and operate](#accept-and-operate)
 - [References](#references)
 
-## Prepare inputs and reachability
+<a id="prepare-inputs-and-reachability"></a>
+
+## Step 1: Prepare inputs and reachability
+
+From the **Tier 2 root**, create the private override:
+
+```bash
+cp -n ansible/group_vars/public-https.yml.example ansible/group_vars/public-https.yml
+```
 
 Start with Tier 2's [public HTTPS example](../../../tier-2/ansible/group_vars/public-https.yml.example).
-Merge it into the private edge override, preserving existing host addresses,
+Edit `ansible/group_vars/public-https.yml`, preserving existing host addresses,
 VIP/interface and keepalived settings. These inputs own ports 80/443 and replace
 the generic raw frontend list. Use a dedicated edge: the role owns nginx's main
 configuration for loopback-only HTTP-01 serving.
@@ -50,7 +58,9 @@ configuration for loopback-only HTTP-01 serving.
 3. Verify the origin chain/SAN independently. This path requires both CA validation
    and hostname verification; encryption with `verify none` is not acceptable.
 
-## Rehearse then enable production
+<a id="rehearse-then-enable-production"></a>
+
+## Step 2: Rehearse then enable production
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -88,7 +98,7 @@ From the Tier 2 repository, reconcile the HTTP bootstrap edge:
 
 ```bash
 bash scripts/deploy.sh edge --ansible-only --playbook deployment/edge-proxy.yml \
-  --ansible-vars /absolute/private/public-https.yml
+  --ansible-vars ansible/group_vars/public-https.yml
 ```
 
 Before a production certificate exists, only HTTP-01 is served; other HTTP
@@ -97,7 +107,7 @@ requests return 503 and there is no public TLS listener. With
 
 ```bash
 bash scripts/deploy.sh edge --recipe maintenance --playbook maintenance/public-certificates.yml \
-  --ansible-vars /absolute/private/public-https.yml
+  --ansible-vars ansible/group_vars/public-https.yml
 ```
 
 Staging/account state is separate from production; staging certificates are never
@@ -110,7 +120,9 @@ then installs a private PEM and validates HAProxy before reloading.
 It does not opt into a short-lived ACME profile. Do not assume a fixed 90-day
 Let's Encrypt lifetime; profile lifetimes and compatibility evolve. [3]
 
-## Schedule renewal
+<a id="schedule-renewal"></a>
+
+## Step 3: Schedule renewal
 
 Keep unattended Tier 2 SSH/become access narrowly scoped to this edge.
 Back up the private controller account/key/state and inputs encrypted and off-host.
@@ -142,7 +154,9 @@ The timer runs twice daily with jitter and a native lock. Alert on failed jobs,
 missed successful runs and externally observed expiry. A timer is not an alert
 delivery system; test notifications while the controller is unavailable.
 
-## Accept and operate
+<a id="accept-and-operate"></a>
+
+## Step 4: Accept and operate
 
 | Test | Required result |
 | --- | --- |

@@ -96,7 +96,7 @@ command and approved image/sizing references, never cluster resources or invento
 
 The supplied roots support explicit node definitions and a `node-pool` label.
 They do not install an autoscaler, self-service controller, add-ons or applications.
-Delivery selection is independent: [controller patterns](../delivery/controllers.md).
+Delivery selection is independent: [controller patterns](../software/controllers.md).
 Installation: [common Kubernetes procedure](../../deployment/stage-4-kubernetes/procedures/kubernetes.md).
 
 ## References

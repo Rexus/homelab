@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import socket
 import ssl
 import subprocess
 import threading
@@ -59,6 +60,22 @@ class SubnetDiscovery(unittest.TestCase):
         for vnet in ("../ident", "identity-long", "control/ident", None):
             with self.subTest(vnet=vnet), self.assertRaises(sdn.LookupError):
                 sdn.lookup(vnet, environ)
+
+    def test_transport_errors_identify_the_failure_without_echoing_private_details(self):
+        environ = {"PROXMOX_VE_ENDPOINT": "https://pve.example.test",
+                   "PROXMOX_VE_API_TOKEN": "automation@pve!test=private-token"}
+        failures = ((ssl.SSLCertVerificationError(1, "private-token"), "certificate verification failed"),
+                    (socket.gaierror(-2, "private-token"), "cannot resolve the API hostname"),
+                    (TimeoutError("private-token"), "connection timed out"),
+                    (ConnectionRefusedError("private-token"), "connection refused"),
+                    (ssl.SSLError(1, "private-token"), "TLS handshake failed"))
+        for reason, expected in failures:
+            with self.subTest(reason=type(reason).__name__):
+                error = sdn.urllib.error.URLError(reason)
+                with mock.patch.object(sdn.urllib.request.OpenerDirector, "open", side_effect=error):
+                    with self.assertRaisesRegex(sdn.LookupError, expected) as failure:
+                        sdn.lookup("edge", environ)
+                self.assertNotIn("private-token", str(failure.exception))
 
 
 @unittest.skipUnless(os.name != "nt" and shutil.which("terraform") and shutil.which("openssl"),

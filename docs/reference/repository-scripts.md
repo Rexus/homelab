@@ -103,6 +103,14 @@ Shared automation. An unchanged retry after successful Terraform but failed Ansi
 resumes configuration only; altered inputs require a new reviewed plan.
 Use the same `--env` and state/backend configuration for both commands.
 
+<a id="partial-terraform-apply"></a>
+
+A failed Terraform apply can leave partially created Proxmox guests and recorded
+state; it is not an automatic rollback. Wait for running Proxmox tasks to finish,
+correct the inputs, and generate a new plan against the same state. Review any
+replacement of failed guests before approving it. If an existing guest is not in
+state, reconcile its identity before another creation attempt; keep state backups.
+
 Tier 0's `terraform/deployments/ci-auth/` configures Vault JWT roles/policies with
 native Terraform, not the Proxmox helper. GitLab uses the Tier 1 native
 Ansible/Helm recipe. See [Stage 9](../deployment/stage-9-development/README.md).
@@ -219,24 +227,26 @@ the same live resource into another state. Review every plan against the allocat
 
 ## Run a deployment
 
-After completing [environment isolation](#environment-isolation), plan the first
-foundation run for a disposable environment:
-
-```bash
-bash scripts/deploy.sh foundation --env test --plan-only
-```
-
-Deploy the same environment:
+After completing [environment isolation](#environment-isolation), deploy a setup from its owning tier:
 
 ```bash
 bash scripts/deploy.sh foundation --env test
 ```
 
-Use a non-interactive Terraform apply after reviewing the plan:
+Terraform displays its plan once and asks for `yes` before applying. Enter `no` to stop;
+Ansible runs only after Terraform succeeds. [1] For an optional preview without applying,
+add `--plan-only` to the same command.
+
+For an approved pipeline, suppress Terraform prompts and fail on missing Terraform inputs:
 
 ```bash
 bash scripts/deploy.sh foundation --env test --auto-approve
 ```
+
+The runner still needs configured provider credentials, SSH access and control-node dependencies.
+For a separate review/apply approval job, use the [private saved-plan workflow](#cheat-sheet)
+instead of approving a freshly generated plan automatically. Template publication and Kubernetes
+bootstrap use their dedicated scripts and retain their documented plan/apply steps.
 
 Destroy a disposable environment:
 
@@ -288,7 +298,7 @@ do not need Proxmox API verification exceptions.
 | `--playbook PATH` | select an existing tier-local `deployment/<name>.yml` or `maintenance/<name>.yml`; requires Ansible-only execution, leaves Terraform root/state unchanged |
 | `--recipe deployment\|maintenance` | default deployment; maintenance implies Ansible-only and rejects Terraform plan/apply/destroy modes |
 | `--destroy` | destroy the selected setup and environment |
-| `--auto-approve` | run Terraform apply or destroy without an interactive approval |
+| `--auto-approve` | run Terraform apply/destroy with `-input=false -auto-approve`; no approval or variable prompts |
 | `--reset-known-hosts` | after rebuilding guests, remove stale SSH known-host entries for the setup IPs |
 | `--var-file PATH` | replace the setup Terraform tfvars file |
 | `--common-var-file PATH` | replace the tier-wide Terraform tfvars file, not the shared template catalog |
@@ -447,3 +457,7 @@ consistent.
 - [Infrastructure automation layout](../development/code-layout.md)
 - [Environment variable conventions](environment-variables.md)
 - [Identity foundation path](../deployment/stage-5-identity/procedures/freeipa.md)
+
+## References
+
+1. [Terraform apply: automatic plan and saved-plan modes](https://developer.hashicorp.com/terraform/cli/commands/apply).

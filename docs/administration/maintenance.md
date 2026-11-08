@@ -4,14 +4,20 @@ Maintain one bounded component at a time using its native lifecycle procedure an
 tier-owned configuration/state. Successful convergence is not proof that an upgrade is compatible.
 Use [template lifecycle](compute/template-lifecycle.md),
 [Ansible recipes](ansible-recipes.md) and the selected product's release documentation for exact commands.
+For ownership and storage boundaries, see [runtime design](../architecture/hosting/runtime.md).
 
-## Contents
+<a id="contents"></a>
 
-- [Routine schedule](#routine-schedule)
-- [Upgrade gate](#upgrade-gate)
-- [Replace hardware](#replace-hardware)
+## Find a task
 
-## Routine schedule
+- [What needs routine attention?](#routine-schedule)
+- [How is a configuration reconciled?](#reconcile-a-component)
+- [How is an upgrade approved?](#upgrade-gate)
+- [How is failed or aging hardware replaced?](#replace-hardware)
+
+<a id="routine-schedule"></a>
+
+## What needs routine attention?
 
 Record actual intervals, owners and evidence in project administration:
 
@@ -29,7 +35,34 @@ The kit's maintenance recipes cover their documented supported operations, not a
 distribution/product upgrader. OS/vendor update approval and rolling-upgrade execution remain
 explicit operator tasks unless a project supplies a qualified controller.
 
-## Upgrade gate
+<a id="reconcile-a-component"></a>
+
+## How is a configuration reconciled?
+
+**Work from:** the owning tier's repository root on the approved execution host.
+**Prerequisites:** existing inventory/state, accepted service inputs, independent recovery and a maintenance window.
+
+1. Select the supported operation in the [recipe map](ansible-recipes.md#recipe-map).
+2. Review that tier's `ansible/group_vars/<setup>.yml` and any selected environment overlay.
+   Keep original inventory and service identities; do not copy starter examples over live inputs.
+3. Run the selected maintenance recipe. For Tier 0 directory health checks:
+
+   ```bash
+   bash scripts/deploy.sh foundation --recipe maintenance
+   ```
+
+4. Verify the recipe's service checks and protected audit delivery before closing the window.
+
+**Expected:** only the documented maintenance operation runs; Terraform is skipped.
+**Stop:** on failed checks or unexpected changes. Earlier tasks may already be active;
+there is no automatic rollback. Restore the last approved configuration through the product runbook.
+
+<a id="upgrade-gate"></a>
+
+## How is an upgrade approved?
+
+**Work from:** the product owner's tier and native administration interface.
+**Prerequisites:** a supported upgrade path, approved artifacts, tested backups and an isolated canary.
 
 1. Select the component and target release; read its supported upgrade path, intermediate stops,
    dependencies and rollback restrictions. Record the resolved provider/chart/image/tool versions
@@ -50,7 +83,15 @@ required upgrade stops and dependency ordering in the
 [data-service guide](../deployment/stage-9-development/procedures/data-services.md).
 For CA/directory services, preserve the original signing/domain identity and audit continuity.
 
-## Replace hardware
+**Expected:** each upgraded unit passes its health, access, audit and recovery gates before the next unit.
+The kit supplies no universal upgrade command. A maintenance reconciliation is not an upgrade controller.
+
+<a id="replace-hardware"></a>
+
+## How is failed or aging hardware replaced?
+
+**Work from:** the Proxmox administration interface and the owning tier's original repository/state.
+**Prerequisites:** independent console access, surviving capacity and verified recoverable backups.
 
 1. Inventory the affected host, guests, disks, bridges/VLANs, storage paths and physical failure
    labels. Verify that surviving capacity can meet the selected quorum/availability contract.
@@ -67,3 +108,6 @@ For CA/directory services, preserve the original signing/domain identity and aud
 
 If the original environment is lost, follow the [tier recovery order](recovery.md), not this planned
 maintenance procedure. Qualified hardware/storage failure behavior remains live acceptance work.
+
+**Stop:** if quorum/capacity, storage attachment or migration acceptance fails. Keep the original
+host/media intact until the replacement passes; suspected compromise uses clean-target recovery.

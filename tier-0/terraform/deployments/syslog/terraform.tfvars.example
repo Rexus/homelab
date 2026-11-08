@@ -1,12 +1,13 @@
 # Copy to: terraform/deployments/syslog/terraform.tfvars
 # Guide: docs/deployment/stage-2-logging/README.md
+# VMID allocation: docs/conventions/vmid-convention.md
 # Tier 0 owns protected log intake; shared supplies only sizes and platform/image references.
 # Terraform owns VMs/disks; Tier 0 Ansible installs the receiver after mount/TLS preparation.
 # Neither installs archive replication or protected retention.
 
 vm_instances = {
   "log-1" = {
-    vm_id            = 264
+    vm_id            = 501
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
@@ -21,7 +22,7 @@ vm_instances = {
   # Bootstrap starts with one host. Enable this on a different physical host,
   # with matching inventory/IP entries, before accepting security-logging HA.
   # "log-2" = {
-  #   vm_id             = 265
+  #   vm_id             = 502
   #   proxmox_node_name = "pve02"
   #   size              = "small"
   #   storage_class     = "local"

@@ -6,6 +6,8 @@ Consuming tiers own their guest-network inputs.
 
 **Branch from:** [Step 1](README.md#step-1-prepare-compute-and-templates), before attaching guests.
 **Change:** use VLAN-backed SDN VNets instead of direct bridge/VLAN guest attachments.
+**Return:** [Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually)
+after activation; API authorization and local inputs follow on the bootstrap host.
 **Design:** [network placement](../../architecture/networking/README.md).
 
 ## Contents
@@ -32,7 +34,7 @@ the bridge, trunks and VNets must work on
 [every eligible destination](step-1b-cluster-ha.md#make-guests-movable).
 
 Record selected IDs and VLAN conventions under **Networks and VLANs** in the
-architecture repository's `docs/naming-conventions.md`. This worksheet is project-owned;
+architecture repository's `platform-standards.md`. This worksheet is project-owned;
 existing projects update it manually. The values below are reference choices.
 
 ## Step 1: Create the VLAN zones
@@ -75,7 +77,7 @@ Open **Datacenter > SDN > VNets > Create**. Repeat for each required guest VLAN:
 
 | Field | Application-network example | Meaning |
 | --- | --- | --- |
-| Name / ID | `app` | 2–8 alphanumeric characters starting with a letter; becomes the guest-facing bridge name |
+| Name (SDN VNet ID) | `app` | 2–8 letters/digits, starting with a letter; no hyphens/underscores; project IDs use lowercase |
 | Alias | `Application services` | Human-readable description; not the Terraform bridge value |
 | Zone | `services` | The matching SDN group created above |
 | Tag | `120` | Actual VLAN ID configured on the gateway and switch trunk |
@@ -88,9 +90,9 @@ nodes; gateway rules alone do not filter traffic switched within one VLAN.
 Enable port isolation only for a selected guest network whose peer traffic should
 be blocked. Restart affected guests for the setting to take effect. [1]
 
-Use the [zone/VNet network plan](../../reference/network-plan.md#network-allocations)
+Use the [zone/VNet network plan](../../conventions/network-plan.md#network-allocations)
 for the per-zone **VLAN ID, Name, Alias, Subnet and Gateway** values. Its
-[deployment mapping](../../reference/network-plan.md#deployment-mapping) identifies
+[deployment mapping](../../conventions/network-plan.md#deployment-mapping) identifies
 which current inputs use SDN and which still use direct bridge/VLAN attachments.
 Create only the selected networks; optional reference entries are not existing deployments. [4]
 
@@ -104,15 +106,30 @@ VLAN 10 stays on its existing underlay attachment.
 Gateway rules govern routed traffic between VLANs. Peer traffic within one VNet
 needs its own approved guest-firewall or isolation policy.
 
-SDN subnets are optional for VLAN attachment. To select the
-[subnet lookup](../../reference/network-inputs.md#sdn-subnet-lookup), open the VNet's
-**Subnets > Create** dialog and record its existing IPv4 CIDR and UniFi gateway.
-For `ident`, those are `10.10.12.0/24` and `10.10.12.1`. Leave SNAT off and
-DHCP ranges empty; this records metadata without selecting Proxmox routing/DHCP. [1]
+Choose **2a or 2b**, then continue at **Step 3**:
 
-UniFi continues providing the subnet gateway and any DHCP service; keep static
-guest addresses outside its dynamic pool. Without lookup/IPAM, the subnet record
-can be omitted and IaC retains its explicit prefix/gateway inputs.
+### 2a: Keep subnet values in IaC
+
+Leave the VNet's subnet list empty when no Proxmox IPAM/subnet lookup is needed.
+Record CIDR/gateway in the tier's network inputs instead.
+
+### 2b: Record a subnet for IaC lookup
+
+Open the selected VNet's **Subnets > Create** dialog. For the `ident` example:
+
+| Field | Enter |
+| --- | --- |
+| Subnet | `10.10.12.0/24`, the existing gateway subnet |
+| Gateway | `10.10.12.1`, the existing UniFi interface |
+| SNAT | Unchecked |
+| DNS Zone Prefix | Blank without an explicit DNS record-management integration |
+| DHCP ranges / DHCP configuration | Leave unconfigured; retain the existing gateway DHCP service |
+
+This records metadata; it does not select Proxmox routing/DHCP. [1] Use the actual
+values from the [network plan](../../conventions/network-plan.md), not the identity
+example for every VNet. Keep static guest addresses outside dynamic pools.
+Continue at **Step 3**; [lookup](../../reference/network-inputs.md#sdn-subnet-lookup)
+reads only applied subnet configuration.
 
 <a id="step-3-apply-and-connect-iac"></a>
 
@@ -130,6 +147,10 @@ in Proxmox before attaching templates or guests. The template publisher's Terraf
    their VLANs match the prepared switch trunks. Listing a VNet in the datacenter
    configuration alone is not evidence that it is active on a host.
 
+**First installation, before the bootstrap host/token exists:** return now to
+[Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually).
+Complete Step 4 below when configuring API access and local inputs on that host.
+
 ## Step 4: Authorize and connect IaC
 
 1. Grant automation [SDN use](proxmox/api-access.md#6-grant-bridge-vlan-or-sdn-use-to-the-group)
@@ -138,24 +159,30 @@ in Proxmox before attaching templates or guests. The template publisher's Terraf
 2. Test a disposable guest's address, gateway, DNS and permitted connectivity.
 3. Update the owning repository's attachment values before provisioning normal guests.
 
-For explicit settings, update the existing `identity` entry in **Tier 0's**
-`terraform/common.tfvars`; preserve the other map entries:
+**Edit existing entries**, not a second map assignment. For explicit settings,
+replace the `identity` entry inside **Tier 0's `terraform/common.tfvars` → `network_zones`**:
 
 ```hcl
-network_zones = {
-  identity = {
-    bridge       = "ident"
-    vlan_id      = null
-    cidr_ipv4    = "10.10.12.0/24"
-    gateway_ipv4 = "10.10.12.1"
-  }
+identity = {
+  bridge       = "ident"
+  vlan_id      = null
+  cidr_ipv4    = "10.10.12.0/24"
+  gateway_ipv4 = "10.10.12.1"
 }
 ```
 
-Alternatively, replace that entry with `bridge = "ident"` and `sdn_lookup = true`,
-omitting its VLAN/CIDR/gateway fields. The [lookup contract](../../reference/network-inputs.md#sdn-subnet-lookup)
-also covers Kubernetes bootstrap and read permissions. Compare the resolved plan
-before changing existing guests.
+For the **2b lookup** path, replace that same entry with:
+
+```hcl
+identity = {
+  bridge     = "ident"
+  sdn_lookup = true
+}
+```
+
+Preserve the other `network_zones` entries. Require both `SDN.Use` and `SDN.Audit`
+for the actual consuming token. The [lookup contract](../../reference/network-inputs.md#sdn-subnet-lookup)
+also covers Kubernetes bootstrap. Review the resolved plan before changing existing guests.
 
 The shared `application` attachment lives in **Shared's** `config/platform.tfvars`
 under `shared_network_zones`. Tier-only attachments and complete overrides remain
@@ -163,9 +190,16 @@ tier-local. Kubernetes roots use their own machine attachment inputs in
 `terraform/deployments/kubernetes/`; they do not load Linux `common.tfvars`.
 Use the selected VNet as `bridge` and omit/null the guest's `vlan_id` in either path.
 
-For templates, edit **Tier 0's** `templates/proxmox.yml`: select the VNet in
-`all.bridge` (or one build's override) and set `vlan_id: null`. Then follow the
-[template plan/apply path](../../administration/compute/template-lifecycle.md#local-workflow).
+For templates, edit the existing `all:` section in **Tier 0's `templates/proxmox.yml`**;
+preserve its other fields. For example, a selected `ident` VNet attachment is:
+
+```yaml
+bridge: ident
+vlan_id: null
+```
+
+These two fields belong **under `all:`**, or under one selected build for an override.
+Then follow [Foundation Step 3](README.md#step-3-publish-and-test-vm-templates).
 The VNet permission applies to the publishing token too. Existing clones keep
 their own NIC settings; changing the template does not move them.
 
@@ -198,8 +232,11 @@ so the selected resolver can resolve that domain as well.
 
 ## Return to the main path
 
-After VNet and guest checks pass, return to
-[Step 1](README.md#step-1-prepare-compute-and-templates) for API access and templates.
+After **Datacenter > SDN > Apply** succeeds and the VNet checks pass, return to
+[Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually).
+Complete Step 4 above when the bootstrap host/API token exists. If templates are
+already managed, return directly to [Foundation Step 3](README.md#step-3-publish-and-test-vm-templates)
+to review their attachment change. Changing SDN configuration alone does not update guest NICs.
 
 ## References
 

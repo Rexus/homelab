@@ -9,16 +9,19 @@ and Talos templates; no guest login is required.
 **Code:** [maintenance play](../../../tier-0/ansible/playbooks/maintenance/template-disk.yml)
 and [disk replacement role](../../../tier-0/ansible/roles/proxmox_template_disk/tasks/replace.yml).
 
-## Contents
+<a id="contents"></a>
 
-- [Prerequisites](#prerequisites)
-- [Step 1: Select the template](#step-1-select-the-template)
-- [Step 2: Preview and confirm](#step-2-preview-and-confirm)
-- [Step 3: Verify and clone-test](#step-3-verify-and-clone-test)
-- [Rollback if the clone does not work](#rollback-if-the-clone-does-not-work)
-- [Retire the old disk](#retire-the-old-disk)
-- [Other options](#other-options)
-- [References](#references)
+## Find the task
+
+| Question | Task |
+| --- | --- |
+| Replace only the boot disk? | [Prerequisites](#prerequisites), then [Steps 1-3](#step-1-select-the-template) |
+| Replacement failed or the clone does not boot? | [Rollback](#rollback-if-the-clone-does-not-work) |
+| Remove an old unused disk after acceptance? | [Dependency checks and permanent deletion](#retire-the-old-disk) |
+| Run unattended or finish an older base conversion? | [Explicit options](#other-options) |
+
+**Why:** [image approval and promotion](../../architecture/software/artifact-supply.md);
+changing a template does not update existing guests.
 
 ## Prerequisites
 
@@ -160,7 +163,7 @@ If an older recipe replaced the disk but left `scsi0` as `vm-*`, complete conver
 on the Proxmox host holding the stopped template, without importing another disk: [1]
 
 ```bash
-read -r -p "Stopped template VMID (example: 110): " TEMPLATE_VMID
+read -r -p "Stopped template VMID (example: 9101): " TEMPLATE_VMID
 qm template "$TEMPLATE_VMID" --disk scsi0
 ```
 

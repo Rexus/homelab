@@ -7,13 +7,15 @@ The main path installs Community Edition; no paid Vault CI integration is requir
 
 ## Contents
 
-- [Prepare dependencies](#prepare-dependencies)
-- [Render and install](#render-and-install)
+- [Step 1: Prepare dependencies](#prepare-dependencies)
+- [Step 2: Edit, render and install](#render-and-install)
 - [Delivery ownership](#delivery-ownership)
-- [Acceptance and recovery](#acceptance-and-recovery)
+- [Step 3: Verify access and recovery](#acceptance-and-recovery)
 - [References](#references)
 
-## Prepare dependencies
+<a id="prepare-dependencies"></a>
+
+## Step 1: Prepare dependencies
 
 1. Qualify the chart's current external-data requirements. PostgreSQL, Redis,
    Gitaly and object storage are separately managed prerequisites. The production
@@ -42,7 +44,9 @@ The `gitlab-postgresql-tls` Secret supplies `tls.crt`, `tls.key` and `ca.crt`.
 The chart mounts these files and exports libpq's verified-TLS settings; its database
 host must match the server certificate. A password-only Secret is insufficient. [7]
 
-## Render and install
+<a id="render-and-install"></a>
+
+## Step 2: Edit, render and install
 
 From Tier 1, seed private inputs without replacing existing files:
 
@@ -51,7 +55,18 @@ umask 077
 cp -n ansible/group_vars/development_platform.yml.example ansible/group_vars/development_platform.yml
 ```
 
-Set exact chart pins, endpoints, issuer and ingress class. In the accepted deployment
+Edit `ansible/group_vars/development_platform.yml`:
+
+| Field | Set |
+| --- | --- |
+| `development_platform_components` | `[gitlab]` for this step |
+| `development_platform_kubeconfig` | Private Tier 1 kubeconfig, or set `KUBECONFIG` in the environment |
+| `development_platform_gitlab_version` | Exact accepted chart pin matching the data-service package |
+| `development_platform_host`, `development_platform_domain`, `development_platform_ingress_class` | Actual GitLab hostname/domain and accepted ingress class |
+| `development_platform_oidc_issuer` | Existing Keycloak realm's HTTPS issuer |
+
+The data-service overlay supplies dependency hosts, buckets and backup settings;
+load it last in every render/apply command below. In the accepted deployment
 virtual environment, install Tier 1's control-node dependencies from approved sources:
 
 ```bash
@@ -109,6 +124,12 @@ issuer/callback before Helm, then waits for release readiness. It never formats 
 The same release owner reconciles the native toolbox backup CronJob on every run;
 retain its independent-copy and restore duties from the data-service procedure.
 
+For bootstrap ownership, seed that private file from
+`ansible/group_vars/development_platform_secrets.yml.example`, retain only the selected
+component's entries, fill its ingress/root/OIDC values, and merge the data recipe's
+`dependency-secrets.yml` using [its native map merge](data-services.md#connect-the-chart).
+Do not replace the full Secret map with the dependency-only map.
+
 ## Delivery ownership
 
 Direct Ansible installation is a valid first path. Alternatively, render values
@@ -118,7 +139,9 @@ Pre-provision Secrets in that path too; rendering creates no live Secrets.
 Record one owner and stop direct Ansible apply before adopting an existing release.
 Review the adoption diff with pruning disabled; never uninstall a stateful release to hand it over.
 
-## Acceptance and recovery
+<a id="acceptance-and-recovery"></a>
+
+## Step 3: Verify access and recovery
 
 Verify health, SSO with denied/unapproved users, scoped clone/push, repository and
 artifact access, audit delivery and a matching-version clean-target restore.

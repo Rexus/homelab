@@ -1,40 +1,48 @@
 # GitLab data-VM backups
 
-Back up PostgreSQL, Redis and Gitaly from their Proxmox/Ceph-backed VM disks to
-encrypted file repositories. A NAS mount is a backup destination, never a replacement
-for live `/var/opt/gitlab` data. GitLab's chart uses separate object storage for
-application objects; changing VM backup transport does not change that requirement.
+Back up PostgreSQL, Redis and Gitaly from live Proxmox/Ceph VM disks to encrypted restic repositories.
+These cold component copies are separate from GitLab Toolbox backups and application object storage.
 
-**Working repository:** `<prefix>-tier-1`; upstream `tier-1/`.
-**Prerequisites:** prepared data VMs, commissioned backup storage, independent
-encryption passwords and approved restic. Use the existing
-[data-service recipe](../../deployment/stage-9-development/procedures/data-services.md#render-and-apply).
+**Working repository:** generated Tier 1.
+**Run configuration on:** the deployment host. **Run checks on:** each existing data VM.
+**Prerequisites:** commissioned storage/mounts or SFTP service, independent encryption passwords,
+approved restic 0.17+ and [accepted data services](../../deployment/stage-9-development/procedures/data-services.md#render-and-apply).
+**Design:** [backup and recovery](../../architecture/operations/backup-recovery.md).
 
-## Contents
+<a id="contents"></a>
 
-- [Select the file destination](#select-the-file-destination)
-- [Commission a NAS mount](#commission-a-nas-mount)
-- [Run and restore](#run-and-restore)
-- [Failure limits](#failure-limits)
+## Operator tasks
+
+- [How to select a destination and schedule?](#select-the-file-destination)
+- [How to commission a NAS mount?](#commission-a-nas-mount)
+- [How to run, inspect and restore a component copy?](#run-and-restore)
+- [When to stop, roll back or prune?](#failure-limits)
 - [References](#references)
 
-## Select the file destination
+<a id="select-the-file-destination"></a>
 
-The [input example](../../../tier-1/ansible/group_vars/development_data.yml.example)
-contains both paths. Select one; existing configurations retain SFTP behavior.
+## How to select a destination and schedule?
 
-| Input | Contract |
-| --- | --- |
-| `development_data_backup_transport` | `filesystem` for a direct NAS mount; `sftp` for an existing scoped SSH file service |
-| `development_data_backup_repository` | Per-host absolute repository below the commissioned NAS mount, or per-host SFTP URL |
-| `development_data_backup_filesystem` | Filesystem mode: per-host exact mount/source/type, unique marker and effective NAS write UID/GID |
-| `development_data_backup_password_src` | Private controller-side path to the independently retained restic encryption password |
-| `development_data_backup_initialize` | Explicit one-time initialization of a genuinely empty repository; never a damaged/inaccessible one |
-| `development_data_backup_custody_accepted` | Set only after independently retained copies and access/retention responsibilities are commissioned |
-| `development_data_backup_timeout_seconds` | Failure deadline, not a guarantee that a blocked NFS operation can terminate |
+1. Edit **Tier 1 `ansible/group_vars/development_data.yml`**, using the
+   [existing example](../../../tier-1/ansible/group_vars/development_data.yml.example).
+   Keep private passwords/keys in the referenced protected files.
 
-The role installs backup jobs, not a NAS server, export, storage gateway or mount.
-No object API is used for these VM recovery copies.
+   | Field | Set to |
+   | --- | --- |
+   | `development_data_backup_transport` | `filesystem` for NAS mount, or `sftp` for a qualified SSH file service |
+   | `development_data_backup_repository` | A distinct repository per data VM, matching the selected transport |
+   | `development_data_backup_filesystem` | NAS mode: exact mount/source/type, marker and effective write UID/GID per VM |
+   | `development_data_backup_password_src` | Independently retained encryption-password file |
+   | `development_data_backup_ssh_key_src`, `development_data_backup_known_hosts_src` | SFTP mode: scoped private key and independently verified host keys |
+   | `development_data_backup_calendar` | Native systemd expression; default `"*-*-* 02:00:00"`, plus up to 15 minutes random delay |
+   | `development_data_backup_initialize` | `true` only for explicit one-time initialization of a genuinely empty repository; return to `false` afterwards |
+   | `development_data_backup_custody_accepted` | `true` only after independent copy/access/retention responsibilities are accepted |
+   | `development_data_backup_timeout_seconds` | Failure deadline; not a guarantee that blocked NFS I/O terminates |
+
+2. For NAS, complete the next task before applying. For SFTP, qualify scoped credentials and
+   repository access through the existing service; retain the selected transport on existing projects.
+3. Apply via the [data-service installer](../../deployment/stage-9-development/procedures/data-services.md#render-and-apply).
+   It probes repository/mount identity before scheduling. It installs no NAS server, export or mount.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":18,"padding":10,"wrappingWidth":350,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -76,56 +84,132 @@ timer/service per existing data VM. Scope: selected `filesystem` recovery copies
 not GitLab application objects or the SFTP alternative. Proxmox disks, NAS exports,
 mounts and independent retention are prerequisites, not installed storage services.
 
-## Commission a NAS mount
+<a id="commission-a-nas-mount"></a>
 
-1. Create a dedicated export/share for each host's backups, with private directories
-   and an adequate capacity budget. Grant the mapped backup identity only its area;
-   retain NAS snapshot/pruning administration separately. Keep NFS root-squash and
-   qualify the mapped UID/GID, or use a scoped authenticated SMB identity.
-2. Persistently mount the export on that VM outside `/var/opt/gitlab` and `/etc/gitlab`.
-   Record exact `findmnt -rn -M <mount> -o TARGET,SOURCE,FSTYPE` output in the host's
-   input contract. Precreate its repository directory; do not use a symlink.
-3. Have the storage custodian create `.development-data-backup-target` at the mount
-   root with that host's independently generated marker. Configure the matching
-   marker and effective write UID/GID. The installer checks mount identity, marker,
-   available capacity and actual create/read/sync/rename/delete behavior before
-   stopping a component. Each scheduled run rechecks the contract.
+## How to commission a NAS mount?
 
-The recipe neither changes export permissions nor enables `no_root_squash` to make
-a failed write test pass. Wrong paths, absent mounts or marker mismatches stop the job.
-Data, local inputs and repository passwords remain outside source control.
+**Storage custodian + each data VM administrator:**
 
-## Run and restore
+1. Prepare a private export/share and capacity budget per host; retain snapshot/pruning
+   administration separately. Keep NFS root-squash and qualify UID/GID mapping, or use scoped SMB.
+2. Persistently mount it **outside `/var/opt/gitlab` and `/etc/gitlab`**. Read the actual mount identity:
 
-Apply through the [data-service installer](../../deployment/stage-9-development/procedures/data-services.md#render-and-apply),
-then start `development-data-backup.service` on each VM in a change window. Inspect
-the timer, journal, source-service readiness, restic snapshots and repository check.
-No forget/prune policy runs from this job.
+   ```bash
+   read -r -p "Commissioned backup mount: " BACKUP_MOUNT
+   findmnt -rn -M "$BACKUP_MOUNT" -o TARGET,SOURCE,FSTYPE
+   ```
 
-The job stops its single component, makes a cold encrypted restic copy, requests
-source restart and checks the repository. These component copies need a coordinated
-GitLab recovery point; three successful backups are not an atomic application backup.
-Keep GitLab's toolbox backup, application objects and Kubernetes Secrets in the
-[product recovery plan](../recovery/tier-1-products.md).
+3. Have the custodian create the private repository directory and
+   `.development-data-backup-target` at the mount root with the recorded unique host marker.
+   Set those exact values in the per-host filesystem contract.
+4. Apply configuration and require mount, marker, capacity and create/read/sync/rename/delete
+   checks to pass before stopping any component. Every backup repeats the mount contract.
 
-Restore with the retained password and `restic restore <snapshot> --target /restore`
-on an isolated clean target. Inspect that copy before the matching-version product
-restore; never overwrite running PostgreSQL files. Verify database, repositories,
-hooks, SSO, jobs and application objects together before accepting recovery.
+**Stop on mismatch.** Do not enable `no_root_squash`, replace a marker or redirect the job into
+a local directory to force success. The role does not change export permissions.
 
-## Failure limits
+<a id="run-and-restore"></a>
 
-NAS loss or full storage fails the job; it does not trigger local fallback or
-retention deletion. A cold copy causes a maintenance outage. Restart is requested
-on handled failures, but hard NFS I/O can remain blocked past termination deadlines.
-Measure actual source readiness during NAS-loss/ENOSPC tests, not just a logged
-restart command. Qualify the configured schedule and maximum outage locally.
+## How to run, inspect and restore a component copy?
 
-A restic password protects repository contents, not availability or retention from
-NAS administrators. Protect independent/offsite copies and record the accepted
-[RPO/RTO and custody](../compute/backup-restore.md#backup-policy).
+### 1: Start and check a backup
+
+**On each data VM**, during the approved service-interruption window:
+
+```bash
+sudo systemctl list-timers --all development-data-backup.timer
+sudo systemctl cat development-data-backup.timer
+sudo systemctl start development-data-backup.service
+sudo systemctl status development-data-backup.service --no-pager
+sudo journalctl -u development-data-backup.service -n 80 --no-pager
+sudo /opt/gitlab/bin/gitlab-ctl status
+```
+
+The job stops its single component, copies it cold, requests restart and runs a repository check.
+Verify actual source readiness; a logged restart request is not proof. Three successful component
+copies are not an atomic GitLab recovery point. Coordinate them with Toolbox, Secrets and object
+buckets in the [product recovery plan](../recovery/tier-1-products.md). [2]
+
+### 2: List and verify retained points
+
+On the selected VM, enter an authorized root shell. Load only the installed root-owned profile:
+
+```bash
+sudo -i
+set -a
+source /etc/development-data/backup.env
+set +a
+```
+
+For **NAS/filesystem** repositories:
+
+```bash
+restic snapshots --json
+restic check --read-data
+```
+
+For **SFTP**, use the same qualified key/host-key options as the installed job:
+
+```bash
+RESTIC_SFTP_ARGS='-i /etc/development-data/backup.key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/development-data/known_hosts'
+restic -o "sftp.args=$RESTIC_SFTP_ARGS" snapshots --json
+restic -o "sftp.args=$RESTIC_SFTP_ARGS" check --read-data
+```
+
+### 3: Extract onto a new isolated target
+
+On an independent recovery host, configure the same repository/password from independent custody;
+for SFTP also supply its authorized key and verified host keys. Preserve incident/source data.
+
+```bash
+set -euo pipefail
+read -r -p "Full recorded component snapshot ID: " RECOVERY_SNAPSHOT
+read -r -p "NEW absolute extraction directory on encrypted recovery storage: " RECOVERY_TARGET
+read -r -p "Target isolation verified (yes): " RECOVERY_ISOLATED
+test "$RECOVERY_ISOLATED" = yes
+[[ "$RECOVERY_SNAPSHOT" =~ ^[a-f0-9]{64}$ ]]
+case "$RECOVERY_TARGET" in /*) ;; *) exit 1 ;; esac
+umask 077
+mkdir -m 0700 "$RECOVERY_TARGET"
+```
+
+Choose the configured transport. For NAS/filesystem:
+
+```bash
+restic restore "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --verify
+```
+
+For SFTP, after configuring that recovery host's credential paths:
+
+```bash
+restic -o "sftp.args=$RESTIC_SFTP_ARGS" restore "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --verify
+```
+
+`mkdir` must succeed on a new path. Never overwrite running PostgreSQL files.
+Inspect/decrypt the extracted set before the matching-version
+[GitLab native recovery](../recovery/tier-1-products.md). [1][2]
+
+<a id="failure-limits"></a>
+
+## When to stop, roll back or prune?
+
+| Condition | Required action |
+| --- | --- |
+| NAS/SFTP loss, full storage, wrong mount or marker | Fail closed; no local fallback or automatic deletion |
+| Cold backup blocks past its deadline | Investigate actual source readiness; hard NFS I/O can remain blocked despite termination |
+| Schedule must pause | `sudo systemctl stop development-data-backup.timer`; an active service is separate |
+| Invalid changed schedule or credentials | Restore accepted input values, reapply the installer and prove repository access before resuming |
+| Restore/consistency check fails | Preserve failed target and retry on another clean isolated target after diagnosis |
+| History or credentials require retirement | Separate backup/storage custodian reviews independent copies and holds first |
+
+Use the [custodian retention review](control-applications.md#custodian-retention) with this
+repository's environment and explicit snapshot ID. The installed job performs **no forget/prune**.
+A repository password protects confidentiality, not retention: writable backup credentials,
+host root or NAS administrators may still alter/delete history despite the job's lack of pruning.
+Record actual schedule/outage behavior, accepted RPO/RTO and independently retained copies.
 
 ## References
 
-1. [Restic local, mounted-file and SFTP repositories](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html).
-2. [GitLab backup and restore requirements](https://docs.gitlab.com/administration/backup_restore/).
+1. [Restic mounted-file and SFTP repositories](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html).
+2. [GitLab backup/restore requirements](https://docs.gitlab.com/administration/backup_restore/).
+3. [Restic native restore verification](https://restic.readthedocs.io/en/stable/050_restore.html).

@@ -12,21 +12,27 @@ the original PostgreSQL image/major version and extensions, new storage capacity
 object-store CA and read-only recovery credentials, original application DB credential, TLS secrets
 and a known-good recovery time covered by base backup plus WAL. Preserve the original bucket/prefix.
 
-## Contents
+<a id="contents"></a>
 
-- [Prepare the recovery resources](#prepare-the-recovery-resources)
-- [Guard and create](#guard-and-create)
-- [Validate and adopt](#validate-and-adopt)
+## Operator tasks
+
+- [How to prepare object/WAL recovery resources?](#prepare-the-recovery-resources)
+- [How to create the guarded recovery database?](#guard-and-create)
+- [How to validate the database and resume backups?](#validate-and-adopt)
 - [References](#references)
 
-## Prepare the recovery resources
+<a id="prepare-the-recovery-resources"></a>
+
+## How to prepare object/WAL recovery resources?
 
 Prepare the original product namespace (`netbox` or `keycloak`) in an isolated cluster. Keep application
 deployments, jobs, GitOps/Helm reconciliation and public ingress absent. Recreate DB credential and
 certificate Secrets from independent custody, or deliberately reissue compromised TLS credentials.
 Do not allow secret engines/SSO in the failed cluster to become prerequisites.
 
-Create a private reviewed YAML file with these two documents. Replace example values and choose
+1. Recreate the original product namespace and required credentials/TLS Secrets on the isolated
+   recovery cluster; these are explicit custodian prerequisites, not created by this manifest.
+2. In the owning tier, create **`secrets/cnpg-object-recovery.yml`** with these two documents. Replace example values and choose
 `netbox` or `keycloak` consistently. Keep the original `*-db` name so application `*-db-rw` DNS remains
 valid. The source ObjectStore has read-only storage credentials and no retention policy/WAL writer.
 Use the original backup server name even when recovering to a differently named target. [1]
@@ -71,20 +77,27 @@ spec:
   storage: {storageClass: REPLACE-RECOVERY-CLASS, size: 10Gi}
 ```
 
+3. Replace every `REPLACE` value, record the read-only source credential Secret and have the
+   recovery custodian review the destination, time and storage before continuing.
+
 Size storage from original inputs and backup size. `instances: 1` is an isolated validation target,
 not an availability claim. A missing WAL segment or unreachable recovery target must be investigated;
 do not silently fall back to a more recent/older database or run `initdb`.
 
-## Guard and create
+<a id="guard-and-create"></a>
+
+## How to create the guarded recovery database?
 
 Run from the independent workstation with PyYAML and `kubectl`. Review the context, manifest, source
 prefix and incident time first. Set `RECOVERY_APPROVAL` to the exact `context/product` being approved:
 
 ```bash
 set -euo pipefail
-: "${RECOVERY_CONTEXT:?Set the isolated Kubernetes context}"
-: "${PRODUCT:?Set netbox or keycloak}"
-: "${RECOVERY_MANIFEST:?Set the reviewed two-document YAML path}"
+read -r -p "Isolated recovery Kubernetes context: " RECOVERY_CONTEXT
+read -r -p "Product (netbox or keycloak): " PRODUCT
+read -r -p "Reviewed manifest path (secrets/cnpg-object-recovery.yml): " RECOVERY_MANIFEST
+read -r -p "Approve the exact context/product: " RECOVERY_APPROVAL
+read -r -p "Target isolation verified (yes): " RECOVERY_ISOLATED
 case "$PRODUCT" in netbox|keycloak) ;; *) exit 1 ;; esac
 test "${RECOVERY_APPROVAL:-}" = "$RECOVERY_CONTEXT/$PRODUCT"
 test "${RECOVERY_ISOLATED:-}" = yes
@@ -116,19 +129,34 @@ kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT" wait \
 claims. A partially failed attempt is not permission to delete or reapply resources: preserve logs,
 fence the target and start a new isolated target after diagnosis.
 
-## Validate and adopt
+<a id="validate-and-adopt"></a>
 
-Check recovery logs, actual replay endpoint and DB contents against the incident record. Test the
-restored application credential and verified TLS connection before starting the application.
+## How to validate the database and resume backups?
+
+Use the context and product established by [target guarding and creation](#guard-and-create).
+
+1. Read status/logs for the created recovery cluster:
+
+   ```bash
+   kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT" get cluster "$PRODUCT-db" -o yaml
+   kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT" get pods
+   ```
+
+2. Check actual replay endpoint/time and critical records against the incident record. Test
+   the original application DB credential over verified TLS before starting application writers.
 Follow [NetBox](netbox.md) or [Keycloak](keycloak.md) for product checks. Reconcile externally managed
 secrets with restored DB credentials; regenerated application passwords do not automatically match
 the users in a physical restore.
 
-After acceptance, configure a **new writable backup destination** for the recovered cluster, then
+3. After acceptance, configure a **new writable backup destination** for the recovered cluster, then
 resume WAL/base-backup scheduling through reviewed normal configuration. Never enable retention or
 archiving into the recovery source prefix. Restore the original topology and placement from inputs;
 validate replication and a fresh backup. Explicitly reconcile Helm/GitOps resources with the recovery
 Cluster before resuming automation so the normal `bootstrap.initdb` manifest cannot overwrite it.
+
+**Stop/rollback:** missing WAL, wrong recovery time/image/Secrets, nonempty targets or failed
+application checks block cutover. Preserve source prefix, logs and partial target. Start another
+isolated target after diagnosis; do not run `initdb`, delete claims or write retention into the source.
 
 ## References
 

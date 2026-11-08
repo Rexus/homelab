@@ -10,9 +10,9 @@ follow its [native installation contract](../step-2b-spinnaker.md#installation-d
 ## Contents
 
 - [Prerequisites](#prerequisites)
-- [Inputs and secrets](#inputs-and-secrets)
-- [Render and apply](#render-and-apply)
-- [Readiness and recovery](#readiness-and-recovery)
+- [Step 1: Edit inputs and prepare Secrets](#inputs-and-secrets)
+- [Step 2: Render and apply](#render-and-apply)
+- [Step 3: Verify access and recovery](#readiness-and-recovery)
 - [Native tests](#native-tests)
 - [References](#references)
 
@@ -38,12 +38,19 @@ object server or NAS-to-S3 gateway is installed. Retain the restic password sepa
 from the cluster and storage service. The storage owner commissions the export,
 node/CSI access, permissions, retained PV and exact PVC binding before apply.
 
-## Inputs and secrets
+<a id="inputs-and-secrets"></a>
 
-Copy [delivery_platform.yml.example](../../../../tier-1/ansible/group_vars/delivery_platform.yml.example)
-to its ignored `.yml` counterpart. Review the central `files/software.yml` pins, controller
-selection, ingress, names, identity and storage inputs. Set
-`delivery_platform_install_harbor: false` when only installing a controller.
+## Step 1: Edit inputs and prepare Secrets
+
+From the **Tier 1 root**, create the local settings:
+
+```bash
+cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
+```
+
+Edit `ansible/group_vars/delivery_platform.yml` using the table below. Retain the approved
+central `ansible/roles/delivery_platform/files/software.yml` pins. For the controller-only
+step set `delivery_platform_install_harbor: false`; Step 3 enables Harbor separately.
 
 | Input | Contract |
 | --- | --- |
@@ -56,26 +63,46 @@ selection, ingress, names, identity and storage inputs. Set
 | `delivery_platform_manage_secrets` | `false` uses existing secret-controller ownership; `true` explicitly provisions private bootstrap inputs |
 
 The [secret example](../../../../tier-1/ansible/group_vars/delivery_platform_secrets.yml.example)
-lists exact namespace/name/key contracts. Provision selected Secrets through the
-accepted Vault controller, or fill an encrypted/private extra-vars file for explicit
-bootstrap ownership. Do not run both owners. Required fields are checked before
+lists exact namespace/name/key contracts. Choose one owner:
+
+| Choice | Action |
+| --- | --- |
+| Existing Secret controller | Keep `delivery_platform_manage_secrets: false`; supply the required Secrets through that owner |
+| Bootstrap inputs | Copy the example below, fill the selected Secret values and set its `delivery_platform_manage_secrets: true` |
+
+```bash
+umask 077
+mkdir -p secrets
+cp -n ansible/group_vars/delivery_platform_secrets.yml.example secrets/delivery-platform.yml
+```
+
+After editing the private file, encrypt it and retain the decryption material independently:
+
+```bash
+ansible-vault encrypt secrets/delivery-platform.yml
+```
+
+Do not run both owners. Required fields are checked before
 release changes; sensitive values stay out of task output.
 
 Harbor's bundled PostgreSQL password is a native chart value. Supply it privately
 even for rendering. Rendered values/manifests and Helm's release Secrets contain
 sensitive data: keep them private, encrypted in backup and outside Git/CI artifacts.
 
-## Render and apply
+<a id="render-and-apply"></a>
+
+## Step 2: Render and apply
 
 From Tier 1, after preparing local inputs:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml -e @/absolute/private/delivery-secrets.yml
+  -e @ansible/group_vars/delivery_platform.yml \
+  -e @secrets/delivery-platform.yml --ask-vault-pass
 ```
 
-Omit the final extra-vars file when using pre-existing Secrets, but supply Harbor's
+Omit `-e @secrets/delivery-platform.yml --ask-vault-pass` when using pre-existing Secrets, but supply Harbor's
 database password through an accepted private input. Rendering downloads exact
 official charts; native Spinnaker builds its supplied pinned base without downloads. Rendering never contacts
 Kubernetes. It does not establish that existing Secrets or services are usable.
@@ -88,7 +115,8 @@ resources under the private output directory. Follow the selected
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml -e @/absolute/private/delivery-secrets.yml \
+  -e @ansible/group_vars/delivery_platform.yml \
+  -e @secrets/delivery-platform.yml --ask-vault-pass \
   -e delivery_platform_action=apply
 ```
 
@@ -101,7 +129,9 @@ repository marker inside each backup Job. Both modes require a verified first
 snapshot before publishing ingress. It never executes
 Halyard. No release is uninstalled or pruned by this procedure.
 
-## Readiness and recovery
+<a id="readiness-and-recovery"></a>
+
+## Step 3: Verify access and recovery
 
 The recipe checks Harbor's component health and the controller HTTPS endpoint.
 Then test accepted and denied SSO users, ordinary direct API access, rejected

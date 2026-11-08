@@ -7,20 +7,32 @@ This configures an existing Vault; it does not initialize, unseal or replace it.
 
 ## Contents
 
-- [Configure exact job authority](#configure-exact-job-authority)
-- [Place scoped credentials](#place-scoped-credentials)
-- [Prove authorization](#prove-authorization)
+- [Step 1: Configure exact job authority](#configure-exact-job-authority)
+- [Step 2: Place scoped credentials](#place-scoped-credentials)
+- [Step 3: Prove authorization](#prove-authorization)
 - [References](#references)
 
-## Configure exact job authority
+<a id="configure-exact-job-authority"></a>
+
+## Step 1: Configure exact job authority
+
+From the **Tier 0 root**, create the local input file:
+
+```bash
+cp -n terraform/deployments/ci-auth/terraform.tfvars.example terraform/deployments/ci-auth/terraform.tfvars
+```
+
+| Field in `terraform/deployments/ci-auth/terraform.tfvars` | Set |
+| --- | --- |
+| `gitlab_issuer`, `vault_audience` | Exact accepted GitLab/Vault HTTPS origins |
+| `gitlab_ca_pem` | Public GitLab CA chain if private; no CA key |
+| `projects.tier0-infrastructure` | Exact numeric project/namespace IDs, protected branch, KV-v2 read path and runner CIDRs |
+| `accept_trusted_ci` | `true` only after recording the direct-CI trust decision |
 
 1. Configure normal Vault administration through Keycloak using the
    [service SSO gate](../../stage-5-identity/procedures/service-sso.md). Retain independent
    recovery access. CI authentication is separate: its issuer is GitLab, not Keycloak.
-2. From Tier 0, seed `terraform/deployments/ci-auth/terraform.tfvars` from its example.
-   Set exact project/namespace IDs, protected branch, HTTPS issuer/audience,
-   approved runner source CIDRs and the public GitLab CA chain if private.
-   Set `accept_trusted_ci = true` only after recording the explicit trust decision.
+2. Complete the exact fields in the table above; no wildcard project or branch authority.
 3. With a short-lived independently authorized Vault operator token, review/apply
    this root. `VAULT_ADDR`, `VAULT_CACERT` and `VAULT_TOKEN` stay outside Git.
 
@@ -45,7 +57,9 @@ The role binds `job_project_id`, namespace, branch type/name, protected status a
 audience. It grants only one KV-v2 read path, omits the default policy and caps
 token lifetime. These checks require a GitLab version that emits the selected claims. [1][2]
 
-## Place scoped credentials
+<a id="place-scoped-credentials"></a>
+
+## Step 2: Place scoped credentials
 
 Prepare a private JSON file with `proxmox_api_url`, `proxmox_api_token_id`,
 `proxmox_api_token_secret` and `ssh_private_key`. Use the least-privilege API/SSH
@@ -67,7 +81,9 @@ convenience integration. GitLab ID tokens are available across editions. [2]
 Vault token expiry does not rotate an underlying static Proxmox/SSH credential;
 record its independent rotation/revocation schedule.
 
-## Prove authorization
+<a id="prove-authorization"></a>
+
+## Step 3: Prove authorization
 
 Test the accepted project/branch/audience and deny another project, namespace,
 unprotected branch, merge-request ref, wrong audience and wrong source address.

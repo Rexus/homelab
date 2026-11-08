@@ -16,7 +16,7 @@ from generate import REPOSITORIES
 from generated_files import MARKER, RepositoryWriter
 
 PROJECT_DOCS = (
-    "docs/README.md", "docs/naming-conventions.md",
+    "docs/README.md", "platform-standards.md",
 )
 
 
@@ -24,23 +24,26 @@ class RepositoryDocumentation(TierRepositoryTestCase):
     def test_generated_storage_design_distinguishes_capability_api_and_hosting(self):
         self.generate()
         docs = self.root / "verify-architecture/docs/auto-docs"
-        design = (docs / "architecture/compute/runtime.md").read_text(encoding="utf-8")
-        for term in ("**Object storage**", "**S3-compatible API**", "Ceph RBD", "CephFS",
-                     "Ceph Object Gateway (RGW)", "**outbound\nbackups to**",
-                     "independent backup custody"):
+        design = (docs / "architecture/data/README.md").read_text(encoding="utf-8")
+        for term in ("**Object storage**", "**S3-compatible API**", "CephFS",
+                     "Object Gateway (RGW)", "backups **to**", "independent recovery"):
             self.assertIn(term, design)
-        self.assertIn("does not establish that RGW is deployed", design)
-        self.assertIn("Live database data stays on qualified Proxmox/Ceph-backed block storage", design)
+        self.assertIn("does not establish that RGW exists", design)
+        self.assertIn("Proxmox/Ceph-backed block storage. NAS file areas receive backup copies", design)
+        hosting = (docs / "architecture/hosting/runtime.md").read_text(encoding="utf-8")
+        self.assertIn("../data/README.md", hosting)
+        self.assertNotIn("## Reference realization", hosting)
         foundation = (docs / "deployment/foundation/README.md").read_text(encoding="utf-8")
-        self.assertIn("runtime.md#storage-interfaces", foundation)
+        self.assertIn("storage/README.md", foundation)
         guide = (docs / "deployment/foundation/storage/README.md").read_text(encoding="utf-8")
-        self.assertIn("## Use NAS file storage", guide)
-        self.assertIn("## Qualify an object endpoint", guide)
+        self.assertIn("data/README.md#storage-interfaces", guide)
+        self.assertIn("## Step 2a: Prepare NAS file storage", guide)
+        self.assertIn("## Step 2b: Qualify an object endpoint", guide)
         self.assertIn("does not deploy a storage gateway", guide)
         backups = (docs / "administration/compute/backup-restore.md").read_text()
-        self.assertIn("### NAS file target", backups)
-        self.assertIn("Datacenter -> Storage -> Add -> NFS", backups)
-        self.assertIn("neither requires an object-storage API", backups)
+        self.assertIn('id="nas-file-target"', backups)
+        self.assertIn("Datacenter > Storage > Add > NFS", backups)
+        self.assertIn("neither path requires an object-storage API", backups)
         database_backups = (docs / "administration/backups/postgresql.md").read_text()
         inputs = yaml.safe_load((UPSTREAM / "tier-0/ansible/group_vars/control_applications.yml.example").read_text())
         defaults = yaml.safe_load((UPSTREAM / "tier-0/ansible/roles/control_applications/defaults/main.yml").read_text())
@@ -59,13 +62,14 @@ class RepositoryDocumentation(TierRepositoryTestCase):
     def test_frontdoors_and_project_templates_are_owned(self):
         self.generate()
         architecture = self.root / "verify-architecture"
-        naming = architecture / "docs/naming-conventions.md"
+        naming = architecture / "platform-standards.md"
         for name in REPOSITORIES:
             repo = self.root / f"verify-{name}"
             readme = repo / "README.md"
             content = readme.read_text(encoding="utf-8")
             self.assertTrue(content.startswith("# verify "), name)
             self.assertIn("## Getting started", content)
+            self.assertIn("conventions/README.md", content)
             self.assertNotIn(MARKER, content)
             self.assertNotIn("${", content)
             links = re.findall(r"\[[^\]]*\]\(([^)]+)\)", content)
@@ -88,15 +92,16 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertTrue((architecture / relative).is_file(), relative)
             self.assertIn(relative, manifest["owned"])
             self.assertNotIn(relative, manifest["files"])
-        for heading in ("VM and DNS names", "Role abbreviations", "Proxmox tags", "VMID ranges", "Networks and VLANs"):
+        for heading in ("VM and DNS names", "Role abbreviations", "Proxmox tags", "Networks and VLANs"):
             self.assertIn(f"## {heading}", naming.read_text())
         self.assertFalse((architecture / "docs/generated").exists())
 
     def test_architecture_starter_is_a_single_platform_record_and_standards(self):
         self.generate()
         repo = self.root / "verify-architecture"
-        local_docs = sorted(path.relative_to(repo).as_posix() for path in (repo / "docs").rglob("*.md")
-                            if not path.is_relative_to(repo / "docs/auto-docs"))
+        local_docs = sorted(path.relative_to(repo).as_posix() for path in repo.rglob("*.md")
+                            if path != repo / "README.md"
+                            and not path.is_relative_to(repo / "docs/auto-docs"))
         self.assertEqual(local_docs, sorted(PROJECT_DOCS))
         self.assertFalse((repo / "site").exists())
         record = (repo / "docs/README.md").read_text()
@@ -108,6 +113,72 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("auto-docs/architecture/README.md", record)
         for name in REPOSITORIES:
             self.assertTrue((self.root / f"verify-{name}/README.md").exists())
+
+    def test_platform_standards_retains_the_previous_root_worksheet(self):
+        self.check_previous_standards("naming-conventions.md")
+
+    def test_platform_standards_retains_the_previous_nested_worksheet(self):
+        self.check_previous_standards("docs/naming-conventions.md")
+
+    def check_previous_standards(self, previous_path):
+        self.generate()
+        repo = self.root / "verify-architecture"
+        root_naming = repo / "platform-standards.md"
+        legacy = repo / previous_path
+        manual = "docs/auto-docs" if legacy.parent == repo else "auto-docs"
+        original = ("# Local deployment standards\n\nInternal domain: corp.site.invalid\n\n"
+                    f"[VMID rules]({manual}/conventions/vmid-convention.md)\n")
+        legacy.write_text(original)
+        root_naming.unlink()
+        manifest_path = repo / ".generated-files.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["owned"].remove("platform-standards.md")
+        manifest["owned"].append(previous_path)
+        manifest_path.write_text(json.dumps(manifest))
+        previous_readme = f"# Site architecture\n\n[Standards]({previous_path})\n"
+        (repo / "README.md").write_text(previous_readme)
+
+        before = {path: path.read_bytes() for path in self.root.rglob("*") if path.is_file()}
+        self.generate("--refresh", "--dry-run")
+        self.assertEqual(before, {path: path.read_bytes() for path in self.root.rglob("*") if path.is_file()})
+        self.generate("--refresh")
+        self.assertEqual(legacy.read_text(), original)
+        self.assertEqual((repo / "README.md").read_text(), previous_readme)
+        self.assertIn(f"[retained local document]({previous_path})", root_naming.read_text())
+        root_naming.write_text("# Reviewed project standards\n")
+        self.generate("--refresh")
+        self.assertEqual(root_naming.read_text(), "# Reviewed project standards\n")
+        self.assertEqual(legacy.read_text(), original)
+
+    def test_renaming_the_worksheet_does_not_recreate_a_recorded_deletion(self):
+        self.generate()
+        repo = self.root / "verify-architecture"
+        root_naming = repo / "platform-standards.md"
+        root_naming.unlink()
+        manifest_path = repo / ".generated-files.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["owned"].remove("platform-standards.md")
+        manifest["owned"].append("docs/naming-conventions.md")
+        manifest_path.write_text(json.dumps(manifest))
+        self.generate("--refresh")
+        self.assertFalse(root_naming.exists())
+        self.assertFalse((repo / "docs/naming-conventions.md").exists())
+
+    def test_deleted_root_worksheet_is_not_recreated_from_an_older_record(self):
+        self.generate()
+        repo = self.root / "verify-architecture"
+        (repo / "platform-standards.md").unlink()
+        archive = repo / "docs/naming-conventions.md"
+        archive.write_text("# Retained older choices\n")
+        manifest_path = repo / ".generated-files.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["owned"].remove("platform-standards.md")
+        manifest["owned"].extend(("naming-conventions.md", "docs/naming-conventions.md"))
+        manifest_path.write_text(json.dumps(manifest))
+        self.generate("--refresh")
+        self.assertFalse((repo / "platform-standards.md").exists())
+        self.assertFalse((repo / "naming-conventions.md").exists())
+        self.assertEqual(archive.read_text(), "# Retained older choices\n")
 
     def test_compact_refresh_preserves_old_scaffolding_and_recorded_deletions(self):
         self.generate("--repo", "architecture")
@@ -130,7 +201,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.generate()
         tier0 = (self.root / "verify-tier-0/README.md").read_text(encoding="utf-8")
         publisher = "bash scripts/proxmox-templates.sh init"
-        setup = "bash ../verify-shared/scripts/init-local-files.sh"
+        setup = "bash scripts/init-local-files.sh"
         self.assertIn("Templates before VMs", tier0)
         self.assertIn("capability deployment checklist", tier0)
         self.assertIn("deployment/foundation/README.md", tier0)
@@ -151,15 +222,15 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             readme = (self.root / f"verify-{tier}/README.md").read_text(encoding="utf-8")
             self.assertNotIn(publisher, readme)
             self.assertIn("operator-run workflows", readme)
-            self.assertIn("compute/provisioning.md", readme)
+            self.assertIn("hosting/provisioning.md", readme)
             self.assertNotIn("${", readme)
 
     def test_naming_worksheet_records_conventions_and_zone_network_plan(self):
         self.generate("--repo", "architecture")
         architecture = self.root / "verify-architecture"
-        naming = architecture / "docs/naming-conventions.md"
+        naming = architecture / "platform-standards.md"
         content = naming.read_text(encoding="utf-8")
-        self.assertTrue(content.startswith("# verify Naming Conventions"))
+        self.assertTrue(content.startswith("# verify Platform Standards"))
         self.assertNotIn("${", content)
         self.assertIn("| Type | Standard | Comments |", content)
         self.assertIn("editable reference placeholders", content)
@@ -171,29 +242,32 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("| External domain | `example.com` |", content)
         self.assertIn("<role>.<env>.<internal-domain>", content)
         self.assertIn("<role>.<env>.<external-domain>", content)
-        self.assertIn("require separate configuration", content)
+        self.assertNotIn("## VMID ranges", content)
+        self.assertNotIn("T C NN", content)
+        self.assertNotIn("9000-9999", content)
+        self.assertIn("[VMID convention](docs/auto-docs/conventions/vmid-convention.md)", content)
         rows = content.splitlines()
         headers = [rows[index - 1] for index, row in enumerate(rows) if row.startswith("| ---")]
         for header in headers:
             self.assertNotRegex(header.lower(), r"example|choice|our")
-            if header == "| Zone — UniFi / Proxmox SDN | Included networks — VNet IDs |":
+            if header == "| Firewall zone / SDN zone ID | Included SDN VNet IDs |":
                 continue
             self.assertTrue(header.endswith("| Comments |"), header)
         self.assertIn("<env>-<role>-<n>", content)
-        for example in ("idp.prod.corp.example.com", "critical", "restricted", "100-199", "9000-9999",
+        for example in ("critical", "restricted",
                         "10.10.10.0/24", "10.20.20.0/24", "10.30.30.0/24"):
             self.assertIn(example, content)
-        self.assertIn("Tier = owning repo and potential impact", content)
-        self.assertIn("Zone = network protection", content)
+        self.assertLess(len(content.splitlines()), 140)
         self.assertNotRegex(content, r"T[012]-(?:Edge|Application|Control)")
         self.assertNotIn("Tier / layer", content)
-        self.assertIn("| VLAN ID | Name | Alias | Subnet | Gateway | Comments |", content)
+        self.assertIn("| VLAN ID | SDN VNet ID (2–8 chars) | Network label / Alias | Subnet | Gateway | Comments |", content)
+        self.assertIn("no hyphens or underscores", content)
         self.assertIn("### Fabric zone", content)
         self.assertNotIn("### Infrastructure zone", content)
         for vnet in re.findall(r"^\| `\d+` \| `([^`]+)` \|", content, re.MULTILINE):
             if vnet != "—":
                 self.assertRegex(vnet, r"^[a-z][a-z0-9]{1,7}$")
-        self.assertIn("auto-docs/reference/network-plan.md#deployment-mapping", content)
+        self.assertIn("docs/auto-docs/conventions/network-plan.md", content)
         for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", content):
             relative = target.split("#")[0]
             self.assertTrue((naming.parent / relative if relative else naming).is_file(), target)
@@ -275,12 +349,16 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             stage.read_text(encoding="utf-8") for stage in stages
         )
         foundation = (docs / "deployment/foundation/README.md").read_text()
-        self.assertIn("not itself a reachable Flux source", " ".join(foundation.split()))
+        self.assertIn("proxmox/bootstrap.md", foundation)
+        bootstrap = (docs / "deployment/foundation/proxmox/bootstrap.md").read_text()
+        self.assertIn("not itself a reachable Flux source", " ".join(bootstrap.split()))
         self.assertIn("## Step 1: Provision the log host", logging)
         self.assertIn("Hardware protection", trust)
         self.assertIn("FreeIPA stays outside Kubernetes", identity)
         self.assertIn("kubernetes.md#cluster-foundation", cluster)
-        self.assertIn("## Step 1: Deploy the policy proxy and cache", intake)
+        self.assertIn("## Step 1: Prepare the cache inputs", intake)
+        self.assertIn("### 2a: Create the proxy/cache pair", intake)
+        self.assertIn("### 2b: Use existing approved supply", intake)
         self.assertIn("## Step 3: Verify operation and recovery", cluster)
         self.assertIn("control-applications.yml", control)
         self.assertIn("control_applications.yml.example", control)
@@ -384,7 +462,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                    for relative in ("docs/architecture/README.md", "docs/README.md")]
         edited += [architecture / relative for relative in PROJECT_DOCS]
         edited += [architecture / "docs/auto-docs/architecture/README.md"]
-        deleted = [edited.pop(0), edited.pop(0), architecture / "docs/naming-conventions.md",
+        deleted = [edited.pop(0), edited.pop(0), architecture / "platform-standards.md",
                    self.root / "verify-tier-2/docs/architecture/README.md",
                    architecture / "docs/auto-docs/administration/secret-handling/strategy.md"]
         for path in edited:
@@ -432,7 +510,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertIn("README.md", manifest["owned"])
             self.assertNotIn("README.md", manifest["files"])
         self.assertTrue((self.root / "verify-architecture/docs/auto-docs/README.md").is_file())
-        self.assertTrue((self.root / "verify-architecture/docs/naming-conventions.md").is_file())
+        self.assertTrue((self.root / "verify-architecture/platform-standards.md").is_file())
 
 
 if __name__ == "__main__":

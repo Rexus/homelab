@@ -10,7 +10,7 @@ see the [cluster repository map](procedures/kubernetes.md#repository-locations).
 **Change:** Bootstrap Kubernetes manually while retaining one lifecycle owner.
 **Return:** [Step 2](README.md#step-2-establish-the-basic-platform) for the common cluster foundation checklist.
 
-**Design:** [cluster runtime variants](../../architecture/compute/README.md).
+**Design:** [cluster runtime variants](../../architecture/hosting/README.md).
 
 This is the manual Talos implementation of the [Kubernetes cluster goal](procedures/kubernetes.md).
 Use this procedure for a Tier 0 control, Tier 1 platform or Tier 2 workload cluster.
@@ -206,7 +206,7 @@ do not install Flux or the named services. The alternative [Flux CLI bootstrap][
 has commit/push side effects and needs separate review and a single controller owner.
 Keep reviewed controller manifests and images for recovery without hosted source control.
 
-Tier 1 selects [Argo CD or Spinnaker](../../architecture/delivery/controllers.md)
+Tier 1 selects [Argo CD or Spinnaker](../../architecture/software/controllers.md)
 separately. Tier 2 consumes scoped delivery or a local controller. Do not copy
 Tier 0's controller credentials or automatically bootstrap Flux in other tiers.
 

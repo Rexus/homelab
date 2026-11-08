@@ -74,6 +74,27 @@ Use the scoped metric-query interface for less-privileged readers; hiding a dash
 or chart is not authorization. Security evidence still follows the
 [protected logging path](../stage-2-logging/README.md).
 
+To enable the Tier 0 bridge after the Tier 1 metrics receiver is accepted:
+
+1. Switch from Tier 1 to Tier 0:
+
+   ```bash
+   cd ../homelab-tier-0
+   ```
+
+2. Edit existing `ansible/group_vars/infrastructure_monitoring.yml`: set
+   `infrastructure_monitoring_export_endpoint` to the private gateway/metrics port,
+   and restrict `infrastructure_monitoring_export_metrics` / `_export_labels` to approved data.
+   Add its scoped `export.crt`/`export.key` and CA trust to the encrypted
+   `ansible/group_vars/infrastructure_monitoring_secrets.yml` private-file map.
+3. Render/review and reapply the [existing monitoring recipe](../stage-6-secrets/monitoring.md#step-3-enable-and-verify-independent-alerts).
+   It retains local diagnostics/alerts and adds the selected bridge; it grants Tier 1 no poller credentials.
+4. Return to Tier 1 for sample/failure checks:
+
+   ```bash
+   cd ../homelab-tier-1
+   ```
+
 **Result:** live diagnostics and retained approved metrics, with separate resource budgets.
 
 ## Step 3: Verify coverage and failure behavior

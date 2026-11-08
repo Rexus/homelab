@@ -11,35 +11,43 @@ held application/TLS Secrets and the commissioned NAS identity from [backup setu
 Use the exact recorded image from the completed set. The source fixture is 17.6 / CNPG 1.27.0;
 this is an API compatibility baseline, not a claim that those old pins are currently supported.
 
-## Contents
+<a id="contents"></a>
 
-- [Prepare isolated inputs](#prepare-isolated-inputs)
-- [Render the recovery manifests](#render-the-recovery-manifests)
-- [Create and validate](#create-and-validate)
-- [Limits](#limits)
+## Operator tasks
+
+- [How to select an isolated target and completed NAS set?](#prepare-isolated-inputs)
+- [How to render the recovery resources?](#render-the-recovery-manifests)
+- [How to create and verify the recovered database?](#create-and-validate)
+- [When to stop or retain a failed recovery target?](#limits)
 - [References](#references)
 
-## Prepare isolated inputs
+<a id="prepare-isolated-inputs"></a>
 
-Keep applications, ingress and GitOps/Helm reconciliation absent. Select an independent recovery
+## How to select an isolated target and completed NAS set?
+
+1. Keep applications, ingress and GitOps/Helm reconciliation absent. Select an independent recovery
 context and create the original product namespace **as a new namespace** there. Do not use a production
 context or attach a live CNPG claim. Retain the source set and logs after every failed attempt.
 
 ```bash
 set -euo pipefail
-: "${RECOVERY_CONTEXT:?}" "${PRODUCT_NAMESPACE:?}" "${CLUSTER:?}"
+read -r -p "Isolated Kubernetes recovery context: " RECOVERY_CONTEXT
+read -r -p "Original product namespace: " PRODUCT_NAMESPACE
+read -r -p "Original CNPG cluster name: " CLUSTER
+read -r -p "Approve the exact context/namespace/cluster: " RECOVERY_APPROVAL
+read -r -p "Target isolation verified (yes): " RECOVERY_ISOLATED
 test "${RECOVERY_ISOLATED:-}" = yes
 test "${RECOVERY_APPROVAL:-}" = "$RECOVERY_CONTEXT/$PRODUCT_NAMESPACE/$CLUSTER"
 kubectl --context "$RECOVERY_CONTEXT" create namespace "$PRODUCT_NAMESPACE"
 ```
 
-The storage custodian now imports the original NAS file area into that namespace using a new,
+2. Have the storage custodian import the original NAS file area into that namespace using a new,
 retained, read-only NFS CSI PV/PVC. Do not invent a blank claim or rebind any live database volume.
 Verify its CSI driver/handle and the three-line marker against independent records. Where recovering
 from encrypted offsite custody, first extract the complete selected set and marker into an authorized
 read-only recovery export. Never start PostgreSQL directly on a completed NAS set.
 
-Supply these Secrets independently; the backup contains no Kubernetes Secrets:
+3. Supply these Secrets independently; the backup contains no Kubernetes Secrets:
 
 | Secret | Contents and purpose |
 | --- | --- |
@@ -52,7 +60,7 @@ Supply these Secrets independently; the backup contains no Kubernetes Secrets:
 Allow recovery-pod DNS and TCP 5432 only between the temporary source and new CNPG pods; retain CNPG
 operator/replica access. There is no public Service/ingress. NAS access is a qualified CSI underlay path.
 
-Create a private `secrets/cnpg-files-recovery.yml` in the owning tier repository. Example for Keycloak:
+4. Edit **`secrets/cnpg-files-recovery.yml`** in the owning tier repository. Example for Keycloak:
 
 ```yaml
 postgresql_file_backup_action: render
@@ -89,9 +97,11 @@ Secret `grafana-database`, namespace from original inputs, source ID `tier-1/<na
 and its original server/client CA/replication Secret names. Size from actual backup and disk use.
 This focused recipe supports one PGDATA/WAL volume and no user tablespaces.
 
-## Render the recovery manifests
+<a id="render-the-recovery-manifests"></a>
 
-From the owning generated tier root, use its Shared role search path:
+## How to render the recovery resources?
+
+1. From the owning generated tier root, render using its existing Shared role search path:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, /dev/stdin \
@@ -106,21 +116,26 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, /dev/stdin \
 YAML
 ```
 
-Review `secrets/cnpg-files-recovery/restore-source.yml` and `restore-cluster.yml`. Rendering makes no
+2. Review **`secrets/cnpg-files-recovery/restore-source.yml`** and **`restore-cluster.yml`**. Rendering makes no
 API calls and never creates a target. The first file contains fresh staging PVC `<cluster>-files-stage`,
 ConfigMap/Service/Job `<cluster>-files-restore`; the second contains only the new CNPG `Cluster`.
 
-## Create and validate
+<a id="create-and-validate"></a>
 
-Recheck the exact context/namespace/cluster approval. The only existing PVC must be the commissioned
+## How to create and verify the recovered database?
+
+Complete [isolated input preparation](#prepare-isolated-inputs) and
+[manifest rendering](#render-the-recovery-manifests) first, in the same approved recovery context.
+
+1. Recheck the exact context/namespace/cluster approval. The only existing PVC must be the commissioned
 read-only recovery source; applications and old DB resources must be absent:
 
 ```bash
 set -euo pipefail
 test "${RECOVERY_ISOLATED:-}" = yes
 test "${RECOVERY_APPROVAL:-}" = "$RECOVERY_CONTEXT/$PRODUCT_NAMESPACE/$CLUSTER"
-: "${RECOVERY_SOURCE_CLAIM:?Set the commissioned read-only NAS source claim}"
-: "${DATABASE_CLASS:?Set the commissioned Proxmox/Ceph RBD class}"
+read -r -p "Commissioned read-only NAS recovery-source PVC: " RECOVERY_SOURCE_CLAIM
+read -r -p "Qualified Proxmox/Ceph RBD storage class: " DATABASE_CLASS
 driver=$(kubectl --context "$RECOVERY_CONTEXT" get storageclass "$DATABASE_CLASS" -o jsonpath='{.provisioner}')
 case "$driver" in csi.proxmox.sinextra.dev|rbd.csi.ceph.com|*.rbd.csi.ceph.com) ;; *) exit 1 ;; esac
 python3 - "$PRODUCT_NAMESPACE" "$CLUSTER" "$RECOVERY_SOURCE_CLAIM" "$DATABASE_CLASS" <<'PY'
@@ -154,6 +169,8 @@ included WAL and becomes ready only after standalone recovery. It never uses `in
 Wait on the already created Job's ready-pod count, so asynchronous pod creation does
 not make an empty label selection fail early. [4]
 
+2. Wait for the source to become ready, inspect logs, then create the separate target:
+
 ```bash
 kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait pod \
   -l "backup.homelab/restore=$CLUSTER" --for=create --timeout=5m
@@ -166,6 +183,13 @@ kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait "cluster/$CLU
   --for=condition=Ready --timeout=30m
 ```
 
+3. Inspect the new cluster and restored product data before cutover:
+
+   ```bash
+   kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" get cluster "$CLUSTER" -o yaml
+   kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" get pods
+   ```
+
 CNPG connects with certificate authentication to the temporary source, copies its physical state and
 starts an independent primary on fresh claims. The restore manifest has one validation instance,
 no archiver and no backup scheduler. Confirm original database/roles, application-critical records,
@@ -173,7 +197,7 @@ actual recovered time and missing datasets before any application cutover. Then 
 replica count and backup policy through reviewed product manifests; do not apply a fresh `initdb`
 recipe or production Helm reconciliation over the recovery target. [1][3]
 
-After validation, stop the temporary server cleanly:
+4. After validation, stop the temporary server cleanly:
 
 ```bash
 kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" exec "job/$CLUSTER-files-restore" \
@@ -185,12 +209,18 @@ kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait "job/$CLUSTER
 The Job also has a four-hour deadline. Preserve staging, logs and source copies until the incident
 custodian explicitly retires them; this procedure performs no automatic deletion or production overwrite.
 
-## Limits
+<a id="limits"></a>
+
+## When to stop or retain a failed recovery target?
 
 These are supported PostgreSQL physical recovery and CNPG streaming-bootstrap primitives with
 repository-owned orchestration, not a native CNPG filesystem backup catalog. Same PostgreSQL major,
 binary-compatible architecture/extensions and tested image are required. CNPG's physical-bootstrap
 requirements apply; the temporary source intentionally comes from the original CNPG image. [1]
+
+**Stop/rollback:** on marker, source/image, TLS, verification, staging or product-check failure,
+keep applications/controllers blocked. Preserve source and failed staging/logs; retry on a new isolated
+target after diagnosis. Never change the marker, use `initdb` or delete retained claims to force success.
 
 Manifest validation and file verification do not prove live CSI, TLS, CNI behavior or product recovery.
 Record isolated application restore results and measured RPO/RTO. NAS files are plaintext unless

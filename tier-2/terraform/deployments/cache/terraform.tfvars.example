@@ -2,6 +2,7 @@
 # Replace every value before use.
 # Setup guide: docs/deployment/stage-1-software-intake/README.md
 # Shared values live in ../../common.tfvars.
+# VMID allocations: docs/conventions/vmid-convention.md
 
 # Optional: override the shared default Linux VM template for this setup or
 # environment overlay, for example when testing another supported distro.
@@ -27,7 +28,7 @@ vm_instances = {
   # for extra_disks[*].storage_class. The example uses "local" as the portable
   # default.
   "cache-1" = {
-    vm_id            = 230
+    vm_id            = 2311
     size             = "small-mem"
     storage_class    = "local"
     disk_size_gb     = 30
@@ -44,7 +45,7 @@ vm_instances = {
     tags             = ["squid", "keepalived", "restricted", "always-on", "egress"]
   }
   "cache-2" = {
-    vm_id            = 231
+    vm_id            = 2312
     size             = "small-mem"
     storage_class    = "local"
     disk_size_gb     = 30
@@ -60,7 +61,7 @@ vm_instances = {
     tags             = ["squid", "keepalived", "restricted", "always-on", "egress"]
   }
   # "cache-3" = {
-  #   vm_id            = 232
+  #   vm_id            = 2313
   #   size             = "small-mem"
   #   storage_class    = "local"
   #   disk_size_gb     = 30

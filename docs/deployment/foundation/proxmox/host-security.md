@@ -12,10 +12,10 @@ Inventory, selected hosts, access policy and acceptance records remain tier-owne
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
-- [Select the Profile](#select-the-profile)
-- [Review and Apply](#review-and-apply)
+- [Step 1: Select the profile](#select-the-profile)
+- [Step 2: Review and apply](#review-and-apply)
 - [Policy and Ownership](#policy-and-ownership)
-- [Acceptance](#acceptance)
+- [Step 3: Accept and return](#acceptance)
 - [References](#references)
 
 ## Prerequisites
@@ -52,12 +52,23 @@ activating a firewall before its approved configuration is written. [1]
 Use `../../<prefix>-shared/` for another collection prefix or `../../shared/`
 when working from a tier's source directory in this upstream checkout.
 
-## Select the Profile
+<a id="select-the-profile"></a>
 
-Copy `ansible/group_vars/host_security.yml.example` to a private location outside
-Git. Pass it explicitly with `-e @/absolute/path/host-security.yml`; it is not
-automatically loaded for ordinary hosts. Keep public keys and private keys outside
-Git; `public_key_files` contains controller-side absolute paths, never key text or URLs.
+## Step 1: Select the profile
+
+From the generated tier's **`ansible/` directory**, create a private input file:
+
+```bash
+install -d -m 0700 "$HOME/.config/homelab"
+cp -n group_vars/host_security.yml.example "$HOME/.config/homelab/host-security.yml"
+chmod 600 "$HOME/.config/homelab/host-security.yml"
+```
+
+Edit **`$HOME/.config/homelab/host-security.yml`** using the fields below. Existing
+files are preserved. The file is passed explicitly, not loaded for ordinary hosts.
+Keep keys outside Git; `public_key_files` contains local absolute paths, not key text.
+Complete [bootstrap SSH setup](bootstrap.md#step-3-prepare-the-execution-accounts-ssh-key)
+first if no usable execution key/agent exists.
 
 | Input | Required Selection |
 | --- | --- |
@@ -103,13 +114,15 @@ VRRP is IP protocol 112. [6] The role emits only source-scoped VRRP rich rules a
 refuses apply with no peers when keepalived is running or enabled. It never copies
 an existing unrestricted VRRP allow into the new zone. [4]
 
-## Review and Apply
+<a id="review-and-apply"></a>
+
+## Step 2: Review and apply
 
 Use a Linux controller or WSL. From the generated tier's `ansible/` directory:
 
 ```bash
 ansible-playbook -i localhost, playbooks/deployment/host-security.yml -c local \
-  -e @/home/operator/private/host-security.yml \
+  -e "@$HOME/.config/homelab/host-security.yml" \
   -e host_security_hosts=localhost -e host_security_action=render \
   -e host_security_output_dir=/tmp/host-security-review \
   -e ansible_os_family=RedHat -e ansible_distribution=AlmaLinux \
@@ -123,9 +136,7 @@ Native syntax validation also runs during apply; `--check` is deliberately rejec
 for apply because it cannot establish a fresh authenticated connection or enforce a firewall.
 
 ```bash
-ansible-playbook playbooks/deployment/host-security.yml --limit pilot-1 \
-  -e @/home/operator/private/host-security.yml \
-  -e host_security_acknowledgement=apply-linux-host-v1
+ansible-playbook playbooks/deployment/host-security.yml --limit pilot-1 -e "@$HOME/.config/homelab/host-security.yml" -e host_security_acknowledgement=apply-linux-host-v1
 ```
 
 Keep the console open. Execution is serial and stops the play on the first host
@@ -154,7 +165,9 @@ EL retains its OS crypto-policy backend Include; other algorithm selection follo
 the installed OpenSSH defaults. This is not a
 CIS/STIG claim, egress firewall, patch scheduler, MAC-policy installer or immutable audit policy.
 
-## Acceptance
+<a id="acceptance"></a>
+
+## Step 3: Accept and return
 
 1. Confirm a new operator SSH connection and sudo work; test password/root denial.
 2. Test each approved service from its allowed source and denial from an unrelated
@@ -167,6 +180,10 @@ CIS/STIG claim, egress firewall, patch scheduler, MAC-policy installer or immuta
    using the separate [security logging procedure](../../../administration/security-logging.md).
 6. Reboot the pilot, repeat access/firewall/time/audit tests, then rerun the
    maintenance recipe. Record actual image versions and evidence before expanding scope.
+
+Return to [foundation template acceptance](../README.md#step-3-publish-and-test-vm-templates)
+when qualifying the disposable clone. Service deployments use their own tier-owned
+host-security inputs; do not reuse an SSH-only pilot policy on a listening service.
 
 ## References
 

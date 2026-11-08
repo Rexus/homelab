@@ -16,23 +16,25 @@ is execution code, not another inventory, state owner or set of deployed service
 Traefik enables its namespace-scoped CRD provider for the verified upstream TLS
 transports consumed by control applications; cross-namespace references stay disabled.
 Tier 1 and Tier 2 supply the same `ansible/playbooks/deployment/cluster-platform.yml`
-entry point and small tier-local examples. Reuse the procedure from that tier's
-`ansible/` directory, with its own kubeconfig and inventory. Their examples omit
+entry point and small tier-local examples. Run from that tier's repository root,
+with its own kubeconfig and inventory. Their examples omit
 Flux; Tier 1 selects its delivery controller in Stage 7. Existing CSI is valid in
 every tier; select the documented NFS inputs when commissioning that driver instead.
 
 ## Table of contents
 
-- [Prepare Talos](#prepare-talos)
-- [Configure](#configure)
-- [Render and apply](#render-and-apply)
+- [Step 1: Prepare Talos before bootstrap](#prepare-talos)
+- [Step 2: Configure local platform inputs](#configure)
+- [Step 3: Render, install CNI and complete the platform](#render-and-apply)
 - [Persistence](#persistence)
 - [Certificates and ingress](#certificates-and-ingress)
 - [Database](#database)
 - [Acceptance and recovery](#acceptance-and-recovery)
 - [References](#references)
 
-## Prepare Talos
+<a id="prepare-talos"></a>
+
+## Step 1: Prepare Talos before bootstrap
 
 The [Kubernetes root](../../../../tier-0/terraform/deployments/kubernetes/machines.tf)
 merges the ordered `machine_config_patches` after its native base configuration.
@@ -69,20 +71,24 @@ The API must be reachable; nodes and CoreDNS can remain unready until Cilium is
 installed. The role checks for known conflicting CNI/proxy DaemonSets, but this
 is not exhaustive detection or a supported live-CNI migration procedure.
 
-## Configure
+<a id="configure"></a>
 
-From Tier 0's `ansible/` directory, initialize local input files without overwriting:
+## Step 2: Configure local platform inputs
+
+From the Tier 0 repository root, initialize local input files without overwriting:
 
 ```bash
-cp -n group_vars/cluster_platform.yml.example group_vars/cluster_platform.yml
+cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster_platform.yml
+export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
 ```
 
 Install the coordinated tier-local collection/Python requirements and Helm on
 the execution host. The role needs `kubernetes.core` with native `k8s_info`, `k8s`,
 `helm` and `helm_template`, plus `kubernetes`, `PyYAML` and `jsonpatch` for apply. [2]
 
-Edit [cluster_platform.yml.example](../../../../tier-0/ansible/group_vars/cluster_platform.yml.example)
-as the authoritative configuration example. Examples fail closed until pins,
+Edit **`ansible/group_vars/cluster_platform.yml`**, using the
+[example](../../../../tier-0/ansible/group_vars/cluster_platform.yml.example) as the field reference.
+Examples fail closed until pins,
 source approvals and prerequisites are supplied. Pass the local file explicitly
 with `-e @...`; a `cluster_platform` inventory group is not needed for localhost.
 
@@ -98,36 +104,69 @@ with `-e @...`; a `cluster_platform` inventory group is not needed for localhost
 | `cluster_platform_output` | Private values/manifests directory, default `secrets/cluster-platform/` from the tier root |
 | `cluster_platform_manage_secrets` | Default false; supplied Secrets must already exist when applying |
 
+For the first Cilium run, set its exact chart pin/repository approval,
+`cluster_platform_expected_nodes` and `cluster_platform_talos_cilium_ready: true`
+after verifying Step 1. Complete the other selections before the full-platform run:
+
+| Selection in the same local file | Required edit |
+| --- | --- |
+| Live storage | Keep `cluster_platform_storage_provider: existing`; set the commissioned block `cluster_platform_storage_class` and accept it only after the persistence tests below |
+| Private ingress | Confirm `cluster_platform_ingress_class` and NodePorts against the private routing/firewall configuration |
+| Flux/SOPS | Complete [Flux Steps 1-2](flux-sops.md#prepare-the-source): approved URL/commit/path, canary digest, read-only Git and age Secrets |
+| Certificate enrollment | Keep issuer/probe inputs empty until a qualified external enrollment path exists; imported application leafs are an explicit alternative |
+| Probe database | Leave `cluster_platform_database_enabled: false` unless intentionally creating the optional probe; application databases are created in later stages |
+
 Approve both chart contents and their container image sources for the selected
 Kubernetes/Talos versions. A chart pin fixes default image tags but does not
 provide image signature verification or digest qualification. Supply reviewed
 image/mirror overrides through native values and retain artifacts for recovery.
 
-## Render and apply
+<a id="render-and-apply"></a>
 
-From Tier 0 `ansible/`, render all selected products with no live kubeconfig:
+## Step 3: Render, install CNI and complete the platform
 
-```bash
-ansible-playbook -i localhost, playbooks/deployment/cluster-platform.yml \
-  -e @group_vars/cluster_platform.yml -e cluster_platform_action=render
-```
+1. From the Tier 0 root, render **Cilium only** before any ordinary cluster pods
+   are expected to work:
 
-Review private `*-values.yml`, `*-manifests.yml` (including CRDs), and
-`*-before.yml` / `*-after.yml` support resources where present. Files are mode
-`0600`, directories `0700`; verify Windows ACLs when using WSL. Render output can
-contain chart-generated keys. Bootstrap credentials are not exported as plaintext
-manifests. Repository access is required even though cluster access is not. [2]
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e '{"cluster_platform_components":["cilium"]}' -e cluster_platform_action=render
+   ```
 
-After review, select the independent kubeconfig and apply:
+   Review private `*-values.yml`, `*-manifests.yml` (including CRDs), and
+   `*-before.yml` / `*-after.yml` support resources where present. Files are mode
+   `0600`, directories `0700`; verify Windows ACLs when using WSL. Render output can
+   contain chart-generated keys. Bootstrap credentials are not exported as plaintext
+   manifests. Repository access is required even though cluster access is not. [2]
 
-```bash
-export KUBECONFIG="$PWD/../secrets/talos/kubeconfig"
-ansible-playbook -i localhost, playbooks/deployment/cluster-platform.yml \
-  -e @group_vars/cluster_platform.yml -e cluster_platform_action=apply
-```
+2. After inspecting the rendered Cilium resources, install it and check readiness:
 
-For a single capability, add `-e '{"cluster_platform_components":["cilium"]}'`
-to either command. Prerequisites for omitted products must already be accepted.
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e '{"cluster_platform_components":["cilium"]}' -e cluster_platform_action=apply
+   kubectl get nodes -o wide
+   kubectl get pods -n kube-system
+   ```
+
+3. Complete [Flux Steps 1-3](flux-sops.md), including the remaining platform render
+   and apply commands. The main-path private Secrets file is passed explicitly on
+   both runs; no directory change is required. If pre-existing Secrets already have
+   a qualified owner, retain `cluster_platform_manage_secrets: false` and use:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=render
+   ```
+
+   Inspect all selected resources, then:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=apply
+   ```
+
+4. Complete the persistence, certificate/ingress and database checks below, then
+   return to [Stage 4, Step 3](../README.md#step-3-verify-operation-and-recovery)
+   for protected collection and recovery acceptance.
+
+For another selected subset, change `cluster_platform_components` explicitly.
+Prerequisites for omitted products must already be accepted.
 The role delegates each release to `kubernetes_applications`, then waits for
 that product before the next chart. Reruns converge selected releases; removing
 a component from the list does not uninstall it. CRD upgrade/adoption and

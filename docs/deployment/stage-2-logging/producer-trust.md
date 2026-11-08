@@ -29,7 +29,7 @@ protected local storage and separately held encrypted backups/passphrase.
    read -r -e -p 'Protected authority directory: ' LOGGING_AUTHORITY_DIR
    read -r -s -p 'Authority key passphrase: ' LOGGING_AUTHORITY_PASSPHRASE
    export LOGGING_AUTHORITY_DIR LOGGING_AUTHORITY_PASSPHRASE
-   cp ansible/group_vars/logging_authority.yml.example ansible/group_vars/logging_authority.yml
+   cp -n ansible/group_vars/logging_authority.yml.example ansible/group_vars/logging_authority.yml
    ```
 
 3. Review the local file, then approve first initialization on an empty directory:
@@ -71,7 +71,22 @@ native `community.crypto` primitives and exports only `public/`. [1]
    purpose. Add the exact `name`, `profile: server`, CSR path, colon-separated key
    fingerprint and SAN list to `logging_authority_requests`. The signer rejects other
    subjects, CA powers, usages, keys or names; approval is not inferred from a filename.
-3. Run the normal signing command below. Transfer `public/ca.pem`, `public/revoked.pem`
+3. In **`ansible/group_vars/logging_authority.yml`**, add the server request to
+   `logging_authority_requests`, preserving existing entries:
+
+   ```yaml
+   logging_authority_requests:
+     - name: log-1
+       profile: server
+       csr: /REPLACE_WITH_REVIEWED_CSR_PATH/log-1.csr
+       key_sha256: REPLACE_WITH_VERIFIED_COLON_SEPARATED_KEY_FINGERPRINT
+       san: ['DNS:logs.internal.example.com']
+   ```
+
+   Replace the name/SAN with the approved values selected above. For a producer,
+   append its exact stream name with `profile: client`, its CSR path and verified
+   key fingerprint; omit the server SAN list.
+4. Run the normal signing command in Step 3 below. Transfer `public/ca.pem`, `public/revoked.pem`
    and the named leaf back; never transfer `key.pem` from the authority. Select these
    files and the receiver service key in [receiver Step 2](receiver.md#step-2-register-trust-and-producers).
 

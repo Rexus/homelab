@@ -1,0 +1,275 @@
+# Control-node tooling
+
+Detailed tool installation, compatibility, prechecks and execution inputs for
+Linux/WSL deployment. For source edits, generator previews and offline checks,
+start with [local development setup](../development/local-setup.md).
+
+## Table of contents
+
+- [Purpose](#purpose)
+- [Platform prerequisites](#platform-prerequisites)
+- [Deployment machine](#deployment-machine)
+- [Automation VM example](#automation-vm-example)
+- [Ansible environment](#ansible-environment)
+- [Automatic template runtime](#automatic-template-runtime)
+- [Local repository files](#local-repository-files)
+- [Read more](#read-more)
+- [References](#references)
+
+## Purpose
+
+This reference covers Linux/WSL infrastructure execution. Repository generation
+needs only the [declared Python/PyYAML prerequisites](../development/generated-repositories.md#purpose-and-prerequisites),
+without platform access. Real deployment needs the inputs below. For the first installation, follow the
+[bootstrap execution-host guide](../deployment/foundation/proxmox/bootstrap.md):
+manual Linux template, bootstrap VM, tools/artifacts, verified CA/API access, then IaC.
+This document owns tooling installation, not the VM creation sequence.
+
+## Platform prerequisites
+
+Have these ready before running automation:
+
+- access to the current platform, such as Proxmox
+- an automation API token
+- prepared guest network attachment values for `network_zones`, such as bridge
+  or SDN VNet ID, optional VLAN tag, subnet, and gateway
+- a prepared VM template or image source for managed instances
+- an LXC template file if container provisioning will be used
+
+For Proxmox token setup, read
+[Proxmox API setup](../deployment/foundation/proxmox/api-access.md).
+For the shared zone names and IaC mapping, read
+[Network architecture](../architecture/networking/README.md).
+
+## Deployment machine
+
+Run this repository from one deployment machine.
+
+That machine can be:
+
+- the local workstation
+- a dedicated automation VM after the first template exists
+
+Require these tools there:
+
+- Git
+- Bash (Linux or WSL for deployment)
+- Python 3 and PyYAML for generation and repository helpers
+- `terraform`
+- `ansible-core`
+- SSH client tools
+- `ca-certificates`, curl and OpenSSL for verified API access
+- `xz`, `unzip` and tar for approved artifact unpacking
+- `qemu-img` for template boot-disk inspection/maintenance (`qemu-utils` on Debian/Ubuntu)
+
+`Packer` is only needed when building templates from the same machine.
+
+Each deployment run starts with a local Ansible precheck on that deployment
+machine. That precheck is setup-aware: it verifies only the Ansible collections
+needed by the selected setup, tries to install missing collections from the OS
+package manager first, and falls back to `ansible-galaxy` only when the OS
+package path does not provide them.
+For example, `foundation` includes directory and issuer requirements:
+`community.general`, `ansible.posix`, `freeipa.ansible_freeipa`, `community.crypto`
+and `ansible.mariadb`, while `cache` needs `community.general` and
+`ansible.posix`.
+
+Run the tier's `ansible/playbooks/control-node.yml`, which imports shared checks
+with tier-owned requirements. For offline use, pre-stage collections from
+`shared/ansible/requirements.yml` (the prefixed shared repo after generation)
+and any owning-tier `ansible/requirements.yml`. Shared owns `community.crypto`
+for private PKI and public ACME. Tier 0 adds `freeipa.ansible_freeipa` and
+`ansible.mariadb`. Each tier adds `kubernetes.core` and Python client dependencies
+for native cluster applications; network-scoped recipes also use `ansible.utils`
+for address validation. Install the owning tier's `ansible/requirements.txt` in the
+accepted virtual environment, not the operating system's Python environment.
+Keep collection artifacts on the recovery host so the precheck needs no network.
+Tier 0 template `apply` and `verify` also use `community.proxmox` to complete and
+inspect raw template settings; their [runtime setup](#automatic-template-runtime) is automatic
+and requires no guest SSH or hosted control service.
+
+The repository deployment wrapper runs that precheck before Terraform or host
+playbooks. Follow the root README or the setup-specific guide for the actual
+run commands.
+
+For provider credentials, use one of these paths:
+
+| Source | How to use it |
+| --- | --- |
+| existing shell or runner variables | useful for runners and pipeline jobs |
+| local ignored env file | useful for a dedicated automation VM |
+| another env file path | useful when the deployment machine handles several contexts |
+
+Ansible is configured for bootstrap-friendly SSH. New host keys are accepted
+automatically with OpenSSH `StrictHostKeyChecking=accept-new`, while changed
+host keys still stop the run. When destroying and recreating test guests with the
+same IPs, use the deployment wrapper's `--reset-known-hosts` option for that
+setup.
+
+## Automation VM example
+
+After the first template exists, a small dedicated automation VM is often
+easier to keep stable than using a personal workstation.
+Create it with the [bootstrap deployment guide](../deployment/foundation/proxmox/bootstrap.md),
+then install the tools below on that VM. An accepted independent workstation is
+also valid. Proxmox hosts and Talos nodes are not general-purpose deployment machines.
+
+For the AlmaLinux/Rocky Linux reference VM, use approved OS/vendor package sources.
+Enable EPEL only when permitted by the software-intake policy. Confirm repository
+signing keys through the official installation instructions before accepting them;
+never disable package-signature or TLS checks. [1][2]
+
+```bash
+sudo dnf install -y epel-release
+sudo dnf install -y git bash python3 python3-pip python3-pyyaml \
+  openssh-clients ca-certificates curl openssl xz unzip tar /usr/bin/qemu-img
+sudo dnf install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+sudo dnf install -y terraform
+```
+
+Check the installed tools before cloning/generation:
+
+```bash
+git --version
+python3 -c 'import yaml; print(yaml.__version__)'
+terraform version
+qemu-img --version
+```
+
+Before running Ansible, prepare the [Ansible environment](#ansible-environment) below.
+Use versions satisfying the selected Terraform roots and Ansible collections;
+an installed executable alone is not compatibility evidence. For an offline host,
+transfer approved packages/wheels/provider/collection archives first. Do not make
+this initial tool setup depend on the proxy/cache or hosted registry being deployed.
+
+For other distributions, follow the current official install guides for
+[Terraform](https://developer.hashicorp.com/terraform/install) and
+[ansible-core](https://docs.ansible.com/ansible/latest/installation_guide/installation_distros.html).
+
+Keep the automation VM simple:
+
+- store a private working copy of the repository there
+- keep the local Terraform vars, inventory, and group vars there
+- give it access to the Proxmox API, Git remotes, and the package or collection
+  sources it needs
+
+## Ansible environment
+
+Prepare a deployment-user virtual environment before running Ansible-based paths.
+An existing accepted environment is also valid. The Proxmox maintenance collection
+requires `ansible-core >=2.17`; an OS package may supply an older release. Installing
+`ansible/requirements.txt` installs module dependencies, not Ansible itself. [3][4]
+
+```bash
+python3 -m venv "$HOME/.local/share/homelab/venv"
+source "$HOME/.local/share/homelab/venv/bin/activate"
+python3 -m pip install --upgrade 'ansible-core>=2.17' PyYAML
+ansible-playbook --version
+```
+
+On Debian/Ubuntu, install `python3-venv` first if the OS packages do not yet provide
+venv support. Use the selected Python version's package where applicable. [5]
+Activate the same environment in each new deployment shell before invoking tier
+scripts. Install the owning tier's `ansible/requirements.txt` there and its declared
+collections through that environment's `ansible-galaxy`; avoid `sudo pip` and user-site
+installs mixed with a different system Ansible. Use approved pre-staged wheels and
+collections for offline installation; retain accepted versions for recovery.
+
+### Automatic template runtime
+
+Run the usual `scripts/proxmox-templates.sh apply`, `verify` or `replace-disk`
+command from **Tier 0**. It selects Python 3.12–3.14 and prepares
+`.venv/proxmox-templates-py<version>/`, using `ansible/runtime-requirements.txt`.
+It then runs `ansible/playbooks/prepare-template-runtime.yml` to install the tier's
+Python module requirements and the declared Proxmox collection. Disk maintenance
+also installs `qemu-img` when missing. Collection downloads stay under `.venv/collections/`.
+Later runs reuse compatible packages without forcing upgrades.
+
+| Setting or condition | Behavior |
+| --- | --- |
+| Default | Prepare and select the isolated runtime automatically; no `source` step |
+| Python missing or too old | Install bootstrap packages from configured DNF/APT repositories |
+| Missing OS packages | Use root/sudo; prompt for sudo locally when needed, never prompt in CI |
+| `TEMPLATE_PYTHON=/path/to/python` | Select an already installed Python 3.12–3.14 explicitly |
+| `TEMPLATE_RUNTIME_MODE=check` | Use preinstalled tools and existing checks; perform no dependency installation |
+| Offline package sources | Use normal pip/Galaxy configuration and pre-staged collections; `PIP_NO_INDEX` and `PIP_FIND_LINKS` apply |
+
+Pip packages stay inside the isolated runtime; system Ansible and the default Python
+selection are retained. New Python minor versions get separate runtime directories.
+The current runtime uses the tested Ansible 2.21 line. [6]
+Enterprise Linux 10 supplies Python 3.12 by default; Enterprise Linux 9 can install
+it alongside system Python. [7][8] Debian/Ubuntu must supply a compatible interpreter
+through their configured repositories; the bootstrap never adds third-party OS repositories.
+
+CI uses the same template command and exits before Terraform/Proxmox operations if
+runtime preparation fails. Preinstall OS tools in an unprivileged runner image, or
+provide noninteractive sudo for missing packages. For a fully prebuilt or disconnected
+runner, select `TEMPLATE_RUNTIME_MODE=check` and provide compatible Python, Ansible,
+module dependencies and collections. Keep wheel/collection artifacts available for recovery;
+generated repositories include the bootstrap code and dependency declarations.
+
+To prepare a runner or recovery host before platform access, run from Tier 0:
+
+```bash
+bash scripts/proxmox-templates.sh setup
+```
+
+This prepares all template tooling without accessing Terraform state or Proxmox.
+It is optional; normal Ansible-based template commands perform the same preparation.
+
+## Local repository files
+
+Use the generated repository for the owning tier, or enter `tier-0/`,
+`tier-1/`, or `tier-2/` in a private source checkout. Create ignored local
+working files from that tier's examples before the
+first deployment. Each tier has separate inventory, group vars, and Terraform
+state while using the sibling shared automation.
+
+Run `bash scripts/init-local-files.sh` from that tier directory, not the kit
+root. Shared code is in `../shared/` in the source checkout and
+`../<prefix>-shared/` in a generated collection.
+
+These ignored files are expected to evolve as the environment matures. Keep
+editing the same local files instead of recreating them for every run.
+The deployment wrapper loads the shared platform profile and image catalog,
+then `terraform/common.tfvars` before the selected setup `terraform.tfvars`.
+Configure common storage, initial placement and network references once in the shared
+profile. Keep tier-specific networks and network overrides per tier, and public-key
+paths in ignored local environment inputs.
+See [platform inputs](../reference/platform-inputs.md) for precedence and SSH access.
+Use `scripts/init-local-files.sh --setup <name>` to create only
+the local files for one deployment path plus the shared defaults.
+
+When the repo examples change later, refresh local files carefully and review
+any backups before deployment. The repository does not try to merge YAML, HCL,
+and dotenv content automatically.
+
+Keep live secrets out of Git.
+Initializers and deployment entry points use `umask 077` for newly created local
+inputs, backups and working files. This does not tighten existing file permissions
+or replace a Windows ACL review; restrict access to existing secrets/state and test
+encrypted off-host recovery separately.
+
+## Read more
+
+- [Environment variable conventions](../reference/environment-variables.md)
+- [Repository scripts](../reference/repository-scripts.md)
+- [Secret strategy](../administration/secret-handling/strategy.md)
+- [Identity foundation path](../deployment/stage-5-identity/procedures/freeipa.md)
+- [Windows and AD support](../architecture/identity/windows-integration.md)
+- [Deployment readiness](../deployment/readiness.md)
+- [Proxmox reference platform](../deployment/foundation/proxmox/README.md)
+
+## References
+
+Sources checked 2026-11-08.
+
+1. [HashiCorp Terraform installation](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli).
+2. [Ansible distribution packages and EPEL](https://docs.ansible.com/projects/ansible/latest/installation_guide/installation_distros.html).
+3. [Installing Ansible and extra Python dependencies](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html).
+4. [Proxmox collection's Ansible runtime requirement](https://raw.githubusercontent.com/ansible-collections/community.proxmox/2.1.0/meta/runtime.yml).
+5. [Python virtual environments](https://docs.python.org/3/library/venv.html).
+6. [Ansible control-node Python support](https://docs.ansible.com/projects/ansible-core/2.21/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix).
+7. [Enterprise Linux 10 Python](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/installing_and_using_dynamic_programming_languages/installing-and-using-python).
+8. [Enterprise Linux 9 Python](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/installing_and_using_dynamic_programming_languages/assembly_installing-and-using-python_installing-and-using-dynamic-programming-languages).

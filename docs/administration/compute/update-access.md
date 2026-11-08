@@ -1,188 +1,146 @@
-# Proxmox cache usage
+# Proxmox update-access tasks
 
-## Purpose
+Connect Proxmox-managed downloads and host APT to an accepted repository proxy.
+This consumes [Stage 1 software intake](../../deployment/stage-1-software-intake/README.md);
+it neither installs the cache nor schedules package upgrades.
 
-Use this guide to connect Proxmox hosts or template workflows to an existing
-shared cache for controlled repository and image access.
+**Working repository:** `<prefix>-tier-0` for managed configuration.
+**Host commands:** run as root in an approved shell on the named Proxmox host.
+**Before starting:** accepted cache endpoint, permitted host subnet/repository domains,
+independent console and a known rollback configuration.
+**Why:** [controlled software intake](../../architecture/software/software-intake.md).
 
-This is not a Proxmox prerequisite. It is an optional operating mode for
-environments where Proxmox hosts, template builders, or restricted networks
-should use the same repository/cache proxy as other managed systems.
+## Find the task
 
-The cache service itself is owned by the
-[Software intake capability](../../deployment/stage-1-software-intake/README.md). This guide only shows how
-Proxmox-facing workflows can consume that proxy.
+- [How are managed hosts configured?](#how-are-managed-hosts-configured)
+- [How is the GUI download proxy configured manually?](#how-is-the-gui-download-proxy-configured-manually)
+- [How is host APT configured manually?](#how-is-host-apt-configured-manually)
+- [How are image downloads and builder VMs handled?](#how-are-image-downloads-and-builder-vms-handled)
+- [How is a proxy change rolled back?](#how-is-a-proxy-change-rolled-back)
 
-The [software-intake design](../../architecture/delivery/software-intake.md)
-defines approved sources, internal HTTP mirror choices and independent recovery.
-This configures client downloads; it does not install a mirror, schedule updates
-or grant the Tier 2 cache administrative access to Proxmox.
+<a id="purpose"></a>
+<a id="proxy-endpoint"></a>
+<a id="configure-with-ansible"></a>
 
-## Proxy endpoint
+## How are managed hosts configured?
 
-Set `CACHE_PROXY_URL` to the cache endpoint for the environment. Use the FQDN
-or VIP IP that Proxmox should reach:
+1. On the prepared execution host, use the **Tier 0 root**. Add existing Proxmox hosts
+   to `hypervisors` in `ansible/inventory/hosts.yml`; this does not provision hosts.
+2. Set these fields in ignored `ansible/group_vars/all.yml`, using the accepted endpoint:
 
-```bash
-CACHE_PROXY_URL="http://cache.corp.example.com:3128"
-```
+   ```yaml
+   repository_proxy_enabled: true
+   repository_proxy_fqdn: "cache.{{ platform_domain }}"
+   repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
+   ```
 
-## Configure the Proxmox cluster
+3. Run the supplied host recipe:
 
-Use the Proxmox Datacenter setting for the Proxmox cluster itself to
-use the cache for Proxmox-managed downloads.
+   ```bash
+   export ANSIBLE_CONFIG="$PWD/ansible/ansible.cfg"
+   read -r -p "Proxmox host SSH user (example: root): " PVE_SSH_USER
+   ansible-playbook -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e "ansible_user=$PVE_SSH_USER" ansible/playbooks/proxmox-hosts.yml
+   ```
 
-In the Proxmox UI:
+   Select a host SSH account with the required privilege; it is separate from a Proxmox API token.
+4. On each affected host, verify Datacenter and APT behavior using the checks below.
+   Do not also maintain the same settings manually.
 
-1. Open `Datacenter`.
-2. Select `Options`.
-3. Select the `HTTP proxy` row.
-4. Click `Edit`.
-5. Enter the configured value of `CACHE_PROXY_URL`.
-6. Save.
+**Expected:** the [Proxmox host role](../../../tier-0/ansible/roles/proxmox_host)
+reconciles the Datacenter proxy and per-host APT configuration. The Tier 2 cache
+receives download requests, not Tier 0 administrative authority.
 
-The setting is cluster-wide and is stored in `/etc/pve/datacenter.cfg` as
-`http_proxy`. Verify it from any Proxmox node:
+<a id="configure-the-proxmox-cluster"></a>
 
-```bash
-grep '^http_proxy:' /etc/pve/datacenter.cfg
-```
+## How is the GUI download proxy configured manually?
 
-This setting is for Proxmox download workflows. For host shell
-commands or `apt update` to use the cache, configure the host package manager as
-shown below.
+1. Open **Datacenter > Options > HTTP proxy > Edit**.
+2. Enter the accepted proxy, for example `http://cache.corp.example.com:3128`, and save.
+3. On a Proxmox host, inspect the cluster-wide setting:
 
-## Configure with Ansible
+   ```bash
+   grep '^http_proxy:' /etc/pve/datacenter.cfg
+   ```
 
-If `ansible/inventory/hosts.yml` has Proxmox hosts in the `hypervisors` group,
-Ansible can manage the Datacenter HTTP proxy and the per-host APT proxy file.
+4. Test an approved download workflow. Require the selected endpoint and a successful
+   download. This GUI setting does not configure host shell commands or APT.
 
-Set the shared proxy URL in `ansible/group_vars/all.yml`:
+<a id="optional-host-package-updates"></a>
+<a id="test-from-a-proxmox-host"></a>
+<a id="test-apt-through-the-proxy"></a>
 
-```yaml
-repository_proxy_enabled: true
-repository_proxy_fqdn: "cache.{{ platform_domain }}"
-repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
-```
+## How is host APT configured manually?
 
-From the Tier 0 repository root, or `tier-0/` in a private source checkout:
+1. On the **Proxmox host**, select the accepted endpoint and test it explicitly:
 
-```bash
-cd ansible
-export ANSIBLE_CONFIG="$PWD/ansible.cfg"
-ansible-playbook -i inventory/hosts.yml -e @group_vars/all.yml \
-  playbooks/proxmox-hosts.yml
-```
+   ```bash
+   read -r -p "Approved proxy URL (example: http://cache.corp.example.com:3128): " CACHE_PROXY_URL
+   read -r -p "Approved small repository metadata URL: " SOURCE_URL
+   curl --fail --noproxy '' --proxy "$CACHE_PROXY_URL" --output /dev/null "$SOURCE_URL"
+   apt-get -o Acquire::http::Proxy="$CACHE_PROXY_URL" -o Acquire::https::Proxy="$CACHE_PROXY_URL" update
+   ```
 
-Connected control hosts may use an explicitly approved proxy path, with local
-artifacts retained for recovery. Offline custody requires its own local mirror
-or transferred content; this workflow does not create a path across the air gap.
+   Stop if either request fails. Check source policy, DNS and reachability before writing configuration.
+2. As **root on that host**, preserve the prior owned file if present, then write the
+   accepted literal endpoint. The shell expands the value in this block:
 
-## Test from a Proxmox host
+   ```bash
+   if [ -f /etc/apt/apt.conf.d/76pveproxy ]; then
+     cp -a /etc/apt/apt.conf.d/76pveproxy /etc/apt/apt.conf.d/76pveproxy.before-change
+   fi
+   cat > /etc/apt/apt.conf.d/76pveproxy <<EOF
+   Acquire::http::Proxy "$CACHE_PROXY_URL";
+   Acquire::https::Proxy "$CACHE_PROXY_URL";
+   EOF
+   apt-get update
+   ```
 
-Run this from a Proxmox host shell:
+3. Require successful repository metadata refresh from the intended sources. APT
+   `update` refreshes metadata; install/upgrade decisions use the [maintenance runbook](../maintenance.md).
 
-```bash
-curl -x "$CACHE_PROXY_URL" -I "https://mirrors.fedoraproject.org/"
-```
+<a id="persist-the-apt-proxy"></a>
 
-## Optional host package updates
+The same HTTP proxy URL can forward HTTPS using CONNECT. It does not decrypt/cache
+HTTPS payloads. A separately approved HTTPS-proxy endpoint can use its own value;
+see [transport limits](../../deployment/stage-1-software-intake/proxy-cache.md#transport-limits).
 
-Proxmox hosts use Debian package tooling. If host package updates should also
-use the cache, first test APT with the proxy without writing host config.
+<a id="image-downloads-on-proxmox-hosts"></a>
+<a id="template-preparation-vms"></a>
 
-### Test APT through the proxy
+## How are image downloads and builder VMs handled?
 
-```bash
-apt \
-  -o Acquire::http::Proxy="$CACHE_PROXY_URL" \
-  -o Acquire::https::Proxy="$CACHE_PROXY_URL" \
-  update
-```
+| Task | Action |
+| --- | --- |
+| Manual artifact download | On the download host, pass the accepted proxy explicitly; verify the vendor release and unpacked bytes before publication |
+| Proxmox-managed downloads | Use the accepted Datacenter proxy above |
+| Linux builder packages | Set `repository_proxy_*` in the builder's local Ansible inputs; use [staged refresh](template-refresh.md) |
+| Reusable template cleanup | Clear machine-specific state/caches before conversion; clones receive their environment's proxy configuration |
+| Offline custody | Use approved retained mirrors/artifacts; this recipe creates no route across an air gap |
 
-### Persist the APT proxy
-
-Create or update `/etc/apt/apt.conf.d/76pveproxy` as `root` on each Proxmox
-host:
-
-```aptconf
-Acquire::http::Proxy "${CACHE_PROXY_URL}";
-Acquire::https::Proxy "${CACHE_PROXY_URL}";
-```
-
-Use a different HTTPS proxy URL only when the environment provides one.
-Otherwise, keep the same cache endpoint for both entries. In Ansible, set
-`repository_proxy_https_url` only when it should differ from
-`repository_proxy_url`.
-
-Then confirm package metadata access still works through the persisted config:
-
-```bash
-apt update
-```
-
-### Remove the APT proxy
-
-Delete the proxy config file:
+For a manual image fetch in the current download shell:
 
 ```bash
-rm -f /etc/apt/apt.conf.d/76pveproxy
-apt update
+read -r -p "Approved proxy URL: " CACHE_PROXY_URL
+read -r -p "Approved artifact URL: " IMAGE_URL
+no_proxy='' https_proxy="$CACHE_PROXY_URL" http_proxy="$CACHE_PROXY_URL" wget "$IMAGE_URL"
 ```
 
-## Image downloads on Proxmox hosts
+Follow [artifact verification and import](../../deployment/foundation/proxmox/templates.md#step-1-verify-unpack-and-upload).
+A successful download alone is not release approval.
 
-For manual cloud image, ISO, or checksum downloads from a Proxmox host shell,
-use standard proxy environment variables:
+<a id="remove-the-apt-proxy"></a>
 
-```bash
-export http_proxy="$CACHE_PROXY_URL"
-export https_proxy="$CACHE_PROXY_URL"
+## How is a proxy change rolled back?
 
-wget "<image-url>"
-wget "<checksum-url>"
-```
+1. Retain the error and restore the previous accepted endpoint in its owner: Ansible
+   inputs for managed hosts, or the GUI/file for the manual path.
+2. For the manual APT path, restore `76pveproxy.before-change` if it existed. Remove
+   `76pveproxy` only when this task created it and another approved supply path exists.
+3. Rerun the appropriate recipe/check. Require repository access through the selected
+   policy before closing the change; do not open unrestricted WAN access to fix it.
 
-Unset them after the download window:
+<a id="read-more"></a>
 
-```bash
-unset http_proxy https_proxy
-```
-
-For controlled egress, the most predictable manual path is to download from the
-Proxmox host shell with explicit proxy variables, verify checksums, then use the
-local file.
-
-## Template preparation VMs
-
-For temporary template preparation VMs, prefer the normal repository proxy
-variables consumed by the Ansible baseline role:
-
-```yaml
-repository_proxy_enabled: true
-repository_proxy_fqdn: "cache.{{ platform_domain }}"
-repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
-```
-
-Keep permanent proxy settings out of reusable templates unless every future
-clone should inherit that exact proxy. The safer default is:
-
-- use the proxy while preparing or refreshing the template
-- clean package caches and cloud-init state before converting to template
-- let deployed guests receive environment-specific proxy settings from Ansible
-
-For manual Enterprise Linux template prep, a one-off DNF command is often
-enough:
-
-```bash
-sudo dnf \
-  --setopt=proxy="$CACHE_PROXY_URL" \
-  install -y acpid qemu-guest-agent
-```
-
-## Read more
-
-- [Software intake](../../deployment/stage-1-software-intake/README.md)
-- [Enterprise Linux template](../../deployment/foundation/proxmox/templates.md)
-- [Proxmox hardening baseline](hardening.md)
-- [Proxmox datacenter configuration](https://pve.proxmox.com/pve-docs/datacenter.cfg.5.html)
+**Related:** [template operations](template-lifecycle.md),
+[guest package intake](../../deployment/stage-1-software-intake/README.md#step-3-connect-and-verify-consumers),
+and [network policy](../../architecture/networking/firewall-policy.md).

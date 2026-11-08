@@ -100,7 +100,8 @@ by being reachable; the application needs supported provider integration.
 | --- | --- |
 | Supplied to identity and services | Public trust material and policy-scoped certificate issuance, renewal and revocation |
 | Supplied to authorized clients | Scoped secret retrieval or delivery with audit and independent recovery |
-| Consumed from compute | Issuer and secret-service runtime, persistent storage and approved network access |
+| Consumed from hosting and networking | Issuer and secret-service runtime with approved network access |
+| Consumed from data services | Issuer records and secret-service persistence with [explicit storage and recovery contracts](../data/README.md); key custody remains separately controlled |
 | Consumed from access policy | Authorized service identities, consumer roles and separately controlled custodian authority |
 | Consumed from recovery arrangements | Protected backups, recovery credentials and startup material independent of the affected service |
 

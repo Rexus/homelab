@@ -181,13 +181,15 @@ entries to `vm_instances`, `hsm_gateways` and the complete `platform_host_ips` m
 The source examples include commented `hsm-3` entries; larger pools use the same
 mechanism. No replica count flag, automatic key replication or autoscaler is implied.
 
-Edit the files above, then review the host plan:
+Edit the files above, then run the host deployment. Review the displayed plan and
+enter `yes` to provision the selected guests and apply their OS baseline:
 
 ```bash
-bash scripts/deploy.sh hsm --plan-only
+bash scripts/deploy.sh hsm
 ```
 
-Apply only the reviewed plan through the normal [deployment workflow](../../reference/repository-scripts.md).
+Add `--plan-only` for an optional preview; approved unattended host provisioning
+can use `--auto-approve`. These flags grant no device/key initialization authority.
 Attach the intended local USB device to each VM, or initialize a software token
 for rehearsal. Validate the expected token identity and supported provider on each host.
 

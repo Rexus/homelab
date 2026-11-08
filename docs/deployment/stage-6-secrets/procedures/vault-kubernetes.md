@@ -12,17 +12,30 @@ other seals use the [explicit integration branch](../step-1c-seal-integration.md
 
 ## Table of contents
 
-- [Install the sealed service](#install-the-sealed-service)
-- [Operator ceremony](#operator-ceremony)
-- [Enable audit and human access](#enable-audit-and-human-access)
-- [Accept recovery](#accept-recovery)
+- [Step 1: Install the sealed service](#install-the-sealed-service)
+- [Step 2: Operator ceremony](#operator-ceremony)
+- [Step 3: Enable audit and human access](#enable-audit-and-human-access)
+- [Step 4: Accept recovery](#accept-recovery)
 - [References](#references)
 
-## Install the sealed service
+<a id="install-the-sealed-service"></a>
+
+## Step 1: Install the sealed service
 
 Select `[vault]` and `control_applications_vault_phase: install`. Render and review
 the [native installation](control-applications.md#render-and-apply), then apply only
 after the independent custody and platform gates are recorded.
+
+Edit `ansible/group_vars/control_applications.yml`:
+
+```yaml
+control_applications_components: [vault]
+control_applications_vault_phase: install
+```
+
+Complete [input and certificate preparation](control-applications.md#configure-inputs),
+then run its render/apply commands. Expected result: three running server processes,
+still sealed. Do not mark backup, audit-forwarding or recovery acceptance flags true yet.
 
 The official Helm chart installs Raft servers with one data and one audit PVC per
 replica. TLS retry-join uses the internal pod addresses and verifies the selected
@@ -35,7 +48,9 @@ ingress may have no endpoint until an operator completes the ceremony. Preserve
 the chart's `OnDelete` rolling-restart behavior; plan one-server-at-a-time upgrades
 and re-unseal explicitly.
 
-## Operator ceremony
+<a id="operator-ceremony"></a>
+
+## Step 2: Operator ceremony
 
 1. Establish a verified administrative TLS connection to `vault-0`, through an
    approved private route or an authenticated port-forward. With a loopback route,
@@ -56,12 +71,19 @@ The role never receives unseal shares, recovery shares, recipient private keys,
 or permission to run initialization/unseal. Do not put shares on command lines,
 in Ansible inputs or shell history.
 
-## Enable audit and human access
+<a id="enable-audit-and-human-access"></a>
+
+## Step 3: Enable audit and human access
 
 Select `control_applications_vault_phase: configure`. Supply the private API token,
 existing `vault` client secret, trusted IdP CA PEM, and reviewed role/policy maps.
 Use `control_applications_register_clients: true` when Tier 0 should converge the
 client in the existing Keycloak realm; otherwise register it there independently.
+
+Edit `ansible/group_vars/control_applications.yml` to set
+`control_applications_vault_phase: configure`. Put the short-lived configuration token and
+OIDC credentials in the accepted private Secret inputs, never this public settings file.
+Repeat the [render/apply commands](control-applications.md#render-and-apply) with those inputs.
 
 | Setting | Result |
 | --- | --- |
@@ -91,7 +113,9 @@ synchronous with Vault API success. Size/monitor audit storage, retain records
 under the approved policy and qualify rotation/reopen. No automatic deletion or
 rotation of the security record is installed by this role.
 
-## Accept recovery
+<a id="accept-recovery"></a>
+
+## Step 4: Accept recovery
 
 Use `control_applications_vault_phase: accept` only after the following checks:
 
@@ -114,6 +138,10 @@ Set `control_applications_backup_restore_accepted: true` only after recording th
 restore evidence. The accept pass validates health, audit configuration, policy
 content, OIDC role bounds and voter count. It does not perform destructive failure
 or restore testing on the live service.
+
+After recording evidence, set `control_applications_vault_phase: accept` and the
+verified audit/backup acceptance flags in `ansible/group_vars/control_applications.yml`.
+Repeat the same [apply command](control-applications.md#render-and-apply) for the accept pass.
 
 Return to [Stage 6](../README.md#step-2-add-operational-tools).
 

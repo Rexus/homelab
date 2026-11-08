@@ -10,31 +10,40 @@ Start with the [Stage 8 main path](README.md). All filled inputs and render outp
 
 - [Inputs and execution](#inputs-and-execution)
 - [Secrets and trust](#secrets-and-trust)
+- [Step 3: Install and verify](#install-and-verify)
 - [Private cross-cluster intake](#private-cross-cluster-intake)
 - [Approved search projections](#approved-search-projections)
 - [Storage and recovery](#storage-and-recovery)
 - [Verification](#verification)
 - [References](#references)
 
-## Inputs and Execution
+<a id="inputs-and-execution"></a>
+
+## Step 1: Create and edit local inputs
 
 Source ownership remains in
 [`ansible/roles/observability_platform/`](../../../tier-1/ansible/roles/observability_platform).
-Prepare ignored local copies of the
-[platform](../../../tier-1/ansible/group_vars/observability_platform.yml.example) and
-[private inputs](../../../tier-1/ansible/group_vars/observability_platform_secrets.yml.example).
-Run from its `ansible/` directory on the prepared Linux controller:
+Run from the **Tier 1 root** in the prepared deployment virtual environment:
 
 ```bash
-ansible-playbook playbooks/deployment/observability-platform.yml \
-  -e @group_vars/observability_platform.yml \
-  -e @group_vars/observability_platform_secrets.yml
+umask 077
+cp -n ansible/group_vars/observability_platform.yml.example ansible/group_vars/observability_platform.yml
+cp -n ansible/group_vars/observability_platform_secrets.yml.example ansible/group_vars/observability_platform_secrets.yml
 ```
 
-The default action is `render`: no kubeconfig, namespace changes or live API is required.
-It writes private values/manifests under `secrets/observability-platform/` in the tier root.
-`-e observability_action=apply` explicitly selects convergence, with the supplied kubeconfig/context.
-Do not run both this recipe and a delivery controller as concurrent owners of the same releases.
+Edit `ansible/group_vars/observability_platform.yml`; fill Secret values only in the
+separate private file. Preserve the reviewed native chart pins.
+
+| First edits | Required value |
+| --- | --- |
+| `observability_kubeconfig`, `observability_context` | Existing Tier 1 cluster and exact context |
+| `observability_storage_class`, `observability_database_storage_class` | Accepted live block classes, not NAS backup storage |
+| `observability_topology_key`, `observability_failure_domains` | Actual node label and three independently verified physical domains |
+| `observability_grafana_url`, `observability_dashboards_url`, `observability_oidc_issuer` | Actual HTTPS names and existing issuer |
+| `observability_log_scopes`, `observability_telemetry_cidrs`, `observability_egress` | Approved source identities, reader roles and exact network permissions |
+| `observability_backup_mode`, `observability_backup_files_phase` | NAS main path: `files`, initially `prepare` |
+
+Do not run this recipe and a delivery controller as concurrent owners of the same releases.
 
 | Input | Contract |
 | --- | --- |
@@ -70,7 +79,21 @@ enable it to repair, scale or restore an existing cluster, or to form a new clus
 over reused data volumes. Preserve the established cluster UUID and use its recovery
 procedure instead. [13]
 
-## Secrets and Trust
+<a id="secrets-and-trust"></a>
+
+## Step 2: Prepare Secrets and trust
+
+Choose one owner for the Secrets in the table below. With an existing Secret controller,
+leave `observability_manage_secrets: false` and provision them through that owner.
+For explicit bootstrap ownership, fill the private `observability_secrets` map in
+`ansible/group_vars/observability_platform_secrets.yml` and set that file's
+`observability_manage_secrets: true`. Encrypt the completed file:
+
+```bash
+ansible-vault encrypt ansible/group_vars/observability_platform_secrets.yml
+```
+
+Retain its decryption and service recovery material independently.
 
 All names below are namespace-local. Certificates need the exact service names used by
 their clients in SANs. Use a separate client-signing authority per source scope; sharing
@@ -136,6 +159,41 @@ Data Prepper receives literal credentials in its native pipeline Secret. The rol
 externally owned ingestion Secrets on apply, or uses explicitly managed inputs. It does
 not depend on environment substitution unsupported by the selected native parser.
 Helm release state and render output therefore need secret-level custody.
+
+<a id="install-and-verify"></a>
+
+## Step 3: Install and verify
+
+1. Keep `observability_backup_files_phase: prepare` for the initial NAS path.
+   Set database-storage acceptance only after qualifying the live block class.
+2. Render the selected inputs:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass
+   ```
+
+3. Review private output under `secrets/observability-platform/`, then apply:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass -e observability_action=apply
+   ```
+
+4. In files/prepare mode this creates only `grafana-db`. Complete the
+   [NAS backup commissioning procedure](../../administration/backups/postgresql.md),
+   then fill `observability_backup_files` claim/handle/system-identifier/marker fields,
+   set `observability_backup_files_accepted: true` after verification and select phase `backup`.
+5. For the first **empty** OpenSearch cluster set `observability_search_bootstrap: true`.
+   Set the physical-placement, Netdata host-access, CNI and kernel acceptance flags only after
+   their checks pass. Repeat render/review/apply; this pass installs the pictured services.
+6. After the first green membership check, set `observability_search_bootstrap: false`,
+   repeat render/review/apply and verify readiness again. Never re-enable it on existing data.
+7. Continue with [Stage 8 Step 3](README.md#step-3-connect-infrastructure-monitoring), then
+   test scoped readers, failure/replay and clean-target recovery before acceptance.
+
+With externally owned Secrets, omit the private extra-vars file and `--ask-vault-pass`
+from both commands. The explicit `action=apply` changes the cluster without a Terraform
+confirmation prompt. Object/WAL installations use their accepted backup contract instead
+of the NAS prepare/commission/backup sequence.
 
 ## Private Cross-Cluster Intake
 

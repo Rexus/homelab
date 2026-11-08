@@ -1,124 +1,62 @@
 # Proxmox API setup
 
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for host-side setup.
-Each consuming tier supplies its own authorized credentials through local inputs, never Shared.
+Create scoped API access for template publication and guest provisioning.
+Complete this after installing verified CA trust on the [bootstrap host](bootstrap.md).
+This procedure does not deploy guests.
 
-**Design:** [protected provisioning](../../../architecture/compute/provisioning.md).
-For a first installation, prepare the [bootstrap execution host](bootstrap.md)
-after the first manual Linux template. API caller trust and local credentials
-belong on that execution host, not only on the workstation displaying these guides.
+**Working repository:** `<prefix>-tier-0` for bootstrap inputs (source: `tier-0/`).
+**Run Steps 1–3 on:** a Proxmox host as an authorized administrator.
+**Run Step 4 on:** the bootstrap host, in the owning generated tier.
+**Design:** [protected provisioning](../../../architecture/hosting/provisioning.md).
 
-## Table of contents
+## Contents
 
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [What this repo needs](#what-this-repo-needs)
-- [Endpoint values](#endpoint-values)
-- [TLS gate](#tls-gate)
-- [Create Platform Automation Access](#create-platform-automation-access)
-- [Use the token](#use-the-token)
+- [Before starting](#prerequisites)
+- [Create platform automation access](#create-platform-automation-access)
 - [Validate access](#validate-access)
+- [Use the token](#use-the-token)
+- [Existing or privilege-separated tokens](#existing-or-privilege-separated-tokens)
 - [Role patterns for teams](#role-patterns-for-teams)
-- [When to split automation identities](#when-to-split-automation-identities)
 - [References](#references)
 
-## Purpose
-
-Use this guide to create the Proxmox API access needed by the deployment
-machine that runs this repository. Proxmox uses path-based permissions where
-roles are assigned to users, groups, or tokens on paths such as `/vms`,
-`/storage/<id>`, `/nodes/<node>`, and `/pool/<poolid>`.[1]
-
-The default goal is a dedicated platform automation identity that can clone
-templates, create guests, attach disks, apply cloud-init, place guests on the
-right networks, and clean up disposable test deployments.
-
-Do not use `root@pam` or a personal administrator token for normal repo runs.
-
+<a id="purpose"></a>
 <a id="before-you-start"></a>
 
 ## Prerequisites
 
-Have this ready:
+Record these actual values before copying commands. Examples must match the selected
+[names and allocations](../../../conventions/proxmox-conventions.md).
 
-- Proxmox cluster access as an administrator
-- the Proxmox node names the automation will target
-- the datastore IDs automation may use, such as `local-lvm`
-- the bridge, VLAN, or SDN paths automation may use
-- the VM ID range reserved for repo-managed systems
-- a place to store the token according to the
-  [secret strategy](../../../administration/secret-handling/strategy.md)
-
-## What this repo needs
-
-Use separate access paths for different automation jobs:
-
-| Job | Needs Proxmox API token | Notes |
+| Selection | Example | Used for |
 | --- | --- | --- |
-| Platform provisioning | yes | Creates, clones, updates, starts, stops, and destroys VMs or containers |
-| Ansible guest configuration | no, normally | Uses SSH to the provisioned guests after they exist |
-| Packer template builds | yes, separate token recommended | Creates temporary build VMs and templates |
-| Tier 0 template publication | yes, dedicated Tier 0 token | Uploads approved images and creates stopped templates; see [Template lifecycle](../../../administration/compute/template-lifecycle.md) |
+| Target node | `pve01` | Node-read ACL and initial guest placement |
+| Live-disk datastore | `local-zfs` | VM and CloudInit disks |
+| Import datastore | `local` | Tier 0 uploaded images, not live VM disks |
+| Guest attachment | `vmbr0` plus VLAN, or `dmz/edge` VNet | Scoped network ACL |
+| Automation identity | `automation@pve!provision` | Token ID without its secret |
 
-The default role set below is intentionally focused on guest provisioning. It
-does not grant Proxmox user management, permission management, node power,
-storage administration, cluster configuration, backup job management, or host
-network modification.
+<a id="what-this-repo-needs"></a>
 
-## Endpoint values
+Guest provisioning needs VM lifecycle, disk allocation, node-read and network access.
+Template publication additionally needs image-upload permission on its Import datastore.
+Ansible normally uses SSH to guests, not the Proxmox token. Do not use `root@pam` or
+a personal administrator token for routine deployments. [1]
 
-Use different endpoint formats depending on the tool:
+<a id="tls-gate"></a>
 
-| Tool | Variable | Format |
-| --- | --- | --- |
-| Linux VM/LXC deployment wrapper | `PROXMOX_API_URL` | `https://pve.example.com:8006/` |
-| Packer Proxmox plugin | `PROXMOX_URL` | `https://pve.example.com:8006/api2/json` |
-| Template publisher | `PROXMOX_API_URL` or `PROXMOX_VE_ENDPOINT` | `https://pve.example.com:8006/` |
-| Kubernetes cluster command (currently Talos) | `PROXMOX_VE_ENDPOINT` | `https://pve.example.com:8006/` |
-
-For Terraform in this repo, do not append `/api2/json`. The Linux deployment wrapper
-maps `PROXMOX_API_URL`, `PROXMOX_API_TOKEN_ID`, and
-`PROXMOX_API_TOKEN_SECRET` into the Terraform provider variables.[3][4]
-
-## TLS gate
-
-**Before a live deployment:** install independently verified API trust on the execution
-host and inspect `terraform/deployments/<setup>/providers.tf` in the owning tier.
-All supplied Linux, template and Kubernetes roots explicitly set `insecure = false`.
-Their provisioning entry points reject current/legacy insecure environment flags.
-Existing generated projects can retain local provider edits; review those explicitly. [5]
-
-The initial certificate trust can come from Proxmox's own cluster CA; platform PKI
-is not required first. Follow [bootstrap trust and PKI transition](../../../administration/compute/proxmox-tls.md)
-to install verified trust, use a matching endpoint name and remove any retained bypass
-from an older provider or runner. Installing a platform-issued certificate later does not automatically
-turn verification on. Do not treat a successful insecure plan as proof of server identity.
-Do not paste API tokens into commands or documents; follow the protected input paths below.
-
-On the Proxmox console, `/etc/pve/pve-root-ca.pem` is the public CA certificate to
-transfer. Install it on the bootstrap workstation before the first template plan;
-the linked procedure includes RHEL/Alma/Rocky and Debian/Ubuntu trust-store commands.
-Keep `insecure = false`; a self-signed bootstrap CA is not a reason to disable verification.
+**TLS gate:** complete [bootstrap CA trust and caller verification](../../../administration/compute/proxmox-tls.md)
+on the execution host before using the token. Supplied provider roots set
+`insecure = false`; entry points reject bypass flags. Existing projects must review
+retained local provider edits too. Neither FreeIPA nor platform PKI is required first. [5]
 
 ## Create Platform Automation Access
 
-This guide follows the shell path because it is repeatable and easy to audit.
-Run the commands from any Proxmox host in the cluster as an administrator.
+### Step 1: Create the roles and group
 
-In the web UI, every step maps to `Datacenter` > `Permissions`.
-The guide calls out the matching view after each command group.
+**Run on a Proxmox host.** Create these once; reuse accepted existing roles/groups.
+The matching GUI pages are **Datacenter > Permissions > Roles** and **Groups**.
 
-The default pattern is:
-
-1. create focused roles for VM, storage, node, and network access
-2. create one platform automation group
-3. assign the roles to the group on the required Proxmox paths
-4. create a dedicated automation user and add it to the group
-5. create the API token for that user
-
-### 1. Create focused roles
-
-Create one role per permission area so later reviews are easy.
+<a id="1-create-focused-roles"></a>
 
 ```bash
 platform_vm_privs="VM.Allocate VM.Audit VM.Clone VM.Config.CDROM"
@@ -128,378 +66,247 @@ platform_vm_privs="$platform_vm_privs VM.Config.Memory VM.Config.Network"
 platform_vm_privs="$platform_vm_privs VM.Config.Options VM.GuestAgent.Audit"
 platform_vm_privs="$platform_vm_privs VM.GuestAgent.Unrestricted VM.PowerMgmt"
 pveum role add PlatformAutomationVM --privs "$platform_vm_privs"
-```
-
-```bash
 pveum role add PlatformAutomationStorage --privs "Datastore.Audit Datastore.AllocateSpace"
 pveum role add PlatformAutomationNode --privs "Sys.Audit"
-pveum role add PlatformAutomationNetwork --privs "SDN.Use"
+pveum role add PlatformAutomationNetwork --privs "SDN.Use SDN.Audit"
 ```
 
-GUI: create these under `Datacenter` > `Permissions` > `Roles`.
-
-Keep `Datastore.Allocate`, `Datastore.AllocateTemplate`, `Permissions.Modify`,
-`Sys.Modify`, `Sys.PowerMgmt`, `Pool.Allocate`, and `Realm.Allocate*` out of
-the normal platform provisioning role unless a specific workflow proves it needs
-one of them.
-
-### 2. Create the automation group
+<a id="2-create-the-automation-group"></a>
 
 ```bash
 pveum group add platform-automation --comment "Platform automation"
 ```
 
-GUI: create this under `Datacenter` > `Permissions` > `Groups`.
+| Role | Permitted work |
+| --- | --- |
+| `PlatformAutomationVM` | Clone/create/configure/start/stop/remove authorized guests |
+| `PlatformAutomationStorage` | Inspect storage and allocate guest disks |
+| `PlatformAutomationNode` | Inspect authorized nodes; no host power/configuration |
+| `PlatformAutomationNetwork` | Attach NICs (`SDN.Use`) and read subnet metadata (`SDN.Audit`); no network modification |
 
-Assign permissions to this group, not directly to the user. That keeps future
-permission changes in one place.
+Keep host/cluster administration and permission management outside these roles.
+Role names are case-sensitive. For an older network role containing only `SDN.Use`,
+append the missing privilege instead of creating a second role:
 
-### 3. Grant VM permissions to the group
+```bash
+pveum role modify PlatformAutomationNetwork --append 1 --privs "SDN.Audit"
+```
 
-This repo uses explicit Proxmox VMIDs in the Terraform examples so the deployed
-guests follow the recommended ranges in [conventions.md](../../../reference/proxmox-conventions.md).
-Grant VM permissions on `/vms` unless the Terraform model has been changed to
-create guests inside a specific Proxmox pool.
+This changes every ACL using that role; it preserves the existing privileges and scope.
+
+### Step 2: Grant only the selected resource paths
+
+<a id="3-grant-vm-permissions-to-the-group"></a>
+
+**VMs:** the current Terraform model uses explicit VMIDs without pool placement:
 
 ```bash
 pveum acl modify /vms --groups platform-automation --roles PlatformAutomationVM
 ```
 
-GUI: add a `Group Permission` under `Datacenter` > `Permissions` with path
-`/vms`, group `platform-automation`, and role `PlatformAutomationVM`.
+If pool placement is deliberately added, use the reviewed pool boundary instead.
+Cloning still needs access to the source template. [1]
 
-If pool placement is added to the Terraform module, prefer granting the
-same role on `/pool/<poolid>` for that environment instead of all `/vms`.
-Keep in mind that cloning still needs access to the source template.
+<a id="4-grant-storage-permissions-to-the-group"></a>
 
-### 4. Grant storage permissions to the group
-
-Repeat this for every datastore automation can place VM disks or cloud-init
-media on.
+**Live storage:** enter an actual datastore ID; repeat for every approved disk/CloudInit target:
 
 ```bash
-pveum acl modify /storage/local-lvm \
-  --groups platform-automation \
-  --roles PlatformAutomationStorage
+read -r -p "Live VM datastore ID (for example local-zfs): " VM_DATASTORE
+pveum acl modify "/storage/$VM_DATASTORE" --groups platform-automation --roles PlatformAutomationStorage
 ```
 
-GUI: add a `Group Permission` with path `/storage/local-lvm`, group
-`platform-automation`, and role `PlatformAutomationStorage`.
-
-When using a separate datastore for the cloud-init config drive, grant the same
-storage role there too.
-
-**Tier 0 template images:** include the catalog's `image_datastore_id`, even when
-it holds no live VM disks. For example, when images are staged in `local`:
+**Tier 0 images:** also grant storage visibility/allocation on the Import datastore.
+For the example `local` datastore:
 
 ```bash
-pveum acl modify /storage/local \
-  --groups platform-automation \
-  --roles PlatformAutomationStorage
+pveum acl modify /storage/local --groups platform-automation --roles PlatformAutomationStorage
 ```
 
-Discovery needs storage-content visibility; `PlatformAutomationStorage` already
-includes `Datastore.Audit`. Adding `PVEDatastoreUser` is not required when the custom
-role is assigned to the correct image-storage path. [6]
-
-Uploading **new** images also requires `Datastore.AllocateTemplate` on that image
-datastore. Grant this extra role only to Tier 0 template-publishing automation,
-not ordinary consuming-tier credentials. For the group's template-publishing path: [7]
+**Tier 0 upload permission:** create this role once and assign it only to publishing
+automation on its actual Import datastore. Keep it out of ordinary consuming-tier access. [6][7]
 
 ```bash
 pveum role add PlatformTemplateUpload --privs "Datastore.AllocateTemplate"
-pveum acl modify /storage/local \
-  --groups platform-automation \
-  --roles PlatformTemplateUpload
+pveum acl modify /storage/local --groups platform-automation --roles PlatformTemplateUpload
 ```
 
-Replace `local` with the actual image datastore; a separate template identity needs
-these assignments on its own group/token. Importing existing files does not itself
-upload them, but an adoption plan can also propose creating missing files. Review
-those actions before applying. Privilege-separated tokens need matching token ACLs
-as described below; user/group grants alone do not expand such a token.
+A separate publisher uses its own group/token grants. Importing existing files does
+not upload them, but an adoption plan can include creation of missing files.
 
-### 5. Grant Proxmox node read access to the group
+<a id="5-grant-proxmox-node-read-access-to-the-group"></a>
 
-Repeat this for every Proxmox node automation may target.
+**Node:** repeat for each allowed destination and source-template node:
 
 ```bash
-pveum acl modify /nodes/pve01 --groups platform-automation --roles PlatformAutomationNode
+read -r -p "Authorized Proxmox node name: " PVE_NODE
+pveum acl modify "/nodes/$PVE_NODE" --groups platform-automation --roles PlatformAutomationNode
 ```
 
-GUI: add a `Group Permission` with path `/nodes/pve01`, group
-`platform-automation`, and role `PlatformAutomationNode`.
+<a id="6-grant-bridge-vlan-or-sdn-use-to-the-group"></a>
 
-This is intentionally read-only node access. It lets automation inspect the
-target host without granting node power, host configuration, or cluster admin
-privileges.
+**Network:** choose **2a or 2b** below for each selected attachment. Local bridge grants
+do not authorize an SDN VNet. GUI equivalent: **Datacenter > Permissions > Add > Group Permission**. [1][2]
 
-### 6. Grant bridge, VLAN, or SDN use to the group
+#### 2a: Direct bridge/VLAN attachment
 
-For Proxmox VE 9+, grant `SDN.Use` on the narrowest path that matches the networks
-this repo may attach to guests. Proxmox SDN uses zones, VNets, and subnets to model virtual
-networking, and local Linux bridges are exposed through the `localnetwork`
-zone.[2]
-
-Use one of these patterns:
-
-| Scope | Permission path example |
-| --- | --- |
-| one local bridge | `/sdn/zones/localnetwork/vmbr0` |
-| one VLAN tag on one local bridge | `/sdn/zones/localnetwork/vmbr0/20` |
-| one SDN VNet | `/sdn/zones/<zone>/<vnet>` |
-| one VLAN tag on one SDN VNet | `/sdn/zones/<zone>/<vnet>/<tag>` |
-
-Example for bridge `vmbr0`:
+Use the narrowest prepared path. This example allows VLAN 10 on `vmbr0`:
 
 ```bash
-pveum acl modify /sdn/zones/localnetwork/vmbr0 \
-  --groups platform-automation \
-  --roles PlatformAutomationNetwork
+pveum acl modify /sdn/zones/localnetwork/vmbr0/10 --groups platform-automation --roles PlatformAutomationNetwork
 ```
 
-Example for only VLAN `20` on bridge `vmbr0`:
+For an intentional bridge-wide grant, use `/sdn/zones/localnetwork/vmbr0`.
+Repeat for the actual selected VLANs, then continue at **Step 3**.
+
+#### 2b: Existing SDN VNet
+
+For VNet `edge` in zone `dmz`:
 
 ```bash
-pveum acl modify /sdn/zones/localnetwork/vmbr0/20 \
-  --groups platform-automation \
-  --roles PlatformAutomationNetwork
+pveum acl modify /sdn/zones/dmz/edge --groups platform-automation --roles PlatformAutomationNetwork
 ```
 
-Example for the existing VNet `edge` in SDN zone `dmz`:
+Repeat for every selected VNet, including stopped templates' attachments. Complete
+[SDN activation](../step-1c-sdn.md#step-3-activate-sdn-on-the-nodes) before use,
+then continue at **Step 3**. Subnet lookup uses the same scoped role's `SDN.Audit`.
 
-```bash
-pveum acl modify /sdn/zones/dmz/edge \
-  --groups platform-automation \
-  --roles PlatformAutomationNetwork
-```
+### Step 3: Create the user and token
 
-Changing a template or guest from `vmbr0` to a VNet also changes its permission
-path. The old local-bridge grant does not authorize the new VNet. Grant access
-before applying the NIC change; this also applies to stopped templates. [1][2]
-
-GUI: add a `Group Permission` under `Datacenter` > `Permissions`. Use the SDN
-or local bridge path that matches the network assigned to automation.
-
-If Proxmox returns a missing `SDN.Use` error, use the path shown in the error
-or in the API viewer as the source of truth for the cluster.
-
-For an existing privilege-separated token, mirror the selected VNet grant on the
-token as well, then check its effective permissions from the Proxmox host shell:
-
-```bash
-pveum acl modify /sdn/zones/dmz/edge \
-  --tokens 'automation@pve!provision' \
-  --roles PlatformAutomationNetwork
-pveum user permissions 'automation@pve!provision' --path /sdn/zones/dmz/edge
-```
-
-Substitute the actual group, token and VNet path. The result must include
-`SDN.Use`; a successful read or plan does not prove permission to update a NIC.
-The group/user and token must both allow the operation. [1]
-
-For the optional [SDN subnet lookup](../../../reference/network-inputs.md#sdn-subnet-lookup),
-also grant `SDN.Audit` on each selected VNet. This read-only role does not grant
-network modification:
-
-```bash
-pveum role add PlatformAutomationNetworkRead --privs "SDN.Audit"
-pveum acl modify /sdn/zones/control/ident \
-  --groups platform-automation \
-  --roles PlatformAutomationNetworkRead
-```
-
-Create the role once; repeat the ACL command for the actual selected VNet paths.
-For privilege-separated tokens, the read permission must also be present in
-the token's effective permissions, as with the other grants below.
-
-### 7. Create the automation user and assign the group
+<a id="7-create-the-automation-user-and-assign-the-group"></a>
 
 ```bash
 pveum user add automation@pve --comment "Platform automation from deployment machine"
 pveum user modify automation@pve --groups platform-automation
 ```
 
-GUI: create this under `Datacenter` > `Permissions` > `Users`, then assign it
-to the `platform-automation` group.
+<a id="8-create-the-api-token"></a>
 
-This user exists to own tokens. Do not use its password for automation.
-
-### 8. Create the API token
-
-For the group-managed path, create a token that inherits the dedicated user's
-group permissions.
+The established group-managed bootstrap example inherits this dedicated user's
+permissions. Adding the user to other groups also expands this token's permissions. [1]
 
 ```bash
-pveum user token add automation@pve provision \
-  --privsep 0 \
-  --comment "Platform provisioning token"
+pveum user token add automation@pve provision --privsep 0 --comment "Platform provisioning token"
 ```
 
-GUI: create this under `Datacenter` > `Permissions` > `API Tokens`.
-
-Copy the token secret immediately. Proxmox only shows the secret once.[1]
-
-Keep this user dedicated to automation. If this user is added to more groups,
-the non-privilege-separated token inherits those new permissions too.
-
-For a privilege-separated token, create it with `--privsep 1` and
-assign matching ACLs directly to `automation@pve!provision`. This provides a
-narrower token boundary, but it also requires maintaining token ACLs in
-addition to the group ACLs.
-
-For a privilege-separated **Tier 0 template-publishing token**, mirror the base
-storage and upload roles on its image datastore after creating the roles above:
-
-```bash
-pveum acl modify /storage/local \
-  --tokens 'automation@pve!provision' \
-  --roles PlatformAutomationStorage,PlatformTemplateUpload
-```
-
-Keep the base storage roles when adding a narrower token ACL; granting only the
-upload role there can hide inherited read/allocation permissions. Verify the
-[effective permissions](#validate-access) afterwards. Group/user and token ACLs
-must both allow the operation; token grants cannot expand the user's access. [1]
-
-## Use the token
-
-For Linux deployments and template publication, store the token in ignored
-`.env.local` or provide the same values through the runner. Template `init` creates
-the file if absent; for other paths create it with `cp -n env.local.example .env.local`
-and `chmod 600 .env.local`. Edit it before use:
-
-```dotenv
-PROXMOX_API_URL=https://pve.example.com:8006/
-PROXMOX_API_TOKEN_ID=automation@pve!provision
-PROXMOX_API_TOKEN_SECRET=replace-with-the-token-secret
-```
-
-The Linux wrapper loads `.env.local` by default. The
-[template publisher](../../../administration/compute/template-lifecycle.md#local-workflow)
-requires **`--env-file .env.local`** for local file loading and combines the aliases above;
-no `source`, exports or token concatenation are required:
-
-```bash
-bash scripts/proxmox-templates.sh plan --env-file .env.local
-```
-
-For manually created templates, follow
-[adoption](../../../administration/compute/template-lifecycle.md#adopt-existing-templates)
-and use `import --env-file .env.local` instead of the first publication plan.
-The separate [Kubernetes command](../../stage-4-kubernetes/procedures/talos-terraform.md#configure)
-still requires exported `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`
-(`user@realm!token=secret`); it does not load `.env.local`.
+**Save the secret immediately into protected custody; Proxmox displays it only once.**
+Use separate credentials when job/tier scope differs. For a privilege-separated token,
+use the [matching ACL procedure](#existing-or-privilege-separated-tokens) before validation.
 
 ## Validate access
 
-Before Tier 0 publishes template images, check the publishing token's **effective**
-permissions from the Proxmox host shell. Substitute the actual token ID and image
-datastore; the command uses the ID only, never its secret:
+**Still on the Proxmox host**, inspect the actual token ID and actual resource paths.
+The commands contain no token secret:
 
 ```bash
 pveum user permissions 'automation@pve!provision' --path /storage/local
+pveum user permissions 'automation@pve!provision' --path "/storage/$VM_DATASTORE"
+pveum user permissions 'automation@pve!provision' --path "/nodes/$PVE_NODE"
 ```
 
-Image publication needs `Datastore.AllocateTemplate` in addition to
-`Datastore.Audit` and `Datastore.AllocateSpace`. If only the latter two appear,
-apply the [Tier 0 upload grant](#4-grant-storage-permissions-to-the-group) and any
-matching privilege-separated token ACLs, then repeat this check. A successful
-discovery/plan does not prove upload access. [1][7]
-
-After initializing and editing the foundation inputs, run a plan from the
-Tier 0 repository root on the deployment machine:
+For the selected SDN example:
 
 ```bash
-bash scripts/deploy.sh foundation --plan-only
+pveum user permissions 'automation@pve!provision' --path /sdn/zones/dmz/edge
 ```
 
-If the token is too narrow, Proxmox usually returns a `403` with the missing
-path and privilege. Add only the missing privilege on the narrowest useful
-path, then rerun the plan.
+For direct bridge/VLAN attachment, substitute its selected path instead.
 
-Use these checks on a Proxmox node when troubleshooting:
-
-```bash
-pveum user list
-pveum group list
-pveum role list
-pveum acl list
-```
-
-Expected validation result:
-
-| Check | Expected result |
+| Check | Required effective privileges |
 | --- | --- |
-| token authentication | Terraform can read cluster, node, storage, and template data |
-| VM clone | Terraform can clone the selected template |
-| guest agent read | Terraform can wait for guest network information when the QEMU guest agent is enabled |
-| disk allocation | Terraform can create disks only on the authorized datastores |
-| Tier 0 image publication | Effective token permissions include `Datastore.AllocateTemplate` on the image datastore; retain Audit/AllocateSpace access too |
-| network placement | Terraform can attach guests only to allowed bridges, VNets, or VLAN tags |
-| cleanup | `--destroy` removes the disposable test guests |
-| denied access | the token cannot modify Proxmox users, roles, cluster settings, or unrelated storage |
+| Live disk and CloudInit storage | `Datastore.Audit`, `Datastore.AllocateSpace` |
+| Tier 0 Import datastore | The two storage privileges above plus `Datastore.AllocateTemplate` for uploads |
+| Target/source node | `Sys.Audit` |
+| Selected attachment with subnet lookup | `SDN.Use` and `SDN.Audit` |
+| Guest operations | The scoped VM role, including access to the clone source |
+
+A plan can pass read checks without proving later upload/NIC-write permission.
+Investigate a 403 at its exact path; do not broaden the grant to `/`.
+After provisioning, test permitted and denied operations on disposable guests. [1]
+
+## Use the token
+
+### Step 4: Set inputs on the bootstrap host
+
+Return to [Bootstrap Step 4](bootstrap.md#step-4-configure-trust-credentials-and-platform-inputs)
+to initialize **Tier 0** and edit its ignored **`.env.local`**.
+
+For another consuming tier, create that tier's file if absent, from its repository root:
+
+```bash
+cp -n env.local.example .env.local
+chmod 600 .env.local
+```
+
+Edit these fields using that tier's authorized token:
+
+```dotenv
+PROXMOX_API_URL=https://pve01.example.internal:8006/
+PROXMOX_API_TOKEN_ID=automation@pve!provision
+PROXMOX_API_TOKEN_SECRET=replace-with-the-issued-secret
+```
+
+Each tier owns its own credentials; Shared and another tier's file do not supply them.
+Also configure the [execution account's SSH public-key path](bootstrap.md#step-3-prepare-the-execution-accounts-ssh-key)
+before Linux clones are created.
+
+<a id="endpoint-values"></a>
+
+| Entry point | Credential loading |
+| --- | --- |
+| Linux `scripts/deploy.sh SETUP` | Loads `.env.local` by default; maps the three fields above into Terraform |
+| Template publisher | Requires `--env-file .env.local`; no manual exports or concatenation |
+| Kubernetes command, currently Talos | Uses exported native `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`; follow its [configuration step](../../stage-4-kubernetes/procedures/talos-terraform.md#configure) |
+| Packer | Uses `PROXMOX_URL=https://pve01.example.internal:8006/api2/json` and its separate build inputs |
+
+Terraform endpoints use the HTTPS root, **without `/api2/json`**. [3][4]
+Return to [foundation template publication](../README.md#step-3-publish-and-test-vm-templates)
+after the bootstrap host's remaining Shared profile and recovery checks.
+Do not deploy the `foundation` Linux setup merely to validate this token.
+
+## Existing or privilege-separated tokens
+
+Separated tokens need both group/user and token grants. Their effective permissions
+are the intersection; token ACLs cannot expand the owning user's rights. [1]
+Retain the selected privilege-separation mode; changing a role does not change it.
+
+For a separated token, mirror each selected VM, node, datastore and attachment grant
+from Step 2 using `--tokens 'automation@pve!provision'` instead of `--groups`.
+For example, the Tier 0 Import datastore and an allowed VNet:
+
+```bash
+pveum acl modify /storage/local --tokens 'automation@pve!provision' --roles PlatformAutomationStorage,PlatformTemplateUpload
+pveum acl modify /sdn/zones/dmz/edge --tokens 'automation@pve!provision' --roles PlatformAutomationNetwork
+```
+
+Keep base storage read/allocation roles when adding upload rights. Repeat
+[effective-permission validation](#validate-access) using the exact consuming token.
+If `SDN.Use` appears without `SDN.Audit`, check the case-sensitive role ID and both ACL sides.
 
 ## Role patterns for teams
 
-Use groups and pools for human access. Proxmox recommends assigning
-permissions to groups rather than individual users, and pools are intended for
-permission handling across a set of VMs, containers, and storage.[1]
+Use groups and pools for human access; do not reuse the provisioning token.
+The selected pool must already contain the team's guests. [1]
 
-Example small-team setup:
+| Role on `/pool/<team-pool>` | Intended access |
+| --- | --- |
+| `PVEAuditor` | Inspect assigned systems |
+| Custom console/power role | Operate existing guests |
+| `PVEVMUser` | Common VM-user operations |
+| `PVEVMAdmin` plus selected datastore rights | Maintain authorized guests |
 
-```bash
-pveum group add team-app
-pveum pool add team-app-test --comment "Application team test systems"
-```
+<a id="when-to-split-automation-identities"></a>
 
-Use these patterns as starting points:
-
-| Setup | Permission assignment | What the team can do |
-| --- | --- | --- |
-| read-only view | `PVEAuditor` on `/pool/team-app-test` | inspect assigned VMs |
-| operator access | custom operator role on `/pool/team-app-test` | console plus power controls |
-| normal VM user | `PVEVMUser` on `/pool/team-app-test` | common VM user actions |
-| VM maintainer | `PVEVMAdmin` on the pool plus one datastore | administer assigned VMs |
-| platform operator | `PVEAdmin` on selected platform paths | most platform tasks, not full admin |
-
-Custom operator role example:
-
-```bash
-pveum role add TeamVmOperator --privs "VM.Audit VM.Console VM.PowerMgmt"
-pveum acl modify /pool/team-app-test --groups team-app --roles TeamVmOperator
-```
-
-Keep placement and ownership simple:
-
-- put team VMs into a pool as soon as they are created
-- grant team roles to groups, not individual users
-- give teams storage access only when they need to create or resize disks
-- use `NoAccess` on narrower paths to block inherited access
-- avoid giving teams datastore-wide or `/` permissions unless they operate the
-  platform
-
-## When to split automation identities
-
-Use separate users and tokens when the job scope changes:
-
-| Identity | Use it for | Extra privileges it may need |
-| --- | --- | --- |
-| `automation@pve!provision` | normal repo platform provisioning | VM, node read, datastore space, optional SDN use |
-| `packer@pve!template` | image and template builds | template upload or conversion, ISO/template datastore access |
-| `monitoring@pve!metrics` | monitoring and inventory | read-only roles such as `PVEAuditor` |
-| `breakglass@pam` | emergency administration | interactive use only, not stored in repo automation |
-
-For Packer, keep the role separate from normal platform provisioning because
-template builds often need `Datastore.AllocateTemplate` and temporary build-VM
-lifecycle permissions.
+Split identities for publishing/Packer, monitoring, routine provisioning and emergency
+administration. Packer upload/build rights stay separate; monitoring is read-only.
+Break-glass access remains interactive and outside routine automation.
 
 ## References
 
-1. [Proxmox VE User Management](https://pve.proxmox.com/pve-docs/chapter-pveum.html)
-2. [Proxmox VE Software-Defined Network](https://pve.proxmox.com/pve-docs/chapter-pvesdn.html)
-3. [Terraform Provider for Proxmox VE](https://bpg.sh/docs/)
-4. [HashiCorp Packer Proxmox ISO builder](https://developer.hashicorp.com/packer/plugins/builders/proxmox/iso)
-5. [BPG provider TLS behavior and security guidance](https://raw.githubusercontent.com/bpg/terraform-provider-proxmox/v0.112.0/docs/index.md), checked 2026-10-16.
+1. [Proxmox user management and API-token permissions](https://raw.githubusercontent.com/proxmox/pve-docs/master/pveum.adoc).
+2. [Proxmox software-defined networking](https://raw.githubusercontent.com/proxmox/pve-docs/master/pvesdn.adoc).
+3. [Terraform Provider for Proxmox VE](https://bpg.sh/docs/).
+4. [HashiCorp Packer Proxmox ISO builder](https://developer.hashicorp.com/packer/plugins/builders/proxmox/iso).
+5. [BPG provider TLS behavior](https://raw.githubusercontent.com/bpg/terraform-provider-proxmox/v0.112.0/docs/index.md).
 6. [Proxmox storage-content API permissions](https://raw.githubusercontent.com/proxmox/pve-storage/master/src/PVE/API2/Storage/Content.pm).
 7. [Proxmox image-upload API permissions](https://raw.githubusercontent.com/proxmox/pve-storage/master/src/PVE/API2/Storage/Status.pm).

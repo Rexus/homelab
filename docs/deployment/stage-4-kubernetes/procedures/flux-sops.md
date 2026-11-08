@@ -4,7 +4,7 @@ The [basic platform installer](basic-platform.md) installs Flux controllers,
 a GitRepository pinned to an approved commit and a SOPS-enabled Kustomization.
 It does not create a Git repository, commit, push, or depend on later Tier 1 GitLab.
 
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`); run commands from `ansible/`.
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`); run from the repository root.
 
 **Prerequisites:** working CNI/DNS/images; an approved independently recoverable
 Git source; read-only source credentials; an age identity protected outside the
@@ -12,20 +12,23 @@ cluster; SOPS and age tools on the independent operator host.
 
 ## Table of contents
 
-- [Prepare the source](#prepare-the-source)
-- [Provide bootstrap Secrets](#provide-bootstrap-secrets)
-- [Render and apply](#render-and-apply)
-- [Accept reconciliation](#accept-reconciliation)
+- [Step 1: Prepare the source](#prepare-the-source)
+- [Step 2: Provide bootstrap Secrets](#provide-bootstrap-secrets)
+- [Step 3: Render and apply](#render-and-apply)
+- [Step 4: Accept reconciliation](#accept-reconciliation)
 - [References](#references)
 
-## Prepare the source
+<a id="prepare-the-source"></a>
+
+## Step 1: Prepare the source
 
 Populate the chosen Git path with reviewed manifests and `kustomization.yaml`.
 The repository's `clusters/tier0/` folders are empty starters. Keep Ansible-owned
 charts/resources out of that path unless an explicit ownership transfer has
 been reviewed; installing Flux does not transfer their lifecycle.
 
-Add this acceptance Secret in the selected path, encrypt it locally with SOPS,
+Create **`clusters/tier0/platform-sops-canary.yaml`** in the selected source checkout
+with the following content. Encrypt it locally with SOPS,
 and list it in that path's `kustomization.yaml` before publishing through the
 project's reviewed Git workflow:
 
@@ -41,8 +44,8 @@ stringData:
 ```
 
 ```bash
-sops --encrypt --in-place --age "$AGE_RECIPIENT" \
-  --encrypted-regex '^(data|stringData)$' platform-sops-canary.yaml
+read -r -p 'Public age recipient (age1...): ' AGE_RECIPIENT
+sops --encrypt --in-place --age "$AGE_RECIPIENT" --encrypted-regex '^(data|stringData)$' clusters/tier0/platform-sops-canary.yaml
 ```
 
 Use the public age recipient in `$AGE_RECIPIENT`; the private identity remains
@@ -59,7 +62,19 @@ Set the independent URL, approved full commit hash, path and
 The role accepts authenticated HTTPS or `ssh://user@host/path.git`, and pins
 `spec.ref.commit`; moving branches are not selected automatically. [2]
 
-## Provide bootstrap Secrets
+In **`ansible/group_vars/cluster_platform.yml`**, set:
+
+| Field | Enter |
+| --- | --- |
+| `cluster_platform_flux_url` | Independently reachable HTTPS or SSH Git URL |
+| `cluster_platform_flux_commit` | Full approved commit containing the encrypted canary and its Kustomization entry |
+| `cluster_platform_flux_path` | `./clusters/tier0`, or the actual published source path |
+| `cluster_platform_flux_canary_sha256` | Digest printed by the command above |
+| `cluster_platform_flux_source_approved` | `true` after source/content review |
+
+<a id="provide-bootstrap-secrets"></a>
+
+## Step 2: Provide bootstrap Secrets
 
 | Secret in `flux-system` | Required fields |
 | --- | --- |
@@ -77,24 +92,41 @@ them. An independent authorized bootstrap operator can create those Secrets,
 or explicitly use the encrypted extra-vars example:
 
 ```bash
-cp -n group_vars/cluster_platform_secrets.yml.example group_vars/cluster_platform_secrets.yml
-ansible-vault encrypt group_vars/cluster_platform_secrets.yml
+cp -n ansible/group_vars/cluster_platform_secrets.yml.example ansible/group_vars/cluster_platform_secrets.yml
+ansible-vault encrypt ansible/group_vars/cluster_platform_secrets.yml
+ansible-vault edit ansible/group_vars/cluster_platform_secrets.yml
 ```
 
-Edit that encrypted file with `ansible-vault edit`, supply actual read-only
-credentials/age identity, and pass it with `--ask-vault-pass
--e @group_vars/cluster_platform_secrets.yml`. This explicitly enables managed
+In the encrypted file, supply actual read-only credentials/age identity and set
+`cluster_platform_manage_secrets: true`. Pass it with `--ask-vault-pass
+-e @ansible/group_vars/cluster_platform_secrets.yml`. This explicitly enables managed
 bootstrap Secrets. Rendering validates managed fields but never contacts the
 cluster or writes plaintext Secret manifests. Store recovery keys independently;
 no Vault or identity integration is required to decrypt this bootstrap file.
 
-## Render and apply
+<a id="render-and-apply"></a>
+
+## Step 3: Render and apply
 
 Use the [platform commands](basic-platform.md#render-and-apply), optionally
 selecting only `flux` after accepting the other prerequisites. Review chart
 provenance: `flux2` is maintained by **fluxcd-community**, rather than the Flux
 core installation project. Explicitly approve that chart repository or a
 qualified mirror and pin its version. [3]
+
+After Cilium and storage prerequisites are ready, render the selected full platform
+with the private Secrets file:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=render
+```
+
+Inspect the private values/manifests under `secrets/cluster-platform/`, then apply:
+
+```bash
+export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=apply
+```
 
 The installer disables image automation/reflection controllers, requires native
 source/Kustomization CRDs and waits for the four selected controller deployments.
@@ -103,7 +135,9 @@ Use separate reviewed Flux Kustomizations with dependencies and health checks
 for future controllers, custom resources and consumers. A Kustomize resource
 list alone does not establish dependency readiness. [4]
 
-## Accept reconciliation
+<a id="accept-reconciliation"></a>
+
+## Step 4: Accept reconciliation
 
 The role requires GitRepository and Kustomization `Ready` for their current
 generation, the approved commit fetched/applied, the canary in the current
@@ -116,6 +150,9 @@ Record live results separately. Offline Helm rendering cannot establish source
 reachability, decryption, least privilege or recovery. Test restoring the Git
 source, read-only credentials and age key without normal identity login. Advance
 the pinned commit only after reviewing the proposed source changes.
+
+Return to [basic platform acceptance](basic-platform.md#acceptance-and-recovery),
+then [Stage 4, Step 3](../README.md#step-3-verify-operation-and-recovery).
 
 ## References
 

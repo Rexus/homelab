@@ -47,13 +47,23 @@ never substitute Fedora RPMs, nightly packages or disabled signature checks. [1]
    df -h /srv/security-logging
    ```
 
+   On the execution host, edit **`ansible/group_vars/syslog.yml`**:
+
+   ```yaml
+   syslog_ng_data_mount: /srv/security-logging
+   syslog_ng_data_uuid: REPLACE_WITH_VERIFIED_FILESYSTEM_UUID
+   ```
+
+   **Gate:** stop if the data disk is unidentified or the persistent mount is not
+   ready. The following deployment cannot create it safely from an assumed device name.
+
 The role requires this exact writable mount on a different filesystem/device from
 `/`; it never partitions, formats or mounts disks. The service also refuses startup
 without the mount. The preflight free-space threshold is a gate, not a capacity alarm.
 
 ## Step 2: Register trust and producers
 
-1. Follow [independent logging trust](producer-trust.md), or supply an existing qualified
+1. Complete [logging trust Steps 1-2](producer-trust.md), or supply an existing qualified
    independent CA bundle, current server certificate/full chain with the
    receiver DNS/IP in its SAN and server-auth usage, and matching unencrypted service
    key. Issue client-auth certificates per producer/relay. Protect these files outside
@@ -61,12 +71,27 @@ without the mount. The preflight free-space threshold is a gate, not a capacity 
    not required. Local validation checks the first CA's validity/CA constraint and server
    validity/key matching before copying files; the live client
    must still verify chain, SAN, purpose and trust. [2]
-2. In Tier 0 `ansible/group_vars/syslog.yml`, fill `syslog_ng_sources` using the example
-   entry there: a unique safe `name`, observed IPv4 `address`, numeric `tier` and exact
-   certificate `tls_dn`. The certificate CN must equal `name`. This binds an authenticated
-   connection to a server-owned stream; claimed HOST/app labels never choose its path.
-   Use the receiver-observed relay/NAT address, not an unobservable original address.
-3. Set the actual firewalld interface zone and narrow upstream network rules. Keep
+2. Prepare the first producer before installing the receiver: complete
+   [source Step 1](sources.md#1-prepare-tier-owned-streams) for `log-1`'s own OS journal,
+   including the CSR approval/signing handoff. **Do not run source Step 2 yet.**
+   A nonempty approved source catalogue is required for receiver installation.
+3. In Tier 0 **`ansible/group_vars/syslog.yml`**, replace `syslog_ng_sources: []`
+   with the approved identities. For example, replace this address with the
+   receiver-observed address and retain the exact approved certificate subject:
+
+   ```yaml
+   syslog_ng_sources:
+     - name: log-1-os
+       address: 10.10.10.30
+       tier: 0
+       tls_dn: CN=log-1-os
+   ```
+
+   The certificate CN must equal `name`. This binds a connection to a server-owned
+   stream; claimed HOST/app labels never choose its path. Use a relay/NAT address
+   only when it is the address actually observed by the receiver.
+4. Set `syslog_ng_firewall_zone` to the actual intake interface zone and narrow
+   upstream network rules to the registered sources on TCP 6514. Keep
    `syslog_ng_legacy_sources` empty unless accepting a documented unauthenticated UDP
    exception. Prefer a local authenticated relay; a legacy source IP is not proof of identity.
 
@@ -110,11 +135,13 @@ receiver events; the OS logger's journal/socket/configuration remain untouched.
    sudo journalctl --unit syslog-ng-receiver.service --since '-10 minutes'
    ```
 
-   From a registered producer, submit a uniquely numbered event through its normal
+3. Complete [source Step 2](sources.md#2-install-and-test-forwarding) for `log-1-os`,
+   then add the supported Proxmox hosts and appliance exports there. Submit a
+   uniquely numbered event through the producer's normal
    TLS forwarding path. Verify the corresponding record's `source`, `peer_ip`, `peer_cn`,
    `raw` and `received_at`; an open listener is not this check. Reject unknown/missing
    certificates, mismatched origins and attempts to select another source namespace.
-3. Continue [Stage 2, Step 3](README.md#step-3-protect-and-verify-retained-evidence)
+4. Return to [Stage 2, Step 3](README.md#step-3-protect-and-verify-retained-evidence)
    and the [fault/restore drill](../../administration/logging-drill.md). Prepare independent
    [NAS checkpoints, independent copies and audited reader access](step-3c-nas-archive.md),
    or the selected locked-storage alternative.

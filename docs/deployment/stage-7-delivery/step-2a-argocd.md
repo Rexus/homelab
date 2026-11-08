@@ -6,10 +6,25 @@
 **Prerequisites:** accepted Tier 1 cluster, reviewed controller release, TLS,
 independent bootstrap source and Keycloak. This option replaces Spinnaker ownership.
 
-## Step 1: Install and qualify the controller
+## Step 1: Prepare the controller inputs
 
-Use the [native delivery installer](procedures/delivery-installer.md), setting
-`delivery_platform_controller: argocd` and an exact `delivery_platform_argocd_version`.
+Create `ansible/group_vars/delivery_platform.yml` using
+[installer Step 1](procedures/delivery-installer.md#inputs-and-secrets), then edit it:
+
+```yaml
+delivery_platform_controller: argocd
+delivery_platform_install_harbor: false
+```
+
+| Field in the same file | Set before installation |
+| --- | --- |
+| `delivery_platform_kubeconfig`, `delivery_platform_context` | Existing Tier 1 cluster |
+| `delivery_platform_argocd_host`, `delivery_platform_ingress_class` | Actual private DNS name and accepted ingress class |
+| `delivery_platform_oidc_issuer`, `delivery_platform_oidc_ca_pem`, `delivery_platform_ca_path` | Existing issuer, public CA PEM and local CA file |
+| `delivery_platform_argocd_admin_group`, `delivery_platform_argocd_reader_group` | Exact approved IdP groups |
+| `delivery_platform_argocd_repositories`, `delivery_platform_argocd_destinations` | Approved sources and local Tier 1 namespaces only |
+
+Retain the exact centrally pinned chart release, or set a reviewed `delivery_platform_argocd_version` override.
 The recipe renders/installs the official Argo Helm chart [1], then configures native
 AppProjects. It does not provision Proxmox VMs or a second cluster.
 
@@ -40,7 +55,16 @@ Additional Tier 2 targets require separate reviewed accounts; never register Tie
 Use read-only bootstrap repository credentials before Stage 9 GitLab exists.
 Test denied sources/destinations and an ordinary user before enabling sync.
 
-## Step 3: Deliver the development platform
+## Step 3: Install and verify
+
+1. Run [installer Step 2](procedures/delivery-installer.md#render-and-apply) to render,
+   review and apply the selected controller. Do not install Harbor in this pass.
+2. Test SSO with allowed and denied users, blocked sources/destinations, one bounded
+   application, rollback and independent recovery. Health alone is insufficient.
+3. Return to [Stage 7 Step 3](README.md#step-3-connect-approved-artifact-supply).
+   GitLab is installed later in Stage 9; the following adoption notes apply then.
+
+### Later: Deliver the development platform
 
 In [Stage 9](../stage-9-development/procedures/gitlab.md), render the authoritative
 GitLab/runner values with Ansible. Store reviewed **non-secret** values in the

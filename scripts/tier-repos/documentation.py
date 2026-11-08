@@ -47,7 +47,7 @@ def tier_readme(writer, tier, prefix, setups):
         "```\n\n"
         f"Follow the [cluster procedure]({docs}/deployment/stage-4-kubernetes/procedures/talos-terraform.md)\n"
         "to configure, plan, deploy and verify. Cluster manifests are starters, not installed services.\n"
-        f"Record the [delivery choice]({docs}/architecture/delivery/controllers.md) separately;\n"
+        f"Record the [delivery choice]({docs}/architecture/software/controllers.md) separately;\n"
         "Tier 1 does not inherit Tier 0 Flux automatically.\n"
     )
     if tier == "tier-0":
@@ -136,6 +136,7 @@ def copy_documentation(writer, prefix, upstream):
                          relocate, content)
         # Keep executable sibling-repository changes aligned with the collection's folder names.
         content = content.replace("\ncd ../homelab-tier-", f"\ncd ../{prefix.lower()}-tier-")
+        content = content.replace("../homelab-shared/", f"../{prefix.lower()}-shared/")
         project_docs = Path(os.path.relpath(writer.root / "docs/README.md",
                                            (writer.root / target).parent)).as_posix()
         notice = (
@@ -152,8 +153,8 @@ def copy_documentation(writer, prefix, upstream):
             content = notice + "\n" + content
         writer.write(target, content)
 
-    palette = "reference/diagrams/palette.json"
-    writer.write(f"{AUTO_DOCS}/{palette}", (upstream / "docs" / palette).read_bytes())
+    for asset in ("reference/diagrams/palette.json", "conventions/vmid-convention.svg"):
+        writer.write(f"{AUTO_DOCS}/{asset}", (upstream / "docs" / asset).read_bytes())
 
     redirect_moved_docs(writer, previous_paths)
 

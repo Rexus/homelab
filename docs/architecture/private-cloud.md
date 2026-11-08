@@ -174,7 +174,7 @@ It does not try to be a full self-service cloud portal on day one. The current
 model assumes a small number of trusted platform administrators who own the
 Proxmox cluster and control what is deployed.
 
-The [infrastructure-control model](compute/provisioning.md) keeps that authority
+The [infrastructure-control model](hosting/provisioning.md) keeps that authority
 in Tier 0 while allowing future, bounded VM creation and update requests from
 Tier 2 users. It does not require giving those users infrastructure administration.
 

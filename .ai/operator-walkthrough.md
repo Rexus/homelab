@@ -55,9 +55,11 @@ No live acceptance box is checked by this consistency review.
 - [x] Supply a Tier 0 syslog-ng receiver with mount/TLS guards, raw JSON records and native local tests.
 - [x] Explain that `--env` does not allocate unique VMIDs, addresses, VIPs or security boundaries.
 - [x] Keep directory deployment in the trust stage's existing context/state instead of silently switching to test.
-- [x] Add initialization and plan/review/deploy commands to cache, edge and Vault paths.
+- [x] Put cache initialization, exact input edits and deployment directly in Stage 1's main path;
+  expose existing approved supply as branch 2b, returning to the shared consumer/verification step.
 - [x] Initialize test inputs before VM source-control, runner and image-builder commands.
-- [x] Separate plan and apply blocks; retain a human input/allocation review between them.
+- [x] Use one normal Linux deployment command with Terraform's inline plan/approval;
+  keep preview opt-in, unattended CI explicit, and dedicated saved-plan/signing/activation gates intact.
 - [x] Add Vault CLI endpoint/trust selection and authentication before audit configuration.
 - [x] Remove repeated identity-authentication and Vault-shape explanations in favor of their authoritative homes.
 - [x] Align generated setup ownership and template references with logging and unnumbered foundation.

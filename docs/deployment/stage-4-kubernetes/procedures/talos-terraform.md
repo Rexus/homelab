@@ -4,7 +4,7 @@
 [cluster repository map](kubernetes.md#repository-locations). Stage 4 uses `<prefix>-tier-0`.
 Run commands from the selected tier's root; Shared is not the cluster's working directory.
 
-**Design:** [cluster runtime variants](../../../architecture/compute/README.md).
+**Design:** [cluster runtime variants](../../../architecture/hosting/README.md).
 
 This is the current Talos implementation of the [Kubernetes cluster goal](kubernetes.md).
 Each tier owns its cluster VMs, inventory, Talos configuration, bootstrap,
@@ -15,10 +15,11 @@ For manual installation, use the [operator procedure](../step-1b-manual-cluster.
 ## Table of contents
 
 - [Prerequisites](#prerequisites)
-- [Configure](#configure)
-- [Controlled image access](#controlled-image-access)
-- [Plan and deploy](#plan-and-deploy)
-- [Verify and hand over](#verify-and-hand-over)
+- [Step 1: Initialize and edit inputs](#configure)
+- [Step 2: Prepare node configuration](#controlled-image-access)
+- [Step 3: Plan and deploy](#plan-and-deploy)
+- [Step 4: Install the platform](#install-the-platform)
+- [Step 5: Verify and hand over](#verify-and-hand-over)
 - [State and lifecycle](#state-and-lifecycle)
 - [Worker capacity](#worker-capacity)
 - [References](#references)
@@ -66,7 +67,9 @@ without it retain BIOS/Single-controller defaults; a refresh is not a firmware
 migration. Do not apply a new UEFI profile to existing nodes without a reviewed
 replacement/recovery plan. The EFI volume lives on each node's selected live datastore.
 
-## Configure
+<a id="configure"></a>
+
+## Step 1: Initialize and edit inputs
 
 ```bash
 bash scripts/kubernetes-cluster.sh init
@@ -82,11 +85,23 @@ all node bridges must select that VNet with no additional VLAN tag.
 
 | Repository | File relative to that repository | Edit or purpose |
 | --- | --- | --- |
-| Selected tier | `ansible/inventory/hosts.yml` | Logical hosts in `talos_control_plane` and `talos_workers`, both under `talos` |
-| Selected tier | `ansible/group_vars/talos.yml` | `platform_host_ips` for the clone's static NoCloud IP and Talos API |
-| Selected tier | `terraform/deployments/kubernetes/terraform.tfvars` | Cluster endpoint, releases/installer, template, hardware and `machine_config_patches` for native node configuration |
+| Selected tier | `ansible/inventory/hosts.yml` | Retain/add logical hosts `k8ctl-1/2/3` under `talos_control_plane` (Tier 0); workers under `talos_workers`, both under `talos` |
+| Selected tier | `ansible/group_vars/talos.yml` | One reserved `platform_host_ips` address for every node |
+| Selected tier | `terraform/deployments/kubernetes/terraform.tfvars` | Edit the fields in the next table; this root does not read Linux `common.tfvars` |
 | Shared | [config/guest-sizes.json](../../../../shared/config/guest-sizes.json) | Common sizing data, read directly by tier-local Terraform |
 | Shared | [templates/proxmox-catalog.tfvars](../../../../shared/templates/proxmox-catalog.tfvars) | Approved image metadata, loaded by the command |
+
+Edit **`terraform/deployments/kubernetes/terraform.tfvars`**:
+
+| Field | Set before first bootstrap |
+| --- | --- |
+| `template_vm_id`, `vm_firmware`, `qemu_agent` | Approved Talos template VMID and matching firmware/agent; not the Linux default |
+| `cluster.endpoint` | Verified private endpoint DNS/VIP from the preceding endpoint procedure, including `https://` and `:6443` |
+| `cluster.talos_version`, `cluster.kubernetes_version`, `cluster.installer_image` | Exact compatible release pins and NoCloud installer matching the template schematic |
+| `cluster.pod_cidr`, `cluster.service_cidr` | Networks that do not overlap nodes, site routes or other required peers |
+| `nodes` | Each inventory key's unused VMID from the [allocation plan](../../../conventions/vmid-convention.md), real initial Proxmox host, unique MAC, actual live `datastore_id`, bridge and size |
+| `bootstrap_network` | Actual prefix/gateway, or `sdn_vnet` for applied lookup; add `dns_servers` only for an independent bootstrap resolver override |
+| `machine_config_patches` | Ordered image-access, CNI and logging patches prepared in Step 2; retain every required patch |
 
 Every Talos inventory host must have one hardware entry and one reserved IPv4
 address. Each new-cluster example starts with three schedulable control-plane
@@ -118,7 +133,38 @@ shell/runner environment. Use a trusted Proxmox TLS certificate. This command
 does not load `.env.local`, Linux `common.tfvars`, or Linux environment overlays.
 Talos never runs through the Linux `deploy.sh`/Ansible workflow.
 
-## Controlled image access
+On the independent execution host, load the already configured Tier 0 local
+environment and export the provider's native names. Run in a protected shell;
+never enable shell tracing or print token values:
+
+```bash
+set -a
+source .env.local
+set +a
+export PROXMOX_VE_ENDPOINT="${PROXMOX_API_URL:?Set the real Proxmox API URL}"
+export PROXMOX_VE_API_TOKEN="${PROXMOX_API_TOKEN_ID:?Set the token ID}=${PROXMOX_API_TOKEN_SECRET:?Set the token secret}"
+```
+
+An approved CI job may inject the two native provider variables directly instead.
+Retain the trusted-CA configuration used for template publication; do not bypass TLS.
+
+<a id="controlled-image-access"></a>
+
+## Step 2: Prepare node configuration
+
+Before creating any nodes, complete these tasks in order:
+
+1. Add the [controlled image-access patch](image-access.md#configure-node-access)
+   for the selected proxy or existing mirror. Qualify required bootstrap artifacts.
+2. Append the [Cilium/KubePrism patch](basic-platform.md#prepare-talos) for the actual
+   Talos schema. Do not replace the entire patch list with that one example.
+3. [Configure and render cluster logging](security-logging.md#configure-and-render).
+   Copy its two generated Talos patches into `machine_config_patches` as additional
+   YAML heredoc strings; preserve proxy/CNI patches. Validate the complete merged
+   configuration with the matching Talos CLI before applying.
+
+Rendering the logging inputs requires chart access, not a live cluster. Its
+collectors and enrollment are completed after CNI installation, in Step 4.
 
 Before planning, configure the [node image-access procedure](image-access.md).
 Each tier's `machine_config_patches` input appends native Talos patches after its
@@ -128,7 +174,9 @@ The provider merges patches; review their final effect and keep internal API,
 node and service traffic outside the proxy. This input is not an installer for
 a registry, resolver, time service or firewall policy.
 
-## Plan and deploy
+<a id="plan-and-deploy"></a>
+
+## Step 3: Plan and deploy
 
 ```bash
 bash scripts/kubernetes-cluster.sh plan
@@ -148,6 +196,11 @@ secrets and per-node configurations, applies them through the Talos API, then
 bootstraps Kubernetes once on the selected control-plane node. [2]
 Initial configuration uses maintenance mode; protect that network from untrusted clients.
 
+Unlike Linux `deploy.sh`, this helper **requires** the separate saved-plan step.
+Applying a saved plan does not ask Terraform's interactive `yes` question. In CI,
+gate the apply job on approval of that exact protected plan; there is no additional
+`--auto-approve` option for this script.
+
 | Action | Side effects |
 | --- | --- |
 | `init` | Seed missing local input files; no infrastructure access |
@@ -155,7 +208,26 @@ Initial configuration uses maintenance mode; protect that network from untrusted
 | `apply` | Apply the reviewed saved plan; remove it after success |
 | `credentials` | Export client files and per-node configurations to ignored `secrets/talos/` |
 
-## Verify and hand over
+<a id="install-the-platform"></a>
+
+## Step 4: Install the platform
+
+1. Export the client paths from the Tier 0 repository root:
+
+   ```bash
+   export TALOSCONFIG="$PWD/secrets/talos/talosconfig"
+   export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+   kubectl get --raw='/readyz'
+   ```
+
+2. Complete [basic platform Steps 2-3](basic-platform.md#configure): install Cilium
+   first, then prepare Flux/SOPS and install the remaining selected products.
+3. Return to [cluster logging](security-logging.md#enroll-node-streams) to enroll
+   node identities, install collectors and test delivery at Tier 0 intake.
+
+<a id="verify-and-hand-over"></a>
+
+## Step 5: Verify and hand over
 
 ```bash
 export TALOSCONFIG="$PWD/secrets/talos/talosconfig"

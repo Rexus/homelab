@@ -6,38 +6,42 @@ the initial local inputs/state. It is not a CI runner and needs no hosted GitLab
 FreeIPA, Vault or Kubernetes.
 
 **Working repository:** `<prefix>-tier-0` and sibling repositories after generation.
-Step 1 uses the Proxmox GUI and an independent privileged workstation; Steps 2-3
+Step 1 uses the Proxmox GUI and an independent privileged workstation; Steps 2–4
 prepare and use the bootstrap VM before any hosted runner exists.
 **Prerequisites:** prepared hosts/network/storage, one tested
 [manual Linux template](templates.md), and independent console/recovery access.
-**Design:** [protected execution](../../../architecture/compute/provisioning.md#execution-contexts).
+**Design:** [protected execution](../../../architecture/hosting/provisioning.md#execution-contexts).
 
 ## Contents
 
 - [Step 1: Clone the bootstrap VM](#step-1-clone-the-bootstrap-vm)
 - [Step 2: Prepare tools, repositories and artifacts](#step-2-prepare-tools-repositories-and-artifacts)
-- [Step 3: Trust the API and protect local inputs](#step-3-trust-the-api-and-protect-local-inputs)
+- [Step 3: Prepare the execution account's SSH key](#step-3-prepare-the-execution-accounts-ssh-key)
+- [Step 4: Configure trust, credentials and platform inputs](#step-4-configure-trust-credentials-and-platform-inputs)
 - [Continue deployment and hand over later](#continue-deployment-and-hand-over-later)
 
 ## Step 1: Clone the bootstrap VM
 
-Create a **full clone** of the first approved AlmaLinux/Rocky Linux template in
-the Proxmox GUI. Do not use Talos for this general-purpose execution host.
-An existing protected Linux workstation can satisfy Steps 2-3 instead; a VM is
-the reference path, not a recovery dependency.
+1. In the Proxmox GUI, select the tested Linux template, then **Clone > Full Clone**.
+2. Enter the settings below; configure the clone's **Cloud-Init** before starting it.
+3. Start the clone. Verify its SSH host key through the console, then log in as
+   `automation` and confirm `sudo -v` succeeds.
+
+An existing protected Linux workstation can satisfy Steps 2–4 instead. Do not use
+Talos as this general-purpose execution host. The VM is not an independent recovery copy.
 
 | Setting | Reference choice |
 | --- | --- |
 | VM name | `bootstrap-1`, following the project's `<role>-<n>` convention |
-| VMID | Reserve an unused infrastructure ID in the project allocation; never reuse an active VMID |
+| VMID | `601` in the [VMID convention](../../../conventions/vmid-convention.md); reserve an unused automation ID if already occupied |
 | Compute | Start with 2 vCPUs / 4 GiB RAM; size for the selected tools and artifact processing |
 | Disks | Live Proxmox storage; allow separate capacity for unpacked images and provider upload staging |
-| Guest attachment | `management` / Control, example VLAN 10, through the approved bridge/VNet |
+| Guest attachment | Current `management` network, example VLAN 10; follow the approved network plan |
 | Cloud-Init | Set clone-specific static IP/CIDR, gateway, independent DNS, user `automation` and an approved SSH public key |
 | Administration | Verified SSH host key, authorized sudo, working time synchronization and console recovery |
 
-Use the selected [network plan](../../../architecture/networking/README.md) and
-[naming conventions](../../../reference/proxmox-conventions.md); these are manual
+Use the selected [network plan](../../../conventions/network-plan.md) and
+[naming conventions](../../../conventions/proxmox-conventions.md); these are manual
 prerequisite values, not new Terraform defaults. The management attachment can
 share the approved host-management subnet; it must not join the Corosync or Ceph
 transport networks. Sharing a subnet grants no API or SSH permissions.
@@ -108,11 +112,16 @@ temporary acquisition path is not permission for unrestricted Tier 0 Internet ac
 
 ## Step 2: Prepare tools, repositories and artifacts
 
-On `bootstrap-1`, install and verify the
-[deployment tooling](../../../development/local-setup.md#automation-vm-example).
-Use the OS-native package/signature checks and accepted tool versions. Git,
-Python/PyYAML and artifact utilities are needed **before** repository generation;
-Terraform and Ansible are needed before provisioning/configuration.
+**Run on `bootstrap-1` as `automation`.**
+
+1. Run the installation and verification commands in
+   [deployment tooling](../../../development/local-setup.md#automation-vm-example).
+   Return here after the matching OS/tooling steps. Git, Python/PyYAML and archive
+   utilities must work before generation; Terraform and Ansible are needed for deployments.
+2. Prepare and activate the [Ansible environment](../../../development/local-setup.md#ansible-environment).
+   Activate that same environment in later deployment shells. Template commands prepare
+   their own isolated runtime, but Linux `deploy.sh` also needs usable Ansible.
+3. Clone the kit and generate the collection below.
 
 For a new workspace, obtain the reviewed kit revision using the approved source.
 The public clone example is:
@@ -135,11 +144,13 @@ bash scripts/init-tier-repos.sh --prefix HomeLab
 This creates `$HOME/src/homelab-iac/`. Use `--root` to select another parent;
 reuse that path/prefix during refresh. Keep the kit checkout separate from its
 five generated repositories; the collection directory is not a Git repository.
-Record choices in `homelab-architecture/docs/naming-conventions.md` and `docs/README.md`.
+Edit `$HOME/src/homelab-iac/homelab-architecture/platform-standards.md` with
+actual host names, VMIDs and network allocations. Record selected paths in the
+same repository's `docs/README.md`.
 Read the rendered upstream [Tier 0 checklist](../../../paths/tier-0/README.md) in
 the browser while executing commands from the named generated repository.
 
-Create the example artifact directory outside Git:
+4. Create the artifact directory outside Git:
 
 ```bash
 sudo install -d -m 0700 -o "$(id -un)" -g "$(id -gn)" /srv/tier0/artifacts
@@ -151,32 +162,105 @@ Follow [verify, unpack and upload](templates.md#step-1-verify-unpack-and-upload)
 for raw/qcow2 handling; catalog hashes describe the **unpacked** bytes. Retain
 provider/tool/collection artifacts outside this VM for independent recovery.
 
-## Step 3: Trust the API and protect local inputs
+## Step 3: Prepare the execution account's SSH key
 
-1. On this VM, complete [Proxmox CA trust](../../../administration/compute/proxmox-tls.md#step-1-trust-the-bootstrap-ca).
-   Obtain the public cluster CA through the independent Proxmox console or verified
-   SSH channel, compare fingerprints, then install it into this VM's OS trust store.
-   Trust installed on the browser workstation is not trust installed here. Check
-   the endpoint SAN and TLS without a bypass; FreeIPA/platform PKI is not required.
-2. Create the scoped [API identity](api-access.md#create-platform-automation-access)
-   on Proxmox, then initialize local template inputs **on the bootstrap VM**:
+**Run on `bootstrap-1` as `automation`, outside the repositories.** The key used to
+log into this VM is not automatically available for connecting from it to new guests.
+Linux clone key lists are empty until configured in each consuming tier.
+
+### 3a: Create a key when none exists
+
+Create a dedicated execution-account key. Enter a passphrase when prompted; do not
+overwrite an existing key. Keep both files under the account's `.ssh/`, never in Git.
+
+```bash
+install -d -m 0700 "$HOME/.ssh"
+ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519" -C "homelab-bootstrap"
+```
+
+Load the private key into a local agent for the deployment session:
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add "$HOME/.ssh/id_ed25519"
+ssh-add -l
+```
+
+### 3b: Reuse an approved key or agent
+
+Skip key creation when a usable key/agent already exists. Confirm the matching
+public-key file is readable on this host and the private key is available through
+the local SSH configuration or approved agent. List agent identities with `ssh-add -l`.
+Do not copy an administrator's private workstation key into a repository or template.
+
+**Both paths continue at Step 4.** Print the absolute public-key path for the input below:
+
+```bash
+realpath "$HOME/.ssh/id_ed25519.pub"
+```
+
+Use the actual public-key filename for an existing key. CloudInit receives only the
+public key; Ansible uses its matching private key through SSH. See the
+[local SSH input contract](../../../reference/platform-inputs.md#local-ssh-access).
+
+<a id="step-3-trust-the-api-and-protect-local-inputs"></a>
+
+## Step 4: Configure trust, credentials and platform inputs
+
+1. Complete [Proxmox CA trust: Step 1](../../../administration/compute/proxmox-tls.md#step-1-trust-the-bootstrap-ca)
+   and its caller-verification gate **on the bootstrap VM**. Obtain the public CA through
+   console/verified SSH, compare fingerprints, install it in the OS trust store and verify
+   the endpoint name. Browser trust on another workstation is insufficient.
+2. Follow [API setup](api-access.md#create-platform-automation-access) on a **Proxmox host**
+   to create the scoped roles, group and token. Return here after its token permission checks.
+3. Back on **`bootstrap-1`**, initialize Tier 0's local files:
 
    ```bash
    cd "$HOME/src/homelab-iac/homelab-tier-0"
    bash scripts/proxmox-templates.sh init
    ```
 
-   Edit `.env.local` with the endpoint, token ID and secret. Use
-   `--env-file .env.local` for template commands; no manual exports are required.
-   Review Shared's storage-class references and Tier 0's catalog/image staging paths.
-3. Before provisioning, protect local files and independent backups: ignored
-   `.env.local`, inventories, variables, SSH material and original Terraform state
-   do not become safe merely because Git ignores them. Configure and test their
-   recovery through [bootstrap backup planning](../../../administration/compute/backup-restore.md).
-   Keep a recovery workstation and credentials outside Proxmox and future hosted services.
+4. Edit **Tier 0 `.env.local`**. Replace the examples with the verified endpoint, token
+   and the absolute public-key path printed in Step 3:
 
-**Ready:** operator SSH/console, tools, approved artifacts, verified API trust,
-scoped credentials and independent recovery work. Return to
+   ```dotenv
+   PROXMOX_API_URL=https://pve01.example.internal:8006/
+   PROXMOX_API_TOKEN_ID=automation@pve!provision
+   PROXMOX_API_TOKEN_SECRET=replace-with-the-issued-secret
+   TF_VAR_ssh_public_key_files='["/home/automation/.ssh/id_ed25519.pub"]'
+   ```
+
+   Set these values in **each consuming tier's own `.env.local`** before its first Linux
+   deployment. Tier 2 does not inherit Tier 0's endpoint, credentials or SSH key setting.
+   Use a token scoped to that tier's authorized operations. Keep key contents out of
+   `.tfvars`, templates and Git. Template commands require `--env-file .env.local`;
+   Linux `deploy.sh` loads that file by default. No manual `source`/exports are needed.
+5. Edit **`../homelab-shared/config/platform.tfvars`** before the first managed guest:
+
+   | Field | Enter |
+   | --- | --- |
+   | `default_platform_node_name` | Actual initial destination node, for example `"pve01"`, replacing `null` |
+   | `proxmox_storage_classes.local.vm_disk` | Real datastore accepting VM disks, for example `"local-zfs"` |
+   | `proxmox_storage_classes.shared.vm_disk` | Commissioned shared live-disk datastore; its name does not create shared storage |
+   | `proxmox_storage_classes.fast.vm_disk` | Actual fast-disk datastore if used |
+   | Class `cloud_init_drive` | Actual datastore accepting VM disks, or omit to inherit that class's `vm_disk` |
+   | `shared_network_zones.application` | Prepared application bridge/VNet, VLAN and subnet/gateway, or the selected SDN lookup fields |
+
+   Replace the used `*-change-me` placeholders and retain only classes that represent
+   real prepared storage. **`local` is commonly an Import/ISO datastore, not a VM-disk
+   datastore.** It is distinct from the logical `local` class, which can map to `local-zfs`.
+   Keep template `image_datastore_id` separate. The template source node also does not
+   select guest placement. See [platform fields and precedence](../../../reference/platform-inputs.md).
+   On a local-storage pilot, select the configured `local` class in each consuming
+   setup, including Tier 0's template `all.storage_class`; the starter's `shared`
+   selection is valid only after that shared datastore exists.
+6. Back up ignored inputs, inventories, `.env.local`, original state and recovery material
+   independently of this host/storage. Follow [backup planning](../../../administration/compute/backup-restore.md)
+   and test recovery. Git ignore rules are not access control or backup.
+
+**Ready:** operator SSH/console, usable outbound SSH key/agent, tools, artifacts,
+verified API trust, scoped credentials, configured Shared profile and independent recovery.
+Return to
 [Foundation Step 3](../README.md#step-3-publish-and-test-vm-templates) to adopt
 existing templates or publish new candidates, including the Kubernetes node image.
 Do not boot the reusable template or capture this credential-bearing VM back into it.
@@ -188,6 +272,10 @@ Create [local private Git history](../../../development/repository-workflow.md#l
 before hosted source control exists. After
 GitLab and SSO are accepted, push each repository's reviewed code/history to its
 own private remote; never push ignored secrets, state or downloaded images.
+
+A local checkout is not itself a reachable Flux source. Before Stage 4, provide
+the [independent bootstrap Git source](../../stage-4-kubernetes/procedures/flux-sops.md)
+and read credentials; later hosted GitLab must not be a bootstrap dependency.
 
 The later Tier 0 runner is **`iac-1`**, not another name for `bootstrap-1`.
 Follow [bootstrap-to-CI handover](../../stage-9-development/procedures/handover.md)

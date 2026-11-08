@@ -4,7 +4,7 @@
 The cluster variant uses [clusters/tier1/platform/artifact-registry/](../../../../tier-1/clusters/tier1/platform/artifact-registry);
 the integrated source-control variant uses the selected source-control deployment.
 
-**Design:** [artifact supply options A-C](../../../architecture/delivery/artifact-supply.md).
+**Design:** [artifact supply options A-C](../../../architecture/software/artifact-supply.md).
 **Prerequisites:** approved runtime, storage, TLS/DNS, identity policy and retained
 bootstrap artifacts. **Owner:** Tier 1. The
 [native delivery installer](delivery-installer.md) supplies pinned official Harbor
@@ -61,9 +61,23 @@ The presence of a platform-cluster skeleton does not install these services.
 
 ## Install Harbor
 
-Follow the [common render/apply procedure](delivery-installer.md). Enable
-`delivery_platform_install_harbor`, pin `delivery_platform_harbor_version`, and choose
-the private hostname, ingress class, persistent StorageClass and five volume sizes.
+1. Open Tier 1's existing `ansible/group_vars/delivery_platform.yml`. Retain the chosen
+   controller configuration and set `delivery_platform_install_harbor: true`.
+   For an existing controller owned elsewhere, use `delivery_platform_controller: none`
+   to install Harbor without reconciling that controller.
+2. Fill the Harbor fields below; retain the centrally pinned chart version unless a
+   separately reviewed `delivery_platform_harbor_version` override is required.
+3. Prepare the Secrets described below, then run [installer Step 2](delivery-installer.md#render-and-apply).
+4. Complete [acceptance](#acceptance) and return to Stage 7 for Observability.
+
+| Field in `ansible/group_vars/delivery_platform.yml` | Value |
+| --- | --- |
+| `delivery_platform_harbor_host` | Actual private registry DNS name |
+| `delivery_platform_ingress_class` | Accepted Tier 1 ingress class |
+| `delivery_platform_harbor_storage_class` | Qualified persistent class; review all five volume sizes in the role defaults |
+| `delivery_platform_oidc_issuer`, `delivery_platform_oidc_ca_pem`, `delivery_platform_ca_path` | Existing issuer and public trust |
+| `delivery_platform_harbor_database_password` | Private input only; required even for render |
+
 The native chart installs PostgreSQL, Redis, registry, core, jobservice, portal and
 Trivy. This is a single-instance deployment with retained PVCs, not an HA claim.
 

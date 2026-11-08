@@ -1,6 +1,7 @@
 # Copy to: terraform/deployments/vault/terraform.tfvars
 # Replace every value before use.
 # Setup guide: docs/deployment/stage-6-secrets/step-1b-vault-vm.md
+# VMID allocation: docs/conventions/vmid-convention.md
 # Shared values live in ../../common.tfvars.
 
 # Optional: override the shared default Linux VM template for this setup or
@@ -14,8 +15,8 @@ vm_instances = {
   # vault-1 IP entry.
   "vault-1" = {
     # Optional per-guest template override when one VM uses another template.
-    # template_vm_id = 111
-    vm_id            = 240
+    # template_vm_id = 9101
+    vm_id            = 321
     size             = "large"
     storage_class    = "local"
     disk_size_gb     = 40

@@ -5,19 +5,20 @@ locally controlled infrastructure and trust foundation. Users consume published
 applications; teams deliver reviewed changes; platform operators retain control
 of infrastructure, identity, keys and recovery.
 
-This page shows the completed intended system. The
-[integrated reference design](reference-platform.md) assigns its functions to
-components and hosting boundaries. Each [technical domain](#technical-domains)
-then expands part of the same system into detailed designs and alternatives.
+The [foundational capabilities](#foundational-capabilities) describe what an IT
+platform must provide, independently of its products or size. The
+[integrated reference design](reference-platform.md) selects the components and
+hosting boundaries used by this repository. Each capability expands into focused
+designs and alternatives.
 Selected site designs belong in project-owned architecture records; actual
 deployment and acceptance evidence belong in [deployment](../deployment/README.md).
 
 ## Table of contents
 
 - [Read from overview to detail](#read-from-overview-to-detail)
+- [Foundational capabilities](#foundational-capabilities)
 - [Functional structure](#functional-structure)
 - [How the platform works together](#how-the-platform-works-together)
-- [Technical domains](#technical-domains)
 - [Layered model](#layered-model)
 - [Tiered model](#tiered-model)
 - [Tier and zone view](#tier-and-zone-view)
@@ -31,7 +32,7 @@ deployment and acceptance evidence belong in [deployment](../deployment/README.m
 | Whole platform | Which capabilities form the environment, and where do they belong by tier and layer? | This page |
 | Integrated reference | What components coexist in one complete realization, and where do they run? | [Reference platform](reference-platform.md) |
 | System interactions | How do access, changes, certificates, data and recovery cross domain boundaries? | [Runtime relationships](runtime-flows.md) |
-| Domain | What is inside one platform function, and what does it consume and provide? | [Technical domains](#technical-domains) |
+| Capability | What function is provided, and what does it consume and expose? | [Foundational capabilities](#foundational-capabilities) |
 | Detailed design | How does a component or alternative fulfill that domain's contract? | Detail pages linked from each domain |
 | Selected instance | Which alternatives are combined for a particular site or environment? | [Variant selection](variants.md) and project-owned designs |
 
@@ -39,6 +40,45 @@ Depth follows composition rather than installation order. A child diagram expand
 a named part of its parent and keeps the same outward interfaces. Networking,
 ownership and runtime placement are complementary views of those components.
 Only designs with meaningful internal differences need another page or diagram.
+
+<a id="technical-domains"></a>
+<a id="subsystem-design"></a>
+<a id="compute-and-cluster-platform"></a>
+<a id="identity-and-access"></a>
+<a id="cryptography-and-secrets"></a>
+<a id="traffic-and-delivery"></a>
+<a id="operations-and-workloads"></a>
+<a id="from-design-to-implementation"></a>
+<a id="design-document-contents"></a>
+
+## Foundational capabilities
+
+A platform combines these functions to support applications and their users.
+They are design responsibilities, not seven required products, repositories or
+deployment stages. One installation may combine several; a larger environment
+can separate them while preserving their interfaces and authority boundaries.
+
+| Capability | Function supplied to the platform | Detailed designs |
+| --- | --- | --- |
+| [Hosting and orchestration](hosting/README.md) | Isolated execution, resource provisioning and scheduling | [VM and cluster runtimes](hosting/runtime.md), [Kubernetes](hosting/kubernetes.md), [protected infrastructure control](hosting/provisioning.md) |
+| [Networking and connectivity](networking/README.md) | Addressing, name resolution, reachability, segmentation and service publication | Attachments, zones and [traffic policy](networking/firewall-policy.md) |
+| [Data and storage](data/README.md) | Persistent data services and qualified block, file and object interfaces | Data ownership, live storage and backup interfaces |
+| [Identity and access](identity/README.md) | Human and machine identities, authentication and scoped authorization | Directory authority, federation and service-local policy |
+| [Cryptography and secrets](cryptography/README.md) | Trust anchors, certificate issuance, key custody and scoped secret delivery | [Key protection](cryptography/hsm-selection.md) and [service seals](cryptography/vault-seal.md) |
+| [Software lifecycle](software/README.md) | Controlled intake, source, builds, artifacts and approved releases | [Delivery controllers](software/controllers.md), [artifact supply](software/artifact-supply.md) and development services |
+| [Operations and resilience](operations/README.md) | Inventory, observability, protected evidence, maintenance and recovery | Health, retention and [backup/recovery contracts](operations/backup-recovery.md) |
+
+**Zero trust and scalability apply across every capability.** Identity establishes
+the subject; each resource enforces its own access policy; networking constrains
+reachable paths; cryptography protects exchanges; operations retains evidence.
+Capacity, failure domains and recovery requirements are explicit design inputs.
+The [design principles](principles.md) define these shared constraints.
+
+The same capability questions apply to a small homelab, a datacenter or a public
+cloud. Managed services change who implements and operates a function, rather than
+removing the need for its access, data and recovery contract. This repository's
+implemented reference remains Proxmox-based; cloud-provider alternatives require
+their own implementation and acceptance.
 
 <a id="purpose"></a>
 <a id="goals"></a>
@@ -48,7 +88,7 @@ Only designs with meaningful internal differences need another page or diagram.
 
 The capability map places services by **owning tier** vertically and **security
 layer** horizontally. Boxes name capabilities, not products, VMs or clusters.
-Domain views expand those boxes into their components and hosting arrangements.
+Capability views expand those boxes into their components and hosting arrangements.
 These names remain valid across implementation choices: protected log services stay
 Tier 0-owned whether a site selects one receiver, redundant intake or existing storage.
 Instance names, counts and commands belong to the selected deployment, not this map.
@@ -105,26 +145,6 @@ login endpoint is a permitted service interface, not a move into the Services
 zone. Control is a security layer; `management` is one network within it.
 Offline custody is outside the connected layers, not another routed zone.
 
-| Capability | Consumer-facing function | Expanded design |
-| --- | --- | --- |
-| Client access | Tier 2 endpoints consume named services without administrative or peer trust | [Network placement](networking/README.md#zone-assignment) |
-| Directory authority (IdM) | Identity lifecycle, groups, host enrollment, DNS and Kerberos | [Identity](identity/README.md) |
-| Identity provider (IdP / SSO) | Application authentication and identity claims | [Identity](identity/README.md) |
-| Certificate issuance (PKI) | Trusted service certificates under approved policy | [Cryptography](cryptography/README.md) |
-| Secrets management | Scoped credential delivery and independent recovery | [Cryptography](cryptography/README.md) |
-| Infrastructure control | Authorized compute, network, storage and image lifecycle | [Compute](compute/README.md), [networking](networking/README.md) |
-| Inventory and control visibility | Infrastructure records, health, audit and recovery evidence | [Operations](operations/README.md) |
-| Protected security logging | All tiers submit; restricted raw-evidence reads and enforced retention remain Tier 0-owned | [Security logging](operations/security-logging.md) |
-| Observability | Tier 1 diagnoses logs, metrics and traces; developers query only their application scope | [Telemetry](operations/telemetry.md) |
-| Source control | Reviewed definitions and change proposals | [Delivery](delivery/README.md) |
-| Artifact registry | Approved versions and scoped artifact access | [Artifact supply](delivery/artifact-supply.md) |
-| Build execution | Tier 1 DMZ runners produce candidate artifacts with scoped credentials | [Delivery](delivery/README.md) |
-| Authoritative mirrors | Tier 1 retains approved software sources separately from ordinary caches | [Software supply](delivery/README.md) |
-| Application delivery | Authorized releases or reconciliation within approved application scope | [Delivery controllers](delivery/controllers.md) |
-| Workload-cluster management | Scoped operation of approved workload clusters | [Kubernetes topology](compute/kubernetes.md) |
-| Service publication and controlled egress | Tier 2 public entry points and ordinary outbound proxy/cache | [Delivery](delivery/README.md), [network policy](networking/firewall-policy.md) |
-| Applications and project runtimes | User services, development and experiments | [Runtime design](compute/runtime.md) |
-
 Ordinary clients belong to Tier 2 / Edge, on their own DMZ subnet. Protected
 operator workstations belong to the tier they administer, not the ordinary client
 network. Approved software sources and offsite recovery targets are external peers.
@@ -146,36 +166,6 @@ and recovery contracts. The
 
 These relationships coexist after deployment. A deployment stage may contribute
 to several functions, and one function may be realized across several stages.
-
-<a id="subsystem-design"></a>
-<a id="compute-and-cluster-platform"></a>
-<a id="identity-and-access"></a>
-<a id="cryptography-and-secrets"></a>
-<a id="traffic-and-delivery"></a>
-<a id="operations-and-workloads"></a>
-<a id="from-design-to-implementation"></a>
-<a id="design-document-contents"></a>
-
-## Technical domains
-
-Each domain opens with its completed design and boundary interfaces, then links
-to internal components and variants. A domain is a reading topic, not another
-repository or ownership boundary.
-
-| Domain view | Detail available below it |
-| --- | --- |
-| [Networking](networking/README.md) | Attachments, network catalog and [permitted traffic](networking/firewall-policy.md) |
-| [Compute](compute/README.md) | [VM/cluster placement](compute/runtime.md), [three-cluster topology](compute/kubernetes.md) and [protected provisioning](compute/provisioning.md) |
-| [Identity](identity/README.md) | IdM, IdP and authorization relationships; [Windows integration](identity/windows-integration.md) |
-| [Cryptography](cryptography/README.md) | [Key custody](cryptography/hsm-selection.md), [USB gateways](cryptography/usb-hsm.md), [network HSM](cryptography/network-hsm.md) and [service seals](cryptography/vault-seal.md) |
-| [Delivery](delivery/README.md) | Endpoints, [controller choices](delivery/controllers.md), [artifact authority and distribution](delivery/artifact-supply.md) |
-| [Operations](operations/README.md) | Inventory/recovery relationships and [telemetry composition](operations/telemetry.md) |
-
-[Principles](principles.md), [tier ownership](tier-ownership.md) and
-[service boundaries](service-boundaries.md) apply across these domains.
-The [variant contract](variants.md) explains which local substitutions preserve
-the parent design and which changes require review of that design. Procedures
-realize the selected design; they do not redefine it.
 
 ## Layered model
 
@@ -266,12 +256,13 @@ control coordinates changes; Tier 0 retains authorization and independent recove
 | Question | Authoritative guide |
 | --- | --- |
 | Which networks, VLANs, and firewall rules? | [Network map](networking/README.md), [firewall policy](networking/firewall-policy.md) |
+| Which names, tags, IDs and allocation rules? | [Conventions](../conventions/README.md) |
 | What belongs in each repo? | [Tier ownership](tier-ownership.md) |
-| Which implementation choices are available? | [Technical domains](#technical-domains), [variant selection](variants.md) |
+| Which implementation choices are available? | [Foundational capabilities](#foundational-capabilities), [variant selection](variants.md) |
 | What does the complete platform look like? | [Integrated reference design](reference-platform.md) |
 | How do its parts cooperate? | [Runtime relationships](runtime-flows.md) |
 | What is deployed first? | [Deployment checklist](../paths/tier-0/README.md) |
-| How are privileged changes accepted? | [Infrastructure control](compute/provisioning.md) |
+| How are privileged changes accepted? | [Infrastructure control](hosting/provisioning.md) |
 | What is the wider platform scope? | [Private cloud](private-cloud.md), [shared services](service-boundaries.md) |
 
 Routing, switching, and firewall rules remain operator-managed prerequisites.

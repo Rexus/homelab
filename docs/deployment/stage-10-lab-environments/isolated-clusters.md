@@ -3,7 +3,7 @@
 **Working repositories:** `<prefix>-tier-2` for profiles/definitions/state;
 `<prefix>-tier-0` for privileged execution.
 **Branch from:** [Stage 10, Step 1](README.md#step-1-define-the-approved-request).
-**Design:** [workload isolation](../../architecture/compute/workload-isolation.md).
+**Design:** [workload isolation](../../architecture/hosting/workload-isolation.md).
 **Scope:** operator-first deployment and the future bounded request contract.
 No multi-cluster allocator, expiry controller or portal is installed by this path.
 

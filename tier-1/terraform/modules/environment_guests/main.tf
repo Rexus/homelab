@@ -79,10 +79,10 @@ locals {
     for key, vm in var.vm_instances : key => {
       name           = local.platform_hostnames[key]
       inventory_host = local.ansible_inventory_hosts[key]
-      node_name = coalesce(
+      node_name = try(coalesce(
         try(vm.proxmox_node_name, null),
         var.default_platform_node_name,
-      )
+      ), null)
       vm_id          = try(vm.vm_id, null)
       template_vm_id = local.resolved_vm_template_ids[key]
       template_title = try(var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].title, null)
@@ -136,10 +136,10 @@ locals {
     for key, lxc in var.lxc_instances : key => {
       name           = local.platform_hostnames[key]
       inventory_host = local.ansible_inventory_hosts[key]
-      node_name = coalesce(
+      node_name = try(coalesce(
         try(lxc.proxmox_node_name, null),
         var.default_platform_node_name,
-      )
+      ), null)
       vm_id            = try(lxc.vm_id, null)
       template_file_id = lxc.template_file_id
       size             = coalesce(try(lxc.size, null), "small")

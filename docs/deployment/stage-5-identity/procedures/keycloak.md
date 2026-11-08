@@ -5,24 +5,37 @@ Kubernetes platform. FreeIPA remains the directory authority on its dedicated VM
 Keycloak uses its own CNPG database and verifies LDAP and database certificates.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+Run every command below from its root, using the accepted Tier 0 kubeconfig.
 **Prerequisites:** working FreeIPA LDAPS, a restricted directory reader, external
 certificate/credential custody, CNPG, the selected database backup path, independent
 backup storage and protected cluster log delivery. None may depend on later Vault.
 
 ## Table of contents
 
-- [Configure and install](#configure-and-install)
+- [Step 1: Configure the identity provider](#configure-and-install)
+- [Step 2: Supply private certificates and credentials](#step-2-supply-private-certificates-and-credentials)
+- [Step 3: Prepare the database and backup](#step-3-prepare-the-database-and-backup)
+- [Step 4: Install Keycloak and federation](#step-4-install-keycloak-and-federation)
 - [Federation and authorization](#federation-and-authorization)
 - [Accept and recover](#accept-and-recover)
 - [References](#references)
 
-## Configure and install
+<a id="configure-and-install"></a>
 
-Use the [control-application procedure](../../stage-6-secrets/procedures/control-applications.md)
-for dependencies, private inputs, certificates and render/apply commands. Select
-`control_applications_components: [keycloak]`; retain `render` until review.
-For fresh file-backup inputs, follow [database preparation and NAS commissioning](../../../administration/backups/postgresql.md)
-before the final application installation. The `prepare` phase alone does not install Keycloak.
+## Step 1: Configure the identity provider
+
+Initialize the local file without overwriting existing selections:
+
+```bash
+cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
+export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+kubectl get nodes -o wide
+```
+
+Edit **`ansible/group_vars/control_applications.yml`**. Select only `keycloak` for
+this stage. The [shared product contract](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership)
+defines dependency/certificate details; installation commands are below, so no later
+stage must be deployed first.
 
 The installer creates `keycloak-db` on qualified Proxmox/Ceph-backed volumes with
 externally issued TLS and the selected backup resources, then waits for readiness before
@@ -36,6 +49,9 @@ point-in-time recovery is required; a file backup recovers only to a completed s
 
 | Input | Required selection |
 | --- | --- |
+| `control_applications_components`, `control_applications_action` | `[keycloak]`, `render` |
+| `control_applications_kubeconfig`, `control_applications_context` | Absolute Tier 0 kubeconfig path and intended context |
+| `control_applications_versions.keycloak` | Approved exact chart version, compatible with the selected image/Kubernetes release |
 | `control_applications_hosts.keycloak` | Stable HTTPS name; use the same name in certificate SANs and issuer URLs |
 | `control_applications_keycloak_realm` | Existing/selected human federation realm; default `platform` |
 | `control_applications_ldap_url` | External FreeIPA `ldaps://` endpoint; trusted through `freeipa-ca` |
@@ -44,6 +60,88 @@ point-in-time recovery is required; a file backup recovers only to a completed s
 | `control_applications_ldap_bind_dn` | Restricted directory reader; created and authorized in FreeIPA separately |
 | `control_applications_ldap_bind_password` | Private controller input, used only by the Keycloak API module |
 | `control_applications_keycloak_auth` | Private API administration credentials; controller must trust HTTPS |
+| `control_applications_storage_class`, `control_applications_database_storage_class` | Qualified Proxmox/Ceph-backed block classes; never the NAS backup class |
+| `control_applications_backup_mode`, `control_applications_backup_files_phase` | Main path: `files`, `prepare`; Step 3 commissions the backup destination |
+| `control_applications_platform_accepted`, `control_applications_cluster_logging_accepted`, `control_applications_traefik_crd_accepted`, `control_applications_database_storage_accepted`, `control_applications_recovery_custody_accepted` | Set `true` only after the respective Stage 4 and independent-custody checks pass |
+
+## Step 2: Supply private certificates and credentials
+
+Create the encrypted input before entering secrets:
+
+```bash
+cp -n ansible/group_vars/control_applications_secrets.yml.example ansible/group_vars/control_applications_secrets.yml
+ansible-vault encrypt ansible/group_vars/control_applications_secrets.yml
+ansible-vault edit ansible/group_vars/control_applications_secrets.yml
+```
+
+In that encrypted file, set `control_applications_manage_secrets: true` only when
+this installer is the selected Secret owner. Retain/populate the `keycloak/*` entries
+for the selected backup mode; omit unrelated Vault/NetBox/Headlamp Secret entries.
+Supply the restricted LDAPS reader password and Keycloak API credentials there too.
+An existing qualified Secret controller is an alternative: keep management false
+and commission those exact Secrets before applying.
+
+| Required private material | Contract |
+| --- | --- |
+| `keycloak-bootstrap`, `keycloak-db` | Independent bootstrap administrator and database credentials |
+| `freeipa-ca`, `keycloak-tls` | Trusted LDAP CA bundle; approved HTTPS leaf/key/chain for the selected IdP DNS name |
+| `keycloak-db-ca`, `keycloak-db-server`, `keycloak-db-replication` | External DB trust, server leaf covering the read/write service name, and client-auth replication identity |
+| `keycloak-db-file-backup` | Files mode: client-auth CN `keycloak-db-file-backup`, matching key and server trust |
+| `keycloak-db-backup` | Object/WAL alternative only: independently scoped object credentials and endpoint trust |
+
+Use the [exact namespace/key and certificate contract](../../stage-6-secrets/procedures/control-applications.md#secrets-and-certificates).
+Obtain all leaves through qualified issuance before apply; the Stage 3 TLS-server
+policy does not supply client-auth profiles. No CA private key or later Vault
+dependency belongs in these inputs. Keep TLS verification enabled on the controller.
+
+## Step 3: Prepare the database and backup
+
+### Step 3a: Scheduled NAS backups (main path)
+
+1. Keep `files` / `prepare` in the local application inputs. Render without live changes:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=render
+   ```
+
+2. Inspect `secrets/control-applications/`, including the database preparation
+   resources and Secret references, then prepare the database:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
+   ```
+
+   This creates `keycloak-db` and reports its system identifier. **Keycloak is not
+   installed yet.** Live database PVCs remain on the selected block storage.
+3. Complete [NAS commissioning](../../../administration/backups/postgresql.md#commission-the-nas).
+   Create the independent backup-only claim and marker, then set
+   `control_applications_backup_files.keycloak` (`claim`, `volume_handle`,
+   `system_identifier`, `marker`, `schedule`) in the local application file.
+   Set `control_applications_backup_files_accepted: true` only after those gates;
+   change `control_applications_backup_files_phase` to `backup`. Continue to Step 4.
+
+### Step 3b: Object/WAL backups (alternative)
+
+Select `control_applications_backup_mode: object`, qualify the existing Barman
+plugin/native object endpoint and supply the scoped Secret/destination fields
+under the [object/WAL contract](../../stage-6-secrets/procedures/control-applications.md#persistence-and-recovery).
+This selects continuous WAL recovery instead of scheduled file sets; it installs
+no storage gateway and does not move live database volumes. Return to Step 4.
+
+## Step 4: Install Keycloak and federation
+
+With the selected backup inputs complete, rerender using the Step 3a render command.
+Inspect database, backup, TLS, ingress and federation selections before applying:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
+```
+
+The playbook loads `ansible/group_vars/control_applications.yml` itself. The private
+extra-vars override it; keep the same file/target on render and apply. This is a
+native Ansible installation with explicit `render`/`apply`, not the Linux VM
+helper's interactive Terraform confirmation. CI supplies a protected Vault password
+file instead of `--ask-vault-pass`; retain the render review/approval gate.
 
 Keep the `keycloak-bootstrap` Secret under independent custody. The initial
 administrator is a bootstrap/recovery account, not routine human SSO. After

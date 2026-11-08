@@ -1,15 +1,16 @@
 # Documentation
 
 Architecture describes the completed intended platform from overview to detail:
-its functions, integrated component placement, runtime relationships, domain
-designs and local alternatives. Deployment builds that design in stages;
+its foundational capabilities, integrated component placement, runtime relationships
+and local alternatives. Deployment builds that design in stages;
 development and administration maintain it.
 
 | Intent | Start here | Contains |
 | --- | --- | --- |
-| Understand the design | [Architecture](architecture/README.md) | Whole platform, integrated reference, domain diagrams and detailed variants |
+| Understand the design | [Architecture](architecture/README.md) | Foundational capabilities, reference placement, interfaces and design variants |
+| Choose names, IDs and network allocations | [Conventions](conventions/README.md) | Names, tags, VMID ranges and zone/VNet examples |
 | Build the platform | [Deployment](deployment/README.md) | Foundation prerequisites and numbered capability stages, including software intake and Kubernetes |
-| Change the code | [Development](development/README.md) | Local tooling, IaC structure, repository generation and review |
+| Change the code | [Development](development/README.md) | Visual repository/code maps, extension examples, debugging and focused checks |
 | Operate the platform | [Administration](administration/README.md) | Maintenance, backups, recovery and secret handling |
 | Work from one repository | [Repository paths](paths/README.md) | Short Tier 0, Tier 1, Tier 2 and shared checklists |
 | Look up an input or command | [Reference](reference/README.md) | Naming, catalogs, input contracts and CLI options |
@@ -20,10 +21,10 @@ development and administration maintain it.
 1. Read the [platform overview](architecture/README.md) and its connected functions.
 2. Expand the [integrated reference](architecture/reference-platform.md) and
    [runtime relationships](architecture/runtime-flows.md).
-3. Drill into [domain designs](architecture/README.md#technical-domains) and
+3. Drill into [foundational capabilities](architecture/README.md#foundational-capabilities) and
    [select compatible variants](architecture/variants.md).
 4. Record selected paths in the generated architecture repository's `docs/README.md`;
-   complete `docs/naming-conventions.md` for local standards.
+   complete `platform-standards.md` for local standards.
 5. Follow the [deployment stages](deployment/README.md), using verified
    existing services wherever they satisfy the prerequisites.
 

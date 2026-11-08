@@ -15,10 +15,10 @@ Run repository scripts from this root; paths below are repository-relative.
 
 - [Purpose](#purpose)
 - [Prerequisites](#prerequisites)
-- [Configuration](#configuration)
+- [Step 1: Configure inputs](#configuration)
 - [IaC used for this](#iac-used-for-this)
-- [Plan and deploy](#plan-and-deploy)
-- [Operator bootstrap](#operator-bootstrap)
+- [Step 2: Deploy](#plan-and-deploy)
+- [Step 3: Initialize and unseal](#operator-bootstrap)
 - [After deployment](#after-deployment)
 - [Later hardening](#later-hardening)
 - [Read more](#read-more)
@@ -87,7 +87,9 @@ platform.
 
 <a id="what-you-configure"></a>
 
-## Configuration
+<a id="configuration"></a>
+
+## Step 1: Configure inputs
 
 Initialize missing local files from Tier 0:
 
@@ -160,23 +162,25 @@ Ansible inventory owns stable logical host keys and service groups. Ansible
 Vault IP map, while the Vault Terraform environment owns hardware placement
 and Proxmox tags.
 
-## Plan and deploy
+<a id="plan-and-deploy"></a>
 
-Prepare the TLS files and local inputs above, then plan:
+## Step 2: Deploy
 
-```bash
-bash scripts/deploy.sh vault --plan-only
-```
-
-Review VM/disk changes and certificate sources before deploying:
+Prepare the TLS files and local inputs above, then deploy:
 
 ```bash
 bash scripts/deploy.sh vault
 ```
 
+Review the inline Terraform plan and enter `yes` only for the intended changes.
+Add `--plan-only` for a preview without installation; approved unattended jobs use
+`--auto-approve`.
+
 **Result:** a new Vault service is installed, running and sealed; the wrapper does not initialize or unseal it.
 
-## Operator bootstrap
+<a id="operator-bootstrap"></a>
+
+## Step 3: Initialize and unseal
 
 Use a trusted operator terminal, not CI logs. Configure the CLI with the actual
 HTTPS endpoint and local CA bundle from the chosen TLS configuration. [1]

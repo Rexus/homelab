@@ -9,14 +9,16 @@ sources and [cluster-foundation gates](../stage-4-kubernetes/procedures/kubernet
 The temporary source must work before GitLab exists.
 **Working repositories:** `<prefix>-tier-1` for delivery and registry;
 `<prefix>-tier-2` for optional public edge. Tier 0 owns its existing Flux.
-**Automation:** cluster lifecycle, edge, native pinned Harbor/Argo CD Helm installation
-and a complete native Spinnaker installation with SQL/cache and backups are supplied.
-Follow the [common installer](procedures/delivery-installer.md) and the selected controller's
-contract. The [Spinnaker native reference](step-2b-spinnaker.md#installation-decision)
-requires commissioned site inputs, not an external product overlay.
-See the [stage coverage](../../reference/implementation-support.md#stage-coverage)
-for prerequisites, integration boundaries and live acceptance requirements.
-**Design:** [controller patterns](../../architecture/delivery/controllers.md).
+**Start in Tier 1.** From the Tier 0 root:
+
+```bash
+cd ../homelab-tier-1
+```
+
+**Automation:** cluster lifecycle, native Argo CD/Spinnaker and Harbor installers are supplied.
+They have separate installation commands below; TLS/backup commissioning and live acceptance remain explicit.
+See [coverage](../../reference/implementation-support.md#stage-coverage) for live acceptance boundaries.
+**Design:** [controller patterns](../../architecture/software/controllers.md).
 
 ## Main path
 
@@ -28,14 +30,15 @@ for prerequisites, integration boundaries and live acceptance requirements.
 
 ## Step 1: Create the platform runtime
 
-Follow the [Tier 1 cluster procedure](procedures/platform-cluster.md). From Tier 1:
+1. Complete the [Tier 1 cluster procedure](procedures/platform-cluster.md): initialize
+   `terraform/deployments/kubernetes/terraform.tfvars`, edit Tier 1 node/IP/endpoint inputs,
+   then use the dedicated cluster script's plan/apply/bootstrap sequence.
+2. Install and accept the [basic cluster platform](../stage-4-kubernetes/procedures/basic-platform.md)
+   from **Tier 1**, using Tier 1's kubeconfig and `ansible/group_vars/cluster_platform.yml`.
+3. Verify CNI, persistent storage, private ingress, logging and recovery before Step 2.
 
-```bash
-bash scripts/kubernetes-cluster.sh init
-```
-
-Review allocations, image access and the private endpoint before planning/applying.
-Keep original cluster secrets and state.
+An `init` command alone does not create or bootstrap the cluster. Keep the original
+cluster secrets and state; an accepted existing Tier 1 cluster can satisfy this step.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -75,30 +78,54 @@ starter VMs. The dashed controller is installed separately in Step 2 through the
 
 ## Step 2: Select and qualify delivery
 
-| Selection | Procedure | Authority |
+| Step | Procedure | Authority |
 | --- | --- | --- |
-| Tier 0 Flux | [Verify existing control GitOps](../stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation) | Tier 0 only |
-| A: Argo CD | [Application GitOps](step-2a-argocd.md) | Approved Tier 1 applications; additional targets require a separate reviewed account |
-| B: Spinnaker | [Release pipelines](step-2b-spinnaker.md) | Approved releases and selected destinations |
+| 2a: Argo CD | [Install application GitOps](step-2a-argocd.md), Steps 1–3 | Approved Tier 1 applications; additional targets require a separate reviewed account |
+| 2b: Spinnaker | [Install release pipelines](step-2b-spinnaker.md), Steps 1–4 | Approved releases and selected destinations |
 
-Choose one owner for each object; these are alternatives, not two controllers
-for the same resources. Apply the [service SSO gate](../stage-5-identity/procedures/service-sso.md).
-Use the [Tier 1 native application recipe](procedures/delivery-installer.md),
-with an explicit controller selection, pinned versions and private local inputs.
-Test delivery, rejected destinations, rollback and independent recovery.
-Retain the bootstrap source until later GitLab source migration is accepted.
+Choose **one** branch and complete its input, Secret, install and acceptance steps;
+both return here for Step 3. Existing Tier 0 Flux remains unchanged.
 Neither Tier 1 controller receives Tier 0 Kubernetes or Proxmox credentials.
+Retain the bootstrap source until Stage 9 GitLab source migration is accepted.
+
+Both branches use `ansible/group_vars/delivery_platform.yml`. Create it once:
+
+```bash
+cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
+```
+
+Set `delivery_platform_controller` to `argocd` (2a) or `spinnaker` (2b), and
+`delivery_platform_install_harbor: false` for this pass. Edit the selected branch's
+host, kubeconfig/context, IdP, destination and TLS/backup fields before rendering:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/delivery-platform.yml -e @ansible/group_vars/delivery_platform.yml
+```
+
+Review the private render. Spinnaker additionally requires its reviewed checksum and
+commissioned certificate/backup inputs before apply. With pre-existing Secrets:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/delivery-platform.yml -e @ansible/group_vars/delivery_platform.yml -e delivery_platform_action=apply
+```
+
+For encrypted bootstrap ownership, add
+`-e @secrets/delivery-platform.yml --ask-vault-pass` to both commands; create/edit that
+file using [installer Step 1](procedures/delivery-installer.md#inputs-and-secrets).
 
 **Result:** one selected controller with scoped destinations, SSO and recovery.
 
 ## Step 3: Connect approved artifact supply
 
-Follow [registry integration](procedures/registry.md). Harbor extends
-[early software intake](../stage-1-software-intake/README.md#extend-the-capability-later)
-without another ordinary proxy. Qualify storage, pulls, promotion and backups.
-Use [Tier 2 edge](procedures/edge-proxy.md) only for approved published endpoints.
-Private controller APIs do not require public publication.
-Existing accepted registries are valid; an empty directory is not an installer.
+1. Complete [Harbor installation](procedures/registry.md#install-harbor): edit its
+   host/storage fields, prepare its Secrets, render and install through the same Tier 1 recipe.
+   An accepted existing registry can replace this installation.
+2. Verify authorized/denied push and pull, promotion and a clean-target restore.
+3. Only for public application endpoints, take the [Tier 2 edge branch](procedures/edge-proxy.md),
+   then return here. Private controller APIs do not require public edge publication.
+
+Harbor extends [early software intake](../stage-1-software-intake/README.md#extend-the-capability-later);
+it does not deploy another ordinary proxy/cache.
 
 **Result:** verified artifact interfaces extend software intake without a bootstrap dependency.
 

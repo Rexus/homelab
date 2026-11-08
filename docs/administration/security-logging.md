@@ -5,17 +5,41 @@
 **Prerequisites:** accepted [receiver/archive integration](../deployment/stage-2-logging/README.md)
 and recorded failure, retention, access and recovery contracts.
 
-## Table of contents
+<a id="table-of-contents"></a>
 
-- [Routine checks](#routine-checks)
-- [Maintenance and incidents](#maintenance-and-incidents)
-- [Fault and restore evidence](#fault-and-restore-evidence)
-- [Offline investigation](#offline-investigation)
-- [Automation boundary](#automation-boundary)
-- [NAS backup restoration](#nas-backup-restoration)
-- [References](#references)
+## Find a task
 
-## Routine checks
+- [How is logging health checked?](#routine-checks)
+- [What happens during an outage or maintenance window?](#maintenance-and-incidents)
+- [How is fault survival demonstrated?](#fault-and-restore-evidence)
+- [Can evidence be read with the platform shut down?](#offline-investigation)
+- [How is receiver configuration reapplied?](#automation-boundary)
+- [How is an independent NAS backup restored?](#nas-backup-restoration)
+
+<a id="routine-checks"></a>
+
+## How is logging health checked?
+
+**Work on:** the Tier 0 receiver, the separate recovery host and an authorized evidence-reading path.
+**Prerequisites:** the accepted source catalogue, archive/backup schedule and external watchdog.
+
+1. On the receiver, inspect the dedicated service and archive timer; the OS logger is separate:
+
+   ```bash
+   sudo systemctl status syslog-ng-receiver.service --no-pager
+   sudo systemctl list-timers --all security-log-archive.timer
+   sudo journalctl -u syslog-ng-receiver.service -u security-log-archive.service --since '-1 hour' --no-pager
+   ```
+
+2. On the **independent `logging_recovery` host**, inspect backup execution:
+
+   ```bash
+   sudo systemctl list-timers --all security-log-backup.timer
+   sudo journalctl -u security-log-backup.service --since '-1 day' --no-pager
+   ```
+
+3. Check external missed-success alerts and the evidence/permissions checks below.
+   Treat raw journal output as security-sensitive; do not publish it in ordinary CI artifacts.
 
 | Check | Operator action |
 | --- | --- |
@@ -28,7 +52,21 @@ and recorded failure, retention, access and recovery contracts.
 | Retention | Verify the [selected archive model](../architecture/operations/log-retention.md): NAS snapshot/backup coverage and custody, or effective version locks; collector credentials cannot administer either protection |
 | Keys and certificates | Rotate under a tested continuity plan; preserve trust, archived-data decryption and break-glass access |
 
-## Maintenance and incidents
+**Expected:** current sources, bounded queues, completed independent copies and tested read denials.
+**Stop:** investigate missing/stale success even when a process is running. A checkpoint ping
+does not prove a NAS snapshot or independent backup completed.
+
+<a id="maintenance-and-incidents"></a>
+
+## What happens during an outage or maintenance window?
+
+**Work from:** Tier 0 operations with the archive/storage custodian.
+**Prerequisites:** independent recovery copies, queue/capacity budget and an approved undo procedure.
+
+On NAS loss, the receiver retains its local data-disk path; checkpoint publication fails rather
+than falling back to a local archive directory. Restore the commissioned NAS path/identity with
+its custodian, then verify checkpoint progress and independent backup catch-up. Do not redirect
+intake onto the NAS or delete queues to clear the incident.
 
 1. Check independent copies, queue headroom and the active failure budget before
    draining one receiver or storage member. Do not simultaneously remove all required copies.
@@ -52,13 +90,21 @@ separate storage/retention custody if needed, and use retention locks when privi
 deletion itself must be prevented. Review snapshot lag, external backup completion
 and access-recording gaps explicitly; a read-only share does not audit its reads.
 
-## Fault and restore evidence
+**Stop/rollback:** stop the maintenance change if its failure budget is exceeded. Restore the
+approved service/storage path; preserve spools and originals. No query user may erase protected
+records, and no automated queue/evidence cleanup is supplied.
+
+<a id="fault-and-restore-evidence"></a>
+
+## How is fault survival demonstrated?
 
 Use the [fault and restore drill](logging-drill.md) for numbered test batches,
 controlled failures, independent restoration and the project-owned acceptance record.
 Record reconciliation alone does not prove fault survival or archive protection.
 
-## Offline investigation
+<a id="offline-investigation"></a>
+
+## Can evidence be read with the platform shut down?
 
 **Prerequisites:** authorized recovery custodian, trusted isolated recovery host,
 surviving data volume or backup, and the independently held reader/key kit.
@@ -85,10 +131,25 @@ by the same test from an independent backup. Record the recovery time and recove
 event range against the [backup objectives](compute/backup-restore.md#backup-policy).
 This verifies readability, not live-collector HA or protection against every physical loss.
 
-## Automation boundary
+<a id="automation-boundary"></a>
 
-Tier 0 `bash scripts/deploy.sh syslog --ansible-only --recipe maintenance` currently
-reconciles the baseline and [isolated receiver](../reference/syslog-receiver.md)
+## How is receiver configuration reapplied?
+
+**Work from:** the **Tier 0 repository root** on the approved execution host.
+**Prerequisites:** existing inventory, local `syslog.yml`, approved TLS files, prepared data mount
+and independent recovery. Review the failure/queue budget before any source or queue change.
+
+1. Edit `ansible/group_vars/syslog.yml` and its accepted source catalogue. Preserve the
+   existing inventory host keys, data mount/UUID, producer identities and queue state.
+2. Reconcile the supported existing receiver configuration:
+
+   ```bash
+   bash scripts/deploy.sh syslog --recipe maintenance
+   ```
+
+3. Repeat the health, known-source-event and denied-source checks above before widening scope.
+
+This reconciles the baseline and [isolated receiver](../reference/syslog-receiver.md)
 serially. It does not upgrade packages, delete evidence/queues, change retention or
 prove HA. Drain backlogs and preserve persist files before source/queue changes;
 remove retired firewall rules deliberately. Product operations remain project-owned procedures.
@@ -102,7 +163,16 @@ Check `security-log-archive.timer`, `security-log-backup.timer` and producer hea
 timers as well as the independently observed dead-man status. A recent checkpoint
 ping does not certify completion of NAS snapshots or a separate backup.
 
-## NAS backup restoration
+**Expected:** only the supported receiver/baseline configuration changes; Terraform is skipped.
+**Stop/rollback:** a failed run may have applied earlier tasks. Preserve diagnostics and restore
+reviewed configuration through independent access; never clear persist files or evidence to force a retry.
+
+<a id="nas-backup-restoration"></a>
+
+## How is an independent NAS backup restored?
+
+**Work on:** an isolated recovery host, not the live receiver or live NAS share.
+**Prerequisites:** independently held restic repository/password and offline reader kit.
 
 1. On an authorized, isolated recovery host, retrieve the independent restic
    repository, separately held password, and the offline reader kit containing
@@ -118,6 +188,8 @@ ping does not certify completion of NAS snapshots or a separate backup.
    restic check --read-data
    ```
 
+   Expect readable snapshots and a completed integrity check; stop on corruption or missing credentials. [2]
+
 3. Choose the incident's known-good snapshot and an empty disposable target:
 
    ```bash
@@ -125,6 +197,8 @@ ping does not certify completion of NAS snapshots or a separate backup.
    read -r -e -p 'New empty restore directory: ' LOGGING_RESTORE
    restic restore "$LOGGING_SNAPSHOT" --target "$LOGGING_RESTORE"
    ```
+
+   The target must be new/empty and outside the original archive; restore retains the saved path tree. [3]
 
    Restic preserves the original path tree beneath that target. Locate the restored
    archive root containing `<collector>/checkpoints/` and `<collector>/chunks/`, then
@@ -146,6 +220,8 @@ operation; perform it on a copy and verify with the same reader kit.
 
 ## References
 
-Source checked 2026-10-16.
+Restic command references checked 2026-11-08; filesystem guidance checked 2026-10-16.
 
 1. [Linux ext4 read-only mounting and journal-replay behavior](https://www.kernel.org/doc/html/latest/admin-guide/ext4.html#options)
+2. [Restic snapshot inspection and repository integrity checks](https://restic.readthedocs.io/en/stable/045_working_with_repos.html).
+3. [Restic clean-target restoration and path layout](https://restic.readthedocs.io/en/stable/050_restore.html).

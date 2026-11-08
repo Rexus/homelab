@@ -91,7 +91,7 @@ flowchart TB
 
 Tier 0 uses Flux. Tier 1 leaves Argo CD and Spinnaker as alternatives: GitOps
 reconciliation and release-pipeline orchestration are different delivery models.
-[Controller patterns](delivery/controllers.md) owns that selection and the scoped
+[Controller patterns](software/controllers.md) owns that selection and the scoped
 Tier 2 application boundary. Neither option grants infrastructure authority.
 
 Application delivery and runtime image retrieval are separate consumers.
@@ -106,7 +106,7 @@ a separate Tier 0 lifecycle even when general builders prepare candidate images.
 Linux VM application delivery uses workload-scoped configuration rather than
 cluster reconciliation. Both realizations preserve the separation between
 application changes and hardware-facing infrastructure changes. Detail:
-[delivery](delivery/README.md), [artifact variants](delivery/artifact-supply.md).
+[software lifecycle](software/README.md), [artifact variants](software/artifact-supply.md).
 
 ## Infrastructure changes
 
@@ -148,7 +148,7 @@ of a workload's definitions, inventory or state; one writer controls each state 
 
 Source-control loss can pause new requests. It must not remove accepted resource
 records, trigger workload deletion, or prevent independent Tier 0 administration
-and recovery. Detail: [infrastructure control](compute/provisioning.md).
+and recovery. Detail: [infrastructure control](hosting/provisioning.md).
 
 ## Certificate and secret consumption
 
@@ -178,6 +178,9 @@ Service persistence, telemetry and backup are separate relationships. Each has
 an explicit owner, approved interface and failure boundary. A selected storage
 backend may host several kinds of data, but that does not merge their ownership
 or restoration requirements.
+The [data and storage design](data/README.md) owns persistence interfaces;
+[operations and resilience](operations/backup-recovery.md) owns recovery objectives,
+copy custody and restore evidence.
 
 ### Persistent state and restoration
 
@@ -280,4 +283,4 @@ and [deployment readiness](../deployment/readiness.md).
 | Primary state or storage | Stateful service availability depends on its selected replication/failure design | Protected copies and the complete authorized restoration inputs |
 
 Return to the [integrated reference](reference-platform.md), or continue into
-the [domain designs](README.md#technical-domains) and [local variants](variants.md).
+the [domain designs](README.md#foundational-capabilities) and [local variants](variants.md).

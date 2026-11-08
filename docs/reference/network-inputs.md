@@ -13,7 +13,7 @@
 
 Use the [network plan](../architecture/networking/README.md) to create the required
 segments and [firewall policy](../architecture/networking/firewall-policy.md) first.
-The [allocation and deployment map](network-plan.md) connects each zone/VNet to
+The [allocation and deployment map](../conventions/network-plan.md) connects each zone/VNet to
 the current source inputs and identifies optional network splits.
 Terraform combines `shared_network_zones` and tier-local `network_zones` to map logical guest-network keys to existing
 attachments. It does not create firewall zones, gateways, VLAN trunks, or rules.
@@ -54,7 +54,7 @@ default_platform_node_name = "pve01"
 
 vm_instances = {
   "lab-1" = {
-    vm_id            = 500
+    vm_id            = 3201
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
@@ -115,6 +115,9 @@ Terraform's external data source. Python 3 needs no additional packages. Authent
 uses the normal environment-only `TF_VAR_proxmox_api_*`, `PROXMOX_VE_*` or
 `PROXMOX_API_*` token/endpoint settings. Conflicting settings are rejected;
 TLS uses the execution host's trusted CA store or `SSL_CERT_FILE`/`SSL_CERT_DIR`.
+For Linux deployments, `deploy.sh` loads the consuming tier's `.env.local`; it does
+not inherit Tier 0's file. Check that file's endpoint and trust overrides when a
+manual connection to another endpoint succeeds.
 The helper reads applied subnet metadata with GET only; it does not reserve addresses,
 change networks, create DNS records or configure a DHCP server. [1][2]
 
@@ -123,6 +126,16 @@ VNet. Missing, ambiguous or unreadable metadata fails the plan; explicit values
 are not a silent fallback. Inventory IPs outside that subnet, its network/broadcast
 addresses and the gateway itself are rejected. Linux deployments query only their
 selected networks. A plan stores the resolved values, not API credentials from the lookup.
+
+| Lookup error | Check |
+| --- | --- |
+| Certificate verification failed | Approved execution-host CA, certificate dates and endpoint hostname/SAN |
+| Cannot resolve API hostname | Effective tier-local API URL and execution-host DNS |
+| Connection timed out / refused | Effective endpoint port, routing/firewall policy and Proxmox API service |
+| HTTP 403 | Token's effective `SDN.Audit` grant on the selected VNet |
+
+An HTTPS connection test must use the same URL and trust environment as the deployment.
+Keep TLS verification enabled while correcting endpoint, trust or connectivity settings.
 
 Keep the SDN/network backup with recovery records. Changing the subnet can change
 guest network configuration: review the plan. If SDN cannot be recovered yet,

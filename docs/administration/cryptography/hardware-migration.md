@@ -1,72 +1,108 @@
-# Move signing custody to hardware
+# Change CA key custody
 
-Prefer a new HSM-generated issuing key and controlled CA rollover. Moving an
-existing software key into hardware cannot erase earlier software copies or prove
-that it was never exported. Keep the offline root and online issuer independent.
+<a id="move-signing-custody-to-hardware"></a>
 
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Prerequisites:** accepted software deployment, tested recovery and selected
-[USB/network custody](../../architecture/cryptography/hsm-selection.md). Hardware signing is a separately qualified
-integration, not an enabled feature of the software recipe.
 
-## Contents
+Use a controlled issuer rollover when moving from software custody to hardware.
+The [custody design](../../architecture/cryptography/hsm-selection.md) explains the
+options. The supplied software installer does **not** implement HSM migration.
 
-- [Choose the migration](#choose-the-migration)
-- [Qualify and roll over](#qualify-and-roll-over)
-- [Retire and recover](#retire-and-recover)
+**Run from:** Tier 0 for project records/recovery inputs; hardware and root operations
+run only in their authorized provider or offline environments.
+**Before starting:** accepted current issuer, verified recovery set, custodians and
+an exact vendor/application migration procedure qualified with disposable keys.
+
+<a id="contents"></a>
+
+## Tasks
+
+- [Which migration is required?](#choose-the-migration)
+- [What must be recorded before changing custody?](#what-must-be-recorded-before-changing-custody)
+- [How is the new provider qualified and activated?](#qualify-and-roll-over)
+- [When can the old key be retired?](#retire-and-recover)
+- [What is the stop or rollback condition?](#what-is-the-stop-or-rollback-condition)
 - [References](#references)
 
-## Choose the migration
+<a id="choose-the-migration"></a>
 
-| Choice | Meaning |
+## Which migration is required?
+
+| Operation | Selected route |
 | --- | --- |
-| New HSM key and issuer certificate | Preferred: new provenance, explicit trust/issuance rollover |
-| Import old key, if supported and approved | Continuity only; preserve history of software exposure |
-| Move root custody | Separate offline ceremony and trust-anchor rollover; never a side effect of issuer migration |
-| Change DataVault protection | Separate encrypted-data migration; do not replace its secret with an HSM PIN |
+| New HSM-generated issuer key | Preferred new-key rollover; approve certificate/chain overlap first |
+| Import existing software key | Only when supported/approved; historical software exposure remains |
+| Root custody change | Separate offline root/trust-anchor ceremony; not an issuer maintenance task |
+| DataVault protection change | Separate encrypted-data migration; an HSM PIN cannot replace its master secret |
 
-Select mechanisms and capacity from the vendor's supported interface and
-[measured performance](../../reference/yubihsm-performance.md), not just key-size
-labels. Qualify the exact device, firmware, connector, OpenSSL engine/provider and
-OpenXPKI backend combination. YubiHSM 2 does not become post-quantum merely because
-it offers AES-256 or a validated hardware variant. [1]
+Qualify exact device, firmware, middleware/provider and OpenXPKI versions.
+Select mechanisms from supported capabilities and [measured capacity](../../reference/yubihsm-performance.md),
+not product labels. Hardware adoption alone establishes neither PQC nor regulatory compliance. [1]
 
-## Qualify and roll over
+## What must be recorded before changing custody?
 
-1. Use disposable keys to test CSR creation, certificate/CRL signing, PIN failures,
-   restart, connector loss and recovery. Disable unauthorized export/operations;
-   use independent operator and backup/wrapping credentials.
-2. Generate the new key inside the selected HSM under an approved ceremony.
-   Record public-key fingerprint, object ID/label, domains/capabilities and recovery
-   attributes. Keep HSM authentication off command lines and out of Git.
-3. Obtain a new subordinate certificate from the offline root. Approve overlap,
-   leaf lifetime and client chain selection before token activation.
-4. Back up the complete current application set. On an isolated restored copy,
-   qualify the new native provider configuration and token against existing state.
-   The runtime binding intentionally rejects an unapproved configuration change.
-5. Roll over with the product's native token lifecycle, confirm the selected issuer
-   in newly issued certificates, publish both chains/CRLs and monitor consumers.
-   Do not replace the active key file or repoint an alias during routine reconciliation.
+1. Run [issuer health checks](certificate-authority.md#routine-controls) and
+   [capture a recovery set](issuer-recovery.md#capture-a-recovery-set).
+2. Record the following in the private project migration record, **not as new role inputs**:
 
-The same process applies to algorithms, including future PQC: prove certificate,
-protocol, client and backup compatibility first. Hardware adoption is not itself
-PQC deployment or regulatory compliance.
+   | Record | Required detail |
+   | --- | --- |
+   | Current identity | Issuer certificate/public-key fingerprint, realm and active token alias |
+   | Recovery binding | Current package/configuration/schema combination, latest database and independent DataVault/controller secrets |
+   | Selected hardware | Stable device identity, object ID/label, mechanisms, domains/capabilities and supported backup/wrapping attributes |
+   | Cutover | Permitted consumers, new chain/profile scope, overlap, publication URLs and operator approval |
+   | Recovery/rollback | Qualified spare/provider, original state retention and latest-writer rule |
 
-## Retire and recover
+3. Stop if recovery, provider support or the required key attributes are unproven.
+   Do not alter `issuer.yml` to bypass the existing immutable-binding checks.
 
-Keep the previous issuer's history and ability to revoke its outstanding
-certificates until its full revocation/publication obligation ends. Retiring it
-from new issuance is not permission to discard its key immediately.
-Test a second authorized recovery device and replacement host; matching model
-names do not prove matching keys, attributes or permissions.
+<a id="qualify-and-roll-over"></a>
 
-If compromise is suspected, use incident revocation and reissuance rather than
-silently importing the suspect key into hardware. Archive custody records and
-destroy obsolete material only under the approved retention/ceremony policy.
+## How is the new provider qualified and activated?
+
+1. On an isolated restored application copy, use disposable keys to test CSR,
+   certificate/CRL signing, denied operations, PIN/session failure, connector loss,
+   restart and independent restore. Keep authentication/wrapping credentials separate.
+2. In the authorized hardware ceremony, generate the new key using the selected
+   vendor procedure. Record public identity and permitted operations; keep PINs,
+   wrapping keys and authentication secrets off command lines and out of Git. [1]
+3. Transfer only the approved CSR to the [offline root ceremony](../../deployment/stage-3-trust/procedures/offline-root.md).
+   Return the signed subordinate certificate/public chain, never the root key.
+4. Rehearse the native provider configuration and token lifecycle against the
+   restored current database/history. Approve package/schema/configuration migration
+   explicitly; routine deployment rejects changed bindings rather than migrating them. [2]
+5. During the approved cutover, follow that qualified native token procedure.
+   Verify new certificates use the intended issuer, publish both required chains/CRLs,
+   test consumers and retain protected audit evidence before admitting traffic.
+
+There is no universal device CLI sequence or shipped hardware activation playbook.
+Use the exact vendor/product revision qualified above; do not substitute generic
+PKCS#11 object commands, overwrite the active key file or repoint an alias during routine CI.
+
+<a id="retire-and-recover"></a>
+
+## When can the old key be retired?
+
+1. Stop old-key **new issuance** only after consumer and new-issuer acceptance.
+2. Retain old issuance/history and the ability to revoke outstanding certificates
+   until its complete publication/revocation obligation ends.
+3. Test restoration on a separate authorized device and replacement application
+   host. Matching model numbers do not establish matching keys or permissions.
+4. Archive custody records; destroy obsolete material only through the approved
+   retention/ceremony procedure. An offline backup device is not an automatic active peer.
+
+## What is the stop or rollback condition?
+
+Stop on wrong key identity, failed denial/restore tests, unavailable publication or
+unqualified consumer trust. Before new issuance, the unchanged old issuer may remain
+the selected writer under the approved plan. After new writes, preserve both authorities'
+current histories and chain/revocation obligations; never restore an older database blindly.
+
+Suspected compromise requires incident revocation/reissuance, not importing the
+suspect key into hardware. Use the [incident path](security-controls.md#detect-and-respond).
 
 ## References
 
-Sources checked 2026-10-22.
+Provider interfaces checked 2026-11-08; production steps remain revision-specific.
 
-1. [YubiHSM command and algorithm capabilities](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-cmd-reference.html)
-2. [OpenXPKI native crypto/token configuration](https://github.com/openxpki/openxpki-config/blob/community/QUICKSTART.md)
+1. [YubiHSM command and algorithm capabilities](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-cmd-reference.html).
+2. [OpenXPKI native crypto/token configuration](https://github.com/openxpki/openxpki-config/blob/community/QUICKSTART.md).

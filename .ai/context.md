@@ -93,14 +93,24 @@ This file keeps durable context for AI-assisted work across sessions.
   upstream checkout by default; `--root` selects the collection's parent
 - README fast paths start with one real generation command and nearby flag
   tips; downstream root READMEs are short, developer-owned starter templates
-- all downstream root READMEs link to architecture's `docs/naming-conventions.md`;
-  this worksheet records VM names, tags, VMID ranges and the selected per-zone
+- all downstream root READMEs link to architecture's root `platform-standards.md`, beside README.md;
+  this worksheet records only local naming/tag choices and the selected per-zone
   network plan (VLAN, short VNet ID, alias, subnet and gateway). Individual guest
   assignments stay in inventory, with design and recovery in separate docs
+- link VMID and other maintained conventions rather than repeating their allocation rules;
+  network tables distinguish SDN VNet ID (2-8 lowercase alphanumeric characters, no hyphens/underscores)
+  from the readable network label/Alias and VM/DNS names
+- docs/conventions/ is the shallow front door for maintained VMID, naming/tag and network-allocation guides;
+  platform-standards.md is the project-owned selection sheet beside the generated architecture README.
+  Preserve older naming-conventions.md records on refresh; link them for manual review.
+- docs/conventions/vmid-convention.md owns the central VMID quick reference and editable SVG.
+  Starter IDs use T C NN, with shifted categories for Tier 0's three-digit 100-999 range;
+  3xxx labs and 4xxx clients remain Tier 2-owned, 9xxx templates/builders Tier 0-owned.
+  Existing local IDs/state are never renumbered by refresh; new example IDs are not a migration.
 - `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
   notices; root READMEs and project templates are seeded once, never refreshed
 - Fresh architecture repositories contain only a short README, docs/README.md platform
-  selections/progress/navigation and docs/naming-conventions.md, plus the full auto-docs manual.
+  selections/progress/navigation and platform-standards.md, plus the full auto-docs manual.
   Do not seed a second domain/workflow/site hierarchy. Preserve old project documents
   on refresh; consolidation is manual, with local runbooks added only when needed.
 - preserve existing README contents when promoting them to owned files;
@@ -190,7 +200,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - Tier 0 operates and recovers without Tier 2; request-source loss pauses new
   requests, not control operations, and must not trigger workload deletion
 - delegated provisioning is a design goal, not an implemented controller or API;
-  its authoritative contract is docs/architecture/compute/provisioning.md
+  its authoritative contract is docs/architecture/hosting/provisioning.md
 - docs/deployment/foundation/ contains unnumbered host/network/access/template prerequisites;
   docs/deployment/README.md indexes ten numbered capabilities: software intake, protected logging,
   cryptographic trust, Kubernetes, Identity, Secrets, Delivery, Observability, Development platform and Lab environments
@@ -223,6 +233,17 @@ This file keeps durable context for AI-assisted work across sessions.
 - each stage has a main README with numbered local steps, diagrams, a capability result,
   and links to the static architecture; named monitoring/Observability/collection deployments
   belong to their owning stages, not one cross-stage procedure
+- tutorials follow the manual Proxmox template guide: explicit working repository,
+  numbered actions, exact local files/fields to edit, copyable commands and expected results.
+  Required procedures are named parts of the main path; alternatives branch/rejoin as 2a/2b.
+  Keep design explanations in their authoritative homes instead of burying actions in prose.
+- administration uses task/FAQ navigation and short operator runbooks: execution host/repository,
+  prerequisites, exact inputs, numbered commands, expected result and stop/rollback paths.
+  Preserve recovery/custody gates; link design rationale to architecture. Backup theory lives in
+  docs/architecture/operations/backup-recovery.md; provider field details belong in reference docs.
+- normal Linux deploy.sh calls Terraform apply once, with its native inline plan/approval;
+  --plan-only is optional and --auto-approve uses -input=false for approved CI. Dedicated
+  template/Kubernetes saved-plan workflows and manual signing/activation gates remain explicit.
 - deployment guides name the working generated repository and upstream source directory near the top;
   IaC tables distinguish tier-owned inputs/resources from Shared helper implementations;
   docs/deployment/README.md#repository-locations owns the checkout/path convention
@@ -242,7 +263,7 @@ This file keeps durable context for AI-assisted work across sessions.
   DMZ membership never allows peer access or unsolicited WAN publication
 - authoritative mirrors and general Internet-facing build runners remain Tier 1 / DMZ,
   using the separate delivery_edge subnet; they hold no Tier 0 credentials
-- controlled software intake is documented in docs/architecture/delivery/software-intake.md;
+- controlled software intake is documented in docs/architecture/software/software-intake.md;
   Squid/VIP supplies the existing explicit proxy/cache, not a mirror or patch controller
 - software intake is a separate early capability at docs/deployment/stage-1-software-intake/,
   not a foundation option; it is numbered Stage 1 and
@@ -295,7 +316,7 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Documentation intent
 
-- docs/architecture/README.md owns the capability placement map and technical-domain navigation;
+- docs/architecture/README.md owns the seven foundational capabilities and reference placement map;
   use named services, tiers vertically (2, 1, 0), and layers horizontally (Edge, Application, Control)
 - domain diagrams expand the same capabilities into components, runtimes and cross-tier consumers;
   product names belong in reference realizations, not the top-level capability map
@@ -305,13 +326,17 @@ This file keeps durable context for AI-assisted work across sessions.
   into Services or expose its administration; management is a network, not another layer
 - reference-platform.md allocates components; runtime-flows.md owns cross-domain service interactions;
   domain designs expand those functions without becoming an installation sequence
-- compute/runtime.md owns generic hosting/persistence; compute/kubernetes.md owns the three-tier topology;
-  delivery/controllers.md owns the independent Flux, Argo CD and Spinnaker boundaries
+- hosting/ owns execution, virtualization, orchestration and protected resource lifecycle;
+  hosting/kubernetes.md owns the three-tier topology; data/ owns storage interfaces and persistence;
+  software/ owns software lifecycle, intake, source/build/artifact/release functions;
+  networking/ owns service reachability and publication, distinct from software delivery
+- software/controllers.md owns the independent Flux, Argo CD and Spinnaker boundaries
 - variants.md records stable consumer contracts and different guarantees; detailed alternatives stay
   inside their owning domain; project architecture records one compatible selected composition
 - upstream reference views follow overview, relationships, domains and detailed variants;
   project starters link them from one compact selection/progress record, without duplicating the tree
-- networking/, compute/, identity/, cryptography/, delivery/ and operations/ own domain designs
+- hosting/, networking/, data/, identity/, cryptography/, software/ and operations/ own capability designs;
+  zero-trust access, scaling, failure domains and recovery constrain all seven rather than form stages
 - architecture is the static intended design: context, components, interfaces, variants and constraints
 - docs/deployment/readiness.md owns capability progress and acceptance; the deployment index owns stages
 - use direct IT-domain directories, not intermediate system-design/subsystem-design indexes
@@ -323,6 +348,10 @@ This file keeps durable context for AI-assisted work across sessions.
   service seals are separate choices; do not imply every option has an installer
 - deployment/, development/, and administration/ separate installation, code and operations;
   paths/ contains only short repository checklists; reference/ contains exact contracts
+- development/ opens with a visual repository map and fast edit routes; code-layout.md maps real
+  entry points, tier inputs and Shared calls, while adding-service.md and debugging.md give short recipes
+- developer examples name the working repository, distinguish private live inputs from upstream examples,
+  reuse actual modules/roles and link exact contracts instead of repeating long input/tooling explanations
 - Tier/Shared generated repos retain seed-owned code-specific workflow records;
   the architecture repo has one platform record and standards, with auto-docs as the main manual
 - foundation docs are grouped in proxmox/, network/ and storage/; proxmox/templates.md

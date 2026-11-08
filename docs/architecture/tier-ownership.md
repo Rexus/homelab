@@ -78,7 +78,7 @@ See the [network map](networking/README.md) and [control platform design](refere
 Workload definitions remain tier-local even when Tier 0 executes provisioning.
 The protected execution path must control credentials, accepted code, approval,
 and state access. Ordinary Tier 1/2 jobs cannot gain Tier 0 authority by reaching
-a runner or API. The [request contract](compute/provisioning.md#delegated-provisioning)
+a runner or API. The [request contract](hosting/provisioning.md#delegated-provisioning)
 defines the intended self-service boundary; no such controller is shipped yet.
 
 Follow the [deployment stages](../deployment/README.md) for bootstrap,
