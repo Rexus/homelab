@@ -21,15 +21,11 @@ class RefreshReview:
         self.previous_paths = set(previous_paths)
         self.owned_paths = set(owned_paths)
         self.current_paths = set()
-        self.legacy_paths = set()
+        self.removed_paths = {}
         self.preserved = {}
 
-    def record(self, relative, data, source, reason, legacy=False):
+    def record(self, relative, data, source, reason):
         self.preserved.pop(relative, None)
-        if legacy:
-            self.current_paths.discard(relative)
-            self.legacy_paths.add(relative)
-            return
         self.current_paths.add(relative)
         if reason:
             self.preserved[relative] = PreservedFile(
@@ -38,15 +34,13 @@ class RefreshReview:
 
     def retired_files(self):
         retired = []
-        for relative in sorted((self.previous_paths - self.current_paths) | self.legacy_paths):
+        for relative in sorted(self.previous_paths - self.current_paths - self.removed_paths.keys()):
             path = self.root / relative
             if path.is_symlink() or not path.resolve().is_relative_to(self.root):
                 raise ValueError(f"Refusing retired output through symlink: {path}")
             if not path.is_file():
                 continue
-            if relative in self.legacy_paths:
-                reason = "legacy documentation redirect; existing links may still use it"
-            elif relative in self.owned_paths:
+            if relative in self.owned_paths:
                 reason = "retired starter; project-owned content is retained"
             else:
                 reason = "previously generated; no current generation target"
@@ -79,12 +73,16 @@ def print_refresh_review(reviews, collection, *, dry_run=False, color="auto", st
     yellow = [(review, item) for review in reviews
               for _, item in sorted(review.preserved.items())]
     red = [item for review in reviews for item in review.retired_files()]
+    removed = [(review.root / relative, reason) for review in reviews
+               for relative, reason in sorted(review.removed_paths.items())]
     print("\nRefresh review", file=stream)
     print(f"  YELLOW: {len(yellow)} preserved differences; RED: {len(red)} retired files.", file=stream)
-    if not yellow and not red:
+    if not yellow and not red and not removed:
         print("  No preserved differences or retired generated files to review.", file=stream)
         return
-    print("  Review only: project files and recorded deletions remain unchanged.", file=stream)
+    print("  Existing current files remain protected by their ownership rules.", file=stream)
+    if removed:
+        print(f"  Auto-docs: {len(removed)} {'would be removed' if dry_run else 'removed'}.", file=stream)
     colored = use_color(color, stream)
 
     def entry(label, path, reason):
@@ -106,3 +104,5 @@ def print_refresh_review(reviews, collection, *, dry_run=False, color="auto", st
                 print(f"  Source template: {item.source}", file=stream)
     for path, reason in red:
         entry("RED", path, reason)
+    for path, reason in removed:
+        entry("WOULD REMOVE" if dry_run else "REMOVED", path, reason)

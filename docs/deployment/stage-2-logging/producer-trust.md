@@ -43,8 +43,9 @@ protected local storage and separately held encrypted backups/passphrase.
 
 3. Review the local file, then approve first initialization on an empty directory:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/logging-authority.yml -e @ansible/group_vars/logging_authority.yml -e logging_authority_initialize=true
    ```
 
@@ -111,8 +112,9 @@ native `community.crypto` primitives and exports only `public/`. [1]
    Match the Tier 0 receiver catalogue's CN, observed address, tier and classification.
 3. On the signing controller, issue or renew the approved requests and refresh the CRL:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/logging-authority.yml -e @ansible/group_vars/logging_authority.yml
    ```
 

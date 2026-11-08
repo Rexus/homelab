@@ -74,7 +74,7 @@ class DiagramConventions(TierRepositoryTestCase):
                 checked += 1
         self.assertGreater(checked, 50)
 
-    def test_palette_refresh_updates_managed_assets_but_preserves_local_edits_and_deletion(self):
+    def test_palette_refresh_preserves_edits_and_restores_missing_assets(self):
         self.generate("--repo", "architecture")
         repo = self.root / "verify-architecture"
         relative = "docs/auto-docs/" + PALETTE
@@ -97,7 +97,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertEqual(target.read_bytes(), local)
         target.unlink()
         self.generate("--repo", "architecture", "--refresh")
-        self.assertFalse(target.exists())
+        self.assertEqual(target.read_bytes(), original)
 
     def test_placement_grids_keep_tiers_ordered_without_traffic_arrows(self):
         root = UPSTREAM / "docs/architecture"

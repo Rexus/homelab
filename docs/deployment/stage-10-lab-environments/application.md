@@ -46,8 +46,9 @@ An arbitrary image is not guaranteed to fit this contract.
 
 ## 2. Render and install
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/lab-environment.yml -e @ansible/group_vars/lab_environment.yml
 ```
 
@@ -56,8 +57,9 @@ Before apply, prepare the selected namespace and its `lab-tls` Secret using the
 accepted certificate owner. It must contain the private hostname's trusted chain/key;
 no self-signed certificate or CA key is silently generated. Set the private kubeconfig path.
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/lab-environment.yml -e @ansible/group_vars/lab_environment.yml -e lab_environment_action=apply
 ```
 

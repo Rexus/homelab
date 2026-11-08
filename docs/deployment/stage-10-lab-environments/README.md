@@ -144,8 +144,9 @@ They have independent roots and state. Deploy both only when both runtimes are r
 
 Initialize local inputs:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup lab
 ```
 
@@ -169,8 +170,9 @@ ansible/group_vars/lab.yml
 
 Run with independently authorized execution credentials:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/deploy.sh lab
 ```
 
@@ -182,8 +184,9 @@ commands; ordinary workload users receive no Proxmox credentials.
 
 1. From Tier 2, initialize the dedicated cluster inputs:
 
+   Run from `<prefix>-tier-2/`.
+
    ```bash
-   # Run from <prefix>-tier-2/
    bash scripts/kubernetes-cluster.sh init
    ```
 

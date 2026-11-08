@@ -37,7 +37,7 @@ views with local IaC changes; refreshed auto-docs still describe upstream exampl
 Record input locations, commands, rollback and evidence; keep credentials outside
 these records. Use [administration](../administration/README.md) for recurring
 operation and [development](../development/README.md) for implementation changes.
-These records are seeded once and remain project-owned during upstream refresh.
+These records remain project-owned during refresh; missing current starters are recreated.
 
 ## Readiness
 

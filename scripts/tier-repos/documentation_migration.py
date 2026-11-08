@@ -1,35 +1,51 @@
-"""Keep existing links usable without carrying the old tree into new collections."""
+"""Prune retired auto-docs and report their current guide locations."""
 
 import json
 import os
 from pathlib import Path
-import re
 
 MOVES = json.loads((Path(__file__).with_name("documentation-moves.json")).read_text(encoding="utf-8"))
 
 
-def redirect_moved_docs(writer, previous_paths):
-    for old, new in MOVES.items():
-        relative = f"docs/auto-docs/{old}"
-        source = writer.root / relative
-        target = writer.root / "docs/auto-docs" / new
-        if relative not in previous_paths or not source.is_file():
+def prune_auto_docs(writer, current_paths):
+    if not writer.refresh:
+        return
+    scope = writer.root / "docs/auto-docs"
+    # Validate the entire cleanup scope before deleting any file. Never follow links/junctions.
+    for path in (scope.parent, scope):
+        if path.is_symlink() or path.resolve() != path:
+            raise ValueError(f"Refusing auto-docs cleanup through symlink/junction: {path}")
+    files, directories = [], []
+    if scope.exists():
+        if not scope.is_dir():
+            raise ValueError(f"Auto-docs must be a directory: {scope}")
+
+        def walk_error(error):
+            raise error
+
+        for directory, children, names in os.walk(scope, followlinks=False, onerror=walk_error):
+            for name in children + names:
+                path = Path(directory) / name
+                if path.is_symlink() or path.resolve() != path or not path.resolve().is_relative_to(scope):
+                    raise ValueError(f"Refusing auto-docs cleanup through symlink/junction: {path}")
+            files.extend(Path(directory) / name for name in names)
+            directories.extend(Path(directory) / name for name in children)
+    for path in sorted(files):
+        relative = path.relative_to(writer.root).as_posix()
+        if relative in current_paths:
             continue
-        if source.is_symlink() or not source.resolve().is_relative_to(writer.root):
-            raise ValueError(f"Refusing legacy documentation through symlink: {source}")
-        target_relative = f"docs/auto-docs/{new}"
-        if not target.exists() and (not writer.dry_run or target_relative in previous_paths):
-            continue
-        old_content = source.read_text(encoding="utf-8")
-        anchors = set(re.findall(r'<a id="([^"]+)"></a>', old_content))
-        anchors.add("relocated-reference")
-        for heading in re.findall(r"^#{1,6} (.+)$", old_content, re.MULTILINE):
-            anchors.add(re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-"))
-        link = Path(os.path.relpath(target, source.parent)).as_posix()
-        content = ("# Relocated reference\n\n"
-                   "> **AUTO-DOCS - DO NOT EDIT**\n"
-                   "> Updated by `bash scripts/init-tier-repos.sh --refresh` from the upstream kit.\n\n")
-        content += "\n".join(f'<a id="{anchor}"></a>' for anchor in sorted(anchors))
-        content += f"\n\nRead the [current guide]({link}) in the reorganized documentation.\n"
-        # RepositoryWriter protects edited files, owned files, and recorded deletions.
-        writer.write(relative, content, source=Path(__file__), legacy=True)
+        old = path.relative_to(scope).as_posix()
+        replacement = f"docs/auto-docs/{MOVES[old]}" if old in MOVES else None
+        writer.review.removed_paths[relative] = (
+            f"current guide: {replacement}" if replacement in current_paths else "outside the current generated manual"
+        )
+        if not writer.dry_run:
+            path.unlink()
+    if not writer.dry_run:
+        for path in sorted(directories, key=lambda item: len(item.parts), reverse=True):
+            if not any(path.iterdir()):
+                path.rmdir()
+    for relative in set(writer.hashes) | writer.owned_paths:
+        if relative.startswith("docs/auto-docs/") and relative not in current_paths:
+            writer.hashes.pop(relative, None)
+            writer.owned_paths.discard(relative)

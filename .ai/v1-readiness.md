@@ -71,7 +71,8 @@ Proxmox 9 and documentation follow-up:
   Original BIOS/DHCP inputs retain their behavior; no firmware or network migration is implied.
 - Grouped foundation docs by Proxmox/network/storage. Fresh architecture repositories
   seed only a short README, one selection/progress record and naming conventions beside auto-docs.
-  Legacy local docs/deletions are preserved; managed old guide paths redirect to their current home.
+  Existing local docs/edits are preserved; missing current generated targets are restored.
+  Retired auto-docs are removed, with known current guide locations reported.
 - Full portable suite: **372 cases, 232 passed and 140 tool-dependent skips**, no failures/errors.
   All 20 roots validated and all 66 mocked Terraform cases passed. Local theme/width previews
   were inspected for HA before/after and the static-network cluster view; hosted parity remains manual.

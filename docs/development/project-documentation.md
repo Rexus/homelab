@@ -11,6 +11,7 @@ Generation must not require a team to author a second architecture before deploy
 - [Operating order](#operating-order)
 - [Existing collections](#existing-collections)
 - [Maintaining the starter templates](#maintaining-the-starter-templates)
+- [Writing command examples](#writing-command-examples)
 
 <a id="purpose"></a>
 <a id="architecture-reading-path"></a>
@@ -83,14 +84,13 @@ Do not copy complete guide bodies into project records.
 
 ## Existing collections
 
-Root READMEs, the platform record and naming conventions are seeded once.
-Refresh preserves them, their edits and recorded deletions. Unchanged auto-docs
-update; edited or deleted copies retain the existing safety contract.
+Root READMEs, the platform record and naming conventions are seeded when missing.
+Refresh preserves their existing edits and restores missing current starter files.
+Unchanged auto-docs update; missing copies return and obsolete auto-doc paths are removed.
 
 From the upstream checkout, preview an update:
 
 ```bash
-# Run from upstream kit root
 bash scripts/init-tier-repos.sh --refresh --dry-run
 ```
 
@@ -101,8 +101,9 @@ omitting `--dry-run`. No inventory, infrastructure or state is moved.
 | --- | --- |
 | Local architecture/domain/workflow documents | Preserved, even unchanged; transfer real decisions/evidence into the compact record or retain useful detail |
 | Existing `docs/README.md` and root README | Not rewritten; adopt current starter navigation manually after comparing local edits |
-| Recorded deletions | Never recreated to force the new layout |
-| Unused starters and site skeleton | Remove manually only after reviewing local content and references |
+| Missing current starter or guide | Recreated from its current template; review restored project defaults before use |
+| Obsolete or extra file in `docs/auto-docs/` | Removed automatically; known moves report the current guide |
+| Unused starters and site skeleton outside auto-docs | Remove manually only after reviewing local content and references |
 | Earlier `docs/generated/upstream/` | Retained for comparison; use current `docs/auto-docs/` going forward |
 
 New collections have the compact layout. Existing collections are not forcibly
@@ -119,5 +120,13 @@ manual. Tier-specific project/workflow templates remain separate.
 
 Maintain links, selections and stage coverage with focused generator tests.
 Fresh-output tests must reject accidental extra local scaffolding; refresh tests
-must preserve previous records, edits and deletions. Template improvements are
+must preserve existing project records/edits, restore missing targets and confine automatic cleanup to auto-docs.
+Template improvements are
 not permission to overwrite project-authored documents.
+
+## Writing command examples
+
+For a single-line command, put its working repository or machine and any guidance immediately
+above the fence; keep only the command inside. Multiline examples may retain comments when
+they explain the sequence. Keep file-edit lists separate from executable commands.
+Use the [command conventions](../README.md#read-command-examples) for placeholders and context.

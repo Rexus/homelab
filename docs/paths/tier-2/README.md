@@ -37,8 +37,9 @@ Do not give workload users infrastructure-wide credentials to fill that gap.
 
 Initialize the selected isolated context:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup lab --env test
 ```
 
@@ -46,8 +47,9 @@ Omit `--env test` for production. Edit the
 initialized inputs using the [script guide](../../reference/repository-scripts.md),
 then have the authorized operator deploy:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/deploy.sh lab --env test
 ```
 

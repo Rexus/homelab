@@ -27,8 +27,9 @@ copies and the original package/configuration/schema binding.
 1. From Tier 0, with the existing `ansible/group_vars/issuer.yml` and protected
    controller credentials, run the read-only service/configuration/API checks:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 
@@ -36,8 +37,9 @@ copies and the original package/configuration/schema binding.
    installs no updates and performs no issuance, backup or key initialization.
 2. On the issuer, inspect scheduled CRL publication:
 
+   Run on the existing issuer host.
+
    ```bash
-   # Run on the existing issuer host.
    systemctl status openxpki-crl.timer --no-pager
    ```
 
@@ -109,8 +111,9 @@ suspect credential. A file-copy or playbook success does not verify client trust
    revocation action. For suspected compromise, use the [incident path](security-controls.md#detect-and-respond).
 2. On the issuer, as the authorized custodian, request native CRL publication: [1]
 
+   Run on the issuer host as the authorized CA custodian.
+
    ```bash
-   # Run on the issuer host as the authorized CA custodian.
    sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem workflow create --realm infrastructure --type crl_issuance
    ```
 

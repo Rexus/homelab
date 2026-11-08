@@ -100,13 +100,15 @@ python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh --dr
 Reuse the original `--root` on both commands if customized. Keep the same prefix. Review
 the preview, preserve private changes/backups, then apply that refresh:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh
 ```
 
 Follow the [refresh contract](generated-repositories.md#refresh-and-local-ownership): unchanged files can update.
-Project-owned READMEs/local documents, edited files and recorded deletions are preserved.
+Existing project-owned READMEs/local documents and edited current files are preserved.
+Missing current generation targets are restored; obsolete files under `docs/auto-docs/` are removed.
 Refresh does not merge live YAML/HCL/dotenv, move state or deploy infrastructure.
 Resolve reported differences in the owning repo before any affected deployment.
 

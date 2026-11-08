@@ -16,6 +16,8 @@ prepare and use the bootstrap VM before any hosted runner exists.
 
 - [Step 1: Clone the bootstrap VM](#step-1-clone-the-bootstrap-vm)
 - [Step 2: Prepare tools, repositories and artifacts](#step-2-prepare-tools-repositories-and-artifacts)
+- [Connected: OS packages and Terraform](#2a-install-os-packages-and-terraform)
+- [Offline: prepared bundle](#2b-transfer-a-prepared-bundle--offline-alternative)
 - [Step 3: Prepare the execution account's SSH key](#step-3-prepare-the-execution-accounts-ssh-key)
 - [Step 4: Configure trust, credentials and platform inputs](#step-4-configure-trust-credentials-and-platform-inputs)
 - [Continue deployment and hand over later](#continue-deployment-and-hand-over-later)
@@ -184,13 +186,52 @@ For this layout, `/srv/tier0` is a directory on the expanded root filesystem. Us
 directory/verification steps, then continue at **2a** or **2b** below. The separate-mount check and
 home bind-mount option in **A** apply only to its separate-filesystem layout.
 
-### 2a: Install through approved sources
+<a id="2a-install-through-approved-sources"></a>
 
-1. Run the OS/tool commands in the
-   [control-node reference](../../../reference/control-node-tooling.md#automation-vm-example).
-2. Prepare and activate its [Ansible environment](../../../reference/control-node-tooling.md#ansible-environment).
-   Keep it active for Linux `deploy.sh`; template commands select their own isolated runtime.
-3. Obtain the kit below. Restrict temporary acquisition access to approved sources.
+### 2a: Install OS packages and Terraform
+
+These commands target a fresh **Rocky Linux / AlmaLinux 10** bootstrap. Run on `boot-1`
+as `automation`, outside any Python environment, using approved OS/vendor repositories.
+For a disconnected host, follow **2b** instead; no public repository access is needed there.
+
+1. **Install OS tools**, including the disk/home preparation utilities:
+
+   ```bash
+   sudo dnf install -y git bash python3 python3-pip python3-pyyaml \
+     openssh-clients ca-certificates curl openssl gnupg2 xz unzip tar /usr/bin/qemu-img \
+     dnf-plugins-core rsync policycoreutils-python-utils lvm2 cloud-utils-growpart parted xfsprogs
+   ```
+
+2. **Add the Terraform repository and install Terraform.** `dnf-plugins-core` supplies
+   `config-manager`; the repository is HashiCorp's official RHEL RPM channel. [4][5]
+
+   ```bash
+   sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+   sudo dnf install terraform
+   ```
+
+   Review the package/signing-key prompt. Compare the key fingerprint with the current
+   [HashiCorp package-signing reference](https://www.hashicorp.com/en/trust/security)
+   before accepting it; retain signature and TLS verification. [6]
+
+3. **Verify before cloning the kit:**
+
+   ```bash
+   git --version
+   python3 --version
+   python3 -c 'import yaml; print(yaml.__version__)'
+   terraform version
+   qemu-img --version
+   ```
+
+   Require version output from each command. Installing storage tools does not partition or resize disks.
+4. Continue at **2a continued** below: clone the kit, prepare its isolated Python/Ansible environment,
+   then generate the repositories. Keep acquisition access restricted to approved sources.
+
+The [control-node reference](../../../reference/control-node-tooling.md#automation-vm-example)
+lists tool responsibilities and compatibility. Other Linux distributions use their native packages
+and the [official Terraform installation instructions](https://developer.hashicorp.com/terraform/install).
+Packer and later-stage tools such as Helm, kubectl and talosctl are installed only for their selected paths.
 
 ### 2b: Transfer a prepared bundle — offline alternative
 
@@ -214,10 +255,37 @@ git clone https://github.com/Rexus/homelab.git /srv/tier0/src/homelab
 
 A private mirror or transferred Git bundle is also valid. If a collection already
 exists, restore it **including ignored inputs and original state**, not just tracked
-code; do not initialize a replacement environment. For a new collection:
+code; do not initialize a replacement environment.
+
+Prepare the deployment-user Python environment **after the checkout exists**. Run from the
+reviewed upstream kit root on `boot-1`; these are Python packages, separate from the OS installs above. [7]
 
 ```bash
-# Run from the reviewed upstream kit checkout on boot-1.
+python3 -m venv "$HOME/.local/share/homelab/venv"
+source "$HOME/.local/share/homelab/venv/bin/activate"
+python3 -m pip install -r tier-0/ansible/runtime-requirements.txt \
+  -r tier-0/ansible/requirements.txt -r tier-1/ansible/requirements.txt \
+  -r tier-2/ansible/requirements.txt -r scripts/tier-repos/requirements.txt
+```
+
+Install the declared collections from the same kit root with that environment active:
+
+```bash
+ansible-galaxy collection install -r shared/ansible/requirements.yml
+ansible-galaxy collection install -r tier-0/ansible/requirements.yml
+ansible-galaxy collection install -r tier-1/ansible/requirements.yml
+ansible-galaxy collection install -r tier-2/ansible/requirements.yml
+ansible-playbook --version
+```
+
+Keep this environment active for Linux `deploy.sh`; reactivate it in each new shell with
+`source "$HOME/.local/share/homelab/venv/bin/activate"`. Template commands select their own
+isolated runtime automatically; see [runtime behavior](../../../reference/control-node-tooling.md#automatic-template-runtime).
+For a new collection, generate the repositories next:
+
+Run from the reviewed upstream kit checkout on `boot-1`.
+
+```bash
 bash scripts/init-tier-repos.sh
 ```
 
@@ -276,8 +344,9 @@ Do not copy an administrator's private workstation key into a repository or temp
 
 **Both paths continue at Step 4.** Print the absolute public-key path for the input below:
 
+Run on `boot-1` as automation.
+
 ```bash
-# Run on boot-1 as automation.
 realpath "$HOME/.ssh/id_ed25519.pub"
 ```
 
@@ -297,8 +366,9 @@ public key; Ansible uses its matching private key through SSH. See the
    to create the scoped roles, group and token. Return here after its token permission checks.
 3. Back on **`boot-1`**, initialize Tier 0's local files:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh init
    ```
 
@@ -384,3 +454,7 @@ recover that platform's total loss by itself.
 1. [Proxmox Cloud-Init account and public-key fields](https://github.com/proxmox/pve-docs/blob/master/generated/qm-cloud-init-opts.adoc).
 2. [Proxmox provider upload staging and temporary directory](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/docs/index.md).
 3. [Enterprise Linux filesystem preparation and persistent mounts](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_file_systems/index).
+4. [HashiCorp Terraform installation and RPM repository](https://developer.hashicorp.com/terraform/install), checked 2026-11-08.
+5. [DNF config-manager repository configuration](https://dnf-plugins-core.readthedocs.io/en/latest/config_manager.html), checked 2026-11-08.
+6. [HashiCorp package-signing keys](https://www.hashicorp.com/en/trust/security), checked 2026-11-08.
+7. [Python virtual environments](https://docs.python.org/3/library/venv.html), checked 2026-11-08.

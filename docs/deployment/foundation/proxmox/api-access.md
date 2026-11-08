@@ -74,8 +74,9 @@ pveum role add PlatformAutomationNetwork --privs "SDN.Use SDN.Audit"
 
 <a id="2-create-the-automation-group"></a>
 
+Run on the selected Proxmox host as an authorized root operator.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum group add platform-automation --comment "Platform automation"
 ```
 
@@ -90,8 +91,9 @@ Keep host/cluster administration and permission management outside these roles.
 Role names are case-sensitive. For an older network role containing only `SDN.Use`,
 append the missing privilege instead of creating a second role:
 
+Run on the selected Proxmox host as an authorized root operator.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum role modify PlatformAutomationNetwork --append 1 --privs "SDN.Audit"
 ```
 
@@ -103,8 +105,9 @@ This changes every ACL using that role; it preserves the existing privileges and
 
 **VMs:** the current Terraform model uses explicit VMIDs without pool placement:
 
+Run on the selected Proxmox host as an authorized root operator.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum acl modify /vms --groups platform-automation --roles PlatformAutomationVM
 ```
 
@@ -124,8 +127,9 @@ pveum acl modify "/storage/$VM_DATASTORE" --groups platform-automation --roles P
 **Tier 0 images:** also grant storage visibility/allocation on the Import datastore.
 For the example `local` datastore:
 
+Run on the selected Proxmox host as an authorized root operator.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum acl modify /storage/local --groups platform-automation --roles PlatformAutomationStorage
 ```
 
@@ -160,8 +164,9 @@ do not authorize an SDN VNet. GUI equivalent: **Datacenter > Permissions > Add >
 
 Use the narrowest prepared path. This example allows VLAN 10 on `vmbr0`:
 
+Run on the selected Proxmox host as an authorized root operator.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum acl modify /sdn/zones/localnetwork/vmbr0/10 --groups platform-automation --roles PlatformAutomationNetwork
 ```
 
@@ -172,8 +177,9 @@ Repeat for the actual selected VLANs, then continue at **Step 3**.
 
 For VNet `edge` in zone `dmz`:
 
+Run on the selected Proxmox host as an authorized root operator.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum acl modify /sdn/zones/dmz/edge --groups platform-automation --roles PlatformAutomationNetwork
 ```
 
@@ -196,8 +202,9 @@ pveum user modify automation@pve --groups platform-automation
 The established group-managed bootstrap example inherits this dedicated user's
 permissions. Adding the user to other groups also expands this token's permissions. [1]
 
+Run on the selected Proxmox host as an authorized root operator.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum user token add automation@pve provision --privsep 0 --comment "Platform provisioning token"
 ```
 
@@ -219,8 +226,9 @@ pveum user permissions 'automation@pve!provision' --path "/nodes/$PVE_NODE"
 
 For the selected SDN example:
 
+Run on the selected Proxmox host as an authorized root operator.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum user permissions 'automation@pve!provision' --path /sdn/zones/dmz/edge
 ```
 

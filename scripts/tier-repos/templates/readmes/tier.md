@@ -31,10 +31,11 @@ ${prerequisites}
 
 ## Linux VM quick start
 
-After the checklist's prerequisites, initialize a Linux VM setup from this root:
+After the checklist's prerequisites, initialize a Linux VM setup:
+
+Run from `${repo_prefix}-${tier}/`.
 
 ```bash
-# Run from ${repo_prefix}-${tier}/
 bash scripts/init-local-files.sh --setup ${example}
 ```
 
@@ -65,8 +66,9 @@ in [platform inputs](${docs}/reference/platform-inputs.md). Follow the
 [setup guide](${docs}/reference/repository-scripts.md#available-setups), completing its
 storage and TLS preparation before host configuration. Then deploy:
 
+Run from `${repo_prefix}-${tier}/`.
+
 ```bash
-# Run from ${repo_prefix}-${tier}/
 bash scripts/deploy.sh ${example}
 ```
 

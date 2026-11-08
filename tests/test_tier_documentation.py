@@ -150,7 +150,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertEqual(root_naming.read_text(), "# Reviewed project standards\n")
         self.assertEqual(legacy.read_text(), original)
 
-    def test_renaming_the_worksheet_does_not_recreate_a_recorded_deletion(self):
+    def test_refresh_restores_the_current_worksheet_not_its_retired_location(self):
         self.generate()
         repo = self.root / "verify-architecture"
         root_naming = repo / "platform-standards.md"
@@ -161,10 +161,10 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         manifest["owned"].append("docs/naming-conventions.md")
         manifest_path.write_text(json.dumps(manifest))
         self.generate("--refresh")
-        self.assertFalse(root_naming.exists())
+        self.assertIn("# verify Platform Standards", root_naming.read_text())
         self.assertFalse((repo / "docs/naming-conventions.md").exists())
 
-    def test_deleted_root_worksheet_is_not_recreated_from_an_older_record(self):
+    def test_missing_current_worksheet_is_restored_with_a_link_to_retained_choices(self):
         self.generate()
         repo = self.root / "verify-architecture"
         (repo / "platform-standards.md").unlink()
@@ -176,7 +176,8 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         manifest["owned"].extend(("naming-conventions.md", "docs/naming-conventions.md"))
         manifest_path.write_text(json.dumps(manifest))
         self.generate("--refresh")
-        self.assertFalse((repo / "platform-standards.md").exists())
+        self.assertIn("[retained local document](docs/naming-conventions.md)",
+                      (repo / "platform-standards.md").read_text())
         self.assertFalse((repo / "naming-conventions.md").exists())
         self.assertEqual(archive.read_text(), "# Retained older choices\n")
 
@@ -411,12 +412,12 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("`<prefix>` means the generated repository folder prefix", overview)
         self.assertIn("the default is `homelab`", overview)
         deployment = (generated / "deployment/README.md").read_text()
-        self.assertIn("# Run from verify-tier-2/", deployment)
+        self.assertIn("Run from `verify-tier-2/`.\n\n```bash\n", deployment)
         self.assertIn("# Edit in verify-shared/", deployment)
         self.assertNotIn("<prefix>-tier-", deployment)
         for tier in range(3):
             readme = (self.root / f"verify-tier-{tier}/README.md").read_text()
-            self.assertIn(f"# Run from verify-tier-{tier}/", readme)
+            self.assertIn(f"Run from `verify-tier-{tier}/`.\n\n```bash\n", readme)
             self.assertIn(f"# Edit in verify-tier-{tier}/", readme)
             self.assertIn("# Edit in verify-shared/", readme)
 
@@ -485,7 +486,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                 writer.finish()
                 self.assertEqual((repo / relative).read_bytes(), expected)
 
-    def test_refresh_preserves_local_project_and_auto_doc_edits_and_deletions(self):
+    def test_refresh_preserves_existing_edits_and_restores_missing_current_documents(self):
         self.generate()
         architecture = self.root / "verify-architecture"
         edited = [self.root / f"verify-{name}/README.md" for name in REPOSITORIES]
@@ -497,6 +498,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         deleted = [edited.pop(0), edited.pop(0), architecture / "platform-standards.md",
                    self.root / "verify-tier-2/docs/architecture/README.md",
                    architecture / "docs/auto-docs/administration/secret-handling/strategy.md"]
+        expected = {path: path.read_bytes() for path in deleted}
         for path in edited:
             path.write_text("# Project-owned changes\n", encoding="utf-8")
         for path in deleted:
@@ -506,7 +508,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             if path not in deleted:
                 self.assertEqual(path.read_text(), "# Project-owned changes\n", path)
         for path in deleted:
-            self.assertFalse(path.exists(), path)
+            self.assertEqual(path.read_bytes(), expected[path], path)
 
     def test_legacy_upgrade_preserves_readmes_and_docs_without_dry_run_writes(self):
         originals = {}

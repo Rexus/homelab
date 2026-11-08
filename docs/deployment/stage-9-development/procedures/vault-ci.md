@@ -18,8 +18,9 @@ This configures an existing Vault; it does not initialize, unseal or replace it.
 
 From the **Tier 0 root**, create the local input file:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 cp -n terraform/deployments/ci-auth/terraform.tfvars.example terraform/deployments/ci-auth/terraform.tfvars
 ```
 
@@ -55,8 +56,9 @@ terraform -chdir=terraform/deployments/ci-auth plan -out="$PWD/.terraform/plans/
 
 Review the authentication backend, exact claims, policy path and planned changes.
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 terraform -chdir=terraform/deployments/ci-auth apply "$PWD/.terraform/plans/ci-auth.tfplan"
 ```
 
@@ -76,8 +78,9 @@ Prepare a private JSON file with `proxmox_api_url`, `proxmox_api_token_id`,
 `proxmox_api_token_secret` and `ssh_private_key`. Use the least-privilege API/SSH
 identities required for this repository; never reuse a human or root credential.
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 vault kv put kv/ci/tier0 @/absolute/private/tier0-ci.json
 ```
 

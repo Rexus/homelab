@@ -57,7 +57,7 @@ class RepositoryLicensing(TierRepositoryTestCase):
                 if content is not None or license_file.parent.name == "verify-tier-1":
                     self.assertIn("LICENSE", manifest["owned"])
 
-    def test_notices_refresh_with_edit_and_deletion_safeguards(self):
+    def test_notices_preserve_edits_and_are_restored_when_missing(self):
         self.generate()
         targets = [(self.root / "verify-shared", "UPSTREAM-NOTICE"),
                    (self.root / "verify-architecture", "docs/auto-docs/LICENSE")]
@@ -80,4 +80,4 @@ class RepositoryLicensing(TierRepositoryTestCase):
             path.unlink()
         self.generate("--refresh")
         for path in expected:
-            self.assertFalse(path.exists())
+            self.assertEqual(path.read_bytes(), expected[path])

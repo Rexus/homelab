@@ -57,8 +57,9 @@ prepared data storage, production configuration bundle and authorized custodians
 3. Provision without running the identity recipe. Review the displayed Terraform
    plan and enter `yes` only for the approved resources:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh foundation --terraform-only
    ```
 
@@ -113,8 +114,9 @@ For the supplied software policy, first build the private artifact using
    before normal operations. Retain passwords/session secrets outside the issuer.
 3. For the first empty database only, set `openxpki_initialize_database: true`, then run:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 

@@ -18,10 +18,9 @@ Use the actual disk, PV partition, VG and root LV found below; example names are
 
 ## Prepare OS tools
 
-Through approved connected repositories:
+On `boot-1` as automation, install OS packages through approved repositories, outside any Python environment:
 
 ```bash
-# Run on boot-1 as automation; OS packages, outside any Python environment.
 sudo dnf install -y lvm2 cloud-utils-growpart parted xfsprogs
 ```
 
@@ -31,8 +30,9 @@ If storage is not ready yet, use a verified bundle on independently mounted medi
 [OS package installation](bootstrap-offline.md#3a-install-signed-os-packages), setting `BUNDLE` to
 that actual media path. Return here before copying the full image bundle or creating tool environments.
 
+Offline only: set this before the linked OS-install block, in the same Bash session.
+
 ```bash
-# Offline only: set this before the linked OS-install block, in the same Bash session.
 read -r -p 'Verified extracted bundle directory on mounted media: ' BUNDLE
 ```
 
@@ -102,8 +102,9 @@ Root growth gives `/home` more space only when `/home` is on that root filesyste
    enable **Backup**. Identify the new guest device again with `lsblk`; do not assume it is `sdb`.
 2. For the example's **new, empty `/dev/sdb` only**, inspect signatures:
 
+   Run on `boot-1`. Read-only check of the proposed NEW disk.
+
    ```bash
-   # Run on boot-1. Read-only check of the proposed NEW disk.
    sudo wipefs --no-act /dev/sdb
    ```
 

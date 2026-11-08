@@ -63,9 +63,8 @@ class BootstrapGuide(TierRepositoryTestCase):
         init = guide.index('bash scripts/proxmox-templates.sh init')
         self.assertLess(trust, token)
         self.assertLess(token, init)
-        tooling = (UPSTREAM / 'docs/reference/control-node-tooling.md').read_text()
         for package in ('git bash python3', 'python3-pyyaml', 'ca-certificates', 'openssl', 'xz unzip'):
-            self.assertIn(package, tooling)
+            self.assertIn(package, guide)
 
     def test_manual_keys_and_attached_workspace_remain_explicit(self):
         guide = (UPSTREAM / 'docs/deployment/foundation/proxmox/bootstrap.md').read_text()

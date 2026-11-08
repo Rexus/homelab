@@ -71,8 +71,9 @@ replacement/recovery plan. The EFI volume lives on each node's selected live dat
 
 ## Step 1: Initialize and edit inputs
 
+Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 bash scripts/kubernetes-cluster.sh init
 ```
 
@@ -189,8 +190,9 @@ a registry, resolver, time service or firewall policy.
 
 ## Step 3: Plan and deploy
 
+Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 bash scripts/kubernetes-cluster.sh plan
 ```
 

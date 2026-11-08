@@ -111,8 +111,9 @@ interface are consumed, never Tier 0 control credentials. No NAS gateway is adde
 
 From the **Tier 1 root**, create the local settings without replacing existing inputs:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
 ```
 
@@ -350,8 +351,9 @@ and scoped target contracts are all included. The output directory contains:
 
 Read the rendered checksum:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 cat secrets/delivery-platform/spinnaker.sha256
 ```
 

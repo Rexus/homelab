@@ -99,8 +99,9 @@ object for field queries such as `body.record.source`. Investigate
 
 Switch from Tier 1 to the **Tier 0 root**, then create the settings:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/logging_export.yml.example ansible/group_vars/logging_export.yml
 ```
 
@@ -118,8 +119,9 @@ paths. Set `logging_export_allow_egress_accepted: true` only after verifying its
 
 From Tier 0, after the first approved files exist:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-export.yml -e @ansible/group_vars/logging_export.yml
 ```
 

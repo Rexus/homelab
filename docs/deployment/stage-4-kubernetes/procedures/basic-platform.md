@@ -137,8 +137,9 @@ image/mirror overrides through native values and retain artifacts for recovery.
 1. From the Tier 0 root, render **Cilium only** before any ordinary cluster pods
    are expected to work:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e '{"cluster_platform_components":["cilium"]}' -e cluster_platform_action=render
    ```
 
@@ -162,15 +163,17 @@ image/mirror overrides through native values and retain artifacts for recovery.
    both runs; no directory change is required. If pre-existing Secrets already have
    a qualified owner, retain `cluster_platform_manage_secrets: false` and use:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=render
    ```
 
    Inspect all selected resources, then:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=apply
    ```
 

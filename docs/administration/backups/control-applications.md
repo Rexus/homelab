@@ -97,8 +97,9 @@ nor revokes that externally supplied token. Return to managed auth for scheduled
 
 5. Install, or reapply after a schedule/credential edit:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/control-backup.yml -e @ansible/group_vars/control_backup.yml
    ```
 
@@ -145,8 +146,9 @@ Monitor timestamp age and missed external pings, not file presence.
 
 **On the recovery host**, enter an authorized root shell and select the installed repository:
 
+Run on the independent `control_recovery` host.
+
 ```bash
-# Run on the independent control_recovery host.
 sudo -i
 ```
 

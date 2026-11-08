@@ -58,7 +58,8 @@ def main():
     parser.add_argument("--root", type=Path, default=UPSTREAM.parent,
                         help="Parent of <prefix>-iac/ (default: beside this kit checkout).")
     parser.add_argument("--repo", action="append", choices=[*REPOSITORIES, "all"], help="Repeat to select repositories.")
-    parser.add_argument("--refresh", action="store_true", help="Update unchanged generated files; preserve local edits.")
+    parser.add_argument("--refresh", action="store_true",
+                        help="Restore missing targets, update unchanged files and prune retired auto-docs; preserve edits.")
     parser.add_argument("--dry-run", action="store_true", help="Report changes without writing files.")
     parser.add_argument("--color", choices=("auto", "always", "never"), default="auto",
                         help="Refresh review colors (default: auto; respects NO_COLOR).")

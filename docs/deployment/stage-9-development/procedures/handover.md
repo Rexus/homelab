@@ -34,8 +34,9 @@ Do not imply that this example implements their upgrade/recovery workflows.
 
 From the **dedicated Tier 0 infrastructure project checkout**, create the pipeline starter:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 cp -n ci/gitlab-iac.yml.example .gitlab-ci.yml
 ```
 

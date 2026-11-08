@@ -93,8 +93,9 @@ platform.
 
 Initialize missing local files from Tier 0:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup vault
 ```
 
@@ -169,8 +170,9 @@ and Proxmox tags.
 
 Prepare the TLS files and local inputs above, then deploy:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh vault
 ```
 
@@ -201,8 +203,9 @@ existing service uses its original data and keys, never another initialization. 
 Prepare protected share/root-token custody first; PGP output encryption is supported. [3]
 For the selected three-share/two-custodian Shamir example:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 vault operator init -key-shares=3 -key-threshold=2
 ```
 

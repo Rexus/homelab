@@ -136,8 +136,9 @@ buckets in the [product recovery plan](../recovery/tier-1-products.md). [2]
 
 On the selected VM, enter an authorized root shell. Load only the installed root-owned profile:
 
+Run on the selected GitLab data VM during the approved maintenance window.
+
 ```bash
-# Run on the selected GitLab data VM during the approved maintenance window.
 sudo -i
 ```
 
@@ -185,15 +186,17 @@ mkdir -m 0700 "$RECOVERY_TARGET"
 
 Choose the configured transport. For NAS/filesystem:
 
+Run on the independent isolated recovery workstation.
+
 ```bash
-# Run on the independent isolated recovery workstation.
 restic restore "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --verify
 ```
 
 For SFTP, after configuring that recovery host's credential paths:
 
+Run on the independent isolated recovery workstation.
+
 ```bash
-# Run on the independent isolated recovery workstation.
 restic -o "sftp.args=$RESTIC_SFTP_ARGS" restore "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --verify
 ```
 

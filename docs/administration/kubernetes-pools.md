@@ -41,8 +41,9 @@ kubectl get nodes -L node-pool
 
 3. Prepare the saved plan:
 
+   Run from the selected `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/` repository.
+
    ```bash
-   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    bash scripts/kubernetes-cluster.sh plan
    ```
 
@@ -83,8 +84,9 @@ administrator owns those changes. [1] Use the owning cluster's protected kubecon
 
 2. Apply the reservation:
 
+   Run from the selected `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/` repository.
+
    ```bash
-   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    kubectl taint node "$NODE" dedicated=compute:NoSchedule --overwrite
    ```
 3. In the project-owned workload manifest, set both the selector and toleration below.

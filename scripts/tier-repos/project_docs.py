@@ -87,11 +87,6 @@ def architecture_scaffold(writer, prefix):
                        legacy=previous_design if target == "docs/README.md" else None)
     previous_paths = ("naming-conventions.md", "docs/naming-conventions.md")
     previous = next((path for path in previous_paths if (writer.root / path).is_file()), None)
-    tracked = next((path for path in previous_paths
-                    if path in writer.owned_paths or path in writer.hashes), None)
-    if tracked and not (writer.root / tracked).exists():
-        # A recorded deletion remains a deletion after changing the starter location.
-        writer.owned_paths.add("platform-standards.md")
     owned_template(writer, "project/platform-standards.md", "platform-standards.md",
                    legacy=previous, prefix=prefix)
     if any((writer.root / path).exists() for path in ("docs/architecture", "docs/deployment",

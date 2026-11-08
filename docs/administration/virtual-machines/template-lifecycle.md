@@ -51,8 +51,9 @@ Talos uses fresh approved raw images; Linux package-refresh recipes do not apply
 
 1. Create missing local inputs. Existing catalogs are preserved:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh init
    ```
 
@@ -62,8 +63,9 @@ Talos uses fresh approved raw images; Linux package-refresh recipes do not apply
    against the [field reference](../../reference/template-publication.md#inputs-and-defaults).
 3. Prepare the publication plan:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh plan --env-file .env.local
    ```
 
@@ -98,24 +100,27 @@ before applying; policy verification alone does not check NICs.
    the remote file's SHA256: discovery checks identity, not remote bytes.
 4. Prepare and inspect adoption:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh import --env-file .env.local
    ```
 
 5. Require the intended imports and only accepted setting changes. The matching VM
    must be a stopped template. Resolve conflicts before proceeding, then run:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh apply --env-file .env.local
    ```
 
    Optional: check for drift after the accepted apply; expect no changes:
 
+   Run from `<prefix>-tier-0/` on the protected execution host. Optional drift check; this creates a new saved
+   plan, not another required apply.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
-   # Optional drift check; this creates a new saved plan, not another required apply.
    bash scripts/proxmox-templates.sh plan --env-file .env.local
    ```
 
@@ -153,8 +158,9 @@ networking have their own acceptance checks. An **Apply complete** line is insuf
    capacity or connection errors. Retain the complete first error and the affected path.
 3. Resolve the cause, then prepare a new adoption plan:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh import --env-file .env.local
    ```
 
@@ -240,8 +246,9 @@ the removed revision.
 2. Review `ci/gitlab-templates.yml.example`. Merge it into an existing `.gitlab-ci.yml`,
    or copy the starter only when no pipeline exists:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    cp -n ci/gitlab-templates.yml.example .gitlab-ci.yml
    ```
 

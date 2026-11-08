@@ -1,4 +1,4 @@
-"""Refresh only files whose contents still match the last generated version."""
+"""Restore missing generation targets and refresh unchanged files without replacing local edits."""
 
 import hashlib
 import json
@@ -24,7 +24,7 @@ class RepositoryWriter:
         self.review = RefreshReview(self.root, set(self.hashes) | self.owned_paths, self.owned_paths)
         self.counts = dict(create=0, update=0, unchanged=0, preserve=0)
 
-    def write(self, relative, content, executable=False, owned=False, source=None, legacy=False):
+    def write(self, relative, content, executable=False, owned=False, source=None):
         path = self.root / relative
         if path.is_symlink() or not path.resolve().is_relative_to(self.root):
             raise ValueError(f"Refusing generated output through symlink: {path}")
@@ -41,21 +41,21 @@ class RepositoryWriter:
                 action = "preserve"
             else:
                 action = "update"
-        elif relative in self.hashes or relative in self.owned_paths:
+        elif not self.refresh and (relative in self.hashes or relative in self.owned_paths):
             action = "preserve"
         else:
             action = "create"
         reason = None
         if action == "preserve" and existing != digest:
             if existing is None:
-                reason = "recorded deletion"
+                reason = "missing file; use --refresh to restore the current template"
             elif owned or relative in self.owned_paths:
                 reason = "project-owned; compare the current starter"
             elif relative not in self.hashes:
                 reason = "pre-existing file; generation ownership is unverified"
             else:
                 reason = "locally edited generated file"
-        self.review.record(relative, data, source, reason, legacy=legacy)
+        self.review.record(relative, data, source, reason)
         self.counts[action] += 1
         if action != "unchanged":
             print(f"{action:9} {path}")

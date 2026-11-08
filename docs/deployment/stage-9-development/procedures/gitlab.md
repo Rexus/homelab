@@ -90,8 +90,9 @@ The main-path data-service recipe produces `secrets/development-data/platform-in
 load it last to retain its endpoint, bucket and backup settings. For independently
 commissioned existing dependencies, author the same settings locally and omit that overlay.
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml -e @secrets/development-data/platform-inputs.yml
 ```
 
@@ -125,8 +126,9 @@ args:
 
 After dependency/Secret preparation, choose `apply` for bootstrap-owned installation:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml -e @secrets/development-data/platform-inputs.yml -e development_platform_action=apply
 ```
 

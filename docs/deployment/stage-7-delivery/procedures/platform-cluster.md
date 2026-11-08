@@ -27,8 +27,9 @@ is reused with tier-owned inventory, state and credentials. Tier 0 remains indep
 
 From the **Tier 1 root**:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/kubernetes-cluster.sh init
 ```
 
@@ -56,8 +57,9 @@ supply `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` through the accepted pro
 
 ## Step 2: Deploy and qualify the cluster
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/kubernetes-cluster.sh plan
 ```
 
@@ -89,8 +91,9 @@ values, cluster credentials and resources. No add-on code is copied between tier
 
 Create the local inputs:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster_platform.yml
 ```
 

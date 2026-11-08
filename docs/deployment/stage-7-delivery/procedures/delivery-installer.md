@@ -44,8 +44,9 @@ node/CSI access, permissions, retained PV and exact PVC binding before apply.
 
 From the **Tier 1 root**, create the local settings:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
 ```
 
@@ -96,8 +97,9 @@ secrets/delivery-platform.yml
 
 After editing the private file, encrypt it and retain the decryption material independently:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 ansible-vault encrypt secrets/delivery-platform.yml
 ```
 
@@ -169,8 +171,9 @@ Retain bootstrap Git/image supply until the replacement is accepted.
 
 From the upstream repository with the native tools and collections installed:
 
+Run from the upstream deployment-kit checkout.
+
 ```bash
-# Run from the upstream deployment-kit checkout.
 python3 -B -m unittest discover -s tests -p test_tier_delivery_platform.py -v
 ```
 

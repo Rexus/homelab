@@ -26,8 +26,9 @@ then return here before publishing a website.
 
 From the **Tier 2 root**, create the private override:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 cp -n ansible/group_vars/public-https.yml.example ansible/group_vars/public-https.yml
 ```
 

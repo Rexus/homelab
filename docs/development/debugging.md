@@ -45,8 +45,9 @@ tier and Shared payloads point into the corresponding generated repositories.
 **Example: cache behavior.** From Tier 2, find the inventory group, recipe and
 role references together:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 rg -n 'cache_proxy|hosts: cache|platform_host_ips' ansible
 ```
 
@@ -70,8 +71,9 @@ The [generator contract](generated-repositories.md) owns collection selection.
 
 For the cache example, with accepted Tier 2 local inputs and verified Proxmox access:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/deploy.sh cache --env-file .env.local --plan-only
 ```
 

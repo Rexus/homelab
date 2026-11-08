@@ -96,8 +96,9 @@ is intended. For a VM awaiting restoration, retain its binding and use [recovery
    explicitly accept the resulting creation plan. Never treat creation as recovery of its old data.
 5. Review a new plan through the normal owning wrapper with the original input overrides:
 
+   Run from `<prefix>-tier-2/` for the default production cache example.
+
    ```bash
-   # Run from <prefix>-tier-2/ for the default production cache example.
    bash scripts/deploy.sh cache --plan-only --env-file .env.local
    ```
 

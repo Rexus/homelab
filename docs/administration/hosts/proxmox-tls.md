@@ -36,10 +36,9 @@ certificate is already installed, obtain its approved issuer trust instead.
    value read at the node console. Transfer the public certificate only, never
    the CA private key. [1][7]
 
-   On the Proxmox console:
+   On the selected Proxmox host's console, run as an authorized root operator:
 
    ```bash
-   # Run on the selected Proxmox host as an authorized root operator.
    openssl x509 -in /etc/pve/pve-root-ca.pem -noout -sha256 -fingerprint
    ```
 
@@ -145,8 +144,9 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
 
    In the current shell:
 
+   Run on `boot-1` as automation.
+
    ```bash
-   # Run on boot-1 as automation.
    unset PROXMOX_VE_INSECURE PM_VE_INSECURE
    ```
 

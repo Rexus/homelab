@@ -24,7 +24,8 @@ needs only the [declared Python/PyYAML prerequisites](../development/generated-r
 without platform access. Real deployment needs the inputs below. For the first installation, follow the
 [bootstrap execution-host guide](../deployment/foundation/proxmox/bootstrap.md):
 manual Linux template, bootstrap VM, tools/artifacts, verified CA/API access, then IaC.
-This document owns tooling installation, not the VM creation sequence.
+The bootstrap guide owns first-install commands; this reference owns tool scope,
+compatibility, runtime behavior and dependency declarations.
 
 ## Platform prerequisites
 
@@ -119,7 +120,7 @@ define package/collection bounds.
 
 | Dependency | Authoritative source / installation scope |
 | --- | --- |
-| OS commands | Git, Bash, Python/pip/venv, SSH, CA/curl/OpenSSL, archive utilities, Terraform and `qemu-img` listed above; [offline OS download/install](../deployment/foundation/proxmox/bootstrap-offline.md#1a-download-os-packages-and-reviewed-source) |
+| OS commands | [Bootstrap Step 2a](../deployment/foundation/proxmox/bootstrap.md#2a-install-through-approved-sources): Git, Bash, Python/pip, SSH, CA/curl/OpenSSL, archive/storage utilities, Terraform and `qemu-img`; [offline OS download/install](../deployment/foundation/proxmox/bootstrap-offline.md#1a-download-os-packages-and-reviewed-source) |
 | Optional home-directory migration | Pre-stage `rsync` and, on Enterprise Linux 10, `policycoreutils-python-utils` before restricting package access; included in the offline RPM download list for the [home-directory guide](../deployment/foundation/proxmox/bootstrap-home.md) |
 | Optional Rocky Linux root-LVM expansion | Pre-stage `lvm2`, `cloud-utils-growpart`, `parted` and `xfsprogs`; included in the offline RPM list; follow the [existing-disk or new-PV guide](../deployment/foundation/proxmox/bootstrap-lvm.md) |
 | Python execution runtime | Tier 0 [runtime requirements](../../tier-0/ansible/runtime-requirements.txt); accepted interpreter plus Ansible/PyYAML/HCL tooling |
@@ -134,35 +135,14 @@ define package/collection bounds.
 After the first template exists, a small dedicated automation VM is often
 easier to keep stable than using a personal workstation.
 Create it with the [bootstrap deployment guide](../deployment/foundation/proxmox/bootstrap.md),
-then install the tools below on that VM. An accepted independent workstation is
+then follow its [package and Terraform installation steps](../deployment/foundation/proxmox/bootstrap.md#2a-install-through-approved-sources).
+An accepted independent workstation is
 also valid. Proxmox hosts and Talos nodes are not general-purpose deployment machines.
 
-For the AlmaLinux/Rocky Linux reference VM, use approved OS/vendor package sources.
-Enable EPEL only when permitted by the software-intake policy. Confirm repository
-signing keys through the official installation instructions before accepting them;
-never disable package-signature or TLS checks. [1][2]
-
-```bash
-# Run on the bootstrap/deployment host
-sudo dnf install -y epel-release
-sudo dnf install -y git bash python3 python3-pip python3-pyyaml \
-  openssh-clients ca-certificates curl openssl xz unzip tar /usr/bin/qemu-img
-sudo dnf install -y yum-utils
-sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
-sudo dnf install -y terraform
-```
-
-Check the installed tools before cloning/generation:
-
-```bash
-# Run on the bootstrap/deployment host
-git --version
-python3 -c 'import yaml; print(yaml.__version__)'
-terraform version
-qemu-img --version
-```
-
-Before running Ansible, prepare the [Ansible environment](#ansible-environment) below.
+The AlmaLinux/Rocky Linux first-run path installs OS tools, adds HashiCorp's RPM
+repository and verifies Terraform before cloning/generation. It then prepares
+Ansible from the checked-out manifests. EPEL is not required by that path;
+additional repositories remain an explicit software-intake choice. [1][2]
 Use versions satisfying the selected Terraform roots and Ansible collections;
 an installed executable alone is not compatibility evidence. For an offline host,
 use the [connected-host bundle preparation and SCP handoff](../deployment/foundation/proxmox/bootstrap-offline.md).
@@ -182,17 +162,17 @@ Keep the automation VM simple:
 
 ## Ansible environment
 
-Prepare a deployment-user virtual environment before running Ansible-based paths.
-An existing accepted environment is also valid. The Proxmox maintenance collection
+The [bootstrap tool sequence](../deployment/foundation/proxmox/bootstrap.md#2a-continued-obtain-the-kit-and-generate-the-collection)
+creates the deployment-user venv and installs `ansible/runtime-requirements.txt`,
+tier-owned Python module manifests and collections. An existing accepted environment
+is also valid. The Proxmox maintenance collection
 requires `ansible-core >=2.17`; an OS package may supply an older release. Installing
 `ansible/requirements.txt` installs module dependencies, not Ansible itself. [3][4]
 
+To reuse that prepared environment in a new shell on the bootstrap/deployment host:
+
 ```bash
-# Run on the bootstrap/deployment host
-python3 -m venv "$HOME/.local/share/homelab/venv"
 source "$HOME/.local/share/homelab/venv/bin/activate"
-python3 -m pip install --upgrade 'ansible-core>=2.17' PyYAML
-ansible-playbook --version
 ```
 
 On Debian/Ubuntu, install `python3-venv` first if the OS packages do not yet provide
@@ -236,10 +216,9 @@ runner, select `TEMPLATE_RUNTIME_MODE=check` and provide compatible Python, Ansi
 module dependencies and collections. Keep wheel/collection artifacts available for recovery;
 generated repositories include the bootstrap code and dependency declarations.
 
-To prepare a runner or recovery host before platform access, run from Tier 0:
+To prepare a runner or recovery host before platform access, run from `<prefix>-tier-0/`:
 
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/proxmox-templates.sh setup
 ```
 

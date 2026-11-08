@@ -44,7 +44,8 @@ class RefreshReviewTests(TierRepositoryTestCase):
         script = repo / "scripts/check-shared.sh"
         readme = repo / "README.md"
         deleted = repo / "ansible/group_vars/syslog.yml.example"
-        expected = {p.relative_to(repo): p.read_bytes() for p in (script, readme, deleted)}
+        expected = {p.relative_to(repo): p.read_bytes() for p in (script, readme)}
+        deleted_contents = deleted.read_bytes()
         script.write_text("# Local automation changes\n")
         readme.write_text("# Project-owned README\n")
         deleted.unlink()
@@ -60,7 +61,7 @@ class RefreshReviewTests(TierRepositoryTestCase):
 
         result = self.generate("--refresh", "--color", "always")
         review = result.stdout.split("\nRefresh review\n")[1]
-        self.assertIn("YELLOW: 3 preserved differences; RED: 2 retired files", review)
+        self.assertIn("YELLOW: 2 preserved differences; RED: 2 retired files", review)
         for relative, data in expected.items():
             candidate = self.root / ".refresh-review" / repo.name / relative
             self.assertEqual(candidate.read_bytes(), data)
@@ -76,7 +77,8 @@ class RefreshReviewTests(TierRepositoryTestCase):
             self.assertNotIn(str(path), review)
         self.assertEqual(script.read_text(), "# Local automation changes\n")
         self.assertEqual(readme.read_text(), "# Project-owned README\n")
-        self.assertFalse(deleted.exists())
+        self.assertEqual(deleted.read_bytes(), deleted_contents)
+        self.assertNotIn(f"YELLOW {deleted}", review)
         self.assertIn('"serial": 7', state.read_text())
 
     def test_dry_run_points_to_sources_without_writing_anything(self):
@@ -108,20 +110,20 @@ class RefreshReviewTests(TierRepositoryTestCase):
         self.assertNotIn("\033[", review)  # Captured/non-TTY output is plain in auto mode.
         self.assertFalse((self.root / ".refresh-review/verify-tier-0").exists())
 
-    def test_legacy_redirects_are_reviewable_but_project_license_is_not_retired(self):
+    def test_retired_auto_docs_are_removed_but_project_license_is_untouched(self):
         self.generate()
         repo = self.root / "verify-architecture"
         old = self.retired(repo, "docs/auto-docs/administration/compute/backup-restore.md")
         license_path = repo / "LICENSE"
         license_path.write_text("Project-selected licensing\n")
-        self.generate("--refresh")
         result = self.generate("--refresh")
         review = result.stdout.split("\nRefresh review\n")[1]
-        self.assertIn(f"RED {old}", review)
-        self.assertIn("legacy documentation redirect", review)
-        self.assertIn("Relocated reference", old.read_text())
+        self.assertIn(f"REMOVED {old}", review)
+        self.assertIn("current guide: docs/auto-docs/administration/backups/virtual-machines.md", review)
+        self.assertFalse(old.exists())
+        self.assertFalse(old.parent.exists())
         self.assertNotIn(str(license_path), review)
-        old.unlink()
+        self.assertEqual(license_path.read_text(), "Project-selected licensing\n")
         result = self.generate("--refresh")
         self.assertNotIn(str(old), result.stdout.split("\nRefresh review\n")[1])
 

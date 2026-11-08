@@ -82,8 +82,9 @@ before provisioning; guest backup/restore is tested on the first disposable clon
 **Run on:** the bootstrap execution host, from generated **Tier 0**. An existing accepted
 privileged Linux workstation can perform the same role. No hosted runner is required.
 
+Run from `<prefix>-tier-0/` on the protected execution host.
+
 ```bash
-# Run from <prefix>-tier-0/ on the protected execution host.
 bash scripts/proxmox-templates.sh init
 ```
 
@@ -113,8 +114,9 @@ controller defaults do not need repeating for every build.
 
 This is the normal first-run path after creating the manual template:
 
+Run from `<prefix>-tier-0/` on the protected execution host.
+
 ```bash
-# Run from <prefix>-tier-0/ on the protected execution host.
 bash scripts/proxmox-templates.sh import --env-file .env.local
 ```
 
@@ -126,8 +128,9 @@ adoption plan with a normal plan before applying it.
 
 Use this alternative only when none of the catalogued templates or uploaded files exists:
 
+Run from `<prefix>-tier-0/` on the protected execution host.
+
 ```bash
-# Run from <prefix>-tier-0/ on the protected execution host.
 bash scripts/proxmox-templates.sh plan --env-file .env.local
 ```
 
@@ -150,9 +153,9 @@ Continue at **3c**.
    `verify` checks RAM/accounts, not clone networking or image boot.
    An optional drift check should produce a no-change plan:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
-   # Optional: check for drift after the accepted apply.
    bash scripts/proxmox-templates.sh plan --env-file .env.local
    ```
 

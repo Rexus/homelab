@@ -23,8 +23,9 @@ settings and test them; tags alone are not access control. [1]
 
 From Tier 0:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup infrastructure-runner
 ```
 

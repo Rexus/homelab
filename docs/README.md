@@ -24,9 +24,10 @@ It is separate from host/DNS naming choices. Other `<...>` values mark deploymen
 Generated auto-docs resolve repository markers to the selected collection prefix;
 replace remaining `<...>` inputs before executing an example.
 
-Shell comments name the repository root or machine where a command runs. Open that
-location before executing the block. **Edit these files** lists use `text` blocks;
-their paths and `# edit ...` notes describe edits with any suitable editor.
+The text above a single-line command block names its working repository or machine;
+the block contains only the command to copy. Multiline examples may keep explanatory
+comments inside. **Edit these files** lists use `text` blocks; their paths and
+`# edit ...` notes describe edits with any suitable editor.
 See the [repository map](deployment/README.md#repository-locations) for ownership.
 
 ## Start here

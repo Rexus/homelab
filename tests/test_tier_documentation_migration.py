@@ -52,7 +52,7 @@ class DocumentationMigration(TierRepositoryTestCase):
                 self.assertTrue((repo / relative).is_file())
                 self.assertIn(relative, manifest["owned"])
 
-    def test_refresh_redirects_unchanged_guides_and_preserves_edits_and_deletions(self):
+    def test_refresh_removes_retired_auto_docs_and_reports_current_guide_paths(self):
         self.generate()
         repo = self.root / "verify-architecture"
         manifest_path = repo / ".generated-files.json"
@@ -120,38 +120,20 @@ class DocumentationMigration(TierRepositoryTestCase):
         before = {p: p.read_bytes() for p in self.root.rglob("*") if p.is_file()}
         self.generate("--refresh", "--dry-run")
         self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob("*") if p.is_file()})
-        self.generate("--refresh")
-        pointer = repo / "docs/auto-docs" / examples[0]
-        content = pointer.read_text()
-        self.assertIn("AUTO-DOCS - DO NOT EDIT", content)
-        self.assertIn('id="previous-section"', content)
-        self.assertIn('id="stable-anchor"', content)
-        self.assertIn("(README.md)", content)
-        self.assertEqual(edited.read_text(), "# Locally adapted guide\n")
+        result = self.generate("--refresh")
         self.assertFalse(deleted.exists())
-        stage_pointer = repo / "docs/auto-docs" / examples[3]
-        stage_content = stage_pointer.read_text()
-        self.assertIn("(../README.md)", stage_content)
-        self.assertIn('id="previous-section"', stage_content)
-        progress_pointer = repo / "docs/auto-docs" / examples[4]
-        self.assertIn("(../../deployment/readiness.md)", progress_pointer.read_text())
-        self.assertIn("(../README.md)", (repo / "docs/auto-docs" / examples[5]).read_text())
-        self.assertIn("(../../hosting/README.md)", (repo / "docs/auto-docs" / examples[6]).read_text())
-        for old, target in ((examples[7], "foundation/README.md"),
-                            (examples[8], "stage-3-trust/step-1b-usb-hsm.md")):
-            pointer_text = (repo / "docs/auto-docs" / old).read_text()
-            self.assertIn(f"(../{target})", pointer_text)
-            self.assertIn('id="stable-anchor"', pointer_text)
-        for old in examples[9:]:
-            pointer = repo / "docs/auto-docs" / old
-            content = pointer.read_text()
-            self.assertIn('id="stable-anchor"', content)
-            self.assertIn("current guide", content)
+        for old in examples:
+            self.assertFalse((repo / "docs/auto-docs" / old).exists(), old)
             target = repo / "docs/auto-docs" / MOVES[old]
             self.assertTrue(target.is_file())
+            if old != examples[2]:
+                self.assertIn(f"current guide: docs/auto-docs/{MOVES[old]}", result.stdout)
+        manifest = json.loads(manifest_path.read_text())
+        for old in examples:
+            self.assertNotIn(f"docs/auto-docs/{old}", manifest["files"])
         self.generate("--refresh")
-        self.assertEqual(pointer.read_text(), content)
-        self.assertEqual(stage_pointer.read_text(), stage_content)
+        for old in examples:
+            self.assertFalse((repo / "docs/auto-docs" / old).exists())
 
     def test_previous_design_split_is_preserved_without_seeding_more_domains(self):
         repo = self.root / "verify-architecture"
@@ -213,4 +195,4 @@ class DocumentationMigration(TierRepositoryTestCase):
         for repo_name in examples:
             repo = self.root / f"verify-{repo_name}"
             self.assertEqual((repo / "docs/deployment/README.md").read_text(), "# Approved local workflow\n")
-            self.assertFalse((repo / "docs/development/README.md").exists())
+            self.assertEqual((repo / "docs/development/README.md").is_file(), repo_name == "tier-0")

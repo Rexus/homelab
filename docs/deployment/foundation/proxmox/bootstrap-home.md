@@ -31,15 +31,17 @@ From the normal `automation` login, install the tools using the matching OS bloc
 
 Enterprise Linux / Fedora:
 
+Run on `boot-1` as automation.
+
 ```bash
-# Run on boot-1 as automation.
 sudo dnf install -y rsync policycoreutils-python-utils
 ```
 
 Debian / Ubuntu without SELinux:
 
+Run on `boot-1` as automation.
+
 ```bash
-# Run on boot-1 as automation.
 sudo apt-get install -y rsync
 ```
 
@@ -55,8 +57,9 @@ Open the **Proxmox console**, obtain a root shell, stop deployment jobs and clos
 other user sessions. Keep this console open until SSH and reboot checks pass.
 Do not perform the cutover from the only SSH session.
 
+Run on `boot-1` from its independent console; enter the root shell first.
+
 ```bash
-# Run on boot-1 from its independent console; enter the root shell first.
 sudo -i
 ```
 

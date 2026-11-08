@@ -100,8 +100,9 @@ Install the common and Tier 0 Ansible requirements as described in
 
 From the generated Tier 0 repository root:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup cluster-endpoint
 ```
 
@@ -156,8 +157,9 @@ and shared storage/power dependencies separately.
 Run once. Review the displayed plan, which must create only the gateway pair,
 then enter `yes` to provision and configure them:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh cluster-endpoint
 ```
 
@@ -240,8 +242,9 @@ the live failover and isolation tests below.
 
 Offline regression checks run from this upstream root:
 
+Run from the upstream deployment-kit checkout.
+
 ```bash
-# Run from the upstream deployment-kit checkout.
 python3 -B -m unittest discover -s tests -p 'test_tier_cluster_endpoint.py' -v
 ```
 

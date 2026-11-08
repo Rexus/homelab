@@ -123,16 +123,18 @@ These are producer credentials, not OpenSearch query, archive or administrator
 credentials. Tier 1 maps authenticated intake ports to fixed search scopes;
 caller-supplied labels never grant another application's read access.
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/workload-telemetry.yml -e @ansible/group_vars/workload_telemetry.yml
 ```
 
 Review `secrets/workload-telemetry/otel-agent-values.yml` and native manifests.
 Set the explicit kubeconfig path, then apply:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/workload-telemetry.yml -e @ansible/group_vars/workload_telemetry.yml -e workload_telemetry_action=apply
 ```
 

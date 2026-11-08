@@ -65,15 +65,17 @@ kit's `scripts/tier-repos/requirements.txt`; see the [generation contract](gener
 
 Preview without creating a collection:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 python3 scripts/tier-repos/generate.py --dry-run
 ```
 
 When a generated checkout is needed, omit `--dry-run`:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 python3 scripts/tier-repos/generate.py
 ```
 
@@ -86,8 +88,9 @@ selections to both commands when customized; the
 
 For generator/ownership/refresh changes, from the kit root:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 python3 -B -m unittest discover -s tests -p 'test_tier_repos.py' -v
 ```
 

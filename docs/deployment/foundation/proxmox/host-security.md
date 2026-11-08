@@ -37,19 +37,17 @@ Inventory, selected hosts, access policy and acceptance records remain tier-owne
   `/var/log/audit/audit.log`, without immutable or `never,task` suppression policy.
 
 Activate the accepted controller virtual environment from
-[local setup](../../../development/local-setup.md). From the generated tier's
-`ansible/` directory, prepare the Python dependencies:
+[local setup](../../../development/local-setup.md). Prepare the Python dependencies from
+the owning tier's `ansible/` directory on the execution host: `<prefix>-tier-0/ansible/`,
+`<prefix>-tier-1/ansible/` or `<prefix>-tier-2/ansible/`.
 
 ```bash
-# Run from the owning tier's ansible/ directory on the execution host:
-# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 python3 -m pip install -r requirements.txt
 ```
 
-Install the shared collections from the Shared repository:
+Install the shared collections from `<prefix>-shared/` on the execution host, with the same venv active:
 
 ```bash
-# Run from <prefix>-shared/ on the execution host, with the same venv active.
 ansible-galaxy collection install -r ansible/requirements.yml
 ```
 
@@ -146,9 +144,10 @@ version. Render only writes the review directory. Review `sshd_config`,
 Native syntax validation also runs during apply; `--check` is deliberately rejected
 for apply because it cannot establish a fresh authenticated connection or enforce a firewall.
 
+Run from the owning tier's `ansible/` directory on the execution host: `<prefix>-tier-0/ansible/`,
+`<prefix>-tier-1/ansible/` or `<prefix>-tier-2/ansible/`.
+
 ```bash
-# Run from the owning tier's ansible/ directory on the execution host:
-# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 ansible-playbook playbooks/deployment/host-security.yml --limit pilot-1 -e "@$HOME/.config/homelab/host-security.yml" -e host_security_acknowledgement=apply-linux-host-v1
 ```
 

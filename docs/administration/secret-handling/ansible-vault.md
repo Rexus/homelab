@@ -101,8 +101,9 @@ For FreeIPA, on the Tier 0 execution host:
 1. Back up the encrypted file under the independent retention policy.
 2. Edit it without a plaintext export: [3]
 
+   Run from the selected `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/` repository.
+
    ```bash
-   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    ansible-vault edit secrets/ansible-bootstrap-vars.yml
    ```
 
@@ -128,8 +129,9 @@ This changes file encryption only, not any account password stored inside it. [3
 
 3. After successful validation, update the local/runner password-file reference:
 
+   Run from the selected `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/` repository.
+
    ```bash
-   # Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
    export ANSIBLE_VAULT_PASSWORD_FILE="$NEW_ANSIBLE_VAULT_PASSWORD_FILE"
    ```
 

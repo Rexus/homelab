@@ -84,8 +84,9 @@ retained snapshots or unused source disks still reference it. [2]
 
 On the Proxmox host holding the local ZFS storage, inspect dataset origins:
 
+Run on the selected Proxmox host as an authorized root operator.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 zfs list -t filesystem,volume -o name,origin
 ```
 

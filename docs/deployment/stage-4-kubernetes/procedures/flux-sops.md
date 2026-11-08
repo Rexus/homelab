@@ -54,8 +54,9 @@ outside Git. Flux detects identity entries whose names end in `.agekey`. [1]
 Set `cluster_platform_flux_canary_sha256` to the SHA-256 of the exact decrypted
 value, excluding a trailing newline. For the example:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 printf %s platform-sops-ok | sha256sum
 ```
 
@@ -120,8 +121,9 @@ qualified mirror and pin its version. [3]
 After Cilium and storage prerequisites are ready, render the selected full platform
 with the private Secrets file:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=render
 ```
 

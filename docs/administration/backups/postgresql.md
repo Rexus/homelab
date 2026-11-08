@@ -96,8 +96,9 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 
 Tier 1:
 
+Run from `<prefix>-tier-1/` on the protected execution host.
+
 ```bash
-# Run from <prefix>-tier-1/ on the protected execution host.
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml -e observability_action=apply
 ```
 Render first with `action=render` to inspect `*-database-prepare.yml`. All ordinary product
@@ -233,16 +234,18 @@ cat "$NAS_DIRECTORY/completed/$BACKUP_SET/image"
 Use the completed ID, exact image and source identity in [clean-target recovery](../recovery/cnpg-files.md).
 Pause **new scheduled** work during fault investigation:
 
+Run on the authorized Kubernetes execution host with the selected source context.
+
 ```bash
-# Run on the authorized Kubernetes execution host with the selected source context.
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" patch cronjob "$CLUSTER-files" --type=merge -p '{"spec":{"suspend":true}}'
 ```
 
 Suspending does not terminate an active Job. Preserve its logs/pending files and monitor source WAL
 capacity. After correction, review missed-run behavior before resuming:
 
+Run on the authorized Kubernetes execution host with the selected source context.
+
 ```bash
-# Run on the authorized Kubernetes execution host with the selected source context.
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" patch cronjob "$CLUSTER-files" --type=merge -p '{"spec":{"suspend":false}}'
 ```
 

@@ -52,8 +52,9 @@ ansible/group_vars/infrastructure_monitoring_secrets.yml
 Set the outside-cluster and read-only-credential acceptance flags only after verifying
 those properties. Encrypt the filled private input file:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 ansible-vault encrypt ansible/group_vars/infrastructure_monitoring_secrets.yml
 ```
 
@@ -148,8 +149,9 @@ The existing receiver and cluster recipes do not install these services.
 
 Render the complete selected configuration before changing the host:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass
 ```
 
@@ -208,8 +210,9 @@ through the external service to administrators outside that service boundary.
 
 After preparing notification/watchdog inputs, install the complete monitoring configuration:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass -e infrastructure_monitoring_action=apply
 ```
 

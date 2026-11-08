@@ -81,8 +81,9 @@ their original timestamps and source identity. Record any earlier unbuffered gap
 
 1. Initialize local inputs from the Tier 0 repository root:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    bash scripts/init-local-files.sh --setup syslog
    ```
 
@@ -101,8 +102,9 @@ their original timestamps and source identity. Record any earlier unbuffered gap
 3. Provision the VM and disks. Review Terraform's displayed plan; enter `yes` only
    for the intended changes:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh syslog --terraform-only
    ```
 

@@ -102,8 +102,9 @@ Restrict host administration and qualify the
 
 4. Build from the Tier 0 repository root:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/openxpki-bundle.yml -e "@$ISSUER_POLICY_FILE"
    ```
 
@@ -143,8 +144,9 @@ an approved portal certificate before normal operations.
    Keep `openxpki_activate_runtime: false`. The explicit fresh-key recipe creates
    an encrypted P-384 key on the issuer and fetches only its CSR:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki-key.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 

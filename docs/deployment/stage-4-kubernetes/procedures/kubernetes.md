@@ -75,8 +75,9 @@ state owner for the same cluster.
 
 For the supplied implementation in any tier, run from that tier's repository root:
 
+Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 bash scripts/kubernetes-cluster.sh init
 ```
 

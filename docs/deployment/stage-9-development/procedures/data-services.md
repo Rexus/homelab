@@ -74,8 +74,9 @@ From Tier 1, initialize local inputs using the existing helper:
 For an existing collection, first review/register `development-data` under the
 [setup ownership contract](../../../development/generated-repositories.md#setup-ownership).
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/init-local-files.sh --setup development-data
 ```
 
@@ -114,8 +115,9 @@ before package installation. See [template lifecycle](../../../administration/vi
 
 Provision only the VMs first; the product recipe in Step 3 has its own explicit apply gate:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/deploy.sh development-data --terraform-only
 ```
 
@@ -231,8 +233,9 @@ The private extra-vars file supplies `development_data_postgresql_password`,
 `development_data_redis_password`, `development_data_gitaly_token`,
 `development_data_shell_token` and `development_data_s3_keys`. Encrypt it before use.
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/development-data.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass
 ```
 
@@ -244,8 +247,9 @@ The playbook checks module and Python dependencies before any provisioning.
 
 After reviewing those files and network/storage prerequisites, install:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/development-data.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass -e development_data_action=apply -e development_data_apply_confirm=true
 ```
 
@@ -301,8 +305,9 @@ toolbox backup CronJob through `platform-inputs.yml`, enabled with schedule
 reconciliation; no separate Helm overlay or manual Helm upgrade is required.
 For first acceptance, trigger an application backup explicitly:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 kubectl --kubeconfig "$KUBECONFIG" -n gitlab exec deploy/gitlab-toolbox -- backup-utility
 ```
 

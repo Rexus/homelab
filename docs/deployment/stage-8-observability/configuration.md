@@ -100,8 +100,9 @@ For explicit bootstrap ownership, fill the private `observability_secrets` map i
 `ansible/group_vars/observability_platform_secrets.yml` and set that file's
 `observability_manage_secrets: true`. Encrypt the completed file:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 ansible-vault encrypt ansible/group_vars/observability_platform_secrets.yml
 ```
 
@@ -180,15 +181,17 @@ Helm release state and render output therefore need secret-level custody.
    Set database-storage acceptance only after qualifying the live block class.
 2. Render the selected inputs:
 
+   Run from `<prefix>-tier-1/`.
+
    ```bash
-   # Run from <prefix>-tier-1/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass
    ```
 
 3. Review private output under `secrets/observability-platform/`, then apply:
 
+   Run from `<prefix>-tier-1/`.
+
    ```bash
-   # Run from <prefix>-tier-1/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass -e observability_action=apply
    ```
 

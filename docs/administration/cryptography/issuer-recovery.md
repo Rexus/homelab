@@ -50,8 +50,9 @@ Hardware providers need their separate qualified device recovery procedure.
 
 3. Reserve a maintenance window, then capture the consistent encrypted set:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki-backup.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 
@@ -135,8 +136,9 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
 
 5. Run only the restore recipe:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki-restore.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 
@@ -154,8 +156,9 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
    authorized identity/history acceptance, set `openxpki_activate_runtime: true`
    and run the normal issuer recipe against the same isolated target:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 

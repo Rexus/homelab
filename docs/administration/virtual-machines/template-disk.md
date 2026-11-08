@@ -81,8 +81,9 @@ Terraform** notice during that refresh is expected. [4]
    where the selected image supports it.
 3. Review a fresh plan before resuming template consumption:
 
+Run from `<prefix>-tier-0/` on the protected execution host.
+
 ```bash
-# Run from <prefix>-tier-0/ on the protected execution host.
 bash scripts/proxmox-templates.sh plan --env-file .env.local
 ```
 

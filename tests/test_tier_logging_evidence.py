@@ -120,6 +120,7 @@ class LoggingEvidence(TierRepositoryTestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("verify-shared/scripts/log-evidence.py", (tier / "scripts/log-evidence.sh").read_text())
         record = tier / "docs/administration/logging-evidence.md"
+        starter = record.read_bytes()
         self.assertIn("Not tested", record.read_text())
         self.assertIn("Project evidence record", (tier / "docs/administration/README.md").read_text())
         self.assertIn(".logging-evidence/", (tier / ".gitignore").read_text())
@@ -129,4 +130,5 @@ class LoggingEvidence(TierRepositoryTestCase):
         self.assertEqual(record.read_text(), "# Locally reviewed logging evidence\n")
         record.unlink()
         self.generate("--refresh")
-        self.assertFalse(record.exists())
+        self.assertEqual(record.read_bytes(), starter)
+        self.assertIn("Not tested", record.read_text())

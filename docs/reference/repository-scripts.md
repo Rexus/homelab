@@ -119,8 +119,9 @@ Ansible/Helm recipe. See [Stage 9](../deployment/stage-9-development/README.md).
 
 Create `../<prefix>-iac/` with the five repositories inside:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 bash scripts/init-tier-repos.sh
 ```
 
@@ -129,20 +130,23 @@ to choose the collection's parent, and `--dry-run` to preview without writing.
 
 Generate only shared automation and Tier 0:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 bash scripts/init-tier-repos.sh --repo shared --repo tier-0
 ```
 
 Refresh generated files only:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 bash scripts/init-tier-repos.sh --refresh
 ```
 
 Run refresh from the updated upstream checkout with the same custom root and
-prefix flags used at creation. It preserves local edits and recorded deletions.
+prefix flags used at creation. It preserves existing edits, restores missing generation targets
+and removes obsolete files only inside `docs/auto-docs/`.
 
 The generator creates `<prefix>-tier-0`, `<prefix>-tier-1`,
 `<prefix>-tier-2`, `<prefix>-shared`, and `<prefix>-architecture` inside
@@ -151,14 +155,15 @@ It populates tier-owned service code and common modules/helpers, plus separate
 inventory examples, group vars, and Terraform setups in each tier. Python and
 PyYAML are required. Refresh uses recorded hashes and preserves locally edited
 files. Root READMEs, project documentation, and cluster/bootstrap skeletons are
-seeded only once; `docs/auto-docs/` holds refreshable upstream guidance.
+seeded when missing and preserved while present; `docs/auto-docs/` holds refreshable upstream guidance.
 
 Read [Generated repository model](../development/generated-repositories.md) for the
 authoritative ownership, inventory, prerequisite, and refresh contracts.
 From the Tier 0 root, use the local shortcut to Shared automation:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup foundation --env test
 ```
 
@@ -172,36 +177,41 @@ only the setups registered in the current tier.
 
 Create the base production files:
 
+Run from the owning tier repository root.
+
 ```bash
-# Run from the owning tier repository root
 bash scripts/init-local-files.sh
 ```
 
 Create only the shared defaults and foundation files:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup foundation
 ```
 
 Create foundation files plus a disposable `test` environment:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup foundation --env test
 ```
 
 Refresh local files from current examples and keep timestamped backups:
 
+Run from the owning tier repository root.
+
 ```bash
-# Run from the owning tier repository root
 bash scripts/init-local-files.sh --overwrite
 ```
 
 Remove timestamped backups created by `--overwrite`:
 
+Run from the owning tier repository root.
+
 ```bash
-# Run from the owning tier repository root
 bash scripts/init-local-files.sh --clean-backups
 ```
 
@@ -238,8 +248,9 @@ the same live resource into another state. Review every plan against the allocat
 
 After completing [environment isolation](#environment-isolation), deploy a setup from its owning tier:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test
 ```
 
@@ -249,8 +260,9 @@ add `--plan-only` to the same command.
 
 For an approved pipeline, suppress Terraform prompts and fail on missing Terraform inputs:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test --auto-approve
 ```
 
@@ -264,16 +276,18 @@ Destroy a disposable environment:
 Use [destroy and retirement](../administration/provisioning.md) for scope/backup checks and
 [state reconciliation](../administration/terraform-state.md) when objects were already removed on the host.
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test --destroy
 ```
 
 When destroying and recreating VMs with the same IPs, clear stale SSH host keys
 for that setup before Ansible runs:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test --reset-known-hosts
 ```
 
@@ -285,15 +299,17 @@ rebuild and verify replacement fingerprints through a trusted channel.
 
 Run production by omitting `--env`:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation
 ```
 
 Use another environment file when `.env.local` is not the right source:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh foundation --env test --env-file secrets/proxmox-test.env
 ```
 

@@ -13,7 +13,7 @@ from payload import TIERS
 
 
 class PlatformInputs(TierRepositoryTestCase):
-    def test_shared_profile_is_seed_owned_and_refresh_preserves_deletion(self):
+    def test_shared_profile_preserves_edits_and_is_restored_when_missing(self):
         self.generate()
         shared = self.root / "verify-shared"
         profile = shared / "config/platform.tfvars"
@@ -29,7 +29,7 @@ class PlatformInputs(TierRepositoryTestCase):
         self.assertEqual(profile.read_text(), 'default_platform_node_name = "site-node"\n')
         profile.unlink()
         self.generate("--refresh")
-        self.assertFalse(profile.exists())
+        self.assertEqual(profile.read_bytes(), original)
 
     def test_only_tier_specific_networks_and_overrides_remain_local(self):
         expected = {

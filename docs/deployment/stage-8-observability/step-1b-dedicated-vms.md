@@ -73,8 +73,9 @@ not an implied extra VM per box. Their runtime/resources must be selected explic
 
 From the Tier 1 repository root:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/init-local-files.sh --setup observability
 ```
 
@@ -90,8 +91,9 @@ surviving capacity; three VMs on one or two hosts do not satisfy that failure co
 
 Deploy the reviewed baseline inputs:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/deploy.sh observability
 ```
 

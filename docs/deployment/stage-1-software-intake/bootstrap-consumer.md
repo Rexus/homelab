@@ -21,8 +21,9 @@ and a tested Stage 1 endpoint reachable from the bootstrap network.
 
 From the Tier 2 checkout used in Stage 1, return to Tier 0 and create the ignored local input:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/bootstrap.yml.example ansible/group_vars/bootstrap.yml
 ```
 

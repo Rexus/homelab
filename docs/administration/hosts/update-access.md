@@ -59,8 +59,9 @@ receives download requests, not Tier 0 administrative authority.
 2. Enter the accepted proxy, for example `http://cache.corp.example.com:3128`, and save.
 3. On a Proxmox host, inspect the cluster-wide setting:
 
+   Run on the selected Proxmox host as an authorized root operator.
+
    ```bash
-   # Run on the selected Proxmox host as an authorized root operator.
    grep '^http_proxy:' /etc/pve/datacenter.cfg
    ```
 

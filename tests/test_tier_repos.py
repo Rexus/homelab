@@ -88,6 +88,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
         custom.write_text("# User-developed infrastructure\n", encoding="utf-8")
         deleted = [self.root / "verify-tier-2/ansible/playbooks/lab.yml",
                    self.root / "verify-tier-0/clusters/tier0/infrastructure/cni/kustomization.yaml"]
+        deleted_contents = {path: path.read_bytes() for path in deleted}
         for path in deleted:
             path.unlink()
         updates = [(self.root / "verify-tier-2", "ansible/group_vars/edge.yml.example"),
@@ -107,7 +108,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
         self.assertIn("owned-host", live.read_text())
         self.assertEqual(custom.read_text(), "# User-developed infrastructure\n")
         for path in deleted:
-            self.assertFalse(path.exists(), path)
+            self.assertEqual(path.read_bytes(), deleted_contents[path], path)
         for path, contents in expected.items():
             self.assertEqual(path.read_bytes(), contents)
 

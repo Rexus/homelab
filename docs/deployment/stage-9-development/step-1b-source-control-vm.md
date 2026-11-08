@@ -113,8 +113,9 @@ from the GitLab host.
 
 ### 1. Create local inputs
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/init-local-files.sh --setup development
 ```
 
@@ -142,8 +143,9 @@ through the product's supported configuration before accepting ordinary use.
 
 ### 3. Deploy and verify
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/deploy.sh development
 ```
 
@@ -195,8 +197,9 @@ Maintenance notes:
 
 For the first login, retrieve the initial root password from the container:
 
+Run on `git-1` with authorized container access.
+
 ```bash
-# Run on git-1 with authorized container access.
 sudo podman exec -it gitlab grep 'Password:' /etc/gitlab/initial_root_password
 ```
 

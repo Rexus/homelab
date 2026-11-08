@@ -30,7 +30,7 @@ class SoftwareIntake(TierRepositoryTestCase):
         guide = (self.root / "verify-architecture/docs/auto-docs/deployment/"
                  "stage-1-software-intake/README.md").read_text()
         commands = re.search(r"```bash\n(.*?)```", guide, re.DOTALL).group(1)
-        self.assertIn("# Run from verify-tier-2/", commands)
+        self.assertIn("Run from `verify-tier-2/`.\n\n```bash\n", guide)
         initialized = subprocess.run(["bash", "-e", "-c", commands], cwd=tier2, env=environment,
                                      capture_output=True, text=True)
         self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)

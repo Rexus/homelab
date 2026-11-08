@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 import re
-from documentation_migration import redirect_moved_docs
+from documentation_migration import prune_auto_docs
 from project_docs import owned_template, repository_guides
 
 AUTO_DOCS = "docs/auto-docs"
@@ -42,8 +42,8 @@ def tier_readme(writer, tier, prefix, setups):
         "Tier 0 supplies approved VM templates and networks. The commands below are\n"
         "operator-run workflows, not a self-service interface for workload users.\n"
         "For a new tier-owned Kubernetes cluster, initialize its local inputs:\n\n"
+        f"Run from `{repo_prefix}-{tier}/`.\n\n"
         "```bash\n"
-        f"# Run from {repo_prefix}-{tier}/\n"
         "bash scripts/kubernetes-cluster.sh init\n"
         "```\n\n"
         f"Follow the [cluster procedure]({docs}/deployment/stage-4-kubernetes/procedures/talos-terraform.md)\n"
@@ -62,10 +62,9 @@ def tier_readme(writer, tier, prefix, setups):
             f"the [bootstrap execution host]({docs}/deployment/foundation/proxmox/bootstrap.md).\n"
             "Its tools, artifact storage, Proxmox CA trust and API credentials must be ready\n"
             "before the publication command below. An accepted privileged workstation is also valid.\n\n"
-            "**Templates before VMs.** From this repository's root, initialize\n"
-            "the local image catalog:\n\n"
+            "**Templates before VMs.** Initialize the local image catalog:\n\n"
+            f"Run from `{repo_prefix}-tier-0/`.\n\n"
             "```bash\n"
-            f"# Run from {repo_prefix}-tier-0/\n"
             "bash scripts/proxmox-templates.sh init\n"
             "```\n\n"
             "Set local images, placement, checksums, and protected API access, then follow\n"
@@ -84,8 +83,8 @@ def tier_readme(writer, tier, prefix, setups):
             "and independent backups; NAS custody and live acceptance remain explicit gates.\n\n"
             f"After logging, complete [trust]({docs}/deployment/stage-3-trust/README.md) before the cluster.\n"
             "**Kubernetes control cluster.** Initialize its Tier 0 inputs:\n\n"
+            f"Run from `{repo_prefix}-tier-0/`.\n\n"
             "```bash\n"
-            f"# Run from {repo_prefix}-tier-0/\n"
             "bash scripts/kubernetes-cluster.sh init\n"
             "```\n\n"
             f"Follow [Stage 4: Kubernetes]({docs}/deployment/stage-4-kubernetes/README.md) and its\n"
@@ -121,8 +120,12 @@ def shared_readme(writer, prefix):
 
 
 def copy_documentation(writer, prefix, upstream):
-    previous_paths = set(writer.hashes)
-    for path in sorted((upstream / "docs").rglob("*.md")):
+    documents = sorted((upstream / "docs").rglob("*.md"))
+    assets = ("reference/diagrams/palette.json", "conventions/vmid-convention.svg")
+    current_paths = {f"{AUTO_DOCS}/{path.relative_to(upstream / 'docs').as_posix()}" for path in documents}
+    current_paths.update(f"{AUTO_DOCS}/{asset}" for asset in (*assets, "LICENSE"))
+    prune_auto_docs(writer, current_paths)
+    for path in documents:
         content = path.read_text(encoding="utf-8")
         target = f"{AUTO_DOCS}/" + path.relative_to(upstream / "docs").as_posix()
 
@@ -157,11 +160,9 @@ def copy_documentation(writer, prefix, upstream):
             content = notice + "\n" + content
         writer.write(target, content, source=path)
 
-    for asset in ("reference/diagrams/palette.json", "conventions/vmid-convention.svg"):
+    for asset in assets:
         writer.write(f"{AUTO_DOCS}/{asset}", (upstream / "docs" / asset).read_bytes(),
                      source=upstream / "docs" / asset)
-
-    redirect_moved_docs(writer, previous_paths)
 
     legacy = writer.root / "docs/generated/upstream"
     if legacy.exists():

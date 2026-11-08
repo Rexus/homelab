@@ -20,10 +20,9 @@ in private generated repositories, a private fork, or a local working copy.
 For a first installation without a prepared execution host, follow the
 [manual template and bootstrap-host steps](docs/deployment/foundation/README.md) first.
 
-From this cloned repository, generate the IaC collection:
+From the upstream kit checkout, generate the IaC collection:
 
 ```bash
-# Run from the upstream kit checkout
 bash scripts/init-tier-repos.sh
 ```
 
@@ -65,13 +64,13 @@ add project documentation only for local differences or operating records.
 After updating this upstream checkout, run this **from the upstream repo**:
 
 ```bash
-# Run from the upstream kit checkout
 bash scripts/init-tier-repos.sh --refresh
 ```
 
 Reuse the `--prefix` and `--root` flags if customized. Add `--dry-run` to preview.
-Refresh updates unchanged auto-docs, examples, and automation. It preserves
-repository READMEs, project documentation, local work, and recorded deletions. See the
+Refresh restores missing generated files and updates unchanged examples and automation.
+It removes obsolete files under `docs/auto-docs/` and preserves edits to current files,
+repository READMEs and project documentation. See the
 [refresh contract](docs/development/generated-repositories.md#refresh-and-local-ownership).
 A final review summary links preserved differences to current templates and lists retired generated files.
 

@@ -132,8 +132,9 @@ Default Terraform shape:
 
 Initialize local inputs from Tier 1:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/init-local-files.sh --setup podman-runner
 ```
 
@@ -188,8 +189,9 @@ runner secret, or external secret system.
    `podman_runner_authentication_token` through encrypted private extra-vars.
 3. Ensure the signed Runner package repository is available to the VM, then provision:
 
+   Run from `<prefix>-tier-1/`.
+
    ```bash
-   # Run from <prefix>-tier-1/
    bash scripts/deploy.sh podman-runner --terraform-only
    ```
 
@@ -197,8 +199,9 @@ runner secret, or external secret system.
    the Terraform inventory resolver; they are supplied to Ansible in the next command.
 4. Configure and register the runner using the private token file:
 
+   Run from `<prefix>-tier-1/`.
+
    ```bash
-   # Run from <prefix>-tier-1/
    bash scripts/deploy.sh podman-runner --ansible-only --ansible-vars /absolute/private/podman-runner-secrets.yml
    ```
 

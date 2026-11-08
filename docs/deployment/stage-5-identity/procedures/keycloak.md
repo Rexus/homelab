@@ -110,16 +110,18 @@ dependency belongs in these inputs. Keep TLS verification enabled on the control
 
 1. Keep `files` / `prepare` in the local application inputs. Render without live changes:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=render
    ```
 
 2. Inspect `secrets/control-applications/`, including the database preparation
    resources and Secret references, then prepare the database:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
    ```
 
@@ -145,8 +147,9 @@ no storage gateway and does not move live database volumes. Return to Step 4.
 With the selected backup inputs complete, rerender using the Step 3a render command.
 Inspect database, backup, TLS, ingress and federation selections before applying:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
 ```
 

@@ -129,15 +129,17 @@ contains the exact commands and the backup handoff; do not skip from prepare to 
 
 For each pass, render from Tier 1:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass
 ```
 
 Review `secrets/observability-platform/`, then apply:
 
+Run from `<prefix>-tier-1/`.
+
 ```bash
-# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass -e observability_action=apply
 ```
 

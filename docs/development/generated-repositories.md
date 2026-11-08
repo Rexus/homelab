@@ -21,8 +21,9 @@
 
 From the cloned kit, create the collection with one command:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 bash scripts/init-tier-repos.sh
 ```
 
@@ -177,8 +178,8 @@ determine the terms for independently authored project content.
 | Path | Scope | Refresh behavior |
 | --- | --- | --- |
 | Root `LICENSE`, when added by the project | Project-selected terms | Never created, replaced, or deleted by generation |
-| Root `UPSTREAM-NOTICE` | Attribution and MIT terms for material inherited from this kit | Managed with the normal edit/deletion safeguards |
-| Architecture `docs/auto-docs/LICENSE` | Upstream license for copied reference guides | Managed with the normal edit/deletion safeguards |
+| Root `UPSTREAM-NOTICE` | Attribution and MIT terms for material inherited from this kit | Preserve existing edits; restore the current notice when missing |
+| Architecture `docs/auto-docs/LICENSE` | Upstream license for copied reference guides | Preserve existing edits; restore the current license when missing |
 
 The upstream MIT notice must remain with copied or substantially derived
 material, including automation; omitting a project-wide license does not remove
@@ -309,8 +310,9 @@ control cluster are not prerequisites for that local workflow.
 
 Initialize local working files from the Tier 0 repository root:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/init-local-files.sh --setup syslog
 ```
 
@@ -331,8 +333,9 @@ This uses the same base context as [Stage 2 logging](../deployment/stage-2-loggi
 For a disposable environment, retain the same `--env` on every command and complete
 [environment isolation](../reference/repository-scripts.md#environment-isolation) first.
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh syslog --terraform-only
 ```
 
@@ -381,24 +384,26 @@ The architecture repository starts with only `README.md`, `docs/README.md`
 (selected paths, deployment checkboxes and navigation), and `platform-standards.md`.
 Its `docs/auto-docs/` is the full maintained manual, not another local documentation hierarchy.
 Add local exceptions/runbooks as needed; no domain, workflow or site skeletons are generated there.
-Existing collections keep all previously generated project documents and recorded deletions;
-consolidation is a manual review, never a refresh deletion. See the
+Existing collections keep project documents outside `docs/auto-docs/`;
+consolidation there is a manual review. Missing current starter files are restored. See the
 [compact documentation model](project-documentation.md). The shared
-`config/platform.tfvars` profile is also seeded once. Refresh preserves their
-edits and recorded deletions; existing READMEs need manual navigation updates.
+`config/platform.tfvars` profile is also seeded when missing. Refresh preserves their
+existing edits; deleting a current generated file resets it to its current template on refresh.
+Existing READMEs need manual navigation updates.
 When adopting the profile in an older collection, existing common inputs still
 override it. See [migration guidance](../reference/platform-inputs.md#existing-collections).
 
-The shared `templates/proxmox-catalog.tfvars` is seeded once as project-owned,
+The shared `templates/proxmox-catalog.tfvars` is seeded when missing as project-owned,
 like root READMEs. It holds approved consumer references, not template recipes
 or guest inventory. Tier 0 controls promotion; all tiers consume the same file.
-Refresh preserves its contents and recorded deletions. See the
+Refresh preserves its existing contents and recreates the starter catalog if missing. See the
 [catalog contract](../reference/template-catalog.md).
 
 After updating the upstream kit, run this from its checkout:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 bash scripts/init-tier-repos.sh --refresh
 ```
 
@@ -416,22 +421,29 @@ another operating system does not invalidate those hashes or break Bash scripts.
 | New upstream file, never generated at that path | create it |
 | Managed file still matches its recorded generated hash | update from the kit |
 | Locally edited or unrecognized existing file at a current generation target | preserve; report a yellow entry when it differs from the current template |
-| Previously generated file deleted locally | preserve the deletion; show the current template for review |
-| Previously generated file outside the current generation | retain; report an existing file in red |
+| Current generated file deleted locally, including a project-owned starter | recreate from the current template |
+| File under `docs/auto-docs/` outside the current generation | remove it, even if edited or untracked; prune empty directories |
+| Previously generated file outside the current generation and outside auto-docs | retain; report an existing file in red |
 | Live inventory, local vars, credentials, state | never targeted |
-| Root READMEs, project docs, bootstrap/cluster skeletons, CI starter, `.deployment-setups` | seed once; preserve thereafter, even when unchanged |
+| Root READMEs, project docs, bootstrap/cluster skeletons, CI starter, `.deployment-setups` | seed when missing; preserve existing contents |
 
 Source files retain their syntax and use the manifest for provenance. Every
 auto-doc has a visible do-not-edit notice. A marker alone never
 authorizes overwriting a file. Files produced by the older marker-only
 generator are preserved when their origin cannot be verified by the manifest.
-Refresh does not delete retired files, merge local edits, or commit changes.
-Review reported preserved files and upstream removals before adopting an update.
+Only `docs/auto-docs/` is automatically cleaned. Its expected paths come from the current manual,
+including assets and its license; obsolete redirects are removed too. Existing edits to current
+auto-docs remain preserved and appear in yellow. Review older project README links against the
+reported replacement guides after removing retired paths. Refresh does not merge edits or commit changes.
 Keep local designs in `docs/architecture/`, procedures in `docs/deployment/`,
 `docs/development/` and `docs/administration/`, and project conventions in
 `platform-standards.md`; upstream guidance updates under `docs/auto-docs/`.
 A locally edited example or tier module is also
 preserved, so adopting upstream changes to it requires a manual comparison.
+
+To reset a generated file, delete it and run the same refresh command. This restores the **current
+starter**, not deleted local choices. Review restored catalogs, profiles and deployment registrations
+before use. Actual local inventory, credentials and state require their own backups and are not regenerated.
 
 ### Refresh review summary
 
@@ -439,12 +451,13 @@ After all selected repositories finish, refresh prints one final review list:
 
 | Label / terminal color | Meaning | Comparison reference |
 | --- | --- | --- |
-| `YELLOW` | A current generation target differs but was preserved: local edit, project-owned starter, unverified existing file or recorded deletion | Exact rendered template and its upstream source |
-| `RED` | A formerly generated file/starter or legacy documentation redirect remains outside the current fresh generation | Review its consumers and local ownership before cleanup |
+| `YELLOW` | A current generation target differs but was preserved: local edit, project-owned starter or unverified existing file | Exact rendered template and its upstream source |
+| `RED` | A formerly generated file/starter outside auto-docs remains outside the current fresh generation | Review its consumers and local ownership before cleanup |
+| `REMOVED` / `WOULD REMOVE` (red) | Obsolete or extra file inside auto-docs, removed during refresh or listed by dry run | Current guide location when a known move exists |
 
-Untracked project additions, private inputs and state are not classified as retired. The report
-uses the generation manifest; it does not treat every extra file as obsolete. Project-owned
-documents and compatibility redirects may still be needed even when listed in red.
+Outside auto-docs, untracked project additions, private inputs and state are not classified as retired.
+That review uses the generation manifest; extra project files are retained. Inside `docs/auto-docs/`,
+every file outside the current generated manual is removed. Keep local documents outside that directory.
 
 Rendered comparison files are saved under the collection, outside every Git repository:
 
@@ -465,8 +478,8 @@ read -r -p 'Rendered template path from the review report: ' CURRENT_TEMPLATE
 git diff --no-index -- "$LOCAL_FILE" "$CURRENT_TEMPLATE"
 ```
 
-`git diff` returns `1` when differences exist. A recorded deletion has no local file to compare;
-inspect its template and retain or reverse the deletion deliberately.
+`git diff` returns `1` when differences exist. Missing current files are recreated directly;
+they do not need a yellow comparison entry.
 
 | Option/environment | Behavior |
 | --- | --- |

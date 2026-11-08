@@ -48,8 +48,9 @@ retain one reconciliation owner per resource.
 
 From Tier 0, prepare local inputs:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
 ```
 
@@ -124,8 +125,9 @@ secrets/control-applications.yml
 Fill only selected products in `secrets/control-applications.yml` and set its
 `control_applications_manage_secrets: true`. Then encrypt it:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 ansible-vault encrypt secrets/control-applications.yml
 ```
 

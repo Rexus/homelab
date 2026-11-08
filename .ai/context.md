@@ -43,6 +43,10 @@ This file keeps durable context for AI-assisted work across sessions.
   Python wheels, Ansible collections and provider artifacts before restricted/offline deployment;
   transfer bundles by verified SCP/media rather than depending on the cache being installed.
   After Stage 1 acceptance, boot-1 consumes the approved internal proxy/mirrors for updates.
+- Bootstrap Step 2a owns the copyable fresh OS-package and Terraform RPM-repository installation,
+  followed by kit checkout, a separate manifest-based Ansible/Python venv and declared collections.
+  Keep that sequence visible in the main path; control-node-tooling is its scope/compatibility
+  reference, not a competing install recipe. Offline preparation follows the same dependency inputs.
 - An optional pre-install bootstrap-home path bind-mounts /srv/tier0/home at /home;
   preserve original homes for initial rollback, numeric ownership/ACLs/SSH keys and SELinux
   home contexts. Require data-mount ordering and independent console/reboot acceptance;
@@ -145,7 +149,8 @@ This file keeps durable context for AI-assisted work across sessions.
   3xxx labs and 4xxx clients remain Tier 2-owned, 9xxx templates/builders Tier 0-owned.
   Existing local IDs/state are never renumbered by refresh; new example IDs are not a migration.
 - `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
-  notices; root READMEs and project templates are seeded once, never refreshed
+  notices; existing root READMEs/project templates remain project-owned and are not overwritten;
+  refresh recreates missing current starters
 - Fresh architecture repositories contain only a short README, docs/README.md platform
   selections/progress/navigation and platform-standards.md, plus the full auto-docs manual.
   Do not seed a second domain/workflow/site hierarchy. Preserve old project documents
@@ -167,13 +172,17 @@ This file keeps durable context for AI-assisted work across sessions.
   Linux network entries select sdn_lookup; Kubernetes bootstrap_network selects sdn_vnet.
   Tier-owned Terraform calls Shared's stateless read-only helper through the external provider;
   token/TLS environment, SDN.Audit and tier-local IP inventory remain required. Explicit inputs still work.
-- refresh uses `.generated-files.json` and preserves local edits and deletions;
+- refresh uses `.generated-files.json`, preserves existing edits and recreates missing current
+  generated targets, including owned starters. Deletion resets a target to its current template;
   Kubernetes Terraform currently uses Talos in tier-owned automation; `clusters/` service starters
   remain project-owned adoption points, not the native application installers
 - Refresh ends with a manifest-scoped review: yellow preserved differences get current rendered
   templates under collection-level .refresh-review/, outside Git repositories; red identifies
-  retained retired outputs/legacy redirects. Do not classify private inputs or arbitrary project
-  additions as obsolete. Dry runs remain write-free and point to upstream source templates.
+  retained retired outputs outside auto-docs. Under docs/auto-docs/ only, remove all obsolete/extra
+  files (including edited/untracked files and old redirects), prune empty directories and clear
+  their manifest entries. Print REMOVED / WOULD REMOVE with known replacement guides.
+  Preserve edited current auto-docs. Never classify private inputs or arbitrary project additions
+  outside that managed tree as obsolete. Dry runs remain write-free, including cleanup.
 - code ownership upgrades preserve retired shared files for manual review and
   do not port local edits into new tier paths, alter owned CI jobs, or move state
 - Tier 0 must remain bootstrapable and recoverable without higher-tier services
@@ -283,8 +292,9 @@ This file keeps durable context for AI-assisted work across sessions.
   Required procedures are named parts of the main path; alternatives branch/rejoin as 2a/2b.
   Keep design explanations in their authoritative homes instead of burying actions in prose.
 - Command examples use `<prefix>` for the generated folder prefix (default homelab),
-  separate from hostname/environment prefixes. State the owning root or machine inside
-  each standalone shell block with a comment; replace pure repository-navigation cd lines
+  separate from hostname/environment prefixes. For a single-line command, state the owning
+  root/machine and guidance above the code block; keep only the copyable command inside.
+  Multiline examples may retain comments inside. Replace pure repository-navigation cd lines
   with that context. Retain operational cwd changes when command semantics require them.
   File edits use separate text blocks with owner, relative paths and concise `# edit ...`
   notes, without assuming vi/vim/nano or another editor. Do not execute path lists as shell.

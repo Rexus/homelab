@@ -84,8 +84,9 @@ or files used by active uploads to make space.
    Stop on incomplete or unverified bytes.
 3. From the **Tier 0 root**, prepare a new adoption plan:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/proxmox-templates.sh import --env-file .env.local
    ```
 

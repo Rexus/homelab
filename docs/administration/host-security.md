@@ -44,9 +44,10 @@ and an independently tested console. This profile excludes Proxmox and Kubernete
 4. Retain console access and the prior approved configuration. Apply only after the
    input's console/key/configuration-ownership acknowledgements remain valid:
 
+Run from the owning tier's `ansible/` directory on the execution host: `<prefix>-tier-0/ansible/`,
+`<prefix>-tier-1/ansible/` or `<prefix>-tier-2/ansible/`.
+
 ```bash
-# Run from the owning tier's ansible/ directory on the execution host:
-# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 ansible-playbook playbooks/maintenance/host-security.yml --limit "$HOST_SECURITY_HOST" -e "@$HOME/.config/homelab/host-security.yml" -e host_security_action=apply -e host_security_acknowledgement=apply-linux-host-v1
 ```
 

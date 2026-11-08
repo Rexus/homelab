@@ -147,8 +147,9 @@ specifies. For exact code responsibilities, use the [code map](../development/co
 Execution blocks name that location in a comment; repository navigation is not an
 installation action. File-edit lists are separate from shell commands:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup cache
 ```
 

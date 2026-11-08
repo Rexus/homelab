@@ -29,8 +29,9 @@ never substitute Fedora RPMs, nightly packages or disabled signature checks. [1]
 
 1. On the receiver, identify the separate data disk by its actual device/serial:
 
+   Run on the selected Tier 0 log receiver.
+
    ```bash
-   # Run on the selected Tier 0 log receiver.
    lsblk --output NAME,SERIAL,SIZE,FSTYPE,UUID,MOUNTPOINTS
    ```
 
@@ -122,8 +123,9 @@ receiver events; the OS logger's journal/socket/configuration remain untouched.
 
 1. From the Tier 0 repository root, after reviewing local inputs:
 
+   Run from `<prefix>-tier-0/`.
+
    ```bash
-   # Run from <prefix>-tier-0/
    bash scripts/deploy.sh syslog --ansible-only
    ```
 

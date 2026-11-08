@@ -29,8 +29,9 @@ The main path works independently of later hosted repository and OCI services.
 
 Initialize the Tier 2 cache inputs on the bootstrap host:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup cache
 ```
 
@@ -130,8 +131,9 @@ The plan enables each Proxmox NIC's Firewall flag; review the separate
 [guest-filtering controls](../foundation/network/firewall.md#proxmox-guest-interfaces)
 before applying it to existing guests. Ansible's guest `firewalld` settings are independent.
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/deploy.sh cache
 ```
 

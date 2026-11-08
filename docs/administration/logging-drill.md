@@ -91,16 +91,18 @@ The [checker reference](../reference/logging-evidence.md) defines inputs and exi
    this whole batch. Record that backup ID and its covered manifest before the fault.
 2. Apply one approved fault using the recorded command. While it is active, run on the producer:
 
+   Run on the approved disposable producer.
+
    ```bash
-   # Run on the approved disposable producer.
    logger --socket-errors=on --size 4096 --tag homelab-logging-drill --file "$LOGGING_PRODUCER_BATCHES/during.jsonl"
    ```
 
    Observe durable spooling, alarms and the declared rejection/backpressure behavior.
 3. Recover using the approved undo command, then run on the producer:
 
+   Run on the approved disposable producer.
+
    ```bash
-   # Run on the approved disposable producer.
    logger --socket-errors=on --size 4096 --tag homelab-logging-drill --file "$LOGGING_PRODUCER_BATCHES/after.jsonl"
    ```
 
@@ -145,8 +147,9 @@ sudo systemctl status "$RECEIVER_UNIT" --no-pager
 
 Verify the unit and recorded fault authorization, then inject abrupt process loss:
 
+Run on the approved disposable receiver.
+
 ```bash
-# Run on the approved disposable receiver.
 sudo systemctl kill --kill-whom=main --signal=SIGKILL "$RECEIVER_UNIT"
 ```
 

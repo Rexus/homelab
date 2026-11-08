@@ -98,8 +98,9 @@ overrides. Explicit `--env prod` can select overlays even though omitted `--env`
    now-unbound address. Keep the original state backup and all unrelated resource bindings intact.
 3. Review the normal plan with the owning wrapper, including the same original input overrides:
 
+   Run from `<prefix>-tier-2/` for the default production cache example.
+
    ```bash
-   # Run from <prefix>-tier-2/ for the default production cache example.
    bash scripts/deploy.sh cache --plan-only --env-file .env.local
    ```
 

@@ -36,14 +36,16 @@ Start from a clean matching VM with the same approved repositories and signing k
 
 ### 1a. Download OS packages and reviewed source
 
-Use the [tooling reference](../../../reference/control-node-tooling.md#automation-vm-example)
-to configure the approved Terraform package repository **on the connected host**.
 Install acquisition tools separately from the Python environment:
 
+Run on the connected matching acquisition host.
+
 ```bash
-# Run on the connected matching acquisition host.
 sudo dnf install -y dnf-plugins-core python3 python3-pip git gnupg2
 ```
+
+Then use [Bootstrap 2a, action 2](bootstrap.md#2a-install-through-approved-sources)
+to configure the approved Terraform package repository and install Terraform **on the connected host**.
 
 Run in Bash. Enter the absolute path to the reviewed upstream kit checkout;
 require a clean committed revision. Use a new bundle directory for each release.
@@ -64,7 +66,7 @@ python3 --version > "$BUNDLE/acquisition-python.txt"
 dnf repolist --enabled > "$BUNDLE/acquisition-repositories.txt"
 dnf download --resolve --alldeps --destdir "$BUNDLE/rpms" \
   git bash python3 python3-pip python3-pyyaml openssh-clients ca-certificates \
-  curl openssl xz unzip tar qemu-img terraform rsync policycoreutils-python-utils \
+  curl openssl gnupg2 xz unzip tar qemu-img terraform dnf-plugins-core rsync policycoreutils-python-utils \
   lvm2 cloud-utils-growpart parted xfsprogs
 curl --fail --location https://rpm.releases.hashicorp.com/gpg \
   --output "$BUNDLE/keys/hashicorp.asc"
@@ -245,8 +247,9 @@ cp -a "$BUNDLE/artifacts/." /srv/tier0/artifacts/
 
 Generate from the restored upstream kit checkout, keeping the same prepared shell:
 
+Run from the reviewed upstream kit checkout on `boot-1` (`/srv/tier0/src/homelab`).
+
 ```bash
-# Run from the reviewed upstream kit checkout on boot-1 (/srv/tier0/src/homelab).
 bash scripts/init-tier-repos.sh
 ```
 

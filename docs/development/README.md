@@ -94,8 +94,9 @@ git diff --stat
 
 For upstream generation changes, preview from the **kit root**:
 
+Run from the upstream kit checkout.
+
 ```bash
-# Run from the upstream kit checkout
 bash scripts/init-tier-repos.sh --dry-run
 ```
 

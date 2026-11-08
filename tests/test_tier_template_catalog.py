@@ -29,10 +29,11 @@ class SharedTemplateCatalog(TierRepositoryTestCase):
         self.assertIn("sibling shared repo's templates/proxmox-catalog.tfvars", builder)
         self.assertNotIn("linux_vm_template_catalog in terraform/common.tfvars", builder)
 
-    def test_refresh_never_replaces_or_recreates_the_owned_catalog(self):
+    def test_refresh_preserves_existing_catalogs_and_restores_missing_starters(self):
         self.generate()
         repo = self.root / "verify-shared"
         catalog = repo / "templates/proxmox-catalog.tfvars"
+        starter = catalog.read_bytes()
         manifest = json.loads((repo / ".generated-files.json").read_text())
         self.assertIn("templates/proxmox-catalog.tfvars", manifest["owned"])
         self.assertNotIn("templates/proxmox-catalog.tfvars", manifest["files"])
@@ -41,7 +42,7 @@ class SharedTemplateCatalog(TierRepositoryTestCase):
         self.assertEqual(catalog.read_text(), "# Project-approved references\n")
         catalog.unlink()
         self.generate("--refresh")
-        self.assertFalse(catalog.exists())
+        self.assertEqual(catalog.read_bytes(), starter)
 
 
 if __name__ == "__main__":

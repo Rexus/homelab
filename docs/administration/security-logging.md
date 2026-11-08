@@ -145,8 +145,9 @@ and independent recovery. Review the failure/queue budget before any source or q
    existing inventory host keys, data mount/UUID, producer identities and queue state.
 2. Reconcile the supported existing receiver configuration:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh syslog --recipe maintenance
    ```
 

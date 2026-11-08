@@ -68,8 +68,9 @@ cluster RBAC. Approve host access deliberately; this is a trusted node agent. [1
 
 ## Step 1: Configure inputs
 
+Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 cp -n ansible/group_vars/cluster_security_logging.yml.example ansible/group_vars/cluster_security_logging.yml
 ```
 
@@ -112,8 +113,9 @@ complete input names. Keep `cluster_security_logging_talos_configured`,
 
 From the tier root:
 
+Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-security-logging.yml -e @ansible/group_vars/cluster_security_logging.yml -e cluster_security_logging_action=render
 ```
 
@@ -254,8 +256,9 @@ Receiver-side chain/revocation/subject checks remain authoritative. Set
 Set `cluster_security_logging_kubeconfig` to the absolute protected kubeconfig
 path and verify the selected context. With pre-existing enrolled node Secrets:
 
+Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-security-logging.yml -e @ansible/group_vars/cluster_security_logging.yml -e cluster_security_logging_action=apply
 ```
 
@@ -272,8 +275,9 @@ ansible-vault edit ansible/group_vars/cluster_security_logging_secrets.yml
 Set `cluster_security_logging_manage_secrets: true` there and supply the issued
 leaf/key/CA for each existing node mapping. Then use this command instead:
 
+Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-security-logging.yml -e @ansible/group_vars/cluster_security_logging.yml -e @ansible/group_vars/cluster_security_logging_secrets.yml --ask-vault-pass -e cluster_security_logging_action=apply
 ```
 

@@ -48,8 +48,9 @@ Protect access and backups from the first step; the
 VM first; the [bootstrap guide](../../deployment/foundation/proxmox/bootstrap.md)
 prepares the execution host before API publication.
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/proxmox-templates.sh init
 ```
 
@@ -69,8 +70,9 @@ receiver, then follow its producer, NAS checkpoint and independent-backup recipe
 NAS snapshots/access custody and live acceptance remain commissioning gates; HA is a separate selection.
 After the trust stage, initialize the Kubernetes control cluster:
 
+Run from `<prefix>-tier-0/`.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/kubernetes-cluster.sh init
 ```
 

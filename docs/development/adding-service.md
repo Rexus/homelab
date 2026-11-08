@@ -20,8 +20,9 @@ a permitted network. [Platform inputs](../reference/platform-inputs.md) owns tho
 
 Initialize only this setup from the Tier 2 repository root:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/init-local-files.sh --setup lab
 ```
 
@@ -143,16 +144,18 @@ Require `lab-2` in the lab group and the selected IP. The debug action resolves 
 it does not test SSH or install anything. [1]
 Optional provisioning preview, with authorized Proxmox access:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/deploy.sh lab --plan-only
 ```
 
 Expect the new VM and no unexplained removal/replacement of existing guests.
 The preview is not required before deployment. To provision the reviewed extension:
 
+Run from `<prefix>-tier-2/`.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/deploy.sh lab
 ```
 
@@ -176,8 +179,9 @@ Use `--auto-approve` only for approved unattended CI. Adding a guest does not in
    Maintenance recipes reuse roles for supported operations.
 2. After implementing/reviewing the role and recipe, run configuration only:
 
+   Run from `<prefix>-tier-2/`.
+
    ```bash
-   # Run from <prefix>-tier-2/
    bash scripts/deploy.sh lab --ansible-only --playbook deployment/lab-service.yml
    ```
 
@@ -207,8 +211,9 @@ A genuinely Terraform-only workflow requires its dedicated command/validation co
 
 From the **kit root**, review generation without writing a collection:
 
+Run from upstream kit root.
+
 ```bash
-# Run from upstream kit root
 bash scripts/init-tier-repos.sh --dry-run
 ```
 

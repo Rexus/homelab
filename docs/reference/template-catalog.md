@@ -112,8 +112,9 @@ and catalog changes at the privilege level of their consumers.
 ## Existing collections
 
 Refresh shared and all affected tiers together. New collections use only the
-shared catalog; refresh preserves existing shared catalogs, root READMEs, and
-local tier inputs, including recorded deletions.
+shared catalog; refresh preserves existing shared catalogs, root READMEs and local tier inputs.
+Deleting a generated catalog or README resets it to its current starter on refresh;
+private tier inputs and state are not generated or recovered by that command.
 
 Move common entries from tier-local `linux_vm_template_catalog` maps into shared
 `proxmox_template_catalog`, changing `description` to `title` and recording

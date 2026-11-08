@@ -42,8 +42,9 @@ guarantee service availability. Keep the first deployment to one active schedule
    balancing, 75% trigger, 10-point imbalance and a 60-minute interval; tune after measurements.
 3. With the service stopped, review a one-shot dry run:
 
+   Run on the commissioned ProxLB service host with the service stopped.
+
    ```bash
-   # Run on the commissioned ProxLB service host with the service stopped.
    proxlb --config /etc/proxlb/proxlb.yaml --dry-run
    ```
 

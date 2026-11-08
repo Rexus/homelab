@@ -59,8 +59,9 @@ RSA exchange or weaken checks to repair an integration. Protocol/PQC changes req
 
 1. On the issuer, emit a harmless OS marker:
 
+   Run on the existing issuer host.
+
    ```bash
-   # Run on the existing issuer host.
    logger -t pki-acceptance 'pki-security-check-001'
    ```
 

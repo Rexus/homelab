@@ -47,8 +47,9 @@ explicit operator tasks unless a project supplies a qualified controller.
    Keep original inventory and service identities; do not copy starter examples over live inputs.
 3. Run the selected maintenance recipe. For Tier 0 directory health checks:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    bash scripts/deploy.sh foundation --recipe maintenance
    ```
 

@@ -77,8 +77,9 @@ healthy backend. Use the qualified application/session model, not blind retries.
    named-environment overlays last when used; never target the offline ceremony host.
 3. Reconcile only that accepted baseline target:
 
+   Run from `<prefix>-tier-0/` on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/hsm.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml --limit "${HSM_HOST:?Select one gateway}"
    ```
 

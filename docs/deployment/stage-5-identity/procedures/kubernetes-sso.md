@@ -204,8 +204,9 @@ talosctl --talosconfig /absolute/private/talosconfig --context selected-cluster 
 4. From the **selected tier root**, commit that reviewed saved plan through the
    same helper, explicitly serializing provider operations:
 
+Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 TF_CLI_ARGS_apply=-parallelism=1 bash scripts/kubernetes-cluster.sh apply
 ```
 
