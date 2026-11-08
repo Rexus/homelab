@@ -31,7 +31,7 @@ class BootstrapIntake(TierRepositoryTestCase):
             self.assertEqual([(item['name'], item['tasks_from']) for item in imports],
                              [('baseline', 'repository_proxy'), ('baseline', 'shell_proxy')])
             inputs = yaml.safe_load((owner / INPUTS).read_text())
-            self.assertIs(inputs['bootstrap_software_intake_accepted'], False)
+            self.assertNotIn('bootstrap_software_intake_accepted', inputs)
             self.assertEqual(inputs['shell_proxy_no_proxy_extra'],
                              ['pve01.example.internal', '10.10.10.11'])
             self.assertNotIn('bootstrap', (owner / '.deployment-setups').read_text())
@@ -46,7 +46,7 @@ class BootstrapIntake(TierRepositoryTestCase):
         self.assertIn('bootstrap-software-intake.yml', guide)
         self.assertIn('verify-tier-0/ansible/group_vars/bootstrap.yml.example', guide)
 
-    def run_recipe(self, owner, directory, values, check_tooling=False):
+    def run_recipe(self, owner, directory, values, check_tooling=False, syntax_only=False):
         """Every mutable task destination is sandboxed; tooling acquisition is skipped."""
         inputs = directory / 'inputs.yml'
         inputs.write_text(yaml.safe_dump(values))
@@ -59,6 +59,8 @@ class BootstrapIntake(TierRepositoryTestCase):
         ]
         if not check_tooling:
             command.extend(['--skip-tags', 'bootstrap_tooling'])
+        if syntax_only:
+            command.append('--syntax-check')
         return subprocess.run(command, cwd=owner, env=environment, capture_output=True, text=True, timeout=120)
 
     def fixture(self, name, family):
@@ -68,7 +70,7 @@ class BootstrapIntake(TierRepositoryTestCase):
         dnf.write_text('[main]\ngpgcheck=1\n')
         values = {
             'ansible_become': False, 'ansible_os_family': family,
-            'bootstrap_software_intake_mode': 'proxy', 'bootstrap_software_intake_accepted': True,
+            'bootstrap_software_intake_mode': 'proxy',
             'repository_proxy_url': 'http://192.0.2.44:3128',
             'repository_proxy_manage_hosts_entry': False,
             'repository_proxy_dnf_conf_path': str(dnf),
@@ -80,6 +82,15 @@ class BootstrapIntake(TierRepositoryTestCase):
             'shell_proxy_no_proxy_extra': ['pve01.example.internal', '10.10.10.11'],
         }
         return directory, values
+
+    @unittest.skipUnless(os.name != 'nt' and shutil.which('ansible-playbook'), 'Requires Linux Ansible')
+    def test_source_and_generated_recipes_parse_on_installed_ansible(self):
+        self.generate()
+        for label, owner in (('source', UPSTREAM / 'tier-0'), ('generated', self.root / 'verify-tier-0')):
+            with self.subTest(owner=label):
+                directory, values = self.fixture('syntax-' + label, 'RedHat')
+                result = self.run_recipe(owner, directory, values, syntax_only=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     @unittest.skipUnless(NATIVE, 'Requires Linux root for native root-owned sandbox files and Ansible')
     def test_native_precheck_accepts_preinstalled_collections_without_acquisition(self):
@@ -123,9 +134,8 @@ class BootstrapIntake(TierRepositoryTestCase):
                         self.assertEqual(path.read_text(), content)
 
     @unittest.skipUnless(NATIVE, 'Requires Linux root for native root-owned sandbox files and Ansible')
-    def test_unaccepted_invalid_or_unscoped_proxy_inputs_fail_before_writes(self):
+    def test_invalid_or_unscoped_proxy_inputs_fail_before_writes(self):
         for index, override in enumerate((
-            {'bootstrap_software_intake_accepted': False},
             {'bootstrap_software_intake_mode': 'direct'},
             {'ansible_os_family': 'Unsupported'},
             {'repository_proxy_url': 'http://operator:secret@192.0.2.44:3128'},

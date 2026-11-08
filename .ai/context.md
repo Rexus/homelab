@@ -35,6 +35,8 @@ This file keeps durable context for AI-assisted work across sessions.
 - The manual bootstrap example is boot-1 with Cloud-Init user automation and one or more
   approved workstation public keys, one per line. Their private keys stay on those workstations;
   the bootstrap execution account's outbound deployment key is configured separately.
+- Verify bootstrap sudo independently of SSH-key login. Authorized passwordless sudo needs no
+  account password or Ansible --ask-become-pass; keep that flag optional for password-based sudo.
 - Create boot-1 as a full clone, never a linked clone. Retain an offline VM backup with
   both OS/workspace disks and a tested restore path outside the failed platform. A full
   clone alone is not disaster recovery; original state, keys and approved tooling must survive.
@@ -44,9 +46,17 @@ This file keeps durable context for AI-assisted work across sessions.
   transfer bundles by verified SCP/media rather than depending on the cache being installed.
   After Stage 1 acceptance, boot-1 consumes the approved internal proxy/mirrors for updates.
 - Bootstrap Step 2a owns the copyable fresh OS-package and Terraform RPM-repository installation,
-  followed by kit checkout, a separate manifest-based Ansible/Python venv and declared collections.
+  followed by kit checkout and an explicit OS-package or isolated manifest-based Ansible path.
   Keep that sequence visible in the main path; control-node-tooling is its scope/compatibility
   reference, not a competing install recipe. Offline preparation follows the same dependency inputs.
+  Name Ansible installation explicitly before verification/generation. OS-packaged ansible-core
+  with compatible collections is valid for cache/compatible Linux recipes; a manual venv is not
+  universally required. Keep the isolated manifest-based path for the full reference toolchain
+  and explicit module/client needs; template commands prepare their own runtime automatically.
+  Keep the local bootstrap intake recipe parseable on OS-packaged ansible-core 2.16;
+  import_role already exposes defaults there, so do not add the 2.17-only public option.
+  Verify intake readiness as a guide step before local configuration; do not require a separate
+  true/false confirmation input in the playbook.
 - An optional pre-install bootstrap-home path bind-mounts /srv/tier0/home at /home;
   preserve original homes for initial rollback, numeric ownership/ACLs/SSH keys and SELinux
   home contexts. Require data-mount ordering and independent console/reboot acceptance;

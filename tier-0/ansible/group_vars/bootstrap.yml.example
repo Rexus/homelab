@@ -2,13 +2,12 @@
 # Copy to bootstrap.yml; pass explicitly to deployment/bootstrap-software-intake.yml.
 # This is local boot-1 configuration, not a deploy.sh setup, inventory or Terraform root.
 bootstrap_software_intake_mode: proxy  # proxy or mirror; no permanent direct-WAN mode.
-bootstrap_software_intake_accepted: false
 
 # Proxy path: use the accepted internal cache/mirror gateway, with working bootstrap DNS.
 # No credentials in this system-readable URL. HTTPS CONNECT does not cache encrypted bodies.
 repository_proxy_url: http://10.30.30.22:3128
-# Replace with the actual API hostname AND IP, plus approved internal endpoints.
-# CIDR entries alone do not bypass the proxy in every client (including Python urllib).
+# Internal websites and HTTP/HTTPS endpoints to contact directly, bypassing the proxy.
+# Example: the Proxmox API hostname and any IP used directly. Use hosts/IPs without a scheme/path.
 shell_proxy_no_proxy_extra:
   - pve01.example.internal
   - 10.10.10.11

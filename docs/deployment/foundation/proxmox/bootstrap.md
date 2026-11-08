@@ -15,8 +15,9 @@ prepare and use the bootstrap VM before any hosted runner exists.
 ## Contents
 
 - [Step 1: Clone the bootstrap VM](#step-1-clone-the-bootstrap-vm)
+- [Verify sudo access](#verify-sudo-access)
 - [Step 2: Prepare tools, repositories and artifacts](#step-2-prepare-tools-repositories-and-artifacts)
-- [Connected: OS packages and Terraform](#2a-install-os-packages-and-terraform)
+- [Connected: Git, Terraform and Ansible](#2a-install-git-terraform-and-ansible)
 - [Offline: prepared bundle](#2b-transfer-a-prepared-bundle--offline-alternative)
 - [Step 3: Prepare the execution account's SSH key](#step-3-prepare-the-execution-accounts-ssh-key)
 - [Step 4: Configure trust, credentials and platform inputs](#step-4-configure-trust-credentials-and-platform-inputs)
@@ -30,7 +31,7 @@ prepare and use the bootstrap VM before any hosted runner exists.
    for this recovery execution host.
 2. Enter the settings below; configure the clone's **Cloud-Init** before starting it.
 3. Start the clone. Verify its SSH host key through the console, then log in as
-   `automation` and confirm `sudo -v` succeeds.
+   `automation` and [verify sudo access](#verify-sudo-access) before continuing.
 
 An existing protected Linux workstation can satisfy Steps 2–4 instead. Do not use
 Talos as this general-purpose execution host. Export an accepted VM backup with both
@@ -125,6 +126,23 @@ Apply the [host/gateway policy](../network/firewall.md) before broad provisionin
 Initial software supply must work before Stage 1's cache exists; an approved
 temporary acquisition path is not permission for unrestricted Tier 0 Internet access.
 
+### Verify sudo access
+
+Run on `boot-1` as `automation`; this checks sudo without a cached password or an interactive prompt:
+
+```bash
+sudo -k -n true
+```
+
+**Expected:** no output and exit status `0`. With authorized passwordless sudo, Ansible's
+`become: true` works without an account password. Omit `--ask-become-pass` (`-K`); that flag
+forces a password prompt even when sudo needs none. SSH-key authentication is separate. [9]
+
+If sudo requires a password, use the independent root recovery console to set a local
+password with `passwd automation`, then add `--ask-become-pass` to interactive Ansible runs.
+If the account is not allowed to use sudo, correct its authorized sudo access there first.
+Do not run the whole deployment as root or store a sudo password in Git.
+
 ## Step 2: Prepare tools, repositories and artifacts
 
 **Run on `boot-1` as `automation`.** Prepare storage, then choose **2a** for approved
@@ -187,62 +205,41 @@ directory/verification steps, then continue at **2a** or **2b** below. The separ
 home bind-mount option in **A** apply only to its separate-filesystem layout.
 
 <a id="2a-install-through-approved-sources"></a>
+<a id="2a-install-os-packages-and-terraform"></a>
 
-### 2a: Install OS packages and Terraform
+### 2a: Install Git, Terraform and Ansible
 
 These commands target a fresh **Rocky Linux / AlmaLinux 10** bootstrap. Run on `boot-1`
-as `automation`, outside any Python environment, using approved OS/vendor repositories.
+as `automation`, using approved OS/vendor repositories. Steps 1–2 install OS packages;
+Step 4 selects either the OS-packaged Ansible or the isolated reference runtime.
 For a disconnected host, follow **2b** instead; no public repository access is needed there.
 
-1. **Install OS tools**, including the disk/home preparation utilities:
+#### 1. Install OS tools
 
-   ```bash
-   sudo dnf install -y git bash python3 python3-pip python3-pyyaml \
-     openssh-clients ca-certificates curl openssl gnupg2 xz unzip tar /usr/bin/qemu-img \
-     dnf-plugins-core rsync policycoreutils-python-utils lvm2 cloud-utils-growpart parted xfsprogs
-   ```
+Install the base tools and disk/home preparation utilities:
 
-2. **Add the Terraform repository and install Terraform.** `dnf-plugins-core` supplies
-   `config-manager`; the repository is HashiCorp's official RHEL RPM channel. [4][5]
+```bash
+sudo dnf install -y git bash python3 python3-pip python3-pyyaml \
+  openssh-clients ca-certificates curl openssl gnupg2 xz unzip tar /usr/bin/qemu-img \
+  dnf-plugins-core rsync policycoreutils-python-utils lvm2 cloud-utils-growpart parted xfsprogs
+```
 
-   ```bash
-   sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
-   sudo dnf install terraform
-   ```
+#### 2. Install Terraform
 
-   Review the package/signing-key prompt. Compare the key fingerprint with the current
-   [HashiCorp package-signing reference](https://www.hashicorp.com/en/trust/security)
-   before accepting it; retain signature and TLS verification. [6]
+`dnf-plugins-core` supplies `config-manager`; add HashiCorp's official RHEL RPM channel: [4][5]
 
-3. **Verify before cloning the kit:**
+```bash
+sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+sudo dnf install terraform
+```
 
-   ```bash
-   git --version
-   python3 --version
-   python3 -c 'import yaml; print(yaml.__version__)'
-   terraform version
-   qemu-img --version
-   ```
+Review the package/signing-key prompt. Compare the key fingerprint with the current
+[HashiCorp package-signing reference](https://www.hashicorp.com/en/trust/security)
+before accepting it; retain signature and TLS verification. [6]
 
-   Require version output from each command. Installing storage tools does not partition or resize disks.
-4. Continue at **2a continued** below: clone the kit, prepare its isolated Python/Ansible environment,
-   then generate the repositories. Keep acquisition access restricted to approved sources.
+<a id="2a-continued-obtain-the-kit-and-generate-the-collection"></a>
 
-The [control-node reference](../../../reference/control-node-tooling.md#automation-vm-example)
-lists tool responsibilities and compatibility. Other Linux distributions use their native packages
-and the [official Terraform installation instructions](https://developer.hashicorp.com/terraform/install).
-Packer and later-stage tools such as Helm, kubectl and talosctl are installed only for their selected paths.
-
-### 2b: Transfer a prepared bundle — offline alternative
-
-Follow the [offline bootstrap workflow](bootstrap-offline.md) to prepare on a matching
-connected machine, copy with `scp` or approved media, verify, then install without
-public package services. It lists OS packages, wheels, collections and providers
-separately from the images/repos required inside later guests and clusters.
-That path also restores the kit and generates the collection: skip the connected
-clone commands below and continue at **Step 3** after its checks pass.
-
-### 2a continued: Obtain the kit and generate the collection
+#### 3. Obtain the kit
 
 For a new workspace, obtain the reviewed kit revision using the approved source.
 The public clone example is:
@@ -257,14 +254,36 @@ A private mirror or transferred Git bundle is also valid. If a collection alread
 exists, restore it **including ignored inputs and original state**, not just tracked
 code; do not initialize a replacement environment.
 
-Prepare the deployment-user Python environment **after the checkout exists**. Run from the
-reviewed upstream kit root on `boot-1`; these are Python packages, separate from the OS installs above. [7]
+#### 4. Install Ansible
+
+Choose **4a** for the cache/compatible Linux recipes, or **4b** for the full manifest-based
+reference runtime. Installing Ansible does not require a manual venv in every case. [8]
+
+**4a: OS-package path.** On `boot-1`, using the approved OS repositories:
+
+```bash
+sudo dnf install -y ansible-core
+```
+
+With compatible collections, this is enough to run the cache recipe without the manual Python
+setup below. `deploy.sh` prepares the selected setup's collections. Confirm the installed core
+and collections support each other; select **4b** if Ansible reports that a collection does not
+support its version, or a recipe needs additional Python clients. Continue at **Step 5**.
+Template commands prepare their own runtime automatically.
+
+**4b: Isolated reference runtime.** Run from the **upstream kit root** on `boot-1`.
+Install `ansible-core` through the declared runtime manifest, separately from DNF. [7][8]
 
 ```bash
 python3 -m venv "$HOME/.local/share/homelab/venv"
 source "$HOME/.local/share/homelab/venv/bin/activate"
-python3 -m pip install -r tier-0/ansible/runtime-requirements.txt \
-  -r tier-0/ansible/requirements.txt -r tier-1/ansible/requirements.txt \
+python3 -m pip install -r tier-0/ansible/runtime-requirements.txt
+```
+
+With that environment active, install the declared module dependencies from the same kit root:
+
+```bash
+python3 -m pip install -r tier-0/ansible/requirements.txt -r tier-1/ansible/requirements.txt \
   -r tier-2/ansible/requirements.txt -r scripts/tier-repos/requirements.txt
 ```
 
@@ -275,15 +294,30 @@ ansible-galaxy collection install -r shared/ansible/requirements.yml
 ansible-galaxy collection install -r tier-0/ansible/requirements.yml
 ansible-galaxy collection install -r tier-1/ansible/requirements.yml
 ansible-galaxy collection install -r tier-2/ansible/requirements.yml
+```
+
+For **4b**, keep this environment active for Linux `deploy.sh`; reactivate it in each new shell with
+`source "$HOME/.local/share/homelab/venv/bin/activate"`. Template commands select their own
+isolated runtime automatically; see [runtime behavior](../../../reference/control-node-tooling.md#automatic-template-runtime).
+
+#### 5. Verify tools and generate the repositories
+
+From the kit root, using the runtime selected in **4a** or **4b**:
+
+```bash
+git --version
+python3 --version
+python3 -c 'import yaml; print(yaml.__version__)'
+terraform version
+qemu-img --version
 ansible-playbook --version
 ```
 
-Keep this environment active for Linux `deploy.sh`; reactivate it in each new shell with
-`source "$HOME/.local/share/homelab/venv/bin/activate"`. Template commands select their own
-isolated runtime automatically; see [runtime behavior](../../../reference/control-node-tooling.md#automatic-template-runtime).
+Require version output from every command. For **4b**, Ansible must report the executable under
+`$HOME/.local/share/homelab/venv/`; **4a** uses the OS-installed executable without activation.
 For a new collection, generate the repositories next:
 
-Run from the reviewed upstream kit checkout on `boot-1`.
+Run from the reviewed upstream kit root on `boot-1`; keep the venv active only when **4b** was selected.
 
 ```bash
 bash scripts/init-tier-repos.sh
@@ -308,6 +342,22 @@ manually uploaded Linux artifact here too if its file/template will be adopted.
 Follow [verify, unpack and upload](templates.md#step-1-verify-unpack-and-upload)
 for raw/qcow2 handling; catalog hashes describe the **unpacked** bytes. Retain
 provider/tool/collection artifacts outside this VM for independent recovery.
+
+The [control-node reference](../../../reference/control-node-tooling.md#automation-vm-example)
+lists compatibility and runtime details. Other distributions use their native packages and
+the [official Terraform installer](https://developer.hashicorp.com/terraform/install).
+Packer and later-stage tools such as Helm, kubectl and talosctl belong to their selected paths.
+
+**Connected path complete:** continue at **Step 3**. The following **2b** is the offline alternative.
+
+### 2b: Transfer a prepared bundle — offline alternative
+
+Follow the [offline bootstrap workflow](bootstrap-offline.md) to prepare on a matching
+connected machine, copy with `scp` or approved media, verify, then install without
+public package services. It installs Ansible from local wheels and its declared collections.
+It lists controller dependencies separately from the artifacts required inside later guests/clusters.
+That path also restores the kit and generates the collection: skip **2a** and continue at
+**Step 3** after its checks pass.
 
 ## Step 3: Prepare the execution account's SSH key
 
@@ -458,3 +508,5 @@ recover that platform's total loss by itself.
 5. [DNF config-manager repository configuration](https://dnf-plugins-core.readthedocs.io/en/latest/config_manager.html), checked 2026-11-08.
 6. [HashiCorp package-signing keys](https://www.hashicorp.com/en/trust/security), checked 2026-11-08.
 7. [Python virtual environments](https://docs.python.org/3/library/venv.html), checked 2026-11-08.
+8. [Ansible packages, pip installation and verification](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html), checked 2026-11-08.
+9. [Ansible privilege escalation and optional password prompt](https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_privilege_escalation.html), checked 2026-11-08.

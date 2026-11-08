@@ -20,17 +20,17 @@
     repository_proxy_manage_hosts_entry: false
     shell_proxy_enabled: "{{ repository_proxy_enabled }}"
   pre_tasks:
-    - name: Require an explicitly accepted intake path before changing local configuration
+    - name: Validate the local intake mode and supported operating system
       ansible.builtin.assert:
         that:
           - bootstrap_software_intake_mode | default('') in ['proxy', 'mirror']
-          - bootstrap_software_intake_accepted | default(false) is sameas true
           - ansible_os_family in ['RedHat', 'Debian']
           - repository_proxy_enabled | bool == (bootstrap_software_intake_mode == 'proxy')
           - shell_proxy_enabled | bool == (bootstrap_software_intake_mode == 'proxy')
         fail_msg: >-
-          Select proxy or mirror in the local bootstrap inputs and accept its verified
-          package/tool supply and firewall path first. This recipe supports RedHat and Debian families.
+          Select bootstrap_software_intake_mode as proxy or mirror in
+          ansible/group_vars/bootstrap.yml. This recipe supports RedHat and Debian families;
+          repository and shell proxy settings must match the selected mode.
 
     - name: Require a credential-free HTTP proxy endpoint
       ansible.builtin.assert:
@@ -56,13 +56,11 @@
       ansible.builtin.import_role:
         name: baseline
         tasks_from: repository_proxy
-        public: true
 
     - name: Reuse only the login-shell proxy tasks
       ansible.builtin.import_role:
         name: baseline
         tasks_from: shell_proxy
-        public: true
 
     - name: Explain the remaining activation and acceptance steps
       ansible.builtin.debug:

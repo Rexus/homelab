@@ -23,6 +23,11 @@ See [coverage](../../reference/implementation-support.md#stage-coverage).
 Existing approved supply can satisfy this stage: skip to **2b**, then continue at **3**.
 The main path works independently of later hosted repository and OCI services.
 
+**Controller tools:** an OS-packaged `ansible-core` with compatible collections can run this
+cache recipe; a manual Python venv is not required. The deployment precheck prepares its
+selected collections. Follow [Bootstrap Ansible 4a/4b](../foundation/proxmox/bootstrap.md#4-install-ansible)
+for the package command and the separate runtime used when other recipes need it.
+
 <a id="step-1-deploy-the-policy-proxy-and-cache"></a>
 
 ## Step 1: Prepare the cache inputs

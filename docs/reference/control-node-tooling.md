@@ -162,22 +162,27 @@ Keep the automation VM simple:
 
 ## Ansible environment
 
-The [bootstrap tool sequence](../deployment/foundation/proxmox/bootstrap.md#2a-continued-obtain-the-kit-and-generate-the-collection)
-creates the deployment-user venv and installs `ansible/runtime-requirements.txt`,
-tier-owned Python module manifests and collections. An existing accepted environment
-is also valid. The Proxmox maintenance collection
+The [explicit Ansible installation step](../deployment/foundation/proxmox/bootstrap.md#4-install-ansible)
+offers an OS-package path for cache/compatible Linux recipes and an isolated, manifest-based
+reference runtime for the complete toolchain. OS-packaged Ansible does not need venv activation;
+`deploy.sh` prepares the collections for its selected setup. Collection `requires_ansible`
+metadata must match the core version, even when a basic recipe happens to run. [9]
+
+The isolated path installs `ansible/runtime-requirements.txt`, tier-owned Python module
+manifests and collections. It is not a universal prerequisite for the cache recipe.
+The Proxmox maintenance collection
 requires `ansible-core >=2.17`; an OS package may supply an older release. Installing
 `ansible/requirements.txt` installs module dependencies, not Ansible itself. [3][4]
 
-To reuse that prepared environment in a new shell on the bootstrap/deployment host:
+Only when the isolated path was selected, activate it in a new shell on the bootstrap/deployment host:
 
 ```bash
 source "$HOME/.local/share/homelab/venv/bin/activate"
 ```
 
-On Debian/Ubuntu, install `python3-venv` first if the OS packages do not yet provide
-venv support. Use the selected Python version's package where applicable. [5]
-Activate the same environment in each new deployment shell before invoking tier
+For the isolated path on Debian/Ubuntu, install `python3-venv` first if needed;
+use the selected Python version's package where applicable. [5]
+Activate that environment in each new deployment shell before invoking tier
 scripts. Install the owning tier's `ansible/requirements.txt` there and its declared
 collections through that environment's `ansible-galaxy`; avoid `sudo pip` and user-site
 installs mixed with a different system Ansible. For local-only installation, use
@@ -281,3 +286,4 @@ Sources checked 2026-11-08.
 6. [Ansible control-node Python support](https://docs.ansible.com/projects/ansible-core/2.21/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix).
 7. [Enterprise Linux 10 Python](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/installing_and_using_dynamic_programming_languages/installing-and-using-python).
 8. [Enterprise Linux 9 Python](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/installing_and_using_dynamic_programming_languages/assembly_installing-and-using-python_installing-and-using-dynamic-programming-languages).
+9. [Collection runtime metadata and requires_ansible](https://docs.ansible.com/projects/ansible/latest/dev_guide/developing_collections_structure.html#meta-directory).
