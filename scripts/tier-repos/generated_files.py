@@ -1,19 +1,20 @@
-"""Restore missing generation targets and refresh unchanged files without replacing local edits."""
+"""Refresh kit automation while protecting project inputs and recoverable local edits."""
 
 import hashlib
 import json
 from pathlib import Path
 
-from refresh_review import RefreshReview
+from refresh_review import PreservedFile, RefreshReview, backup_automation, write_candidate
 
 MARKER = "Generated from the upstream homelab deployment kit."
 
 
 class RepositoryWriter:
-    def __init__(self, root, refresh=False, dry_run=False):
+    def __init__(self, root, refresh=False, dry_run=False, code_conflicts="replace"):
         self.root = Path(root).resolve()
         self.refresh = refresh
         self.dry_run = dry_run
+        self.code_conflicts = code_conflicts
         self.manifest_path = self.root / ".generated-files.json"
         self.hashes = {}
         self.owned_paths = set()
@@ -24,7 +25,27 @@ class RepositoryWriter:
         self.review = RefreshReview(self.root, set(self.hashes) | self.owned_paths, self.owned_paths)
         self.counts = dict(create=0, update=0, unchanged=0, preserve=0)
 
-    def write(self, relative, content, executable=False, owned=False, source=None):
+    def replace_edited_automation(self, relative, data, source):
+        if self.code_conflicts == "ask":
+            if self.dry_run:
+                return False
+            path = self.root / relative
+            candidate = write_candidate(self.root.parent, self.review,
+                                        PreservedFile(relative, data, source, "locally edited automation"))
+            print(f"Edited kit automation: {path}\nCurrent kit version: {candidate}")
+            while True:
+                try:
+                    answer = input("Preserve or replace with backup? [p/r, default p]: ")
+                except EOFError as error:
+                    raise ValueError("No conflict decision received; use --code-conflicts replace or preserve") from error
+                answer = answer.strip().lower()
+                if answer in ("", "p", "preserve"):
+                    return False
+                if answer in ("r", "replace"):
+                    return True
+        return self.code_conflicts == "replace"
+
+    def write(self, relative, content, executable=False, owned=False, source=None, automation=False):
         path = self.root / relative
         if path.is_symlink() or not path.resolve().is_relative_to(self.root):
             raise ValueError(f"Refusing generated output through symlink: {path}")
@@ -37,10 +58,16 @@ class RepositoryWriter:
                 action = "preserve"
             elif existing == digest:
                 action = "unchanged"
-            elif owned or relative in self.owned_paths or not self.refresh or self.hashes.get(relative) != existing:
+            elif owned or relative in self.owned_paths or not self.refresh:
                 action = "preserve"
-            else:
+            elif self.hashes.get(relative) == existing:
                 action = "update"
+            elif automation and self.replace_edited_automation(relative, data, source):
+                backup = backup_automation(self.root, relative, path.read_bytes(), dry_run=self.dry_run)
+                self.review.replaced_paths[relative] = backup
+                action = "update"
+            else:
+                action = "preserve"
         elif not self.refresh and (relative in self.hashes or relative in self.owned_paths):
             action = "preserve"
         else:
@@ -53,6 +80,8 @@ class RepositoryWriter:
                 reason = "project-owned; compare the current starter"
             elif relative not in self.hashes:
                 reason = "pre-existing file; generation ownership is unverified"
+            elif automation and self.refresh:
+                reason = f"locally edited automation; --code-conflicts {self.code_conflicts}"
             else:
                 reason = "locally edited generated file"
         self.review.record(relative, data, source, reason)

@@ -59,11 +59,15 @@ def main():
                         help="Parent of <prefix>-iac/ (default: beside this kit checkout).")
     parser.add_argument("--repo", action="append", choices=[*REPOSITORIES, "all"], help="Repeat to select repositories.")
     parser.add_argument("--refresh", action="store_true",
-                        help="Restore missing targets, update unchanged files and prune retired auto-docs; preserve edits.")
+                        help="Refresh kit automation with backups of local edits; preserve configuration and project files.")
+    parser.add_argument("--code-conflicts", choices=("replace", "preserve", "ask"), default="replace",
+                        help="Edited kit automation on refresh: replace with backup (default), preserve, or ask per file.")
     parser.add_argument("--dry-run", action="store_true", help="Report changes without writing files.")
     parser.add_argument("--color", choices=("auto", "always", "never"), default="auto",
                         help="Refresh review colors (default: auto; respects NO_COLOR).")
     args = parser.parse_args()
+    if args.refresh and args.code_conflicts == "ask" and not args.dry_run and not sys.stdin.isatty():
+        parser.error("--code-conflicts ask requires an interactive terminal; use replace or preserve for pipelines")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]*", args.prefix):
         parser.error("--prefix must start with a letter or number and contain only letters, numbers, and dashes")
     repo_prefix = args.prefix.lower()
@@ -85,7 +89,7 @@ def main():
     validate_layout(UPSTREAM)
     reviews = []
     for name in selected:
-        writer = RepositoryWriter(destinations[name], args.refresh, args.dry_run)
+        writer = RepositoryWriter(destinations[name], args.refresh, args.dry_run, args.code_conflicts)
         writer.write(".gitattributes", f"# {MARKER}\n* text=auto eol=lf\n", source=Path(__file__))
         writer.write(".gitignore", f"# {MARKER}\n" + read_file(UPSTREAM / ".gitignore"),
                      source=UPSTREAM / ".gitignore")

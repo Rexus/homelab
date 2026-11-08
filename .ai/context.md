@@ -182,13 +182,17 @@ This file keeps durable context for AI-assisted work across sessions.
   Linux network entries select sdn_lookup; Kubernetes bootstrap_network selects sdn_vnet.
   Tier-owned Terraform calls Shared's stateless read-only helper through the external provider;
   token/TLS environment, SDN.Audit and tier-local IP inventory remain required. Explicit inputs still work.
-- refresh uses `.generated-files.json`, preserves existing edits and recreates missing current
+- refresh uses `.generated-files.json`, updates kit automation and preserves configuration/project edits.
+  Back up edited tracked automation under collection-level .refresh-backups/ before replacement;
+  --code-conflicts preserve keeps local code, while ask offers an interactive choice (Enter preserves).
+  Unknown existing paths and new project files remain protected. Recreate missing current
   generated targets, including owned starters. Deletion resets a target to its current template;
   Kubernetes Terraform currently uses Talos in tier-owned automation; `clusters/` service starters
   remain project-owned adoption points, not the native application installers
 - Refresh ends with a manifest-scoped review: yellow preserved differences get current rendered
   templates under collection-level .refresh-review/, outside Git repositories; red identifies
-  retained retired outputs outside auto-docs. Under docs/auto-docs/ only, remove all obsolete/extra
+  retained retired outputs outside auto-docs; REPLACED prints the previous code's backup path.
+  Under docs/auto-docs/ only, remove all obsolete/extra
   files (including edited/untracked files and old redirects), prune empty directories and clear
   their manifest entries. Print REMOVED / WOULD REMOVE with known replacement guides.
   Preserve edited current auto-docs. Never classify private inputs or arbitrary project additions

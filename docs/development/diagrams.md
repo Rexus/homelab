@@ -169,7 +169,7 @@ views rather than implying routes or permissions.
    obscured headings or misleading containment. Confirm actual tier/layer order,
    not only successful parsing. Review at a narrow documentation viewport too.
 4. Generate an architecture repository and follow its diagram-guide and palette
-   links. Refresh must preserve project-owned records and locally edited files.
+   links. Refresh must preserve project-owned records and locally edited diagrams/documentation.
 
 Palette tests require at least 4.5:1 contrast between box text and its fill, following
 the normal-text threshold. [4] This is a colour-pair check, not a claim that all

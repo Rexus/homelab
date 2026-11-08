@@ -68,9 +68,10 @@ bash scripts/init-tier-repos.sh --refresh
 ```
 
 Reuse the `--prefix` and `--root` flags if customized. Add `--dry-run` to preview.
-Refresh restores missing generated files and updates unchanged examples and automation.
-It removes obsolete files under `docs/auto-docs/` and preserves edits to current files,
-repository READMEs and project documentation. See the
+Refresh updates kit automation, saving backups before replacing local code edits.
+It preserves local configuration and project records, restores missing generated files,
+and removes obsolete auto-docs. Use `--code-conflicts ask` to choose per edited automation file,
+or `--code-conflicts preserve` to keep local development changes. See the
 [refresh contract](docs/development/generated-repositories.md#refresh-and-local-ownership).
 A final review summary links preserved differences to current templates and lists retired generated files.
 

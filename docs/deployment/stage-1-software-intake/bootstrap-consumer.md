@@ -21,7 +21,7 @@ and a tested Stage 1 endpoint reachable from the bootstrap network.
 ## 1. Verify the software source
 
 From `boot-1`, verify the chosen source using the
-[explicit proxy retrieval and policy checks](README.md#3c-accept-the-consumer-path),
+[explicit proxy retrieval and policy checks](README.md#3a-test-the-intake-path),
 or the commissioned native-mirror checks. Continue when approved retrieval and access policy work.
 
 ## 2. Configure the local inputs
@@ -112,8 +112,15 @@ Configuration is applied locally with sudo, without enrolling `boot-1` as a mana
 
 ## 4. Verify and retire temporary egress
 
-1. Open a fresh SSH login and reactivate the selected venv/offline environment, if used.
-   Existing shells and running services retain their old environment.
+1. Open a fresh SSH login, or load the proxy settings in the current Bash session on `boot-1`:
+
+   ```bash
+   source /etc/profile.d/shell-proxy.sh
+   ```
+
+   No reboot is needed. Ansible cannot change the environment of the terminal that launched it.
+   Reactivate the selected venv/offline environment, if used.
+   Existing running services retain their old environment.
 2. Refresh package metadata through the accepted source using the installed OS's command:
 
    | Package manager | Command |
@@ -125,6 +132,8 @@ Configuration is applied locally with sudo, without enrolling `boot-1` as a mana
    from the bootstrap network.
 3. Verify the required pip, Galaxy, Terraform and artifact access with the commissioned native
    configurations. A login-shell proxy alone does not configure every tool or CI service.
+   Git remotes using HTTPS normally use these proxy variables without extra Git configuration;
+   SSH remotes (`git@...` or `ssh://...`) need their own permitted SSH path. [4]
 4. Remove temporary bootstrap WAN allowance using the approved
    [firewall rules](../../architecture/networking/firewall-policy.md#rule-contracts), then repeat
    approved retrieval and direct-WAN denial checks. This play changes no firewall rules.
@@ -147,3 +156,4 @@ Open a fresh session and repeat **4**. Do not substitute unrestricted egress or 
 1. [Python: proxy handling and hostname exclusions](https://docs.python.org/3/library/urllib.request.html#urllib.request.ProxyHandler)
 2. [Ansible: import selected role task files](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/import_role_module.html)
 3. [Ansible: manage individual INI settings](https://docs.ansible.com/projects/ansible/latest/collections/community/general/ini_file_module.html)
+4. [Git: HTTP proxy environment and configuration overrides](https://git-scm.com/docs/git-config#Documentation/git-config.txt-httpproxy)

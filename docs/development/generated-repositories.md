@@ -411,6 +411,19 @@ Reuse the same `--prefix` and `--root` flags as creation if customized.
 Add `--dry-run` to preview. Refresh does not run the local-file initializer or
 deployment scripts.
 
+Kit automation updates on refresh, including edited playbooks such as
+`ansible/playbooks/deployment/bootstrap-software-intake.yml`. Before replacing local edits,
+refresh saves the previous contents under the collection's `.refresh-backups/` directory.
+For an interactive choice at each edited automation file, run from the upstream kit root:
+
+```bash
+bash scripts/init-tier-repos.sh --refresh --code-conflicts ask
+```
+
+The prompt shows the local path and a rendered kit version for comparison. Enter `p` to preserve
+or `r` to replace with a backup; Enter preserves. Pipelines use the default `replace` policy or
+select `--code-conflicts preserve` explicitly. `ask` requires a terminal; dry runs never prompt.
+
 `.generated-files.json` records hashes for generated code, examples, launchers,
 and documentation. Keep it with the downstream repository.
 Generated `.gitattributes` keeps text files at LF line endings so checkout on
@@ -420,12 +433,19 @@ another operating system does not invalidate those hashes or break Bash scripts.
 | --- | --- |
 | New upstream file, never generated at that path | create it |
 | Managed file still matches its recorded generated hash | update from the kit |
-| Locally edited or unrecognized existing file at a current generation target | preserve; report a yellow entry when it differs from the current template |
+| Edited kit automation with a recorded generation hash | back up the local version, then update; `--code-conflicts` selects another policy |
+| Edited configuration/example or unrecognized existing file at a current target | preserve; report a yellow difference |
 | Current generated file deleted locally, including a project-owned starter | recreate from the current template |
 | File under `docs/auto-docs/` outside the current generation | remove it, even if edited or untracked; prune empty directories |
 | Previously generated file outside the current generation and outside auto-docs | retain; report an existing file in red |
 | Live inventory, local vars, credentials, state | never targeted |
 | Root READMEs, project docs, bootstrap/cluster skeletons, CI starter, `.deployment-setups` | seed when missing; preserve existing contents |
+
+Kit automation includes scripts, Ansible playbooks/roles (including role defaults and templates),
+product vars and dependency manifests, Terraform `.tf`/provider lock files, and Packer recipes.
+Put site values in local inventory, group vars, tfvars and profiles. Edited `*.example` files,
+`ansible.cfg`, shared sizes/profiles/catalogs and project-owned records remain protected.
+New project playbooks, roles and modules at paths the kit does not generate remain untouched.
 
 Source files retain their syntax and use the manifest for provenance. Every
 auto-doc has a visible do-not-edit notice. A marker alone never
@@ -438,8 +458,8 @@ reported replacement guides after removing retired paths. Refresh does not merge
 Keep local designs in `docs/architecture/`, procedures in `docs/deployment/`,
 `docs/development/` and `docs/administration/`, and project conventions in
 `platform-standards.md`; upstream guidance updates under `docs/auto-docs/`.
-A locally edited example or tier module is also
-preserved, so adopting upstream changes to it requires a manual comparison.
+A locally edited example remains preserved. Use `--code-conflicts preserve` when developing
+changes inside existing kit modules or playbooks; upstream fixes then require manual integration.
 
 To reset a generated file, delete it and run the same refresh command. This restores the **current
 starter**, not deleted local choices. Review restored catalogs, profiles and deployment registrations
@@ -454,10 +474,22 @@ After all selected repositories finish, refresh prints one final review list:
 | `YELLOW` | A current generation target differs but was preserved: local edit, project-owned starter or unverified existing file | Exact rendered template and its upstream source |
 | `RED` | A formerly generated file/starter outside auto-docs remains outside the current fresh generation | Review its consumers and local ownership before cleanup |
 | `REMOVED` / `WOULD REMOVE` (red) | Obsolete or extra file inside auto-docs, removed during refresh or listed by dry run | Current guide location when a known move exists |
+| `REPLACED` / `WOULD REPLACE` (cyan) | Edited kit automation updated or scheduled for update | Previous local version's backup path |
 
 Outside auto-docs, untracked project additions, private inputs and state are not classified as retired.
 That review uses the generation manifest; extra project files are retained. Inside `docs/auto-docs/`,
 every file outside the current generated manual is removed. Keep local documents outside that directory.
+
+Backups contain the previous local bytes and live outside all generated Git repositories:
+
+```text
+<prefix>-iac/.refresh-backups/<repository>/<relative-path>.<sha256>.bak
+```
+
+Names include a content hash, so later refreshes do not overwrite earlier versions. The final report
+prints each backup path for comparison or recovery of selected local edits. Backups request owner-only
+POSIX permissions; Windows uses the collection's existing ACLs. A failed backup stops replacement.
+A dry run only prints the planned path.
 
 Rendered comparison files are saved under the collection, outside every Git repository:
 
@@ -486,6 +518,9 @@ they do not need a yellow comparison entry.
 | `--color auto` (default) | Yellow/red ANSI colors on an interactive terminal; plain labels in captured output |
 | `NO_COLOR` or `TERM=dumb` | Disable automatic colors |
 | `--color always` / `--color never` | Explicitly force or disable colors, including pipeline output |
+| `--code-conflicts replace` (default) | Back up and replace edited, manifest-tracked kit automation |
+| `--code-conflicts preserve` | Keep edited automation; report yellow differences and rendered comparison templates |
+| `--code-conflicts ask` | Interactive preserve/replace choice for edited automation; Enter preserves |
 | `--dry-run` | Write nothing, including review files; yellow entries point to the upstream source instead |
 
 The raw source can contain template variables. Run refresh without `--dry-run` for an exact rendered

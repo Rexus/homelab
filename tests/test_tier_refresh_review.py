@@ -59,7 +59,7 @@ class RefreshReviewTests(TierRepositoryTestCase):
         state.parent.mkdir(parents=True)
         state.write_text('{"serial": 7}\n')
 
-        result = self.generate("--refresh", "--color", "always")
+        result = self.generate("--refresh", "--code-conflicts", "preserve", "--color", "always")
         review = result.stdout.split("\nRefresh review\n")[1]
         self.assertIn("YELLOW: 2 preserved differences; RED: 2 retired files", review)
         for relative, data in expected.items():
@@ -88,7 +88,7 @@ class RefreshReviewTests(TierRepositoryTestCase):
         changed.write_text("# Local changes\n")
         retired = self.retired(repo, "retired.txt")
         before = self.snapshot()
-        result = self.generate("--refresh", "--dry-run", "--color", "never")
+        result = self.generate("--refresh", "--code-conflicts", "preserve", "--dry-run", "--color", "never")
         self.assertEqual(before, self.snapshot())
         review = result.stdout.split("\nRefresh review\n")[1]
         self.assertIn(f"Source template: {UPSTREAM / 'tier-0/scripts/check-shared.sh'}", review)
@@ -103,7 +103,7 @@ class RefreshReviewTests(TierRepositoryTestCase):
         shared_file = shared / "scripts/deploy.sh"
         shared_file.write_text("# Shared local edits\n")
         tier_file = self.retired(self.root / "verify-tier-0", "retired.tf")
-        result = self.generate("--repo", "shared", "--refresh")
+        result = self.generate("--repo", "shared", "--refresh", "--code-conflicts", "preserve")
         review = result.stdout.split("\nRefresh review\n")[1]
         self.assertIn(f"YELLOW {shared_file}", review)
         self.assertNotIn(str(tier_file), review)

@@ -65,7 +65,9 @@
     - name: Explain the remaining activation and acceptance steps
       ansible.builtin.debug:
         msg: >-
-          Local intake settings are reconciled. Open a fresh login session and verify
-          package and tool access through the selected supply. Existing mirror, pip,
+          Local intake settings are reconciled. Open a fresh SSH login to load the shell settings.
+          In proxy mode, the current Bash terminal can instead run: source /etc/profile.d/shell-proxy.sh
+          Ansible cannot change the environment of the terminal that launched it.
+          Verify package and tool access through the selected supply. Existing mirror, pip,
           Galaxy and Terraform configurations remain separately owned. Confirm direct-WAN
           denial before retiring temporary bootstrap egress; this recipe changes no firewall rules.

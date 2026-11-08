@@ -1,6 +1,7 @@
 """Report preserved differences and retired generator outputs without changing project files."""
 
 from dataclasses import dataclass
+import hashlib
 import os
 from pathlib import Path
 import sys
@@ -22,6 +23,7 @@ class RefreshReview:
         self.owned_paths = set(owned_paths)
         self.current_paths = set()
         self.removed_paths = {}
+        self.replaced_paths = {}
         self.preserved = {}
 
     def record(self, relative, data, source, reason):
@@ -54,13 +56,38 @@ def use_color(mode, stream):
     return stream.isatty() and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
 
 
-def write_candidate(collection, review, item):
-    root = collection / ".refresh-review"
-    path = root / review.root.name / item.relative
-    if root.is_symlink() or not root.resolve().is_relative_to(collection):
+def artifact_path(collection, directory, repository, relative):
+    root = collection / directory
+    path = root / repository / relative
+    if root.is_symlink() or root.resolve() != root or not root.resolve().is_relative_to(collection):
         raise ValueError(f"Refusing review directory through symlink: {root}")
-    if path.is_symlink() or not path.resolve().is_relative_to(root.resolve()):
+    if path.is_symlink() or path.resolve() != path or not path.resolve().is_relative_to(root):
         raise ValueError(f"Refusing review template through symlink: {path}")
+    return root, path
+
+
+def backup_automation(repository, relative, data, *, dry_run=False):
+    digest = hashlib.sha256(data).hexdigest()
+    filename = Path(relative)
+    filename = filename.with_name(f"{filename.name}.{digest}.bak")
+    root, path = artifact_path(repository.parent, ".refresh-backups", repository.name, filename)
+    if dry_run:
+        return path
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        if path.read_bytes() != data:
+            raise ValueError(f"Backup differs from its content hash; refusing replacement: {path}")
+    else:
+        with os.fdopen(descriptor, "wb") as backup:
+            backup.write(data)
+    return path
+
+
+def write_candidate(collection, review, item):
+    root, path = artifact_path(collection, ".refresh-review", review.root.name, item.relative)
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(item.data)
@@ -75,12 +102,14 @@ def print_refresh_review(reviews, collection, *, dry_run=False, color="auto", st
     red = [item for review in reviews for item in review.retired_files()]
     removed = [(review.root / relative, reason) for review in reviews
                for relative, reason in sorted(review.removed_paths.items())]
+    replaced = [(review.root / relative, backup) for review in reviews
+                for relative, backup in sorted(review.replaced_paths.items())]
     print("\nRefresh review", file=stream)
     print(f"  YELLOW: {len(yellow)} preserved differences; RED: {len(red)} retired files.", file=stream)
-    if not yellow and not red and not removed:
+    if not yellow and not red and not removed and not replaced:
         print("  No preserved differences or retired generated files to review.", file=stream)
         return
-    print("  Existing current files remain protected by their ownership rules.", file=stream)
+    print("  Configuration, project-owned files and unverified existing paths remain protected.", file=stream)
     if removed:
         print(f"  Auto-docs: {len(removed)} {'would be removed' if dry_run else 'removed'}.", file=stream)
     colored = use_color(color, stream)
@@ -88,7 +117,8 @@ def print_refresh_review(reviews, collection, *, dry_run=False, color="auto", st
     def entry(label, path, reason):
         line = f"{label} {path} [{reason}]"
         if colored:
-            line = f"\033[{'33' if label == 'YELLOW' else '31'}m{line}\033[0m"
+            code = "33" if label == "YELLOW" else "36" if "REPLACE" in label else "31"
+            line = f"\033[{code}m{line}\033[0m"
         print(line, file=stream)
 
     for review, item in yellow:
@@ -106,3 +136,6 @@ def print_refresh_review(reviews, collection, *, dry_run=False, color="auto", st
         entry("RED", path, reason)
     for path, reason in removed:
         entry("WOULD REMOVE" if dry_run else "REMOVED", path, reason)
+    for path, backup in replaced:
+        entry("WOULD REPLACE" if dry_run else "REPLACED", path, "locally edited kit automation")
+        print(f"  {'Planned backup' if dry_run else 'Previous version'}: {backup}", file=stream)

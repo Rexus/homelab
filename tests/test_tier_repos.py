@@ -74,7 +74,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
                         continue
                     self.assertTrue((document.parent / target).exists(), (document, target))
 
-    def test_refresh_preserves_edits_inputs_and_cluster_definitions(self):
+    def test_refresh_can_preserve_code_edits_inputs_and_cluster_definitions(self):
         self.generate()
         shared = self.root / "verify-shared"
         changed = shared / "ansible/playbooks/site.yml"
@@ -102,7 +102,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
             manifest = json.loads(manifest_path.read_text())
             manifest["files"][relative] = hashlib.sha256(file.read_bytes()).hexdigest()
             manifest_path.write_text(json.dumps(manifest))
-        self.generate("--refresh")
+        self.generate("--refresh", "--code-conflicts", "preserve")
         self.assertEqual(changed.read_text(), "# Local playbook changes\n")
         self.assertEqual(owned.read_text(), "resources: [owned-service]\n")
         self.assertIn("owned-host", live.read_text())

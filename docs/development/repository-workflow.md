@@ -106,11 +106,13 @@ Run from upstream kit root.
 python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh
 ```
 
-Follow the [refresh contract](generated-repositories.md#refresh-and-local-ownership): unchanged files can update.
-Existing project-owned READMEs/local documents and edited current files are preserved.
+Follow the [refresh contract](generated-repositories.md#refresh-and-local-ownership): kit automation updates,
+with a backup before local code edits are replaced. Site inputs and project-owned records stay protected.
+Keep project extensions in new playbooks, roles or module paths. For edits inside existing kit code,
+use `--code-conflicts ask` to choose interactively or `--code-conflicts preserve` during development.
 Missing current generation targets are restored; obsolete files under `docs/auto-docs/` are removed.
 Refresh does not merge live YAML/HCL/dotenv, move state or deploy infrastructure.
-Resolve reported differences in the owning repo before any affected deployment.
+Review replacements, backups and preserved differences before any affected deployment.
 
 <a id="example-private-mirror-in-gitlab"></a>
 

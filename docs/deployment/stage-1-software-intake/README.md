@@ -202,14 +202,36 @@ Continue at **3**.
 
 ## Step 3: Connect and verify consumers
 
-### 3a: Configure the existing bootstrap host
+Follow **3a → 3b → 3c**: test the source, configure the bootstrap host, then configure later consumers.
+
+### 3a: Test the intake path
+
+From the bootstrap host and a permitted consumer network, test the selected proxy endpoint
+(native-mirror consumers use their commissioned package/tool checks instead).
+This explicit proxy test works before configuring the host's proxy settings:
+
+```bash
+# Run on the selected approved consumer host.
+read -r -p "Proxy URL (example: http://10.30.30.22:3128): " PROXY_URL
+read -r -p "Approved download URL: " APPROVED_URL
+curl --fail --noproxy '' --proxy "$PROXY_URL" --output /dev/null "$APPROVED_URL"
+```
+
+| Check | Expected result |
+| --- | --- |
+| Approved source through proxy | Download succeeds |
+| Unapproved destination or forbidden source network | Proxy request is denied |
+| Consumer direct WAN bypass | Firewall denies it |
+| HTTP cacheable object requested twice | Squid records the expected cache hit; HTTPS CONNECT is not cached |
+
+### 3b: Configure the existing bootstrap host
 
 Follow the [local bootstrap consumer steps](bootstrap-consumer.md) on `boot-1` in the Tier 0
 repository. Select proxy or native mirrors, apply the local recipe and verify access before
 retiring temporary acquisition egress. This manually created host is not automatically configured
 by the cache deployment; no inventory entry or Terraform adoption is required.
 
-### 3b: Configure later Linux deployments
+### 3c: Configure later Linux deployments
 
 For each later Linux deployment, edit that tier's ignored `ansible/group_vars/all.yml`
 after its initialization step. Add or replace these consumer settings:
@@ -225,25 +247,6 @@ Use the selected VIP; with existing supply, use its actual endpoint instead. The
 a temporary hosts entry before DNS exists. Leave the cache setup's own proxy override disabled.
 The later deployment's Shared [baseline role](../../../shared/ansible/roles/baseline/tasks/repository_proxy.yml)
 applies these inputs; this step does not deploy those future hosts.
-
-### 3c: Accept the consumer path
-
-From the bootstrap host and a permitted consumer network, test the selected proxy endpoint
-(native-mirror consumers use their commissioned package/tool checks instead):
-
-```bash
-# Run on the selected approved consumer host.
-read -r -p "Proxy URL (example: http://10.30.30.22:3128): " PROXY_URL
-read -r -p "Approved download URL: " APPROVED_URL
-curl --fail --noproxy '' --proxy "$PROXY_URL" --output /dev/null "$APPROVED_URL"
-```
-
-| Check | Expected result |
-| --- | --- |
-| Approved source through proxy | Download succeeds |
-| Unapproved destination or forbidden source network | Proxy request is denied |
-| Consumer direct WAN bypass | Firewall denies it |
-| HTTP cacheable object requested twice | Squid records the expected cache hit; HTTPS CONNECT is not cached |
 
 Apply the [firewall rules](../../architecture/networking/firewall-policy.md#rule-contracts) before
 removing temporary bootstrap egress. Detailed [validation](proxy-cache.md#validation) and

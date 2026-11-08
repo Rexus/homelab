@@ -115,7 +115,14 @@ def copy_payload(writer, upstream, name, prefix):
                  or relative.as_posix() == "templates/proxmox-catalog.tfvars"
                  or relative.as_posix() == "config/platform.tfvars"
                  or relative.name in (".deployment-setups", ".gitkeep"))
-        writer.write(relative.as_posix(), content, executable=path.suffix == ".sh", owned=owned, source=path)
+        automation = (not owned and not relative.name.endswith(".example") and (
+            relative.parts[0] in ("scripts", "terraform", "packer")
+            or relative.as_posix().startswith(("ansible/playbooks/", "ansible/roles/", "ansible/vars/"))
+            or relative.as_posix() == "ansible/requirements.yml"
+            or (relative.parent.as_posix() == "ansible" and relative.name.endswith("requirements.txt"))
+        ))
+        writer.write(relative.as_posix(), content, executable=path.suffix == ".sh", owned=owned,
+                     source=path, automation=automation)
 
     trees = SHARED_TREES if name == "shared" else TIER_TREES
     for directory, patterns in trees.items():
