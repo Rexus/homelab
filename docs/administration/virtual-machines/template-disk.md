@@ -15,7 +15,7 @@ and [disk replacement role](../../../tier-0/ansible/roles/proxmox_template_disk/
 
 | Question | Task |
 | --- | --- |
-| Replace only the boot disk? | [Prerequisites](#prerequisites), then [Steps 1-3](#step-1-select-the-template) |
+| Replace only the boot disk? | [Prerequisites](#prerequisites), then [Steps 1-6](#step-1-select-the-template) |
 | Replacement failed or the clone does not boot? | [Rollback](#rollback-if-the-clone-does-not-work) |
 | Remove an old unused disk after acceptance? | [Dependency checks and permanent deletion](#retire-the-old-disk) |
 | Run unattended or finish an older base conversion? | [Explicit options](#other-options) |
@@ -47,12 +47,12 @@ Confirm the published image is the intended replacement and its configured capac
 fits the image. The replacement uses those applied catalog values; it does not shrink
 or overwrite the old volume.
 
-## Step 2: Preview and confirm
+<a id="step-2-preview-and-confirm"></a>
 
 <a id="step-2-preview-the-disk-replacement"></a>
 <a id="step-3-execute-and-qualify"></a>
 
-Run from the **Tier 0 root**:
+## Step 2: Start the interactive replacement
 
 Run from **`<prefix>-tier-0/`** on the protected execution host.
 
@@ -61,14 +61,20 @@ read -r -p "Template catalog key (example: debian-build-1): " TEMPLATE_KEY
 bash scripts/proxmox-templates.sh replace-disk --template "$TEMPLATE_KEY" --env-file .env.local
 ```
 
-Ansible checks the image and template, then displays the old disk, approved source
-and target capacity. Review them and type **yes** to replace; **no** or Enter stops.
+Ansible checks the image/template and pauses with the old disk, approved source and target capacity.
+
+## Step 3: Review and confirm the disk swap
+
+At **the Ansible prompt**, check the template identity, old volume, source image and capacity.
+Type **yes** only for the intended replacement; **no** or Enter stops without importing a disk.
 The play imports the new disk, retains the old disk as unused and converts the new
 `scsi0` to a template base volume. Other VM settings remain unchanged. [1][3]
 
-## Step 3: Verify and clone-test
+<a id="step-3-verify-and-clone-test"></a>
 
 <a id="step-4-verify-the-replacement"></a>
+
+## Step 4: Check the result and retained disk
 
 Require **`verification: passed`**, `retained_old_disk: true` and
 `base_conversion: completed`. The output identifies the new boot volume and recovery
@@ -76,11 +82,16 @@ receipts under `.terraform/maintenance/template-disk/`.
 The wrapper then refreshes Terraform state; an **Objects have changed outside of
 Terraform** notice during that refresh is expected. [4]
 
-1. Check the template's **Hardware** view: `scsi0` matches the printed new volume,
-   and the recorded old volume is an unused disk.
-2. Create a disposable full clone. Test boot, networking, console and the guest agent
-   where the selected image supports it.
-3. Review a fresh plan before resuming template consumption:
+In **Proxmox > template > Hardware**, check that `scsi0` matches the printed new volume
+and the recorded old volume is an unused disk. Stop on a failed check; keep both disks.
+
+## Step 5: Test a disposable full clone
+
+In **Proxmox**, create a disposable **full clone** from the updated template.
+Test boot, networking, console and the guest agent where the selected image supports it.
+A successful disk check does not prove the guest boots. Existing cloned VMs are unchanged.
+
+## Step 6: Review the template plan
 
 Run from **`<prefix>-tier-0/`** on the protected execution host.
 
@@ -88,7 +99,8 @@ Run from **`<prefix>-tier-0/`** on the protected execution host.
 bash scripts/proxmox-templates.sh plan --env-file .env.local
 ```
 
-A successful disk check does not prove the guest boots. Existing cloned VMs are unchanged.
+Check for unintended disk or VM changes before resuming template consumption.
+This plan checks the maintained template after the swap; it does not repeat the replacement.
 For read-only inspection, rerun the replacement command with `--preview`; it does not import a disk.
 
 ## Rollback if the clone does not work

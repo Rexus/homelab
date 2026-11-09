@@ -10,8 +10,9 @@ Earlier [Security Logging and Audit](../stage-2-logging/README.md) preserves Tie
 evidence. Observability adds diagnosis and scoped queries; it cannot modify that evidence
 or administer Tier 0.
 
-**Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
-Tier 0 owns infrastructure collection, credentials and approved metric exports.
+**Working repositories:** `<prefix>-tier-1` for the signal/query stack;
+`<prefix>-tier-0` for infrastructure collection and any approved evidence export.
+Tier 0 retains those credentials and original evidence.
 **Prerequisites:** accepted [Tier 1 platform runtime](../stage-7-delivery/README.md),
 [secrets and recovery access](../stage-6-secrets/README.md),
 backend worker capacity, persistent storage/backups and source identities.
@@ -73,11 +74,12 @@ their own selected configuration. This topology is not evidence of live deployme
 The [database backup realization](../../administration/backups/postgresql.md) separates
 Grafana's live block volumes from its scheduled NAS copies.
 
-1. Reuse the [platform cluster](../stage-7-delivery/procedures/platform-cluster.md); do not create another
-   Linux VM fleet alongside it. Argo CD or Spinnaker remains the project's delivery choice.
+1. Reuse the accepted [platform cluster](../stage-7-delivery/procedures/platform-cluster.md).
+   If selecting [1b: dedicated VMs](step-1b-dedicated-vms.md), follow that complete alternative instead;
+   its VM baseline cannot run the Kubernetes installer in Step 2.
 2. Reserve separate gateway, metrics, search, Netdata, processing and UI resources. Protect API/etcd
    capacity; add or size backend workers through the tier-owned cluster inputs when needed.
-3. Select supported, pinned native operators/charts and persistent-volume classes.
+3. Retain the qualified native operators/charts and select persistent-volume classes.
    Configure topology spread/anti-affinity against physical failure domains, not only VM names.
 
 Create local inputs before Step 2:
@@ -96,52 +98,46 @@ Edit in **`<prefix>-tier-1/`**.
 - `ansible/group_vars/observability_platform_secrets.yml`: Follow the private-input/encryption steps below
   for secret values.
 
-Edit the local files using [configuration Step 1](configuration.md#inputs-and-execution):
-kubeconfig/context, physical domains, block storage, private endpoints, IdP clients and source scopes.
-Prepare certificates/credentials using [Step 2](configuration.md#secrets-and-trust).
+Complete [configuration actions 1–4](configuration.md#inputs-and-execution): edit the
+kubeconfig/context, physical domains, block storage, private endpoints, IdP clients and source scopes;
+then prepare certificates/credentials and encrypt the private input file.
+Keep that file even with externally owned Kubernetes Secrets: it also carries the Netdata streaming keys.
+Select only real application/projection scopes. For application-only search, omit the example
+`kind: projection` scope rather than inventing an unapproved Tier 0 export.
 
 The main path uses official product charts and native CNPG database resources. [1][2][3]
 Stage 4 must supply a compatible PostgreSQL operator. Qualify Netdata host access against
 the node OS and Pod Security policy. A pod in a guest does not monitor the Proxmox host.
 Its two parents use separate namespaces because the chart has fixed configuration names. [4]
 
-**Alternative:** [1b: dedicated VMs](step-1b-dedicated-vms.md)
-replace the relevant hosting selection; they are not extra default capacity.
+The dedicated-VM alternative requires project-owned product installers. Its OS baseline is not
+another required installation alongside Kubernetes. Return to Step 3 only after equivalent
+signal/query services have been installed and accepted through that alternative.
 
 <a id="step-2-deploy-scoped-ingestion-and-backends"></a>
 
 ## Step 2: Deploy the signal pipelines
 
-Complete [configuration Step 3](configuration.md#install-and-verify) in order:
+For the **Kubernetes main path**, complete [configuration actions 5–10](configuration.md#install-and-verify)
+in order, using their full commands and acceptance gates:
 
-1. Render and apply the **database-only `prepare` pass**.
+1. For NAS-file backups, render, review and apply the **database-only `prepare` pass**.
 2. Commission the independent NAS backup claim/marker, then change
    `observability_backup_files_phase: backup` in `ansible/group_vars/observability_platform.yml`.
 3. For a **new empty search cluster only**, set `observability_search_bootstrap: true`.
    Render, review and apply the full workload set.
-4. After the first green search check, set that flag back to `false` and reapply.
+4. After the first green search check, set that flag back to `false`, render/review and reapply.
+
+The existing object/WAL backup alternative skips NAS preparation/commissioning and joins at
+configuration action 8 with its own accepted backup inputs. Do not switch an existing database's
+storage or backup method merely to follow a fresh-install example.
 
 The prepare pass has not installed the pictured gateways/backends. The detailed procedure
 contains the exact commands and the backup handoff; do not skip from prepare to source enrollment.
 
-For each pass, render from Tier 1:
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass
-```
-
-Review `secrets/observability-platform/`, then apply:
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass -e observability_action=apply
-```
-
-These commands use the encrypted private input file prepared in Step 1. `action=apply`
-is the explicit installation gate; Ansible does not ask Terraform's `yes` question.
+The full pass installs the selected gateways, backends, Netdata, query routing and UIs together.
+Step 4 commissions source visibility and reader access; it is not another UI installation.
+`observability_action=apply` changes the cluster without Terraform's `yes` prompt.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -191,16 +187,10 @@ these analytical pipelines do not replace protected logging.
 | UIs / query routing | Replicated vmauth, Grafana and Dashboards; Grafana database has three native CNPG instances | Query/session demand, not backend disk capacity |
 | Netdata diagnostics | At least two independently persisted parents, child failover and parent synchronization | Host/chart count, streaming rate, history and diagnostic queries |
 
-1. Deploy gateways and **both** stateful backends. Connect metrics to each metrics
-   replica; a load-balanced write Service across independent stores would split the dataset.
-   Route each log/trace record through the selected search ingestion pipeline, not a fan-out
-   that indexes it once per cluster member.
-2. Configure authenticated TLS endpoints, pipeline ownership, retry/storage limits and
-   signal-specific processing. Preserve metric single-writer rules and trace affinity when
-   stateful processing requires it; do not scale by replica count alone.
-3. Test a complete worker/physical-host loss, endpoint failure, queue replay, search
-   quorum/shards, metric catch-up and backup restore. Keep lagging metric copies out of
-   complete-result read routing until they catch up. Record accepted tail loss and RTO.
+Require successful service, search-membership/shard and database-backup gates before connecting sources.
+The recipe writes metrics to **both** independent stores; a load-balanced write Service would split
+the dataset. Log/trace records use one selected search-ingestion pipeline, not one write per search member.
+Full source-to-query outage/replay and recovery tests follow in Step 4, after sources are connected.
 
 OpenSearch is a backend; OpenSearch Dashboards is its UI. Grafana queries the read-only
 vmauth route, which admits only explicitly promoted, caught-up metrics copies. Native VMUI
@@ -263,7 +253,10 @@ The picture follows Netdata host/BMC collection; API-only sources can feed the l
 metric bridge directly as described in the guide. Native streaming is not OTLP.
 Physical infrastructure is on the right; metric delivery to collectors points left.
 
-1. Follow [infrastructure monitoring](infrastructure-monitoring.md) to register sources,
+1. If not already commissioned, first complete
+   [independent Tier 0 monitoring](../stage-6-secrets/monitoring.md) with export disabled;
+   it supplies the parent/pollers/critical-alert path that this step extends.
+   Then, in **`<prefix>-tier-0/`**, follow [infrastructure monitoring](infrastructure-monitoring.md) to register sources,
    select host/API/Redfish/IPMI collectors and prepare read-only Tier 0 identities.
 2. Configure native Netdata streams and the explicit metric bridge. Keep Proxmox/BMC
    credentials and critical alerting in Tier 0; Tier 1 receives approved metrics only.
@@ -314,19 +307,25 @@ defined in Step 2. Readers enter from the left and query Tier 1 only. Tier 0 ori
 this query view: no archive mount or write path is granted. Export/redaction remains
 separately authorized in Tier 0 before an approved copy reaches OpenSearch.
 
-1. Install the [Tier 0 approved-copy exporter](protected-log-search.md).
-   Authorize and filter exports in Tier 0 before transfer. The export identity receives
-   only its approved scope; it has no archive write/delete, retention or backup powers.
-   Authenticated routing assigns application ownership; submitted labels are not authority.
-2. Give readers the required index, document and field scopes in OpenSearch.
-   Remove write/delete, index-management and retention actions explicitly; document/field
-   filters do not remove separately granted write permissions. Dashboard tenants alone
-   do not enforce record-level isolation. Follow the [read-boundary design](../../architecture/operations/telemetry.md#read-boundaries).
-   Restrict Netdata to authorized operators; do not expose raw Tier 0 diagnostics or
-   Functions to application readers. A chart filter is not an access-control boundary.
-3. Test direct APIs, combined roles, forged ownership, cross-application access and SSO
+1. Select source enrollment: for approved Tier 0 evidence copies, complete the
+   [approved-copy publisher/exporter](protected-log-search.md) in **`<prefix>-tier-0/`**;
+   for application-only visibility, skip that exporter and use the
+   [application collection path](../stage-10-lab-environments/telemetry.md) when the application exists.
+   Keep unenrolled source scopes explicitly unverified; do not claim their coverage yet.
+2. In **`<prefix>-tier-1/ansible/group_vars/observability_platform.yml`**, verify each
+   `observability_log_scopes` entry and its `reader_backend_roles` against the approved IdP groups.
+   The supplied policy grants reads on that scope's index prefix; it does not install custom
+   document/field-level reader policies. Tier 0 publication filters approved-copy fields before transfer.
+   Any later scope/policy change needs another render/review/apply before its exporter is enabled.
+3. Use the registered SSO clients to test Grafana/Dashboards access and an accepted operator route
+   to Netdata. Do not expose raw Tier 0 diagnostics or Functions to application readers.
+   Dashboard tenants and chart filters are not authorization boundaries.
+4. Test direct APIs, combined roles, forged ownership, cross-application access and SSO
    outage. Delete/rebuild a disposable Tier 1 index and prove Tier 0 originals remain unchanged.
    Reindexing never writes back to original evidence.
+5. With actual enrolled sources, test worker/physical-host loss, endpoint failure, queue replay,
+   search quorum/shards, metric catch-up and clean-target recovery. Keep lagging metrics copies
+   out of complete-result routing. Record measured tail loss and RTO before accepting the capability.
 
 An app owner receives an application-log view, not raw Tier 0 archive access.
 Authorized security roles may receive broader approved projections, not Tier 0 mutation rights.

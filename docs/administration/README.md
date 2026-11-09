@@ -34,6 +34,7 @@ explains copy independence, retention authority, RPO/RTO and compatible recovery
 
 | Question | Runbook |
 | --- | --- |
+| How to initialize files and connect bootstrap to existing Proxmox hosts? | [Start host management](hosts/management.md) |
 | How to review or restrict hypervisor access? | [Proxmox hardening](hosts/hardening.md) |
 | How to configure or troubleshoot host update access? | [Repository proxy](hosts/update-access.md) |
 | How to trust or rotate the Proxmox API certificate? | [Proxmox TLS](hosts/proxmox-tls.md) |

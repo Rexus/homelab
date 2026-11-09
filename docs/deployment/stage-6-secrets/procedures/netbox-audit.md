@@ -6,6 +6,9 @@ it is not a new VM or another syslog receiver.
 
 **Prerequisites:** a healthy NetBox API, protected forwarding for this host,
 retained source history and an external dead-man monitor.
+First complete [monitoring host preparation](../monitoring.md#step-1-prepare-the-monitoring-runtime):
+one existing host in `infrastructure_monitoring`, verified SSH/sudo and an explicit
+`ansible/host_vars/<monitor-host>.yml` connection file. Netdata need not be installed yet.
 
 ## Contents
 
@@ -22,6 +25,14 @@ retained source history and an external dead-man monitor.
    `extras` endpoint and `Token` authentication. Version 2 tokens use `Bearer`. [1][2]
 3. Store its token and verified server CA outside Git. Set `NETBOX_AUDIT_TOKEN_FILE`
    and `NETBOX_AUDIT_CA_FILE` to their absolute local paths.
+
+In the protected execution shell, run from **`<prefix>-tier-0/`**:
+
+```bash
+read -r -e -p 'Protected read-only NetBox token file: ' NETBOX_AUDIT_TOKEN_FILE
+read -r -e -p 'Trusted NetBox CA file: ' NETBOX_AUDIT_CA_FILE
+export NETBOX_AUDIT_TOKEN_FILE NETBOX_AUDIT_CA_FILE
+```
 
 Retain change records in NetBox longer than the longest planned collection outage plus repair time.
 Set `control_applications_netbox_changelog_retention` in the application's owned inputs;
@@ -59,8 +70,17 @@ Edit in **`<prefix>-tier-0/`**.
 Run from **`<prefix>-tier-0/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/netbox-audit.yml -e @ansible/group_vars/netbox_audit.yml
+read -r -p 'Prepared monitoring inventory host: ' AUDIT_HOST
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  --limit "localhost,${AUDIT_HOST:?Select the prepared host}" \
+  ansible/playbooks/deployment/netbox-audit.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/netbox_audit.yml \
+  -e "@ansible/host_vars/$AUDIT_HOST.yml"
 ```
+
+Keep `localhost` in the limit: the first play checks that exactly one monitoring host is assigned.
+The host file is last so its real address/account override global defaults. Stop if the selected remote
+host is skipped. For a named environment, load `all.<env>.yml` after `all.yml` and before the host override.
 
 The timer issues GET requests only, with validated TLS and no redirects. It scans retained
 history in ascending-ID pages instead of relying on an ID high-water cursor: transactions can

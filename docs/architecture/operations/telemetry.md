@@ -73,6 +73,7 @@ transport, not a promise that every backend accepts the same protocol. [1][2]
 | --- | --- | --- |
 | Agent and gateway collection | OpenTelemetry Collector; separate pipelines for logs, metrics and traces | Tier-local agents; replicated Tier 1 gateways [2] |
 | Metrics storage and querying | VictoriaMetrics with native VMUI; supported query frontend | Independent Tier 1 stateful workloads [3] |
+| Metrics dashboards | Grafana with OIDC and a shared PostgreSQL database | Separate Tier 1 UI replicas; dashboard state is distinct from metrics storage [16] |
 | Log/trace processing and search | Data Prepper and OpenSearch | Independent Tier 1 ingestion/search workloads, included initially [4] |
 | Analysis UI | OpenSearch Dashboards | Separate stateless Tier 1 workload; not another log store [4] |
 | Rules and notification | vmalert and Alertmanager where selected | Shared application alerts in Tier 1; critical alerts remain independent in Tier 0 |
@@ -88,8 +89,9 @@ Netdata remains part of Observability, not only foundation monitoring. Its selec
 metric path uses native child/parent streaming, separate from OTLP. An explicit
 Prometheus scrape/export bridge can feed selected metrics into the Collector and
 VictoriaMetrics; native streaming does not perform that forwarding automatically. [5][14]
-A separate SigNoZ/ClickHouse, Grafana, Loki or Tempo deployment is not required.
-Other products remain explicit alternatives, not additional default stacks.
+Grafana supplies the selected metrics dashboards; OpenSearch Dashboards supplies
+log/trace analysis. A separate SigNoZ/ClickHouse, Loki or Tempo stack is not part of
+this reference. Other products remain explicit alternatives.
 
 ## Infrastructure coverage
 
@@ -181,7 +183,7 @@ are not the data-authorization boundary.
 ## Realization
 
 [Security Logging and Audit](../../deployment/stage-2-logging/README.md) comes first.
-[Independent monitoring](../../deployment/stage-6-secrets/monitoring.md)
+[Independent monitoring](../../deployment/stage-8-observability/infrastructure-monitoring.md)
 keeps foundation visibility outside cluster outages.
 [Observability deployment](../../deployment/stage-8-observability/README.md)
 adds Netdata diagnostics, infrastructure coverage, gateways, both backends and UIs;
@@ -192,11 +194,13 @@ Tier-owned native release inputs realize this design. Project GitOps folders are
 adoption points, not a second owner of directly installed releases. Alternative
 VM runtimes and operational qualification remain distinct from the Kubernetes realization;
 the [implementation map](../../reference/implementation-support.md) records that boundary.
+The owning Tier 1 [release inputs](../../../tier-1/ansible/group_vars/observability_platform.yml.example)
+and [installer templates](../../../tier-1/ansible/roles/observability_platform/templates)
+define the selected pipelines, replica settings, UI database and network policy.
 
 ## References
 
-Sources checked 2026-10-21; qualify documentation against selected releases.
-Netdata deployment references checked 2026-10-22.
+Sources checked 2026-11-09; qualify documentation against selected releases.
 
 1. [OpenTelemetry signals](https://opentelemetry.io/docs/concepts/signals/)
 2. [Collector gateway deployment and single-writer rules](https://opentelemetry.io/docs/collector/deploy/gateway/)
@@ -213,3 +217,4 @@ Netdata deployment references checked 2026-10-22.
 13. [Netdata Kubernetes Helm chart](https://learn.netdata.cloud/docs/netdata-agent/installation/kubernetes-helm-chart-reference)
 14. [Netdata Prometheus export](https://learn.netdata.cloud/docs/exporting-metrics/prometheus)
 15. [Netdata parent clustering and failover](https://learn.netdata.cloud/docs/netdata-parents/metrics-centralization-points/clustering-and-high-availability-of-netdata-parents)
+16. [Grafana high availability and shared database](https://grafana.com/docs/grafana/latest/setup-grafana/set-up-for-high-availability/)

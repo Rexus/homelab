@@ -20,11 +20,11 @@ by Terraform. Prove the behavior with disposable guests before testing identity.
 
 | Item | Example selection |
 | --- | --- |
-| Guests | `idm-1` / VMID `301`, `idm-2` / VMID `302` |
+| Guests | `idm-1` / VMID `201`, `idm-2` / VMID `202` |
 | Initial placement | `idm-1` on `pve01`, `idm-2` on `pve02`; `pve03` has recovery capacity |
 | Storage/network | Every guest disk, including EFI, on qualified shared Ceph; identity network on all three hosts |
 | HA resources | Both `started`, restart `1`, relocate `1`, failback off, auto-rebalance on |
-| Rule | Negative resource affinity between `vm:301` and `vm:302`; no extra node restriction |
+| Rule | Negative resource affinity between `vm:201` and `vm:202`; no extra node restriction |
 | Scheduler | Native dynamic automatic balancing; no ProxLB for these guests |
 
 ```mermaid
@@ -33,10 +33,10 @@ flowchart TB
   subgraph T0["Tier 0 / Control - before failure"]
     direction TB
     subgraph P1["Proxmox pve01"]
-      A["idm-1 / vm:301<br/>Running directory<br/>primary"]
+      A["idm-1 / vm:201<br/>Running directory<br/>primary"]
     end
     subgraph P2["Proxmox pve02"]
-      B["idm-2 / vm:302<br/>Running directory<br/>replica"]
+      B["idm-2 / vm:202<br/>Running directory<br/>replica"]
     end
     subgraph P3["Proxmox pve03"]
       Spare["Recovery capacity<br/>No directory VM yet"]
@@ -81,10 +81,10 @@ flowchart TB
       Failed["Failed / fenced host<br/>Original idm-1<br/>is not running"]
     end
     subgraph P2["Proxmox pve02"]
-      B["idm-2 / vm:302<br/>Continues serving<br/>clients"]
+      B["idm-2 / vm:202<br/>Continues serving<br/>clients"]
     end
     subgraph P3["Proxmox pve03"]
-      A["idm-1 / vm:301<br/>Cold restart<br/>Then replication"]
+      A["idm-1 / vm:201<br/>Cold restart<br/>Then replication"]
     end
     Storage[("Same resilient Ceph<br/>Original live disks<br/>No backup restore here")]
     P1 ~~~ P3

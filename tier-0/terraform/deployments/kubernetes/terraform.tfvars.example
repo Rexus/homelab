@@ -52,5 +52,5 @@ nodes = {
 
 # Start with three schedulable control planes. Optional workers need matching
 # inventory hosts, DHCP/IP reservations, and hardware entries in nodes above.
-# Reserve optional worker VMIDs from 201 upward; do not reuse directory VMIDs 301/302.
+# Reserve optional worker VMIDs in 150-199; control planes use 100-149.
 # Existing clusters must retain their workers; this example is not a removal plan.

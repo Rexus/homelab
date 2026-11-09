@@ -57,10 +57,11 @@ Before starting, have:
   CIDRs. Provide DNS, time, and image access before this cluster exists.
 
 The fast path uses the tested NoCloud template, a **network-only CloudInit drive**
-for each clone's static IP/gateway, and the generated default CNI.
-For the platform's Cilium selection, change the generated node configurations to
+for each clone's static IP/gateway. For the Stage 4 reference, change the generated node configurations to
 the [CNI/proxy/KubePrism settings](procedures/basic-platform.md#prepare-talos)
 before applying them; the linked Terraform heredoc contains the native YAML.
+Do this before first bootstrap, rather than installing the generated default CNI and replacing it later.
+Another CNI is a separately qualified platform variant; the supplied Cilium installer is not its migration path.
 Keep each clone's NoCloud address distinct; do not add conflicting static addresses
 to one common machine-config file. DHCP reservations remain an explicit alternative.
 For restricted networks, prepare
@@ -135,6 +136,11 @@ by the generated repositories, but still needs protected external backup.
 Review `controlplane.yaml`, `worker.yaml`, and `talosconfig`. Check installation
 disk, endpoint, DNS/time, address ranges, image access, and CNI settings before
 continuing. The empty `infrastructure/cni/` directory installs nothing.
+
+Before applying any node file, also complete [logging preparation Steps 1–3](procedures/security-logging.md#configure-and-render).
+Merge its native system/API audit settings into the appropriate node files alongside image-access/CNI settings,
+then return here. Rendering those patches needs charts, not a live cluster. Keep manual ownership;
+do not run the Terraform lifecycle for these VMs.
 
 For the compact reference, set `cluster.allowSchedulingOnControlPlanes: true`
 in the reviewed control-plane configurations before applying them. Otherwise

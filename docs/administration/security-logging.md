@@ -178,11 +178,14 @@ reviewed configuration through independent access; never clear persist files or 
 ## How is an independent NAS backup restored?
 
 **Work on:** an isolated recovery host, not the live receiver or live NAS share.
-**Prerequisites:** independently held restic repository/password and offline reader kit.
+**Prerequisites:** verified restic and Python 3, independently held repository/password and recorded
+repository/snapshot IDs, the offline reader kit and private encrypted recovery storage.
 
 1. On an authorized, isolated recovery host, retrieve the independent restic
    repository, separately held password, and the offline reader kit containing
-   `logging_checkpoint.py`, `logging_io.py` and `logging_health.py`. Preserve the
+   `logging_checkpoint.py`, `logging_io.py`, `logging_health.py` and `logging_projection.py`.
+   Keep all four files from the same accepted revision together; verification imports the
+   projection module even when no search projections are selected. Preserve the
    source repository; select a new empty restore directory, never the live share.
 2. Select the protected paths and inspect the recorded snapshots:
 
@@ -192,23 +195,33 @@ reviewed configuration through independent access; never clear persist files or 
    read -r -e -p 'Independent restic repository path: ' RESTIC_REPOSITORY
    read -r -e -p 'Recovery password file path: ' RESTIC_PASSWORD_FILE
    export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
-   restic snapshots --tag security-logging
+   restic cat config
+   restic snapshots --tag security-logging --json
    restic check --read-data
    ```
 
-   Expect readable snapshots and a completed integrity check; stop on corruption or missing credentials. [2]
+   JSON lists the full snapshot `id` required by the restore guard; the short table ID is insufficient.
+   Compare the repository ID with the independent custody record. Require readable snapshots and a
+   completed integrity check; stop on mismatched identity, corruption or missing credentials. [2]
 
 3. Choose the incident's known-good snapshot and an empty disposable target:
 
    Run on **the independent isolated recovery workstation**.
 
    ```bash
-   read -r -p 'Approved snapshot ID: ' LOGGING_SNAPSHOT
-   read -r -e -p 'New empty restore directory: ' LOGGING_RESTORE
-   restic restore "$LOGGING_SNAPSHOT" --target "$LOGGING_RESTORE"
+   set -euo pipefail
+   umask 077
+   read -r -p 'Full approved 64-character snapshot ID: ' LOGGING_SNAPSHOT
+   read -r -e -p 'NEW absolute restore directory under a private existing parent: ' LOGGING_RESTORE
+   [[ "$LOGGING_SNAPSHOT" =~ ^[a-f0-9]{64}$ ]]
+   case "$LOGGING_RESTORE" in /*) ;; *) exit 1 ;; esac
+   test "$(realpath -e "$(dirname "$LOGGING_RESTORE")")" = "$(dirname "$LOGGING_RESTORE")"
+   mkdir -m 0700 "$LOGGING_RESTORE"
+   restic restore "$LOGGING_SNAPSHOT" --target "$LOGGING_RESTORE" --verify
    ```
 
-   The target must be new/empty and outside the original archive; restore retains the saved path tree. [3]
+   `mkdir` must succeed on a new path outside the original archive. A failed attempt is retained for
+   diagnosis; choose another new target rather than merging a retry into it. Restore keeps the saved path tree. [3]
 
    Restic preserves the original path tree beneath that target. Locate the restored
    archive root containing `<collector>/checkpoints/` and `<collector>/chunks/`, then

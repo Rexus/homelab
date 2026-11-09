@@ -50,12 +50,12 @@ in that starter installs these products. Use the dedicated playbooks in each tie
 
 ## Step 2: Connect diagnostics and metric history
 
-1. Review pinned Netdata values [5] in Tier 1's
+1. Review the already installed, pinned Netdata values [5] in Tier 1's
    [service role](../../../tier-1/ansible/roles/observability_platform/templates/netdata-values.yml.j2).
    Select node children, cluster-state collection and parents; review host mounts,
    capabilities and node-OS compatibility. Keep optional duplicate OTLP/log collection
    disabled unless separately selected. This path does not add a security-log receiver.
-2. Configure at least two Tier 1 parents with separate identities, data volumes and
+2. Verify the selected pair of Tier 1 parents has separate identities, data volumes and
    physical failure domains. Configure child endpoint failover and supported parent
    synchronization; increasing the chart's default single parent replica count is not
    sufficient. The role supplies separate namespaces and native Secret configuration.
@@ -67,6 +67,11 @@ in that starter installs these products. Use the dedicated playbooks in each tie
    OTLP metrics to the Tier 1 gateways. Tier 1 Collectors may scrape local Netdata parents.
    Gateways write to both metrics stores as in Step 2 of the stage. Assign one collection
    owner per series; native streaming, Prometheus and OTLP are different interfaces.
+
+Step 2 of the stage already installs these Tier 1 parents and their local bridge. Do not install
+another pair here. If this review changes Tier 1 values, render/review/reapply the existing
+[Observability installation](configuration.md#8-render-the-complete-platform) before enabling its sources.
+Keep `observability_search_bootstrap: false` for that established cluster.
 
 The Netdata interface is operator diagnostics, not a multi-tenant application portal.
 Do not expose raw Tier 0 views, Functions or BMC credentials through the Tier 1 UI.

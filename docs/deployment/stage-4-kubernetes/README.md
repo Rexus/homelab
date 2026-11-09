@@ -55,16 +55,21 @@ Each VM receives a network-only NoCloud drive at `ide2`, plus its live boot/EFI 
 the Talos API applies machine configuration. DHCP bootstrap remains an explicit legacy option.
 No workers are active in this starter; application and add-on manifests are separate inputs.
 
+Choose the lifecycle **before provisioning nodes**:
+
+| Route | Run only this cluster lifecycle | Stop/rejoin |
+| --- | --- | --- |
+| 1a: main path | [Terraform cluster Steps 1-3](procedures/talos-terraform.md#configure), including native patch preparation, saved plan/apply and credential export | Stop before its Step 4; return here for Step 2 |
+| 1b | [Manual bootstrap](step-1b-manual-cluster.md), with the same native node settings | Stop after bootstrap/client export; return here for Step 2 without Terraform ownership |
+
 1. **Prepare the independent endpoint first.** Complete
    [API endpoint Steps 1-3](procedures/api-endpoint.md#configure-local-inputs): initialize
    inputs, configure the two gateway VMs/VIP, deploy and verify ownership/DNS.
    An accepted existing independent endpoint replaces that installation; retain
    its original state owner. Do not use this cluster's ingress as its bootstrap endpoint.
-2. **Main path:** complete [Terraform cluster Steps 1-5](procedures/talos-terraform.md#configure).
-   The procedure names every input, loads the exported API credentials, prepares
-   CNI/logging patches and runs the required saved `plan`, `apply` and credential export.
-   **Option 1b:** [manual bootstrap](step-1b-manual-cluster.md) replaces those lifecycle
-   commands. Return here for Step 2; do not create a second owner for the same nodes.
+2. Follow **only the selected lifecycle** from the table. Prepare image-access, CNI and security-logging
+   settings before first bootstrap. Do not run the alternative installer afterward or continue into its
+   platform-installation section; the shared platform sequence is Step 2 below.
 3. Check private API access. With CNI deliberately disabled, node/DNS readiness can
    wait until Step 2 installs Cilium. Preserve the generated state and credentials
    outside the cluster before continuing.
@@ -143,13 +148,16 @@ backups are separate selections, not installed by this pictured main path.
 1. Complete [basic platform Step 2](procedures/basic-platform.md#configure).
    Copy `ansible/group_vars/cluster_platform.yml.example` to its local file, edit the
    approved pins/storage/context fields.
-2. Follow [basic platform Step 3](procedures/basic-platform.md#render-and-apply) to
-   render, inspect and apply **Cilium first**. Wait for
-   nodes/DNS before installing the remaining components. Accept the live block CSI
-   prerequisite; the example does not install a Proxmox/Ceph block driver.
-3. Complete [Flux/SOPS Steps 1-3](procedures/flux-sops.md) before the remaining platform
-   apply. Publish the encrypted canary to an independently reachable Git source and
-   provide read-only source credentials/age keys. Return here for Step 3.
+2. Complete [basic platform actions 5–7](procedures/basic-platform.md#5-render-cilium-only):
+   render, inspect and apply **Cilium only**, then wait for nodes/DNS. Stop before installing other components.
+3. Complete [cluster logging Steps 4–6](procedures/security-logging.md#enroll-node-streams): enroll
+   node leaves at Tier 0, install collectors and verify real node/pod/API events before adding consumers.
+   The native logging patches were prepared before bootstrap in Step 1; do not bootstrap again.
+4. Accept the [live block CSI prerequisite](procedures/basic-platform.md#persistence), including claim
+   persistence/recovery checks. The example does not install a Proxmox/Ceph block driver.
+5. Complete [basic platform action 9](procedures/basic-platform.md#8a-prepare-flux-and-managed-bootstrap-secrets--main-path)
+   for the selected Secret owner. It prepares the independent Flux source/encrypted canary and performs
+   the remaining platform render/review/apply once. Return here for Step 3.
 
 The installer applies networking, storage, certificates, ingress, database and Flux
 in that order, waiting between products. Components can be selected independently;
@@ -204,9 +212,9 @@ and [node inputs](../../../tier-0/ansible/group_vars/cluster_security_logging.ym
 select these three releases from the [Shared role](../../../shared/ansible/roles/cluster_security_logging).
 Scope: cluster sources and bounded local queues; the receiver and its archive are existing Stage 2 services.
 
-1. Finish [cluster logging Steps 3-6](procedures/security-logging.md#prepare-talos):
-   verify the prepared patches, enroll distinct node leaves at Tier 0, install
-   collectors and locate real node/pod/API events at protected intake.
+1. Confirm [cluster logging acceptance](procedures/security-logging.md#accept-the-complete-path)
+   still passes with the installed platform. Collectors were installed in Step 2; this is verification,
+   not another patch/bootstrap or installer pass.
 2. Run the [cluster verification commands](procedures/talos-terraform.md#verify-and-hand-over)
    and accept every selected [foundation gate](procedures/kubernetes.md#cluster-foundation)
    and recovery check below. Empty manifests or three running VMs are insufficient.

@@ -131,6 +131,38 @@ class DevelopmentPlatform(TierRepositoryTestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("TASK [infrastructure_runner : Install approved signed", result.stdout)
 
+    @unittest.skipUnless(os.name != "nt" and shutil.which("ansible-playbook"), "Requires native Ansible")
+    def test_secret_gate_enforces_required_type_without_rejecting_opaque_credentials(self):
+        role = UPSTREAM / "tier-1/ansible/roles/development_platform"
+        tasks = yaml.safe_load((role / "tasks/secrets.yml").read_text())
+        gate = next(task for task in tasks if task['name'] == 'Reject missing or incomplete secrets before Helm')
+        play = Path(self.temp.name) / 'secret-gate.yml'
+        play.write_text(yaml.safe_dump([{
+            'hosts': 'localhost', 'connection': 'local', 'gather_facts': False, 'tasks': [gate],
+        }]))
+        cases = [
+            ('correct-tls', 'kubernetes.io/tls', 'kubernetes.io/tls', ['tls.crt', 'tls.key'], True),
+            ('wrong-type', 'kubernetes.io/tls', 'Opaque', ['tls.crt', 'tls.key'], False),
+            ('missing-key', 'kubernetes.io/tls', 'kubernetes.io/tls', ['tls.crt'], False),
+            ('opaque-credential', None, 'Opaque', ['tls.crt', 'tls.key'], True),
+        ]
+        for name, required_type, actual_type, keys, succeeds in cases:
+            with self.subTest(secret=name):
+                descriptor = {'name': 'fixture', 'keys': ['tls.crt', 'tls.key']}
+                if required_type is not None:
+                    descriptor['type'] = required_type
+                fixture = Path(self.temp.name) / 'secret-inputs.yml'
+                fixture.write_text(yaml.safe_dump({
+                    'development_platform_action': 'apply',
+                    'development_platform_secret_checks': {'results': [{
+                        'item': descriptor,
+                        'resources': [{'type': actual_type, 'data': {key: 'fixture' for key in keys}}],
+                    }]},
+                }))
+                result = subprocess.run(['ansible-playbook', '-i', 'localhost,', str(play), '-e', '@' + str(fixture)],
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode == 0, succeeds, result.stdout + result.stderr)
+
     @unittest.skipUnless(os.name != "nt" and shutil.which("ansible-playbook"),
                          "Requires native Ansible and network-validation collection")
     def test_application_preflight_rejects_incomplete_and_unbounded_inputs(self):

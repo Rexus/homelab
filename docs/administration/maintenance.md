@@ -84,6 +84,7 @@ Talos lifecycle commands, not fresh Terraform bootstrap, to upgrade nodes. For G
 required upgrade stops and dependency ordering in the
 [data-service guide](../deployment/stage-9-development/procedures/data-services.md).
 For CA/directory services, preserve the original signing/domain identity and audit continuity.
+For Proxmox packages, follow [host updates through the approved proxy](hosts/update-access.md#how-are-proxmox-updates-installed).
 
 **Expected:** each upgraded unit passes its health, access, audit and recovery gates before the next unit.
 The kit supplies no universal upgrade command. A maintenance reconciliation is not an upgrade controller.

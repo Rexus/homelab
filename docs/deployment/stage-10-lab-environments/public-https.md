@@ -145,6 +145,11 @@ The controller-local
 [schedule recipe](../../../tier-2/ansible/playbooks/deployment/public-certificate-schedule.yml)
 installs a systemd timer, not a daemon on each edge. Supply a private vars file:
 
+Do this **after** Step 2 has issued and accepted the production certificate. On **the authorized
+Tier 2 controller**, make the production inputs, state, SSH/become access, Ansible and collections
+usable by the scheduled non-root user without an interactive shell or password prompt.
+An activated terminal virtual environment is not inherited by a systemd service.
+
 | Scheduler input | Value |
 | --- | --- |
 | `public_certificate_schedule_enabled` | true, explicit opt-in |
@@ -153,15 +158,25 @@ installs a systemd timer, not a daemon on each edge. Supply a private vars file:
 | `public_certificate_schedule_inputs` | Absolute private production override, mode 0600, owned by that user |
 | `public_certificate_schedule_state` | Same private state directory, mode 0700, owned by that user |
 
-Run from **`<prefix>-tier-2/`**.
+Run from **`<prefix>-tier-2/`** on that controller, using its authorized sudo configuration.
+Add `--ask-become-pass` only if that account requires an interactive sudo password.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg \
-  ansible-playbook --ask-become-pass -i localhost, ansible/playbooks/deployment/public-certificate-schedule.yml \
+  ansible-playbook -i localhost, ansible/playbooks/deployment/public-certificate-schedule.yml \
   -e @/absolute/private/renewal-schedule.yml
-sudo systemctl start public-certificate-renewal.service
-sudo systemctl status public-certificate-renewal.timer
 ```
+
+On **that same controller**, test the actual scheduled service, not another interactive renewal:
+
+```bash
+sudo systemctl start public-certificate-renewal.service
+sudo systemctl show public-certificate-renewal.service -p Result -p ExecMainStatus
+sudo systemctl status public-certificate-renewal.timer --no-pager
+```
+
+Require `Result=success`, `ExecMainStatus=0` and an active timer. Investigate service/journal failures
+before relying on renewal; a successful interactive order alone does not qualify the timer's environment.
 
 The timer runs twice daily with jitter and a native lock. Alert on failed jobs,
 missed successful runs and externally observed expiry. A timer is not an alert

@@ -93,7 +93,8 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
 
 1. Choose **1a: Kubernetes Vault** (main path) or
    [1b: dedicated Vault VM](step-1b-vault-vm.md). Install only one realization.
-   [1c: seal integration](step-1c-seal-integration.md) is an additional explicit seal choice.
+   [1c: seal integration](step-1c-seal-integration.md) is a separate choice made before initialization;
+   qualify its provider/recovery dependency first. It is not an automatic post-install migration.
 2. For 1a, create the local application inputs without overwriting Stage 5 settings:
 
    Run from **`<prefix>-tier-0/`**.
@@ -113,6 +114,7 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
    | --- | --- |
    | `control_applications_components` | `[vault]` |
    | `control_applications_vault_phase` | `install` initially |
+   | `control_applications_backup_files_phase` | Database commissioning only; ignored for a `[vault]`-only selection |
    | `control_applications_kubeconfig`, `control_applications_context` | Existing Tier 0 cluster only |
    | `control_applications_hosts.vault` | Approved private Vault DNS name |
    | `control_applications_storage_class` | Accepted live block storage for Raft/audit PVCs |
@@ -123,7 +125,7 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
    Run from **`<prefix>-tier-0/`**.
 
    ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e control_applications_action=render
    ```
 
    Review the private output, then install the sealed service:
@@ -138,17 +140,29 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
    `-e @secrets/control-applications.yml --ask-vault-pass` to both, as described in the input procedure.
 5. Complete [Vault ceremony and acceptance](procedures/vault-kubernetes.md#operator-ceremony).
    The first install leaves Vault sealed. Keep recovery shares outside Vault and Git.
+   Commission [scheduled independent recovery copies](../../administration/backups/control-applications.md#configure-and-schedule)
+   after API access is configured and before recording backup/restore acceptance.
 
 **Continue only after:** verified TLS, scoped access, protected audit delivery and a clean-target restore.
 
 ## Step 2: Add operational tools
 
-1. In `ansible/group_vars/control_applications.yml`, change
-   `control_applications_components` to `[netbox, headlamp]`; retain the accepted Vault configuration.
-2. Complete [application installation](procedures/control-applications.md), Steps 1–3,
-   with NetBox database/media storage, NAS backup commissioning and the existing IdP clients.
-3. Install [NetBox change-audit collection](procedures/netbox-audit.md), Steps 1–3,
-   before accepting inventory changes as audited.
+1. Prepare the existing independent host through [monitoring Step 1](monitoring.md#step-1-prepare-the-monitoring-runtime):
+   select capacity, register its SSH address/account in `infrastructure_monitoring`, and prepare protected
+   host forwarding. NetBox audit collection needs this host now; Netdata installation still follows in Step 4.
+   This recipe creates no VM and cannot use the protected receivers as monitoring targets.
+2. In **`<prefix>-tier-0/ansible/group_vars/control_applications.yml`**, select `[netbox]`;
+   retain accepted Vault and identity inputs. Complete [application installation](procedures/control-applications.md)
+   with live database/media storage and the existing IdP client. For NAS backups, first prepare the NetBox
+   database with file-backup acceptance still false, commission its own backup claim/marker, then
+   accept that destination, switch to `backup` and install the application.
+   Keycloak's backup claim/system identifier cannot be reused for NetBox.
+3. Install [NetBox change-audit collection](procedures/netbox-audit.md) on the host prepared in action 1.
+   Verify real changes at protected intake before accepting inventory changes as audited.
+4. After [API OIDC acceptance](../stage-5-identity/procedures/kubernetes-sso.md#outage-and-recovery-acceptance),
+   select `[headlamp]`, supply/register its exact IdP client and scoped namespace RBAC, then render/review/apply
+   through the same application recipe. Complete the deferred Headlamp login/denial checks now.
+   Keep this installation blocked if API bearer-token and independent certificate recovery tests have not passed.
 
 The recipe creates/gates the CNPG database and backup resources before NetBox Helm,
 supplies a persistent TLS cache, and binds only selected human groups to namespace

@@ -55,7 +55,7 @@ class CertificateAuthorityCompute(TierRepositoryTestCase):
         result = subprocess.run(['terraform', f'-chdir={self.parent}', 'plan', '-input=false',
                                  '-var-file=inputs.tfvars.json'], capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('Supported image families', result.stdout + result.stderr)
+        self.assertIn('Use redhat, debian or talos as OS family', result.stdout + result.stderr)
 
     def terraform(self, *args):
         result = subprocess.run(['terraform', f'-chdir={self.parent}', *args], capture_output=True, text=True)

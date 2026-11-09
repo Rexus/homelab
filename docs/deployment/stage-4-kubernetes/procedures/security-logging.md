@@ -30,11 +30,11 @@ application-metrics routing, and makes no zero-loss or deployment claim.
 Steps 1-3 prepare the initial cluster without a live Kubernetes API. Steps 4-6
 require the bootstrapped API/CNI and independently issued node credentials.
 
-- Working cluster API/CNI, approved image access, independent DNS/time and an
+- For installation in Steps 4–6: working cluster API/CNI, approved image access, independent DNS/time and an
   execution host outside the cluster; no directory, Vault or hosted delivery dependency.
 - Existing [protected Tier 0 intake](../../stage-2-logging/receiver.md), its trusted
   server identity and network access from each receiver-observed node/NAT address.
-- Independently issued **client-auth leaf** certificate and matching private key
+- Before applying collectors: independently issued **client-auth leaf** certificate and matching private key
   per node, plus the public receiver/client CA bundle. Obtain these through the
   [independent producer authority](../../stage-2-logging/producer-trust.md) or an
   accepted equivalent. The role generates no certificates, keys or tokens.

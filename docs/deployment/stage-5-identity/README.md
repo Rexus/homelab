@@ -129,7 +129,8 @@ scheduled file jobs and NAS destinations omitted from this runtime view.
 
 1. Complete [Keycloak Steps 1-2](procedures/keycloak.md#configure-and-install): copy the
    local inputs, edit the IdP/LDAPS/storage fields and supply the private certificates
-   and credentials. These prerequisites must not depend on later Vault.
+   and credentials. Create the restricted FreeIPA LDAPS reader and qualify its TLS path first;
+   the Keycloak recipe does not create that directory account. These inputs must not depend on later Vault.
 2. Complete [Keycloak Step 3](procedures/keycloak.md#step-3-prepare-the-database-and-backup):
    prepare its database, then commission the selected backup destination. Live database
    volumes stay on the qualified Proxmox/Ceph block class; NAS is backup storage only.
@@ -144,7 +145,10 @@ Retain bootstrap credentials and test recovery without normal directory or IdP l
 2. Before enabling Headlamp, complete [Kubernetes API human SSO](procedures/kubernetes-sso.md)
    using its supported schema and serial rollout. Preserve X509/Talos recovery and
    prove certificate access during an issuer outage. Unsupported schemas require
-   qualification; do not silently apply the 1.13 patch to 1.14.
+   qualification; do not silently apply the 1.13 patch to 1.14. Accept the API using an independently
+   prepared OIDC client for the `headlamp` audience; Headlamp's UI is installed and tested in Stage 6.
+   If that client/token path is unavailable, record the API acceptance gap and keep Headlamp blocked;
+   a healthy Keycloak alone does not satisfy its installation gate.
 3. Apply the [service SSO gate](procedures/service-sso.md) to supported later consumers;
    register their OIDC clients with exact callbacks, scoped roles and independent emergency access.
 

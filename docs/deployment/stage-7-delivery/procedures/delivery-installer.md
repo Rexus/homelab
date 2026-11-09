@@ -10,9 +10,13 @@ follow its [native installation contract](../step-2b-spinnaker.md#installation-d
 ## Contents
 
 - [Prerequisites](#prerequisites)
-- [Step 1: Edit inputs and prepare Secrets](#inputs-and-secrets)
-- [Step 2: Render and apply](#render-and-apply)
-- [Step 3: Verify access and recovery](#readiness-and-recovery)
+- [1. Create local inputs](#inputs-and-secrets)
+- [2. Select the installation](#2-select-the-installation)
+- [3. Choose the Secret owner](#3-choose-the-secret-owner)
+- [4. Render](#render-and-apply)
+- [5. Review the output](#5-review-the-output)
+- [6. Apply the reviewed inputs](#6-apply-the-reviewed-inputs)
+- [7. Verify access and recovery](#readiness-and-recovery)
 - [Native tests](#native-tests)
 - [References](#references)
 
@@ -39,10 +43,9 @@ from the cluster and storage service. The storage owner commissions the export,
 node/CSI access, permissions, retained PV and exact PVC binding before apply.
 
 <a id="inputs-and-secrets"></a>
+<a id="step-1-edit-inputs-and-prepare-secrets"></a>
 
-## Step 1: Edit inputs and prepare Secrets
-
-From the **Tier 1 root**, create the local settings:
+## 1. Create local inputs
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -50,14 +53,14 @@ Run from **`<prefix>-tier-1/`**.
 cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
 ```
 
-Edit in **`<prefix>-tier-1/`**.
+Existing inputs are preserved. Continue with that file, not a second copy.
 
-- `ansible/group_vars/delivery_platform.yml`: Selected delivery controller, cluster context, SSO, storage
-  and egress inputs.
+## 2. Select the installation
 
-Edit `ansible/group_vars/delivery_platform.yml` using the table below. Retain the approved
-central `ansible/roles/delivery_platform/files/software.yml` pins. For the controller-only
-step set `delivery_platform_install_harbor: false`; Step 3 enables Harbor separately.
+In **`<prefix>-tier-1/`**, edit `ansible/group_vars/delivery_platform.yml` using the table below.
+Retain the approved `ansible/roles/delivery_platform/files/software.yml` pins.
+For the controller-only installation, set `delivery_platform_install_harbor: false`.
+[Stage 7, Step 3](../README.md#step-3-connect-approved-artifact-supply) adds Harbor later.
 
 | Input | Contract |
 | --- | --- |
@@ -69,13 +72,22 @@ step set `delivery_platform_install_harbor: false`; Step 3 enables Harbor separa
 | `delivery_platform_output` | Private render directory; default `secrets/delivery-platform/` |
 | `delivery_platform_manage_secrets` | `false` uses existing secret-controller ownership; `true` explicitly provisions private bootstrap inputs |
 
-The [secret example](../../../../tier-1/ansible/group_vars/delivery_platform_secrets.yml.example)
-lists exact namespace/name/key contracts. Choose one owner:
+Complete the selected [Argo CD](../step-2a-argocd.md),
+[Spinnaker](../step-2b-spinnaker.md) or [Harbor](registry.md) input/TLS/SSO contract before rendering.
+Return here for the commands; do not start a second installer.
 
-| Choice | Action |
-| --- | --- |
-| Existing Secret controller | Keep `delivery_platform_manage_secrets: false`; supply the required Secrets through that owner |
-| Bootstrap inputs | Copy the example below, fill the selected Secret values and set its `delivery_platform_manage_secrets: true` |
+## 3. Choose the Secret owner
+
+The [secret example](../../../../tier-1/ansible/group_vars/delivery_platform_secrets.yml.example)
+lists exact namespace/name/key contracts. Choose **3a** or **3b**, then continue at Step 4.
+
+### 3a. Existing Secret controller
+
+In **`<prefix>-tier-1/`**, keep `delivery_platform_manage_secrets: false`.
+Provision the selected product's required Secrets through the existing owner.
+Use commands **4a** and **6a** below; no local bootstrap Secret file is required.
+
+### 3b. Encrypted bootstrap inputs
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -85,11 +97,10 @@ mkdir -p secrets
 cp -n ansible/group_vars/delivery_platform_secrets.yml.example secrets/delivery-platform.yml
 ```
 
-Edit in **`<prefix>-tier-1/`**.
-
-- `secrets/delivery-platform.yml`: Follow the private-input/encryption steps below for secret values.
-
-After editing the private file, encrypt it and retain the decryption material independently:
+In **`<prefix>-tier-1/`**, edit `secrets/delivery-platform.yml`: retain
+`delivery_platform_manage_secrets: true` and fill the selected product's required values.
+For native Spinnaker, follow its stable-password and preissued-keystore contract.
+Then encrypt the completed file:
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -97,18 +108,34 @@ Run from **`<prefix>-tier-1/`**.
 ansible-vault encrypt secrets/delivery-platform.yml
 ```
 
-Do not run both owners. Required fields are checked before
-release changes; sensitive values stay out of task output.
+Retain the decryption material independently. Use commands **4b** and **6b** below.
+Do not run both Secret owners. Required fields are checked before release changes.
 
 Harbor's bundled PostgreSQL password is a native chart value. Supply it privately
 even for rendering. Rendered values/manifests and Helm's release Secrets contain
 sensitive data: keep them private, encrypted in backup and outside Git/CI artifacts.
 
 <a id="render-and-apply"></a>
+<a id="step-2-render-and-apply"></a>
 
-## Step 2: Render and apply
+## 4. Render
 
-From Tier 1, after preparing local inputs:
+Choose the command matching Step 3. Both render without contacting Kubernetes.
+
+### 4a. Existing Secrets
+
+Run from **`<prefix>-tier-1/`**.
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/delivery-platform.yml \
+  -e @ansible/group_vars/delivery_platform.yml -e delivery_platform_action=render
+```
+
+If installing Harbor, supply `delivery_platform_harbor_database_password` through an accepted
+private input even with externally managed Kubernetes Secrets.
+
+### 4b. Encrypted bootstrap inputs
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -116,18 +143,40 @@ Run from **`<prefix>-tier-1/`**.
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/delivery-platform.yml \
   -e @ansible/group_vars/delivery_platform.yml \
-  -e @secrets/delivery-platform.yml --ask-vault-pass
+  -e @secrets/delivery-platform.yml --ask-vault-pass -e delivery_platform_action=render
 ```
 
-Omit `-e @secrets/delivery-platform.yml --ask-vault-pass` when using pre-existing Secrets, but supply Harbor's
-database password through an accepted private input. Rendering downloads exact
-official charts; native Spinnaker builds its supplied pinned base without downloads. Rendering never contacts
-Kubernetes. It does not establish that existing Secrets or services are usable.
+Rendering downloads exact official charts; native Spinnaker builds its supplied pinned base
+without downloads. Expect private values/manifests under `secrets/delivery-platform/`, unless
+`delivery_platform_output` selects another directory. Rendering does not test live prerequisites.
 
-Review `<release>-values.yml`, `<release>-manifests.yml`, and any `before`/`after`
-resources under the private output directory. Follow the selected
-[Argo CD](../step-2a-argocd.md), [Spinnaker](../step-2b-spinnaker.md) and
-[Harbor](registry.md) preparation contracts before applying:
+## 5. Review the output
+
+In **`<prefix>-tier-1/`**, inspect `<release>-values.yml`, `<release>-manifests.yml` and any
+`before`/`after` resources in the selected output directory. Check destinations, permissions,
+TLS, storage and product pins against the selected branch.
+
+For Spinnaker, record `spinnaker.sha256` as `delivery_platform_spinnaker_review_sha256`
+in `ansible/group_vars/delivery_platform.yml`. Complete its certificate and backup commissioning
+before continuing. Do not apply the combined Spinnaker YAML directly.
+
+## 6. Apply the reviewed inputs
+
+Apply changes the selected cluster without an interactive confirmation. Use the same inputs and
+Secret owner as the render. For unattended execution, supply an approved Ansible Vault identity
+instead of `--ask-vault-pass`; keep its decryption material outside the repository.
+
+### 6a. Existing Secrets
+
+Run from **`<prefix>-tier-1/`**.
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/delivery-platform.yml \
+  -e @ansible/group_vars/delivery_platform.yml -e delivery_platform_action=apply
+```
+
+### 6b. Encrypted bootstrap inputs
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -149,19 +198,26 @@ snapshot before publishing ingress. It never executes
 Halyard. No release is uninstalled or pruned by this procedure.
 
 <a id="readiness-and-recovery"></a>
+<a id="step-3-verify-access-and-recovery"></a>
 
-## Step 3: Verify access and recovery
+## 7. Verify access and recovery
 
-The recipe checks Harbor's component health and the controller HTTPS endpoint.
-Then test accepted and denied SSO users, ordinary direct API access, rejected
-sources/destinations, push/pull or a bounded deployment, rollback and clean-target
-restoration. Readiness probes do not prove authorization or recoverability.
-Keep bootstrap administrators until SSO and independent recovery have passed.
+The recipe checks Harbor's component health and the controller HTTPS endpoint. Then:
 
-Record one owner for every release/resource. Stop direct Ansible apply before
-adopting resources into a delivery controller. Back up original application data,
-private configuration, encryption/signing keys and bootstrap credentials independently.
-Retain bootstrap Git/image supply until the replacement is accepted.
+1. Test accepted and denied SSO users and ordinary direct API access.
+2. Verify rejected sources/destinations, push/pull or a bounded deployment, then rollback.
+3. Restore on a clean target with independently retained data, configuration and keys.
+4. Record one owner per release/resource; stop direct Ansible apply before controller adoption.
+
+Readiness probes do not prove authorization or recoverability. Keep bootstrap administrators
+and Git/image supply until SSO, independent recovery and replacement supply have passed.
+
+Back up original application data, private configuration, encryption/signing keys and
+bootstrap credentials independently.
+
+**Continue:** return to the selected [Argo CD](../step-2a-argocd.md#step-3-install-and-verify),
+[Spinnaker](../step-2b-spinnaker.md#step-4-qualify-delivery) or [Harbor](registry.md#acceptance)
+acceptance path, then rejoin Stage 7.
 
 ## Native tests
 

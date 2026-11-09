@@ -21,9 +21,6 @@ podman_runner_register: false
 podman_runner_gitlab_url: "https://git.corp.example.com"
 podman_runner_authentication_token: "change-me"
 
-podman_runner_tags:
-  - bootc
-  - podman
-
-podman_runner_run_untagged: false
-podman_runner_locked: true
+# In GitLab, assign bootc/podman tags, allowed projects and protection; disable
+# untagged jobs before creating the token. Authentication-token registration
+# does not change those server-side policies.

@@ -75,6 +75,7 @@ Paths are relative to the tier's `ansible/playbooks/`. Legacy `<setup>.yml`
 entry points import the deployment recipe using native `import_playbook` [1].
 Tier 0 standalone `proxmox-hosts.yml` and opt-in co-hosted signing `ingress.yml` retain their dedicated entry
 points; they are not registered Linux VM setups in the shared deployment helper.
+For the first Proxmox run, follow [host-management setup](hosts/management.md) before selecting a host task.
 The signing play is a gated backend renderer, not a service, VIP or HA installer.
 
 | Tier / setup | Deployment recipe | Maintenance recipe and scope |
@@ -136,8 +137,9 @@ application-aware rolling upgrades or failover.
 
 No new automatic major upgrades, database migrations, Vault unseal, HSM key
 replication, or root ceremonies are introduced. Keep those in approved service
-runbooks. Existing customized legacy playbooks remain preserved on refresh;
-review their changes before adopting the new canonical recipe paths.
+runbooks. Refresh updates kit automation and can replace edited legacy playbooks with backups;
+review the [refresh ownership rules](../development/generated-repositories.md#refresh-and-local-ownership)
+and compare local changes before running the updated recipes.
 
 ## References
 

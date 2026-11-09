@@ -42,7 +42,7 @@ a full clone running on this platform is not itself an independent recovery copy
 | Setting | Reference choice |
 | --- | --- |
 | VM name | `boot-1`; prefer a 3–8 character host label including the instance number |
-| VMID | `601` in the [VMID convention](../../../conventions/vmid-convention.md); reserve an unused automation ID if already occupied |
+| VMID | `501` in the [VMID convention](../../../conventions/vmid-convention.md); reserve an unused automation ID if already occupied |
 | Compute | Start with 2 vCPUs / 4 GiB RAM; size for the selected tools and artifact processing |
 | OS disk | Live Proxmox storage, sized for the selected Linux OS and installed tools |
 | Workspace capacity | Reference layout: separate attached live-storage disk at `/srv/tier0`, starting at 60 GiB; alternatively expand the existing LVM root disk using storage B below |
@@ -152,55 +152,31 @@ network access or **2b** for a prepared offline bundle.
 
 ### Prepare bootstrap storage
 
-Choose **A** for the separate workspace filesystem shown above, or **B** for an existing Rocky Linux
-LVM root. Complete only the selected path before installing tools or copying artifacts.
+Choose **A** for the separate workspace filesystem shown above, or **B** to enlarge an existing
+LVM root on EL10 or Debian/Ubuntu. Complete only the selected path before installing tools or copying artifacts.
 
 #### A: Separate workspace filesystem — reference layout
 
-1. In **VM > Hardware > Add > Hard Disk**, add `scsi1` on the selected live-disk
-   datastore. Keep its **Backup** option enabled.
-2. In the guest, identify the attached disk with `lsblk -f`. Prepare its filesystem
-   and persistent mount using the selected OS's storage tools; confirm the device
-   before any formatting. Mount at `/srv/tier0` **before copying data there**.
-   An existing attached-disk mount is valid; adapt all absolute paths to that mount instead.
-   The Enterprise Linux storage manual covers filesystem preparation and UUID-based mounts. [3]
-3. Check the mount and free space:
+1. In **VM > Hardware > Add > Hard Disk**, add `scsi1` on the selected live-disk datastore.
+   Keep its **Backup** option enabled.
+2. Complete [workspace disk preparation](bootstrap-storage.md): identify the empty disk, create its
+   filesystem, record the UUID mount, verify after reboot and create the private directories.
+   An existing filesystem is valid; retain its data and verify the actual selected mount.
+3. Require the intended data filesystem from `findmnt -T /srv/tier0`, with enough space for compressed
+   downloads, unpacked images and tool/provider caches together. Include it in the independent recovery set.
 
-Run on **`boot-1`** as automation.
-
-```bash
-findmnt -T /srv/tier0
-df -h / /srv/tier0 /tmp
-```
-
-Require the intended data filesystem, not `/` as an accidental fallback. Then create
-private workspace, artifact and upload directories on it:
-
-Run on **`boot-1`** as automation.
-
-```bash
-(
-  mountpoint -q /srv/tier0 || { echo 'Mount the data filesystem before continuing.' >&2; exit 1; }
-  sudo install -d -m 0700 -o "$(id -un)" -g "$(id -gn)" \
-    /srv/tier0/src /srv/tier0/artifacts /srv/tier0/offline /srv/tier0/tmp/proxmox-upload
-)
-```
-
-Budget space for compressed downloads, unpacked images, Python/provider caches and
-upload copies together. This disk shares the VM/platform failure domain; back it up
-independently and include it in bootstrap VM backup jobs.
+The workspace guide refuses an unmounted directory with `mountpoint -q /srv/tier0` before creating private
+paths such as `/srv/tier0/src/homelab`. Back up the data disk independently and include it in bootstrap VM backup jobs.
 
 **Optional, before installing tools/cloning:** follow [home directories on the data disk](bootstrap-home.md)
-to bind `/srv/tier0/home` at `/home`. This puts `.ssh` and user environments on the
-same attached disk while preserving the account and artifact paths. Rejoin at **2a/2b**.
-For an offline installation, that guide first obtains the bundle's OS tools, then
-moves homes before creating Python environments or cloning the kit.
+to bind `/srv/tier0/home` at `/home`. Complete the selected storage/home path, then continue at **2a/2b**.
 
-#### B: Expand the existing Rocky Linux root — LVM alternative
+<a id="b-expand-the-existing-rocky-linux-root--lvm-alternative"></a>
 
-Follow [Rocky Linux LVM expansion](bootstrap-lvm.md). Prefer enlarging the existing Proxmox
-disk, growing its partition and running `pvresize`, then extending the root LV/filesystem.
-That guide also supplies the optional new-disk `pvcreate`/`vgextend` path.
+#### B: Expand the existing root — LVM alternative
+
+Follow [LVM expansion](bootstrap-lvm.md): choose **A** to enlarge the existing disk, or **B**
+to add a disk to the existing volume group. Each path has its own numbered commands and checks.
 
 For this layout, `/srv/tier0` is a directory on the expanded root filesystem. Use that guide's
 directory/verification steps, then continue at **2a** or **2b** below. The separate-mount check and
@@ -211,19 +187,27 @@ home bind-mount option in **A** apply only to its separate-filesystem layout.
 
 ### 2a: Install Git, Terraform and Ansible
 
-These commands target a fresh **Rocky Linux / AlmaLinux 10** bootstrap. Run on `boot-1`
-as `automation`, using approved OS/vendor repositories. Steps 1–2 install OS packages;
-Step 4 selects either the OS-packaged Ansible or the isolated reference runtime.
-For a disconnected host, follow **2b** instead; no public repository access is needed there.
+Run on **`boot-1`** with the configured SSH account and authorized sudo, using approved repositories.
+EL10 (Rocky/Alma) is the reference; Debian/Ubuntu differences appear beside the relevant command.
+For a disconnected host, follow **2b** instead. All steps below use the workspace prepared above.
 
 #### 1. Install OS tools
 
-Install the base tools and disk/home preparation utilities:
+On **`boot-1`**, install the EL10 base tools and disk/home preparation utilities:
 
 ```bash
 sudo dnf install -y git bash python3 python3-pip python3-pyyaml \
   openssh-clients ca-certificates curl openssl gnupg2 xz unzip tar /usr/bin/qemu-img \
-  dnf-plugins-core rsync policycoreutils-python-utils lvm2 cloud-utils-growpart parted xfsprogs
+  dnf-plugins-core rsync policycoreutils-python-utils lvm2 parted xfsprogs
+```
+
+For Debian/Ubuntu, use this block instead:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git bash python3 python3-pip python3-venv python3-yaml \
+  openssh-client ca-certificates curl openssl gnupg xz-utils unzip tar qemu-utils \
+  rsync lvm2 parted xfsprogs e2fsprogs
 ```
 
 #### 2. Install Terraform
@@ -238,6 +222,9 @@ sudo dnf install terraform
 Review the package/signing-key prompt. Compare the key fingerprint with the current
 [HashiCorp package-signing reference](https://www.hashicorp.com/en/trust/security)
 before accepting it; retain signature and TLS verification. [6]
+
+On **Debian/Ubuntu**, use HashiCorp's [Ubuntu/Debian installation block](https://developer.hashicorp.com/terraform/install#linux)
+instead of the RPM commands, then continue below. [4]
 
 <a id="2a-continued-obtain-the-kit-and-generate-the-collection"></a>
 
@@ -267,6 +254,8 @@ reference runtime. Installing Ansible does not require a manual venv in every ca
 ```bash
 sudo dnf install -y ansible-core
 ```
+
+On **Debian/Ubuntu**, use `sudo apt-get install -y ansible-core` instead.
 
 With compatible collections, this is enough to run the cache recipe without the manual Python
 setup below. `deploy.sh` prepares the selected setup's collections. Confirm the installed core
@@ -303,7 +292,9 @@ For **4b**, keep this environment active for Linux `deploy.sh`; reactivate it in
 `source "$HOME/.local/share/homelab/venv/bin/activate"`. Template commands select their own
 isolated runtime automatically; see [runtime behavior](../../../reference/control-node-tooling.md#automatic-template-runtime).
 
-#### 5. Verify tools and generate the repositories
+<a id="5-verify-tools-and-generate-the-repositories"></a>
+
+#### 5. Verify the tools
 
 From the kit root, using the runtime selected in **4a** or **4b**:
 
@@ -318,9 +309,11 @@ ansible-playbook --version
 
 Require version output from every command. For **4b**, Ansible must report the executable under
 `$HOME/.local/share/homelab/venv/`; **4a** uses the OS-installed executable without activation.
-For a new collection, generate the repositories next:
+For a new collection, continue below. Existing collections retain their original inputs and state.
 
-Run from the reviewed upstream kit root on `boot-1`; keep the venv active only when **4b** was selected.
+#### 6. Generate the repositories
+
+Run from the **upstream kit root** on **`boot-1`**; keep the venv active only when **4b** was selected.
 
 ```bash
 bash scripts/init-tier-repos.sh
@@ -339,6 +332,8 @@ Edit in **`<prefix>-architecture/`**.
 Read the rendered upstream [Tier 0 checklist](../../../paths/tier-0/README.md) in
 the browser while executing commands from the named generated repository.
 
+#### 7. Stage the template artifacts
+
 Acquire approved images/checksums into `/srv/tier0/artifacts` and retain their provenance. Copy the first
 manually uploaded Linux artifact here too if its file/template will be adopted.
 Follow [verify, unpack and upload](templates.md#step-1-verify-unpack-and-upload)
@@ -346,8 +341,7 @@ for raw/qcow2 handling; catalog hashes describe the **unpacked** bytes. Retain
 provider/tool/collection artifacts outside this VM for independent recovery.
 
 The [control-node reference](../../../reference/control-node-tooling.md#automation-vm-example)
-lists compatibility and runtime details. Other distributions use their native packages and
-the [official Terraform installer](https://developer.hashicorp.com/terraform/install).
+lists compatibility and runtime details.
 Packer and later-stage tools such as Helm, kubectl and talosctl belong to their selected paths.
 
 **Connected path complete:** continue at **Step 3**. The following **2b** is the offline alternative.

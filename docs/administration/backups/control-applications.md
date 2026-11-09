@@ -113,40 +113,72 @@ of random delay. Wrong/missing repositories fail closed. [3][4]
 
 ## How to run a backup and check success?
 
-1. **On the recovery host**, inspect the schedule and run once:
+Run these steps on **the independent `control_recovery` host**.
+The receipt examples use the default `control_backup_directory`. If overridden, read the installed
+`/etc/control-backup/config.json` and substitute its `directory` value.
 
-   Run on **the independent control_recovery host**.
+### 1. Check the installed schedule
 
-   ```bash
-   sudo systemctl list-timers --all control-backup.timer
-   sudo systemctl cat control-backup.timer
-   sudo systemctl start control-backup.service
-   sudo systemctl status control-backup.service --no-pager
-   sudo journalctl -u control-backup.service -n 80 --no-pager
-   sudo cat /var/lib/control-backup/health.json
-   sudo cat /var/lib/control-backup/last-success.json
-   ```
+```bash
+sudo systemctl list-timers --all control-backup.timer
+sudo systemctl cat control-backup.timer
+```
 
-2. Require a fresh `ok: true`, expected full restic ID, Vault/manifest hashes and a current
-   external health ping. The job inspects the native snapshot, verifies digests, runs
-   `restic check` and only then publishes success. Nonzero/partial restic exit 3 fails. [5]
-3. Record set age, input-source age, media/DB pairing and observed RPO/RTO. A fresh restic timestamp
-   does not prove its source export is current.
-4. Run periodic read-data checks and [isolated product restores](../recovery/README.md).
-   A successful file check does not prove application consistency.
+Expect the approved calendar and an upcoming run for managed certificate/AppRole authentication.
+`static-token-local` deliberately leaves the timer stopped/disabled.
 
-The receipt paths above use the default `control_backup_directory`. If overridden, inspect
-`/etc/control-backup/config.json` on that host and use its actual `directory` value.
+### 2. Run one backup
+
+```bash
+sudo systemctl start control-backup.service
+```
+
+Wait for completion. On failure, inspect Step 3 and [stop conditions](#stop-and-rollback) before retrying.
+
+### 3. Read the service result
+
+```bash
+sudo systemctl status control-backup.service --no-pager
+sudo journalctl -u control-backup.service -n 80 --no-pager
+```
+
+This is a oneshot service; `inactive (dead)` after successful completion is normal.
+Require successful completion in the service/journal, then check its receipts.
+
+### 4. Check the success receipts
+
+```bash
+sudo cat /var/lib/control-backup/health.json
+sudo cat /var/lib/control-backup/last-success.json
+```
+
+Require fresh `ok: true`, the full restic snapshot ID in `restic_snapshot` and Vault/manifest hashes.
+Retain the repository ID separately from the snapshot receipt; it is pinned by
+`control_backup_repository_id`, not included in `last-success.json`.
+The job inspects the native snapshot, verifies digests and runs `restic check` before publishing success.
+Nonzero/partial restic exit 3 fails. [5]
 
 A kernel lock serializes systemd and direct CLI runs. Failed ordinary runs preserve last success
 but write `ok: false`; crashes or failures before Python starts can leave stale status.
 Monitor timestamp age and missed external pings, not file presence.
 
+### 5. Confirm independent monitoring and source age
+
+In **the independent dead-man monitor**, require a current health ping.
+Record set age, input-source age, media/DB pairing and observed RPO/RTO.
+A fresh restic timestamp does not prove its source export is current.
+
+### 6. Prove the retained copy can be read and restored
+
+Use [repository checks and selection](#list-and-restore) below for periodic read-data checks,
+then run [isolated product restores](../recovery/README.md).
+A successful file check does not prove application consistency.
+
 <a id="list-and-restore"></a>
 
 ## How to list, inspect and restore a recovery point?
 
-**On the recovery host**, enter an authorized root shell and select the installed repository:
+### 1. Open an authorized root shell
 
 Run on the independent **`control_recovery`** host.
 
@@ -154,27 +186,50 @@ Run on the independent **`control_recovery`** host.
 sudo -i
 ```
 
-Run on **the independent control_recovery host as root**.
+### 2. Select and verify the repository
+
+Run on **the independent `control_recovery` host as root**:
 
 ```bash
 export RESTIC_REPOSITORY="$(python3 -c 'import json; print(json.load(open("/etc/control-backup/config.json"))["repository"])')"
 export RESTIC_PASSWORD_FILE=/etc/control-backup/restic.password
 restic cat config
+```
+
+Compare its full repository ID with independently retained records. Stop on a mismatch.
+
+### 3. List recovery points
+
+In **the same root shell**, retain the repository exports above:
+
+```bash
 restic snapshots --tag control-recovery --json
+```
+
+Select the full snapshot ID from independently retained records.
+
+### 4. Check stored data
+
+In **the same root shell**:
+
+```bash
 restic check --read-data
 ```
 
-Compare repository ID and the selected full snapshot ID with independently retained records.
-For a snapshot's contents:
+Require success before extraction. Diagnose corruption against independent copies; do not overwrite history.
 
-Run on **the independent control_recovery host as root, retaining the repository exports above**.
+### 5. Inspect the selected snapshot
+
+In **the same root shell**:
 
 ```bash
 read -r -p "Full recorded snapshot ID: " RECOVERY_SNAPSHOT
 restic ls "$RECOVERY_SNAPSHOT"
 ```
 
-Then follow [clean extraction](../recovery/files.md), followed by the product-specific restore.
+### 6. Extract to a clean target and restore the product
+
+Follow [clean extraction](../recovery/files.md), then the product-specific restore.
 During a total outage, supply repository/password from independent custody rather than fetching
 them from Vault or relying on this host's installed files.
 

@@ -27,9 +27,14 @@ Keep Talos, hypervisor, lifecycle state and platform credentials private.
 Verify that another tenant and the new cluster cannot reach Control/other tenants;
 returning a DNS name alone establishes neither routing nor authorization.
 
+For the supplied operator-first path, return to
+[Stage 10, Step 3](README.md#step-3-deploy-and-verify-applications) after those checks.
+The following dispatcher work is an optional extension, not another required installation.
+
 ## Step 3: Introduce bounded automation
 
-Implement and test the missing dispatcher before accepting automated requests:
+This step applies only when adding self-service. Implement and test the missing dispatcher before
+accepting automated requests; neither the single-cluster script nor its example profiles supplies it:
 
 | Input/result | Required handling |
 | --- | --- |

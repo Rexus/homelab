@@ -25,8 +25,9 @@ not the application analytics path below. Register missing sources explicitly.
 Application security/audit events must also enter a protected source, such as
 captured container stdout or an approved file stream, never only the SDK analytics path.
 
-In Kubernetes, install application instrumentation using the language's supported
-OTel SDK. Configure OTLP/gRPC to `otel-agent:4317` in its own namespace. This listener
+For Kubernetes, prepare application instrumentation using the language's supported
+OTel SDK and its `otel-agent:4317` OTLP/gRPC destination. Enable emission after Step 2 has installed
+and qualified that Collector. This listener
 is plaintext within the same restricted namespace and allowed only by its network
 policy; no cross-tier or public plaintext listener is created. Services needing
 stronger intra-namespace separation require separate namespaces or authenticated receivers.
@@ -93,6 +94,11 @@ Run from **`<prefix>-tier-2/`**.
 
 ```bash
 python3 -m pip install -r ansible/requirements.txt
+```
+
+Run from **`<prefix>-tier-2/`** in the same environment:
+
+```bash
 ansible-galaxy collection install -r ansible/requirements.yml
 ```
 
@@ -122,6 +128,10 @@ These are producer credentials, not OpenSearch query, archive or administrator
 credentials. Tier 1 maps authenticated intake ports to fixed search scopes;
 caller-supplied labels never grant another application's read access.
 
+If this is a new application scope, first render/review/reapply the corresponding Stage 8
+receiver policy and verify that private listener. Keep search bootstrap disabled on an existing cluster.
+The Collector cannot create its remote listener, source CA or reader mapping.
+
 Run from **`<prefix>-tier-2/`**.
 
 ```bash
@@ -142,6 +152,11 @@ inputs and Secrets. The recipe installs no full metrics/search stack locally.
 The [network policies](../../../tier-2/ansible/roles/workload_telemetry/templates/network-policy.yml.j2)
 allow application-to-Collector traffic, DNS and specified outbound gateway ports.
 They do not grant access to the Tier 0 archive.
+
+After Collector readiness, enable the prepared SDK configuration in the application and continue
+with Step 3. The supplied egress allowance selects `app.kubernetes.io/name: lab-app`;
+adapt that policy through its tier-owned template before enrolling differently labelled applications.
+The reference HTTP image does not gain SDK instrumentation from installing this chart.
 
 ## Step 3: Verify buffering and authorization
 

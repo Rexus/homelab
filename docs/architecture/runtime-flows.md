@@ -146,6 +146,11 @@ A workload request cannot provide arbitrary scripts, providers or manifests for
 execution with those credentials. Executor placement does not transfer ownership
 of a workload's definitions, inventory or state; one writer controls each state root.
 
+The diagram shows the independent acceptance contract, not an installed request
+controller. The [direct trusted-CI variant](software/development-platform.md#privileged-ci)
+instead accepts the dedicated project's GitLab control plane and its administrators
+as Tier 0 trusted authority; it does not add independent authorization.
+
 Source-control loss can pause new requests. It must not remove accepted resource
 records, trigger workload deletion, or prevent independent Tier 0 administration
 and recovery. Detail: [infrastructure control](hosting/provisioning.md).

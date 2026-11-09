@@ -7,7 +7,7 @@
 
 vm_instances = {
   "log-1" = {
-    vm_id            = 501
+    vm_id            = 401
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
@@ -22,7 +22,7 @@ vm_instances = {
   # Bootstrap starts with one host. Enable this on a different physical host,
   # with matching inventory/IP entries, before accepting security-logging HA.
   # "log-2" = {
-  #   vm_id             = 502
+  #   vm_id             = 402
   #   proxmox_node_name = "pve02"
   #   size              = "small"
   #   storage_class     = "local"

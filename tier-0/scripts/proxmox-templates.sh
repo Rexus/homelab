@@ -41,9 +41,10 @@ catalog="${TEMPLATE_CATALOG_FILE:-$repo_root/templates/proxmox.yml}"
 state="${TEMPLATE_STATE_PATH:-$repo_root/.terraform/state/proxmox-templates/terraform.tfstate}"
 shared_catalog="${TEMPLATE_SHARED_CATALOG_FILE:-$repo_root/../shared/templates/proxmox-catalog.tfvars}"
 plan="$repo_root/.terraform/plans/proxmox-templates.tfplan"
+plan_context="$plan.context"
 if [[ "$action" == plan || "$action" == import ]]; then
   # A failed re-plan must not leave a previous apply target, even if validation or init fails.
-  rm -f "$plan"
+  rm -f "$plan" "$plan_context"
 fi
 env_file=""
 platform_file="${TEMPLATE_PLATFORM_FILE:-}"
@@ -117,7 +118,8 @@ if [[ "$action" == init ]]; then
     cp -n "$repo_root/env.local.example" "$repo_root/.env.local"
     chmod 600 "$repo_root/.env.local"
   fi
-  echo "Review $catalog and .env.local, stage approved images, then run plan --env-file .env.local."
+  echo "Review $catalog and .env.local, then stage the approved images."
+  echo "Use import --env-file .env.local for existing templates/files, or plan --env-file .env.local for new publications."
   exit 0
 fi
 
@@ -190,12 +192,45 @@ if [[ -n "$platform_file" ]]; then
   var_args=("-var-file=$platform_file" "${var_args[@]}")
 fi
 if [[ "$action" == apply && ! -f "$plan" ]]; then
-  echo "No saved template plan. Run plan and review its output before apply." >&2
+  echo "No saved template plan. Run import (existing resources) or plan (new publication), then review before apply." >&2
   exit 1
 fi
 if [[ "$action" == apply && -n "${TEMPLATE_SHARED_CATALOG_FILE:-}" && ! -f "$shared_catalog" ]]; then
   echo "Configured Shared catalog not found: $shared_catalog. Restore it before apply." >&2
   exit 1
+fi
+
+# Apply uses a saved Terraform plan, but policy refresh reads the current inputs.
+# Keep those inputs and the target backend/endpoint bound to the reviewed plan.
+template_plan_inputs() {
+  local files=("$catalog" "$repo_root/scripts/proxmox-templates.sh") file input
+  [[ -z "$platform_file" ]] || files+=("$platform_file")
+  for file in "$terraform_dir/"*.tf "$terraform_dir/"*.tf.json \
+    "$terraform_dir/"*.tfvars "$terraform_dir/"*.tfvars.json \
+    "$terraform_dir/.terraform.lock.hcl" "$repo_root/terraform/modules/proxmox_templates/"*.tf; do
+    [[ ! -f "$file" ]] || files+=("$file")
+  done
+  printf 'state=%s\nendpoint=%s\nshared_catalog=%s\n' "$state" "${PROXMOX_VE_ENDPOINT:-}" "$shared_catalog"
+  sha256sum -- "${files[@]}"
+  # These can affect refresh even when the reviewed apply uses saved values.
+  # Store only a digest, never environment values (CLI arguments may contain secrets).
+  for input in TF_VAR_proxmox_storage_classes TF_VAR_default_platform_node_name TF_VAR_platform \
+    TF_VAR_shared_network_zones TF_VAR_adopt_existing TF_CLI_ARGS TF_CLI_ARGS_plan TF_CLI_ARGS_apply; do
+    printf '%s=' "$input"
+    printf '%s' "${!input:-}" | sha256sum
+  done
+}
+if [[ "$action" == apply ]]; then
+  if [[ ! -f "$plan_context" ]]; then
+    echo "Missing saved template input context. Rerun import/plan with this script, review, then apply." >&2
+    exit 1
+  fi
+  reviewed_inputs="$(template_plan_inputs)"
+  current_context="$(printf '%s\n' "$reviewed_inputs"; sha256sum -- "$plan")"
+  if ! printf '%s\n' "$current_context" | cmp -s - "$plan_context"; then
+    echo "Template plan inputs, configuration or execution target changed. Rerun import/plan and review before apply." >&2
+    exit 1
+  fi
 fi
 
 if [[ "$action" == setup || "$action" == replace-disk || "$action" == apply || "$action" == verify ]]; then
@@ -284,7 +319,7 @@ if not isinstance(result.get("changed"), bool):
 print("true" if result["changed"] else "false")
 ' "$disk_result")"
   if [[ "$disk_changed" == true ]]; then
-    rm -f "$plan"
+    rm -f "$plan" "$plan_context"
     # Refresh records the new volume identity; it does not reconcile or apply VM settings.
     terraform -chdir="$terraform_dir" apply -refresh-only -auto-approve -input=false \
       -lock-timeout=60s "${var_args[@]}"
@@ -298,8 +333,18 @@ fi
 if [[ "$action" == plan || "$action" == import ]]; then
   adopt=false
   [[ "$action" == import ]] && adopt=true
-  terraform -chdir="$terraform_dir" plan -input=false -lock-timeout=60s \
-    "${var_args[@]}" -var="adopt_existing=$adopt" -out="$plan"
+  reviewed_inputs="$(template_plan_inputs)"
+  if ! terraform -chdir="$terraform_dir" plan -input=false -lock-timeout=60s \
+    "${var_args[@]}" -var="adopt_existing=$adopt" -out="$plan"; then
+    rm -f "$plan" "$plan_context"
+    exit 1
+  fi
+  if [[ "$(template_plan_inputs)" != "$reviewed_inputs" ]]; then
+    rm -f "$plan" "$plan_context"
+    echo "Template inputs changed while planning. Rerun import/plan and review the new result." >&2
+    exit 1
+  fi
+  { printf '%s\n' "$reviewed_inputs"; sha256sum -- "$plan"; } > "$plan_context"
   if [[ "$action" == import ]]; then
     echo "Adoption plan only: review imports AND changes. State is not imported until apply."
     echo "Stop on unexpected updates/replacements. Back up existing state before apply."
@@ -310,7 +355,7 @@ else
   # Serialize image uploads/imports to bound temporary storage use on the bootstrap host and Proxmox.
   terraform -chdir="$terraform_dir" apply -input=false -lock-timeout=60s -parallelism=1 "$plan" || apply_status=$?
   # A partial apply may already have recorded imports or created resources in state.
-  rm -f "$plan"
+  rm -f "$plan" "$plan_context"
   if [[ "$apply_status" != 0 ]]; then
     echo "Template apply failed; the saved plan was discarded. Keep the existing state." >&2
     echo "Resolve the reported error, rerun import --env-file .env.local (or plan), and review before apply." >&2
@@ -323,6 +368,11 @@ else
     --extra-vars "@$policy_inputs" --extra-vars template_policy_apply=true; then
     echo "Terraform publication completed, but template policy verification failed. Keep the existing state." >&2
     echo "Resolve the reported problem, then rerun plan/apply; do not replace disks to clear account or memory settings." >&2
+    exit 1
+  fi
+  if [[ "$(template_plan_inputs)" != "$reviewed_inputs" ]]; then
+    echo "Templates applied, but reviewed inputs changed during publication. Keep the applied state." >&2
+    echo "Restore/review the intended inputs and rerun import/plan before policy refresh or Shared synchronization." >&2
     exit 1
   fi
   terraform -chdir="$terraform_dir" apply -refresh-only -auto-approve -input=false \

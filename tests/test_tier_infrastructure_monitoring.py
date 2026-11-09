@@ -1,7 +1,9 @@
 """Infrastructure diagnostics stay visible without moving Tier 0 control into Tier 1."""
 
+import ipaddress
 import re
 
+import hcl2
 import yaml
 
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
@@ -44,6 +46,12 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
             inventory = collection / f"{prefix}tier-0/ansible/inventory/hosts.yml.example"
             groups = yaml.safe_load(inventory.read_text())["all"]["children"]
             self.assertIn("hypervisors", groups)
+            tier0 = collection / f"{prefix}tier-0"
+            networks = hcl2.loads((tier0 / "terraform/common.tfvars.example").read_text())["network_zones"]
+            monitor = yaml.safe_load((tier0 / "ansible/group_vars/infrastructure_monitoring.yml.example").read_text())
+            self.assertIn(ipaddress.ip_address(monitor["infrastructure_monitoring_listen_address"]),
+                          ipaddress.ip_network(networks["management"]["cidr_ipv4"].strip('"')))
+            self.assertEqual(monitor["infrastructure_monitoring_export_endpoint"], "")
             self.assertFalse((collection / f"{prefix}shared/ansible/inventory").exists())
             overview = (docs / "deployment/stage-8-observability/README.md").read_text()
             code = re.findall(r"```mermaid\n(.*?)```", overview, re.DOTALL)[2]

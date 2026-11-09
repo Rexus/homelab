@@ -6,8 +6,8 @@ retention is not required for this selected homelab model.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Branch from:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence).
-**Main path:** NAS-backed retention is the required default selection at this step.
-Select [locked retention instead](step-3d-retention-lock.md) when trusted NAS administration is insufficient.
+**Main path:** NAS-backed retention is the default storage choice, not a prerequisite for the
+[locked-retention alternative](step-3d-retention-lock.md). Select that alternative when trusted NAS administration is insufficient.
 **Change:** Protect archive checkpoints with NAS-owned snapshots and independent backups, without claiming WORM.
 **Return:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence) to record the demonstrated protection boundary.
 **Design:** [choice A: NAS custody](../../architecture/operations/log-retention.md).
@@ -57,7 +57,9 @@ access independently; this role does not open gateway rules or a public query li
 For UniFi NAS, create a dedicated Shared Drive and file-service identity using
 the [SMB setup](https://help.ui.com/hc/en-us/articles/14276882157975-Adding-UniFi-Drive-to-Your-Desktop-via-SMB).
 Use supported authenticated/encrypted transport on the restricted archive network.
-If NFS is selected, document its identity/network trust explicitly; do not enable
+The supplied archive/backup recipes use encrypted SMB, not NFS. An NFS alternative requires separate
+qualified integration, including its identity/network trust; changing the share path does not switch transports.
+Do not enable
 no-root-squash merely to solve client permissions. UniFi documents material
 restrictions for that mode. [1]
 

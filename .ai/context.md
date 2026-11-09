@@ -71,6 +71,11 @@ This file keeps durable context for AI-assisted work across sessions.
   accepted preinstalled tooling. Controller preparation is not all-stage disconnected readiness.
 - Administration groups host operations under hosts/, VM/templates under virtual-machines/,
   backups under backups/, and failure scenarios/product recovery under recovery/. Avoid the vague compute label.
+- hosts/management.md owns first-use Proxmox registration from bootstrap: initialize common files with
+  init-local-files.sh --setup foundation, edit hypervisors, authorize the execution key and test SSH/Ansible.
+  Initialization creates no resources; deploy.sh foundation targets CA/directory guests, not physical hosts.
+  Proxmox host recipes use separately authorized SSH/root or sudo, not the provisioning API token.
+  Preserve Proxmox's cluster-managed root authorized_keys symlink and existing keys.
 - provisioning.md owns destroy/retirement and terraform-state.md owns inspection, exact binding removal
   and per-deployment retirement. Recovery retains original state, keys and data; new installations
   use fresh collections after accepted teardown. Never forget resources awaiting restoration.
@@ -155,7 +160,9 @@ This file keeps durable context for AI-assisted work across sessions.
   platform-standards.md is the project-owned selection sheet beside the generated architecture README.
   Preserve older naming-conventions.md records on refresh; link them for manual review.
 - docs/conventions/vmid-convention.md owns the central VMID quick reference and editable SVG.
-  Starter IDs use T C NN, with shifted categories for Tier 0's three-digit 100-999 range;
+  Starter IDs use T C NN; Tier 0 uses the same category hundreds, with a Kubernetes exception:
+  control planes 100-149, workers 150-199, infrastructure 2xx, network 3xx, logging 4xx,
+  bootstrap/automation 5xx (manual boot-1 501, runner 511, optional ceremony 521).
   3xxx labs and 4xxx clients remain Tier 2-owned, 9xxx templates/builders Tier 0-owned.
   Existing local IDs/state are never renumbered by refresh; new example IDs are not a migration.
 - `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
@@ -301,10 +308,23 @@ This file keeps durable context for AI-assisted work across sessions.
 - each stage has a main README with numbered local steps, diagrams, a capability result,
   and links to the static architecture; named monitoring/Observability/collection deployments
   belong to their owning stages, not one cross-stage procedure
-- tutorials follow the manual Proxmox template guide: explicit working repository,
-  numbered actions, exact local files/fields to edit, copyable commands and expected results.
+- tutorials follow the historical May-era manual Rocky/Alma template guide's action-by-action style,
+  not a fixed three-step program. Use as many numbered actions as required in their real execution
+  order, with one copyable block per concrete action, short expected results, exact local files/fields
+  and explicit working repository/machine. Preserve user-supplied sequences and meaning while editing.
+  Keep OS packages separate from Python environments; put EL10/Debian/Ubuntu differences beside
+  the affected action and retain Talos only where it is the actual implementation.
+  Re-derive guide workflows from actual prerequisites, installer order, operator state and completion
+  criteria; don't preserve inherited phase headings merely while polishing their prose. Future-client
+  defaults are distinct from configuring current hosts. Keep coherent capability milestones when sound.
   Required procedures are named parts of the main path; alternatives branch/rejoin as 2a/2b.
   Keep design explanations in their authoritative homes instead of burying actions in prose.
+  End copyable blocks before manual comparison/acceptance gates; checksum display and extraction
+  must be separate actions. Required sub-actions use consecutive numbers, with choices/rejoin explicit.
+- Prefer standard OS tools already required by the workflow. The bootstrap LVM guide uses
+  parted for both existing-partition resizing and new-disk partitioning, with native LVM commands;
+  do not add growpart as a prerequisite. The supplied new-disk sequence remains distinct from
+  enlarging an existing disk/PV.
 - Command examples use `<prefix>` for the generated folder prefix (default homelab),
   separate from hostname/environment prefixes. Put the owning root/machine in bold above each
   command/configuration block; use inline code for exact file paths and variable names.
@@ -348,6 +368,9 @@ This file keeps durable context for AI-assisted work across sessions.
   using the separate delivery_edge subnet; they hold no Tier 0 credentials
 - controlled software intake is documented in docs/architecture/software/software-intake.md;
   Squid/VIP supplies the existing explicit proxy/cache, not a mirror or patch controller
+- Stage 1 Step 7 explicitly commissions Proxmox host update access using Tier 0's existing
+  proxmox-hosts.yml recipe (Datacenter download proxy plus per-host APT), then links controlled
+  one-host-at-a-time maintenance. Hosts pull through the proxy; the cache gets no host authority.
 - software intake is a separate early capability at docs/deployment/stage-1-software-intake/,
   not a foundation option; it is numbered Stage 1 and
   the later Stage 7 Harbor/OCI path extends this capability without becoming a bootstrap dependency

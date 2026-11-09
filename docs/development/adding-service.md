@@ -7,11 +7,15 @@ for configuration behavior; create another Terraform root only for an independen
 **Prerequisites:** configured lab inputs, approved Linux template/storage/node, SSH access and
 a permitted network. [Platform inputs](../reference/platform-inputs.md) owns those selections.
 
+To add a VM to the existing lab setup, follow **1–4** below. For an independently managed resource set,
+start with [Option B](#option-b-add-an-independent-linux-setup) instead; it does not require creating `lab-2` first.
+
 ## Contents
 
 - [Step 1: Initialize the local inputs](#step-1-initialize-the-local-inputs)
 - [Step 2: Add the same host key in three files](#step-2-add-the-same-host-key-in-three-files)
 - [Step 3: Inspect the extension](#step-3-inspect-the-extension)
+- [Step 4: Provision the extension](#step-4-provision-the-extension)
 - [Option A: Add service configuration](#option-a-add-service-configuration)
 - [Option B: Add an independent Linux setup](#option-b-add-an-independent-linux-setup)
 - [Maintain the upstream example](#maintain-the-upstream-example)
@@ -44,7 +48,11 @@ network and a free address outside DHCP. Unsafe workloads first need the
 
 ## Step 2: Add the same host key in three files
 
-### 2a: Inventory identity
+Complete all three edits below; these are required parts of the same guest definition.
+
+<a id="2a-inventory-identity"></a>
+
+### 1. Add the inventory identity
 
 Edit in **`<prefix>-tier-2/`**.
 
@@ -56,7 +64,9 @@ Add this host entry:
 lab-2: {}
 ```
 
-### 2b: IP selection
+<a id="2b-ip-selection"></a>
+
+### 2. Set the IP address
 
 Edit in **`<prefix>-tier-2/`**.
 
@@ -71,7 +81,9 @@ lab-2: 10.20.20.12
 Keep the map's other hosts. Environment-specific lab vars require their complete IP map;
 use the [environment contract](../reference/platform-inputs.md#loading-and-overrides).
 
-### 2c: Hardware selection
+<a id="2c-hardware-selection"></a>
+
+### 3. Select the hardware
 
 Edit in **`<prefix>-tier-2/`**.
 
@@ -134,16 +146,9 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible lab-2 -i ansible/inventory/hosts.yml 
 
 Require `lab-2` in the lab group and the selected IP. The debug action resolves inputs;
 it does not test SSH or install anything. [1]
-Optional provisioning preview, with authorized Proxmox access:
+Continue after the inventory contains `lab-2` at the selected address.
 
-Run from **`<prefix>-tier-2/`**.
-
-```bash
-bash scripts/deploy.sh lab --plan-only
-```
-
-Expect the new VM and no unexplained removal/replacement of existing guests.
-The preview is not required before deployment. To provision the reviewed extension:
+## Step 4: Provision the extension
 
 Run from **`<prefix>-tier-2/`**.
 
@@ -151,8 +156,12 @@ Run from **`<prefix>-tier-2/`**.
 bash scripts/deploy.sh lab
 ```
 
-Terraform shows its plan and asks for `yes`, then Ansible runs the baseline.
-Use `--auto-approve` only for approved unattended CI. Adding a guest does not install an application.
+Review Terraform's displayed plan: expect the new VM and no unexplained removal/replacement of existing guests.
+Enter `yes` to provision it and run the baseline; enter `no` to stop.
+For an optional preview, add `--plan-only`; approved unattended CI can use `--auto-approve`.
+
+**Expected:** Terraform creates the selected guest and Ansible completes its baseline without failures.
+Adding a guest does not install an application. Continue with **Option A** when service configuration is needed.
 
 ## Option A: Add service configuration
 

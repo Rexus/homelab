@@ -20,7 +20,7 @@ vm_instances = {
   "idm-1" = {
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 9100
-    vm_id             = 301
+    vm_id             = 201
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
@@ -28,7 +28,7 @@ vm_instances = {
     tags              = ["freeipa", "dns", "critical", "internal", "always-on", "platform"]
   }
   "idm-2" = {
-    vm_id             = 302
+    vm_id             = 202
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 40
@@ -38,7 +38,7 @@ vm_instances = {
   "ca-1" = {
     # OpenXPKI native packages require the separately approved Debian image.
     template_vm_id    = 9103
-    vm_id             = 311
+    vm_id             = 211
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 30

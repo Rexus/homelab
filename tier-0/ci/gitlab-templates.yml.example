@@ -4,7 +4,7 @@
 # Preinstall OS packages in unprivileged images, or provide noninteractive sudo for missing packages.
 # Successful apply updates the writable sibling Shared catalog. For a different existing
 # checkout, export TEMPLATE_SHARED_CATALOG_FILE. Review and commit that repository separately.
-# Reference: docs/administration/compute/template-lifecycle.md#gitlab-ci-example
+# Reference: docs/administration/virtual-machines/template-lifecycle.md#gitlab-ci-example
 stages: [plan, publish]
 
 default:

@@ -27,6 +27,7 @@
 - name: Apply the job identity and restrictive network policies
   kubernetes.core.k8s:
     kubeconfig: "{{ development_platform_kubeconfig }}"
+    context: "{{ development_platform_context | default(omit, true) }}"
     definition: "{{ development_platform_runner_support }}"
   when: development_platform_action == 'apply'
 

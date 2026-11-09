@@ -33,9 +33,14 @@ loads local assignments only with **`--env-file .env.local`**. It maps the same 
 exported native variables directly. It rejects conflicting native/alias inputs.
 The Kubernetes command retains its separate exported-native-variable contract.
 
+Direct `ansible-playbook`, Terraform or Packer commands do not load `.env.local` through these wrappers.
+Supply their documented process environment or explicit private input files before invoking them.
+A wrapper's environment applies to that run and its children; it does not export values back into the calling shell.
+
 ## Naming examples
 
-These are conventions, not hard requirements:
+These names are supported by specific entry points; they are not interchangeable aliases for every tool.
+Use the selected command's contract rather than inventing another variable name:
 
 | Purpose | Example |
 | --- | --- |

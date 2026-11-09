@@ -34,7 +34,7 @@ settings; `[runners]` reconciles the runner only, without reinstalling GitLab.
 
 | Field in the same file | Set |
 | --- | --- |
-| `development_platform_kubeconfig` | Accepted Tier 1 cluster |
+| `development_platform_kubeconfig`, `development_platform_context` | Accepted Tier 1 kubeconfig and its exact context, used for Secrets, policies and Helm |
 | `development_platform_runner_version` | Exact qualified Runner chart version |
 | `development_platform_runner_image`, `development_platform_runner_helper_image` | Compatible approved non-root image digests |
 | `development_platform_runner_allowed_cidrs` | Actual GitLab/artifact/intake endpoint CIDRs |

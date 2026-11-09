@@ -1,10 +1,12 @@
-"""Raw template-policy enforcement with native Proxmox modules and no live infrastructure."""
+"""Template policy and refresh cleanup without live infrastructure."""
 
 import json
 import os
 import shutil
 import subprocess
 import unittest
+
+import yaml
 
 from proxmox_template_disk_fixture import TemplateDiskApiFixture
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
@@ -97,6 +99,45 @@ class TemplatePolicy(TierRepositoryTestCase):
         self.assertNotEqual(self.run_policy(template_policy_apply=True,
                                             template_policy_key='rocky-build-1').returncode, 0)
         self.assertEqual(self.api.config['balloon'], 2048)
+
+
+@unittest.skipUnless(os.name != 'nt' and shutil.which('ansible-playbook'),
+                     'Requires native Ansible on Linux/WSL')
+class TemplateRefreshCleanup(TierRepositoryTestCase):
+    def test_cloud_init_cleanup_failure_stops_subsequent_tasks(self):
+        self.root.mkdir(parents=True)
+        tasks = yaml.safe_load((UPSTREAM / 'tier-0/ansible/roles/template_refresh/tasks/main.yml').read_text())
+        cleanup = next(task for task in tasks
+                       if task.get('ansible.builtin.command', {}).get('argv', [])[:2] == ['cloud-init', 'clean'])
+        # Run only the real cleanup task: never update packages, reboot or remove host keys.
+        fake = self.root / 'cloud-init'
+        fake.write_text('#!/bin/sh\nprintf "%s\\n" "$*" > "$CLEANUP_CALL"\nexit "$CLEANUP_RC"\n')
+        fake.chmod(0o755)
+        config = self.root / 'ansible.cfg'
+        config.write_text('[defaults]\nstdout_callback = default\n')
+        play = self.root / 'cleanup.json'
+        play.write_text(json.dumps([{
+            'name': 'Offline template cleanup', 'hosts': 'localhost', 'gather_facts': False,
+            'environment': {'PATH': f'{self.root}:{os.environ["PATH"]}'},
+            'vars': {'template_refresh_prepare_for_template': True, 'template_refresh_clean_cloud_init': True},
+            'tasks': [cleanup, {'name': 'Continue after cleanup',
+                                'ansible.builtin.debug': {'msg': 'CLEANUP_SUCCEEDED'}}],
+        }]))
+        for returncode in (42, 0):
+            with self.subTest(cloud_init_returncode=returncode):
+                call = self.root / f'cleanup-{returncode}.txt'
+                env = dict(os.environ, ANSIBLE_CONFIG=str(config), ANSIBLE_STDOUT_CALLBACK='default',
+                           CLEANUP_RC=str(returncode), CLEANUP_CALL=str(call), ANSIBLE_NOCOLOR='1')
+                result = subprocess.run(['ansible-playbook', '-i', 'localhost,', '-c', 'local', str(play)],
+                                        cwd=self.root, env=env, capture_output=True, text=True)
+                self.assertTrue(call.is_file(), result.stdout + result.stderr)
+                self.assertEqual(call.read_text().strip(), 'clean --logs --machine-id')
+                if returncode:
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertNotIn('CLEANUP_SUCCEEDED', result.stdout)
+                else:
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn('CLEANUP_SUCCEEDED', result.stdout)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,8 @@ Use Tier 0 cluster manifests or the dedicated VM's local `ansible/group_vars/vau
 
 <a id="secret-service-seal-integration"></a>
 
-**Branch from:** [Step 1](README.md#step-1-deploy-the-secret-service), before accepting the secret service.
+**Branch from:** [Step 1](README.md#step-1-deploy-the-secret-service), before installation/initialization
+for a new service. An existing initialized service uses its supported seal-migration procedure instead.
 **Change:** Select a supported seal/recovery integration independently of PKI signing.
 **Return:** [Step 1](README.md#step-1-deploy-the-secret-service) to continue with secret-service recovery and access checks.
 

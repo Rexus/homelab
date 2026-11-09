@@ -75,6 +75,7 @@ bootstrap execution host.
 | --- | --- |
 | Host attachments, bonds and storage fabric | [Host networking](network.md) |
 | Scoped credentials and trust | [API setup](api-access.md) |
+| Initialize local files and manage installed hosts over SSH | [Bootstrap host-management setup](../../../administration/hosts/management.md) |
 | Import a verified image in the GUI | [VM templates](templates.md) |
 | Publish/adopt and maintain templates | [Template lifecycle](../../../administration/virtual-machines/template-lifecycle.md) |
 | HA controls and fault behavior | [Menu reference](../../../reference/proxmox-ha.md), [worked failover](failover.md) |

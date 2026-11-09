@@ -104,11 +104,15 @@ Etcd contains Kubernetes objects/Secrets, **not PVC data**. [1]
 
 ## How to restore a clean Talos control plane?
 
-1. Inspect each surviving control plane with original scoped credentials:
+1. If any control plane survives, inspect it with original scoped credentials selected for this
+   restore. A snapshot-capture session is not a prerequisite. If none survives, continue at Step 2
+   without these probes:
 
    Run on **the independent isolated recovery workstation**.
 
    ```bash
+   read -r -e -p "Original independently held talosconfig: " TALOSCONFIG
+   read -r -p "Surviving control-plane node to inspect: " ETCD_NODE
    talosctl --talosconfig "$TALOSCONFIG" -n "$ETCD_NODE" etcd members
    talosctl --talosconfig "$TALOSCONFIG" -n "$ETCD_NODE" service etcd
    ```
@@ -127,15 +131,26 @@ Run on **the independent isolated recovery workstation**.
 
 ```bash
 set -euo pipefail
-: "${RECOVERY_BOOTSTRAP_NODE:?Set one isolated clean control-plane node}"
-: "${RECOVERED_ETCD_SNAPSHOT:?Set the verified extracted native snapshot}"
-: "${EXPECTED_ETCD_SHA256:?From independent custody}"
-: "${TALOSCONFIG:?Set the original independently held talosconfig}"
+read -r -e -p "Original independently held talosconfig: " TALOSCONFIG
+read -r -p "Isolated clean control-plane node selected for recovery: " RECOVERY_BOOTSTRAP_NODE
+read -r -e -p "Verified extracted native etcd snapshot: " RECOVERED_ETCD_SNAPSHOT
+read -r -p "Independently recorded snapshot SHA-256: " EXPECTED_ETCD_SHA256
+read -r -p "Target isolation verified (yes): " RECOVERY_ISOLATED
 test "${RECOVERY_ISOLATED:-}" = yes
-test "${RECOVERY_APPROVE_ETCD_BOOTSTRAP:-}" = "$RECOVERY_BOOTSTRAP_NODE"
 printf '%s  %s\n' "$EXPECTED_ETCD_SHA256" "$RECOVERED_ETCD_SNAPSHOT" | sha256sum -c -
 talosctl --talosconfig "$TALOSCONFIG" -n "$RECOVERY_BOOTSTRAP_NODE" get machinetype
 talosctl --talosconfig "$TALOSCONFIG" -n "$RECOVERY_BOOTSTRAP_NODE" service etcd
+```
+
+Inspect **every** intended replacement control plane: machine type must be `controlplane`, etcd
+must be `Preparing`, and its selected disks must be empty. Do not infer other nodes from this one
+response. Keep old control planes fenced. After that review, run on **the same recovery workstation**:
+
+```bash
+read -r -p "All intended targets independently checked empty and Preparing (yes): " RECOVERY_ALL_TARGETS_EMPTY_AND_PREPARING
+read -r -p "Approve recovery bootstrap of the exact selected node: " RECOVERY_APPROVE_ETCD_BOOTSTRAP
+test "${RECOVERY_ISOLATED:-}" = yes
+test "${RECOVERY_APPROVE_ETCD_BOOTSTRAP:-}" = "$RECOVERY_BOOTSTRAP_NODE"
 test "${RECOVERY_ALL_TARGETS_EMPTY_AND_PREPARING:-}" = yes
 talosctl --talosconfig "$TALOSCONFIG" -n "$RECOVERY_BOOTSTRAP_NODE" \
   bootstrap --recover-from="$RECOVERED_ETCD_SNAPSHOT"

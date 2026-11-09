@@ -9,9 +9,15 @@ Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes) an
 ## Table of contents
 
 - [Purpose](#purpose)
-- [Step 1: Initialize and edit Tier 1 inputs](#initialize-tier-1)
-- [Step 2: Deploy and qualify the cluster](#deploy-tier-1)
-- [Step 3: Cluster foundation](#cluster-foundation)
+- [1. Initialize Tier 1 inputs](#initialize-tier-1)
+- [2. Edit the cluster definition](#2-edit-the-cluster-definition)
+- [3. Load the provider environment](#3-load-the-provider-environment)
+- [4. Create the saved plan](#deploy-tier-1)
+- [5. Review and apply that plan](#5-review-and-apply-that-plan)
+- [6. Export the client credentials](#6-export-the-client-credentials)
+- [7. Select the basic platform](#cluster-foundation)
+- [8. Render the add-ons](#8-render-the-add-ons)
+- [9. Apply and qualify the platform](#9-apply-and-qualify-the-platform)
 - [Capacity and delivery choices](#capacity-and-delivery-choices)
 - [Read more](#read-more)
 
@@ -22,10 +28,9 @@ Create the Tier 1 application cluster, then install its basic platform. The same
 is reused with tier-owned inventory, state and credentials. Tier 0 remains independent.
 
 <a id="initialize-tier-1"></a>
+<a id="step-1-initialize-and-edit-tier-1-inputs"></a>
 
-## Step 1: Initialize and edit Tier 1 inputs
-
-From the **Tier 1 root**:
+## 1. Initialize Tier 1 inputs
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -35,6 +40,8 @@ bash scripts/kubernetes-cluster.sh init
 
 Retain the existing cluster's original identities and state.
 
+## 2. Edit the cluster definition
+
 Edit in **`<prefix>-tier-1/`**.
 
 - `ansible/inventory/hosts.yml`: Tier 1 `talos_control_plane` / `talos_workers` hosts
@@ -42,14 +49,35 @@ Edit in **`<prefix>-tier-1/`**.
 - `terraform/deployments/kubernetes/terraform.tfvars`: Cluster name/private API endpoint, unique VMIDs,
   approved template/source node, releases/installer, Tier 1 attachment and native patches
 
-Complete the [common cluster configuration](../../stage-4-kubernetes/procedures/talos-terraform.md#configure),
-including image access, firmware, CNI patches and an independent API endpoint.
-Use Tier 1's source inputs throughout. This command does **not** load `.env.local`:
-supply `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` through the accepted protected environment.
+Complete the [common cluster configuration](../../stage-4-kubernetes/procedures/talos-terraform.md#configure)
+and its node-configuration steps before planning: image access, firmware, ordered CNI/logging
+patches and an independent API endpoint. Use Tier 1's inputs throughout, then return here.
+
+**Size before provisioning:** edit `nodes[*].size` or add workers in those same three files.
+The `medium` starter is for cluster bootstrap; it is insufficient for the complete Delivery,
+Observability and GitLab stack. Budget the selected releases' rendered CPU/memory requests,
+storage and surviving-host capacity using the [cluster capacity design](../../../architecture/hosting/kubernetes.md).
+
+## 3. Load the provider environment
+
+On **the authorized execution host**, from **`<prefix>-tier-1/`**, load the already configured
+`.env.local`. This script does not load it automatically. Keep shell tracing disabled.
+
+```bash
+set -a
+source .env.local
+set +a
+export PROXMOX_VE_ENDPOINT="${PROXMOX_API_URL:?Set the real Proxmox API URL}"
+export PROXMOX_VE_API_TOKEN="${PROXMOX_API_TOKEN_ID:?Set the token ID}=${PROXMOX_API_TOKEN_SECRET:?Set the token secret}"
+```
+
+An approved runner may inject those two native provider variables instead.
+Retain verified Proxmox CA trust; no credentials are printed or committed.
 
 <a id="deploy-tier-1"></a>
+<a id="step-2-deploy-and-qualify-the-cluster"></a>
 
-## Step 2: Deploy and qualify the cluster
+## 4. Create the saved plan
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -57,23 +85,38 @@ Run from **`<prefix>-tier-1/`**.
 bash scripts/kubernetes-cluster.sh plan
 ```
 
-Review the saved plan's addresses, disks, templates and failure-domain placement, then apply:
+Expect a saved plan. Unlike Linux `deploy.sh`, this cluster script requires separate `plan`
+and `apply` commands; it has no `--plan-only` or `--auto-approve` flag.
+
+## 5. Review and apply that plan
+
+Review the plan's addresses, disks, templates and failure-domain placement.
+Stop on unexpected replacements or removals. Apply only the reviewed plan:
 
 Run from **`<prefix>-tier-1/`**.
 
 ```bash
 bash scripts/kubernetes-cluster.sh apply
-bash scripts/kubernetes-cluster.sh credentials
 ```
 
 Apply uses the saved plan without an extra Terraform `yes` prompt. It creates/bootstrap-configures
-the selected cluster; it is not an adoption/recovery command. Keep the exported
-`secrets/talos/` client files and original state under independent recovery custody.
-Continue to **Step 3: Cluster foundation** below before any application installation.
+the selected cluster; it is not an adoption/recovery command.
+
+## 6. Export the client credentials
+
+Run from **`<prefix>-tier-1/`** after a successful apply:
+
+```bash
+bash scripts/kubernetes-cluster.sh credentials
+```
+
+Expect protected client files in `secrets/talos/`. Back them up with the original state
+under independent recovery custody. Continue below before installing applications.
 
 <a id="cluster-foundation"></a>
+<a id="step-3-cluster-foundation"></a>
 
-## Step 3: Cluster foundation
+## 7. Select the basic platform
 
 Follow the common [cluster foundation checklist](../../stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation)
 for networking, reconciliation, secrets, persistence, TLS, and databases.
@@ -84,21 +127,15 @@ from the **Tier 1 repository**, with its own
 Shared's `cluster_platform` role executes the add-ons; Tier 1 owns their selection,
 values, cluster credentials and resources. No add-on code is copied between tiers.
 
-Create the local inputs:
-
 Run from **`<prefix>-tier-1/`**.
 
 ```bash
 cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster_platform.yml
 ```
 
-Edit in **`<prefix>-tier-1/`**.
-
-- `ansible/group_vars/cluster_platform.yml`: Cluster context, selected components, chart/image pins,
-  storage, network and DNS inputs.
-
-Edit `ansible/group_vars/cluster_platform.yml`: Tier 1's kubeconfig/context, exact chart pins, image access,
-storage and issuer prerequisites. Retain Tier 1's explicit component selection:
+In **`<prefix>-tier-1/`**, edit `ansible/group_vars/cluster_platform.yml`: Tier 1's kubeconfig/context,
+exact chart pins, image access, storage, network/DNS and issuer prerequisites.
+Retain Tier 1's explicit component selection:
 
 ```yaml
 cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg]
@@ -108,17 +145,25 @@ cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnativ
 Argo CD or Spinnaker for Tier 1 application delivery after basic-platform acceptance.
 Add `barman_cloud` only for the object/WAL database backup option. Live database
 volumes remain on qualified Proxmox/Ceph-backed block CSI; NAS backup claims are separate.
-From Tier 1, render and review:
+
+## 8. Render the add-ons
 
 Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/cluster-platform.yml \
-  -e @ansible/group_vars/cluster_platform.yml
+  -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=render
 ```
 
-With accepted inputs and the explicit Tier 1 context, apply the same selection:
+Review the private rendered resources using the
+[basic-platform review](../../stage-4-kubernetes/procedures/basic-platform.md).
+Confirm that all resources target Tier 1 and that Flux is absent.
+
+## 9. Apply and qualify the platform
+
+Apply the same selection with the accepted Tier 1 kubeconfig/context.
+This Ansible action changes the cluster without another confirmation prompt.
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -131,7 +176,8 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 The common procedure owns add-on prerequisites and readiness gates, including the
 distinction between installing CloudNativePG and creating an application database.
 After accepting CNI, logging, storage, ingress, TLS and database-controller gates,
-return to [Stage 7 Step 2](../README.md#step-2-select-and-qualify-delivery).
+complete [cluster verification](../../stage-4-kubernetes/procedures/talos-terraform.md#verify-and-hand-over),
+then return to [Stage 7 Step 2](../README.md#step-2-select-and-qualify-delivery).
 
 <a id="dependency-direction"></a>
 <a id="starting-shape"></a>
@@ -140,10 +186,8 @@ return to [Stage 7 Step 2](../README.md#step-2-select-and-qualify-delivery).
 ## Capacity and delivery choices
 
 The starter has three schedulable control-plane VMs, `pctl-1` through
-`pctl-3`. Add workers in the tier-local inputs before reserving control
-planes for Kubernetes components. Review rendered Harbor, Spinnaker, Observability
-and GitLab requests; starter sizing is not capacity for every later service.
-Retain headroom for a physical-host failure, upgrades and recovery.
+`pctl-3`. Reserve control planes for Kubernetes components only after the selected
+worker capacity exists; see the sizing decision in Step 2.
 
 Select one [Argo CD or Spinnaker path](../README.md#step-2-select-and-qualify-delivery).
 Keep bootstrap Git/OCI and Tier 0 recovery independent of the Tier 1 cluster.

@@ -35,6 +35,12 @@ See the [repository map](deployment/README.md#repository-locations) for ownershi
 
 ## Start here
 
+For installation, start with [foundation prerequisites](deployment/foundation/README.md), then follow
+the [numbered capability stages](deployment/README.md#deployment-stages). Each guide links its design
+and reference details at the point they are needed.
+
+For a design review, follow this reading order:
+
 1. Read the [platform overview](architecture/README.md) and its connected functions.
 2. Expand the [integrated reference](architecture/reference-platform.md) and
    [runtime relationships](architecture/runtime-flows.md).
@@ -51,7 +57,7 @@ and Shared to generated checkouts and source directories.
 
 The architecture repository's `docs/auto-docs/` is the complete maintained manual.
 Its only initial local documents are one platform checklist/navigation record and
-naming conventions. Tier/Shared repositories retain their code-specific records;
+the platform standards worksheet. Tier/Shared repositories retain their code-specific records;
 extra site design/runbooks are added only when needed.
 
 Architecture defines the result and its boundaries. Deployment realizes it;

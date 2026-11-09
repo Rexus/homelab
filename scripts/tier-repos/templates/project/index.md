@@ -79,6 +79,6 @@ This checklist tracks progress, not resource or state ownership.
 | Maintain services | [Administration](auto-docs/administration/README.md) | Maintenance owner and schedule |
 | Adopt upstream changes | [Refresh contract](auto-docs/development/generated-repositories.md#refresh-and-local-ownership) | Tested revision and exceptions |
 
-`auto-docs/` is the maintained manual. This record and naming conventions are seeded
+`auto-docs/` is the maintained manual. This record and platform standards are seeded
 once and never overwritten by refresh. Add a focused local document only when an
 exception or runbook needs detail beyond this record, then link it here.

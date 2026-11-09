@@ -57,7 +57,9 @@ Talos uses fresh approved raw images; Linux package-refresh recipes do not apply
    bash scripts/proxmox-templates.sh init
    ```
 
-2. Edit `templates/proxmox.yml` and `.env.local`. Keep only the selected builds. For a
+2. Edit `templates/proxmox.yml` and `.env.local`. On first use, keep only the selected builds.
+   For an existing publisher, retain every still-managed catalog entry until its reviewed retirement;
+   deleting an entry is not promotion and its lifecycle guard can block the plan. For a
    new revision, use a new catalog key/VMID, exact release, absolute local `image_path`
    and approved unpacked `sha256`. Review storage, bridge/VLAN, firmware and capacity
    against the [field reference](../../reference/template-publication.md#inputs-and-defaults).
@@ -219,12 +221,14 @@ This is explicit manual retirement, followed by state/reference reconciliation.
    surviving bootstrap too: a **full clone** is independent; a linked clone still needs
    its base. Use the [dependency checks](linked-clones.md#verify-zfs-dependencies).
    Keep the template until the replacement bootstrap is full-cloned if it is still needed.
-3. Select that **template** in the Proxmox tree, then **More > Remove**. Check the displayed
-   identity and enter its VMID. This removes the template and its referenced disks. [18]
+3. Select that **template** in the Proxmox tree, then **More > Remove** to open the dialog.
+   Check the displayed identity; do not confirm removal until Step 4 is complete. [18]
 4. Leave **Destroy unreferenced disks owned by guest** unchecked unless every additional
    volume has been reviewed. It scans beyond the template's current disk references.
    **Purge from job configurations** also removes its HA/replication/backup-job entries;
-   select it only for the retired identity. Wait for a successful removal task. [18]
+   select it only for the retired identity. Recheck the identity, enter its VMID and confirm removal
+   only after reviewing those options. This deletes the template and its referenced disks.
+   Wait for a successful removal task. [18]
 5. For a full reset, separately open **Node > image datastore > Import**, select only
    the retired catalog's uploaded image and remove it when no other operation needs it.
    This is the Proxmox upload, not the retained `.raw`/`.qcow2` source on the bootstrap disk.

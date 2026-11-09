@@ -41,7 +41,7 @@ Have these in place first:
 
 | Requirement | Why it matters |
 | --- | --- |
-| Identity foundation | GitLab should use the shared private-domain DNS name and later consume central identity. |
+| Identity foundation | Accepted Keycloak and private-domain DNS; OIDC configuration is a project-owned integration before ordinary use. |
 | PKI certificate | The default deployment expects HTTPS with a certificate from the shared PKI. |
 | Linux template | Terraform clones the normal Linux cloud-init template. |
 | Backup target | Repository and database data live on the VM and must be backed up before the platform matters. |
@@ -128,13 +128,17 @@ Edit in **`<prefix>-tier-1/`**.
 - `ansible/inventory/hosts.yml`: Matching git-1 key and service group
 - `ansible/group_vars/development.yml`: `platform_host_ips.git-1`, `gitlab_container_image`,
   `gitlab_hostname`, `gitlab_external_url`, `gitlab_tls_cert_src`, `gitlab_tls_key_src`,
-  `gitlab_ssh_host_port`
+  `gitlab_ssh_host_port`, `gitlab_omnibus_extra_config`
 - `.env.local`: Tier 1 provider credentials and local SSH public-key paths
 
 Use an approved CE image tag/digest and a preissued certificate/chain/key. Prepare
-scoped gateway/host rules before publishing listeners. This VM recipe does not
-configure OIDC; complete the [service SSO gate](../stage-5-identity/procedures/service-sso.md)
-through the product's supported configuration before accepting ordinary use.
+scoped gateway/host rules before publishing listeners. Register the Keycloak client, then supply its
+[native GitLab OIDC settings](https://docs.gitlab.com/administration/auth/oidc/) through
+`gitlab_omnibus_extra_config`, one `gitlab.rb` line per list item, with an accepted private client-secret input. [5]
+The role renders that input; no template edit is needed. Editing the rendered VM file alone will be overwritten.
+The OIDC settings remain project-supplied, not a turnkey configuration from this recipe.
+Qualify this project integration through the [service SSO gate](../stage-5-identity/procedures/service-sso.md)
+before accepting ordinary use.
 
 ### 3. Deploy and verify
 
@@ -146,6 +150,16 @@ bash scripts/deploy.sh development
 
 Review Terraform's inline plan and enter `yes` only for the intended changes.
 Add `--plan-only` for preview; approved unattended jobs use `--auto-approve`.
+
+For the first login, retrieve the temporary administrator password on **`git-1`** with authorized
+container access, then sign in at the configured HTTPS hostname:
+
+```bash
+sudo podman exec -it gitlab grep 'Password:' /etc/gitlab/initial_root_password
+```
+
+Rotate/store the new administrator credential through the accepted secret path. Complete the
+project-owned OIDC configuration and its live SSO gate before accepting ordinary users.
 Verify HTTPS, SSO/denials, clone/push, protected logging and clean-target recovery,
 then return to [Stage 9 Step 2](README.md#step-2-add-on-demand-build-execution).
 
@@ -190,17 +204,6 @@ Maintenance notes:
   from installation; do not wait for Observability. Operational application logs
   and metrics later use [Stage 8](../stage-8-observability/README.md) under approved scopes.
 
-For the first login, retrieve the initial root password from the container:
-
-Run on **`git-1`** with authorized container access.
-
-```bash
-sudo podman exec -it gitlab grep 'Password:' /etc/gitlab/initial_root_password
-```
-
-Store the new admin credential in the chosen secret-management path after
-login. The initial password file is temporary.
-
 ## High availability direction
 
 This alternative is a single GitLab VM, not the default Kubernetes realization.
@@ -230,3 +233,4 @@ deployment model.
 2. [GitLab Docker configuration](https://docs.gitlab.com/ee/install/docker/configuration.html)
 3. [GitLab SSL configuration](https://docs.gitlab.com/omnibus/settings/ssl/)
 4. [GitLab Helm chart installation](https://docs.gitlab.com/charts/installation/)
+5. [GitLab OpenID Connect provider configuration](https://docs.gitlab.com/administration/auth/oidc/), checked 2026-11-09.

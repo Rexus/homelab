@@ -103,8 +103,8 @@ block-beta
   space:2
   space Clients["Ordinary clients<br/>Separate DMZ subnet"] space:3
   T1["Tier 1<br/>Shared platform"]
-  Publication["Build runners<br/>Authoritative mirrors"]
-  Source["Source control"] space:2
+  Publication["External runners<br/>Authoritative mirrors"]
+  Source["Source control<br/>General CI"] space:2
   space:2 Artifacts["Artifact registry"] space:2
   space:2 Delivery["Application delivery"] space:2
   space:2 WorkloadManagement["Workload-cluster<br/>management"] space:2
@@ -220,7 +220,8 @@ inventory. See [tier ownership](tier-ownership.md) for the contract.
 | --- | --- | --- | --- |
 | Public edge load balancer and ordinary cache | Tier 2 | `external_edge` | DMZ |
 | Ordinary clients | Tier 2 | separate `client` subnet | DMZ |
-| General build runner / authoritative mirror | Tier 1 | `delivery_edge` | DMZ |
+| External VM runner / authoritative mirror | Tier 1 | `delivery_edge` | DMZ |
+| Kubernetes general CI | Tier 1 | platform cluster `application` attachment | Services |
 | Source control | Tier 1 | `application` | Services |
 | Project application | Tier 2 | `application` or a project subnet | Services or a dedicated policy |
 | Directory authority | Tier 0 | `identity` | Control |

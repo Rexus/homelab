@@ -30,14 +30,15 @@ class SoftwareIntake(TierRepositoryTestCase):
         guide = (self.root / "verify-architecture/docs/auto-docs/deployment/"
                  "stage-1-software-intake/README.md").read_text()
         commands = re.search(r"```bash\n(.*?)```", guide, re.DOTALL).group(1)
-        self.assertIn("Run from **`verify-tier-2/`**.\n\n```bash\n", guide)
+        self.assertRegex(guide, r"Run from \*\*`verify-tier-2/`\*\*[^\n]*\n\n```bash\n"
+                               r"bash scripts/init-local-files\.sh --setup cache\n")
         initialized = subprocess.run(["bash", "-e", "-c", commands], cwd=tier2, env=environment,
                                      capture_output=True, text=True)
         self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)
         self.assertTrue((tier2 / "terraform/deployments/cache/terraform.tfvars").is_file())
         self.assertTrue((tier2 / "ansible/inventory/hosts.yml").is_file())
         self.assertFalse((tier0 / "ansible/inventory/hosts.yml").exists())
-        self.assertIn("Edit in **`verify-shared/`**.", guide)
+        self.assertRegex(guide, r"Edit in \*\*`verify-shared/`\*\*[.:]")
         self.assertIn("config/platform.tfvars", guide)
         self.assertNotIn("../homelab-shared/", guide)
 

@@ -3,7 +3,7 @@
 ![T C NN: tier, category and instance, with tier/category tables and the Tier 0 exception](vmid-convention.svg)
 
 VMIDs group guests by tier or allocation purpose, category and instance. The reference
-uses **`T C NN`** for four-digit IDs and a shifted category for three-digit Tier 0 IDs.
+uses **`T C NN`** for four-digit IDs. Tier 0 uses three digits, with a Kubernetes exception.
 This is an allocation convention; ownership, networks and access policy remain separate.
 The [editable SVG](vmid-convention.svg) is the quick reference; the tables below provide searchable detail.
 
@@ -11,7 +11,7 @@ The [editable SVG](vmid-convention.svg) is the quick reference; the tables below
 
 - [Format](#format)
 - [Tier and allocation group](#tier-and-allocation-group)
-- [Categories and Tier 0 offset](#categories-and-tier-0-offset)
+- [Categories and Tier 0 Kubernetes exception](#categories-and-tier-0-kubernetes-exception)
 - [Examples](#examples)
 - [Allocation and existing installations](#allocation-and-existing-installations)
 - [References](#references)
@@ -44,26 +44,28 @@ remain Tier 2-owned; the template lifecycle remains Tier 0-owned. A development-
 service belongs to Tier 1, while a disposable development environment uses the lab range.
 Privileged administrative clients retain the authority classification of the systems they control.
 
-## Categories and Tier 0 offset
+<a id="categories-and-tier-0-offset"></a>
+
+## Categories and Tier 0 Kubernetes exception
 
 | `C` | Category | Four-digit suffix `CNN` | Tier 0 range |
 | --- | --- | --- | --- |
-| `0` | Kubernetes control plane | `000-099` | `100-199` |
-| `1` | Kubernetes workers | `100-199` | `200-299` |
-| `2` | Infrastructure services | `200-299` | `300-399` |
-| `3` | Network / Edge | `300-399` | `400-499` |
-| `4` | Observability | `400-499` | `500-599` |
-| `5` | Bootstrap / Automation | `500-599` | `600-699` |
-| `6-9` | Other / Reserved | `600-999` | `700-999`, reserved |
+| `0` | Kubernetes control plane | `000-099` | `100-149` |
+| `1` | Kubernetes workers | `100-199` | `150-199` |
+| `2` | Infrastructure services | `200-299` | `200-299` |
+| `3` | Network / Edge | `300-399` | `300-399` |
+| `4` | Observability / protected logging | `400-499` | `400-499` |
+| `5` | Bootstrap / Automation | `500-599` | `500-599` |
+| `6-9` | Other / Reserved | `600-999` | `600-999`, reserved |
 
-Tier 0 omits the leading zero and shifts the named categories up one hundred:
-control-plane category `0` becomes `1NN`, workers become `2NN`, and so on.
-Thus `100` is a Tier 0 control plane at instance 00; `200` is a Tier 0 worker at instance 00.
-IDs below 100 are reserved by Proxmox. [1]
+IDs below 100 are reserved by Proxmox. [1] Tier 0 therefore combines its Kubernetes
+categories into `100-199`: control planes use `100-149`, and workers use `150-199`.
+The control-plane starters retain `101`, `102` and `103`. Each Kubernetes block has
+50 slots; `NN` remains the final two digits, so worker suffixes run from `50` to `99`.
 
-For the named categories `0-5`, Tier 0 uses `100 × (C + 1) + NN`.
-Its remaining `700-999` range is unassigned; category `9` cannot be shifted into another
-thousand while still representing Tier 0. Four-digit guest IDs use `1000 × T + 100 × C + NN`.
+Other Tier 0 categories use `100 × C + NN`, without an offset. Infrastructure stays
+in `2xx`, network services in `3xx`, protected logging in `4xx` and automation in `5xx`.
+Four-digit guest IDs use `1000 × T + 100 × C + NN`.
 
 The `9xxx` template range uses its own catalog allocations: its hundreds digit does
 **not** classify the roles of future clones. A generic Linux template can supply any tier
@@ -73,10 +75,17 @@ or role. The [published template catalog](../reference/template-catalog.md) reco
 
 | VMID | Interpretation |
 | --- | --- |
-| `101` | Tier 0 control plane, instance 01 |
-| `311` | Tier 0 infrastructure service, instance 11 |
-| `501` | Tier 0 protected logging, instance 01 |
-| `601` | Tier 0 bootstrap/automation host, instance 01 |
+| `101-103` | Tier 0 Kubernetes control planes, `k8ctl-1` through `k8ctl-3` |
+| `151` | Tier 0 Kubernetes worker allocation; optional, not enabled in the starter |
+| `201`, `202` | Tier 0 directory pair, `idm-1` and `idm-2` |
+| `211` | Tier 0 issuing CA, `ca-1` |
+| `221` | Tier 0 Vault VM alternative, `vault-1` |
+| `231-233` | Tier 0 HSM gateways, `hsm-1` through optional `hsm-3` |
+| `301`, `302` | Tier 0 Kubernetes API gateways, `api-gw-1` and `api-gw-2` |
+| `401`, `402` | Tier 0 protected logging, `log-1` and optional `log-2` |
+| `501` | Reserved for the manually created Tier 0 bootstrap host, `boot-1` |
+| `511` | Tier 0 infrastructure runner, `iac-1` |
+| `521` | Tier 0 optional ceremony administration VM, `cadm-1` |
 | `1001` | Tier 1 control plane, instance 01 |
 | `1401` | Tier 1 observability, instance 01 |
 | `2103` | Tier 2 Kubernetes worker, instance 03; illustrative allocation |
@@ -90,7 +99,8 @@ or role. The [published template catalog](../reference/template-catalog.md) reco
 VMIDs must be unique across the Proxmox cluster. [2] Reserve them across all repositories,
 environments, VMs, containers and templates; separate Terraform states do not isolate the ID space.
 Allocate different instance blocks for additional clusters or services in the same category.
-One category has 100 instance slots; review the allocation plan before exhausting them.
+Each category has 100 instance slots except the two Tier 0 Kubernetes blocks, which
+have 50 each. Review the allocation plan before exhausting them.
 
 Tier-local Terraform inputs own exact guest IDs; inventories own logical host names and addresses.
 Shared holds approved template references, not a guest inventory or VMID allocator. The

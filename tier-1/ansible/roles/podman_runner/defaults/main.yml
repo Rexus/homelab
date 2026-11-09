@@ -20,11 +20,7 @@ podman_runner_gitlab_url: ""
 podman_runner_authentication_token: ""
 podman_runner_description: "{{ platform_hostname | default(inventory_hostname) }}"
 podman_runner_executor: shell
-podman_runner_tags:
-  - bootc
-  - podman
-podman_runner_run_untagged: false
-podman_runner_locked: true
+# Tags, protection and untagged-job policy belong to the GitLab runner record.
 
 podman_runner_configure_subuids: true
 podman_runner_subid_start: 100000

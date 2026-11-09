@@ -1,6 +1,6 @@
 # Operator walkthrough checklist
 
-Rechecked 2026-10-27 against the current worktree and the handoff corrections below, from the
+Guide sequences rechecked 2026-11-09 against the current worktree, from the
 perspective of a software engineer with newly installed servers and UniFi switches.
 This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
@@ -9,6 +9,62 @@ project documentation or a claim of production readiness.
 ordinary users, applications, maintenance, expansion and total-loss recovery.
 **Evidence boundary:** source/generator review and offline tests; no live gateway,
 Proxmox, HSM, service deployment, failover or disaster restore was performed.
+
+The 2026-11-09 workflow pass and host-management follow-up accounted for all 173 installation, administration,
+development, reference and reader-path documents, including the front doors.
+It re-derived required order, actual choices, branch rejoins and acceptance gates;
+coherent procedures and lookup references were retained. It did not qualify live operations.
+Validation: 75 distinct focused regression checks passed, with targeted navigation/link reruns after
+the final correction; 576 Bash blocks passed syntax checks. Original Markdown anchors were retained.
+
+## Current source consistency review
+
+The 2026-11-09 repository-wide follow-up traces the ten stages and alternatives from
+documentation through generated repositories, local inputs, entry points and actual
+Terraform/Ansible implementation. It also checks architecture placement, backup custody
+and recovery state. The earlier guide-only results above are historical evidence.
+
+- [x] Correct selection-scoped database preparation so Vault/Headlamp-only runs install and configure their products.
+- [x] Install the logging verifier's complete dependency set on independent recovery hosts.
+- [x] Bind saved template plans to reviewed inputs, configuration and execution targets before apply/refresh.
+- [x] Stop template publication when cloud-init cleanup fails.
+- [x] Correct runner registration for package-created empty configs and modern authentication tokens;
+  enforce the selected Kubernetes context and required GitLab TLS Secret type.
+- [x] Align Observability source/API/kubelet CIDRs and Netdata ACLs to current cluster inputs;
+  keep independent Tier 0 monitoring on Management with later-tier export disabled initially.
+- [x] Align architecture placement, Grafana/registry coverage, bootstrap recovery and direct-CI trust
+  with their installers. Keep resource ownership separate from hosting and network access.
+- [x] Correct fresh repository quick starts and retired source-side documentation links;
+  retain project inputs/state and the explicit refresh conflict policy.
+- [x] Move the Tier 1 service-capacity decision before cluster provisioning; the compact bootstrap
+  profile alone is insufficient for the complete Delivery/Observability/development stack.
+
+Validation of the integrated changes:
+
+- Full portable suite: **458 cases; 286 passed, 172 explicit native/tool-dependent skips**.
+  Final Management monitoring inputs also passed their two focused source/generated checks.
+- All **20 Terraform deployment roots** validated using tracked locks and cached providers;
+  **86 mocked Terraform cases** passed. No real provider apply or original state was used.
+- **495 YAML files, 26 Bash scripts and 113 Python files** passed source syntax checks;
+  **583 documentation Bash blocks** parsed without execution.
+- Five figures in the three amended architecture pages rendered in **20 theme/width combinations**
+  and were visually inspected. Local Mermaid 11.17.2 does not establish hosted-renderer parity.
+- Native phase/selection, template-plan invalidation, cleanup refusal, runner/Secret/network gates,
+  encrypted backup/restore and scoped telemetry replay checks exercise actual task/helper paths
+  against disposable local fixtures. They do not accept live infrastructure.
+- Native qualification was split across bounded runs, not one clean full-native invocation.
+  Expired Collector/chart paths and missing syslog validator libraries were repaired in the local
+  harness; affected Collector, Observability and receiver cases passed reruns. The unchanged extended
+  Spinnaker variant sweep was stopped after main-reference source/generated rendering passed.
+  Root/mount-namespace backup tests, native rsyslog/GnuTLS sender tests and unavailable-tool cases
+  remain explicit exclusions; do not interpret the portable skip count as native acceptance.
+
+The [implementation map](../docs/reference/implementation-support.md#stage-coverage)
+remains the public source of truth. Client-auth certificate issuance is a commissioned
+integration; the default issuer profile supplies server certificates. Kubernetes SSO
+qualifies Talos 1.13, not 1.14. Hardware HSM/ACME and tenant allocation retain their
+explicit integration boundaries. Follow [platform acceptance](platform-verification.md)
+and [operational verification](operational-verification.md) before checking live results.
 
 ## Current journey verdict
 
@@ -35,15 +91,23 @@ explicitly trusts the dedicated GitLab project and its control/hosting authoriti
 The [stage coverage](../docs/reference/implementation-support.md#stage-coverage)
 is the authoritative installation/prerequisite map. Independent API endpoints,
 prepared storage, approved images, certificate custody, external GitLab data services
-and selected product interfaces still require commissioning. The separate gateway,
-S3 and GitLab data-service setups supply those reference realizations; existing
-qualified services remain valid. Native Spinnaker and Argo CD are explicit alternatives.
+and selected product interfaces still require commissioning. Separate API-endpoint and
+GitLab data-service setups supply those reference realizations. Storage uses its actual
+commissioned native interface, without a NAS object gateway. Existing qualified services
+remain valid. Native Spinnaker and Argo CD are explicit alternatives.
 Optional HSM and tenant allocation are not silently supplied. Household/team,
 maintenance and product-recovery procedures exist; live qualification remains open.
 No live acceptance box is checked by this consistency review.
 
 ## Corrected reading and execution gaps
 
+- [x] Review complete task sequences, not only wording within inherited phase headings.
+- [x] Test intake before host cutover; retire temporary WAN access only after its replacement works.
+- [x] Complete foundation checks after HA/SDN branches; document actual workspace disk preparation.
+- [x] Initialize and register existing Proxmox hosts before host recipes; separate SSH administration
+  from API provisioning and the foundation guest deployment.
+- [x] Prepare receivers before exporters, product runtimes before their backup tests, and original
+  state before CI handover. Keep incomplete alternatives separate from runnable installers.
 - [x] Make the front door distinguish runnable workflows from integration starters.
 - [x] Keep foundation prerequisites outside numbered capability stages; logging remains Stage 2.
 - [x] Prevent the Proxmox preparation guide from skipping logging and jumping to identity/clusters.
@@ -56,7 +120,7 @@ No live acceptance box is checked by this consistency review.
 - [x] Explain that `--env` does not allocate unique VMIDs, addresses, VIPs or security boundaries.
 - [x] Keep directory deployment in the trust stage's existing context/state instead of silently switching to test.
 - [x] Put cache initialization, exact input edits and deployment directly in Stage 1's main path;
-  expose existing approved supply as branch 2b, returning to the shared consumer/verification step.
+  expose existing approved supply as branch 1b, rejoining at intake testing before host configuration.
 - [x] Initialize test inputs before VM source-control, runner and image-builder commands.
 - [x] Use one normal Linux deployment command with Terraform's inline plan/approval;
   keep preview opt-in, unattended CI explicit, and dedicated saved-plan/signing/activation gates intact.
@@ -81,7 +145,8 @@ No live acceptance box is checked by this consistency review.
 - [x] Keep Stage 3 issuer acceptance separate from Stage 5 identity and later public-edge deployment.
 - [x] Move the numbered hardware-rollover procedure into administration and preserve managed-guide redirects.
 - [x] Disclose installer coverage before every main path; make the delivery outcome conditional.
-- [x] Correct the observability VM return path to Steps 2-4 and disclose missing Netdata capacity/installation.
+- [x] Rejoin the observability VM alternative at source/reader checks after its project-owned service
+  installation, never the Kubernetes installer; disclose missing Netdata capacity/installation.
 - [x] Check the moved Stage 5 IdP and actual Stage 6 Vault/NetBox/Headlamp starters against deployment figures.
 - [x] Default newly initialized local files/backups and deployment working files to private permissions;
   existing file access, Windows ACLs and off-host recovery still require manual verification.

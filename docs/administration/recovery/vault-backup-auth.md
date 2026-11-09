@@ -10,11 +10,34 @@ The reference OpenXPKI server-only profile is not a client certificate enrollmen
 
 ## Operator tasks
 
+- [How is the common snapshot policy prepared?](#prepare-the-snapshot-policy)
 - [How to authorize certificate-based snapshots?](#configure-the-certificate-role)
 - [How to rotate and verify the client identity?](#rotate-and-verify)
 - [How to use an explicitly maintained AppRole instead?](#approle-alternative)
 - [How to take a one-off break-glass copy?](#break-glass-local-token)
 - [References](#references)
+
+<a id="prepare-the-snapshot-policy"></a>
+
+## How is the common snapshot policy prepared?
+
+Before either certificate or AppRole configuration, use the approved Vault CLI with a separately
+authorized provisioning session and verified `VAULT_ADDR`, `VAULT_CACERT` and `VAULT_TLS_SERVER_NAME`.
+Run from **`<prefix>-tier-0/`** on the authorized Vault administration workstation:
+
+```bash
+vault auth list
+```
+
+Review the existing mounts and their types. Never disable an existing mount to force initialization.
+Then write the reviewed narrow policy from the retained Tier 0 source:
+
+```bash
+vault policy write control-raft-snapshot ansible/roles/control_backup/files/vault-snapshot.hcl
+```
+
+No provisioning/root token is copied to the backup host. Choose the certificate path below or the
+[AppRole alternative](#approle-alternative); the latter does not require a certificate-auth mount.
 
 <a id="configure-the-certificate-role"></a>
 
@@ -32,18 +55,17 @@ provisioning/root token.
 2. On the independent administration workstation, verify the client certificate's issuer, public-key
    match, clientAuth EKU and validity using the approved client CA. Use a distinct key/identity from
    Vault's server certificate, application ingress, general operators and backup repository access.
-3. With a separately authorized provisioning credential and verified `VAULT_ADDR`, `VAULT_CACERT`
-   and `VAULT_TLS_SERVER_NAME`, create the policy and enable a dedicated cert mount **once**:
+3. Complete the [common policy task](#prepare-the-snapshot-policy). If `control-backup-cert/` already
+   exists, require type `cert` and review/reuse it; continue to Step 4. Only when that mount is absent,
+   enable it **once**:
 
    Run from **`<prefix>-tier-0/`** on the authorized Vault administration workstation.
 
    ```bash
-   vault policy write control-raft-snapshot ansible/roles/control_backup/files/vault-snapshot.hcl
    vault auth enable -path=control-backup-cert cert
    ```
 
-   Inspect `vault auth list` first; an existing mount is reviewed and reused, never disabled to force
-   initialization. No provisioning/root token is copied to the backup host.
+   Stop on a different existing mount type. Do not disable or replace it to make this path pass.
 4. Pin the dedicated leaf certificate in its own role. Set the exact approved DNS SAN and CIDR;
    do not authorize a general CA without identity constraints. Native cert auth supports trusted
    certificate/CA entries; renewal of this pinned leaf requires an explicit role update. [1][2]
@@ -110,7 +132,8 @@ bypass expiry. Requalify after CA, ingress, NAT, policy or certificate-profile c
 ## How to use an explicitly maintained AppRole instead?
 
 Select `control_backup_vault_auth: approle` explicitly when the site operates SecretID rotation.
-Use an existing reviewed `approle` mount and the same policy. Define the approved SecretID lifetime
+Complete the [common policy task](#prepare-the-snapshot-policy), then use the existing reviewed
+`approle` mount; skip the certificate-specific configuration. Define the approved SecretID lifetime
 and use limit with its owner; these are not hidden permanent credentials or a daily-rotation default:
 
 Run from **`<prefix>-tier-0/`** on the authorized Vault administration workstation.

@@ -22,10 +22,10 @@ prerequisites; this is not a requirement to deploy every example.
 | Step | What to do | Ready to continue when |
 | --- | --- | --- |
 | 1. Confirm foundations | Read project conventions and obtain Tier 0-approved templates, networks, storage, and scoped operator access | Inputs are recorded locally; any identity/DNS/PKI prerequisites in the selected service guide exist |
-| 2. Confirm publication and supply | Obtain approved Tier 2 edge endpoints if needed; select authoritative mirrors and Tier 1 DMZ runner access | Named interfaces work; direct administrative and peer access is denied |
-| 3. Create a platform cluster, if needed | Run `bash scripts/kubernetes-cluster.sh init` from Tier 1; follow the [Kubernetes guide](../../deployment/stage-4-kubernetes/procedures/kubernetes.md) and select [Argo CD or Spinnaker](../../architecture/software/controllers.md) separately | Nodes/API and selected delivery are verified; recovery is tested |
+| 2. Confirm bootstrap supply | Verify the existing approved Git, image and package sources that work before this platform exists | Cluster and service installation can obtain their artifacts without the future GitLab, registry or build runners |
+| 3. Establish Delivery | Follow [Stage 7](../../deployment/stage-7-delivery/README.md): create or accept the Tier 1 cluster/basic platform, install one controller, then commission artifact supply | Runtime, scoped controller, registry interfaces and independent recovery are accepted |
 | 4. Add Observability | Follow the [deployment](../../deployment/stage-8-observability/README.md) in Kubernetes with separate workload budgets; dedicated VMs are an alternative | Netdata, OpenTelemetry, metrics and OpenSearch; scoped queries; Tier 0 retains control credentials and evidence |
-| 5. Add development services | Follow [GitLab](../../deployment/stage-9-development/procedures/gitlab.md), [on-demand runners](../../deployment/stage-9-development/procedures/kubernetes-runners.md), and the Tier 0 handover | SSO, backups, bounded job access, Vault claims and original-state continuity are verified |
+| 5. Add development services | Follow [Stage 9](../../deployment/stage-9-development/README.md): data services, GitLab/SSO, general runners, then Tier 0 Vault/runner handover | Application backups, bounded job access, real Vault claims and original-state continuity are verified |
 
 The Linux setups and the optional Kubernetes path are separate. Source control
 on a Linux VM does not require step 3. Cluster service directories are starter
@@ -34,18 +34,11 @@ scope before planning a rollout.
 
 ## Getting started
 
-Initialize the platform cluster if it does not exist:
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-bash scripts/kubernetes-cluster.sh init
-```
-
-Follow [platform readiness](../../deployment/stage-7-delivery/procedures/platform-cluster.md),
-then the capability stages above. The [GitLab installation guide](../../deployment/stage-9-development/procedures/gitlab.md)
-owns application inputs, render/apply commands and external data prerequisites.
-For an existing approved cluster, start there without creating another cluster.
+Start at [Stage 7, Step 1](../../deployment/stage-7-delivery/README.md#step-1-create-the-platform-runtime)
+from **`<prefix>-tier-1/`**. Its cluster procedure owns initialization, configuration, saved-plan
+apply, credentials and basic-platform installation; `init` alone installs nothing.
+For an existing cluster, verify the same readiness gates without bootstrapping another one,
+then continue through Delivery and Observability before Stage 9's development-platform installation.
 
 The [source-control VM](../../deployment/stage-9-development/step-1b-source-control-vm.md)
 and [Podman runner](../../deployment/stage-9-development/step-2b-podman-runner.md) remain alternatives.
@@ -62,6 +55,7 @@ workload-user access to Tier 0 credentials. For VM mobility, confirm the
 | --- | --- |
 | Inputs, state, and available setups | [Repository scripts](../../reference/repository-scripts.md) |
 | Shared prerequisites | [Shared services](../../reference/implementation-support.md) |
-| Platform Kubernetes design | [Kubernetes platform](../../deployment/stage-7-delivery/procedures/platform-cluster.md) |
+| Create the platform cluster | [Tier 1 Kubernetes](../../deployment/stage-7-delivery/procedures/platform-cluster.md) |
+| Cluster choices and readiness | [Common cluster foundation](../../deployment/stage-4-kubernetes/procedures/kubernetes.md) |
 | Ownership and privileged execution | [Infrastructure control](../../architecture/hosting/provisioning.md) |
 | Refresh and project records | [Project documentation](../../development/project-documentation.md) |

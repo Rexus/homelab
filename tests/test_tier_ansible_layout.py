@@ -76,6 +76,7 @@ class AnsibleOwnership(TierRepositoryTestCase):
         catalog = common["vars"]["control_node_base_collection_catalog"]
         expected_roles = {
             "tier-0": {"hsm_proxy_ingress", "immutable_template", "proxmox_host", "proxmox_template_replace",
+                       "proxmox_template_disk", "proxmox_template_policy",
                        "template_refresh", "vault", "syslog_ng", "openxpki", "openxpki_bundle",
                        "logging_authority", "logging_archive", "logging_backup", "infrastructure_runner",
                        "control_applications", "infrastructure_monitoring", "cluster_endpoint",
@@ -115,7 +116,7 @@ class AnsibleOwnership(TierRepositoryTestCase):
             path = self.root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
-        result = self.generate("--refresh")
+        result = self.generate("--refresh", "--code-conflicts", "preserve")
         self.assertIn("Legacy tier-owned automation preserved in shared", result.stdout)
         for relative, content in retained.items():
             self.assertEqual((self.root / relative).read_text(), content)
@@ -128,7 +129,14 @@ class AnsibleOwnership(TierRepositoryTestCase):
         common_path = self.root / "verify-shared/ansible/playbooks/control-node.yml"
         common = yaml.safe_load(common_path.read_text())
         # Exercise the real import and filters without installing packages or contacting hosts.
-        common[0]["tasks"] = common[0]["tasks"][1:3] + [{
+        resolution_tasks = {
+            "Validate collection preparation mode",
+            "Validate selected setup precheck mapping",
+            "Resolve required collections for selected setup",
+        }
+        selected_tasks = [task for task in common[0]["tasks"] if task["name"] in resolution_tasks]
+        self.assertEqual({task["name"] for task in selected_tasks}, resolution_tasks)
+        common[0]["tasks"] = selected_tasks + [{
             "name": "Check resolved collection names",
             "ansible.builtin.assert": {"that": [
                 "control_node_required_collections | map(attribute='name') | sort == expected_collections | sort"

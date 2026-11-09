@@ -68,10 +68,16 @@ The role binds `job_project_id`, namespace, branch type/name, protected status a
 audience. It grants only one KV-v2 read path, omits the default policy and caps
 token lifetime. These checks require a GitLab version that emits the selected claims. [1][2]
 
+**Pause here if `iac-1` is not installed yet.** Return to
+[Stage 9, Step 4](../README.md#step-4-hand-over-infrastructure-execution) to commission its protected
+project runner. Continue below from that runner's accepted network/identity before enabling IaC jobs;
+general Tier 1 build runners are not a substitute for testing this authority.
+
 <a id="place-scoped-credentials"></a>
 
 ## Step 2: Place scoped credentials
 
+Keep infrastructure plan/apply jobs disabled while commissioning authentication.
 Prepare a private JSON file with `proxmox_api_url`, `proxmox_api_token_id`,
 `proxmox_api_token_secret` and `ssh_private_key`. Use the least-privilege API/SSH
 identities required for this repository; never reuse a human or root credential.
@@ -103,7 +109,7 @@ unprotected branch, merge-request ref, wrong audience and wrong source address.
 Confirm no credential appears in job output, artifacts, shell history or persistent
 checkout files. Restrict Vault network access and audit reads/role changes.
 Short-lived tokens and SSO do not compensate for compromise of the trusted CI issuer.
-Continue with [handover](handover.md).
+After the real protected-runner tests pass, continue with [handover](handover.md).
 
 ## References
 

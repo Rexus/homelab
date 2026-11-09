@@ -71,6 +71,8 @@ replacement/recovery plan. The EFI volume lives on each node's selected live dat
 
 ## Step 1: Initialize and edit inputs
 
+### 1. Initialize this tier's cluster inputs
+
 Run from the selected cluster owner: **`<prefix>-tier-0/`**, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
 
 ```bash
@@ -79,6 +81,8 @@ bash scripts/kubernetes-cluster.sh init
 
 Initialization copies missing examples only. Existing files are never overwritten
 or merged; add the Talos groups from the inventory example when upgrading.
+
+### 2. Edit inventory, addresses and hardware
 
 For an existing applied SDN subnet, select
 [`bootstrap_network.sdn_vnet`](../../../reference/network-inputs.md#sdn-subnet-lookup)
@@ -134,6 +138,8 @@ are not a health-gated parallel upgrade procedure.
 These are reviewed example allocations from the [network map](../../../architecture/networking/README.md#example-network-plan).
 Create the selected attachment on every eligible Proxmox node before planning.
 
+### 3. Load this tier's API credentials
+
 Supply `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` through the protected
 shell/runner environment. Use a trusted Proxmox TLS certificate. This command
 does not load `.env.local`, Linux `common.tfvars`, or Linux environment overlays.
@@ -160,21 +166,28 @@ Retain the trusted-CA configuration used for template publication; do not bypass
 
 ## Step 2: Prepare node configuration
 
-Before creating any nodes, complete these tasks in order:
+Complete actions 4–6 before creating nodes. Each adds to the **same** ordered
+`machine_config_patches` in the selected tier's `terraform/deployments/kubernetes/terraform.tfvars`.
 
-1. Add the [controlled image-access patch](image-access.md#configure-node-access)
-   for the selected proxy or existing mirror. Qualify required bootstrap artifacts.
-2. Append the [Cilium/KubePrism patch](basic-platform.md#prepare-talos) for the actual
-   Talos schema. Do not replace the entire patch list with that one example.
-3. [Configure and render cluster logging](security-logging.md#configure-and-render).
-   Copy its two generated Talos patches into `machine_config_patches` as additional
-   YAML heredoc strings; preserve proxy/CNI patches. Validate the complete merged
-   configuration with the matching Talos CLI before applying.
+### 4. Add image access
+
+In **the selected tier's inputs**, add the [controlled image-access patch](image-access.md#configure-node-access)
+for the accepted proxy or existing mirror, then return here. Qualify required bootstrap artifacts.
+
+### 5. Add the Cilium node settings
+
+In **the same patch list**, append the [Cilium/KubePrism patch](basic-platform.md#prepare-talos)
+for the actual Talos schema. Preserve image-access and other existing patches.
+
+### 6. Render and add the security-logging patches
+
+From **the selected tier root**, complete [cluster logging Steps 1–3](security-logging.md#configure-and-render).
+Append both generated Talos patches as YAML heredoc strings, preserving proxy/CNI entries.
+Validate the complete merged configuration with the matching Talos CLI, then return here.
 
 Rendering the logging inputs requires chart access, not a live cluster. Its
 collectors and enrollment are completed after CNI installation, in Step 4.
 
-Before planning, configure the [node image-access procedure](image-access.md).
 Each tier's `machine_config_patches` input appends native Talos patches after its
 base configuration. The default `[]` preserves existing behavior; it does not
 establish restricted-network connectivity. Linux proxy settings are not inherited.
@@ -186,6 +199,8 @@ a registry, resolver, time service or firewall policy.
 
 ## Step 3: Plan and deploy
 
+### 7. Save and review the plan
+
 Run from the selected cluster owner: **`<prefix>-tier-0/`**, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
 
 ```bash
@@ -196,11 +211,12 @@ Review every VMID, source template, initial host, disk, MAC, endpoint, and secre
 resource before continuing. A failed re-plan removes the saved plan so an older
 plan cannot be applied accidentally.
 
+### 8. Apply that exact plan
+
 Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
 
 ```bash
 bash scripts/kubernetes-cluster.sh apply
-bash scripts/kubernetes-cluster.sh credentials
 ```
 
 `apply` requires the saved plan. Terraform clones the VMs, generates cluster
@@ -220,28 +236,60 @@ gate the apply job on approval of that exact protected plan; there is no additio
 | `apply` | Apply the reviewed saved plan; remove it after success |
 | `credentials` | Export client files and per-node configurations to ignored `secrets/talos/` |
 
+### 9. Export the credentials
+
+After apply succeeds, run from **the same selected tier root**:
+
+```bash
+bash scripts/kubernetes-cluster.sh credentials
+```
+
+**Expected:** protected client files and per-node configurations under `secrets/talos/`.
+Keep them and the original Terraform state in independent recovery custody before continuing.
+
 <a id="install-the-platform"></a>
 
 ## Step 4: Install the platform
 
-1. Export the client paths from the Tier 0 repository root:
+### 10. Select the exported client files
 
-   Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
+Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
 
-   ```bash
-   export TALOSCONFIG="$PWD/secrets/talos/talosconfig"
-   export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
-   kubectl get --raw='/readyz'
-   ```
+```bash
+export TALOSCONFIG="$PWD/secrets/talos/talosconfig"
+export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+kubectl get --raw='/readyz'
+```
 
-2. Complete [basic platform Steps 2-3](basic-platform.md#configure): install Cilium
-   first, then prepare Flux/SOPS and install the remaining selected products.
-3. Return to [cluster logging](security-logging.md#enroll-node-streams) to enroll
-   node identities, install collectors and test delivery at Tier 0 intake.
+**Expected:** private API access works. Nodes/CoreDNS can remain unready until Cilium is installed.
+
+<a id="11-install-cni-and-the-selected-platform-services"></a>
+
+### 11. Install CNI first
+
+From **the same tier root**, complete [basic platform Step 2](basic-platform.md#configure), then
+[actions 5–7](basic-platform.md#5-render-cilium-only) to render/review/apply Cilium and verify nodes/DNS.
+Stop before the remaining platform apply and continue below.
+
+### 12. Enroll and install cluster log collectors
+
+Complete [cluster logging Steps 4–6](security-logging.md#enroll-node-streams): enroll node identities,
+install collectors and verify real events at protected Tier 0 intake. Return here after delivery passes.
+
+### 13. Complete the remaining platform
+
+Qualify the [live CSI/storage prerequisite](basic-platform.md#persistence), then complete
+[basic platform action 9](basic-platform.md#8a-prepare-flux-and-managed-bootstrap-secrets--main-path).
+Tier 0 prepares Flux/SOPS; Tier 1/2 use their own components and Secret owners, without Tier 0 Flux.
+Render/review/apply that selection once, then continue below.
 
 <a id="verify-and-hand-over"></a>
 
 ## Step 5: Verify and hand over
+
+<a id="13-check-the-completed-cluster"></a>
+
+### 14. Check the completed cluster
 
 Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
 

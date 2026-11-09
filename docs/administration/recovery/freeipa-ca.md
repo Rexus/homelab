@@ -61,6 +61,8 @@ CSR/key-generation path as a restoration step.
    content digests to independent custody records. Check full type, original FQDN, package version
    and CA role; a data-only backup cannot satisfy this path. Follow the installed `ipa-restore(1)`
    for the matching release; it restores system files as well as service data. [2][3]
+   Before the next block, verify `/var/lib/dirsrv` exists and is readable. If matching package
+   installation did not create it, prepare that empty directory on the new VM first.
 3. On that new VM, as root, run the following guarded operation. The exclusive attempt directory
    prevents retries into a partially restored host; build another replacement after a failed attempt.
 
@@ -85,8 +87,7 @@ CSR/key-generation path as a restoration step.
    ```
 
    Supply Directory Manager/decryption credentials interactively when prompted, never on a shared
-   command line. If package installation did not create `/var/lib/dirsrv`, create that empty directory
-   as part of VM preparation; the guard deliberately fails on missing/unreadable paths. Do not delete
+   command line. The guard deliberately fails on missing/unreadable paths. Do not delete
    an existing IPA configuration, directory database or attempt marker to force these checks to pass.
 
 <a id="validate-identity-and-ca"></a>
@@ -100,6 +101,15 @@ CSR/key-generation path as a restoration step.
 
    ```bash
    ipactl status
+   ```
+
+   Require healthy services. On **the same isolated server**, obtain an operator ticket with the
+   independently retained directory credential, then test the API. The Directory Manager password
+   is not a Kerberos principal's login password; use the retained authorized operator credential. [4]
+
+   ```bash
+   read -r -p "Original authorized recovery principal (example: admin): " IPA_RECOVERY_PRINCIPAL
+   kinit "$IPA_RECOVERY_PRINCIPAL"
    ipa ping
    ```
 
@@ -126,3 +136,4 @@ isolated host instead of deleting guards or initializing a fresh realm over reco
 1. [FreeIPA server-loss and topology recovery](https://www.freeipa.org/page/Backup_and_Restore)
 2. [FreeIPA native backup manual](https://raw.githubusercontent.com/freeipa/freeipa/master/install/tools/man/ipa-backup.1)
 3. [FreeIPA native restore manual](https://raw.githubusercontent.com/freeipa/freeipa/master/install/tools/man/ipa-restore.1)
+4. [FreeIPA administrative Kerberos authentication](https://www.freeipa.org/page/Quick_Start_Guide#administrative-users-in-freeipa)

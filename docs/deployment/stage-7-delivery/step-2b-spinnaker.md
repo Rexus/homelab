@@ -406,6 +406,9 @@ manifests and deploy to an approved account. Cluster-scoped dependencies stay wi
 the cluster owner. A pipeline can instead invoke its native Ansible apply recipe on
 an authorized Tier 1 deployment worker, never the Tier 0 infrastructure runner.
 Keep bootstrap sources independent until GitLab source migration is accepted.
+When following this paragraph from Stage 9, return to
+[GitLab acceptance](../stage-9-development/procedures/gitlab.md#acceptance-and-recovery) after the
+selected pipeline/worker installation. The following Stage 7 return is for initial controller commissioning.
 **Return:** [Step 3](README.md#step-3-connect-approved-artifact-supply).
 
 ## Maintenance and Recovery

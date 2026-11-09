@@ -85,12 +85,14 @@ administrator owns those changes. [1] Use the owning cluster's protected kubecon
    kubectl describe node "$NODE"
    ```
 
-2. Apply the reservation:
+2. Proceed only if the inspected node has no existing `dedicated:NoSchedule` reservation.
+   If it already has one, retain that policy and use its owner-approved change procedure.
+   Add this new reservation without overwriting another pool's value:
 
    Run from the selected **`<prefix>-tier-0/`**, `<prefix>-tier-1/` or `<prefix>-tier-2/` repository.
 
    ```bash
-   kubectl taint node "$NODE" dedicated=compute:NoSchedule --overwrite
+   kubectl taint node "$NODE" dedicated=compute:NoSchedule
    ```
 3. In the project-owned workload manifest, set both the selector and toleration below.
    A toleration permits placement; the selector requests it. [2]
@@ -111,8 +113,17 @@ Install required CNI, storage and monitoring agents with appropriate tolerations
 also leaves an initial scheduling window; keep untrusted workloads disabled until
 the reservation is verified. This is not a secure multi-tenant runner installer.
 
-4. Check actual pod placement and system-agent health. To roll back this reservation,
-   remove only its `dedicated:NoSchedule` taint, then review workload selectors:
+4. Check actual pod placement and system-agent health:
+
+   Run from **the same owning tier and approved Kubernetes context**.
+
+   ```bash
+   kubectl get pods -A -o wide
+   ```
+
+   Keep the taint for normal reserved-pool operation. The next block is **rollback only**,
+   not another required step: remove only the `dedicated:NoSchedule` reservation added by this task,
+   then review workload selectors. Do not remove a pre-existing reservation.
 
    Run from the selected **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`** repository.
 
@@ -128,7 +139,9 @@ the reservation is verified. This is not a secure multi-tenant runner installer.
 1. Add and verify sufficient workers first. Review system tolerations, workload
 selectors, persistent-volume placement and remaining capacity after a node failure.
 2. Change `cluster.allow_scheduling_on_control_planes` to false and review the
-configuration plan. Configuration apply is not a health-gated rolling controller;
+configuration plan, then apply the reviewed configuration through the
+[owning cluster workflow](../deployment/stage-4-kubernetes/procedures/talos-terraform.md#plan-and-deploy).
+Configuration apply is not a health-gated rolling controller;
 use the pinned Talos release's maintenance procedure where a reboot is required.
 
 3. Cordon/drain control planes one at a time using Kubernetes disruption-budget and

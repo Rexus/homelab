@@ -80,7 +80,8 @@ class StageContracts(TierRepositoryTestCase):
             migration = docs / "administration/cryptography/hardware-migration.md"
             self.assertTrue(migration.is_file())
             self.assertFalse((docs / "architecture/cryptography/hardware-migration.md").exists())
-            self.assertIn("## Qualify and roll over", migration.read_text())
+            self.assertIn('id="qualify-and-roll-over"', migration.read_text())
             alternative = (docs / "deployment/stage-8-observability/step-1b-dedicated-vms.md").read_text()
-            self.assertIn("Observability, Steps 2-4", alternative)
+            self.assertIn("README.md#step-3-connect-infrastructure-monitoring", alternative)
+            self.assertIn("Do not run Step 2's Kubernetes installer on these VMs", alternative)
             self.assertIn("do not allocate or install a separate diagnostics runtime", alternative)

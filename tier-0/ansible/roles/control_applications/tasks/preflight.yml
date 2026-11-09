@@ -12,6 +12,14 @@
       - control_applications_action != 'apply' or control_applications_cluster_logging_accepted | bool
     fail_msg: Select products, ingress, pinned charts and accepted Stage 4 prerequisites; apply needs a kubeconfig.
 
+# Database commissioning pauses the selected batch, not unrelated Vault/Headlamp runs.
+- name: Resolve database-only preparation for the selected products
+  ansible.builtin.set_fact:
+    control_applications_database_prepare_only: >-
+      {{ control_applications_backup_mode == 'files' and
+         control_applications_backup_files_phase == 'prepare' and
+         control_applications_components | intersect(['keycloak', 'netbox']) | length > 0 }}
+
 - name: Require exact charts and real endpoint names
   ansible.builtin.assert:
     that:
@@ -124,7 +132,7 @@
   no_log: true
   when:
     - control_applications_action == 'apply'
-    - control_applications_backup_mode != 'files' or control_applications_backup_files_phase != 'prepare'
+    - not control_applications_database_prepare_only
     - >-
       control_applications_register_clients or
       ('keycloak' in control_applications_components and control_applications_keycloak_configure)

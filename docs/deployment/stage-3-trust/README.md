@@ -87,11 +87,12 @@ Hardware options replace software key custody; they are not additional default V
    | 1c | [Network HSM](step-1c-network-hsm.md) | Qualify the device/provider and issuer binding, then return to Step 2 |
    | 1d | [Single USB device](step-1d-single-usb.md) | Commission device/independent backup and issuer binding, then return to Step 2 |
 
-2. Complete [issuer host/runtime installation](procedures/issuer.md#step-1-provision-the-host)
-   as directed by the selected path. It gives the exact foundation init/provisioning
-   command and issuer input fields. **Do not run the identity recipe in Stage 3.**
-   If Step 1a already completed this installation, retain it; do not initialize a
-   second database or state.
+2. Follow only the selected custody path. **Software:** Steps 1–3 above already include issuer
+   host/runtime installation; do not repeat it. **Hardware:** commission the selected provider,
+   supply its qualified production configuration and complete
+   [issuer host/runtime Steps 1–2](procedures/issuer.md#step-1-provision-the-host), then prepare the
+   issuer key/CSR with that provider. HSM host provisioning alone supplies none of those integrations.
+   **Do not run the identity recipe in Stage 3**, initialize a second database or create another state owner.
 3. Stop with a prepared issuer key/CSR, reviewed policy bundle and independent
    recovery copies. The offline signing operation is next; a running VM is not an active CA.
 
@@ -109,15 +110,18 @@ plan; do not remove existing resources to make its contents match a stage number
 
 ## Step 2: Establish the certificate hierarchy
 
-1. For software custody, complete [software PKI Step 4](procedures/software-pki.md#sign-and-activate),
-   including its linked [offline software root ceremony](procedures/offline-software-root.md).
-   Hardware selections use the [offline root procedure](procedures/offline-root.md)
-   with the qualified provider. This is an authorized manual operation, not a CI job.
-2. Return only the signed issuer certificate and public chain to `ca-1`; verify
-   the recorded fingerprints and complete [native token activation](procedures/issuer-token.md).
-   Starting the runtime does not import or activate its signing token.
-3. Return root custody offline. Retain its recovery kit for the **separate** FreeIPA
-   CA ceremony in Stage 5; the identity CA is a sibling, not a subordinate of OpenXPKI.
+1. Verify the prepared CSR and perform the authorized offline root signing ceremony.
+   Software custody follows [software PKI Step 4](procedures/software-pki.md#sign-and-activate);
+   hardware custody uses the [offline root procedure](procedures/offline-root.md) with its qualified provider.
+   The ceremony is never a CI job. Return only signed public certificates/CRLs, never root keys or state.
+2. Back up the changed root instance and close offline custody as directed by that ceremony.
+   Retain its recovery kit for the **separate** FreeIPA CA ceremony in Stage 5; that CA is a sibling,
+   not a subordinate of OpenXPKI.
+3. On `ca-1`, verify the public chain/fingerprints and activate the prepared backend/token **once**.
+   For software custody, finish software PKI Step 4 and its [token procedure](procedures/issuer-token.md).
+   If that path already activated the token, do not import it again. Hardware keys require their
+   qualified native provider/token procedure; the software-key commands are not an HSM installer.
+   Starting a daemon alone does not activate a signing token.
 
 A ceremony VLAN or disconnected VM alone does not isolate root keys from a connected
 hypervisor administrator. Follow the [custody boundary](../../architecture/reference-platform.md#service-placement).

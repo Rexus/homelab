@@ -60,6 +60,25 @@
     fail_msg: Each source needs its own client CA, listener, fixed index scope and explicit reader roles.
   loop: "{{ observability_log_scopes }}"
 
+- name: Validate bounded telemetry source and egress networks
+  ansible.builtin.assert:
+    that:
+      - (item | ansible.utils.ipaddr('network/prefix')) is string
+      - item not in ['0.0.0.0/0', '::/0']
+      - "'/' in item"
+    fail_msg: Replace network placeholders with the actual bounded source and destination CIDRs.
+  loop: "{{ observability_telemetry_cidrs + (observability_egress | map(attribute='cidr') | list) }}"
+
+- name: Validate explicit egress destination ports
+  ansible.builtin.assert:
+    that:
+      - item.ports | length > 0
+      - item.ports | select('integer') | list | length == item.ports | length
+      - item.ports | min > 0
+      - item.ports | max < 65536
+    fail_msg: Each Observability egress destination needs explicit valid TCP ports.
+  loop: "{{ observability_egress }}"
+
 - name: Require reviewed host access and enforced isolation before apply
   ansible.builtin.assert:
     that:

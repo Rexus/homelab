@@ -2,8 +2,10 @@
      role="img" aria-labelledby="title description">
   <title id="title">Proxmox VMID naming convention</title>
   <desc id="description">T is the tier or allocation group, C is the category and NN is instance 00-99.
-    Example 2103 is a Tier 2 Kubernetes worker, instance 03. Tier 0 uses three digits with shifted categories:
-    100-199 control plane, 200-299 workers. Lab, clients and templates are allocation groups, not extra tiers.</desc>
+    Example 2103 is a Tier 2 Kubernetes worker, instance 03. Tier 0 uses three digits with a Kubernetes exception:
+    100-149 control planes, 150-199 workers; other categories have no offset. Infrastructure uses 200-299,
+    network services 300-399, protected logging 400-499 and bootstrap/automation 500-599, including boot-1 at 501.
+    Lab, clients and templates are allocation groups, not extra tiers.</desc>
   <style>
     text { font-family: Arial, sans-serif; fill: #1f2937; font-size: 20px; }
     .heading { font-size: 30px; font-weight: 700; }
@@ -55,7 +57,7 @@
   <text x="556" y="547" class="digit">3</text><text x="668" y="547">Network / Edge</text>
   <path class="rule" d="M32 562H520 M556 562H1048"/>
   <text x="32" y="591" class="digit">4</text><text x="144" y="591">Clients</text>
-  <text x="556" y="591" class="digit">4</text><text x="668" y="591">Observability</text>
+  <text x="556" y="591" class="digit">4</text><text x="668" y="591">Observability / protected logging</text>
   <path class="rule" d="M32 606H520 M556 606H1048"/>
   <text x="32" y="635" class="digit">5–8</text><text x="144" y="635">Reserved</text>
   <text x="556" y="635" class="digit">5</text><text x="668" y="635">Bootstrap / Automation</text>
@@ -64,6 +66,6 @@
   <text x="556" y="679" class="digit">6–9</text><text x="668" y="679">Other / Reserved</text>
 
   <text x="32" y="725" font-size="19">Instance (NN): 00–99, freely assigned within each category.</text>
-  <text x="32" y="756" class="muted">Tier 0 exception: 100–999, with shifted categories; 100 = control plane, 200 = workers.</text>
+  <text x="32" y="756" class="muted">Tier 0 Kubernetes exception: control planes 100–149; workers 150–199. Other categories: no offset.</text>
   <text x="32" y="785" class="muted">3xxx / 4xxx are allocation groups, not extra security tiers. 9xxx uses template catalog allocations.</text>
 </svg>

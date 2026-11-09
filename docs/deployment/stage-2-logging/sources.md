@@ -9,9 +9,9 @@ queue. The existing OS logger remains in place; no extra input listener is opene
 state remain in the owning tier. Debian/systemd and Red Hat/systemd are supported
 branches; qualify the actual OS, SELinux/AppArmor and package build before acceptance.
 **Prerequisites:** authenticated host access, approved rsyslog 8.2308+ and GnuTLS
-packages, cryptography, local storage capacity, a reachable receiver and its exact
-DNS SAN certificate identity; its connection target may be a fixed IP. No later-tier
-directory, cluster or registry is required.
+packages, cryptography and local storage capacity. **Preparation** generates host keys/CSRs without
+a running receiver. **Installation** additionally requires reachable intake and its exact DNS SAN
+certificate identity; its connection target may be a fixed IP. No later-tier directory, cluster or registry is required.
 
 ## Contents
 

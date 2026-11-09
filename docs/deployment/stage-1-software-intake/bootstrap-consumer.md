@@ -15,18 +15,20 @@ and a tested Stage 1 endpoint reachable from the bootstrap network.
 - [1. Verify the software source](#1-verify-the-software-source)
 - [2. Configure the local inputs](#2-configure-the-local-inputs)
 - [3. Apply the local configuration](#3-apply-the-local-configuration)
-- [4. Verify and retire temporary egress](#4-verify-and-retire-temporary-egress)
+- [4. Load the shell settings](#4-load-the-shell-settings)
+- [5. Verify package and tool access](#5-verify-package-and-tool-access)
+- [6. Retire temporary egress](#6-retire-temporary-egress)
 - [Stop or restore the previous configuration](#stop-or-restore-the-previous-configuration)
 
 ## 1. Verify the software source
 
 From `boot-1`, verify the chosen source using the
-[explicit proxy retrieval and policy checks](README.md#3a-test-the-intake-path),
+[explicit proxy retrieval and policy checks](README.md#step-5-test-the-selected-intake-path),
 or the commissioned native-mirror checks. Continue when approved retrieval and access policy work.
 
 ## 2. Configure the local inputs
 
-From the Tier 2 checkout used in Stage 1, return to Tier 0 and create the ignored local input:
+Create the ignored local input in **Tier 0**:
 
 Run from **`<prefix>-tier-0/`**.
 
@@ -108,38 +110,54 @@ Shared [package proxy tasks](../../../shared/ansible/roles/baseline/tasks/reposi
 and [shell proxy tasks](../../../shared/ansible/roles/baseline/tasks/shell_proxy.yml).
 Configuration is applied locally with sudo, without enrolling `boot-1` as a managed guest.
 
-## 4. Verify and retire temporary egress
+<a id="4-verify-and-retire-temporary-egress"></a>
 
-1. Open a fresh SSH login, or load the proxy settings in the current Bash session on `boot-1`:
+## 4. Load the shell settings
 
-   ```bash
-   source /etc/profile.d/shell-proxy.sh
-   ```
+For **proxy mode**, load the settings in the current Bash terminal on **`boot-1`**:
 
-   No reboot is needed. Ansible cannot change the environment of the terminal that launched it.
-   Reactivate the selected venv/offline environment, if used.
-   Existing running services retain their old environment.
-2. Refresh package metadata through the accepted source using the installed OS's command:
+```bash
+source /etc/profile.d/shell-proxy.sh
+```
 
-   | Package manager | Command |
-   | --- | --- |
-   | DNF | `sudo dnf makecache` |
-   | APT | `sudo apt-get update` |
+A fresh SSH login is also valid. For **mirror mode**, use a fresh login to discard the old shell's
+proxy variables; the recipe removes the proxy file. No reboot is needed. Ansible cannot change
+its parent terminal's environment. Reactivate the selected venv/offline environment if used.
+Existing running services retain their old environment.
 
-   Repeat the [Stage 1 consumer checks](README.md#step-3-connect-and-verify-consumers)
-   from the bootstrap network.
-3. Verify the required pip, Galaxy, Terraform and artifact access with the commissioned native
-   configurations. A login-shell proxy alone does not configure every tool or CI service.
-   Git remotes using HTTPS normally use these proxy variables without extra Git configuration;
-   SSH remotes (`git@...` or `ssh://...`) need their own permitted SSH path. [4]
-4. Remove temporary bootstrap WAN allowance using the approved
-   [firewall rules](../../architecture/networking/firewall-policy.md#rule-contracts), then repeat
-   approved retrieval and direct-WAN denial checks. This play changes no firewall rules.
+## 5. Verify package and tool access
+
+On **`boot-1`**, refresh metadata using the installed OS's command. For EL10:
+
+```bash
+sudo dnf makecache
+```
+
+For Debian/Ubuntu, use this block instead:
+
+```bash
+sudo apt-get update
+```
+
+Repeat the [explicit retrieval and policy checks](README.md#step-5-test-the-selected-intake-path) from the bootstrap network.
+Verify required pip, Galaxy, Terraform and artifact access with their commissioned configurations.
+A login-shell proxy alone does not configure every tool or CI service.
+HTTPS Git remotes normally use these proxy variables; SSH remotes need their own permitted SSH path. [4]
+
+**Expected:** approved package and tool retrieval succeeds. Stop if any required source fails.
+
+## 6. Retire temporary egress
+
+Remove the temporary bootstrap WAN allowance using the approved
+[firewall rules](../../architecture/networking/firewall-policy.md#rule-contracts).
+Repeat **5**'s retrieval checks and the direct-WAN denial check from Stage 1.
+This play changes no firewall rules.
 
 **Accepted:** updates use the selected internal supply with direct-WAN bypass denied.
 Keep the independent full-VM backup, ignored inputs and offline recovery bundle; the accepted
 cache/mirrors must not become prerequisites for recovering `boot-1`.
-Return to [Stage 1 consumer acceptance](README.md#step-3-connect-and-verify-consumers), then Stage 2.
+Return to [Stage 1, Step 7](README.md#step-7-connect-proxmox-host-updates) to connect Proxmox hosts
+before completing the stage.
 
 ## Stop or restore the previous configuration
 
@@ -147,7 +165,7 @@ Stop if dependencies, trust, approved retrieval or bypass-denial checks fail. Ke
 and the existing recovery material. Restore the last accepted `bootstrap.yml` and rerun **3**;
 restore separately owned mirror/tool configurations from their retained copies if changed.
 For a first switch without prior local inputs, restore the affected configurations from the independent backup.
-Open a fresh session and repeat **4**. Do not substitute unrestricted egress or disable TLS/signature checks.
+Open a fresh session and repeat **4–6**. Do not substitute unrestricted egress or disable TLS/signature checks.
 
 ## References
 

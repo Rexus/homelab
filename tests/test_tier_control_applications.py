@@ -163,6 +163,56 @@ class ControlApplicationContracts(unittest.TestCase):
 
 @unittest.skipUnless(os.name != "nt" and shutil.which("ansible-playbook"), "Requires native Ansible")
 class ControlApplicationGates(unittest.TestCase):
+    def test_database_preparation_does_not_skip_unrelated_products(self):
+        preflight = yaml.safe_load((ROLE / "tasks/preflight.yml").read_text())
+        resolution = next(task for task in preflight
+                          if "control_applications_database_prepare_only" in task.get("ansible.builtin.set_fact", {}))
+        tasks = yaml.safe_load((ROLE / "tasks/main.yml").read_text())
+        release = next(task for task in tasks
+                       if task.get("ansible.builtin.include_role", {}).get("name") == "kubernetes_applications")
+        preparation = next(task for task in tasks
+                           if task.get("ansible.builtin.include_tasks") == "database-prepare.yml")
+        credentials = next(task for task in preflight
+                           if task["name"] == "Require private Keycloak API credentials only when used")
+        cases = [
+            (["vault"], "files", "prepare", False),
+            (["headlamp"], "files", "prepare", False),
+            (["vault", "headlamp"], "files", "prepare", False),
+            (["keycloak"], "files", "prepare", True),
+            (["netbox"], "files", "prepare", True),
+            (["vault", "keycloak"], "files", "prepare", True),
+            (["keycloak"], "files", "backup", False),
+            (["keycloak"], "object", "prepare", False),
+        ]
+        plays = []
+        for products, mode, phase, prepare_only in cases:
+            predicates = [
+                (release["when"], not prepare_only),
+                (" and ".join(f"({value})" for value in preparation["when"]), prepare_only),
+                (" and ".join(f"({value})" for value in credentials["when"]), not prepare_only),
+            ]
+            plays.append({
+                "name": f"{products}: {mode}/{phase}",
+                "hosts": "localhost", "connection": "local", "gather_facts": False,
+                "vars": {
+                    "control_applications_components": products,
+                    "control_applications_backup_mode": mode,
+                    "control_applications_backup_files_phase": phase,
+                    "control_applications_action": "apply",
+                    "control_applications_register_clients": True,
+                    "control_applications_keycloak_configure": True,
+                },
+                "tasks": [copy.deepcopy(resolution), {"ansible.builtin.assert": {"that": [
+                    f"({predicate}) == {str(expected).lower()}" for predicate, expected in predicates
+                ]}}],
+            })
+        with tempfile.TemporaryDirectory(prefix="control-apps-selection-") as directory:
+            play = Path(directory) / "selection.yml"
+            play.write_text(yaml.safe_dump(plays))
+            result = subprocess.run(["ansible-playbook", "-i", "localhost,", str(play)],
+                                    capture_output=True, text=True, timeout=90)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_api_arguments_match_installed_native_modules(self):
         modules = {}
 

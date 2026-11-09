@@ -9,7 +9,13 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
 
 - [ ] Independent cluster API endpoints, DHCP/DNS/time and accepted image intake work without later tiers.
 - [ ] CSI behavior, node mounts, storage failure/recovery and backup target credentials are qualified.
+- [ ] Selected release requests fit actual node allocatable resources, storage and the required
+  failure headroom. The bootstrap-sized Tier 1 starter is expanded before the complete service stack.
 - [ ] Private certificate SANs, chains, expiry/renewal and negative TLS cases pass for every caller.
+- [ ] A qualified client-auth issuance profile/authority supplies logging and CNPG replication/backup
+  identities; the default Stage 3 TLS-server profile is not used for these identities.
+- [ ] The selected Kubernetes SSO path matches qualified Talos 1.13 configuration; initial OIDC
+  test-client/token and RBAC access work before Headlamp. Talos 1.14 needs separate qualification.
 - [ ] Local credentials, original state, cluster secrets and restore tools exist outside hosted services.
 
 ## Capability Gates

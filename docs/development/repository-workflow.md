@@ -15,8 +15,8 @@ and responsibility. The collection directory itself is not a Git repository.
 - [Step 1: Select the private working model](#recommended-usage-models)
 - [Step 2: Keep local history before hosted source control](#local-history-before-hosted-source-control)
 - [Step 3: Refresh from the kit without replacing project work](#step-3-refresh-from-the-kit-without-replacing-project-work)
-- [Step 4: Attach private source control later](#example-private-mirror-in-gitlab)
-- [Step 5: Review before publishing](#pre-push-checks)
+- [Step 4: Review before publishing](#pre-push-checks)
+- [Step 5: Attach private source control and push](#example-private-mirror-in-gitlab)
 
 ## Where does a change belong?
 
@@ -65,8 +65,9 @@ collection root. Hosted source control is optional for initial deployment;
    git status --short --ignored
    ```
 
-2. Review `.gitignore`, stage explicit safe files and commit under the project's
-   identity/signing policy. Repeat per repo; never initialize the collection directory.
+2. Review `.gitignore` and stage explicit safe files. Complete the
+   [staged secret check](secret-scanning.md#local-checks) and inspect the staged diff before committing
+   under the project's identity/signing policy. Repeat per repo; never initialize the collection directory.
 3. Back up ignored operational inputs, original Terraform state and credentials
    independently. A commit or future push does not contain or recover those files.
 
@@ -90,22 +91,25 @@ bootstrap/recovery custody under the [secret strategy](../administration/secret-
 
 ## Step 3: Refresh from the kit without replacing project work
 
+This action is needed when adopting a kit update. Otherwise continue at **Step 4**.
+
 From the **upstream kit root**, after updating its source, preview the same collection:
 
 Run from **upstream kit root**.
 
 ```bash
 read -r -p 'Original project prefix: ' PROJECT_PREFIX
-python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh --dry-run
+read -r -p 'Parent directory containing the existing collection (absolute path): ' PROJECT_PARENT
+python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --root "$PROJECT_PARENT" --refresh --dry-run
 ```
 
-Reuse the original `--root` on both commands if customized. Keep the same prefix. Review
-the preview, preserve private changes/backups, then apply that refresh:
+Use the existing collection's parent, not the collection directory itself. Review the preview's
+destination and changes, preserve private changes/backups, then apply that same refresh:
 
 Run from **upstream kit root**.
 
 ```bash
-python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh
+python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --root "$PROJECT_PARENT" --refresh
 ```
 
 Follow the [refresh contract](generated-repositories.md#refresh-and-local-ownership): kit automation updates,
@@ -116,31 +120,11 @@ Missing current generation targets are restored; obsolete files under `docs/auto
 Refresh does not merge live YAML/HCL/dotenv, move state or deploy infrastructure.
 Review replacements, backups and preserved differences before any affected deployment.
 
-<a id="example-private-mirror-in-gitlab"></a>
-
-## Step 4: Attach private source control later
-
-After accepting hosted source control, create an empty **private** remote per repo.
-From each generated repo with reviewed local commits and no `origin` yet:
-
-Run from **the owning generated repository root**.
-
-```bash
-read -r -p 'Private repository SSH or HTTPS URL without embedded credentials: ' PRIVATE_REMOTE_URL
-git remote add origin "$PRIVATE_REMOTE_URL"
-git push -u origin main
-```
-
-Use the actual reviewed branch if different. Review existing remotes/history without
-reinitialization or force-push. GitLab is the reference; other private source control is valid.
-[CI handover](../deployment/stage-9-development/procedures/handover.md) transfers
-original state/ignored inputs separately; it never recreates the infrastructure.
-Infrastructure runners require the explicit Tier 0 trust contract, not general build access.
-
 <a id="before-you-push"></a>
 <a id="pre-push-checks"></a>
+<a id="step-5-review-before-publishing"></a>
 
-## Step 5: Review before publishing
+## Step 4: Review before publishing
 
 Run from **the owning generated repository root**.
 
@@ -150,5 +134,34 @@ git diff --cached --check
 git diff --cached --stat
 ```
 
-Inspect staged content locally; run the [secret scan](secret-scanning.md) and [focused checks](testing.md).
-Confirm the destination, exclude live secrets/state/host plans, and approve public disclosure.
+Inspect staged content locally, run the [secret scan](secret-scanning.md) and [focused checks](testing.md).
+Before the first remote push, scan the complete local history too; staged checks alone omit earlier commits.
+Exclude live secrets/state/host plans and approve the intended disclosure before continuing.
+
+<a id="example-private-mirror-in-gitlab"></a>
+<a id="step-4-attach-private-source-control-later"></a>
+
+## Step 5: Attach private source control and push
+
+After hosted source control and **Step 4** are accepted, create an empty **private** remote per repo.
+From each generated repo with reviewed local commits and no `origin` yet:
+
+Run from **the owning generated repository root**:
+
+```bash
+read -r -p 'Private repository SSH or HTTPS URL without embedded credentials: ' PRIVATE_REMOTE_URL
+git remote add origin "$PRIVATE_REMOTE_URL"
+git remote -v
+```
+
+Verify that `origin` points to the intended private project. If a remote already exists, inspect it
+instead of reinitializing or replacing it blindly. Then push from **that same repository**:
+
+```bash
+git push -u origin main
+```
+
+Use the actual reviewed branch if different. GitLab is the reference; other private source control is valid.
+[CI handover](../deployment/stage-9-development/procedures/handover.md) transfers original state/ignored inputs
+separately; it never recreates the infrastructure. Infrastructure runners require the explicit Tier 0
+trust contract, not general build access.

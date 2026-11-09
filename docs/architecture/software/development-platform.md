@@ -24,8 +24,11 @@ These are distinct functions even when one product exposes several interfaces.
 | Lab environments | Tier 2 allocated runtime | Tenant access without hypervisor, Talos administrator or infrastructure-state access |
 
 A Kubernetes runner provisions job pods, not an isolated Kubernetes cluster per
-job. Worker capacity, build-node isolation and cluster lifecycle remain separate
-concerns. A source-control deployment is not a provisioning service.
+job. The supplied runner uses the Tier 1 Services cluster; its namespace and
+non-privileged job settings do not reserve isolated build nodes. Worker capacity,
+build-node isolation and cluster lifecycle remain separate concerns. Untrusted
+builds require the [isolated execution boundary](../hosting/kubernetes.md#scheduling-and-capacity),
+not merely this runner installation. A source-control deployment is not a provisioning service.
 
 ## Privileged CI
 
@@ -33,7 +36,7 @@ The selected reference offers **direct trusted CI** as an explicit opt-in.
 The dedicated infrastructure project can execute reviewed IaC and read bounded
 credentials through Vault. Its maintainers, GitLab administrators and anyone able
 to alter GitLab's signing keys, runtime, storage or backups are Tier 0 trusted
-principals. Tier 1 physical hosting does not make those administrators lower-trust.
+principals. Tier 1 runtime placement does not make those administrators lower-trust.
 Separating the project from general builds does not remove this transitive trust.
 
 This changes the stricter independently authorized request pattern: branch
@@ -59,9 +62,13 @@ Short-lived Vault tokens do not make a static backend credential short-lived.
 Normal hosted changes may pause if GitLab, Vault or SSO is unavailable. Existing
 infrastructure must keep running, and Tier 0 can recover from independent retained
 code, artifacts, original state and credentials.
-The bootstrap workstation sits outside hosted runtimes and is disconnected when
-idle; it remains a Tier 0 administrative context, not an untrusted client or a new
-offline network route. It must be online during actual deployment/recovery.
+The reference bootstrap executor is a Tier 0 management VM hosted on Proxmox.
+It is outside Kubernetes, but cannot be the only recovery environment for its
+own hypervisor or storage. Independently retained backups, tools and credentials
+must support restoration on an available recovery host. A protected workstation
+is an alternative executor; neither placement alone establishes offline custody.
+The [bootstrap recovery contract](../../administration/recovery/bootstrap.md)
+owns that independence.
 
 ## Realization
 

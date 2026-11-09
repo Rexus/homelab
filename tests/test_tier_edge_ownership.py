@@ -87,10 +87,10 @@ class EdgeOwnership(TierRepositoryTestCase):
         manifest = json.loads(manifest_path.read_text())
         manifest["files"].pop("terraform/deployments/edge/main.tf")
         manifest_path.write_text(json.dumps(manifest))
-        dry_run = self.generate("--refresh", "--dry-run")
+        dry_run = self.generate("--refresh", "--dry-run", "--code-conflicts", "preserve")
         self.assertIn("Edge ownership upgrade", dry_run.stdout)
         self.assertFalse(new_root.exists())
-        refreshed = self.generate("--refresh")
+        refreshed = self.generate("--refresh", "--code-conflicts", "preserve")
         self.assertIn("Edge ownership upgrade", refreshed.stdout)
         self.assertTrue(new_root.is_file())
         for relative, content in preserved.items():

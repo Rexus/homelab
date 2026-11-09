@@ -4,10 +4,11 @@
 
 <a id="proxmox-cluster-and-ha"></a>
 
-**Branch from:** [Step 1](README.md#step-1-prepare-compute-and-templates), before important guests exist.
+**Branch from:** [host/network preparation](README.md#before-starting-hosts-and-networks), before guests exist.
 **Change:** Add clustered placement and tested failover.
-**Return:** [Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually)
-after cluster/mobility preparation; complete guest HA enrollment and fault tests after
+**Return:** [foundation prerequisites](README.md#before-starting-hosts-and-networks)
+after cluster/mobility preparation; finish storage and firewall checks before creating the first template.
+Complete guest HA enrollment and fault tests after
 a disposable clone exists.
 
 **Design:** [compute availability](../../architecture/hosting/README.md).
@@ -85,8 +86,9 @@ For SDN, complete [optional guest SDN](proxmox/network.md#optional-sdn-for-guest
 on **every eligible node** now. An SDN zone is a network implementation group,
 not the architecture's DMZ/Services/Control firewall zone.
 
-**Before any guests exist:** return to [Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually)
-after these preparations. Continue below when a disposable clone is ready. Do not
+**Before any guests exist:** return to [foundation prerequisites](README.md#before-starting-hosts-and-networks)
+and finish storage/firewall checks before the manual template and bootstrap host.
+Continue below when a disposable clone is ready. Do not
 enroll an untested important guest merely to finish this page.
 
 <a id="enable-ha"></a>

@@ -1,89 +1,111 @@
 # Stage 1: Software intake
 
-Provide controlled update access before deploying services that need packages or
-images. Begin with a policy proxy/cache or verified existing supply; extend the
-same capability with retained repositories and OCI artifact services later.
+Establish approved update access, then connect the existing bootstrap and Proxmox hosts.
+The main path creates a Tier 2 policy proxy/cache; an existing approved proxy or native mirror is also valid.
 
-**Prerequisites:** [foundation](../foundation/README.md) hosts, networks, one approved
-Linux template and independent bootstrap packages/tools. The cache cannot install itself.
-**Working repositories:** `<prefix>-tier-2` for the proxy/cache, each consuming tier
-for its local inputs, and `<prefix>-tier-1` for later repository/registry services.
-**Automation:** the Squid/keepalived path is supplied. Repository management, Harbor
-and automated patch rollout remain separate integrations, not installed by this path.
+**Prerequisites:** [foundation](../foundation/README.md), a tested Linux template and independent
+bootstrap software access. New cache VMs need an approved initial package source; they cannot install themselves.
+**Working repositories:** `<prefix>-tier-2` for cache resources, `<prefix>-tier-0` for existing-host consumers,
+and Shared for common platform references.
+**Automation:** the Squid/keepalived installer and existing-host proxy configuration are supplied.
+Repository management, Harbor and automated patch rollout are not installed by this path.
 See [coverage](../../reference/implementation-support.md#stage-coverage).
 **Design:** [controlled software intake](../../architecture/software/software-intake.md).
 
 ## Main path
 
-1. [Prepare the cache inputs](#step-1-prepare-the-cache-inputs).
-2. [Deploy the selected intake path](#step-2-deploy-the-selected-intake-path):
-   **2a** creates the cache pair; **2b** uses an existing approved service instead.
-3. [Connect and verify consumers](#step-3-connect-and-verify-consumers).
+1. [Choose the supply route](#step-1-choose-the-supply-route).
+2. [Initialize cache inputs](#step-2-initialize-cache-inputs), for a new cache pair.
+3. [Configure the cache deployment](#step-3-configure-the-cache-deployment), for a new cache pair.
+4. [Deploy the cache pair](#step-4-deploy-the-cache-pair), then test it.
+5. [Test the selected intake path](#step-5-test-the-selected-intake-path), including existing supply.
+6. [Connect the bootstrap host](#step-6-connect-the-bootstrap-host).
+7. [Connect Proxmox host updates](#step-7-connect-proxmox-host-updates).
 
-Existing approved supply can satisfy this stage: skip to **2b**, then continue at **3**.
-The main path works independently of later hosted repository and OCI services.
+**New cache pair:** follow **1a → 2 → 3 → 4 → 5 → 6 → 7**.
+**Existing supply:** follow **1b → 5 → 6 → 7**; create no cache resources.
 
-**Controller tools:** an OS-packaged `ansible-core` with compatible collections can run this
-cache recipe; a manual Python venv is not required. The deployment precheck prepares its
-selected collections. Follow [Bootstrap Ansible 4a/4b](../foundation/proxmox/bootstrap.md#4-install-ansible)
-for the package command and the separate runtime used when other recipes need it.
+## Step 1: Choose the supply route
+
+### 1a: Create the proxy/cache pair — main path
+
+Use the supplied `cache-1`/`cache-2` installer when controlled outbound access is needed.
+Retain independent bootstrap/recovery artifacts. Continue at **Step 2**.
+
+An OS-packaged `ansible-core` with compatible collections can run this cache recipe;
+the precheck prepares its collections. Complete [Bootstrap Ansible installation](../foundation/proxmox/bootstrap.md#4-install-ansible)
+first; a manual venv is not universally required.
+
+<a id="2b-use-existing-approved-supply--alternative"></a>
+
+### 1b: Use existing approved supply — alternative
+
+Record the existing proxy URL or native repository endpoints, allowed clients and source domains,
+availability and recovery arrangements. A fully disconnected route needs retained content and tools;
+an empty cache cannot supply offline packages.
+
+Skip **Steps 2–4** and continue at **Step 5**. The main path works independently of later hosted
+repository and OCI services.
 
 <a id="step-1-deploy-the-policy-proxy-and-cache"></a>
+<a id="step-1-prepare-the-cache-inputs"></a>
 
-## Step 1: Prepare the cache inputs
+## Step 2: Initialize cache inputs
 
-Initialize the Tier 2 cache inputs on the bootstrap host:
-
-Run from **`<prefix>-tier-2/`**.
+Run from **`<prefix>-tier-2/`** on the prepared bootstrap host:
 
 ```bash
 bash scripts/init-local-files.sh --setup cache
 ```
 
-Initialization creates ignored local files without overwriting existing configuration.
+**Expected:** missing ignored local inputs are created; existing configuration is preserved.
+This does not create VMs or select deployment-ready values.
 
-### Shared references: check once
+## Step 3: Configure the cache deployment
 
-Shared references apply to all Linux deployments.
+Complete each required edit below. The network attachment has two alternatives.
 
-Edit in **`<prefix>-shared/`**.
+<a id="shared-references-check-once"></a>
 
-- `config/platform.tfvars`: set `default_platform_node_name` to an existing destination node, such as
-  `pve01`. Set `proxmox_storage_classes.local.vm_disk` to VM-image storage, such as `local-zfs`.
-  Omit `cloud_init_drive` to inherit that storage. Preserve other storage classes.
-- `templates/proxmox-catalog.tfvars`: `default_linux_vm_template_id` selects a clone-tested Linux image
-  published by Tier 0; the example Rocky template is `9101`.
+### 1. Check Shared references
 
-The logical class `local` is **not** the datastore named `local`. Import storage may accept
-images for upload without supporting VM disks. See [storage mapping](../../reference/platform-inputs.md#vm-disk-storage).
+Edit in **`<prefix>-shared/`**:
 
-### Tier 2 inputs: edit before deployment
+| File | Set |
+| --- | --- |
+| `config/platform.tfvars` | `default_platform_node_name`: an existing destination node, such as `pve01`; `proxmox_storage_classes.local.vm_disk`: VM-image storage, such as `local-zfs`; omit `cloud_init_drive` to inherit it |
+| `templates/proxmox-catalog.tfvars` | `default_linux_vm_template_id`: the clone-tested Linux template approved by Tier 0, for example Rocky `9101` |
 
-Edit in **`<prefix>-tier-2/`**.
+The logical class `local` is not the datastore named `local`. Import storage and VM-disk storage
+have different requirements; retain other valid classes. See [storage mapping](../../reference/platform-inputs.md#vm-disk-storage).
 
-- `.env.local`: Actual `PROXMOX_API_URL`, token ID/secret and `TF_VAR_ssh_public_key_files`. This file is
-  separate from Tier 0's
-- `terraform/common.tfvars`: `external_edge` bridge/VLAN, subnet and gateway, or the SDN alternative below
-- `terraform/deployments/cache/terraform.tfvars`: Available VMIDs; keep cache-1/cache-2 keys. Review OS disk
-  and each extra scsi1 cache disk
-- `ansible/group_vars/all.yml`: `platform_domain`, hostname prefix/suffix and `ansible_user` matching the
-  clone's login user
-- `ansible/group_vars/cache.yml`: Both host IPs, VIP/prefix, unique VRRP ID, permitted client CIDRs and
-  approved source domains. Set `cache_validation_url` to a URL reachable through the selected policy;
-  keep `repository_proxy_enabled: false` for the cache hosts.
+<a id="tier-2-inputs-edit-before-deployment"></a>
 
-In **`<prefix>-tier-2/`**, edit `.env.local`: uncomment and set `TF_VAR_ssh_public_key_files`
-to the execution account's **public key file path**:
+### 2. Set Tier 2 credentials and VM inputs
+
+Edit in **`<prefix>-tier-2/`**:
+
+| File | Set |
+| --- | --- |
+| `.env.local` | Actual `PROXMOX_API_URL`, token ID/secret and `TF_VAR_ssh_public_key_files`; Tier 2 does not inherit Tier 0's credentials |
+| `terraform/deployments/cache/terraform.tfvars` | Free VMIDs, selected size/storage and OS/data disks; retain `cache-1`/`cache-2` keys |
+| `ansible/group_vars/all.yml` | `platform_domain`, hostname prefix/suffix and `ansible_user` matching the clone's login account |
+
+In **Tier 2 `.env.local`**, uncomment `TF_VAR_ssh_public_key_files` and use the actual absolute
+public-key path from [bootstrap SSH setup](../foundation/proxmox/bootstrap.md#step-3-prepare-the-execution-accounts-ssh-key):
 
 ```dotenv
-TF_VAR_ssh_public_key_files='["/home/operator/.ssh/id_ed25519.pub"]'
+TF_VAR_ssh_public_key_files='["/home/automation/.ssh/id_ed25519.pub"]'
 ```
 
-Use the existing [bootstrap SSH key](../foundation/proxmox/bootstrap.md); the matching private key stays
-on the execution host or agent. Empty clone key inputs do not inherit bootstrap-host access.
+The matching private key remains on the execution host or agent. Empty clone key inputs
+do not inherit the key used to log into the bootstrap VM.
 
-In **`<prefix>-tier-2/`**, edit `terraform/common.tfvars`: for SDN, replace only `external_edge`
-inside `network_zones`:
+### 3. Select the network attachment
+
+Edit **`<prefix>-tier-2/terraform/common.tfvars`**. Choose one attachment, then continue at action **4**.
+
+**SDN VNet:** replace only `external_edge` inside `network_zones`:
 
 ```hcl
 external_edge = {
@@ -92,13 +114,16 @@ external_edge = {
 }
 ```
 
-Use the actual applied VNet ID. Its subnet supplies the prefix/gateway; host IPs still come from
-`cache.yml`. The token needs scoped `SDN.Use` **and** `SDN.Audit`; see
-[API permissions](../foundation/proxmox/api-access.md#2b-existing-sdn-vnet).
-For a regular VLAN-aware bridge, edit the existing explicit VLAN/subnet/gateway fields instead.
+Use the actual applied VNet ID. Its subnet supplies prefix/gateway; host IPs come from `cache.yml`.
+The token needs scoped `SDN.Use` and `SDN.Audit`; see [API permissions](../foundation/proxmox/api-access.md#2b-existing-sdn-vnet).
 
-In **`<prefix>-tier-2/`**, edit `ansible/group_vars/cache.yml`: replace these values with reserved
-site addresses:
+**Regular VLAN-aware bridge:** instead retain the explicit `external_edge` bridge, VLAN,
+subnet and gateway fields and set them to the prepared network. Do not add a VLAN tag to an SDN VNet.
+
+### 4. Set addresses and access policy
+
+Edit **`<prefix>-tier-2/ansible/group_vars/cache.yml`**. Replace these example addresses
+with reserved site values:
 
 ```yaml
 platform_host_ips:
@@ -107,33 +132,35 @@ platform_host_ips:
 cache_proxy_vip_cidr: "10.30.30.22/24"
 cache_keepalived_virtual_router_id: 40
 cache_squid_allowed_cidrs:
+  - 10.10.10.0/24
   - 10.30.30.0/24
 cache_validation_url: https://mirrors.fedoraproject.org/
 ```
 
-Add the actual consumer and bootstrap-host CIDRs to the allow-list. Narrow
-`cache_squid_allowed_domains` to the required repositories and their redirect destinations.
-An empty domain list is rejected; there is no unrestricted fallback.
+Include the actual bootstrap and Proxmox management CIDRs. Narrow `cache_squid_allowed_domains`
+to the selected repositories, required tools and redirect destinations; an empty list is rejected.
+Keep `cache_validation_url` within that policy and `repository_proxy_enabled: false` for cache hosts,
+so their initial installation does not depend on their own unfinished VIP.
 
-## Step 2: Deploy the selected intake path
+<a id="step-2-deploy-the-selected-intake-path"></a>
+<a id="2a-create-the-proxycache-pair--main-path"></a>
 
-### 2a: Create the proxy/cache pair — main path
+## Step 4: Deploy the cache pair
 
 The selected data device (`/dev/sdb` by default) is formatted for rebuildable cache data.
-Confirm that the cache VMs and their extra disks contain no required data.
-The plan enables each Proxmox NIC's Firewall flag; review the separate
-[guest-filtering controls](../foundation/network/firewall.md#proxmox-guest-interfaces)
-before applying it to existing guests. Ansible's guest `firewalld` settings are independent.
+Confirm that the target VMs/disks contain no required data.
+Review the separate [Proxmox NIC and guest-filtering controls](../foundation/network/firewall.md#proxmox-guest-interfaces);
+the NIC Firewall flag and the guest's firewalld policy are separate controls.
 
-Run from **`<prefix>-tier-2/`**.
+Run from **`<prefix>-tier-2/`**:
 
 ```bash
 bash scripts/deploy.sh cache
 ```
 
-Review Terraform's displayed plan, then enter `yes` to create the resources and run Ansible.
-Enter `no` to stop. Optional preview: add `--plan-only`. An approved pipeline can add
-`--auto-approve`; provide credentials, SSH access and installed control-node tools beforehand.
+Review Terraform's displayed plan and enter `yes` to create the resources and run Ansible,
+or `no` to stop. Optional preview: add `--plan-only`. Approved unattended CI can use
+`--auto-approve` with prepared tools, credentials and SSH access.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -173,33 +200,16 @@ The pair and attached disks are created; clients, upstreams and physical network
 The VIP fails over; it does not replicate cache data or balance both VMs concurrently.
 
 **Expected:** both hosts accept SSH, Squid responds and exactly one host owns the VIP.
-The default validation briefly stops keepalived to test takeover, then restores it.
-If Terraform fails partway through, preserve state and follow
-[partial-apply recovery](../../reference/repository-scripts.md#partial-terraform-apply) before retrying.
-Continue at **3**; **2b** is an alternative.
+Default validation briefly stops keepalived to test takeover, then restores it.
+If Terraform fails partway through, retain state and follow [partial-apply recovery](../../reference/repository-scripts.md#partial-terraform-apply).
+Continue at **Step 5**.
 
-### 2b: Use existing approved supply — alternative
+<a id="3a-test-the-intake-path"></a>
 
-Create no cache resources. Record the existing proxy URL or internal repository endpoints,
-allowed client networks, availability and recovery arrangements in project documentation.
-Verify an approved download from the bootstrap host. A proxy can use the consumer inputs
-in **3**; a direct internal mirror needs its own repository configuration instead.
-Continue at **3**.
+## Step 5: Test the selected intake path
 
-<a id="step-2-connect-the-approved-consumers"></a>
-<a id="step-3-accept-controlled-intake"></a>
-
-## Step 3: Connect and verify consumers
-
-Follow **3a → 3b → 3c**: test the source, configure the bootstrap host, then configure later consumers.
-
-### 3a: Test the intake path
-
-From the bootstrap host and a permitted consumer network, test the selected proxy endpoint
-(native-mirror consumers use their commissioned package/tool checks instead).
-This explicit proxy test works before configuring the host's proxy settings:
-
-Run on **the selected approved consumer host**.
+Before changing host proxy settings, test from **the bootstrap host** and each intended consumer network.
+For a proxy, use the accepted endpoint explicitly:
 
 ```bash
 read -r -p "Proxy URL (example: http://10.30.30.22:3128): " PROXY_URL
@@ -211,47 +221,75 @@ curl --fail --noproxy '' --proxy "$PROXY_URL" --output /dev/null "$APPROVED_URL"
 | --- | --- |
 | Approved source through proxy | Download succeeds |
 | Unapproved destination or forbidden source network | Proxy request is denied |
-| Consumer direct WAN bypass | Firewall denies it |
-| HTTP cacheable object requested twice | Squid records the expected cache hit; HTTPS CONNECT is not cached |
+| Selected HTTP cacheable object, when HTTP caching is required | A repeated request produces a Squid cache hit; HTTPS CONNECT is not cached |
 
-### 3b: Configure the existing bootstrap host
+For native mirrors, test their actual repository/tool retrieval instead.
+Stop on failed approved retrieval or policy checks.
+Temporary bootstrap acquisition access may still exist here; retire it only after its replacement
+works in **Steps 6–7**, then prove direct-WAN bypass is denied.
 
-Follow the [local bootstrap consumer steps](bootstrap-consumer.md) on `boot-1` in the Tier 0
-repository. Select proxy or native mirrors, apply the local recipe and verify access before
-retiring temporary acquisition egress. This manually created host is not automatically configured
-by the cache deployment; no inventory entry or Terraform adoption is required.
+<a id="3b-configure-the-existing-bootstrap-host"></a>
 
-### 3c: Configure later Linux deployments
+## Step 6: Connect the bootstrap host
 
-For each later Linux deployment, edit that tier's ignored `ansible/group_vars/all.yml`
-after its initialization step. Add or replace these consumer settings:
+On **`boot-1`**, follow the required [bootstrap consumer actions](bootstrap-consumer.md) from
+**`<prefix>-tier-0/`**. Select proxy or native mirrors, apply the local configuration, open/load
+the correct shell environment and verify package/tool access before removing temporary egress.
 
-```yaml
-repository_proxy_enabled: true
-repository_proxy_fqdn: "cache.{{ platform_domain }}"
-repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
-repository_proxy_ip: "10.30.30.22"
-```
+**Expected:** the bootstrap uses accepted supply, and its direct-WAN bypass is denied.
+This configures the existing host; it creates no VM, inventory entry or Terraform state.
+Return here and continue at **Step 7**.
 
-Use the selected VIP; with existing supply, use its actual endpoint instead. The IP supplies
-a temporary hosts entry before DNS exists. Leave the cache setup's own proxy override disabled.
-The later deployment's Shared [baseline role](../../../shared/ansible/roles/baseline/tasks/repository_proxy.yml)
-applies these inputs; this step does not deploy those future hosts.
+<a id="3d-connect-proxmox-host-updates"></a>
 
-Apply the [firewall rules](../../architecture/networking/firewall-policy.md#rule-contracts) before
-removing temporary bootstrap egress. Detailed [validation](proxy-cache.md#validation) and
-[policy/storage reference](proxy-cache.md) are available when needed.
-Proxmox uses its [host update procedure](../../administration/hosts/update-access.md);
-Kubernetes uses separate [image-access inputs](../stage-4-kubernetes/procedures/image-access.md).
-The cache does not provide unrestricted internet access or Tier 0 update authority.
+## Step 7: Connect Proxmox host updates
+
+From **`<prefix>-tier-0/`**, complete the required [Proxmox host actions](../../administration/hosts/update-access.md#how-are-managed-hosts-configured):
+register existing hosts, verify SSH access and apply the Datacenter/APT proxy settings.
+For native mirrors instead, verify the equivalent APT configuration without enabling the proxy recipe.
+
+On **each Proxmox host**, verify repository refreshes through the selected source, then retire its
+temporary update egress and prove direct-WAN bypass is denied.
+The hosts pull content; the Tier 2 cache receives no host credentials or management access.
+
+**Expected:** all selected hosts can retrieve their approved updates through the accepted path.
+[Install updates](../../administration/hosts/update-access.md#how-are-proxmox-updates-installed)
+in a separate maintenance window, one cluster host at a time with the proxy kept available.
+Patch installation is not a prerequisite for completing update-access configuration.
+
+<a id="step-2-connect-the-approved-consumers"></a>
+<a id="step-3-accept-controlled-intake"></a>
+<a id="step-3-connect-and-verify-consumers"></a>
 
 ## Capability available
 
-**Result:** connected consumers have a controlled intake path. This does not prove
-that patches are installed, that releases are approved, or that a cache is an offline mirror.
-Return to Tier 0, then follow [Stage 2: Protected logging](../stage-2-logging/README.md):
+**Result:** the selected supply works, and existing bootstrap/Proxmox consumers use it with direct-WAN
+bypass denied. Keep independent recovery artifacts and record the selected endpoint and checks.
+This does not prove that patches are installed, releases are approved or a cache is an offline mirror.
 
-**Execution context:** `<prefix>-tier-0/`.
+Continue from **`<prefix>-tier-0/`** at [Stage 2: Protected logging](../stage-2-logging/README.md).
+
+<a id="3c-configure-later-linux-deployments"></a>
+
+## Use the intake path in later deployments
+
+When another tier/setup is initialized, edit **that tier's `ansible/group_vars/all.yml`**.
+Reuse the accepted endpoint; do not replace an already accepted host configuration with another example:
+
+```yaml
+repository_proxy_enabled: true
+repository_proxy_url: "http://10.30.30.22:3128"
+```
+
+A hostname is valid when independent DNS already resolves it.
+Optional `repository_proxy_fqdn`/`repository_proxy_ip` inputs can supply a temporary hosts entry
+before directory DNS exists. Keep the cache setup's own proxy override disabled.
+
+The later deployment's [Shared baseline role](../../../shared/ansible/roles/baseline/tasks/repository_proxy.yml)
+applies these defaults when those guests are created. This section deploys no future hosts.
+Native mirrors need their own commissioned repository configuration instead.
+Kubernetes uses its separate [image-access inputs](../stage-4-kubernetes/procedures/image-access.md).
+See the [policy and sizing reference](proxy-cache.md) when extending the allowed consumers.
 
 ## Extend the capability later
 

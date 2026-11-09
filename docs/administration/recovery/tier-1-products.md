@@ -59,13 +59,19 @@ follow [security logging access boundaries](../security-logging.md) and record t
    IDs and a new target; preserve partial failures and retry on another clean target after diagnosis.
 
 For a native VictoriaMetrics restore, on the new isolated volume host with the product stopped:
+prepare its new empty data directory on commissioned recovery storage first. This example requires
+an existing empty canonical directory; it does not provision or format a volume.
 
 Run on **the isolated recovery-volume host with VictoriaMetrics stopped**.
 
 ```bash
 set -euo pipefail
-: "${VM_BACKUP_SOURCE:?Set the approved vmbackup source URI}"
-: "${VM_NEW_DATA:?Set the NEW empty absolute data directory}"
+read -r -p "Approved vmbackup source URI from independent custody: " VM_BACKUP_SOURCE
+read -r -e -p "NEW empty absolute data directory: " VM_NEW_DATA
+read -r -p "Target isolation verified (yes): " RECOVERY_ISOLATED
+read -r -p "Approve that exact new data directory: " RECOVERY_APPROVE_VMRESTORE
+read -r -p "VictoriaMetrics independently confirmed stopped (yes): " RECOVERY_VM_STOPPED
+test -n "$VM_BACKUP_SOURCE"
 test "${RECOVERY_ISOLATED:-}" = yes
 test "${RECOVERY_APPROVE_VMRESTORE:-}" = "$VM_NEW_DATA"
 test -d "$VM_NEW_DATA"

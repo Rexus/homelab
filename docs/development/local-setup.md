@@ -65,6 +65,8 @@ kit's `scripts/tier-repos/requirements.txt`; see the [generation contract](gener
 | Generator, starter documents or refresh behavior | `scripts/tier-repos/`; [generated repository contract](generated-repositories.md) |
 | Local environment/configuration only | The owning private generated repository; [repository workflow](repository-workflow.md) |
 
+### 2a. Preview the generated output
+
 Preview without creating a collection:
 
 Run from **upstream kit root**.
@@ -73,7 +75,10 @@ Run from **upstream kit root**.
 python3 scripts/tier-repos/generate.py --dry-run
 ```
 
-When a generated checkout is needed, omit `--dry-run`:
+**Expected:** the report lists the target collection and proposed files; nothing is written.
+Continue at **Step 3**, or follow **2b** when an actual generated checkout is needed.
+
+### 2b. Create a disposable collection when needed
 
 Run from **upstream kit root**.
 
@@ -85,6 +90,7 @@ This creates `../<prefix>-iac/` with lowercase sibling repository folders.
 It creates files, not remotes or infrastructure. Add the same `--prefix` and `--root`
 selections to both commands when customized; the
 [generator contract](generated-repositories.md#prefix-casing) defines prefix/default behavior.
+Continue at **Step 3** after generation.
 
 ## Step 3: Run a focused offline check
 

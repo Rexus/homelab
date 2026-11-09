@@ -106,19 +106,26 @@ An existing qualified target is valid; neither path requires an object-storage A
 
 ## How to schedule and run a guest backup?
 
-1. In **Datacenter > Backup > Add/Edit**, select the exact guests, backup storage, node scope,
-   schedule, consistency mode and notification target.
-2. Review each guest's **Hardware > disk > Backup** selection. For `boot-1`, verify both OS and
-   attached data disks are included; for the collector, include its separate log-data disk.
-   VM backups do not automatically
-   cover external Kubernetes PVCs, NAS shares or application objects; use their
-   [product backup contracts](../../deployment/foundation/storage/README.md#choose-the-native-interface).
-3. Use the native schedule field for the approved frequency; select **Run now** and read the task log.
-   A `snapshot` backup minimizes downtime but is not proof of database/application consistency.
-   Use product-aware backups or an approved stopped-guest point when required. [4]
-4. Confirm the finished backup appears under the storage's **Backups** view.
+### 1. Check every required disk
 
-For one approved disposable guest, the equivalent manual run on a Proxmox host is:
+In **Proxmox > guest > Hardware > disk**, inspect each **Backup** selection.
+For `boot-1`, include every disk required by its OS/workspace or root-LVM layout.
+For the collector, include its separate log-data disk.
+
+External Kubernetes PVCs, NAS shares and application objects need their own
+[product backup contracts](../../deployment/foundation/storage/README.md#choose-the-native-interface).
+
+### 2. Create or edit the schedule
+
+In **Datacenter > Backup > Add/Edit**, select the exact guests, backup storage, node scope,
+approved frequency, consistency mode and notification target.
+
+### 3a. Run the scheduled job now
+
+In **Datacenter > Backup**, select the reviewed job and **Run now**. Read its task log.
+After successful completion, continue to Step 4; Step 3b is an alternative.
+
+### 3b. Run one disposable guest manually instead
 
 Run on **the selected Proxmox host as an authorized root operator**.
 
@@ -129,8 +136,18 @@ vzdump "$BACKUP_VMID" --storage "$BACKUP_STORAGE" --mode snapshot
 pvesm list "$BACKUP_STORAGE" --content backup
 ```
 
-This is one immediate backup, not a new schedule. Treat a failed task, missing disk or unavailable
-destination as a failed recovery point; do not silently redirect it to another directory.
+This takes one immediate backup and lists the target's backup files; it creates no schedule.
+Continue to Step 4 after successful completion.
+
+### 4. Verify the finished recovery point
+
+In **backup storage > Backups**, confirm the selected guest and new backup time.
+A failed task, missing disk or unavailable destination is a failed recovery point;
+do not silently redirect it to another directory.
+
+A `snapshot` backup minimizes downtime but does not prove database/application consistency.
+Use product-aware backups or an approved stopped-guest point when required. [4]
+Next, [restore an isolated test VM](#restore-a-test-vm).
 
 <a id="restore-a-test-vm"></a>
 
@@ -139,39 +156,61 @@ destination as a failed recovery point; do not silently redirect it to another d
 **Run on:** the authorized Proxmox host. Select a known-good point, a genuinely unused VMID and
 live-disk storage. Keep the original guest/state and backup intact.
 
-1. List the target's backups, then record the selected volume/file ID and backup time:
+### 1. List and select the backup
 
-   Run on **the selected Proxmox host as an authorized root operator**.
+Run on **the selected Proxmox host as an authorized root operator**:
 
-   ```bash
-   read -r -p "Backup-storage ID: " BACKUP_STORAGE
-   pvesm list "$BACKUP_STORAGE" --content backup
-   ```
+```bash
+read -r -p "Backup-storage ID: " BACKUP_STORAGE
+pvesm list "$BACKUP_STORAGE" --content backup
+```
 
-2. In the GUI, select that backup and **Restore** to a **new VMID** and approved live storage.
-   Leave **Start after restore** and **Live restore** off. For a VM, the native CLI alternative is:
+Record the selected volume/file ID and backup time.
 
-   Run on **the selected Proxmox host as an authorized root operator**.
+### 2a. Restore through the GUI
 
-   ```bash
-   read -r -p "Selected VM backup volume ID or archive path: " BACKUP_VOLUME
-   read -r -p "Unused test VMID, verified in Datacenter: " RESTORE_VMID
-   read -r -p "Approved live VM datastore ID: " RESTORE_STORAGE
-   qmrestore "$BACKUP_VOLUME" "$RESTORE_VMID" --storage "$RESTORE_STORAGE"
-   qm config "$RESTORE_VMID"
-   ```
+In **backup storage > Backups**, select the backup and **Restore**.
+Use a **new VMID** and approved live-disk storage. Leave **Start after restore** and **Live restore** off.
+Wait for success, inspect the restored **Hardware** view, then continue to Step 3.
 
-   Do not use `--force`, an existing VMID or live-restore. `qmrestore` is for VMs;
-   restore containers through their native GUI/`pct restore` procedure instead. [4][6]
+### 2b. Restore a VM through the CLI instead
 
-3. **Before starting**, disconnect production NICs or attach only the isolated recovery network.
-   Prevent duplicate IPs, directory authorities, scheduled jobs and outward integrations.
-4. Boot the test guest through the console. Verify each required disk, known content, application
-   recovery and independent credential access. Test with hosted identity/Vault/CI unavailable.
-   For a bootstrap restore, check `/srv/tier0` and any `/home` bind mount, original tier inputs/state,
-   offline tools and independently verified API/SSH access before allowing an IaC writer to run.
-5. Record backup ID, checks and measured RPO/RTO. Keep the test isolated until the product's
-   own cutover procedure is accepted.
+Run on **the selected Proxmox host as an authorized root operator**:
+
+```bash
+read -r -p "Selected VM backup volume ID or archive path: " BACKUP_VOLUME
+read -r -p "Unused test VMID, verified in Datacenter: " RESTORE_VMID
+read -r -p "Approved live VM datastore ID: " RESTORE_STORAGE
+qmrestore "$BACKUP_VOLUME" "$RESTORE_VMID" --storage "$RESTORE_STORAGE"
+```
+
+Wait for success. In **the same Proxmox host shell**, inspect the stopped VM:
+
+```bash
+qm config "$RESTORE_VMID"
+```
+
+Do not use `--force`, an existing VMID or live-restore. `qmrestore` is for VMs;
+restore containers through their native GUI/`pct restore` procedure instead. [4][6]
+Continue to Step 3; do not also perform Step 2a.
+
+### 3. Isolate the restored guest
+
+**Before starting**, disconnect production NICs or attach only the isolated recovery network.
+Prevent duplicate IPs, directory authorities, scheduled jobs and outward integrations.
+
+### 4. Boot and test recovery
+
+Use **the restored guest's console**. Verify every required disk, known content, application recovery
+and independent credential access. Test with hosted identity/Vault/CI unavailable.
+
+For a bootstrap restore, check `/srv/tier0` and any `/home` bind mount, original tier inputs/state,
+offline tools and independently verified API/SSH access before allowing an IaC writer to run.
+
+### 5. Record the result and keep the test isolated
+
+Record backup ID, checks and measured RPO/RTO. Keep the test isolated until the product's
+own cutover procedure is accepted.
 
 A disposable test restore stays outside live Terraform state. Use the
 [VM recovery routine](../recovery/virtual-machines.md) for production identity/cutover and

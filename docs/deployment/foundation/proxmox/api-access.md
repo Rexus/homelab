@@ -55,6 +55,8 @@ retained local provider edits too. Neither FreeIPA nor platform PKI is required 
 
 **Run on a Proxmox host.** Create these once; reuse accepted existing roles/groups.
 The matching GUI pages are **Datacenter > Permissions > Roles** and **Groups**.
+Use the same authorized host shell through creation and permission checks so the selected
+node/storage variables remain available; re-enter them if starting another session.
 
 <a id="1-create-focused-roles"></a>
 

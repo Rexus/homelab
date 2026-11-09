@@ -51,10 +51,15 @@ Recovery copies for Tier 0 remain independent of the delivery platform.
 
 [Registry integration](../../deployment/stage-7-delivery/procedures/registry.md)
 owns implementation and acceptance.
+The supplied Tier 1 [delivery installer](../../../tier-1/ansible/roles/delivery_platform/tasks/harbor.yml)
+realizes B with single-instance Harbor and persistent volumes; it does not establish
+the HA pattern above. The [GitLab installer](../../../tier-1/ansible/roles/development_platform/templates/gitlab-values.yml.j2)
+disables its bundled registry, so installing source control alone does not realize A.
+Distribution acceleration remains a separately commissioned integration.
 
 ## References
 
-Sources checked 2026-10-08.
+Sources checked 2026-11-09.
 
 1. [GitLab container registry](https://docs.gitlab.com/user/packages/container_registry/)
 2. [Harbor HA deployment](https://goharbor.io/docs/main/install-config/harbor-ha-helm/)

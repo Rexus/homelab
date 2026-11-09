@@ -57,7 +57,8 @@ Test denied sources/destinations and an ordinary user before enabling sync.
 
 ## Step 3: Install and verify
 
-1. Run [installer Step 2](procedures/delivery-installer.md#render-and-apply) to render,
+1. After preparing the inputs, Secret owner and all required Secrets above, run the
+   [common installer](procedures/delivery-installer.md#render-and-apply) to render,
    review and apply the selected controller. Do not install Harbor in this pass.
 2. Test SSO with allowed and denied users, blocked sources/destinations, one bounded
    application, rollback and independent recovery. Health alone is insufficient.
@@ -81,7 +82,8 @@ it and keep pruning disabled until resource/persistence ownership is accepted.
 
 Record application health, rollback and original-data restore. GitLab outage must
 not delete running applications. Flux continues to own Tier 0 independently.
-**Return:** [Step 3](README.md#step-3-connect-approved-artifact-supply).
+**Return after Stage 9 adoption:** [GitLab acceptance](../stage-9-development/procedures/gitlab.md#acceptance-and-recovery),
+then Stage 9's runner path. Do not restart Stage 7 to hand over an already installed release.
 
 ## References
 

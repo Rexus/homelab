@@ -22,6 +22,21 @@ files when transferring media from Windows.
 
 ## Prepare the instance
 
+**Existing root, including the Stage 5 FreeIPA ceremony:** restore the approved instance from custody.
+On **the offline ceremony host**, set its existing tool/instance paths and enter that instance:
+
+```bash
+export CLCA=/media/tools/clca/bin/clca
+export INSTANCE=/media/encrypted/root-ca
+umask 077
+cd "$INSTANCE"
+```
+
+Verify the recorded root fingerprint and recovered state. Skip template copying and root creation;
+continue at [Sign a subordinate](#sign-a-subordinate). Never initialize a second root for the identity CA.
+
+**New root only:** continue below with the approved initial-creation ceremony.
+
 Transfer a verified, approved clca revision with its supporting files to offline
 media. Record commit and artifact hashes in the ceremony record; a moving branch
 is not an artifact pin. These native configuration files define software RSA-4096
@@ -114,6 +129,10 @@ The native archive is **not** encrypted by clca. [1] Restore a copy on an isolat
 offline system and verify certificate identity, index, serial/CRL counters and
 ability to issue a CRL before closing the ceremony. Do not issue competing live
 histories from two copies. Record next ceremony, transfer hashes and custodians.
+
+Return with public signed objects to [software PKI activation](software-pki.md#sign-and-activate)
+or [FreeIPA completion](../../stage-5-identity/procedures/freeipa.md#step-3-complete-the-primary-and-replica),
+whichever requested this ceremony. Keep the authoritative root instance offline.
 
 ## References
 

@@ -24,6 +24,8 @@ backup storage and protected cluster log delivery. None may depend on later Vaul
 
 ## Step 1: Configure the identity provider
 
+### 1. Create local inputs and select the cluster
+
 Initialize the local file without overwriting existing selections:
 
 Run from **`<prefix>-tier-0/`**.
@@ -34,15 +36,19 @@ export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
 kubectl get nodes -o wide
 ```
 
-Edit in **`<prefix>-tier-0/`**.
+**Expected:** the intended Tier 0 nodes are listed. Stop if the kubeconfig selects another cluster.
 
-- `ansible/group_vars/control_applications.yml`: Component selection, cluster context, TLS/SSO, database and
-  backup-phase inputs.
+### 2. Edit the identity-provider settings
 
-Edit **`ansible/group_vars/control_applications.yml`**. Select only `keycloak` for
+Edit **`<prefix>-tier-0/ansible/group_vars/control_applications.yml`**. Select only `keycloak` for
 this stage. The [shared product contract](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership)
 defines dependency/certificate details; installation commands are below, so no later
 stage must be deployed first.
+
+Choose the backup method now, before preparing its certificates/Secrets: **files** uses scheduled NAS
+copies, while **object** uses an existing qualified object/WAL service and Barman plugin.
+[Step 3a](#step-3a-scheduled-nas-backups-main-path) and [Step 3b](#step-3b-objectwal-backups-alternative)
+execute those alternatives; do not prepare/install the NAS branch before selecting object/WAL.
 
 The installer creates `keycloak-db` on qualified Proxmox/Ceph-backed volumes with
 externally issued TLS and the selected backup resources, then waits for readiness before
@@ -73,9 +79,16 @@ point-in-time recovery is required; a file backup recovers only to a completed s
 
 ## Step 2: Supply private certificates and credentials
 
-Create the encrypted input before entering secrets:
+### 3. Select the Secret owner
 
-Run from **`<prefix>-tier-0/`**.
+For installer-owned bootstrap Secrets, continue with action 4. If a qualified Secret controller already
+owns them, keep `control_applications_manage_secrets: false`, commission the exact Secrets below through
+that owner, and continue at Step 3. Omit the private-file arguments from render/apply only for that branch.
+
+### 4. Create and fill the encrypted bootstrap input
+
+Run from **`<prefix>-tier-0/`**. Create the encrypted input before entering secrets:
+
 
 ```bash
 cp -n ansible/group_vars/control_applications_secrets.yml.example ansible/group_vars/control_applications_secrets.yml
@@ -105,33 +118,44 @@ dependency belongs in these inputs. Keep TLS verification enabled on the control
 
 ## Step 3: Prepare the database and backup
 
+Select **3a** for scheduled NAS backups or **3b** for object/WAL recovery. Follow only that branch,
+then rejoin at Step 4. Live database volumes stay on the qualified block class in both cases.
+
 ### Step 3a: Scheduled NAS backups (main path)
 
-1. Keep `files` / `prepare` in the local application inputs. Render without live changes:
+#### 5. Render database preparation
 
-   Run from **`<prefix>-tier-0/`**.
+In **`<prefix>-tier-0/ansible/group_vars/control_applications.yml`**, keep `files` / `prepare`.
+Render without live changes:
 
-   ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=render
-   ```
+Run from **`<prefix>-tier-0/`**.
 
-2. Inspect `secrets/control-applications/`, including the database preparation
-   resources and Secret references, then prepare the database:
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=render
+```
 
-   Run from **`<prefix>-tier-0/`**.
+#### 6. Inspect and prepare the database
 
-   ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
-   ```
+Inspect **`<prefix>-tier-0/secrets/control-applications/`**, including the database preparation
+resources and Secret references, then prepare the database:
 
-   This creates `keycloak-db` and reports its system identifier. **Keycloak is not
-   installed yet.** Live database PVCs remain on the selected block storage.
-3. Complete [NAS commissioning](../../../administration/backups/postgresql.md#commission-the-nas).
-   Create the independent backup-only claim and marker, then set
-   `control_applications_backup_files.keycloak` (`claim`, `volume_handle`,
-   `system_identifier`, `marker`, `schedule`) in the local application file.
-   Set `control_applications_backup_files_accepted: true` only after those gates;
-   change `control_applications_backup_files_phase` to `backup`. Continue to Step 4.
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
+```
+
+This creates `keycloak-db` and reports its system identifier. **Keycloak is not
+installed yet.** Live database PVCs remain on the selected block storage.
+
+#### 7. Commission the NAS backup destination
+
+Complete [NAS commissioning](../../../administration/backups/postgresql.md#commission-the-nas).
+Create the independent backup-only claim and marker, then set
+`control_applications_backup_files.keycloak` (`claim`, `volume_handle`,
+`system_identifier`, `marker`, `schedule`) in the local application file.
+Set `control_applications_backup_files_accepted: true` only after those gates;
+change `control_applications_backup_files_phase` to `backup`. Continue to Step 4.
 
 ### Step 3b: Object/WAL backups (alternative)
 
@@ -143,8 +167,17 @@ no storage gateway and does not move live database volumes. Return to Step 4.
 
 ## Step 4: Install Keycloak and federation
 
-With the selected backup inputs complete, rerender using the Step 3a render command.
-Inspect database, backup, TLS, ingress and federation selections before applying:
+### 8. Render the completed selection
+
+With the selected backup inputs complete, render from **`<prefix>-tier-0/`**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=render
+```
+
+Inspect **`<prefix>-tier-0/secrets/control-applications/`**: database, backup, TLS, ingress and federation selections.
+
+### 9. Install the reviewed application and federation
 
 Run from **`<prefix>-tier-0/`**.
 
@@ -186,6 +219,8 @@ For Headlamp, follow the native [Kubernetes API integration](kubernetes-sso.md),
 including preserved X509 authentication and cold-start issuer-outage acceptance.
 
 ## Accept and recover
+
+### 10. Test identity, audit delivery and restoration
 
 | Check | Evidence |
 | --- | --- |

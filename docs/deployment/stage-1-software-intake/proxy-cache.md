@@ -7,7 +7,8 @@ Run repository scripts from this root; paths below are repository-relative.
 
 **Prerequisites:** accepted VM/network prerequisites and independent bootstrap software access.
 **Capability:** [Software intake](README.md).
-**Return:** [Step 2](README.md#step-2-connect-the-approved-consumers) after proxy deployment and validation.
+**Return:** [Step 5: intake testing](README.md#step-5-test-the-selected-intake-path)
+after proxy deployment and validation.
 
 **Design:** [controlled software intake](../../architecture/software/software-intake.md).
 
@@ -53,7 +54,7 @@ upstream.
 
 ## Default deployment
 
-The [capability deployment view](README.md#step-1-deploy-the-policy-proxy-and-cache)
+The [capability deployment view](README.md#step-4-deploy-the-cache-pair)
 owns the source-backed figure. The settings below configure those same guests and disks.
 
 | Component | Terraform default | Inventory entry | Network / storage | Purpose |

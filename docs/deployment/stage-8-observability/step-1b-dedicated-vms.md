@@ -6,7 +6,8 @@ It separates resource profiles; it does not combine all products into identical 
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
 **Branch from:** [Step 1](README.md#step-1-prepare-the-runtime) when choosing the runtime.
-**Return:** [Step 2](README.md#step-2-deploy-the-signal-pipelines) to integrate the services.
+**Return:** [Step 3](README.md#step-3-connect-infrastructure-monitoring) only after project-owned
+service installation and acceptance below. Do not run Step 2's Kubernetes installer on these VMs.
 **Design:** [signals, scaling and availability](../../architecture/operations/telemetry.md).
 **Coverage:** VM creation and OS baseline only; no product or HA-runtime installer.
 
@@ -109,8 +110,9 @@ separation through the selected [cluster policy](../foundation/step-1b-cluster-h
 
 ## Step 3: Integrate and accept the services
 
-Follow [Observability, Steps 2-4](README.md#step-2-deploy-the-signal-pipelines)
-with project-owned service automation for these hosts instead of cluster workloads.
+Use the [Observability service contracts](configuration.md#storage-and-recovery) to implement
+project-owned VM service automation. The supplied `observability_platform` role installs Kubernetes
+resources; it is not the product installer for this alternative.
 
 1. Install independently sized gateways, replicated metrics and the search cluster.
    Configure UI/processing placement without silently co-locating resource-heavy backends.
@@ -124,7 +126,10 @@ with project-owned service automation for these hosts instead of cluster workloa
 
 Original security/audit logs remain in Tier 0 `log-1` and optional `log-2`.
 This setup has **no Tier 1 syslog receiver or authoritative security archive**.
-Return to the selected main path after runtime acceptance.
+After accepting the VM-hosted signal/query services, rejoin
+[Stage 8, Step 3](README.md#step-3-connect-infrastructure-monitoring) for source coverage, then Step 4
+for equivalent reader and recovery checks. Keep VM policy/configuration under the VM service owner;
+do not apply the Kubernetes recipe to establish those controls.
 
 ## Existing installations
 

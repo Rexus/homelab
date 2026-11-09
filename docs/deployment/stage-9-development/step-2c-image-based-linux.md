@@ -11,6 +11,11 @@ Run repository scripts from this root; Tier 1 consumers keep their own workload 
 
 **Design:** [guest and image lifecycle variants](../../architecture/hosting/README.md).
 
+**Coverage:** the supplied role prepares a builder and can request `bootc switch`; it does not
+perform an initial bootc OS installation. A normal Alma/Rocky/RHEL cloud image is not converted
+just by installing the `bootc` package. Initial installation and compatibility qualification are
+project integration; stop at the explicit gate below until they are complete. [8]
+
 ## Table of contents
 
 - [Purpose](#purpose)
@@ -158,12 +163,11 @@ supplies the first build host.
 
 ## Template conversion flow
 
-The first repository implementation should build on the existing Enterprise
-Linux template work instead of replacing it.
+Keep builder preparation, initial OS installation, image switching and final template conversion
+separate. The role executes package tasks and optional switching; a successful preparation run
+does not prove that the VM is booted from an image.
 
-Use this flow:
-
-Initialize the selected context from Tier 0 before editing inputs:
+### 1. Initialize the isolated builder inputs
 
 Run from **`<prefix>-tier-0/`**.
 
@@ -171,33 +175,20 @@ Run from **`<prefix>-tier-0/`**.
 bash scripts/init-local-files.sh --setup immutable-template --env test
 ```
 
-Complete [environment isolation](../../reference/repository-scripts.md#environment-isolation),
-including a unique builder VMID and IP. Keep the builder in its original state throughout conversion.
+### 2. Select the source and prepare the builder
 
-1. Create or reuse normal cloud-init templates such as `rhel-10-tmpl`,
-   `alma-10-tmpl`, or `rocky-10-tmpl`.
-2. Create `terraform/deployments/immutable-template/terraform.test.tfvars` from the
-   initialized base `terraform.tfvars`, with the complete test builder map and unique VMID.
-   The initializer does not create this Terraform overlay.
-3. Edit `ansible/group_vars/immutable_template.test.yml`, including its IP and image
-   settings. The copied test vars override `immutable_template.yml`; base edits alone
-   do not configure this run.
-4. Clone the template into a temporary conversion VM.
-5. Use Ansible to install the bootc tooling required by the selected distro.
-6. Switch or install the host to the target bootc image.
-7. Reboot and verify `bootc status`, SSH access, cloud-init behavior, and
-   rollback state.
-8. Clean machine-specific state.
-9. Convert the result into a dedicated image-based template such as
-   `rhel-10-immu-tmpl`.
-10. Add the finished template ID and source-image tags to
-    the [shared template catalog](../../reference/template-catalog.md), then point the
-    builder VM at that catalog entry with `template_catalog_id`.
-11. Point Terraform deployments at the bootc template only after the update and
-    rollback workflow has been tested.
+In **`<prefix>-tier-0/`**, complete
+[environment isolation](../../reference/repository-scripts.md#environment-isolation):
 
-Prepare the builder VM; review Terraform's inline plan and enter `yes` only for
-the intended changes (`--plan-only` is an optional preview, `--auto-approve` is for approved CI):
+- `terraform/deployments/immutable-template/terraform.test.tfvars`: create the complete test map
+  from the base inputs, with a unique VMID, approved source image, `template = false` and `started = true`.
+  The initializer does not create this Terraform overlay.
+- `ansible/inventory/hosts.yml`: the matching `immutable_template_builders` host key.
+- `ansible/group_vars/immutable_template.test.yml`: its reserved IP, approved image reference,
+  registry CA/auth paths and supported packages. The test file overrides the base vars.
+  Keep `immutable_template_apply_bootc: false` and `immutable_template_prepare_for_template: false`.
+
+Keep the builder in its original state throughout. Prepare it from **`<prefix>-tier-0/`**:
 
 Run from **`<prefix>-tier-0/`**.
 
@@ -205,16 +196,61 @@ Run from **`<prefix>-tier-0/`**.
 bash scripts/deploy.sh immutable-template --env test
 ```
 
-After verifying the bootc system, enable cleanup in
-`ansible/group_vars/immutable_template.test.yml` for this test context:
+Review Terraform's inline plan and enter `yes` only for the intended changes.
+`--plan-only` previews; `--auto-approve` is for approved CI. This pass prepares tools/trust,
+not a bootc deployment. The role tolerates a failed initial `bootc status` probe.
+
+### 3. Qualify the missing initial-installation step
+
+**Stop for an ordinary cloud-image builder.** Complete a distro-supported initial bootc installation
+or use a separately commissioned bootc-native source image. That installation is not implemented
+by this recipe; do not substitute `bootc switch` for it. [8]
+
+Before continuing, verify the selected guest is bootc-native and compatible with the role's
+package/preparation tasks. Ensure its image already supplies required packages where runtime package
+installation is unavailable. Retain recoverable data and an independently tested rollback path.
+
+### 4. Stage and boot a qualified image
+
+Only after Step 3, in **`<prefix>-tier-0/ansible/group_vars/immutable_template.test.yml`**, select
+the approved `immutable_template_bootc_image`, set `immutable_template_apply_bootc: true` and
+explicitly select `immutable_template_reboot_after_switch: true` for the accepted reboot window.
+Keep cleanup disabled. Run from **`<prefix>-tier-0/`**:
+
+```bash
+bash scripts/deploy.sh immutable-template --env test --ansible-only
+```
+
+On **the builder VM**, verify the booted image, not just a staged deployment:
+
+```bash
+sudo bootc status
+```
+
+Verify SSH, cloud-init and the intended update/rollback behavior before proceeding.
+The role's status output alone is not a rollback rehearsal.
+
+### 5. Clean the verified candidate
+
+In **`<prefix>-tier-0/ansible/group_vars/immutable_template.test.yml`**, enable:
 
 ```yaml
 immutable_template_prepare_for_template: true
 ```
 
-Rerun Ansible, then set the builder VM to `template = true` and
-`started = false` in the same `terraform/deployments/immutable-template/terraform.test.tfvars`.
-Run only Terraform for the final conversion:
+Run from **`<prefix>-tier-0/`**, while the builder remains a running VM:
+
+```bash
+bash scripts/deploy.sh immutable-template --env test --ansible-only
+```
+
+Require successful cleanup before shutdown; it removes machine-specific cloud-init/SSH state.
+Do not treat ignored probe failures as proof of a clone-ready image.
+
+### 6. Convert the candidate and test a clone
+
+In **`<prefix>-tier-0/terraform/deployments/immutable-template/terraform.test.tfvars`**, set
+that builder to `template = true` and `started = false`. Run only Terraform for final conversion:
 
 Run from **`<prefix>-tier-0/`**.
 
@@ -226,14 +262,21 @@ The BPG Proxmox provider supports converting a VM to a template by setting the
 VM resource `template` attribute to `true`. Converting a template back to a
 normal VM is not supported, so treat this as a one-way finalization step.[7]
 
+Create a disposable clone and verify unique machine/SSH identities, intended cloud-init behavior,
+image boot, update and rollback. Only then publish its actual VMID/source metadata in
+**`<prefix>-shared/templates/proxmox-catalog.tfvars`** and select it for consumers.
+`template_catalog_id` is metadata selection; it does not perform the bootc installation.
+
 For private bootc registries, place pull credentials where bootc can read
 them. bootc documents `/etc/ostree/auth.json` as the private registry auth
 location.[3]
 
-This conversion path supports gradual adoption of immutable hosts from existing
-Proxmox cloud templates. For larger scale, prefer
+Initial bootc installation remains a prerequisite to image switching in this path. For larger scale, prefer
 building disk images directly from the bootc image with the distro-supported
 image tooling when that path is ready for the environment.
+
+**Return:** [Stage 9, Step 3](README.md#step-3-authorize-ci-through-vault), or defer this optional
+image-lifecycle integration and continue there without converting a template.
 
 ## Distro support
 
@@ -289,3 +332,6 @@ keeps the previous deployment available.[4]
 5. [Fedora/CentOS bootc base images](https://fedora.gitlab.io/bootc/docs/bootc/base-images/)
 6. [AlmaLinux bootc images](https://github.com/AlmaLinux/bootc-images)
 7. [BPG Proxmox provider VM template conversion](https://github.com/bpg/terraform-provider-proxmox/blob/main/docs/resources/virtual_environment_vm.md)
+8. [bootc image switching](https://bootc.dev/bootc/man/bootc-switch.8.html) and
+   [initial installation into an existing root](https://bootc.dev/bootc/man/bootc-install-to-existing-root.8.html),
+   checked 2026-11-09. Initial installation has separate destructive/storage/configuration requirements.

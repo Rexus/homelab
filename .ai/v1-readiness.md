@@ -16,6 +16,10 @@ Foundation hardware, Proxmox, network equipment and independent custody remain c
 The separate [operational verification](operational-verification.md) and
 [platform verification](platform-verification.md) lists remain unchecked until live evidence exists.
 
+The [2026-11-09 source consistency review](operator-walkthrough.md#current-source-consistency-review)
+records current worktree corrections and validation. Earlier qualification records below retain
+their original revision/tool scope.
+
 Confirmed selections for this work:
 
 - Use direct NAS file storage for supported backup/data paths; do not add a storage gateway.
@@ -49,7 +53,8 @@ Confirmed selections for this work:
 
 - [x] All selected reference dependencies have supplied automation or an explicit commissioned foundation contract.
 - [x] Source and fresh generated repositories include every role helper, policy, example and required collection.
-- [x] Refresh preserves developer-owned/live inputs and original state; no implicit rename, import or deletion.
+- [x] Refresh preserves project inputs/documents and original state. Edited kit automation is replaced
+  with recoverable backups by default; explicit conflict policies retain local changes. No implicit resource migration.
 - [x] Portable regressions pass; failed native scopes pass focused reruns; exact exclusions are recorded below.
 - [x] Terraform roots validate and selected mocked plan cases pass with tracked locks.
 - [x] Generated documentation links and source-correspondence tests pass.

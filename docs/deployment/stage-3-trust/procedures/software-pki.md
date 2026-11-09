@@ -166,8 +166,9 @@ an approved portal certificate before normal operations.
    immutable bundle's `config.d/system/crypto.yaml`, all beneath the data mount.
    The latter contains the DataVault secret; preserve its exact path and contents.
 4. Enable runtime activation and rerun the
-   [issuer recipe](issuer.md#step-3-activate-and-accept-issuance), then complete
-   [native token activation](issuer-token.md). Starting services is not token import.
+   [prepared-backend installation](issuer.md#10-start-the-prepared-backend), then complete
+   [native token activation](issuer-token.md) once. Do not return to key/CSR preparation or repeat the ceremony.
+   Starting services is not token import.
 
 <a id="complete-identity-and-acceptance"></a>
 

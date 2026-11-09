@@ -46,8 +46,8 @@ class Observability(TierRepositoryTestCase):
                 self.assertIn(expected, design)
             deployment = (docs / "deployment/stage-8-observability/README.md").read_text()
             for expected in ("OpenSearch is included initially", "observability-platform.yml",
-                             "writes to both", "replica shards", "complete worker/physical-host loss",
-                             "no archive write/delete, retention or backup powers"):
+                             "writes to both", "replica shards", "test worker/physical-host loss",
+                             "no archive mount or write path is granted", "not Tier 0 mutation rights"):
                 self.assertIn(expected, deployment)
         for tier in (UPSTREAM / "tier-1", self.root / "verify-tier-1"):
             starter = yaml.safe_load((tier / "clusters/tier1/platform/observability/kustomization.yaml").read_text())
@@ -145,8 +145,9 @@ class Observability(TierRepositoryTestCase):
             for expected in ("DatastoreBackup", "Datastore.Prune", "RPO", "RTO"):
                 self.assertIn(expected, backup)
             recovery = (docs / "administration/recovery.md").read_text()
-            self.assertLess(recovery.index("| 1 | Isolate"), recovery.index("| 3 | Restore Tier 0 intake"))
-            self.assertLess(recovery.index("| 3 | Restore Tier 0 intake"), recovery.index("| 4 | Restore Tier 0 trust"))
+            intake = recovery.index("| 3 | Restore approved software supply and Tier 0 protected evidence storage")
+            self.assertLess(recovery.index("| 1 | Isolate"), intake)
+            self.assertLess(intake, recovery.index("| 4 | Restore Tier 0 trust"))
         runbook = (self.root / "verify-architecture/docs/README.md").read_text()
         self.assertIn("offline reader/key kit", runbook)
         self.assertIn("RPO/RTO and pruning custodian", runbook)

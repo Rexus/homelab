@@ -140,8 +140,9 @@ CA remains a different trust boundary. [1] Complete Step 3 before closing the ch
    insecure = false
    ```
 
-   All supplied roots now use this setting. Refresh preserves local project edits,
-   so review older/customized provider files rather than assuming they changed.
+   All supplied roots now use this setting. Refresh updates kit provider code and can replace local
+   code edits with backups; project inputs remain protected. Review the resulting provider diff
+   and older/customized roots rather than assuming their verification policy is unchanged.
    Remove source-level bypasses as well as stale runner/environment exceptions. The pinned provider's SDK
    path can retain an environment bypass even with explicit HCL `false`; clear both
    `PROXMOX_VE_INSECURE` and the legacy `PM_VE_INSECURE` from inherited settings. [2][8]
@@ -222,9 +223,22 @@ Recheck trust after replacing a host, runner image or Proxmox cluster.
 ### Roll back a failed change
 
 1. Keep independent console access. Preserve the error and identify the affected node.
-2. Reinstall its retained approved API certificate/chain and matching key through the
-   supported certificate interface in Step 2. Do not replace/delete the internal
-   Proxmox cluster CA or `pve-ssl` files.
+2. Select the actual previous certificate state:
+
+   | Previous state | Recovery action |
+   | --- | --- |
+   | An approved custom API certificate | Reinstall its retained valid chain/key through Step 2 |
+   | Default Proxmox node certificate, with no prior custom certificate | Verify that node certificate's validity/SAN and retained caller trust in the Proxmox CA, then remove only the failed custom certificate through the native interface below |
+
+   For the second branch only, after that approval, run on **the affected Proxmox node's independent root console**:
+
+   ```bash
+   pvenode cert delete 1
+   ```
+
+   This removes the custom chain/key and restarts `pveproxy`, allowing its existing default node
+   certificate to be served. It interrupts API/GUI sessions. Do not delete or replace internal
+   Proxmox cluster CA or `pve-ssl` files. [6]
 3. Repeat the verified caller checks. Stop if the rollback certificate is expired,
    its key is missing or no retained trust accepts it; use the authorized reissuance path.
 

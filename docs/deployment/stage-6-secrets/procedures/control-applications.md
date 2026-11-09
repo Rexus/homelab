@@ -64,13 +64,13 @@ Preserve previously accepted Stage 5 identity settings; select only the componen
 
 | Field to edit | Required value |
 | --- | --- |
-| `control_applications_components` | `[vault]` for Stage 6 Step 1; `[netbox, headlamp]` for Step 2 |
+| `control_applications_components` | `[vault]` for Stage 6 Step 1; then `[netbox]`, and `[headlamp]` after its API OIDC gate |
 | `control_applications_kubeconfig`, `control_applications_context` | Private Tier 0 kubeconfig and its exact context |
 | `control_applications_hosts` | Actual private service DNS names |
 | `control_applications_ingress_class` | Accepted cluster ingress class |
 | `control_applications_storage_class`, `control_applications_database_storage_class` | Qualified live block storage; the latter is explicit in files mode |
 | `control_applications_netbox_media_storage_class` | Qualified RWX class for NetBox media |
-| `control_applications_backup_mode`, `control_applications_backup_files_phase` | Main NAS path: `files`, initially `prepare` |
+| `control_applications_backup_mode`, `control_applications_backup_files_phase` | NAS database path: `files`, `prepare` for each new database, then `backup`; ignored for Vault/Headlamp-only runs |
 | Acceptance flags | Set true only after their named prerequisite has been verified |
 
 Retain approved chart/image pins. Keycloak and Vault use native
@@ -81,14 +81,14 @@ terminate TLS at ingress and use cluster-internal HTTP; qualify network isolatio
 | Input | Default / effect |
 | --- | --- |
 | `control_applications_action` | `render`; `apply` requires explicit kubeconfig, context if selected, and accepted prerequisite flags |
-| `control_applications_components` | `[keycloak]`; Stage 6 selects `[vault, netbox, headlamp]` or a subset |
+| `control_applications_components` | `[keycloak]` by default; select the Stage 6 components one pass at a time as above |
 | `control_applications_versions` | Exact chart pins in the example; image versions are chart-derived except explicit PostgreSQL/cache images |
 | `control_applications_output` | Private `secrets/control-applications/`; contains values, rendered resources and before/after resources |
 | `control_applications_manage_secrets` | `false`; use pre-existing Secrets, or explicitly permit Shared to create them from private `stringData` |
 | `control_applications_register_clients` | `false`; enable to converge selected clients on the existing Keycloak realm |
 | `control_applications_vault_phase` | `install`, `configure`, then `accept`; see the [Vault ceremony](vault-kubernetes.md) |
 | `control_applications_backup_mode` | Fresh examples select `files`; omitted values retain the existing `object` behavior |
-| `control_applications_backup_files_phase` | `prepare` creates/gates the database only; `backup` enables file backups and proceeds to applications after NAS commissioning |
+| `control_applications_backup_files_phase` | With Keycloak/NetBox selected, `prepare` pauses the batch after database setup; `backup` proceeds after NAS commissioning. Ignored for Vault/Headlamp-only runs |
 | `control_applications_database_storage_class` | Qualified live Proxmox/Ceph-backed block class, separate from the backup destination |
 | `control_applications_netbox_media_storage_class` | Explicit RWX media class; independent of database block disks |
 | `control_applications_backup_schedule` | Object/WAL only: six-field schedule. File jobs use each database's five-field UTC schedule |
@@ -161,7 +161,8 @@ Run from **`<prefix>-tier-0/`**.
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/control-applications.yml \
-  -e @secrets/control-applications.yml --ask-vault-pass
+  -e @secrets/control-applications.yml --ask-vault-pass \
+  -e control_applications_action=render
 ```
 
 Review native workloads, CNPG/backup resources, ingress, required Secret names,
@@ -186,7 +187,10 @@ from both commands. No Ansible confirmation prompt is provided: `action=apply` i
 For NAS database backups, stop after the `prepare` pass, complete
 [backup commissioning](../../../administration/backups/postgresql.md), then edit
 `control_applications_backup_files_phase: backup` and the verified claim/marker fields
-before repeating apply. A prepare-only pass has not installed the dependent application.
+before repeating render/review/apply. A prepare-only pass has not installed the dependent application.
+Commission each database separately: NetBox's claim, marker and system identifier differ from Keycloak's.
+Vault/Headlamp-only runs do not use the database preparation phase. Keep database commissioning separate
+from those installations; a mixed selection containing Keycloak/NetBox still pauses the whole batch.
 
 For Vault, continue with [initialization/unseal and configuration](vault-kubernetes.md#operator-ceremony).
 For NetBox/Headlamp, complete service/backup verification below, then

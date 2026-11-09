@@ -50,6 +50,7 @@
     - template_refresh_clean_package_cache | bool
 
 - name: Clean cloud-init state before template conversion
+  # Abort on cleanup failure; publishing stale instance state can duplicate guest identity.
   ansible.builtin.command:
     argv:
       - cloud-init
@@ -57,7 +58,6 @@
       - --logs
       - --machine-id
   changed_when: true
-  failed_when: false
   when:
     - template_refresh_prepare_for_template | bool
     - template_refresh_clean_cloud_init | bool

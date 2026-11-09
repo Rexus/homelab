@@ -175,11 +175,15 @@ restic -o "sftp.args=$RESTIC_SFTP_ARGS" check --read-data
 
 On an independent recovery host, configure the same repository/password from independent custody;
 for SFTP also supply its authorized key and verified host keys. Preserve incident/source data.
+That host does not inherit the data VM's root shell, profile exports or `RESTIC_SFTP_ARGS`.
 
 Run on **the independent isolated recovery workstation**.
 
 ```bash
 set -euo pipefail
+read -r -p "Independently recorded restic repository path or URI: " RESTIC_REPOSITORY
+read -r -e -p "Independent repository password-file path: " RESTIC_PASSWORD_FILE
+export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
 read -r -p "Full recorded component snapshot ID: " RECOVERY_SNAPSHOT
 read -r -p "NEW absolute extraction directory on encrypted recovery storage: " RECOVERY_TARGET
 read -r -p "Target isolation verified (yes): " RECOVERY_ISOLATED
@@ -203,6 +207,11 @@ For SFTP, after configuring that recovery host's credential paths:
 Run on **the independent isolated recovery workstation**.
 
 ```bash
+read -r -e -p "Authorized recovery-host SSH key path (no whitespace): " RECOVERY_SFTP_KEY
+read -r -e -p "Verified recovery-host known_hosts path (no whitespace): " RECOVERY_SFTP_KNOWN_HOSTS
+test -f "$RECOVERY_SFTP_KEY" && test -f "$RECOVERY_SFTP_KNOWN_HOSTS"
+[[ "$RECOVERY_SFTP_KEY$RECOVERY_SFTP_KNOWN_HOSTS" != *[[:space:]]* ]]
+RESTIC_SFTP_ARGS="-i $RECOVERY_SFTP_KEY -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$RECOVERY_SFTP_KNOWN_HOSTS"
 restic -o "sftp.args=$RESTIC_SFTP_ARGS" restore "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --verify
 ```
 

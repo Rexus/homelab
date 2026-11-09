@@ -99,18 +99,23 @@ native `community.crypto` primitives and exports only `public/`. [1]
    Replace the name/SAN with the approved values selected above. For a producer,
    append its exact stream name with `profile: client`, its CSR path and verified
    key fingerprint; omit the server SAN list.
-4. Run the normal signing command in Step 3 below. Transfer `public/ca.pem`, `public/revoked.pem`
+4. Run the [normal signing command](#sign-approved-requests), without preparing a producer first.
+   Return here and transfer `public/ca.pem`, `public/revoked.pem`
    and the named leaf back; never transfer `key.pem` from the authority. Select these
    files and the receiver service key in [receiver Step 2](receiver.md#step-2-register-trust-and-producers).
 
 ## 3. Approve producer requests
 
-1. Run [source preparation](sources.md#1-prepare-tier-owned-streams) in the owning tier.
-   Only CSRs are fetched; private keys remain on each producer.
+1. If producer CSRs have not been prepared, run
+   [source preparation](sources.md#1-prepare-tier-owned-streams) in the owning tier.
+   When returning from that guide with CSRs already prepared, continue directly with review below;
+   do not restart source preparation. Only CSRs are fetched; private keys remain on each producer.
 2. Review each public request as above. Add `profile: client`, the approved source
    name, CSR path and independently confirmed fingerprint to the Tier 0 request list.
    Match the Tier 0 receiver catalogue's CN, observed address, tier and classification.
 3. On the signing controller, issue or renew the approved requests and refresh the CRL:
+
+   <a id="sign-approved-requests"></a>
 
    Run from **`<prefix>-tier-0/`**.
 
@@ -119,7 +124,12 @@ native `community.crypto` primitives and exports only `public/`. [1]
    ```
 
    Transfer public results into a protected public handoff directory for the owning
-   tier, then follow [source installation](sources.md#2-install-and-test-forwarding).
+   tier. For receiver-only signing, return to [receiver identity handoff](#2-issue-the-receiver-identity).
+   For producer signing, first register the identity and install the listener through the
+   [receiver guide](receiver.md#step-2-register-trust-and-producers), then follow
+   [source installation](sources.md#2-install-and-test-forwarding).
+   For running intake, extend the existing catalogue and reapply its configuration; retain earlier sources,
+   mounted data and authority state rather than repeating first-install preparation.
    Do not copy another tier's inventory, private keys or state into Shared.
 
 ## Renewal and revocation

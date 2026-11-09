@@ -19,18 +19,7 @@
 
 ## Purpose and prerequisites
 
-From the cloned kit, create the collection with one command:
-
-Run from **upstream kit root**.
-
-```bash
-bash scripts/init-tier-repos.sh
-```
-
-Use `--prefix mylab` to name it `mylab-iac/` with `mylab-*` repos inside.
-Use `--root /path/to/parent` to create the collection beneath that directory;
-the default parent is beside this kit checkout, independent of the current
-working directory. Add `--dry-run` to preview without writing.
+### 1. Prepare Python and PyYAML
 
 The generator requires Python 3.9 or later and PyYAML. An existing Python
 environment containing PyYAML needs no additional install. If it is missing:
@@ -49,8 +38,29 @@ from Linux or WSL with the [deployment tooling](local-setup.md).
 The virtual-environment commands above use Bash on Linux/WSL; activate the same
 environment before later generation or refresh. Install the OS Python venv package
 first if `python3 -m venv` is unavailable; do not bypass managed-system Python protections.
+
+### 2. Generate the collection
+
+Run from **upstream kit root**:
+
+```bash
+bash scripts/init-tier-repos.sh
+```
+
+Use `--prefix HomeLab` for HomeLab document headings and lowercase `homelab-*` folders.
+Use `--root /path/to/parent` to choose the parent directory; the default is beside this kit checkout.
+Add `--dry-run` for an optional preview. Reuse these selections during refresh.
+
 Generation needs no server, provider credentials, or hosted source control.
 It creates directories and files; it does not initialize Git or create remotes.
+
+### 3. Set local standards and follow the owning repository
+
+Edit **`<prefix>-architecture/platform-standards.md`** for local names and network/storage choices.
+Record selected paths in **`<prefix>-architecture/docs/README.md`**.
+Then follow **`<prefix>-tier-0/README.md`** and the
+[foundation steps](../deployment/foundation/README.md).
+If a bootstrap host is not prepared, complete that guide before attempting deployment commands.
 
 ## Prefix casing
 
@@ -377,6 +387,46 @@ or network policy by itself.
 
 ## Refresh and local ownership
 
+Follow **1–3** below to refresh. The following tables define what is updated or preserved.
+
+### 1. Select the existing collection
+
+Use the reviewed **upstream kit checkout**, with the same `--prefix` and `--root` values used at creation.
+Keep the current collection, ignored inputs and original state. Choose **2a** or **2b** next.
+
+### 2a. Refresh with automatic code backups
+
+Run from **upstream kit root**:
+
+```bash
+bash scripts/init-tier-repos.sh --refresh
+```
+
+Include customized `--prefix` and `--root` values on this command. Optional preview: add `--dry-run`.
+Edited kit automation is backed up before replacement; local configuration and project records are preserved.
+Continue at **3**.
+
+### 2b. Review each edited automation file interactively
+
+Run from **upstream kit root**, including the same collection-selection flags:
+
+```bash
+bash scripts/init-tier-repos.sh --refresh --code-conflicts ask
+```
+
+Compare the shown local path with the rendered kit version. Enter `p` to preserve or `r` to replace with
+a backup; Enter preserves. This option requires a terminal. For CI, use the default `replace` policy
+or select `--code-conflicts preserve`; dry runs never prompt. Continue at **3**.
+
+### 3. Review the final report
+
+Review yellow preserved differences against their linked current templates, red retired files and
+any replacement backup paths. Automatic cleanup is confined to obsolete auto-docs; review retired
+files elsewhere manually. Follow the owning stage's checks before executing changed automation.
+Refresh itself runs neither deployment nor local-file initialization.
+
+### Ownership rules
+
 Tier/Shared repositories receive project-owned design and operating records.
 The architecture repository starts with only `README.md`, `docs/README.md`
 (selected paths, deployment checkboxes and navigation), and `platform-standards.md`.
@@ -397,30 +447,9 @@ or guest inventory. Tier 0 controls promotion; all tiers consume the same file.
 Refresh preserves its existing contents and recreates the starter catalog if missing. See the
 [catalog contract](../reference/template-catalog.md).
 
-After updating the upstream kit, run this from its checkout:
-
-Run from **upstream kit root**.
-
-```bash
-bash scripts/init-tier-repos.sh --refresh
-```
-
-Reuse the same `--prefix` and `--root` flags as creation if customized.
-Add `--dry-run` to preview. Refresh does not run the local-file initializer or
-deployment scripts.
-
 Kit automation updates on refresh, including edited playbooks such as
 `ansible/playbooks/deployment/bootstrap-software-intake.yml`. Before replacing local edits,
 refresh saves the previous contents under the collection's `.refresh-backups/` directory.
-For an interactive choice at each edited automation file, run from the upstream kit root:
-
-```bash
-bash scripts/init-tier-repos.sh --refresh --code-conflicts ask
-```
-
-The prompt shows the local path and a rendered kit version for comparison. Enter `p` to preserve
-or `r` to replace with a backup; Enter preserves. Pipelines use the default `replace` policy or
-select `--code-conflicts preserve` explicitly. `ask` requires a terminal; dry runs never prompt.
 
 `.generated-files.json` records hashes for generated code, examples, launchers,
 and documentation. Keep it with the downstream repository.
@@ -608,17 +637,18 @@ HSM signing retains an independent Tier 0 path on its capacity-sized service
 pool. The optional Tier 0 snippet renderer now targets `hsm_gateways`, is
 disabled by default and requires explicit HA/readiness acknowledgements.
 It installs no service, frontend or VIP. Retire any previous separate frontend
-group only after reviewing local integration; refresh preserves live inventories
-and customized playbooks rather than migrating them automatically.
+group only after reviewing local integration. Refresh preserves live inventories
+and backs up replaced code edits; it does not migrate live group membership or endpoints.
 
 ## Terraform layout upgrade
 
 All runnable Terraform roots now live under `terraform/deployments/`; modules
 remain under `terraform/modules/`. Fresh collections already use this layout.
 For an existing collection, refresh creates the new roots but **preserves the
-old code and operational inputs**. It reports legacy roots; updated commands
+old root code and operational inputs**. It reports legacy roots; updated commands
 stop while old root configuration or `.tfvars` files remain, before seeding or
-using new inputs. Review locally modified commands too: refresh preserves them.
+using new inputs. Review the refresh report: current kit-managed commands can update with backups,
+while preserved/unrecognized local commands still require review under the refresh ownership rules.
 
 | Previous tier-relative root | Current root |
 | --- | --- |

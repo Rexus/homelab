@@ -99,7 +99,9 @@ Run from **`<prefix>-tier-0/`**.
 bash scripts/init-local-files.sh --setup vault
 ```
 
-Edit these local files before running the Vault foundation deployment:
+Edit the local copies **without `.example`** before deployment. The links below show their source shapes;
+do not change the examples. This VM installer requires a qualified RedHat-family image, such as EL10;
+it does not implement the Debian package path.
 
 | Repository | Path inside that repository | Configuration |
 | --- | --- | --- |
@@ -138,7 +140,7 @@ network, DNS, TLS, firewall, and recovery plan.
 Use these first-node settings:
 
 - keep `vault_raft_retry_join` empty for the first single-node deployment
-- keep `vault_seal_hcl` empty for the first deployment
+- keep `vault_seal_hcl` empty for the default Shamir path; a selected seal integration must be qualified/configured before initialization
 - keep TLS enabled from the first startup
 - keep the Vault host dedicated to Vault
 
@@ -204,6 +206,10 @@ existing service uses its original data and keys, never another initialization. 
 Prepare protected share/root-token custody first; PGP output encryption is supported. [3]
 For the selected three-share/two-custodian Shamir example:
 
+If a different seal was selected through [1c](step-1c-seal-integration.md), use that qualified provider's
+initialization/recovery ceremony instead of the Shamir example below. Changing seals on an existing
+initialized service requires the supported migration procedure and retained backups.
+
 Run from **`<prefix>-tier-0/`**.
 
 ```bash
@@ -226,6 +232,13 @@ The login uses the protected initial root token at the prompt; do not put it in 
 command argument. Configure and test normal scoped administrative access before
 revoking bootstrap authority. Forward audit records to protected logging before
 storing important secrets; the local audit file alone is not the retained evidence archive.
+
+Before returning to the main stage, enroll `/var/log/vault/audit.log` as a dedicated security file stream
+through [Stage 2 forwarding](../stage-2-logging/sources.md). Test allowed and denied operations at intake,
+qualify [human SSO](../stage-5-identity/procedures/service-sso.md), and commission
+[scheduled independent snapshots](../../administration/backups/control-applications.md#configure-and-schedule).
+Complete an [isolated restore](../../administration/recovery/vault.md) before accepting recovery.
+The VM installer supplies none of those post-unseal integrations automatically.
 
 ## After deployment
 

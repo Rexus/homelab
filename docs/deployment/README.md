@@ -106,7 +106,7 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Tier 1 | `development-data` | Stage 9: dedicated PostgreSQL, Redis and Gitaly VMs | [GitLab data services](stage-9-development/procedures/data-services.md) |
 | Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-9-development/step-2b-podman-runner.md) |
 | Tier 1 | `observability` | Stage 8 alternative: dedicated VM foundations; baseline only | [Observability](stage-8-observability/README.md), [VM recipe](stage-8-observability/step-1b-dedicated-vms.md) |
-| Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 1](stage-1-software-intake/README.md#step-1-deploy-the-policy-proxy-and-cache) |
+| Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 4](stage-1-software-intake/README.md#step-4-deploy-the-cache-pair) |
 | Tier 2 | `edge` | Stages 7/10: public service entry | [Edge deployment](stage-7-delivery/procedures/edge-proxy.md) |
 | Tier 2 | `kubernetes` | Stage 10: workload cluster | [Workload runtime](stage-10-lab-environments/README.md#step-2-provision-the-workload-runtime) |
 | Tier 2 | `lab` | Stage 10: workload VM/LXC resources | [Workload runtime](stage-10-lab-environments/README.md#step-2-provision-the-workload-runtime) |
@@ -144,7 +144,7 @@ is in Shared. `scripts/deploy.sh` delegates to Shared but uses the current tier'
 inventory, inputs and state. Host consoles and product CLIs run where the procedure
 specifies. For exact code responsibilities, use the [code map](../development/code-layout.md).
 
-Execution blocks name that location in a comment; repository navigation is not an
+The text above each block names that location in bold; repository navigation is not an
 installation action. File-edit lists are separate from shell commands:
 
 Run from **`<prefix>-tier-2/`**.

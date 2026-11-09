@@ -44,8 +44,8 @@ flowchart TB
   end
   subgraph T1["Tier 1 / shared delivery"]
     direction LR
-    Supply["DMZ / build runners<br/>Authoritative mirrors"]
-    Delivery["Services / source and artifacts<br/>Scoped delivery / investigation"]
+    Supply["DMZ / external runners<br/>Authoritative mirrors"]
+    Delivery["Services / source, artifacts and CI<br/>Scoped delivery / investigation"]
     Supply ~~~ Delivery
   end
   subgraph T0["Tier 0 / infrastructure and trust"]
@@ -76,6 +76,17 @@ flowchart TB
   class Offline custody
 ```
 
+**Reference inputs:** the [network deployment mapping](../conventions/network-plan.md#deployment-mapping)
+links tier-owned guest and cluster inputs to their actual attachments. The
+[Tier 0 service installer](../../tier-0/ansible/roles/control_applications/tasks/main.yml),
+[Tier 1 delivery installer](../../tier-1/ansible/roles/delivery_platform/tasks/main.yml),
+[Tier 1 development installer](../../tier-1/ansible/roles/development_platform/tasks/main.yml)
+and [Observability installer](../../tier-1/ansible/roles/observability_platform/tasks/main.yml)
+realize the supported cluster services. The
+[support map](../reference/implementation-support.md) distinguishes those installers
+from separately commissioned distribution acceleration, mirrors, HSM integrations
+and other variants.
+
 Ordinary client workstations also belong to Tier 2 / DMZ, on a separate subnet
 outside the server runtime boundary. Privileged operator devices and bootstrap
 or jump VMs remain Tier 0 / Control.
@@ -99,8 +110,8 @@ controlled environment; a VM or VLAN label alone does not establish an air gap.
 | Inventory and scoped control UI | NetBox and Headlamp in Tier 0; bootstrap inputs retained independently | [Operations](operations/README.md) |
 | Security evidence | Tier 0 private receivers and protected archive; all tiers submit, only authorized administrator/security roles read raw evidence | [Security logging](operations/security-logging.md) |
 | Independent monitoring and Observability | Tier 0 critical alerts, Netdata and Proxmox/BMC collection; separate Tier 1 Kubernetes Netdata, gateway, metrics, OpenSearch and UI workloads; Tier 2 collection | [Telemetry](operations/telemetry.md) |
-| Source and artifacts | GitLab and Harbor in the Tier 1 platform cluster | [Artifact authority and delivery](software/artifact-supply.md) |
-| General builds and mirrors | Tier 1 DMZ runners and authoritative mirrors using scoped source/artifact access | [Application delivery](runtime-flows.md#application-delivery) |
+| Source and artifacts | GitLab and a selected registry in Tier 1; Harbor is the independent-registry variant | [Artifact authority and delivery](software/artifact-supply.md) |
+| General builds and mirrors | Kubernetes job pods in Tier 1 Services; optional external VM runners and authoritative mirrors in DMZ | [Development platform](software/development-platform.md#service-arrangement), [application delivery](runtime-flows.md#application-delivery) |
 | Application delivery | Tier 0 Flux; Tier 1 Argo CD or Spinnaker remains unselected | [Delivery controller patterns](software/controllers.md) |
 | Service publication | Tier 2 public edge load balancers and the owning cluster/application ingress | [Networking](networking/README.md), [firewall policy](networking/firewall-policy.md) |
 | Workload management | Rancher/Fleet where selected, scoped to workload clusters | [Ownership](tier-ownership.md) and [hosting](hosting/README.md) |
@@ -153,9 +164,11 @@ changes, rather than a second installation sequence.
 | Tier 1 cluster management to Tier 2 | Workload-cluster scope only; no authority over Tier 0 |
 
 The protected infrastructure runner is a Tier 0 management VM, separate from
-general Tier 1 runners. Source control coordinates changes but does not own
-infrastructure authority. See [infrastructure control](hosting/provisioning.md)
-for the acceptance policy and state handover.
+general Tier 1 runners. Ordinary source-control and build access does not grant
+infrastructure authority. The [direct trusted-CI option](software/development-platform.md#privileged-ci)
+explicitly accepts the dedicated project's GitLab control plane and administrators
+as Tier 0 trusted principals; it cannot independently exclude their compromise.
+See [infrastructure control](hosting/provisioning.md) for the acceptance policy and state handover.
 
 ## Certificate trust
 
@@ -223,7 +236,9 @@ Detailed variants link to their own realization procedures inside the domains.
 | Finished function | Contributing deployment guides |
 | --- | --- |
 | Infrastructure, network attachment and approved templates | [Hosting foundation](../deployment/foundation/README.md) |
+| Controlled software intake and retained bootstrap inputs | [Software intake](../deployment/stage-1-software-intake/README.md) |
 | Offline trust and online issuance | [Cryptographic trust](../deployment/stage-3-trust/README.md) |
+| Independent cluster runtimes and platform add-ons | [Kubernetes](../deployment/stage-4-kubernetes/README.md) |
 | Directory, identity federation and the supporting cluster platform | [Identity](../deployment/stage-5-identity/README.md) |
 | Protected syslog and audit evidence | [Foundational logging](../deployment/stage-2-logging/README.md) |
 | Secrets, recovery custody and supporting control integrations | [Secrets](../deployment/stage-6-secrets/README.md) |
@@ -238,7 +253,7 @@ records demonstrated capability; selecting this reference does not establish it.
 
 ## References
 
-Sources checked 2026-10-09.
+Sources checked 2026-11-09.
 
 1. [cert-manager: Vault issuer](https://cert-manager.io/docs/configuration/vault/)
 2. [HashiCorp: Vault HSM support](https://developer.hashicorp.com/vault/docs/enterprise/hsm)

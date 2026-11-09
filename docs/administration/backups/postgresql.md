@@ -84,7 +84,29 @@ prerequisites first. Preparation creates only DB resources, not application char
 2. Supply matching private credentials through `control_applications_secrets.yml` (Tier 0)
    or `observability_platform_secrets.yml` (Tier 1). Keep NAS identifiers/markers empty and
    backup acceptance false until commissioning. Set storage acceptance true only after qualification.
-3. From the owning tier root, run **only the matching command**. Tier 0:
+3. Render using **only the owning tier's command**. Tier 0:
+
+Run from **`<prefix>-tier-0/`** on the protected execution host.
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/control-applications.yml \
+  -e @ansible/group_vars/control_applications.yml -e @ansible/group_vars/control_applications_secrets.yml \
+  -e control_applications_action=render
+```
+
+For Tier 1 instead, run from **`<prefix>-tier-1/`**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/observability-platform.yml \
+  -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml \
+  -e observability_action=render
+```
+
+4. Inspect `*-database-prepare.yml`; it must contain only the selected database preparation.
+   Render outputs contain private configuration. After review, apply with **only the matching command**.
+   For Tier 0:
 
 Run from **`<prefix>-tier-0/`** on the protected execution host.
 
@@ -100,12 +122,14 @@ Tier 1:
 Run from **`<prefix>-tier-1/`** on the protected execution host.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml -e observability_action=apply
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/observability-platform.yml \
+  -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml \
+  -e observability_action=apply
 ```
-Render first with `action=render` to inspect `*-database-prepare.yml`. All ordinary product
-configuration prerequisites still apply; render outputs contain private configuration.
+All ordinary product configuration prerequisites still apply.
 
-4. After Ready, independently confirm the reported database identity:
+5. After Ready, independently confirm the reported database identity:
 
 Run on **the authorized Kubernetes execution host with the selected source context**.
 
@@ -203,6 +227,12 @@ Run on **the authorized Kubernetes execution host with the selected source conte
 ```bash
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" get cronjob "$CLUSTER-files" -o yaml
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" get jobs
+```
+
+Inspect the listed Jobs and confirm none is backing up this database. If one is active, wait for it;
+do not create a competing manual Job. After review, run on **the same execution host and source context**:
+
+```bash
 BACKUP_JOB="$CLUSTER-files-$(date -u +%Y%m%d%H%M%S)"
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" create job "$BACKUP_JOB" --from="cronjob/$CLUSTER-files"
 kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" wait "job/$BACKUP_JOB" --for=condition=Complete --timeout=65m

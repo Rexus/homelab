@@ -15,10 +15,16 @@ The data VMs' encrypted recovery copies use a separate file/SFTP repository.
 
 - [Support and ownership](#support-and-ownership)
 - [Prerequisites](#prerequisites)
-- [Step 1: Provision the VMs](#provision-the-vms)
-- [Step 2: Prepare object storage](#prepare-object-storage)
-- [Step 3: Render and apply data services](#render-and-apply)
-- [Step 4: Connect the chart and verify backups](#connect-the-chart)
+- [1. Create local inputs](#provision-the-vms)
+- [2. Select the data hosts](#2-select-the-data-hosts)
+- [3. Provision only the VMs](#3-provision-only-the-vms)
+- [4. Prepare object storage](#prepare-object-storage)
+- [5. Install controller dependencies](#render-and-apply)
+- [6. Match the chart and package](#6-match-the-chart-and-package)
+- [7. Prepare private credentials](#7-prepare-private-credentials)
+- [8. Render data-service configuration](#8-render-data-service-configuration)
+- [9. Review and apply data services](#9-review-and-apply-data-services)
+- [10. Connect the chart inputs](#connect-the-chart)
 - [Backups and recovery](#backups-and-recovery)
 - [References](#references)
 
@@ -66,10 +72,9 @@ adds no storage service. An existing object endpoint is a prerequisite for the c
 file-backed application variants do not change the chart's requirements.
 
 <a id="provision-the-vms"></a>
+<a id="step-1-provision-the-vms"></a>
 
-## Step 1: Provision the VMs
-
-From Tier 1, initialize local inputs using the existing helper:
+## 1. Create local inputs
 
 For an existing collection, first review/register `development-data` under the
 [setup ownership contract](../../../development/generated-repositories.md#setup-ownership).
@@ -86,6 +91,8 @@ has separate state from `development`, which retains the alternative Podman
 `git-1` host. Do not move existing resource maps or state implicitly: existing
 data VMs need an explicitly reviewed state migration/import before this root
 can own them; adding dependencies must not remove or replace a live `git-1`.
+
+## 2. Select the data hosts
 
 Edit in **`<prefix>-tier-1/`**.
 
@@ -106,7 +113,9 @@ or catalog-ID reassignment is required. An Alma/Rocky family label alone does no
 establish the major version; the data role validates the actual guest as EL9
 before package installation. See [template lifecycle](../../../administration/virtual-machines/template-lifecycle.md).
 
-Provision only the VMs first; the product recipe in Step 3 has its own explicit apply gate:
+## 3. Provision only the VMs
+
+The product installation in Step 9 has a separate apply gate.
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -121,16 +130,22 @@ Follow the [VM alternative](../step-1b-source-control-vm.md)
 only when that separate deployment variant is selected.
 
 <a id="prepare-object-storage"></a>
+<a id="step-2-prepare-object-storage"></a>
 
-## Step 2: Prepare object storage
+## 4. Prepare object storage
 
-For an existing endpoint, keep buckets/identities under the storage owner's
+Choose **4a** for existing tenant buckets/keys or **4b** for explicit Ceph account provisioning.
+Both continue at Step 5; neither installs an object-storage service.
+
+### 4a. Existing tenant buckets and keys
+
+Keep buckets/identities under the storage owner's
 administration and configure the `preprovisioned` endpoint/key contract below.
 The same consumer path accepts a qualified NAS object endpoint, Ceph RGW or
 another compatible service; it does not deploy them. Populate the private inputs
 from the endpoint, CA and separate application/toolbox keys supplied by its owner.
 
-Edit `ansible/group_vars/development_data.yml`:
+In **`<prefix>-tier-1/`**, edit `ansible/group_vars/development_data.yml`:
 
 | Field | Set |
 | --- | --- |
@@ -139,7 +154,7 @@ Edit `ansible/group_vars/development_data.yml`:
 | `development_data_s3_denied_buckets` | An existing bucket outside both supplied identities |
 | `development_data_s3_preprovisioned_accepted` | `true` only after tenant/bucket access is commissioned |
 
-Keep both key pairs in the private extra-vars file prepared in Step 3, never in tracked examples.
+Keep both key pairs in the private extra-vars file prepared in Step 7, never in tracked examples.
 
 In this mode apply checks version IDs/history, read/write/copy/range/list/delete,
 multipart completion/abort and cross-tenant denial. It calls no IAM or bucket
@@ -147,12 +162,12 @@ administration APIs and uses no privileged storage profile. Qualification writes
 bounded `.qualification/<unique-id>/` objects; their prior versions remain under
 the storage custodian's retention policy. No S3 calls occur during render.
 
-For an independently preprovisioned service, configure the same endpoint/key
-contract, set `development_data_s3_preprovisioned_accepted=true` and list at least
-one existing, inaccessible bucket in `development_data_s3_denied_buckets`.
-The application key must also be denied both toolbox backup buckets.
+List at least one existing, inaccessible bucket in `development_data_s3_denied_buckets`.
+The application key must also be denied both toolbox backup buckets. Continue at Step 5.
 
-### Optional Ceph account provisioning
+<a id="optional-ceph-account-provisioning"></a>
+
+### 4b. Optional Ceph account provisioning
 
 Choose `development_data_s3_mode=ceph-rgw` only for an existing separately owned
 Ceph RGW account. Existing Ceph endpoints can also use `preprovisioned`; this
@@ -191,30 +206,48 @@ because backup and restore read/write application objects. Neither policy grants
 bucket administration, IAM actions or deletion of historical object versions.
 Storage custody must separately protect and copy historical data. [2][5]
 
-<a id="render-and-apply"></a>
+Continue at Step 5 with the tenant key pairs, not the privileged provisioning profile.
 
-## Step 3: Render and apply data services
+<a id="render-and-apply"></a>
+<a id="step-3-render-and-apply-data-services"></a>
+
+## 5. Install controller dependencies
 
 Native package downloads honor the existing
 [intake proxy inputs](../../stage-1-software-intake/proxy-cache.md#how-other-paths-use-it);
 approve the package host and any redirect destinations before installation.
 
-Install the tier/shared requirements and these additional role-local dependencies
-inside the accepted deployment virtual environment:
+Use **the prepared deployment virtual environment**, from **`<prefix>-tier-1/`**.
+Install the tier and role-local collections from approved sources:
 
 Run from **`<prefix>-tier-1/`**.
 
 ```bash
+ansible-galaxy collection install -r ansible/requirements.yml
 ansible-galaxy collection install -r ansible/roles/development_data/requirements.yml
+```
+
+Install the Python dependencies in that same environment, from **`<prefix>-tier-1/`**:
+
+```bash
+python3 -m pip install -r ansible/requirements.txt
 python3 -m pip install 'boto3>=1.35' netaddr
 ```
 
-Complete the [input example](../../../../tier-1/ansible/group_vars/development_data.yml.example).
-Obtain `appVersion` with `helm show chart gitlab/gitlab --version <exact-chart-pin>`.
+## 6. Match the chart and package
+
+On **the deployment host**, enter the accepted GitLab chart pin; this reads metadata, not a release:
+
+```bash
+read -r -p 'Accepted GitLab chart version: ' GITLAB_CHART_VERSION
+helm show chart gitlab --repo https://charts.gitlab.io --version "$GITLAB_CHART_VERSION"
+```
+
+Use the same pin later as `development_platform_gitlab_version`. Read `appVersion` from the output.
 Use the corresponding `appVersion-ce.0.el9` package; do not fabricate a checksum
-or signing fingerprint. Put the four independently generated service passwords/
-tokens and S3 key pairs in `/absolute/private/gitlab-data-secrets.yml`, encrypted
-with Ansible Vault or supplied through the accepted secret workflow.
+or signing fingerprint. [9]
+
+In **`<prefix>-tier-1/`**, complete `ansible/group_vars/development_data.yml`:
 
 | Field in `ansible/group_vars/development_data.yml` | Required value |
 | --- | --- |
@@ -224,14 +257,29 @@ with Ansible Vault or supplied through the accepted secret workflow.
 | `development_data_backup_transport`, `development_data_backup_repository` | Commissioned SFTP repositories or NAS file mounts; live data stays on VM block disks |
 | `development_data_backup_*_src`, `development_data_backup_custody_accepted` | Independently retained encryption/transport material and verified custody |
 
-The private extra-vars file supplies `development_data_postgresql_password`,
+Require commissioned TLS, permitted client CIDRs and a usable backup destination before apply.
+Use the accepted signed package repository/proxy, including required redirect hosts.
+
+## 7. Prepare private credentials
+
+On **the deployment host**, create an encrypted extra-vars file through the accepted secret workflow.
+The commands below use `/absolute/private/gitlab-data-secrets.yml`; replace that path with the real file.
+
+The file supplies `development_data_postgresql_password`,
 `development_data_redis_password`, `development_data_gitaly_token`,
-`development_data_shell_token` and `development_data_s3_keys`. Encrypt it before use.
+`development_data_shell_token` and `development_data_s3_keys`. Generate each service credential
+independently; do not reuse the object-storage key pairs as service passwords. Encrypt before use
+and retain decryption/recovery material separately.
+
+## 8. Render data-service configuration
 
 Run from **`<prefix>-tier-1/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/development-data.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  ansible/playbooks/deployment/development-data.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml \
+  -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass -e development_data_action=render
 ```
 
 Default `render` contacts no VMs, Kubernetes or object-storage endpoint. It verifies input files and
@@ -240,16 +288,24 @@ scoped JSON policies, chart endpoint/backup inputs and dependency Secret values.
 Treat this whole directory as secret material.
 The playbook checks module and Python dependencies before any provisioning.
 
-After reviewing those files and network/storage prerequisites, install:
+## 9. Review and apply data services
+
+In **`<prefix>-tier-1/`**, review `secrets/development-data/`: native service configuration,
+endpoints, certificate paths, scoped policies and backup destinations. Then install using the same inputs:
 
 Run from **`<prefix>-tier-1/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/development-data.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass -e development_data_action=apply -e development_data_apply_confirm=true
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  ansible/playbooks/deployment/development-data.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml \
+  -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass \
+  -e development_data_action=apply -e development_data_apply_confirm=true
 ```
 
-Replace `/absolute/private/gitlab-data-secrets.yml` in both commands with the actual
-encrypted file path. For new empty restic destinations only, also set
+The explicit confirmation flag authorizes installation; there is no additional interactive approval.
+For approved unattended jobs, use an Ansible Vault identity instead of `--ask-vault-pass`.
+For new empty restic destinations only, also set
 `-e development_data_backup_initialize=true`; existing or inaccessible repositories
 are not replaced. Apply uses signed native packages, prevents their automatic
 first reconfiguration, installs per-service TLS and configures only the selected
@@ -258,8 +314,9 @@ package role. PostgreSQL creates the owned database and `amcheck`, `pg_trgm`,
 affected service to load its new key. No disk formatting is performed. [3][6]
 
 <a id="connect-the-chart"></a>
+<a id="step-4-connect-the-chart-and-verify-backups"></a>
 
-## Step 4: Connect the chart and verify backups
+## 10. Connect the chart inputs
 
 Load rendered `platform-inputs.yml` after the authored development-platform inputs
 when running the [GitLab installer](gitlab.md#render-and-install), on every render
@@ -275,6 +332,9 @@ Secrets are created by the data-service playbook. [7]
 
 For bootstrap Secret ownership, the native merge is:
 
+In **`<prefix>-tier-1/`**, add this to the private GitLab Secret input prepared in
+[GitLab Step 5b](gitlab.md#5b-encrypted-bootstrap-inputs):
+
 ```yaml
 development_platform_secrets: "{{ bootstrap_gitlab_secrets | combine(lookup('ansible.builtin.file', 'secrets/development-data/dependency-secrets.yml') | from_yaml) }}"
 ```
@@ -286,6 +346,9 @@ Use port 5432 with verified server identity and client certificate, `rediss` on
 6379, and external `default` Gitaly TLS on 8076. [6][7]
 
 ## Backups and recovery
+
+Complete this section after [GitLab installation](gitlab.md#render-and-install), when the toolbox exists.
+The data-service installation alone does not deploy the toolbox.
 
 Each VM receives a root-only restic job and `development-data-backup.timer`.
 Select [direct NAS file storage or existing SFTP](../../../administration/backups/gitlab-data.md)
@@ -300,7 +363,8 @@ toolbox backup CronJob through `platform-inputs.yml`, enabled with schedule
 reconciliation; no separate Helm overlay or manual Helm upgrade is required.
 For first acceptance, trigger an application backup explicitly:
 
-Run from **`<prefix>-tier-1/`**.
+Run from **`<prefix>-tier-1/`** with `KUBECONFIG` set to the accepted Tier 1 cluster.
+For the default `gitlab` namespace/release:
 
 ```bash
 kubectl --kubeconfig "$KUBECONFIG" -n gitlab exec deploy/gitlab-toolbox -- backup-utility
@@ -311,8 +375,14 @@ Secrets; export the release's Secrets/configuration into the independent recover
 kit. Copy object versions and toolbox backups under independent storage credentials; versioning
 on the same object-storage deployment alone is not an independent backup. [5][8]
 
-For first acceptance, run `systemctl start development-data-backup.service` on
-each data VM, inspect timer/job results and restic snapshots, then perform a
+For first acceptance, run on **each data VM** (`db-1`, `kv-1`, `repo-1`) during the accepted maintenance window:
+
+```bash
+sudo systemctl start development-data-backup.service
+sudo systemctl status development-data-backup.service development-data-backup.timer --no-pager
+```
+
+Require successful jobs and inspect restic snapshots. Then perform a
 matching-version clean-target restore of PostgreSQL, repositories, objects and
 the separately retained chart Secrets. Use `restic restore <snapshot> --target
 /restore` on an isolated target and GitLab's native toolbox restore procedure;
@@ -335,3 +405,4 @@ Checked 2026-10-26; qualify exact package, chart and storage versions together.
 6. [Gitaly TLS](https://docs.gitlab.com/administration/gitaly/tls_support/) and [Redis TLS](https://docs.gitlab.com/administration/redis/tls/).
 7. [External PostgreSQL](https://docs.gitlab.com/charts/advanced/external-db/) and [PostgreSQL TLS](https://docs.gitlab.com/omnibus/settings/database/#configuring-ssl).
 8. [GitLab chart backup and restore](https://docs.gitlab.com/charts/backup-restore/).
+9. [Helm chart metadata and exact version selection](https://helm.sh/docs/helm/helm_show_chart/), checked 2026-11-09.

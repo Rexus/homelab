@@ -149,7 +149,7 @@ keep direct node addresses in `talosconfig` for bootstrap and recovery.
 ### Step 2: Deploy the gateway pair
 
 Review the inputs above, `.env.local`, `terraform/common.tfvars` and the approved
-shared platform/image catalogs. The default hardware uses VMIDs 401/402, local
+shared platform/image catalogs. The default hardware uses VMIDs 301/302, local
 storage and the Tier 0 `management` attachment. Initial placement on separate
 hosts is enforced; Proxmox owns subsequent moves, so qualify ongoing anti-affinity
 and shared storage/power dependencies separately.

@@ -31,8 +31,8 @@ prerequisite for the logging path that records its own bootstrap ceremony.
 ## 1. Secure provider defaults
 
 **Implementation:** supplied. Fresh source/generated roots use verified TLS; the wrappers
-reject current and legacy insecure environment flags. Existing project edits are preserved
-by refresh and therefore still require review.
+reject current and legacy insecure environment flags. Refresh preserves project inputs;
+review local overrides and the refresh report before accepting existing TLS configuration.
 **Procedure:** [Proxmox bootstrap trust and PKI transition](../docs/administration/hosts/proxmox-tls.md).
 
 - [ ] **TLS-1: Verified bootstrap.** Independently verify the Proxmox CA fingerprint, install

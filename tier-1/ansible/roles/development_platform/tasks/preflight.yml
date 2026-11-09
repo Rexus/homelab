@@ -19,6 +19,8 @@
       - development_platform_host is match('^[a-z0-9.-]+$')
       - not development_platform_host.endswith('.example.com')
       - development_platform_action != 'apply' or development_platform_kubeconfig | length > 0
+      - development_platform_context is string
+      - development_platform_action != 'apply' or 'REPLACE' not in development_platform_context
     fail_msg: Configure local Tier 1 inputs and distinct application/job namespaces before rendering or applying.
 
 - name: Validate GitLab dependencies before rendering or applying

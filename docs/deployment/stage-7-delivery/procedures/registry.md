@@ -39,6 +39,9 @@ upstream access and adds its own artifact authority and storage.
 | Existing approved service | Verify the same endpoint, policy and recovery requirements without creating another registry |
 
 These are alternatives, not a mandatory GitLab-to-Harbor-to-Dragonfly sequence.
+For a new Stage 7 installation, use B or an accepted existing registry. A depends on an already
+commissioned GitLab registry; the supplied Stage 9 Kubernetes chart disables its bundled registry.
+Installing GitLab later does not implement A automatically. C adds separately commissioned acceleration.
 A new Tier 1 cluster reuses the [common cluster procedure](../../stage-4-kubernetes/procedures/kubernetes.md)
 with tier-local inputs and state. Do not retire the bootstrap artifact source until
 the new path and independent recovery have been accepted.
@@ -67,7 +70,8 @@ The presence of a platform-cluster skeleton does not install these services.
    to install Harbor without reconciling that controller.
 2. Fill the Harbor fields below; retain the centrally pinned chart version unless a
    separately reviewed `delivery_platform_harbor_version` override is required.
-3. Prepare the Secrets described below, then run [installer Step 2](delivery-installer.md#render-and-apply).
+3. Prepare the Secrets and Keycloak client described below before running the
+   [common render/review/apply commands](delivery-installer.md#render-and-apply).
 4. Complete [acceptance](#acceptance) and return to Stage 7 for Observability.
 
 | Field in `ansible/group_vars/delivery_platform.yml` | Value |

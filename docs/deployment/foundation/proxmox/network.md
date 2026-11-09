@@ -176,7 +176,7 @@ Use stable host-side components such as these:
 | Component | Typical use | MTU | Notes |
 | --- | --- | --- | --- |
 | `bond0` | fabric bond | `1500` | use for the main host-management, guest, access, identity, and application trunk |
-| `vmbr0` | fabric bridge | `1500` | keep it VLAN-aware and do not allow native VLANs so untagged traffic does not land on the wrong network |
+| `vmbr0` | fabric bridge | `1500` | keep it VLAN-aware; document any intentional native management VLAN on both switch and host, and prevent accidental untagged guest access |
 | `bond1` | storage bond | `9000` | use for storage-heavy traffic when Ceph benefits from jumbo frames |
 | `vmbr1` | storage bridge | `9000` | use OVS with RSTP for direct/full-mesh storage fabric; otherwise keep it VLAN-aware and limited to storage VLANs plus the second Corosync VLAN |
 | extra copper ports | optional dedicated Corosync paths | `1500` | prefer using them for `corosync 1` and `corosync 2` for extra cluster stability and separation instead of sharing those paths on `vmbr0` and `vmbr1` |
@@ -362,7 +362,7 @@ Before running automation, confirm:
 - SDN VNets exist before Terraform attaches VMs to them
 - SDN VNets are only used for guest/workload networks, not host-management,
   Corosync, or Ceph transport networks
-- no bridge or trunk is accidentally carrying an untagged or native VLAN
+- any intentional native/untagged management path matches both ends; no bridge or trunk accidentally exposes another network
 - no host IPs are left on bond slaves or physical NICs by mistake
 - both Corosync networks are present and placed on the intended paths if
   clustering is in use

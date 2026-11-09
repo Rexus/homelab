@@ -1,6 +1,7 @@
 # Extract control recovery files
 
-**Run on:** an independent isolated recovery workstation with verified restic and Python 3.9+.
+**Run on:** an independent isolated recovery workstation with verified restic, Python 3.9+,
+`sha256sum` and the release-matched Vault CLI for snapshot inspection.
 **Prepare:** independent repository/password, full known-good snapshot ID and recorded
 Vault/manifest hashes. Preserve incident copies; use encrypted private extraction storage.
 **Design:** [recovery custody](../../architecture/operations/backup-recovery.md).
@@ -17,9 +18,10 @@ Vault/manifest hashes. Preserve incident copies; use encrypted private extractio
 
 ## How to extract a known recovery point into a new target?
 
-The installed helper is also available at
-`tier-0/ansible/roles/control_backup/files/restore_files.py` in this source repository. Keep its
-`control_backup_io.py` sibling beside it when using an offline recovery kit.
+Select the verified helper from the recovery kit **before extraction**. An installed recovery host uses
+`/usr/local/lib/control-backup/restore_files.py`; a recovered Tier 0 checkout supplies
+`ansible/roles/control_backup/files/restore_files.py`. Keep its `control_backup_io.py` sibling beside it.
+Do not assume the installed path exists on a new workstation.
 1. Supply the repository/password from independent custody, not a fetch from failed Vault/SSO.
 2. List snapshots and compare repository identity/full snapshot ID with the retained receipt.
 3. Choose a **new absolute target** under an existing canonical private parent, then run:
@@ -33,10 +35,18 @@ read -r -p "Independent restic repository path or URI: " RESTIC_REPOSITORY
 read -r -p "Independent restic password-file path: " RESTIC_PASSWORD_FILE
 export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
 restic cat config
+restic snapshots --tag control-recovery --json
+```
+
+Compare the repository ID and full snapshot ID with the independent receipt. Stop on a mismatch.
+Only after that review, run on **the same isolated workstation**:
+
+```bash
+read -r -e -p "Verified restore_files.py path from the retained kit: " RECOVERY_HELPER
+test -f "$RECOVERY_HELPER" && test -f "$(dirname "$RECOVERY_HELPER")/control_backup_io.py"
 read -r -p "Full known-good 64-character restic snapshot ID: " RECOVERY_SNAPSHOT
 read -r -p "NEW absolute extraction target under a private parent: " RECOVERY_TARGET
-restic snapshots --tag control-recovery --json
-python3 /usr/local/lib/control-backup/restore_files.py --snapshot "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --approve-clean-target
+python3 "$RECOVERY_HELPER" --snapshot "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --approve-clean-target
 ```
 
 The helper creates the target exclusively, rejects `latest`, existing paths and symlink parents,

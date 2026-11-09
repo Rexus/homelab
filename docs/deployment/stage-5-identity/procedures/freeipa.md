@@ -24,40 +24,49 @@ image, repository access and protected bootstrap passwords.
 <a id="before-you-start"></a>
 <a id="what-you-configure"></a>
 
-1. Initialize local inputs, using the same context/state used for the issuer in Stage 3:
+### 1. Initialize the existing foundation inputs
 
-   Run from **`<prefix>-tier-0/`**.
+Initialize local inputs, using the same context/state used for the issuer in Stage 3:
 
-   ```bash
-   bash scripts/init-local-files.sh --setup foundation
-   ```
+Run from **`<prefix>-tier-0/`**.
 
-   Retain the same `--env` flag on every command if the issuer used a named environment.
-2. Add `idm-1` and `idm-2` to the existing foundation desired guest map, inventory
-   and IP map. Do not replace the map with an identity-only file: that would remove
-   an already-managed `ca-1`. Select the supported Enterprise Linux image for the
-   directory pair, not the Debian CA-specific image. Place replicas on independent
-   failure domains and provide stable forward/reverse DNS before installation.
-   Edit the local files, retaining the issuer and existing allocations:
+```bash
+bash scripts/init-local-files.sh --setup foundation
+```
 
-   | Tier 0 file | Set |
-   | --- | --- |
-   | `terraform/deployments/foundation/terraform.tfvars` | Keep all existing `vm_instances`; select the approved EL image, VMIDs, storage and distinct placement for `idm-1/2` |
-   | `ansible/inventory/hosts.yml` | `idm-1` under `identity_primary`, `idm-2` under `identity_replicas`; preserve `issuing_ca` |
-   | `ansible/group_vars/all.yml` | Actual `platform_domain`, SSH account and hostname decoration |
-   | `ansible/group_vars/foundation.yml` | Reserved `platform_host_ips.idm-1/2`, realm/domain and the DNS/CA fields below; retain `ca-1` |
-   | `terraform/common.tfvars` | Actual `network_zones.identity` private attachment and subnet/gateway or applied SDN lookup |
+Retain the same `--env` flag on every command if the issuer used a named environment.
 
-3. Review Terraform's displayed whole-state plan, then enter `yes` to provision:
+### 2. Add the directory hosts without removing the issuer
 
-   Run from **`<prefix>-tier-0/`**.
+In **`<prefix>-tier-0/`**, add `idm-1` and `idm-2` to the existing foundation desired guest map, inventory
+and IP map. Do not replace the map with an identity-only file: that would remove
+an already-managed `ca-1`. Select the supported Enterprise Linux image for the
+directory pair, not the Debian CA-specific image. Place replicas on independent
+failure domains and provide stable forward/reverse DNS before installation.
+Edit the local files, retaining the issuer and existing allocations:
 
-   ```bash
-   bash scripts/deploy.sh foundation --terraform-only
-   ```
+| Tier 0 file | Set |
+| --- | --- |
+| `terraform/deployments/foundation/terraform.tfvars` | Keep all existing `vm_instances`; select the approved EL image, VMIDs, storage and distinct placement for `idm-1/2` |
+| `ansible/inventory/hosts.yml` | `idm-1` under `identity_primary`, `idm-2` under `identity_replicas`; preserve `issuing_ca` |
+| `ansible/group_vars/all.yml` | Actual `platform_domain`, SSH account and hostname decoration |
+| `ansible/group_vars/foundation.yml` | Reserved `platform_host_ips.idm-1/2`, realm/domain and the DNS/CA fields below; retain `ca-1` |
+| `terraform/common.tfvars` | Actual `network_zones.identity` private attachment and subnet/gateway or applied SDN lookup |
 
-   Add `--plan-only` only for a preview. Approved unattended VM provisioning can
-   use `--auto-approve`; directory installation and root signing remain separate.
+### 3. Provision the pair
+
+Review Terraform's displayed whole-state plan, then enter `yes` to provision:
+
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+bash scripts/deploy.sh foundation --terraform-only
+```
+
+Add `--plan-only` only for a preview. Approved unattended VM provisioning can
+use `--auto-approve`; directory installation and root signing remain separate.
+
+### 4. Connect logging before installing the realm
 
 Before the CA/realm installation, register both hosts through
 [Stage 2 source forwarding](../../stage-2-logging/sources.md). Verify their OS
@@ -99,83 +108,101 @@ native installation. These inputs do not rechain an existing installed domain.
 
 ## Step 2: Generate and sign the identity CA request
 
-1. Set `foundation_freeipa_ca_mode: external` and
-   `foundation_freeipa_external_phase: csr` in local foundation vars. Inject the
-   bootstrap passwords through the controller or an
-   [Ansible-only secret override](../../../administration/secret-handling/ansible-vault.md).
+### 5. Select the CSR phase and bootstrap DNS
 
-   Edit **`ansible/group_vars/foundation.yml`**, preserving its IP map and other fields:
+Set `foundation_freeipa_ca_mode: external` and
+`foundation_freeipa_external_phase: csr` in local foundation vars. Inject the
+bootstrap passwords through the controller or an
+[Ansible-only secret override](../../../administration/secret-handling/ansible-vault.md).
 
-   ```yaml
-   baseline_disable_ipv6: false
-   foundation_freeipa_ca_mode: external
-   foundation_freeipa_external_phase: csr
-   foundation_freeipa_external_cert_files: []
-   ```
+Edit **`<prefix>-tier-0/ansible/group_vars/foundation.yml`**, preserving its IP map and other fields:
 
-   Set DNS forwarding in that same file: retain automatic forwarders only if the
-   host resolver is the approved bootstrap resolver, or set
-   `foundation_freeipa_auto_forwarders: false` and the actual
-   `foundation_freeipa_dns_forwarders` address list. Do not point the initial
-   installation only at the directory DNS service being created.
+```yaml
+baseline_disable_ipv6: false
+foundation_freeipa_ca_mode: external
+foundation_freeipa_external_phase: csr
+foundation_freeipa_external_cert_files: []
+```
 
-   In the protected execution shell, supply the bootstrap passwords without history:
+Set DNS forwarding in that same file: retain automatic forwarders only if the
+host resolver is the approved bootstrap resolver, or set
+`foundation_freeipa_auto_forwarders: false` and the actual
+`foundation_freeipa_dns_forwarders` address list. Do not point the initial
+installation only at the directory DNS service being created.
 
-   Run from **`<prefix>-tier-0/`**.
+### 6. Load the bootstrap passwords
 
-   ```bash
-   read -r -s -p 'FreeIPA Directory Manager password: ' FREEIPA_DM_PASSWORD; echo
-   read -r -s -p 'FreeIPA administrator password: ' FREEIPA_ADMIN_PASSWORD; echo
-   export FREEIPA_DM_PASSWORD FREEIPA_ADMIN_PASSWORD
-   ```
+In the protected execution shell, supply the bootstrap passwords without history:
 
-   Keep the exact values in independent recovery custody. Remove any conflicting
-   placeholder assignments from `.env.local`; the deployment helper loads that file.
-2. Run the directory recipe against the already-provisioned guests:
+Run from **`<prefix>-tier-0/`**.
 
-   Run from **`<prefix>-tier-0/`**.
+```bash
+read -r -s -p 'FreeIPA Directory Manager password: ' FREEIPA_DM_PASSWORD; echo
+read -r -s -p 'FreeIPA administrator password: ' FREEIPA_ADMIN_PASSWORD; echo
+export FREEIPA_DM_PASSWORD FREEIPA_ADMIN_PASSWORD
+```
 
-   ```bash
-   bash scripts/deploy.sh foundation --ansible-only
-   ```
+Keep the exact values in independent recovery custody. Remove any conflicting
+placeholder assignments from `.env.local`; the deployment helper loads that file.
 
-   The recipe prepares identity hosts, generates the primary's CSR and fetches it
-   as `secrets/identity/<primary-fqdn>-ipa.csr`, distinct across environments. Primary health checks, replica installation
-   and final health checks are deliberately deferred.
-3. Verify the CSR identity and constraints, then use the separate
-   [offline root ceremony](../../stage-3-trust/procedures/offline-root.md).
-   Return only the signed identity CA certificate and public chain. Preserve the
-   primary's pending installation and private key; never regenerate it to retry a transfer.
+### 7. Generate the pending identity CA request
+
+Run the directory recipe against the already-provisioned guests:
+
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+bash scripts/deploy.sh foundation --ansible-only
+```
+
+**Expected:** the recipe prepares identity hosts, generates the primary's CSR and fetches it
+as `secrets/identity/<primary-fqdn>-ipa.csr`, distinct across environments. Primary health checks, replica installation
+and final health checks are deliberately deferred.
+
+### 8. Sign the CSR offline
+
+Verify the CSR identity and constraints, then use the separate
+[offline root ceremony](../../stage-3-trust/procedures/offline-root.md).
+Return only the signed identity CA certificate and public chain. Preserve the
+primary's pending installation and private key; never regenerate it to retry a transfer.
 
 ## Step 3: Complete the primary and replica
 
-1. Verify the signed certificate matches the pending CSR/key, approved subject,
-   subordinate constraints and expected root. Set the local phase to `complete`
-   and populate `foundation_freeipa_external_cert_files` with absolute controller
-   certificate/chain paths. Keep the same realm, hosts, passwords and state context.
+### 9. Select completion with the approved public chain
 
-   In **`ansible/group_vars/foundation.yml`**, replace the phase and certificate list:
+Verify the signed certificate matches the pending CSR/key, approved subject,
+subordinate constraints and expected root. Set the local phase to `complete`
+and populate `foundation_freeipa_external_cert_files` with absolute controller
+certificate/chain paths. Keep the same realm, hosts, passwords and state context.
 
-   ```yaml
-   foundation_freeipa_external_phase: complete
-   foundation_freeipa_external_cert_files:
-     - /REPLACE_WITH_ABSOLUTE_APPROVED_IDENTITY_CA_CERTIFICATE_PATH
-     - /REPLACE_WITH_ABSOLUTE_PUBLIC_ROOT_OR_CHAIN_PATH
-   ```
-2. Resume with the same command:
+In **`<prefix>-tier-0/ansible/group_vars/foundation.yml`**, replace the phase and certificate list:
 
-   Run from **`<prefix>-tier-0/`**.
+```yaml
+foundation_freeipa_external_phase: complete
+foundation_freeipa_external_cert_files:
+  - /REPLACE_WITH_ABSOLUTE_APPROVED_IDENTITY_CA_CERTIFICATE_PATH
+  - /REPLACE_WITH_ABSOLUTE_PUBLIC_ROOT_OR_CHAIN_PATH
+```
 
-   ```bash
-   bash scripts/deploy.sh foundation --ansible-only
-   ```
+### 10. Complete the primary, then the replica
 
-   The upstream role completes the primary. Only after `ipactl status` and
-   `ipa ping` pass does the CA-enabled replica install serially.
-3. Verify directory and DNS replication, certificate issuance on **both** hosts,
-   matching identity CA chain and loss of either host. Record the result before
-   continuing to [identity federation](../README.md#step-2-deploy-identity-federation). A passing service check
-   alone does not prove CA replication or failure recovery.
+Resume with the same command:
+
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+bash scripts/deploy.sh foundation --ansible-only
+```
+
+**Expected:** the upstream role completes the primary. Only after `ipactl status` and
+`ipa ping` pass does the CA-enabled replica install serially.
+
+### 11. Verify replication and recovery
+
+Verify directory and DNS replication, certificate issuance on **both** hosts,
+matching identity CA chain and loss of either host. Record the result before
+continuing to [identity federation](../README.md#step-2-deploy-identity-federation). A passing service check
+alone does not prove CA replication or failure recovery.
 
 For routine read-only service/API checks:
 

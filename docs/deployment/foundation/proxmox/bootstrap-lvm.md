@@ -1,181 +1,267 @@
-# Expand bootstrap storage with Rocky Linux LVM
+# Expand the bootstrap root filesystem with LVM
 
-For more root/home capacity, **grow the existing Proxmox disk first**. Add another disk to the
-root volume group only when that layout is intentional. Both paths expand the existing filesystem;
-neither creates a new mount at `/srv/tier0`.
+<a id="expand-bootstrap-storage-with-rocky-linux-lvm"></a>
 
-**Run on:** `boot-1` as `automation`, with authorized sudo and independent Proxmox console access.
-**Before starting:** accepted VM backup, an existing ordinary LVM root filesystem and approved OS tools.
-**Branch from:** [Bootstrap storage B](bootstrap.md#b-expand-the-existing-rocky-linux-root--lvm-alternative).
-Use the actual disk, PV partition, VG and root LV found below; example names are not Rocky defaults.
+Choose **A** to enlarge the existing disk, or **B** to add a disk to the existing volume group.
+Prefer A when only more capacity is needed. Both paths grow root, including `/home` if it shares root.
 
-## Steps
+**Run on `boot-1`**, using the configured SSH account and authorized sudo. Have a current VM backup
+and Proxmox console access. This guide requires an ordinary LVM root filesystem; it does not apply to Talos.
+Start from [bootstrap storage B](bootstrap.md#b-expand-the-existing-rocky-linux-root--lvm-alternative).
 
-1. [Identify disks and the existing root LV](#1-identify-disks-and-the-existing-root-lv).
-2. Choose **[2a: grow the existing disk](#2a-grow-the-existing-disk--preferred)** or
-   **[2b: add another disk](#2b-add-another-disk-to-the-vg--alternative)**.
-3. [Extend root, verify and back up](#3-extend-root-verify-and-back-up).
+## Contents
 
-## Prepare OS tools
+- [Install tools](#install-tools)
+- [A. Enlarge the existing disk](#a-enlarge-the-existing-disk)
+- [B. Add a disk to the existing volume group](#b-add-a-disk-to-the-existing-volume-group)
+- [Create the workspace and continue](#create-the-workspace-and-continue)
+- [References](#references)
 
-On `boot-1` as automation, install OS packages through approved repositories, outside any Python environment:
+<a id="prepare-os-tools"></a>
+
+## Install tools
+
+On **`boot-1`**, install through approved repositories. For EL10 (Rocky/Alma):
 
 ```bash
-sudo dnf install -y lvm2 cloud-utils-growpart parted xfsprogs
+sudo dnf install -y lvm2 parted xfsprogs
 ```
 
-For disconnected setup, these packages are included in the
-[offline RPM acquisition list](bootstrap-offline.md#1a-download-os-packages-and-reviewed-source).
-If storage is not ready yet, use a verified bundle on independently mounted media and complete
-[OS package installation](bootstrap-offline.md#3a-install-signed-os-packages), setting `BUNDLE` to
-that actual media path. Return here before copying the full image bundle or creating tool environments.
+For Debian/Ubuntu, use this block instead:
 
-Offline only: set this before the linked OS-install block, in the same Bash session.
+```bash
+sudo apt-get update
+sudo apt-get install -y lvm2 parted xfsprogs e2fsprogs
+```
+
+For an offline installation, first set the verified bundle path on **`boot-1`**:
 
 ```bash
 read -r -p 'Verified extracted bundle directory on mounted media: ' BUNDLE
 ```
 
-## 1. Identify disks and the existing root LV
+Follow [offline OS package installation](bootstrap-offline.md#7-install-signed-os-packages) using that
+bundle, then return here. The offline reference supplies EL10 RPMs; Debian/Ubuntu needs its own matching
+signed package bundle.
 
-Run on **`boot-1`** as automation. Read-only discovery.
+<a id="1-identify-disks-and-the-existing-root-lv"></a>
+<a id="2a-grow-the-existing-disk--preferred"></a>
+<a id="steps"></a>
+
+## A. Enlarge the existing disk
+
+### 1. Find the root disk, partition and logical volume
+
+On **`boot-1`**:
 
 ```bash
 lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
 findmnt -n -o SOURCE,FSTYPE /
-findmnt -T /home
 sudo pvs
-sudo vgs
 sudo lvs -o vg_name,lv_name,lv_path,lv_size
 ```
 
-Illustrative output; `sdb` appears only after adding the second disk for **2b**:
+The following example uses root PV `/dev/sda4`, VG `rocky` and root LV `/dev/rocky/lvroot`.
+Use the names from the output; for example, Ubuntu may use `/dev/ubuntu-vg/ubuntu-lv`.
+Match the LV to `/`, not merely a familiar name. [1]
 
-```text
-NAME                SIZE FSTYPE      TYPE MOUNTPOINTS
-sda                  80G             disk
-├─sda1                1G xfs         part /boot
-└─sda2               79G LVM2_member part
-  ├─rocky-lvroot     70G xfs         lvm  /
-  └─rocky-swap        9G swap        lvm  [SWAP]
-sdb                  60G             disk
+### 2. Enlarge the disk in Proxmox
+
+Stop bootstrap jobs and shut down **`boot-1`**. In **Proxmox > VM > Hardware**, select
+**Hard Disk (scsi0) > Disk Action > Resize**. Enter the increment: add `60 GiB` to grow an
+`80 GiB` disk to `140 GiB`. Start the VM again. [2]
+
+### 3. Check the new disk size
+
+On **`boot-1`**:
+
+```bash
+lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
 ```
 
-The example's root PV is `/dev/sda2`, VG is `rocky`, and root LV is `/dev/rocky/lvroot`.
-`findmnt` may show the equivalent `/dev/mapper/rocky-lvroot` path. An installation using
-`rl/root` must use `/dev/rl/root` instead. Match the LV to `/`, not merely a familiar name. [1]
-Root growth gives `/home` more space only when `/home` is on that root filesystem.
+Expect `/dev/sda` to have grown while `/dev/sda4` still has its old size.
+The PV partition needs free space immediately after it.
 
-## 2a. Grow the existing disk — preferred
+### 4. Extend the existing partition
 
-1. Stop bootstrap jobs and shut down the VM. In **Proxmox > VM > Hardware**, select the existing
-   **Hard Disk (scsi0) > Disk Action > Resize**. Enter the **increment**, not the final size:
-   for example, add `60 GiB` to grow an `80 GiB` disk to `140 GiB`. Start the VM again. [2]
-2. Repeat `lsblk` and confirm `/dev/sda` grew while `/dev/sda2` still has its previous size.
-   This example requires the PV partition to have free space immediately after it.
-3. Grow partition **2**, then check its size before resizing the PV:
+On **`boot-1`**, for the example's disk `/dev/sda`, partition **4**:
 
-   Run on **`boot-1`**. Example only: /dev/sda, partition 2 is the verified root PV.
+```bash
+sudo parted /dev/sda resizepart 4 100%
+sudo partprobe /dev/sda
+sudo udevadm settle
+lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
+```
 
-   ```bash
-   sudo growpart /dev/sda 2
-   sudo udevadm settle
-   lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
-   ```
+If Parted asks to fix GPT metadata after the disk enlargement, select **Fix**. Confirm an
+in-use-partition prompt only for the verified root PV partition. `resizepart` changes its end;
+the PV and filesystem are extended in the next steps. [3]
 
-   `growpart` preserves the existing partition's contents and extends its boundary. If the
-   partition has not grown, stop; do not remove/recreate it. Reboot through the console if the
-   kernel still reports the old size, then check again. Optional preview: `growpart -N /dev/sda 2`. [3]
-4. Enlarge the **existing PV** to use the partition's new capacity:
+Expect `/dev/sda4` to grow. If it has not, stop; do not remove or recreate the partition.
+Reboot through the console if the kernel still reports the old size, then check again.
 
-   Run on **`boot-1`**. Preserve the existing root PV and VG.
+### 5. Extend the physical volume
 
-   ```bash
-   sudo pvresize /dev/sda2
-   sudo pvs
-   sudo vgs
-   ```
+On **`boot-1`**:
 
-   The existing VG now has additional free space. Continue at **Step 3**; `pvcreate`, `vgextend`
-   and a new partition table are not needed on this path. [1]
+```bash
+sudo pvresize /dev/sda4
+sudo pvs
+sudo vgs
+```
 
-## 2b. Add another disk to the VG — alternative
+The existing VG should now have more free space. [1]
 
-1. In **Proxmox > VM > Hardware > Add > Hard Disk**, add `scsi1` on qualified live storage and
-   enable **Backup**. Identify the new guest device again with `lsblk`; do not assume it is `sdb`.
-2. For the example's **new, empty `/dev/sdb` only**, inspect signatures:
+### 6. Extend root and its filesystem
 
-   Run on **`boot-1`**. Read-only check of the proposed NEW disk.
-
-   ```bash
-   sudo wipefs --no-act /dev/sdb
-   ```
-
-   Require the intended blank disk with no required data, partitions or mounts. **The next block
-   replaces its partition table. Never run it on the existing root disk.**
-
-   Run on **`boot-1`** only after identifying /dev/sdb as the new empty disk.
-
-   ```bash
-   sudo parted /dev/sdb --script mklabel gpt
-   sudo parted /dev/sdb --script mkpart primary 1MiB 100%
-   sudo parted /dev/sdb --script set 1 lvm on
-   sudo partprobe /dev/sdb
-   sudo udevadm settle
-   lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
-   ```
-
-3. Require the new partition `/dev/sdb1`, initialize its physical volume and inspect the existing VG:
-
-   Run on **`boot-1`**. Initialize only the new partition.
-
-   ```bash
-   sudo pvcreate /dev/sdb1
-   sudo pvs
-   sudo vgs
-   ```
-
-   Example existing VG before extension:
-
-   ```text
-     VG     #PV #LV #SN Attr   VSize   VFree
-     rocky    1   2   0 wz--n- <79.00g     0
-   ```
-
-   A message such as `Not creating system devices file due to existing VGs` concerns LVM's
-   device-discovery file, not creation of the PV or VG. Require successful PV creation and
-   visibility in `pvs`; stop on missing/excluded-device errors. Do not disable device filtering
-   or create another VG as a workaround. [4]
-4. Add that PV to the **existing root VG**, then verify its new capacity:
-
-   Run on **`boot-1`**. Example root VG verified in Step 1: rocky.
-
-   ```bash
-   sudo vgextend rocky /dev/sdb1
-   sudo pvs
-   sudo vgs
-   ```
-
-   Expect two PVs in `rocky` and roughly `60 GiB` of new free space. Continue below. [1]
-
-## 3. Extend root, verify and back up
-
-For the example's verified root LV:
-
-Run on **`boot-1`**. Replace the path if discovery showed a different root LV.
+On **`boot-1`**, use the root LV identified in Step 1:
 
 ```bash
 sudo lvextend -r -l +100%FREE /dev/rocky/lvroot
+```
+
+`-r` grows the filesystem too; `+100%FREE` uses all remaining free space in the VG.
+Stop if filesystem resizing fails. [5]
+
+### 7. Verify the result
+
+On **`boot-1`**:
+
+```bash
 sudo lvs -o lv_path,lv_size,devices
 df -h / /home
 ```
 
-`-r` grows the filesystem too; `+100%FREE` consumes **all** remaining free extents in the VG,
-including any free space that existed before this change. Stop if filesystem resizing fails. [1][5]
+Expect the root filesystem to have grown. Continue at [Create the workspace](#create-the-workspace-and-continue).
+Path B is an alternative; do not perform it as the next step.
 
-Create the bootstrap directories on the expanded root filesystem:
+<a id="2b-add-another-disk-to-the-vg--alternative"></a>
 
-Run on **`boot-1`** as automation; /srv/tier0 is a directory on root for this layout.
+## B. Add a disk to the existing volume group
+
+### 1. Add the disk in Proxmox
+
+In **Proxmox > boot-1 > Hardware > Add > Hard Disk**, add `scsi1` on qualified live storage.
+Keep **Backup** enabled. After this path, root depends on both disks; back up and restore them together.
+
+### 2. Identify the new, empty disk
+
+On **`boot-1`**:
+
+```bash
+lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
+```
+
+Example output:
+
+```text
+NAME                SIZE FSTYPE      TYPE MOUNTPOINTS
+sda                  80G             disk
+├─sda1                1M             part
+├─sda2              200M vfat        part /boot/efi
+├─sda3                1G xfs         part /boot
+└─sda4             78.8G LVM2_member part
+  ├─rocky-lvroot   69.8G xfs         lvm  /
+  └─rocky-swap        9G swap        lvm  [SWAP]
+sdb                  60G             disk
+```
+
+Here, `sdb` is the new disk. Use the actual device name; the next step replaces its partition table.
+Confirm it contains no required data, partitions or mounts. Never use the existing root disk.
+
+### 3. Partition the new disk
+
+On **`boot-1`**, for the verified empty `/dev/sdb`:
+
+```bash
+sudo parted /dev/sdb --script mklabel gpt
+sudo parted /dev/sdb --script mkpart primary 1MiB 100%
+sudo parted /dev/sdb --script set 1 lvm on
+sudo partprobe /dev/sdb
+sudo udevadm settle
+lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
+```
+
+Expect the new partition `/dev/sdb1`.
+
+### 4. Create the physical volume
+
+On **`boot-1`**:
+
+```bash
+sudo pvcreate /dev/sdb1
+```
+
+Require successful PV creation. A notice about not creating a system devices file because VGs
+already exist is separate from PV creation; investigate missing/excluded-device errors before continuing. [4]
+
+### 5. Find the existing volume group
+
+On **`boot-1`**:
+
+```bash
+sudo vgs
+```
+
+Example output:
+
+```text
+  VG     #PV #LV #SN Attr   VSize   VFree
+  rocky    1   2   0 wz--n- <78.80g     0
+```
+
+Use the existing root VG name, here `rocky`; do not create another VG.
+
+### 6. Add the new physical volume to that group
+
+On **`boot-1`**:
+
+```bash
+sudo vgextend rocky /dev/sdb1
+```
+
+### 7. Verify the group and find the root logical volume
+
+On **`boot-1`**:
+
+```bash
+sudo pvs
+sudo vgs
+sudo lvs -o vg_name,lv_name,lv_path,lv_size
+findmnt -n -o SOURCE,FSTYPE /
+```
+
+Expect two PVs in `rocky` and roughly `60 GiB` more free space. Match the root mount to its LV.
+This example uses `/dev/rocky/lvroot`; use the actual path from the output. [1]
+
+### 8. Extend root and its filesystem
+
+On **`boot-1`**:
+
+```bash
+sudo lvextend -r -l +100%FREE /dev/rocky/lvroot
+```
+
+`-r` grows the filesystem too; `+100%FREE` uses all remaining free space in the VG.
+Stop if filesystem resizing fails. [5]
+
+### 9. Verify the result
+
+On **`boot-1`**:
+
+```bash
+sudo lvs -o lv_path,lv_size,devices
+df -h / /home
+```
+
+Expect root to have grown. `/home` gains space only if it shares that root filesystem.
+The additional disk is now part of root and cannot be detached as an independent workspace.
+
+<a id="3-extend-root-verify-and-back-up"></a>
+
+## Create the workspace and continue
+
+On **`boot-1`**, create the directories on the expanded root filesystem:
 
 ```bash
 sudo install -d -m 0700 -o "$(id -un)" -g "$(id -gn)" \
@@ -184,21 +270,19 @@ findmnt -T /srv/tier0
 df -h / /home /srv/tier0
 ```
 
-Keep the existing root mount; no new `/etc/fstab` entry or `/home` bind mount is needed here.
-For **2b**, root now depends on **both physical volumes/disks**: back up and restore both together;
-the extra disk cannot be detached as an independent workspace. For **2a**, retain every disk
-already required by the selected layout. Reboot with console access, recheck LVM/mounts and qualify
-the [bootstrap backup/recovery set](../../../administration/backups/recovery-set.md).
-Rollback uses the accepted pre-change VM backup; shrinking root or unplugging a PV is not an undo step.
+Keep the existing root mount; no new `/etc/fstab` entry or `/home` bind mount is needed.
+Back up all disks containing the root VG in the [bootstrap recovery set](../../../administration/backups/recovery-set.md).
+Rollback uses the pre-change VM backup; shrinking root or unplugging a PV is not an undo step.
 
-**Rejoin:** [Bootstrap 2a](bootstrap.md#2a-install-through-approved-sources) or
-[2b offline](bootstrap.md#2b-transfer-a-prepared-bundle--offline-alternative).
-The separate-filesystem `mountpoint -q /srv/tier0` gate does not apply to this root-LVM layout.
+**Continue:** [Bootstrap 2a](bootstrap.md#2a-install-through-approved-sources), or
+[Bootstrap 2b](bootstrap.md#2b-transfer-a-prepared-bundle--offline-alternative) for offline installation.
+For 2b, transfer and verify the full bundle in the completed workspace before restoring the kit/runtime.
+Skip the separate-filesystem mount check in bootstrap storage A.
 
 ## References
 
-1. [Rocky Linux filesystem and LVM administration](https://docs.rockylinux.org/books/admin_guide/07-file-systems/).
-2. [Proxmox disk-resize increments](https://github.com/proxmox/pve-manager/blob/master/www/manager6/qemu/HDResize.js).
-3. [Native growpart behavior and dry run](https://github.com/canonical/cloud-utils/blob/main/man/growpart.1).
-4. [LVM devices-file handling for existing VGs](https://github.com/lvmteam/lvm2/blob/main/lib/device/device_id.c).
-5. [Enterprise Linux LV/filesystem growth and devices-file policy](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html-single/configuring_and_managing_logical_volumes/configuring_and_managing_logical_volumes).
+1. [Rocky Linux filesystem and LVM administration](https://docs.rockylinux.org/books/admin_guide/07-file-systems/), checked 2026-11-09.
+2. [Proxmox disk-resize increments](https://github.com/proxmox/pve-manager/blob/master/www/manager6/qemu/HDResize.js), checked 2026-11-09.
+3. [GNU Parted partition resizing](https://www.gnu.org/software/parted/manual/html_node/resizepart.html), checked 2026-11-09.
+4. [LVM devices-file handling for existing VGs](https://github.com/lvmteam/lvm2/blob/main/lib/device/device_id.c), checked 2026-11-09.
+5. [LVM filesystem resizing and free-extent options](https://github.com/lvmteam/lvm2/blob/main/tools/args.h), checked 2026-11-09.

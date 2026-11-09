@@ -11,7 +11,9 @@ installations after Identity acceptance; SSO is not a reason to remove recovery 
 
 Record exact HTTPS issuer, client ID, redirect/logout URIs, audience, supported flow,
 scopes and the stable subject identifier. Use Authorization Code with PKCE where
-supported; keep confidential-client secrets in the accepted secret service.
+supported; keep confidential-client secrets in the accepted secret service. Before Vault is accepted,
+use independent encrypted bootstrap custody instead, then migrate routine secrets after acceptance.
+The initial Vault login and its recovery must not require credentials stored only in that same Vault.
 Do not use wildcard redirects or infer administrative rights from a verified email.
 
 ## Step 2: Configure supported native federation

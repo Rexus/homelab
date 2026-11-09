@@ -43,7 +43,7 @@ flowchart TB
   end
   subgraph T1["Tier 1 / shared software lifecycle"]
     direction LR
-    Build["General builds / tests<br/>DMZ / scoped jobs"]
+    Build["General builds / tests<br/>Scoped job runtime"]
     Deploy["Application delivery<br/>Scoped releases"]
     subgraph Supply["Software authority"]
       direction TB
@@ -67,7 +67,8 @@ flowchart TB
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
   class T2,T1,Workloads,Deploy services
-  class Cache,Build edge
+  class Cache edge
+  class Build services
   class Source,Artifacts data
   class Supply replicas
   class T0,ControlDelivery,Hosting control
@@ -105,8 +106,10 @@ infrastructure changes, not an installed self-service request API.
 | Human/workload identity and trust | Identity and cryptography | Scoped access, service credentials and independently recoverable bootstrap inputs |
 | Test, rollout and operating evidence | [Operations](../operations/README.md) | Findings inform updates and rollback decisions; operational visibility does not authorize a release |
 
-General builds and authoritative shared mirrors use Tier 1 DMZ attachments;
-source control and artifact services use their approved Services attachments.
+The Kubernetes reference runs general build pods in the Tier 1 Services cluster.
+An external VM runner or authoritative mirror uses its selected DMZ attachment;
+deploying a runner namespace does not place its jobs in that VLAN.
+Source control and artifact services use their approved Services attachments.
 The diagram aggregates artifact/mirror supply by function, not by a shared subnet
 or one product. Dataset custody and independent backup/recovery policy remain
 under the Data and Operations contracts.
@@ -166,9 +169,11 @@ locally built applications, without transferring host administration to build us
 
 ## Reference realization
 
-The reference uses a Tier 2 Squid proxy/cache, Tier 1 source/artifact services such
-as GitLab and Harbor, Tier 0 Flux, and a separately selected Tier 1 Argo CD or
-Spinnaker controller. Product choice does not alter the authority boundaries above.
+The reference uses a Tier 2 Squid proxy/cache, Tier 1 GitLab and a selected
+artifact service, Tier 0 Flux, and a separately selected Tier 1 Argo CD or
+Spinnaker controller. Harbor is the supplied independent-registry realization;
+an accepted existing registry is also valid. Product choice does not alter the
+authority boundaries above.
 
 Implementation procedures: [software intake](../../deployment/stage-1-software-intake/README.md),
 [application delivery](../../deployment/stage-7-delivery/README.md), and the

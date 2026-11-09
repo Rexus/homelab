@@ -11,52 +11,95 @@ and the accepted [backup policy](../backups/virtual-machines.md#backup-policy) d
 
 ## Steps
 
-1. [Fence the failure and select the path](#1-fence-the-failure-and-select-the-path).
-2. [Prepare accepted replacement capacity](#2-prepare-accepted-replacement-capacity).
-3. [Recover guests and resume operations](#3-recover-guests-and-resume-operations).
+1. [Fence the failed host](#1-fence-the-failed-host).
+2. [Record the affected guests](#2-record-the-affected-guests).
+3. [Check the surviving cluster and select the path](#3-check-the-surviving-cluster-and-select-the-path).
+4. [Prepare replacement capacity](#4-prepare-replacement-capacity).
+5. [Reconnect the backup target](#5-reconnect-the-backup-target).
+6. [Check replacement mappings and capacity](#6-check-replacement-mappings-and-capacity).
+7. [Recover bootstrap access](#7-recover-bootstrap-access).
+8. [Recover one guest](#8-recover-one-guest).
+9. [Restore the remaining guests](#9-restore-the-remaining-guests).
+10. [Reconcile each owning tier](#10-reconcile-each-owning-tier).
+11. [Verify and record recovery](#11-verify-and-record-recovery).
 
-## 1. Fence the failure and select the path
+<a id="1-fence-the-failure-and-select-the-path"></a>
 
-1. Keep the old host unable to boot its original guests or write shared disks. Pause competing recovery
-   jobs. Preserve failed media/logs; hardware repair must not start a second copy of the recovered service.
-2. Record affected VMIDs, disk locations, network attachments and owners from the retained platform record.
-3. Choose the path:
+## 1. Fence the failed host
 
-   | Surviving environment | Action |
-   | --- | --- |
-   | Commissioned HA, healthy quorum and accessible storage | Follow [HA recovery checks](../../deployment/foundation/proxmox/failover.md); do not restore duplicate guests while HA is recovering them |
-   | No HA; original guest disks survive on accepted shared storage | Assess native guest relocation before a backup restore; shared storage alone does not start a VM |
-   | No HA; local disks lost or unsafe to reuse | Restore accepted VM/application backups onto prepared replacement storage |
-   | No usable Proxmox host remains | Follow [whole-platform recovery](platform.md) |
+Keep **the failed host** unable to boot its original guests or write shared disks. Pause competing
+recovery jobs. Preserve failed media/logs; hardware repair must not start a second copy of a recovered service.
 
-For a surviving cluster, inspect `pvecm status` and `ha-manager status` on a healthy node.
+## 2. Record the affected guests
+
+Use the retained platform record to list VMIDs, disk locations, network attachments and owners.
+
+## 3. Check the surviving cluster and select the path
+
+For a surviving cluster, run on **a healthy Proxmox node as an authorized root operator**:
+
+```bash
+pvecm status
+ha-manager status
+```
+
+| Surviving environment | Next action |
+| --- | --- |
+| Commissioned HA, healthy quorum and accessible storage | Follow [HA recovery checks](../../deployment/foundation/proxmox/failover.md); do not restore duplicate guests while HA is recovering them |
+| No HA; original guest disks survive on accepted shared storage | Assess native guest relocation before a backup restore; shared storage alone does not start a VM |
+| No HA; local disks lost or unsafe to reuse | Continue to Step 4 for backup restoration |
+| No usable Proxmox host remains | Follow [whole-platform recovery](platform.md) instead |
+
 Resolve quorum and the failed node's membership/configuration before restoring its VMIDs. Do not
 force quorum, copy cluster files wholesale or erase surviving guest records as a generic recovery step.
 Use the [native cluster node-removal procedure](https://github.com/proxmox/pve-docs/blob/master/pvecm.adoc#remove-a-cluster-node)
 when permanently retiring a fenced node; replacement-node naming and guest records need explicit review. [1]
 
-## 2. Prepare accepted replacement capacity
+<a id="2-prepare-accepted-replacement-capacity"></a>
 
-1. Prepare the replacement with [Proxmox foundation](../../deployment/foundation/proxmox/README.md#first-deployment-order).
-   Join an existing cluster while the replacement node is still empty, before restoring guests onto it.
-   Recreate required physical bridges/VLANs or apply the selected SDN configuration, then prepare live storage. [1]
-2. Reconnect the existing NAS/PBS [backup target](../backups/virtual-machines.md#quick-steps).
-   Recover storage access using independent credentials; do not format surviving Ceph/NAS data.
-3. Record old-to-new node, datastore and network mappings. Confirm guest capacity and current CPU/device
-   compatibility, including any passthrough devices. A backup cannot recreate unavailable physical hardware.
-4. If its host was lost, [restore the bootstrap first](bootstrap.md). It needs no cloud-image template
-   when a complete VM backup is available. Keep the original state and API trust transition explicit.
+## 4. Prepare replacement capacity
 
-## 3. Recover guests and resume operations
+Follow [Proxmox foundation](../../deployment/foundation/proxmox/README.md#first-deployment-order).
+Join an existing cluster while the replacement node is still **empty**, before restoring guests.
+Recreate required physical bridges/VLANs or apply selected SDN configuration, then prepare live storage. [1]
 
-1. Select one affected guest and follow [VM recovery](virtual-machines.md).
-   Prefer its original VMID only after it is available cluster-wide and the old host is fenced.
-2. Restore the remaining guests in [dependency order](../recovery.md#recovery-order), including
-   application-native copies where required. Keep replacement identities isolated until accepted.
-3. Reconcile each owning tier's original state, actual node/storage mapping and inventory before its
-   automation resumes. Review plans; never use a fresh state merely because a host changed.
-4. Verify service access, protected logging, expected data and scheduled backups on the replacement.
-   Record the backup IDs, measured outage/data loss and the disposition of the failed host/media.
+## 5. Reconnect the backup target
+
+Reconnect the existing NAS/PBS [backup target](../backups/virtual-machines.md#quick-steps) using
+independent credentials. Do not initialize or format surviving Ceph/NAS data.
+
+## 6. Check replacement mappings and capacity
+
+Record old-to-new node, datastore and network mappings. Confirm guest capacity and current CPU/device
+compatibility, including passthrough devices. A backup cannot recreate unavailable physical hardware.
+
+## 7. Recover bootstrap access
+
+If its host was lost, [restore the bootstrap first](bootstrap.md), then return here at Step 8.
+A complete VM backup needs no cloud-image template. Keep original state and the API trust transition explicit.
+If bootstrap survived, use its accepted checkout and continue to Step 8.
+
+<a id="3-recover-guests-and-resume-operations"></a>
+
+## 8. Recover one guest
+
+Follow [VM recovery](virtual-machines.md) for one affected guest.
+Prefer its original VMID only after it is available cluster-wide and the old host is fenced.
+
+## 9. Restore the remaining guests
+
+Follow [dependency order](../recovery.md#recovery-order), including application-native copies where required.
+Keep replacement identities isolated until accepted.
+
+## 10. Reconcile each owning tier
+
+On **the recovered bootstrap**, review each owner's original state, actual node/storage mapping,
+inventory and plan before its automation resumes. Never use fresh state merely because a host changed.
+
+## 11. Verify and record recovery
+
+Check service access, protected logging, expected data and scheduled backups on the replacement.
+Record backup IDs, measured outage/data loss and the disposition of the failed host/media.
 
 **Expected:** accepted guests run on recorded replacement capacity and have new independent recovery
 points. Re-enabling HA or admitting a repaired host is a separate, tested maintenance operation.

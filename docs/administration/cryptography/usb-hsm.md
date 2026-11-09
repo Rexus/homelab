@@ -63,8 +63,10 @@ healthy backend. Use the qualified application/session model, not blind retries.
 
 ## How is one gateway maintained?
 
-1. Verify another accepted member has capacity, then drain this member through the
-   application's native procedure. Preserve pending requests/session state and backups.
+1. Select the maintenance condition: with a pool, verify another accepted member has capacity and
+   drain this member through the application's native procedure. With a single gateway, approve
+   the signing outage and preserve queued requests before stopping service. Do not claim continued
+   signing availability in that branch. Preserve session state and independent backups in either case.
 2. For **OS-baseline reconciliation only**, from Tier 0 select one inventory host
    and inspect the target list first: [3]
 

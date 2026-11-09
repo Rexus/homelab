@@ -103,11 +103,13 @@ def tier_readme(writer, tier, prefix, setups):
             f"\nAfter [Delivery]({docs}/deployment/stage-7-delivery/README.md) and Observability,\n"
             f"follow [Stage 9: Development platform]({docs}/deployment/stage-9-development/README.md).\n"
             "Its native Helm recipe installs GitLab and on-demand Kubernetes job runners.\n"
-            "External data services are prerequisites; the Linux VM quick start below is an alternative.\n"
+            "Stage 9 provisions the dedicated data-service VMs before installing GitLab.\n"
+            "The Linux VM quick start below is an alternative.\n"
         )
     owned_template(writer, "readmes/tier.md", "README.md", prefix=prefix, repo_prefix=repo_prefix,
                    tier_title=tier.replace("-", " ").title(), purpose=descriptions[tier],
-                   example="syslog" if tier == "tier-0" else setups[0], extra_paths=extra_paths[tier],
+                   example={"tier-0": "syslog", "tier-2": "cache"}.get(tier, setups[0]),
+                   extra_paths=extra_paths[tier],
                    prerequisites=prerequisites, docs=docs, tier=tier,
                    deployments="\n".join(deployments))
     repository_guides(writer, tier, prefix, descriptions[tier])

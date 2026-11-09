@@ -16,6 +16,9 @@ CA bundle under independent custody, three healthy control planes, matching
 selected schema is Talos **1.13 v1alpha1**, as in the
 [basic platform](../../stage-4-kubernetes/procedures/basic-platform.md).
 Do not apply this document to 1.14's split configuration schema. [1]
+API acceptance also needs an independently prepared OIDC login client for the `headlamp` audience
+and the intended namespace/group RBAC. This rollout does not register that client, obtain a user's token
+or install Headlamp. If that verification path is absent, API acceptance remains blocked; do not set its flag true.
 
 ## Table of contents
 
@@ -130,7 +133,8 @@ Run from **`<prefix>-tier-0/`**.
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/control-applications.yml \
   -e @/absolute/private/oidc-inputs.yml \
-  -e control_applications_operation=kubernetes_sso
+  -e control_applications_operation=kubernetes_sso \
+  -e control_applications_action=render
 ```
 
 Render is offline: it reads the plan, parses the imported CA with native
@@ -243,17 +247,24 @@ methods. This supports self-hosted issuers, but is not proof of the selected
 cluster's availability: malformed local CA/configuration can still prevent
 startup, and key-cache, network and load-balancer behavior require testing. [7][8]
 
-Keep `control_applications_headlamp_api_oidc_accepted: false` until recording:
+Before Headlamp installation, keep `control_applications_headlamp_api_oidc_accepted: false` until recording
+the API checks below. Use the independently prepared login client, verified audience/group claims and
+approved namespace RBAC; do not wait for a UI that has not been installed or substitute administrator X509
+access for the bearer-token tests.
 
 | Gate | Required evidence |
 | --- | --- |
-| Allowed identity | Fresh human login, correct subject/group and permitted namespace reads through Headlamp and API |
+| Allowed identity | Fresh human token for the `headlamp` audience, correct subject/group and permitted authenticated API namespace reads |
 | Denied identity | Unbound user/namespace and writes are denied; group removal takes effect after token expiry/reissue |
 | Issuer outage | With approved isolated issuer/discovery/JWKS failure, retained X509 reads still work directly and through the API endpoint |
 | Cold start | During that outage, reboot **one** control plane; verify certificate-authenticated namespace reads and workload/control-plane recovery before touching another |
 | Directory outage | Stop/isolate the approved LDAP test path; show new federation login failure does not remove API certificate access |
 | Recovery | Restore issuer/LDAP; fresh OIDC login and API access recover without rebootstrap, CA replacement or restarting every API server |
 | Evidence | API audit and Keycloak authentication/admin events arrive at protected intake, including denied requests |
+
+After these API gates pass, record their evidence and permit the Stage 6 Headlamp installation.
+Then repeat allowed/denied login, group removal and outage recovery **through Headlamp itself** before
+accepting the UI. API acceptance does not establish that the UI client, callbacks or application RBAC work.
 
 Run the certificate check with the retained credential, not an impersonated
 identity or OIDC plugin, against the rebooted control plane and then the normal
@@ -282,10 +293,10 @@ admin to fix OIDC. Reconcile the same rollback in Terraform inputs before its
 next apply. CA rotation requires an overlap bundle and a separately reviewed
 file replacement/serial reboot, not `op: create` over the existing file.
 
-Return to [Stage 5](../README.md#capability-available). NetBox's complete audited
-change export and Vault's scheduled off-cluster snapshot transport remain
-[explicit Stage 6 integrations](../../stage-6-secrets/procedures/control-applications.md#service-access-and-logging),
-not outcomes of Kubernetes SSO.
+Return to [Stage 5](../README.md#capability-available). Stage 6 separately installs
+[NetBox change collection](../../stage-6-secrets/procedures/netbox-audit.md) and
+[scheduled control recovery copies](../../../administration/backups/control-applications.md#configure-and-schedule).
+Neither recipe is an outcome of Kubernetes SSO.
 
 ## References
 

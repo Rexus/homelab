@@ -4,10 +4,11 @@
 **Execution:** Proxmox GUI and the existing switch/gateway configuration; this is a manual prerequisite.
 Consuming tiers own their guest-network inputs.
 
-**Branch from:** [Step 1](README.md#step-1-prepare-compute-and-templates), before attaching guests.
+**Branch from:** [host/network preparation](README.md#before-starting-hosts-and-networks), before attaching guests.
 **Change:** use VLAN-backed SDN VNets instead of direct bridge/VLAN guest attachments.
-**Return:** [Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually)
-after activation; API authorization and local inputs follow on the bootstrap host.
+**Return:** [foundation prerequisites](README.md#before-starting-hosts-and-networks)
+after activation; finish storage/firewall checks before creating the first template.
+API authorization and local inputs follow on the bootstrap host.
 **Design:** [network placement](../../architecture/networking/README.md).
 
 ## Contents
@@ -148,7 +149,7 @@ in Proxmox before attaching templates or guests. The template publisher's Terraf
    configuration alone is not evidence that it is active on a host.
 
 **First installation, before the bootstrap host/token exists:** return now to
-[Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually).
+[foundation prerequisites](README.md#before-starting-hosts-and-networks), then the manual template and bootstrap host.
 Complete Step 4 below when configuring API access and local inputs on that host.
 
 ## Step 4: Authorize and connect IaC
@@ -233,7 +234,8 @@ so the selected resolver can resolve that domain as well.
 ## Return to the main path
 
 After **Datacenter > SDN > Apply** succeeds and the VNet checks pass, return to
-[Foundation Step 1](README.md#step-1-create-the-first-linux-template-manually).
+[foundation prerequisites](README.md#before-starting-hosts-and-networks) for storage/firewall acceptance
+before creating the first template.
 Complete Step 4 above when the bootstrap host/API token exists. If templates are
 already managed, return directly to [Foundation Step 3](README.md#step-3-publish-and-test-vm-templates)
 to review their attachment change. Changing SDN configuration alone does not update guest NICs.

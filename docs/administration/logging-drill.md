@@ -28,7 +28,8 @@ Do not run fault commands on the only collector, archive, backup or surviving ev
 **Work from:** the Tier 0 repository root on the execution host.
 
 1. Open the project-owned **`docs/administration/logging-evidence.md`** and complete the record below.
-   Refresh seeds this record without overwriting it; intentionally deleted records remain deleted.
+   Refresh preserves edits to this record but recreates a missing record from the current starter.
+   A recreated blank record is not evidence that an earlier drill passed.
 2. Verify independent copies, reader/key access and the approved fault/undo commands.
    Stop if a sole surviving collector, archive or backup would be at risk.
 3. Create the synthetic batches with the command below; preserve them outside the collector before the fault.

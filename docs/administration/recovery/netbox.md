@@ -61,14 +61,16 @@ copying it is not proof of original POSIX ownership. Retain the source marker as
 
 ## How to start NetBox and verify the result?
 
-1. Attach the new media claim to a reviewed release-matched NetBox installation. The
-   [owned values template](../../../tier-0/ansible/roles/control_applications/templates/netbox-values.yml.j2)
-   identifies database TLS, media persistence, worker and housekeeping settings. Adopt the restored
-   DB/claim explicitly; do not run the normal full install playbook against recovery resources.
-2. Restore original configuration, SECRET_KEY, plugins and custom scripts/reports separately from
+1. Restore original configuration, SECRET_KEY, plugins and custom scripts/reports separately from
    independently held inputs. Keep plugin versions/schema compatible; perform upgrades only after
    a successful baseline restore. Recreate Valkey with its original verified TLS contract; queued
    tasks require explicit reconciliation instead of blind replay.
+2. Prepare release-matched NetBox values pointing to the new media claim and restored DB. The
+   [owned values template](../../../tier-0/ansible/roles/control_applications/templates/netbox-values.yml.j2)
+   identifies database TLS, media persistence, worker and housekeeping settings. Adopt the restored
+   DB/claim explicitly; do not run the normal full install playbook against recovery resources.
+   Keep web, worker and housekeeping workloads stopped until these values, credentials and media
+   permissions have been checked. Preparing values is not permission to start the release.
 3. Start one web replica, then inspect object counts, permission scopes and an actual known uploaded
    image/attachment against its expected hash. Verify relationships, plugin objects, DB TLS, local
    recovery-admin access, OIDC and audit/log delivery. Start workers/housekeeping after reconciliation.

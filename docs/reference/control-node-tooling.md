@@ -45,7 +45,8 @@ For the shared zone names and IaC mapping, read
 
 ## Deployment machine
 
-Run this repository from one deployment machine.
+Use one active writer per Terraform state. Bootstrap and CI may use different authorized execution
+hosts at different times; preserve the original inputs/state during their handover.
 
 That machine can be:
 
@@ -122,7 +123,8 @@ define package/collection bounds.
 | --- | --- |
 | OS commands | [Bootstrap Step 2a](../deployment/foundation/proxmox/bootstrap.md#2a-install-through-approved-sources): Git, Bash, Python/pip, SSH, CA/curl/OpenSSL, archive/storage utilities, Terraform and `qemu-img`; [offline OS download/install](../deployment/foundation/proxmox/bootstrap-offline.md#1a-download-os-packages-and-reviewed-source) |
 | Optional home-directory migration | Pre-stage `rsync` and, on Enterprise Linux 10, `policycoreutils-python-utils` before restricting package access; included in the offline RPM download list for the [home-directory guide](../deployment/foundation/proxmox/bootstrap-home.md) |
-| Optional Rocky Linux root-LVM expansion | Pre-stage `lvm2`, `cloud-utils-growpart`, `parted` and `xfsprogs`; included in the offline RPM list; follow the [existing-disk or new-PV guide](../deployment/foundation/proxmox/bootstrap-lvm.md) |
+| Separate bootstrap workspace filesystem | Prepare `parted` and `xfsprogs` before creating the new data mount; follow [workspace disk preparation](../deployment/foundation/proxmox/bootstrap-storage.md) before copying artifacts or installing the full runtime |
+| Optional root-LVM expansion | EL10: pre-stage `lvm2`, `parted` and `xfsprogs`, included in the offline RPM list; the [existing-disk or new-PV guide](../deployment/foundation/proxmox/bootstrap-lvm.md) also lists Debian/Ubuntu package names |
 | Python execution runtime | Tier 0 [runtime requirements](../../tier-0/ansible/runtime-requirements.txt); accepted interpreter plus Ansible/PyYAML/HCL tooling |
 | Python module clients | Owning tier's requirements: [Tier 0](../../tier-0/ansible/requirements.txt), [Tier 1](../../tier-1/ansible/requirements.txt), [Tier 2](../../tier-2/ansible/requirements.txt); install in the accepted venv |
 | Ansible collections | [Shared](../../shared/ansible/requirements.yml) plus [Tier 0](../../tier-0/ansible/requirements.yml), [Tier 1](../../tier-1/ansible/requirements.yml), [Tier 2](../../tier-2/ansible/requirements.yml); include transitive archives |

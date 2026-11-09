@@ -5,6 +5,9 @@ Proxmox GUI or an authorized host shell. Keep independent console access availab
 **Why:** [security principles](../../architecture/principles.md) and
 [network enforcement](../../architecture/networking/firewall-policy.md).
 
+**First use from bootstrap:** complete [host-management setup](management.md) to initialize the local files,
+register existing hosts and test SSH/Ansible before running host recipes.
+
 <a id="table-of-contents"></a>
 
 ## Find the task

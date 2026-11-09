@@ -26,7 +26,8 @@ The backup role mounts commissioned shares; it does not install or administer so
 | Material | Authoritative source that must be exported or independently protected |
 | --- | --- |
 | Tier-local ignored inventory/group vars/tfvars/IP maps | The actual provisioning checkout, not tracked examples or a runner clone |
-| Local Terraform state | Original `.terraform/state/<setup>/<env>/terraform.tfstate` on its actual provisioning host |
+| Local Linux setup state | Original `.terraform/state/<setup>/<env>/terraform.tfstate` on its actual provisioning host |
+| Kubernetes/template state | Original `.terraform/state/talos/terraform.tfstate` or `.terraform/state/proxmox-templates/terraform.tfstate`; preserve configured overrides from the [state-path record](../terraform-state.md#inspect-the-original-state) |
 | Remote Terraform state | Backend's qualified version/snapshot recovery plus independent credentials; a local cache is not the authoritative state |
 | Talos machine secrets/config, kubeconfig/talosconfig, SOPS keys | Original tier-owned ignored recovery paths, with independent custody of required keys |
 | CI-generated inputs/state | Persistent owner-controlled runner data before job cleanup, or the original backend; ephemeral CI artifacts alone are insufficient |

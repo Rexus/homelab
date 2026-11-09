@@ -10,7 +10,7 @@ For an existing environment lost to failure, use [backup recovery](../../adminis
 **Start on:** an independent privileged workstation with physical/console recovery access.
 **Working repository:** `<prefix>-tier-0` after generation (source: `tier-0/`).
 **Continue on:** `boot-1`, then the generated `<prefix>-tier-0` repository.
-**Design:** [compute](../../architecture/hosting/README.md) and
+**Design:** [hosting](../../architecture/hosting/README.md) and
 [network boundaries](../../architecture/networking/README.md).
 
 ## Contents
@@ -32,8 +32,8 @@ Complete these in order. Existing infrastructure is valid after the same checks.
 | --- | --- | --- |
 | 1 | [Prepare the gateway, switches and VLANs](network/unifi.md#bring-up-the-network) | Management access, DNS/time, guest VLANs and a recovery path work |
 | 2 | [Install Proxmox and configure its host network](proxmox/README.md#first-deployment-order) | Console/UI work; `vmbr0` and the approved VLAN trunks are active |
-| 1b, optional branch | [Create the cluster and select HA](step-1b-cluster-ha.md) | Quorum and guest-mobility prerequisites pass; return here before populating hosts |
-| 1c, optional branch | [Configure guest SDN](step-1c-sdn.md) | VNets are activated with **Datacenter > SDN > Apply** on every eligible node |
+| After 2, optional | [Create the cluster and select HA](step-1b-cluster-ha.md) | Quorum and guest-mobility prerequisites pass; return here before populating hosts |
+| After 2, optional | [Configure guest SDN](step-1c-sdn.md) | VNets are activated with **Datacenter > SDN > Apply** on every eligible node |
 | 3 | [Select live storage and an independent backup destination](storage/README.md) | Actual datastore IDs and recovery access are recorded |
 | 4 | [Apply and test firewall policy](network/firewall.md) | Required paths work and unauthorized paths fail |
 
@@ -104,8 +104,13 @@ Edit in **`<prefix>-tier-0/`**.
 | Existing uploaded files | `image_file_name`: exact Import basename, even if its prefix uses an older VMID |
 
 Keep only managed builds. Use `sha256sum` on each approved unpacked artifact to obtain
-its catalog hash. For adoption, match existing hardware and firmware before reviewing
-changes. The [field reference](../../administration/virtual-machines/template-lifecycle.md#catalog-fields-and-defaults)
+its catalog hash. For the first Linux template, remove unused build blocks and replace
+every remaining placeholder before import. Set `name` to the existing Proxmox display
+name; the YAML candidate names need not match the earlier manual naming examples.
+For adoption, match existing hardware and firmware before reviewing changes. Existing
+uploads are matched by filename; verify their provenance or remote checksum independently.
+Import does not establish that the stored bytes match a checksum embedded in the filename.
+The [field reference](../../administration/virtual-machines/template-lifecycle.md#catalog-fields-and-defaults)
 contains optional settings; fixed RAM, 1500-MTU NICs, NIC firewall and OS-specific
 controller defaults do not need repeating for every build.
 
@@ -120,7 +125,7 @@ bash scripts/proxmox-templates.sh import --env-file .env.local
 ```
 
 `import` creates a **saved adoption plan**; imports are written to state only at apply.
-Missing resources may still be creations. Continue at **3c**. Do not replace this saved
+Missing resources may still be creations. Continue with **Apply and qualify** below. Do not replace this saved
 adoption plan with a normal plan before applying it.
 
 ### 3b: Publish an entirely new catalog
@@ -133,23 +138,35 @@ Run from **`<prefix>-tier-0/`** on the protected execution host.
 bash scripts/proxmox-templates.sh plan --env-file .env.local
 ```
 
-Continue at **3c**.
+Continue with **Apply and qualify** below.
 
-### 3c: Review, apply and qualify
+<a id="3c-review-apply-and-qualify"></a>
+
+### Apply and qualify
+
+After either **3a** or **3b**, complete all actions below.
 
 1. Inspect imports and every hardware/disk change in the saved plan. Stop on unexpected
    replacement/deletion; correct the catalog and repeat **3a** or **3b** first.
-2. Apply the accepted saved plan, then verify fixed RAM and empty template accounts:
+   Keep the catalog, platform profile and execution target unchanged until apply.
+   The saved plan and its `.context` file belong together; regenerate an older plan
+   without this context file rather than applying it with changed inputs.
+2. Apply the accepted saved plan. This command applies a previously reviewed plan;
+   do not rely on another approval prompt.
 
    Run from **`<prefix>-tier-0/`** on the protected execution host.
 
    ```bash
    bash scripts/proxmox-templates.sh apply --env-file .env.local
+   ```
+
+   **Expected:** publication completes successfully. Stop on errors before continuing.
+3. Verify fixed RAM and empty template accounts, from **`<prefix>-tier-0/`**:
+
+   ```bash
    bash scripts/proxmox-templates.sh verify --env-file .env.local
    ```
 
-   Unlike the Linux `deploy.sh` command, this template command
-   applies a previously reviewed saved plan; do not rely on another approval prompt.
    `verify` checks RAM/accounts, not clone networking or image boot.
    An optional drift check should produce a no-change plan:
 
@@ -159,12 +176,12 @@ Continue at **3c**.
    bash scripts/proxmox-templates.sh plan --env-file .env.local
    ```
 
-3. [Boot and qualify disposable clones](proxmox/templates.md#clone-and-guest-control-checks).
+4. [Boot and qualify disposable clones](proxmox/templates.md#clone-and-guest-control-checks).
    Check disks, network, guest control and operator access. Qualify the
    [Linux guest security profile](proxmox/host-security.md) with its console/SSH gates.
-4. [Back up and restore a disposable clone](../../administration/backups/virtual-machines.md#quick-steps),
+5. [Back up and restore a disposable clone](../../administration/backups/virtual-machines.md#quick-steps),
    including required data disks. Record the result before relying on that backup path.
-5. Successful apply updates **Shared's `templates/proxmox-catalog.tfvars`**. After clone
+6. Successful apply updates **Shared's `templates/proxmox-catalog.tfvars`**. After clone
    acceptance, edit its `default_linux_vm_template_id` to the tested Linux VMID:
 
    ```hcl

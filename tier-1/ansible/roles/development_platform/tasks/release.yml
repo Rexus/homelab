@@ -6,6 +6,7 @@
   vars:
     helm_release_action: "{{ development_platform_action }}"
     helm_release_kubeconfig: "{{ development_platform_kubeconfig }}"
+    helm_release_context: "{{ development_platform_context }}"
     helm_release_output: "{{ development_platform_output }}"
     helm_release_spec: >-
       {{ development_platform_release | combine({'repository': development_platform_chart_repository}) }}

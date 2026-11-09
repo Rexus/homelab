@@ -48,17 +48,17 @@ def workflow_guides(writer, repo, docs):
 def repository_guides(writer, repo, prefix, scope):
     selections = {
         "tier-0": (
-            "| Compute | Draft: Proxmox; select single host or HA, bridge or SDN | Templates and Kubernetes roots; host readiness checks |\n"
+            "| Hosting | Draft: Proxmox; select single host or HA, bridge or SDN | Templates and Kubernetes roots; host readiness checks |\n"
             "| Identity | Draft: dedicated FreeIPA pair and cluster identity provider | Foundation root; directory health and OIDC checks |\n"
             "| Cryptography | Draft: OpenXPKI infrastructure CA, separate offline clca root and sibling FreeIPA CA; select custody variant | Tier 0 runtime installer and two-phase identity recipe; qualify production policy, custody, enrollment and recovery |"
         ),
         "tier-1": (
             "| Software supply | Select authoritative mirrors and DMZ build access | Tier-local delivery_edge network and runner recipe; mirror service integration remains project work |\n"
-            "| Compute | Draft: independent three-control-plane cluster; optional worker pools | Kubernetes root and tier-local inventory |\n"
+            "| Hosting | Draft: independent three-control-plane cluster; optional worker pools | Kubernetes root and tier-local inventory |\n"
             "| Delivery | Unselected: Argo CD application GitOps or Spinnaker release pipelines | Select sources, targets, RBAC, secrets and recovery before installation |"
         ),
         "tier-2": ("| Traffic | Draft: public edge and ordinary outbound cache in DMZ; separate client subnet | Edge/cache roots and deployment recipes |\n"
-                   "| Compute | Draft: independent workload cluster; development, testing and lab pools when needed | Kubernetes root and tier-local inventory |\n"
+                   "| Hosting | Draft: independent workload cluster; development, testing and lab pools when needed | Kubernetes root and tier-local inventory |\n"
                    "| Lab environments | Select isolated Linux VMs or Kubernetes environments | Lab root or cluster manifests; record acceptance checks |"),
         "shared": "| Common automation | Review platform references, sizes and image catalog | Scripts and baseline roles; no inventory or state |",
     }

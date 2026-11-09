@@ -65,7 +65,7 @@ class DeploymentPaths(TierRepositoryTestCase):
                 if relative != "stage-10-lab-environments/telemetry.md":
                     for section in sections:
                         self.assertIn("```mermaid", section, relative)
-                self.assertIn("**Working repository:**", content, relative)
+                self.assertRegex(content, r"\*\*Working repositor(?:y|ies):\*\*", relative)
                 self.assertIn("**Prerequisites:**", content, relative)
             logging = stages[1].read_text()
             for command in ("scripts/init-local-files.sh --setup syslog",

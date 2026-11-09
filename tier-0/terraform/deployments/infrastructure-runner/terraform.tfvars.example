@@ -2,7 +2,7 @@
 # VMID allocation: docs/conventions/vmid-convention.md
 vm_instances = {
   "iac-1" = {
-    vm_id            = 611
+    vm_id            = 511
     size             = "medium"
     storage_class    = "local"
     disk_size_gb     = 80

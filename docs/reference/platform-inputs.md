@@ -27,7 +27,7 @@ each tier owns its specific networks, guest selections and overrides.
 | Local environment or secret injection | Provider access and local SSH public-key file paths |
 
 Guest IDs follow the [VMID allocation convention](../conventions/vmid-convention.md),
-including the Tier 0 offset and reserved lab/client/template groups. Reservations stay tier-local
+including the Tier 0 Kubernetes exception and reserved lab/client/template groups. Reservations stay tier-local
 and unique across the cluster; Shared is not an allocator.
 
 The shared profile is a reference catalog, not a Terraform root. It contains
@@ -36,7 +36,8 @@ For example, the common `application` subnet is recorded here; `identity` and
 `cryptography` remain Tier 0-specific references. Merely listing a network does
 not connect a guest or authorize access to it.
 Tier 0 approves infrastructure references; consumers may override permitted
-values. Refresh never replaces or recreates a project-owned profile.
+values. Refresh preserves an existing project-owned profile; deleting it restores the current starter,
+not the previous local choices. Recover actual site values from their independent backup before deployment.
 
 `proxmox_storage_classes` maps VM-disk classes to existing Proxmox datastore IDs;
 it does not describe an object-storage API. A datastore may use Ceph RBD or NAS

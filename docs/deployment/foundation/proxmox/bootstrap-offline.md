@@ -16,8 +16,8 @@ and `<prefix>-tier-2` after generation, with sibling Shared automation.
 has prepared the selected workspace filesystem and private `automation`-owned directories
 under `/srv/tier0`, including `offline/`; SSH/console and approved package-signing keys are available.
 An existing mount such as `/srv/src` is valid: substitute absolute paths consistently.
-For [root-LVM expansion](bootstrap-lvm.md), storage tools may be installed first from a verified
-bundle on independently mounted media. In Step 3a, set `BUNDLE` to that media path, then return
+For [workspace disk preparation](bootstrap-storage.md) or [root-LVM expansion](bootstrap-lvm.md), storage tools may be installed first from a verified
+bundle on independently mounted media. In Step 7, set `BUNDLE` to that media path, then return
 to storage preparation before transferring the full bundle to the completed workspace.
 The connected host must match the target's **distribution, release, architecture
 and Python minor version**. The main example uses Enterprise Linux 10 / Python 3.12.
@@ -25,16 +25,22 @@ Start from a clean matching VM with the same approved repositories and signing k
 
 ## Contents
 
-- [1. Prepare on the connected host](#1-prepare-on-the-connected-host)
-- [2. Transfer and verify](#2-transfer-and-verify)
-- [3. Install on the bootstrap VM](#3-install-on-the-bootstrap-vm)
+- [1. Prepare the acquisition host](#1-prepare-the-acquisition-host)
+- [2. Capture source and OS packages](#2-capture-source-and-os-packages)
+- [3. Download wheels and collections](#3-download-wheels-and-collections)
+- [4. Mirror providers and stage images](#4-mirror-providers-and-stage-images)
+- [5. Pack and transfer the bundle](#5-pack-and-transfer-the-bundle)
+- [6. Verify the transferred bundle](#6-verify-the-transferred-bundle)
+- [7. Install signed OS packages](#7-install-signed-os-packages)
+- [8. Restore the kit and install Ansible](#8-restore-the-kit-and-install-ansible)
+- [9. Select local sources and verify](#9-select-local-sources-and-verify)
 - [Use approved sources after bootstrap](#use-approved-sources-after-bootstrap)
 - [Scope and acceptance limits](#scope-and-acceptance-limits)
 - [References](#references)
 
-## 1. Prepare on the connected host
+<a id="1-prepare-on-the-connected-host"></a>
 
-### 1a. Download OS packages and reviewed source
+## 1. Prepare the acquisition host
 
 Install acquisition tools separately from the Python environment:
 
@@ -46,6 +52,10 @@ sudo dnf install -y dnf-plugins-core python3 python3-pip git gnupg2
 
 Then use [Bootstrap 2a, action 2](bootstrap.md#2a-install-through-approved-sources)
 to configure the approved Terraform package repository and install Terraform **on the connected host**.
+
+<a id="1a-download-os-packages-and-reviewed-source"></a>
+
+## 2. Capture source and OS packages
 
 Run in Bash. Enter the absolute path to the reviewed upstream kit checkout;
 require a clean committed revision. Use a new bundle directory for each release.
@@ -68,7 +78,7 @@ dnf repolist --enabled > "$BUNDLE/acquisition-repositories.txt"
 dnf download --resolve --alldeps --destdir "$BUNDLE/rpms" \
   git bash python3 python3-pip python3-pyyaml openssh-clients ca-certificates \
   curl openssl gnupg2 xz unzip tar qemu-img terraform dnf-plugins-core rsync policycoreutils-python-utils \
-  lvm2 cloud-utils-growpart parted xfsprogs
+  lvm2 parted xfsprogs
 curl --fail --location https://rpm.releases.hashicorp.com/gpg \
   --output "$BUNDLE/keys/hashicorp.asc"
 gpg --show-keys --with-fingerprint "$BUNDLE/keys/hashicorp.asc"
@@ -83,10 +93,12 @@ The bundle also includes `rsync` and Enterprise Linux 10's
 `policycoreutils-python-utils` for the optional
 [home-directory migration](bootstrap-home.md). Prepare these before restricting
 package access; installing the tools does not move `/home` or change SELinux policy.
-The LVM/growpart/partition/XFS tools support the optional root-capacity expansion; downloading
+The LVM/partition/XFS tools support the optional root-capacity expansion; downloading
 or installing them does not resize or partition any disk.
 
-### 1b. Download Python wheels and collection dependencies
+<a id="1b-download-python-wheels-and-collection-dependencies"></a>
+
+## 3. Download wheels and collections
 
 Keep this acquisition venv outside the bundle; virtual environments are rebuilt
 on the target, not copied. Download binary wheels and all transitive collection
@@ -124,9 +136,11 @@ file selects local archives; the source manifests select Galaxy names. Do not us
 `--no-deps`. If a wheel is unavailable, stop and prepare an approved wheel on the
 matching build platform; do not silently fall back to an offline source build.
 
-### 1c. Mirror locked providers and stage guest artifacts
+<a id="1c-mirror-locked-providers-and-stage-guest-artifacts"></a>
 
-Install Terraform on the connected host from the approved repository if absent.
+## 4. Mirror providers and stage images
+
+Use Terraform installed on the acquisition host in Step 1.
 Mirror each intended root using its committed lockfile. The example covers the
 template publisher, logging, trust VMs and the Tier 2 cache. Add other roots to
 this array **before** transfer if required. No plan/apply or platform credentials
@@ -135,7 +149,6 @@ are needed. The local module sources remain in the transferred repositories. [5]
 Run on **the connected matching acquisition host**.
 
 ```bash
-sudo dnf install -y terraform
 TF_PLATFORM="$(terraform version -json | python3 -c 'import json,sys; print(json.load(sys.stdin)["platform"])')"
 terraform version -json > "$BUNDLE/acquisition-terraform.json"
 roots=(tier-0/terraform/deployments/{templates,syslog,foundation} tier-2/terraform/deployments/cache)
@@ -156,7 +169,9 @@ No API tokens, SSH private keys, existing state or ignored project inputs belong
 in this **new-install** bundle. Recovery of an existing site also needs its separate
 encrypted inputs/state backup.
 
-## 2. Transfer and verify
+<a id="2-transfer-and-verify"></a>
+
+## 5. Pack and transfer the bundle
 
 On the connected host, create checksums, pack the reviewed bundle and record the
 archive checksum independently. Set `BOOTSTRAP` to the verified SSH destination.
@@ -174,9 +189,13 @@ ssh "$BOOTSTRAP" 'umask 077; mkdir -p /srv/tier0/offline'
 scp "$HOME/homelab-bootstrap.tar" "$BOOTSTRAP:/srv/tier0/offline/"
 ```
 
-On **`boot-1`**, compare the archive digest with that independent record
-**before unpacking**; stop on any mismatch. A digest transferred with the archive
-detects corruption but does not independently authenticate its source.
+<a id="2a-check-the-transferred-archive"></a>
+
+## 6. Verify the transferred bundle
+
+### 1. Check the archive
+
+On **`boot-1`**, print the digest and inspect the archive listing:
 
 Run on **`boot-1`** as automation.
 
@@ -185,10 +204,33 @@ set -euo pipefail
 cd /srv/tier0/offline
 sha256sum homelab-bootstrap.tar
 tar -tf homelab-bootstrap.tar | sed -n '1,10p'
+```
+
+Compare the digest with the independent acquisition record **before unpacking**; stop on any mismatch.
+A digest transferred with the archive detects corruption but does not independently authenticate its source.
+
+<a id="2b-extract-and-verify-the-contents"></a>
+
+### 2. Extract and verify the contents
+
+On **`boot-1`**, in `/srv/tier0/offline` after the archive check passes:
+
+```bash
 test ! -e homelab-bootstrap
 tar -xf homelab-bootstrap.tar
 cd homelab-bootstrap
 sha256sum --check SHA256SUMS
+```
+
+**Expected:** all checksums pass. Stop before installing if any file is missing or mismatched.
+
+<a id="2c-match-the-target-platform"></a>
+
+### 3. Match the target platform
+
+On **`boot-1`**, in the extracted bundle directory:
+
+```bash
 cat acquisition-os.txt acquisition-architecture.txt acquisition-python.txt
 cat /etc/os-release
 uname -m
@@ -199,9 +241,10 @@ The initial VM must already provide SSH, tar, sha256sum and the matching base OS
 Compare recorded and local platform values before installing. Keep an independent
 copy of the accepted archive outside this VM and its attached storage.
 
-## 3. Install on the bootstrap VM
+<a id="3-install-on-the-bootstrap-vm"></a>
+<a id="3a-install-signed-os-packages"></a>
 
-### 3a. Install signed OS packages
+## 7. Install signed OS packages
 
 Run as `automation` on `boot-1`. Import only the previously approved vendor
 key; the base OS must already trust its distribution's keys. Require successful
@@ -226,11 +269,17 @@ Stop for `NOKEY`, bad signatures or unresolved dependencies. Rebuild the bundle 
 the matching acquisition VM; never use `--nogpgcheck`, `--nodeps` or enable public
 repositories to bypass an incomplete offline install.
 
-### 3b. Restore the kit and install the isolated Python/Ansible environment
+<a id="3b-restore-the-kit-and-install-the-isolated-pythonansible-environment"></a>
 
-For a **new** installation only, create the checkout and generated collection:
+## 8. Restore the kit and install Ansible
 
-Run on **`boot-1`** as automation.
+For a **new** installation only, follow **1–5** in the same Bash session.
+During recovery, use the [bootstrap restore path](../../../administration/recovery/bootstrap.md)
+to retain existing inputs and original state.
+
+### 1. Restore the kit checkout
+
+Run on **`boot-1`** as the bootstrap account:
 
 ```bash
 BUNDLE=/srv/tier0/offline/homelab-bootstrap
@@ -238,6 +287,15 @@ mkdir -p /srv/tier0/src
 git clone "$BUNDLE/homelab.bundle" /srv/tier0/src/homelab
 test "$(git -C /srv/tier0/src/homelab rev-parse HEAD)" = "$(cat "$BUNDLE/kit-revision.txt")"
 KIT=/srv/tier0/src/homelab
+```
+
+**Expected:** the restored Git revision matches `kit-revision.txt`.
+
+### 2. Create the Python environment and install local wheels
+
+On **`boot-1`**, in the same shell:
+
+```bash
 python3 -m venv "$HOME/.local/share/homelab/venv"
 source "$HOME/.local/share/homelab/venv/bin/activate"
 export PIP_NO_INDEX=1 PIP_FIND_LINKS="$BUNDLE/wheels"
@@ -245,12 +303,30 @@ python3 -m pip install -r "$KIT/tier-0/ansible/runtime-requirements.txt" \
   -r "$KIT/tier-0/ansible/requirements.txt" \
   -r "$KIT/tier-1/ansible/requirements.txt" -r "$KIT/tier-2/ansible/requirements.txt"
 python3 -m pip check
+```
+
+**Expected:** local wheels satisfy all requirements; `pip check` reports no broken dependencies.
+
+### 3. Install the downloaded Ansible collections
+
+On **`boot-1`**, with that Python environment active:
+
+```bash
 export ANSIBLE_COLLECTIONS_PATH="$HOME/.local/share/homelab/collections"
 (cd "$BUNDLE/collections" && ansible-galaxy collection install --offline \
   -r requirements.yml --collections-path "$ANSIBLE_COLLECTIONS_PATH")
+```
+
+### 4. Restore the approved images
+
+On **`boot-1`**, copy the bundle's verified images into the prepared artifact directory:
+
+```bash
 mkdir -p /srv/tier0/artifacts
 cp -a "$BUNDLE/artifacts/." /srv/tier0/artifacts/
 ```
+
+### 5. Generate the repositories
 
 Generate from the restored upstream kit checkout, keeping the same prepared shell:
 
@@ -265,7 +341,9 @@ Do not clone over an existing site or regenerate
 state during recovery. A transferred Git bundle is a local acquisition source,
 not the eventual hosted remote.
 
-### 3c. Select local-only dependency sources and verify
+<a id="3c-select-local-only-dependency-sources-and-verify"></a>
+
+## 9. Select local sources and verify
 
 Create a private shell setup file outside Git. Terraform's explicit filesystem
 mirror has **no `direct` fallback**; a provider cache alone is insufficient. [6]
@@ -326,7 +404,7 @@ Retain the selected stage's review/approval gates; this guide does not deploy gu
 
 ## Use approved sources after bootstrap
 
-After [Stage 1 software intake](../../stage-1-software-intake/README.md#step-3-connect-and-verify-consumers),
+After [Stage 1 software intake](../../stage-1-software-intake/README.md#step-6-connect-the-bootstrap-host),
 configure this manually created bootstrap VM too. It is not automatically enrolled
 in the Shared baseline. Keep the disconnected recovery bundle independently.
 

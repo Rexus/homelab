@@ -128,6 +128,23 @@ class ArchiveCheckpoints(unittest.TestCase):
 
 
 class GeneratedLoggingPayload(TierRepositoryTestCase):
+    @unittest.skipIf(os.name == 'nt', 'Verifier requires native Linux filesystem modules')
+    def test_installed_verifier_has_all_runtime_dependencies(self):
+        import yaml
+
+        tasks = yaml.safe_load((UPSTREAM / 'tier-0/ansible/roles/logging_backup/tasks/main.yml').read_text())
+        payload = next(task['loop'] for task in tasks
+                       if task.get('ansible.builtin.copy', {}).get('dest') ==
+                       '/usr/local/lib/security-logging/{{ item }}')
+        installed = self.parent / 'installed-verifier'
+        installed.mkdir(parents=True)
+        for name in payload:
+            shutil.copyfile(ROLE / 'files' / name, installed / name)
+        result = subprocess.run([sys.executable, '-E', '-s', str(installed / 'logging_checkpoint.py'),
+                                 'verify', '--help'], cwd=installed, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('usage:', result.stdout)
+
     @unittest.skipUnless(shutil.which('bash'), 'Requires Bash for native shell syntax validation')
     def test_native_job_scripts_parse_and_keep_health_capabilities_out_of_arguments(self):
         from jinja2 import Environment, StrictUndefined

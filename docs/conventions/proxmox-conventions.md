@@ -55,7 +55,7 @@ This document currently owns the shared guidance for:
 ## VM and template ID ranges
 
 The [VMID convention](vmid-convention.md) owns the
-`T C NN` allocation plan, category table, three-digit Tier 0 offset and examples.
+`T C NN` allocation plan, category table, Tier 0 Kubernetes exception and examples.
 It distinguishes the three security tiers from reserved lab/client/template groups.
 Record the selected plan and any deviations in the project platform standards.
 Existing local IDs and state remain authoritative after an upstream update.

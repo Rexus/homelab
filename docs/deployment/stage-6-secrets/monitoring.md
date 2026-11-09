@@ -26,6 +26,19 @@ Protected `log-1` and optional `log-2` are rejected as monitoring targets by thi
 
 ## Step 1: Prepare the monitoring runtime
 
+When preparing the host for [NetBox audit collection](procedures/netbox-audit.md), establish its capacity,
+SSH connection file and protected host forwarding first. Complete Netdata-specific credentials/settings
+when returning for monitoring installation; NetBox audit does not require a running Netdata service.
+
+1. Select an existing independent host or provision reviewed Tier 0 capacity.
+   This recipe deliberately uses a different host from the protected logging receivers.
+   A monitor does not independently detect its own complete host loss.
+2. Keep required cluster-outage detection outside that cluster. Cluster manifests
+   may add internal monitoring, but cannot replace the external detector.
+3. Record placement, local access, storage/backups and signal ownership. If changing
+   host capacity, review its owning provisioning inputs before applying. There is no
+   separate Terraform `monitoring` setup; this Ansible recipe consumes existing capacity.
+
 Create local settings and private inputs without replacing existing files:
 
 Run from **`<prefix>-tier-0/`**.
@@ -34,12 +47,14 @@ Run from **`<prefix>-tier-0/`**.
 umask 077
 cp -n ansible/group_vars/infrastructure_monitoring.yml.example ansible/group_vars/infrastructure_monitoring.yml
 cp -n ansible/group_vars/infrastructure_monitoring_secrets.yml.example ansible/group_vars/infrastructure_monitoring_secrets.yml
+mkdir -p ansible/host_vars
 ```
 
 Edit in **`<prefix>-tier-0/`**.
 
 - `ansible/inventory/hosts.yml`: Add the approved existing host to `infrastructure_monitoring`; preserve
-  other groups
+  other groups. Create `ansible/host_vars/<monitor-host>.yml` with its real `ansible_host` and any
+  host-specific SSH/sudo settings; this independently prepared host has no Terraform setup IP map.
 - `ansible/group_vars/infrastructure_monitoring.yml`: Actual listen address/allowed operator sources, pinned
   packages, Proxmox/Redfish targets and tested health rules.
   Set `infrastructure_monitoring_export_endpoint: ""` until Stage 8's private metric intake exists.
@@ -86,15 +101,6 @@ flowchart LR
 inputs own the installation on an existing host. The log-host Terraform and cluster starters
 provide context only. No additional VM is provisioned; host placement remains a prerequisite.
 
-1. Select an existing independent host or provision reviewed Tier 0 capacity.
-   This recipe deliberately uses a different host from the protected logging receivers.
-   A monitor does not independently detect its own complete host loss.
-2. Keep required cluster-outage detection outside that cluster. Cluster manifests
-   may add internal monitoring, but cannot replace the external detector.
-3. Record placement, local access, storage/backups and signal ownership. If changing
-   host capacity, review its owning provisioning inputs before applying. There is no
-   separate Terraform `monitoring` setup; this Ansible recipe consumes existing capacity.
-
 **Result:** a selected runtime that remains available during the required cluster outage.
 
 ## Step 2: Add critical health and history
@@ -139,17 +145,24 @@ The existing receiver and cluster recipes do not install these services.
    creates a loopback-only, digest-pinned Proxmox API exporter. Host-level Proxmox diagnostics
    need separately reviewed host agents. No VictoriaMetrics, vmalert or Alertmanager service
    is installed in this Tier 0 profile. [1][2][3]
-3. Verify sample signals, local reader scopes and retained history. Netdata streaming
-   is a separate integration from OpenTelemetry pipelines; do not imply automatic forwarding.
+3. Review the planned source jobs, reader scope and history settings. Check live signals only after
+   Step 3 installs the service. Netdata streaming is separate from OpenTelemetry pipelines.
 
-**Result:** foundation diagnostics and critical history are usable without Tier 1 search.
+**Result:** reviewed monitoring inputs, not an installed service. Live diagnostics are verified after apply.
 
 Render the complete selected configuration before changing the host:
 
 Run from **`<prefix>-tier-0/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass
+read -r -p 'Monitoring inventory host: ' MONITOR_HOST
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  --limit "${MONITOR_HOST:?Select the prepared host}" \
+  ansible/playbooks/deployment/infrastructure-monitoring.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/infrastructure_monitoring.yml \
+  -e @ansible/group_vars/infrastructure_monitoring_secrets.yml \
+  -e "@ansible/host_vars/$MONITOR_HOST.yml" --ask-vault-pass \
+  -e infrastructure_monitoring_action=render
 ```
 
 Rendering is controller-local; it does not install the pictured services. Review the
@@ -200,20 +213,34 @@ through the external service to administrators outside that service boundary.
 1. Configure native Netdata rules and notification routing with independent credentials
    and an approved external notification path. Keep alert payloads
    minimal; notifications do not grant external access to sensitive raw logs.
-2. Test cluster/API failure, missing source, stalled evidence writes, capacity thresholds
-   and loss of the monitoring host. The external heartbeat detects failure of the local detector.
-3. Repeat required checks without Tier 1, hosted source control, normal SSO or secret services.
-   Record delivery, silence/acknowledgement authority, recovery and remaining blind spots.
+2. Review the completed notification/watchdog inputs before the apply below. If they changed after
+   Step 2, repeat its explicit render command and inspect the new output before installing.
+3. Install with the command below, then test live signals and failures. Do not inject failures
+   against an uninstalled detector.
 
 After preparing notification/watchdog inputs, install the complete monitoring configuration:
 
 Run from **`<prefix>-tier-0/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass -e infrastructure_monitoring_action=apply
+read -r -p 'Monitoring inventory host: ' MONITOR_HOST
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  --limit "${MONITOR_HOST:?Select the prepared host}" \
+  ansible/playbooks/deployment/infrastructure-monitoring.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/infrastructure_monitoring.yml \
+  -e @ansible/group_vars/infrastructure_monitoring_secrets.yml \
+  -e "@ansible/host_vars/$MONITOR_HOST.yml" --ask-vault-pass \
+  -e infrastructure_monitoring_action=apply
 ```
 
-Then run the failure/delivery checks above. Apply changes the existing host immediately;
+After apply, verify sample signals, reader scope and retained history. Test cluster/API failure, missing
+sources, stalled evidence writes, capacity thresholds and monitoring-host loss. Repeat without Tier 1,
+hosted source control, normal SSO or secret services. Record alert delivery, acknowledgement authority,
+recovery and blind spots. The independent heartbeat must detect loss of the local detector.
+
+The host file is last so its SSH overrides take precedence over global inputs. For named environments,
+insert the approved `all.<env>.yml` overlay after `all.yml`, before the other inputs.
+Apply changes the existing host immediately;
 it is not a Terraform plan and has no additional confirmation prompt.
 
 **Result:** required foundation failures produce independently delivered alerts.

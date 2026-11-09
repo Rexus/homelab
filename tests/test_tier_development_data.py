@@ -25,9 +25,9 @@ NATIVE = os.name != "nt" and shutil.which("ansible-playbook") and shutil.which("
 class DevelopmentData(unittest.TestCase):
     def test_input_editing_and_plan_review_precede_vm_apply(self):
         guide = (UPSTREAM / "docs/deployment/stage-9-development/procedures/data-services.md").read_text()
-        markers = ("bash scripts/init-local-files.sh --setup development-data", "Set the full IP map",
-                   "bash scripts/deploy.sh development-data --plan-only", "Review the plan's three VM identities",
-                   "bash scripts/deploy.sh development-data --terraform-only")
+        markers = ("bash scripts/init-local-files.sh --setup development-data", "`platform_host_ips`",
+                   "bash scripts/deploy.sh development-data --terraform-only",
+                   "Review Terraform's plan", "## 4. Prepare object storage")
         positions = [guide.index(marker) for marker in markers]
         self.assertEqual(positions, sorted(positions))
 

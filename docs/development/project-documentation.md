@@ -11,6 +11,7 @@ Generation must not require a team to author a second architecture before deploy
 - [Operating order](#operating-order)
 - [Existing collections](#existing-collections)
 - [Maintaining the starter templates](#maintaining-the-starter-templates)
+- [Writing numbered guides](#writing-numbered-guides)
 - [Writing command examples](#writing-command-examples)
 
 <a id="purpose"></a>
@@ -120,6 +121,34 @@ Fresh-output tests must reject accidental extra local scaffolding; refresh tests
 must preserve existing project records/edits, restore missing targets and confine automatic cleanup to auto-docs.
 Template improvements are
 not permission to overwrite project-authored documents.
+
+## Writing numbered guides
+
+Use the historical manual VM-template guide's action-by-action style: a short numbered heading,
+the action or command to perform, then a brief expected result. Use as many steps as the task needs;
+“1, 2, 3” means sequential actions, not a fixed three-phase format.
+
+- Re-evaluate the workflow before rewriting its prose. Derive the sequence from the actual installer,
+  prerequisites, current operator state, decisions and completion criteria; existing headings are not constraints.
+  Separate configuring existing systems from preparing defaults for systems created later.
+- Keep the real execution order. Preserve supplied command sequences and technical meaning;
+  correct spelling and connect references without reshaping them into broad phases.
+- Give each concrete action one copyable block. Keep OS package installation separate from
+  Python environments and application configuration.
+- End a block before a manual comparison or decision. Print a checksum in one action, compare it,
+  then unpack/install in the next; a copyable block must not run past its own acceptance gate.
+- Name the machine/repository and exact file or field at the action. Keep explanation short;
+  link architecture for rationale and reference docs for optional detail.
+- Put a choice where it occurs, such as **2a/2b**. Complete the selected path in order and state
+  its rejoin point; never make an alternative look like the next required action.
+- Number required actions consecutively; reserve lettered alternatives for real choices.
+  A genuine capability milestone may contain required numbered sub-actions, with a clear continuation.
+- Use EL10 and Talos examples where appropriate. Add Debian/Ubuntu package or layout substitutions
+  beside the affected step; do not imply that an OS-specific service installer supports another distro.
+- Retain useful diagrams, checks and rollback instructions. A shorter guide must still include
+  the prerequisites and verification needed to complete it.
+
+See [bootstrap LVM expansion](../deployment/foundation/proxmox/bootstrap-lvm.md) for two sequential storage paths.
 
 ## Writing command examples
 

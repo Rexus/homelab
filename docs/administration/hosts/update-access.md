@@ -1,8 +1,8 @@
 # Proxmox update-access tasks
 
-Connect Proxmox-managed downloads and host APT to an accepted repository proxy.
-This consumes [Stage 1 software intake](../../deployment/stage-1-software-intake/README.md);
-it neither installs the cache nor schedules package upgrades.
+Connect Proxmox-managed downloads and host APT to the accepted repository proxy, then install
+updates during maintenance. This is [Stage 1, Step 7](../../deployment/stage-1-software-intake/README.md#step-7-connect-proxmox-host-updates).
+Hosts pull approved content; the cache does not push updates or receive host credentials.
 
 **Working repository:** `<prefix>-tier-0` for managed configuration.
 **Host commands:** run as root in an approved shell on the named Proxmox host.
@@ -13,6 +13,7 @@ independent console and a known rollback configuration.
 ## Find the task
 
 - [How are managed hosts configured?](#how-are-managed-hosts-configured)
+- [How are Proxmox updates installed?](#how-are-proxmox-updates-installed)
 - [How is the GUI download proxy configured manually?](#how-is-the-gui-download-proxy-configured-manually)
 - [How is host APT configured manually?](#how-is-host-apt-configured-manually)
 - [How are image downloads and builder VMs handled?](#how-are-image-downloads-and-builder-vms-handled)
@@ -24,33 +25,117 @@ independent console and a known rollback configuration.
 
 ## How are managed hosts configured?
 
-1. On the prepared execution host, use the **Tier 0 root**. Add existing Proxmox hosts
-   to `hypervisors` in `ansible/inventory/hosts.yml`; this does not provision hosts.
-2. Set these fields in ignored `ansible/group_vars/all.yml`, using the accepted endpoint:
+### 1. Permit the host update path
 
-   ```yaml
-   repository_proxy_enabled: true
-   repository_proxy_fqdn: "cache.{{ platform_domain }}"
-   repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
-   ```
+Include the Proxmox management subnet in the cache's permitted client CIDRs and allow the actual
+Debian, Proxmox and selected Ceph repository domains. Keep the configured repository/subscription
+choice; a proxy does not supply an enterprise subscription. [1]
+Allow host-initiated traffic to the proxy's selected port, normally TCP 3128, with direct-WAN bypass denied.
+DNS and the proxy must work without later FreeIPA, Vault or Kubernetes services.
 
-3. Run the supplied host recipe:
+### 2. Register the existing hosts and proxy
 
-   Run from **`<prefix>-tier-0/`** on the protected execution host.
+Initialize missing files from **`<prefix>-tier-0/`** on **`boot-1`**:
+
+```bash
+bash scripts/init-local-files.sh --setup foundation
+```
+
+Existing files are preserved. For first use, complete [host-management Steps 2–5](management.md#2-register-the-installed-hosts):
+register `hypervisors`, authorize the bootstrap public key and require Ansible `pong`.
+Return here afterward. Existing accepted registrations can be reused.
+The `foundation` initializer creates the common files; its VM deployment is not the host-management task.
+
+Then edit **`<prefix>-tier-0/ansible/group_vars/all.yml`** with the accepted endpoint:
+
+```yaml
+repository_proxy_enabled: true
+repository_proxy_url: "http://10.30.30.22:3128"
+```
+
+A DNS name is valid when every host already resolves it. This recipe does not create DNS or hosts entries.
+
+<a id="3-verify-host-ssh-access"></a>
+
+### 3. Review the selected targets
+
+Select the SSH account verified during registration. List the play's targets before applying:
+
+Run from **`<prefix>-tier-0/`** on the prepared execution host:
+
+```bash
+read -r -p "Proxmox host SSH user (example: root): " PVE_SSH_USER
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  -e @ansible/group_vars/all.yml -e "ansible_user=$PVE_SSH_USER" \
+  ansible/playbooks/proxmox-hosts.yml --list-hosts
+```
+
+**Expected:** only the registered Proxmox hosts are listed. Stop for an empty or unexpected target list.
+The account needs authorized root/sudo access for the next step; this listing changes no host.
+
+### 4. Apply the proxy settings
+
+Run from **`<prefix>-tier-0/`**, in the same shell:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  -e @ansible/group_vars/all.yml -e "ansible_user=$PVE_SSH_USER" ansible/playbooks/proxmox-hosts.yml
+```
+
+Add `--ask-become-pass` only if the selected non-root account requires a sudo password.
+
+**Expected:** the [host playbook](../../../tier-0/ansible/playbooks/proxmox-hosts.yml) and
+[proxy role](../../../tier-0/ansible/roles/proxmox_host) reconcile the cluster-wide Datacenter proxy
+and `/etc/apt/apt.conf.d/76pveproxy` on every selected host. They install no packages and reboot no host.
+Do not also maintain these settings through the manual alternatives below.
+
+### 5. Verify APT on every host
+
+Run as **root on each Proxmox host**:
+
+```bash
+apt-config dump | grep -i 'Acquire::.*Proxy'
+apt update
+```
+
+**Expected:** the effective proxy points to the accepted endpoint and every enabled repository refreshes
+successfully. Check requests in `/var/log/squid/access.log` on the active cache and repeat Stage 1's
+direct-WAN denial check from the host network. Stop on proxy denial, subscription, signature or TLS errors.
+
+Proxmox GUI/API update refreshes can rewrite `76pveproxy` from the Datacenter setting.
+Recheck after GUI refreshes; APT HTTPS inherits the HTTP setting when no HTTPS override exists. [2][3]
+The Datacenter setting does not configure ordinary shell `curl`/Git commands.
+
+**Continue:** install updates below, or return to [Stage 1](../../deployment/stage-1-software-intake/README.md#capability-available)
+when this change only commissions update access.
+
+## How are Proxmox updates installed?
+
+1. Follow the [maintenance gate](../maintenance.md#upgrade-gate): current recoverable backups,
+   console access, reviewed release path and enough surviving capacity. Keep the cache available;
+   move affected guests or plan their outage. Update one cluster host at a time.
+2. On the **selected Proxmox host**, complete action 5 above, then install within the same supported release:
 
    ```bash
-   export ANSIBLE_CONFIG="$PWD/ansible/ansible.cfg"
-   read -r -p "Proxmox host SSH user (example: root): " PVE_SSH_USER
-   ansible-playbook -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e "ansible_user=$PVE_SSH_USER" ansible/playbooks/proxmox-hosts.yml
+   apt full-upgrade
    ```
 
-   Select a host SSH account with the required privilege; it is separate from a Proxmox API token.
-4. On each affected host, verify Datacenter and APT behavior using the checks below.
-   Do not also maintain the same settings manually.
+   Review the proposed package changes and answer the native prompt. Proxmox specifies `full-upgrade`
+   for its rolling package updates; do not substitute `apt upgrade`. [4]
+3. Reboot that host during the maintenance window when required by the installed update, then verify:
 
-**Expected:** the [Proxmox host role](../../../tier-0/ansible/roles/proxmox_host)
-reconciles the Datacenter proxy and per-host APT configuration. The Tier 2 cache
-receives download requests, not Tier 0 administrative authority.
+   Run as **root on the updated Proxmox host**:
+
+   ```bash
+   pveversion -v
+   systemctl --failed
+   ```
+
+   Confirm guest health and, where present, cluster quorum and Ceph health before the next host.
+   A major Proxmox or Ceph release change uses its release-specific upgrade guide, not this routine step.
+
+**Expected:** the host runs the accepted packages and guests/storage remain healthy.
+Update access alone does not schedule or approve patch installation.
 
 <a id="configure-the-proxmox-cluster"></a>
 
@@ -66,8 +151,8 @@ receives download requests, not Tier 0 administrative authority.
    grep '^http_proxy:' /etc/pve/datacenter.cfg
    ```
 
-4. Test an approved download workflow. Require the selected endpoint and a successful
-   download. This GUI setting does not configure host shell commands or APT.
+4. Test an approved download workflow, then verify host APT using action 5 above.
+   GUI/API update refreshes can generate APT proxy configuration; ordinary shell commands remain separate. [2]
 
 <a id="optional-host-package-updates"></a>
 <a id="test-from-a-proxmox-host"></a>
@@ -94,8 +179,16 @@ receives download requests, not Tier 0 administrative authority.
 
    ```bash
    if [ -f /etc/apt/apt.conf.d/76pveproxy ]; then
-     cp -a /etc/apt/apt.conf.d/76pveproxy /etc/apt/apt.conf.d/76pveproxy.before-change
+     APT_PROXY_BACKUP="$(mktemp /root/76pveproxy.before-change.XXXXXX)" || exit 1
+     cp -a /etc/apt/apt.conf.d/76pveproxy "$APT_PROXY_BACKUP" || exit 1
+     printf 'Retained rollback file: %s\n' "$APT_PROXY_BACKUP"
    fi
+   ```
+
+   Record the printed rollback path, or record that no prior file existed. A new copy is retained
+   for each change; do not overwrite an earlier rollback file. Then write on **the same Proxmox host**:
+
+   ```bash
    cat > /etc/apt/apt.conf.d/76pveproxy <<EOF
    Acquire::http::Proxy "$CACHE_PROXY_URL";
    Acquire::https::Proxy "$CACHE_PROXY_URL";
@@ -144,8 +237,9 @@ A successful download alone is not release approval.
 
 1. Retain the error and restore the previous accepted endpoint in its owner: Ansible
    inputs for managed hosts, or the GUI/file for the manual path.
-2. For the manual APT path, restore `76pveproxy.before-change` if it existed. Remove
-   `76pveproxy` only when this task created it and another approved supply path exists.
+2. For the manual APT path, restore the recorded `/root/76pveproxy.before-change.*` copy for that
+   specific change if a prior file existed. Remove `76pveproxy` only when this task created it
+   and another approved supply path exists. A host-local rollback file is not an independent backup.
 3. Rerun the appropriate recipe/check. Require repository access through the selected
    policy before closing the change; do not open unrestricted WAN access to fix it.
 
@@ -154,3 +248,10 @@ A successful download alone is not release approval.
 **Related:** [template operations](../virtual-machines/template-lifecycle.md),
 [guest package intake](../../deployment/stage-1-software-intake/README.md#step-3-connect-and-verify-consumers),
 and [network policy](../../architecture/networking/firewall-policy.md).
+
+## References
+
+1. [Proxmox package repositories](https://github.com/proxmox/pve-docs/blob/master/pve-package-repos.adoc), checked 2026-11-09.
+2. [Proxmox APT refresh and generated proxy file](https://github.com/proxmox/pve-manager/blob/master/PVE/API2/APT.pm), checked 2026-11-09.
+3. [APT HTTPS options and HTTP inheritance](https://manpages.debian.org/trixie/apt/apt-transport-https.1.en.html), checked 2026-11-09.
+4. [Proxmox system software updates](https://github.com/proxmox/pve-docs/blob/master/system-software-updates.adoc), checked 2026-11-09.

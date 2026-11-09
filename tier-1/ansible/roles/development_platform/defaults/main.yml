@@ -2,6 +2,7 @@
 development_platform_components: [gitlab]
 development_platform_action: render
 development_platform_kubeconfig: ""
+development_platform_context: ""
 development_platform_output: "{{ playbook_dir }}/../../../secrets/development-platform"
 development_platform_chart_repository: https://charts.gitlab.io
 development_platform_gitlab_version: ""

@@ -16,14 +16,14 @@ NAS custody and live acceptance remain required. See [coverage](../../reference/
 ## Main path
 
 1. [Provision the log host](#step-1-provision-the-log-host)
-2. [2a: Install the receiver; 2b: connect sources](#step-2-enable-protected-collection)
+2. [Install the receiver, then connect and test sources](#step-2-enable-protected-collection)
 3. [Install NAS retention and verify recovery](#step-3-protect-and-verify-retained-evidence)
 
 **Execution context:** `<prefix>-tier-0/`.
 
 The required receiver, source and NAS instructions below are parts of this stage.
-Complete them in order, returning here at the end of each task. The adjacent
-redundant-intake and locked-retention pages are alternatives with separate gates.
+Complete them in order, returning here at the end of each task. Redundant intake adds capacity;
+NAS and locked retention are storage choices with separate acceptance gates.
 
 The IaC provisions hosts/disks, installs the isolated receiver, configures supported
 Linux producers and publishes NAS checkpoints with independent encrypted backups.
@@ -97,7 +97,7 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    | `terraform/common.tfvars` | `network_zones.management` must match the intended private attachment, prefix and gateway, or applied SDN lookup |
    | `terraform/deployments/syslog/terraform.tfvars` | Keep `log-1`; set its unused `vm_id`, size, `storage_class`, `disk_size_gb` and `extra_disks` capacity |
    | `ansible/inventory/hosts.yml` | Include `log-1` under `foundation_logging`; retain existing groups/hosts |
-   | `ansible/group_vars/syslog.yml` | Set `platform_host_ips.log-1` to its reserved address; receiver fields are completed in Step 2a |
+   | `ansible/group_vars/syslog.yml` | Set `platform_host_ips.log-1` to its reserved address; complete receiver fields in Step 2 below |
 
 3. Provision the VM and disks. Review Terraform's displayed plan; enter `yes` only
    for the intended changes:
@@ -119,7 +119,7 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    ssh "automation@$LOG_HOST_IP"
    ```
 
-   Use the configured SSH account if different. Continue Step 2a on this host;
+   Use the configured SSH account if different. Continue Step 2's storage preparation on this host;
    return to the Tier 0 execution shell for repository commands.
 
 Edit the local files seeded from examples. The starter creates `log-1`
@@ -186,13 +186,22 @@ and [producer recipe](../../../tier-0/ansible/playbooks/deployment/logging-produ
 The reusable sender implementation is [Shared's `log_forwarder`](../../../shared/ansible/roles/log_forwarder/tasks/main.yml);
 each tier retains its own inventory and source selections.
 
-### Step 2a: Install the receiver
+Both actions below are required. The first includes preparing `log-1`'s producer CSR before listener
+installation; it does not require an already-running receiver to generate that request.
+
+<a id="step-2a-install-the-receiver"></a>
+
+### 1. Install and test the receiver
 
 Complete [receiver Steps 1-3](receiver.md). Prepare the local data mount, issue its
 independent TLS identity and run the receiver installation. These are required
 steps, not optional background reading. The recipe refuses missing storage/trust.
 
-### Step 2b: Connect the first producers
+Return here after `log-1-os` reaches protected intake, then continue with action 2.
+
+<a id="step-2b-connect-the-first-producers"></a>
+
+### 2. Connect the other producers
 
 Receiver setup enrolls `log-1`'s own OS stream first. Extend coverage by completing
 [source Steps 1-2](sources.md) for each supported Proxmox host and additional
@@ -202,7 +211,7 @@ register each identity in Tier 0 and install forwarding. Add appliance exports u
 
 Send the numbered test event shown there and locate it in the Tier 0 records.
 A working listener without enrolled producers is not a completed collection path.
-Return here for Step 3; preserve early local records until delivery is verified.
+Continue with Step 3 after each required source's delivery passes. Preserve early local records until then.
 
 | Configure | Required result |
 | --- | --- |
@@ -305,12 +314,13 @@ the NAS custody boundary with qualified retention-locked storage.
    may hold the separate credentials; record that custody assumption.
    **Alternative:** [locked retention](step-3d-retention-lock.md) replaces or supplements
    NAS snapshots when privileged deletion must be prevented. Return here afterward.
-2. Complete the [numbered fault/restore drill](../../administration/logging-drill.md)
-   and the acceptance matrix below. Keep the live results with the project records.
-3. Record [readiness](../readiness.md#readiness-levels), checkpoint/snapshot/backup lag
-   and the transport-release limit. For an additional collector, follow
-   [3b: redundant intake](step-3b-redundant-intake.md), then repeat the same checks;
-   it does not convert asynchronous delivery into lossless HA.
+2. If the required failure envelope needs another collector, complete
+   [3b: redundant intake](step-3b-redundant-intake.md) now, including its separate sender/storage integration.
+   Return here before acceptance; two receivers do not convert asynchronous delivery into lossless HA.
+3. Complete the [numbered fault/restore drill](../../administration/logging-drill.md)
+   and acceptance matrix below for the selected topology. Keep live results with the project records.
+4. Record [readiness](../readiness.md#readiness-levels), checkpoint/snapshot/backup lag
+   and the transport-release limit before proceeding to Stage 3.
 
 | Test | Acceptance |
 | --- | --- |

@@ -111,6 +111,16 @@ if os.getenv('FAIL_APPLY') and 'apply' in sys.argv:
 if 'plan' in sys.argv:
     path = next(arg[5:] for arg in sys.argv if arg.startswith('-out='))
     pathlib.Path(path).write_text('test saved plan')
+    if os.getenv('MUTATE_PLAN_INPUT'):
+        with open(os.environ['TEST_TEMPLATE_CATALOG'], 'a') as catalog:
+            catalog.write('# changed during planning\\n')
+    if os.getenv('FAIL_PLAN'):
+        sys.exit(7)
+if pathlib.Path(sys.argv[0]).name == 'terraform' and 'apply' in sys.argv and '-refresh-only' not in sys.argv:
+    if os.getenv('MUTATE_APPLY_INPUT'):
+        with open(os.environ['TEST_TEMPLATE_CATALOG'], 'a') as catalog:
+            catalog.write('# changed during publication\\n')
+        pathlib.Path(os.environ['TEST_TEMPLATE_STATE']).write_text('applied state preserved')
 if 'output' in sys.argv:
     if 'template_candidates' in sys.argv:
         print(json.dumps({'rocky-build-1': {'vm_id': 110, 'title': 'rocky-10-tmpl',
@@ -127,10 +137,11 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook' and os.getenv('FAIL_POLI
         for tool in ('ansible-doc', 'ansible-playbook'):
             (commands / tool).symlink_to(fake)
         log = self.root / "calls.jsonl"
-        env = dict(os.environ, PATH=f"{commands}:{os.environ['PATH']}", TEST_COMMAND_LOG=str(log),
+        env = {name: value for name, value in os.environ.items()
+               if not name.startswith(('PROXMOX_', 'TEMPLATE_', 'TF_VAR_', 'TF_CLI_ARGS', 'FAIL_', 'MUTATE_'))
+               and name not in ('DEPLOYMENT_REPO_DIR', 'PM_VE_INSECURE')}
+        env.update(PATH=f"{commands}:{os.environ['PATH']}", TEST_COMMAND_LOG=str(log),
                    TEMPLATE_RUNTIME_MODE='check')
-        for name in ("DEPLOYMENT_REPO_DIR", "TEMPLATE_STATE_PATH", "TEMPLATE_CATALOG_FILE", "TEMPLATE_SHARED_CATALOG_FILE"):
-            env.pop(name, None)
 
         def run(action, *arguments, cwd=repo, **overrides):
             return subprocess.run(["bash", str(repo / "scripts/proxmox-templates.sh"), action, *arguments],
@@ -140,6 +151,8 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook' and os.getenv('FAIL_POLI
         self.assertEqual(run("init").returncode, 0)
         catalog = repo / "templates/proxmox.yml"
         catalog.write_text("# Owned catalog\n")
+        state = repo / ".terraform/state/proxmox-templates/terraform.tfstate"
+        env.update(TEST_TEMPLATE_CATALOG=str(catalog), TEST_TEMPLATE_STATE=str(state))
         self.assertEqual(run("init").returncode, 0)
         self.assertEqual(catalog.read_text(), "# Owned catalog\n")
         self.assertNotEqual(run("apply").returncode, 0)
@@ -148,7 +161,9 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook' and os.getenv('FAIL_POLI
         self.assertNotEqual(run("plan", TEMPLATE_STATE_PATH="relative.tfstate").returncode, 0)
         self.assertEqual(run("plan").returncode, 0)
         plan = repo / ".terraform/plans/proxmox-templates.tfplan"
+        context = plan.with_suffix(plan.suffix + '.context')
         self.assertTrue(plan.exists())
+        self.assertTrue(context.exists())
         self.assertNotEqual(run("plan", TEMPLATE_STATE_PATH="relative.tfstate").returncode, 0)
         self.assertFalse(plan.exists())
         self.assertEqual(run("plan").returncode, 0)
@@ -158,6 +173,7 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook' and os.getenv('FAIL_POLI
         self.assertEqual(run("plan").returncode, 0)
         self.assertEqual(run("apply").returncode, 0)
         self.assertFalse(plan.exists())
+        self.assertFalse(context.exists())
         calls = [json.loads(line) for line in log.read_text().splitlines()]
         apply = next(call for call in calls if "apply" in call["args"])
         self.assertEqual(apply["args"][-1], str(plan))
@@ -170,13 +186,97 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook' and os.getenv('FAIL_POLI
         self.assertIn(f"-backend-config=path={repo}/.terraform/state/proxmox-templates/terraform.tfstate",
                       init["args"])
 
+        profile = self.root / 'reviewed profile.tfvars'
+        profile.write_text('proxmox_storage_classes = {}\n')
+        state.write_text('original state preserved')
+
+        def prepare_context():
+            result = run('plan', '--platform-file', str(profile))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue(plan.exists())
+            self.assertTrue(context.exists())
+
+        # Rejection must precede every Terraform and Ansible invocation, preserving state.
+        files = {'catalog': catalog, 'platform profile': profile,
+                 'root configuration': repo / 'terraform/deployments/templates/main.tf',
+                 'module configuration': repo / 'terraform/modules/proxmox_templates/main.tf',
+                 'saved plan bytes': plan}
+        for name, path in files.items():
+            with self.subTest(changed_plan_input=name):
+                prepare_context()
+                original = path.read_bytes()
+                before = log.read_bytes()
+                try:
+                    path.write_bytes(original + b'\n# changed after review\n')
+                    rejected = run('apply', '--platform-file', str(profile))
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertIn('execution target changed', rejected.stderr)
+                    self.assertEqual(log.read_bytes(), before)
+                    self.assertEqual(state.read_text(), 'original state preserved')
+                finally:
+                    path.write_bytes(original)
+        for name, changes in {
+            'endpoint': {'PROXMOX_VE_ENDPOINT': 'https://other.invalid:8006/'},
+            'backend': {'TEMPLATE_STATE_PATH': str(self.root / 'other.tfstate')},
+            'TF_VAR placement': {'TF_VAR_default_platform_node_name': 'other-node'},
+            'CLI arguments': {'TF_CLI_ARGS_apply': '-parallelism=2'},
+        }.items():
+            with self.subTest(changed_plan_input=name):
+                prepare_context()
+                before = log.read_bytes()
+                rejected = run('apply', '--platform-file', str(profile), **changes)
+                self.assertNotEqual(rejected.returncode, 0)
+                self.assertIn('execution target changed', rejected.stderr)
+                self.assertEqual(log.read_bytes(), before)
+                self.assertEqual(state.read_text(), 'original state preserved')
+
+        with self.subTest(plan_context='missing companion'):
+            prepare_context()
+            context.unlink()
+            before = log.read_bytes()
+            rejected = run('apply', '--platform-file', str(profile))
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn('Missing saved template input context', rejected.stderr)
+            self.assertEqual(log.read_bytes(), before)
+
+        for name, changes in {'failed planning': {'FAIL_PLAN': '1'},
+                              'edit during planning': {'MUTATE_PLAN_INPUT': '1'}}.items():
+            with self.subTest(plan_context=name):
+                prepare_context()
+                rejected = run('plan', '--platform-file', str(profile), **changes)
+                self.assertNotEqual(rejected.returncode, 0)
+                self.assertFalse(plan.exists())
+                self.assertFalse(context.exists())
+                self.assertEqual(state.read_text(), 'original state preserved')
+                before = log.read_bytes()
+                self.assertNotEqual(run('apply', '--platform-file', str(profile)).returncode, 0)
+                self.assertEqual(log.read_bytes(), before)
+
         # Shared is optional at bootstrap; when present it changes only after complete publication.
         (self.root / "unavailable-shared").rename(self.root / "verify-shared")
         consumer_catalog = self.root / "verify-shared/templates/proxmox-catalog.tfvars"
         original_consumer_catalog = consumer_catalog.read_bytes()
 
+        with self.subTest(plan_context='edit during publication'):
+            prepare_context()
+            original = catalog.read_bytes()
+            before = len(log.read_text().splitlines())
+            try:
+                rejected = run('apply', '--platform-file', str(profile), MUTATE_APPLY_INPUT='1')
+                self.assertNotEqual(rejected.returncode, 0)
+                self.assertIn('Keep the applied state', rejected.stderr)
+                later = [json.loads(line) for line in log.read_text().splitlines()[before:]]
+                self.assertEqual(sum('apply' in call['args'] for call in later), 1)
+                self.assertFalse(any('-refresh-only' in call['args'] for call in later))
+                self.assertFalse(any('template_candidates' in call['args'] for call in later))
+                self.assertEqual(state.read_text(), 'applied state preserved')
+                self.assertEqual(consumer_catalog.read_bytes(), original_consumer_catalog)
+                self.assertFalse(plan.exists())
+                self.assertFalse(context.exists())
+            finally:
+                catalog.write_bytes(original)
+
         # Failed publication consumes the plan but never discards already-recorded imports.
-        state = repo / ".terraform/state/proxmox-templates/terraform.tfstate"
         state.write_text("preserved import state")
         self.assertEqual(run("import").returncode, 0)
         failed = run("apply", FAIL_APPLY="1")
@@ -184,6 +284,7 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook' and os.getenv('FAIL_POLI
         self.assertEqual(consumer_catalog.read_bytes(), original_consumer_catalog)
         self.assertIn("Keep the existing state", failed.stderr)
         self.assertFalse(plan.exists())
+        self.assertFalse(context.exists())
         self.assertEqual(state.read_text(), "preserved import state")
         self.assertNotEqual(run("apply").returncode, 0)
         self.assertEqual(run("import").returncode, 0)
@@ -243,7 +344,7 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook' and os.getenv('FAIL_POLI
         # Catalog failure follows publication but cannot destroy either state or local selections.
         consumer_catalog.write_text('default_linux_vm_template_id = null\nproxmox_template_catalog = {\n')
         broken_catalog = consumer_catalog.read_bytes()
-        failed = run('apply')
+        failed = run('apply', '--platform-file', str(profile))
         self.assertNotEqual(failed.returncode, 0)
         self.assertIn('Shared catalog update failed', failed.stderr)
         self.assertEqual(consumer_catalog.read_bytes(), broken_catalog)

@@ -82,7 +82,10 @@ the custody environment, approval and physical transfer remain manual.
    and preserve recovery material under separate authorization.
 3. Verify the offline recovery copy and close the ceremony: disconnect/secure devices
    and media, remove temporary transfer material under policy and confirm no online
-   system has root-key access. Continue [issuer activation](issuer.md#step-3-activate-and-accept-issuance).
+   system has root-key access. Return to the requesting procedure: infrastructure software keys continue at
+   [prepared-backend activation](issuer.md#10-start-the-prepared-backend); FreeIPA continues at
+   [primary/replica completion](../../stage-5-identity/procedures/freeipa.md#step-3-complete-the-primary-and-replica).
+   Hardware-backed issuers use their qualified provider/token activation, not the software-key commands.
 
 ## References
 

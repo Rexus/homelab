@@ -199,7 +199,10 @@ Run from **`<prefix>-tier-0/`**.
 bash scripts/init-local-files.sh --setup foundation --env test
 ```
 
-Refresh local files from current examples and keep timestamped backups:
+**Optional reset:** overwrite local inputs from current examples and keep timestamped backups.
+Use this only for an intentional input reset, not a normal kit refresh. It replaces site values rather
+than merging them; add `--setup <name>` to restrict the selected setups and restore required local values
+before deploying again.
 
 Run from **the owning tier repository root**.
 
@@ -207,7 +210,8 @@ Run from **the owning tier repository root**.
 bash scripts/init-local-files.sh --overwrite
 ```
 
-Remove timestamped backups created by `--overwrite`:
+**Optional cleanup after verification:** remove timestamped backups created by `--overwrite` only after
+the retained local inputs work and any required rollback copies are protected independently:
 
 Run from **the owning tier repository root**.
 

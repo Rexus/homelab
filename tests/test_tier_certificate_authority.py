@@ -31,9 +31,10 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
     def test_guides_name_actual_iac_and_controlled_integration_gates(self):
         self.generate()
         for docs in (UPSTREAM / 'docs', self.root / 'verify-architecture/docs/auto-docs'):
+            prefix = '<prefix>' if docs == UPSTREAM / 'docs' else 'verify'
             issuer = (docs / 'deployment/stage-3-trust/procedures/issuer.md').read_text()
-            for expected in ('<prefix>-tier-0', 'deployment/openxpki.yml', 'template_vm_id',
-                             'foundation --plan-only', 'foundation --terraform-only',
+            for expected in (f'{prefix}-tier-0', 'deployment/openxpki.yml', 'template_vm_id',
+                             '--plan-only', 'foundation --terraform-only',
                              'extra-disk input', 'Debian 12', '2028-06-30', 'openxpki_required_state_paths'):
                 self.assertIn(expected, issuer)
             self.assertNotIn('bash scripts/deploy.sh openxpki', issuer)
@@ -46,7 +47,8 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
             self.assertIn('clca does not support concurrent writers', offline)
             operations = (docs / 'administration/cryptography/certificate-authority.md').read_text()
             self.assertIn('--playbook maintenance/openxpki.yml', operations)
-            self.assertIn('Revocation', operations)
+            self.assertIn('crl_issuance', operations)
+            self.assertIn('revoked serial rejected', operations)
         self.assertTrue((UPSTREAM / 'tier-0/ansible/roles/openxpki/tasks/main.yml').exists())
         self.assertNotIn('openxpki', (UPSTREAM / 'tier-0/.deployment-setups').read_text().splitlines())
         variables = yaml.safe_load((UPSTREAM / 'tier-0/ansible/group_vars/foundation.yml.example').read_text())

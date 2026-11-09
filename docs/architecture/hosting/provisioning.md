@@ -39,10 +39,12 @@ Both use the owning tier's definitions and state. Template publication remains
 possible without hosted CI or the guests built from those templates.
 
 A runner belongs in the management network with separately controlled credentials
-and accepted code. Tier 1 source control coordinates requests, but Tier 0 independently
-authorizes changes. Protecting a Tier 1 branch alone does not protect Tier 0 from
-compromise of that service. [Deployment](../../deployment/README.md) defines the
-bootstrap and runner handover sequence.
+and accepted code. In the independently authorized request pattern, Tier 1 source
+control coordinates requests while Tier 0 authorizes changes separately. The
+[trusted-CI option](#trusted-ci-option) instead accepts its GitLab control plane
+as Tier 0 trusted authority. Protecting a Tier 1 branch alone does not protect
+Tier 0 from compromise of that service. [Deployment](../../deployment/README.md)
+defines the bootstrap and runner handover sequence.
 
 ## Delegated provisioning
 
@@ -128,8 +130,10 @@ not permission to execute their code with infrastructure credentials.
 
 Today, the kit provides Tier 0 template publication, control-cluster bootstrap,
 and operator-run, per-tier Terraform/Ansible workflows. Those workflows are not
-a safe self-service API. Host/network administration still includes manual work;
-cluster-service directories remain starters. No provisioning controller is enabled by generation.
+a safe self-service API. Host/network administration still includes manual work.
+The `clusters/tierN/` GitOps manifests are adoption starters; tier-owned Ansible
+installers separately configure the supported cluster platform and services.
+No provisioning controller is enabled by generation.
 
 Retain these roots while developing delegation; do not relocate live inputs or
 state as part of a documentation or generator refresh. Before enabling a

@@ -5,7 +5,8 @@ Proxmox/Ceph block storage**, then clone it into a new CNPG cluster through the 
 `bootstrap.pg_basebackup` interface. The NAS copy remains mounted read-only. This restores the backup
 endpoint only; there is no continuous WAL archive or PITR. [1][2]
 
-**Prerequisites:** isolated recovery Kubernetes context with compatible CNPG, original PostgreSQL 17
+**Prerequisites:** verified Ansible, kubectl, Python 3/PyYAML and the retained Shared role;
+an isolated recovery Kubernetes context with compatible CNPG, original PostgreSQL 17
 image/extensions/architecture, enough block capacity for staging plus the new cluster, independently
 held application/TLS Secrets and the commissioned NAS identity from [backup setup](../backups/postgresql.md).
 Use the exact recorded image from the completed set. The source fixture is 17.6 / CNPG 1.27.0;
@@ -175,7 +176,7 @@ included WAL and becomes ready only after standalone recovery. It never uses `in
 Wait on the already created Job's ready-pod count, so asynchronous pod creation does
 not make an empty label selection fail early. [4]
 
-2. Wait for the source to become ready, inspect logs, then create the separate target:
+2. Wait for the source to become ready and inspect its logs:
 
 Run from the selected **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`** repository.
 
@@ -185,6 +186,13 @@ kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait pod \
 kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait "job/$CLUSTER-files-restore" \
   --for=jsonpath='{.status.ready}'=1 --timeout=30m
 kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" logs "job/$CLUSTER-files-restore"
+```
+
+Require the approved source identity, successful backup verification and standalone recovery.
+On failure, retain the staging copy and logs; do not create the target cluster.
+After that review, run on **the same approved recovery context**:
+
+```bash
 kubectl --context "$RECOVERY_CONTEXT" create --dry-run=server -f secrets/cnpg-files-recovery/restore-cluster.yml
 kubectl --context "$RECOVERY_CONTEXT" create -f secrets/cnpg-files-recovery/restore-cluster.yml
 kubectl --context "$RECOVERY_CONTEXT" -n "$PRODUCT_NAMESPACE" wait "cluster/$CLUSTER" \

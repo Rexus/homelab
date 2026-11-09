@@ -104,7 +104,9 @@ class ReleasePayload(TierRepositoryTestCase):
             for relative in ("README.md", "procedures/platform-cluster.md"):
                 with self.subTest(docs=str(docs), relative=relative):
                     content = (docs / "deployment/stage-7-delivery" / relative).read_text()
-                    self.assertIn("step-2b-spinnaker.md#installation-decision", content)
+                    destination = ("step-2b-spinnaker.md" if relative == "README.md" else
+                                   "../README.md#step-2-select-and-qualify-delivery")
+                    self.assertIn(destination, content)
                     self.assertNotRegex(" ".join(content.split()), r"Spinnaker (still )?requires a complete")
 
     def test_generation_preserves_all_tier_role_runtime_files_and_provider_locks(self):

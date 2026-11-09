@@ -39,7 +39,9 @@ control_applications_backup_retention: 30d
 # PostgreSQL backups to NAS: docs/administration/backups/postgresql.md.
 # Existing/absent mode retains Barman plus continuous object WAL. Files mode has periodic full copies only.
 control_applications_backup_mode: files
-control_applications_backup_files_phase: prepare  # files: prepare DB first, commission NAS, then backup.
+# With Keycloak/NetBox selected: prepare the DB, commission NAS, then select backup.
+# Vault/Headlamp-only selections do not use this database phase.
+control_applications_backup_files_phase: prepare
 control_applications_backup_files_accepted: false
 control_applications_backup_files:
   keycloak:

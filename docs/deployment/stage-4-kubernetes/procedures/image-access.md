@@ -23,7 +23,8 @@ this procedure does not install a proxy, registry or package mirror.
 2. Set `machine_config_patches` in the owning tier's ignored
    `terraform/deployments/kubernetes/terraform.tfvars`. The root passes these
    native patches to the provider after the inventory-derived base configuration. [1]
-3. Review the selected pins, then follow the normal [plan/review/apply path](talos-terraform.md#plan-and-deploy).
+3. Review the selected pins and patch examples below. Append this configuration alongside the
+   CNI/security-logging patches; do not deploy nodes from this image-access task alone.
    Linux Ansible and `common.tfvars` settings are not applied to Talos.
 
 The following template uses an explicit HTTP proxy with unmodified HTTPS tunnels.
@@ -78,6 +79,11 @@ be its only source. Talos access needed **before** machine configuration require
 the approved image's kernel settings or preloaded artifacts, not this patch alone. [2]
 
 ## Accept the path
+
+For a new Terraform-owned cluster, return to [node preparation](talos-terraform.md#controlled-image-access)
+before its saved-plan/apply step. For a manual cluster, merge these native settings into the reviewed node
+files before [initial configuration](../step-1b-manual-cluster.md#configure-and-bootstrap).
+Use the live checks below after bootstrap; they are not prerequisites for rendering the patches.
 
 | Check | Required evidence |
 | --- | --- |

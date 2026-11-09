@@ -31,7 +31,7 @@ editor configured without plaintext backup/swap files for secret editing.
 
 | File | Rule |
 | --- | --- |
-| `ansible/inventory/hosts.yml`, host/IP setup files | Plain YAML; Terraform cannot decrypt Ansible Vault or evaluate Jinja [1] |
+| `ansible/inventory/hosts.yml`, host/IP setup files | Do not encrypt inventory or host-IP inputs; keep plain YAML for Terraform, which cannot decrypt Ansible Vault or evaluate Jinja [1] |
 | `secrets/ansible-bootstrap-vars.yml` | Secret-only Ansible override; no inventory, names or IP maps |
 | Product-specific Ansible-only secret files | Encrypt when the owning recipe accepts them explicitly; follow that recipe's command |
 
@@ -65,39 +65,60 @@ For FreeIPA, on the Tier 0 execution host:
 
 ## How is an encrypted secret file created and used?
 
-1. Create the protected password file **outside the repository** using the local
-   credential-custody procedure. Set its absolute path; it must remain available
-   without the service being deployed. Then create the encrypted input: [3]
+### 1. Prepare the encryption password
 
-   Run from the selected **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`** repository.
+Create the protected password file **outside the repository** using the local credential-custody
+procedure. It must remain available without the service being deployed. [3]
 
-   ```bash
-   umask 077
-   mkdir -p secrets
-   read -r -e -p 'Absolute existing Vault password-file path: ' ANSIBLE_VAULT_PASSWORD_FILE
-   export ANSIBLE_VAULT_PASSWORD_FILE
-   ansible-vault create secrets/ansible-bootstrap-vars.yml
-   ```
+### 2. Select that password file
 
-2. In the opened editor, enter only these fields with the actual protected values:
+Run from **the owning `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/` repository**:
 
-   ```yaml
-   foundation_freeipa_dm_password: REPLACE_WITH_EXISTING_PROTECTED_PASSWORD
-   foundation_freeipa_admin_password: REPLACE_WITH_EXISTING_PROTECTED_PASSWORD
-   ```
+```bash
+read -r -e -p 'Absolute existing Vault password-file path: ' ANSIBLE_VAULT_PASSWORD_FILE
+export ANSIBLE_VAULT_PASSWORD_FILE
+```
 
-3. Provision and configure separately from Tier 0. Retain the selected FreeIPA
-   CSR/completion phase; the signing pause is still required:
+### 3. Create the encrypted input
 
-   Run from **`<prefix>-tier-0/`** on the protected execution host.
+From **the same repository and shell**, open the new encrypted file:
 
-   ```bash
-   bash scripts/deploy.sh foundation --terraform-only
-   bash scripts/deploy.sh foundation --ansible-only --ansible-vars secrets/ansible-bootstrap-vars.yml
-   ```
+```bash
+umask 077
+mkdir -p secrets
+ansible-vault create secrets/ansible-bootstrap-vars.yml
+```
 
-   Use the same `--env NAME` on both commands when operating a named environment.
-   The first command displays Terraform's plan and asks for confirmation.
+For the FreeIPA example, enter only these fields with the actual protected values, then save and close:
+
+```yaml
+foundation_freeipa_dm_password: REPLACE_WITH_EXISTING_PROTECTED_PASSWORD
+foundation_freeipa_admin_password: REPLACE_WITH_EXISTING_PROTECTED_PASSWORD
+```
+
+The saved file is encrypted. Do not add inventory, host names or IP maps.
+
+### 4. Provision separately from secret injection
+
+For **FreeIPA in `<prefix>-tier-0/`**, use Terraform without the encrypted override:
+
+```bash
+bash scripts/deploy.sh foundation --terraform-only
+```
+
+Review the plan and confirm only the intended resources. Use the original inputs/state for existing guests.
+
+### 5. Run the selected Ansible phase
+
+From **`<prefix>-tier-0/`**, retain the selected [FreeIPA CSR/completion phase](../../deployment/stage-5-identity/procedures/freeipa.md).
+The external-signing pause is still required:
+
+```bash
+bash scripts/deploy.sh foundation --ansible-only --ansible-vars secrets/ansible-bootstrap-vars.yml
+```
+
+Use the same `--env NAME` on both commands when operating a named environment.
+For another product, use its owning recipe's secret-file argument instead of this FreeIPA command.
 
 ## How is a stored password edited?
 
@@ -118,29 +139,48 @@ For FreeIPA, on the Tier 0 execution host:
 
 This changes file encryption only, not any account password stored inside it. [3]
 
-1. Preserve the current encrypted file and its old password in independent custody.
-   Prepare a different protected password file outside Git.
-2. Rekey the selected file, then validate decryption without printing its contents:
+### 1. Preserve the old recovery pair
 
-   Run from the selected **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`** repository.
+Retain the current encrypted file and its old password in independent custody.
+Prepare a different protected password file outside Git.
 
-   ```bash
-   read -r -e -p 'Absolute current Vault password-file path: ' ANSIBLE_VAULT_PASSWORD_FILE
-   read -r -e -p 'Absolute new Vault password-file path: ' NEW_ANSIBLE_VAULT_PASSWORD_FILE
-   ansible-vault rekey --vault-password-file "$ANSIBLE_VAULT_PASSWORD_FILE" --new-vault-password-file "$NEW_ANSIBLE_VAULT_PASSWORD_FILE" secrets/ansible-bootstrap-vars.yml
-   ansible-vault view --vault-password-file "$NEW_ANSIBLE_VAULT_PASSWORD_FILE" secrets/ansible-bootstrap-vars.yml >/dev/null
-   ```
+### 2. Select the password files
 
-3. After successful validation, update the local/runner password-file reference:
+Run from **the owning `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/` repository**:
 
-   Run from the selected **`<prefix>-tier-0/`**, `<prefix>-tier-1/` or `<prefix>-tier-2/` repository.
+```bash
+read -r -e -p 'Absolute current Vault password-file path: ' ANSIBLE_VAULT_PASSWORD_FILE
+read -r -e -p 'Absolute new Vault password-file path: ' NEW_ANSIBLE_VAULT_PASSWORD_FILE
+```
 
-   ```bash
-   export ANSIBLE_VAULT_PASSWORD_FILE="$NEW_ANSIBLE_VAULT_PASSWORD_FILE"
-   ```
+### 3. Rekey the encrypted file
 
-   Update any corresponding `.env.local` reference without storing the password
-   there. Rekey other files deliberately; old encrypted backups still need their old password.
+From **the same repository and shell**:
+
+```bash
+ansible-vault rekey --vault-password-file "$ANSIBLE_VAULT_PASSWORD_FILE" --new-vault-password-file "$NEW_ANSIBLE_VAULT_PASSWORD_FILE" secrets/ansible-bootstrap-vars.yml
+```
+
+### 4. Verify decryption without displaying secrets
+
+From **the same repository and shell**:
+
+```bash
+ansible-vault view --vault-password-file "$NEW_ANSIBLE_VAULT_PASSWORD_FILE" secrets/ansible-bootstrap-vars.yml >/dev/null
+```
+
+Expect a zero exit status. On failure, keep the old password reference and use [rollback](#usage-notes).
+
+### 5. Update the active password-file reference
+
+Only after successful validation, run from **the same repository and shell**:
+
+```bash
+export ANSIBLE_VAULT_PASSWORD_FILE="$NEW_ANSIBLE_VAULT_PASSWORD_FILE"
+```
+
+Update the corresponding local/runner or `.env.local` path reference without storing the password there.
+Rekey other files deliberately; old encrypted backups still need their old password.
 
 <a id="usage-notes"></a>
 

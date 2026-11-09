@@ -94,7 +94,9 @@ its own inputs/playbook for the [native platform installer](basic-platform.md),
 executed through Shared roles. Pin and approve inputs before applying; Tier 1/2
 omit Tier 0 Flux and retain their independent delivery choice.
 
-These are dependency gates, not merely YAML list order:
+These are acceptance gates, not a universal installation order. Follow the selected implementation's
+sequence: CNI first, protected source collection, qualified storage, then the remaining platform.
+Accept each dependency before its consumers; a YAML list alone supplies no readiness ordering.
 
 | Gate | Capability and example | Verify before consumers |
 | --- | --- | --- |
