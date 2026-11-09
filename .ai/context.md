@@ -306,12 +306,15 @@ This file keeps durable context for AI-assisted work across sessions.
   Required procedures are named parts of the main path; alternatives branch/rejoin as 2a/2b.
   Keep design explanations in their authoritative homes instead of burying actions in prose.
 - Command examples use `<prefix>` for the generated folder prefix (default homelab),
-  separate from hostname/environment prefixes. For a single-line command, state the owning
-  root/machine and guidance above the code block; keep only the copyable command inside.
-  Multiline examples may retain comments inside. Replace pure repository-navigation cd lines
+  separate from hostname/environment prefixes. Put the owning root/machine in bold above each
+  command/configuration block; use inline code for exact file paths and variable names.
+  Prefer short prose or file lists for editing instructions, not commented path blocks.
+  Use the actual fence language (bash/yaml/hcl/dotenv); text is for output/file trees.
+  Avoid comments when prose is clearer. If retained comments explain the code, separate logical
+  groups with blank lines and indent wrapped comment text consistently.
+  Preserve shebangs, Cloud-Init headers and literal file content. Replace pure repository-navigation cd lines
   with that context. Retain operational cwd changes when command semantics require them.
-  File edits use separate text blocks with owner, relative paths and concise `# edit ...`
-  notes, without assuming vi/vim/nano or another editor. Do not execute path lists as shell.
+  Do not assume vi/vim/nano or another editor. Do not execute path lists as shell.
 - Present deployment commands in operational order. Linux deploy.sh already displays its
   plan before interactive apply; a separate preview is optional. Template/Kubernetes saved
   plans retain their dedicated sequence. Label post-apply plans with their verification

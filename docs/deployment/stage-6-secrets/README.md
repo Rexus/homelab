@@ -96,19 +96,16 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
    [1c: seal integration](step-1c-seal-integration.md) is an additional explicit seal choice.
 2. For 1a, create the local application inputs without overwriting Stage 5 settings:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
    ```
 
-   Edit these files using the fields below:
+   Edit in **`<prefix>-tier-0/`**.
 
-   ```text
-   # Edit in <prefix>-tier-0/
-   ansible/group_vars/control_applications.yml
-   # Edit: Component selection, cluster context, TLS/SSO, database and backup-phase inputs.
-   ```
+   - `ansible/group_vars/control_applications.yml`: Component selection, cluster context, TLS/SSO, database and
+     backup-phase inputs.
 
 3. Edit `ansible/group_vars/control_applications.yml`:
 
@@ -123,7 +120,7 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
 4. Prepare TLS and the accepted Secret owner using
    [application Steps 1–2](procedures/control-applications.md#configure-inputs), then render:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml
@@ -131,7 +128,7 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
 
    Review the private output, then install the sealed service:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e control_applications_action=apply

@@ -24,10 +24,13 @@ It is separate from host/DNS naming choices. Other `<...>` values mark deploymen
 Generated auto-docs resolve repository markers to the selected collection prefix;
 replace remaining `<...>` inputs before executing an example.
 
-The text above a single-line command block names its working repository or machine;
-the block contains only the command to copy. Multiline examples may keep explanatory
-comments inside. **Edit these files** lists use `text` blocks; their paths and
-`# edit ...` notes describe edits with any suitable editor.
+The text above a command or configuration block names its working repository or machine in **bold**.
+File paths and variables use inline code, such as `config/platform.tfvars` and
+`default_platform_node_name`. Edit instructions stay above the block or in a short file list;
+command blocks contain the commands to copy. Fences name the actual language: `bash`, `yaml`,
+`hcl` or `dotenv`; `text` is for plain output and file trees.
+Keep comments only when they explain the code itself. Separate logical comment/command groups
+with blank lines, and indent wrapped comment text consistently.
 See the [repository map](deployment/README.md#repository-locations) for ownership.
 
 ## Start here

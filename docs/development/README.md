@@ -86,15 +86,16 @@ The collection directory is not itself a Git repository.
 
 From the edited repository:
 
+Run from **the edited repository root**.
+
 ```bash
-# Run from the edited repository root
 git diff --check
 git diff --stat
 ```
 
 For upstream generation changes, preview from the **kit root**:
 
-Run from the upstream kit checkout.
+Run from **the upstream kit checkout**.
 
 ```bash
 bash scripts/init-tier-repos.sh --dry-run

@@ -71,7 +71,7 @@ sender failover and the stronger durable-handoff contract remain selected integr
 
 From Tier 0, provision after reviewing Terraform's displayed plan and entering `yes`:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh syslog --terraform-only
@@ -82,7 +82,7 @@ replacement archive or second Terraform owner is introduced. Prepare each new da
 mount and its host-specific UUID/TLS inputs using the [receiver guide](receiver.md),
 then configure:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh syslog --ansible-only

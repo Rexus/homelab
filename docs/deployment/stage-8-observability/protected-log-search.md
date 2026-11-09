@@ -99,19 +99,16 @@ object for field queries such as `body.record.source`. Investigate
 
 Switch from Tier 1 to the **Tier 0 root**, then create the settings:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 cp -n ansible/group_vars/logging_export.yml.example ansible/group_vars/logging_export.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-ansible/group_vars/logging_export.yml
-# Edit: Authorized export scopes, read-only source selection and destination inputs.
-```
+- `ansible/group_vars/logging_export.yml`: Authorized export scopes, read-only source selection and
+  destination inputs.
 
 Edit `ansible/group_vars/logging_export.yml`: match each scope's `name`/`group` to
 the approved copy, set the actual Tier 1 `endpoint` and the external certificate/key/CA
@@ -119,7 +116,7 @@ paths. Set `logging_export_allow_egress_accepted: true` only after verifying its
 
 From Tier 0, after the first approved files exist:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-export.yml -e @ansible/group_vars/logging_export.yml

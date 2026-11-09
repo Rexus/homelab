@@ -29,8 +29,9 @@ recorded in the [generation contract](generated-repositories.md#purpose-and-prer
 
 For Linux/WSL Bash, from the kit root: [1]
 
+Run from **upstream kit root**.
+
 ```bash
-# Run from upstream kit root
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -r tests/requirements.txt
@@ -38,8 +39,9 @@ python3 -m pip install -r tests/requirements.txt
 
 For native Windows PowerShell, use the environment's interpreter directly:
 
+Run from **upstream kit root**.
+
 ```powershell
-# Run from upstream kit root
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r tests/requirements.txt
 ```
@@ -65,7 +67,7 @@ kit's `scripts/tier-repos/requirements.txt`; see the [generation contract](gener
 
 Preview without creating a collection:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 python3 scripts/tier-repos/generate.py --dry-run
@@ -73,7 +75,7 @@ python3 scripts/tier-repos/generate.py --dry-run
 
 When a generated checkout is needed, omit `--dry-run`:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 python3 scripts/tier-repos/generate.py
@@ -88,7 +90,7 @@ selections to both commands when customized; the
 
 For generator/ownership/refresh changes, from the kit root:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 python3 -B -m unittest discover -s tests -p 'test_tier_repos.py' -v

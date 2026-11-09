@@ -113,7 +113,7 @@ from the GitLab host.
 
 ### 1. Create local inputs
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup development
@@ -121,20 +121,15 @@ bash scripts/init-local-files.sh --setup development
 
 ### 2. Edit these files
 
-Edit these files:
+Edit in **`<prefix>-tier-1/`**.
 
-```text
-# Edit in <prefix>-tier-1/
-terraform/deployments/development/terraform.tfvars
-# Edit: vm_instances.git-1: unused VMID, size, disk_size_gb, storage_class, network_zone_key
-ansible/inventory/hosts.yml
-# Edit: Matching git-1 key and service group
-ansible/group_vars/development.yml
-# Edit: platform_host_ips.git-1, gitlab_container_image, gitlab_hostname, gitlab_external_url
-# Edit: gitlab_tls_cert_src, gitlab_tls_key_src, gitlab_ssh_host_port
-.env.local
-# Edit: Tier 1 provider credentials and local SSH public-key paths
-```
+- `terraform/deployments/development/terraform.tfvars`: `vm_instances.git-1`: unused VMID, size,
+  `disk_size_gb`, `storage_class`, `network_zone_key`
+- `ansible/inventory/hosts.yml`: Matching git-1 key and service group
+- `ansible/group_vars/development.yml`: `platform_host_ips.git-1`, `gitlab_container_image`,
+  `gitlab_hostname`, `gitlab_external_url`, `gitlab_tls_cert_src`, `gitlab_tls_key_src`,
+  `gitlab_ssh_host_port`
+- `.env.local`: Tier 1 provider credentials and local SSH public-key paths
 
 Use an approved CE image tag/digest and a preissued certificate/chain/key. Prepare
 scoped gateway/host rules before publishing listeners. This VM recipe does not
@@ -143,7 +138,7 @@ through the product's supported configuration before accepting ordinary use.
 
 ### 3. Deploy and verify
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 bash scripts/deploy.sh development
@@ -197,7 +192,7 @@ Maintenance notes:
 
 For the first login, retrieve the initial root password from the container:
 
-Run on `git-1` with authorized container access.
+Run on **`git-1`** with authorized container access.
 
 ```bash
 sudo podman exec -it gitlab grep 'Password:' /etc/gitlab/initial_root_password

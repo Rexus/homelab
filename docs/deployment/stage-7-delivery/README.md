@@ -86,25 +86,22 @@ Retain the bootstrap source until Stage 9 GitLab source migration is accepted.
 
 Both branches use `ansible/group_vars/delivery_platform.yml`. Create it once:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-1/`**.
 
-```text
-# Edit in <prefix>-tier-1/
-ansible/group_vars/delivery_platform.yml
-# Edit: Selected delivery controller, cluster context, SSO, storage and egress inputs.
-```
+- `ansible/group_vars/delivery_platform.yml`: Selected delivery controller, cluster context, SSO, storage
+  and egress inputs.
 
 Set `delivery_platform_controller` to `argocd` (2a) or `spinnaker` (2b), and
 `delivery_platform_install_harbor: false` for this pass. Edit the selected branch's
 host, kubeconfig/context, IdP, destination and TLS/backup fields before rendering:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/delivery-platform.yml -e @ansible/group_vars/delivery_platform.yml
@@ -113,7 +110,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbo
 Review the private render. Spinnaker additionally requires its reviewed checksum and
 commissioned certificate/backup inputs before apply. With pre-existing Secrets:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/delivery-platform.yml -e @ansible/group_vars/delivery_platform.yml -e delivery_platform_action=apply

@@ -25,8 +25,9 @@ and recorded failure, retention, access and recovery contracts.
 
 1. On the receiver, inspect the dedicated service and archive timer; the OS logger is separate:
 
+   Run on **the Tier 0 log receiver**.
+
    ```bash
-   # Run on the Tier 0 log receiver.
    sudo systemctl status syslog-ng-receiver.service --no-pager
    sudo systemctl list-timers --all security-log-archive.timer
    sudo journalctl -u syslog-ng-receiver.service -u security-log-archive.service --since '-1 hour' --no-pager
@@ -34,8 +35,9 @@ and recorded failure, retention, access and recovery contracts.
 
 2. On the **independent `logging_recovery` host**, inspect backup execution:
 
+   Run on **the independent logging_recovery host**.
+
    ```bash
-   # Run on the independent logging_recovery host.
    sudo systemctl list-timers --all security-log-backup.timer
    sudo journalctl -u security-log-backup.service --since '-1 day' --no-pager
    ```
@@ -145,7 +147,7 @@ and independent recovery. Review the failure/queue budget before any source or q
    existing inventory host keys, data mount/UUID, producer identities and queue state.
 2. Reconcile the supported existing receiver configuration:
 
-   Run from `<prefix>-tier-0/` on the protected execution host.
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
 
    ```bash
    bash scripts/deploy.sh syslog --recipe maintenance
@@ -184,8 +186,9 @@ reviewed configuration through independent access; never clear persist files or 
    source repository; select a new empty restore directory, never the live share.
 2. Select the protected paths and inspect the recorded snapshots:
 
+   Run on **the independent isolated recovery workstation**.
+
    ```bash
-   # Run on the independent isolated recovery workstation.
    read -r -e -p 'Independent restic repository path: ' RESTIC_REPOSITORY
    read -r -e -p 'Recovery password file path: ' RESTIC_PASSWORD_FILE
    export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
@@ -197,8 +200,9 @@ reviewed configuration through independent access; never clear persist files or 
 
 3. Choose the incident's known-good snapshot and an empty disposable target:
 
+   Run on **the independent isolated recovery workstation**.
+
    ```bash
-   # Run on the independent isolated recovery workstation.
    read -r -p 'Approved snapshot ID: ' LOGGING_SNAPSHOT
    read -r -e -p 'New empty restore directory: ' LOGGING_RESTORE
    restic restore "$LOGGING_SNAPSHOT" --target "$LOGGING_RESTORE"
@@ -210,8 +214,9 @@ reviewed configuration through independent access; never clear persist files or 
    archive root containing `<collector>/checkpoints/` and `<collector>/chunks/`, then
    verify using the kit's script from its own directory:
 
+   Run on **the isolated recovery host from the retained reader kit's script directory**.
+
    ```bash
-   # Run on the isolated recovery host from the retained reader kit's script directory.
    read -r -e -p 'Restored archive root containing collector directories: ' LOGGING_ARCHIVE_ROOT
    python3 logging_checkpoint.py verify --root "$LOGGING_ARCHIVE_ROOT"
    ```

@@ -14,8 +14,9 @@ usually identifies the code owner; later failures may be consequences.
 
 For a Linux deployment, start in the owning **tier repository root**:
 
+Run from **the owning tier repository root**.
+
 ```bash
-# Run from the owning tier repository root
 pwd
 cat .deployment-setups
 bash scripts/deploy.sh --help
@@ -45,7 +46,7 @@ tier and Shared payloads point into the corresponding generated repositories.
 **Example: cache behavior.** From Tier 2, find the inventory group, recipe and
 role references together:
 
-Run from `<prefix>-tier-2/`.
+Run from **`<prefix>-tier-2/`**.
 
 ```bash
 rg -n 'cache_proxy|hosts: cache|platform_host_ips' ansible
@@ -71,7 +72,7 @@ The [generator contract](generated-repositories.md) owns collection selection.
 
 For the cache example, with accepted Tier 2 local inputs and verified Proxmox access:
 
-Run from `<prefix>-tier-2/`.
+Run from **`<prefix>-tier-2/`**.
 
 ```bash
 bash scripts/deploy.sh cache --env-file .env.local --plan-only
@@ -90,8 +91,9 @@ installer: locate the role that creates the actual release.
 
 For an upstream helper change, a focused example is:
 
+Run from **upstream kit root**.
+
 ```bash
-# Run from upstream kit root
 python3 -B -m unittest discover -s tests -p 'test_tier_ci_execution.py' -v
 git diff --check
 ```

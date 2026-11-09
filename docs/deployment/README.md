@@ -147,20 +147,19 @@ specifies. For exact code responsibilities, use the [code map](../development/co
 Execution blocks name that location in a comment; repository navigation is not an
 installation action. File-edit lists are separate from shell commands:
 
-Run from `<prefix>-tier-2/`.
+Run from **`<prefix>-tier-2/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup cache
 ```
 
-Edit these files:
+Edit in **`<prefix>-tier-2/`**.
 
-```text
-# Edit in <prefix>-tier-2/
-terraform/deployments/cache/terraform.tfvars  # edit guest IDs, sizes and storage class
-# Edit in <prefix>-shared/
-config/platform.tfvars                     # edit shared placement and storage references
-```
+- `terraform/deployments/cache/terraform.tfvars`: edit guest IDs, sizes and storage class
+
+Edit in **`<prefix>-shared/`**.
+
+- `config/platform.tfvars`: edit shared placement and storage references
 
 ## Follow a stage
 

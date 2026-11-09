@@ -19,14 +19,16 @@ Templates and Kubernetes have different inputs/state contracts; do not use this 
 
 Edit these files, retaining the original logical `cache-1` key:
 
-```text
-# Edit in <prefix>-tier-2/
-terraform/deployments/cache/terraform.tfvars # Set cache-1's restored VMID and actual disk/storage choices.
-ansible/group_vars/cache.yml                # Retain or deliberately change its accepted IP/host mapping.
-terraform/common.tfvars                    # Update tier-local network references only if the target changed.
-# Edit in <prefix>-shared/ only if common placement/storage references changed.
-config/platform.tfvars
-```
+Edit in **`<prefix>-tier-2/`**.
+
+- `terraform/deployments/cache/terraform.tfvars`: Set cache-1's restored VMID and actual disk/storage
+  choices.
+- `ansible/group_vars/cache.yml`: Retain or deliberately change its accepted IP/host mapping.
+- `terraform/common.tfvars`: Update tier-local network references only if the target changed.
+
+Edit in **`<prefix>-shared/`** only if common placement/storage references changed.
+
+- `config/platform.tfvars`
 
 The destination VM must not already be owned by another Terraform state. Preserve the old VM's
 records/disks separately until cutover is accepted. A new VMID is not discovered as the old resource automatically.
@@ -37,8 +39,9 @@ Native `terraform import` does not load `.env.local`. If an approved credential 
 provides the matching `TF_VAR_proxmox_api_*` and `PROXMOX_API_*` values, retain it. Otherwise enter
 the accepted values without putting the token secret in command history:
 
+Run from **the owning tier root in the prepared state-maintenance shell**.
+
 ```bash
-# Run from the owning tier root in the prepared state-maintenance shell.
 read -r -p 'Verified Proxmox API URL: ' PROXMOX_API_URL
 read -r -p 'Scoped API token ID: ' PROXMOX_API_TOKEN_ID
 read -r -s -p 'API token secret: ' PROXMOX_API_TOKEN_SECRET
@@ -56,8 +59,9 @@ For SDN, clear conflicting endpoint/token aliases through the
 Use the prepared `IAC_ROOT`, `TF_DATA_DIR` and private `IAC_ARCHIVE` from the state guide.
 This input array matches the default production cache wrapper:
 
+Run from **`<prefix>-tier-2/`** in the prepared state-maintenance shell.
+
 ```bash
-# Run from <prefix>-tier-2/ in the prepared state-maintenance shell.
 IAC_VARS=(
   "-var-file=$PWD/../<prefix>-shared/config/platform.tfvars"
   "-var-file=$PWD/../<prefix>-shared/templates/proxmox-catalog.tfvars"
@@ -76,8 +80,9 @@ overrides. Explicit `--env prod` can select overlays even though omitted `--env`
 
 1. Inspect `state list` and select its exact leaf address. Record both the old and restored node/VMID.
 
+   Run from **`<prefix>-tier-2/`** in the prepared state-maintenance shell.
+
    ```bash
-   # Run from <prefix>-tier-2/ in the prepared state-maintenance shell.
    read -r -p 'Exact existing address (e.g. module.vms["cache-1"].proxmox_virtual_environment_vm.this): ' IAC_ADDRESS
    read -r -p 'Restored VM import ID, node/VMID (e.g. pve02/2313): ' IAC_IMPORT_ID
    [[ "$IAC_IMPORT_ID" =~ ^[A-Za-z0-9_.-]+/[0-9]+$ ]] || exit 1
@@ -87,8 +92,9 @@ overrides. Explicit `--env prod` can select overlays even though omitted `--env`
 2. Require exactly the intended old binding and the independently verified restored guest.
    Remove that binding, then import the restored VM at the **same address**. [1][2]
 
+   Execute only after reviewing the exact old binding and restored guest identity.
+
    ```bash
-   # Execute only after reviewing the exact old binding and restored guest identity.
    terraform -chdir="$IAC_ROOT" state rm -lock-timeout=60s "$IAC_ADDRESS"
    terraform -chdir="$IAC_ROOT" import -input=false -lock-timeout=60s \
      "${IAC_VARS[@]}" "$IAC_ADDRESS" "$IAC_IMPORT_ID"
@@ -98,7 +104,7 @@ overrides. Explicit `--env prod` can select overlays even though omitted `--env`
    now-unbound address. Keep the original state backup and all unrelated resource bindings intact.
 3. Review the normal plan with the owning wrapper, including the same original input overrides:
 
-   Run from `<prefix>-tier-2/` for the default production cache example.
+   Run from **`<prefix>-tier-2/`** for the default production cache example.
 
    ```bash
    bash scripts/deploy.sh cache --plan-only --env-file .env.local

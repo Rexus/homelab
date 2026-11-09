@@ -29,8 +29,9 @@ independent wrapping/recovery material and an accepted failure/capacity budget.
 
 1. On the selected gateway, inspect its **actual commissioned** runtime unit:
 
+   Run on **the selected commissioned HSM gateway**.
+
    ```bash
-   # Run on the selected commissioned HSM gateway.
    read -r -p 'Existing signing runtime systemd unit: ' HSM_UNIT
    systemctl status "$HSM_UNIT" --no-pager
    ```
@@ -67,8 +68,9 @@ healthy backend. Use the qualified application/session model, not blind retries.
 2. For **OS-baseline reconciliation only**, from Tier 0 select one inventory host
    and inspect the target list first: [3]
 
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    read -r -p 'Gateway inventory host (for example hsm-1): ' HSM_HOST
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/hsm.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml --limit "${HSM_HOST:?Select one gateway}" --list-hosts
    ```
@@ -77,7 +79,7 @@ healthy backend. Use the qualified application/session model, not blind retries.
    named-environment overlays last when used; never target the offline ceremony host.
 3. Reconcile only that accepted baseline target:
 
-   Run from `<prefix>-tier-0/` on the protected execution host.
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/hsm.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml --limit "${HSM_HOST:?Select one gateway}"

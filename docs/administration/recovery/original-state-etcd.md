@@ -31,8 +31,9 @@ independent backup; paths in this guide refer to that verified extracted set.
 3. Use exclusive no-overwrite copy for a recovered local-state file. The destination must be the
    original tier/setup/environment path in a **new** checkout, never a live working directory:
 
+   Run on **the independent isolated recovery workstation**.
+
    ```bash
-   # Run on the independent isolated recovery workstation.
    set -euo pipefail
    umask 077
    read -r -p "Verified extracted terraform.tfstate: " RECOVERED_STATE
@@ -56,8 +57,9 @@ independent backup; paths in this guide refer to that verified extracted set.
 4. Reestablish the **original** backend/root configuration through its existing workflow.
    Then inspect on the recovery host, keeping sensitive state output private:
 
+   Run on **the independent isolated recovery workstation**.
+
    ```bash
-   # Run on the independent isolated recovery workstation.
    read -r -p "Original initialized Terraform root in the recovery checkout: " RECOVERY_TERRAFORM_ROOT
    terraform -chdir="$RECOVERY_TERRAFORM_ROOT" state list
    ```
@@ -76,8 +78,9 @@ independent backup; paths in this guide refer to that verified extracted set.
 
 On an independent workstation with original scoped Talos credentials and a healthy control plane:
 
+Run on **the independent isolated recovery workstation**.
+
 ```bash
-# Run on the independent isolated recovery workstation.
 set -euo pipefail
 umask 077
 read -r -p "Original independently held talosconfig: " TALOSCONFIG
@@ -103,8 +106,9 @@ Etcd contains Kubernetes objects/Secrets, **not PVC data**. [1]
 
 1. Inspect each surviving control plane with original scoped credentials:
 
+   Run on **the independent isolated recovery workstation**.
+
    ```bash
-   # Run on the independent isolated recovery workstation.
    talosctl --talosconfig "$TALOSCONFIG" -n "$ETCD_NODE" etcd members
    talosctl --talosconfig "$TALOSCONFIG" -n "$ETCD_NODE" service etcd
    ```
@@ -119,8 +123,9 @@ has machine type `controlplane` and etcd state `Preparing` using release-matched
 following native sequence was checked against the official Talos recovery guide; use its version
 selector for the actual deployed release before execution. [1]
 
+Run on **the independent isolated recovery workstation**.
+
 ```bash
-# Run on the independent isolated recovery workstation.
 set -euo pipefail
 : "${RECOVERY_BOOTSTRAP_NODE:?Set one isolated clean control-plane node}"
 : "${RECOVERED_ETCD_SNAPSHOT:?Set the verified extracted native snapshot}"

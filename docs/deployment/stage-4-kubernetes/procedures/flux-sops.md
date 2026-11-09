@@ -43,8 +43,9 @@ stringData:
   accepted: platform-sops-ok
 ```
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 read -r -p 'Public age recipient (age1...): ' AGE_RECIPIENT
 sops --encrypt --in-place --age "$AGE_RECIPIENT" --encrypted-regex '^(data|stringData)$' clusters/tier0/platform-sops-canary.yaml
 ```
@@ -54,7 +55,7 @@ outside Git. Flux detects identity entries whose names end in `.agekey`. [1]
 Set `cluster_platform_flux_canary_sha256` to the SHA-256 of the exact decrypted
 value, excluding a trailing newline. For the example:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 printf %s platform-sops-ok | sha256sum
@@ -94,8 +95,9 @@ By default the shared role requires existing nonempty Secrets and does not own
 them. An independent authorized bootstrap operator can create those Secrets,
 or explicitly use the encrypted extra-vars example:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/cluster_platform_secrets.yml.example ansible/group_vars/cluster_platform_secrets.yml
 ansible-vault encrypt ansible/group_vars/cluster_platform_secrets.yml
 ansible-vault edit ansible/group_vars/cluster_platform_secrets.yml
@@ -121,7 +123,7 @@ qualified mirror and pin its version. [3]
 After Cilium and storage prerequisites are ready, render the selected full platform
 with the private Secrets file:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=render
@@ -129,8 +131,9 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbo
 
 Inspect the private values/manifests under `secrets/cluster-platform/`, then apply:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=apply
 ```

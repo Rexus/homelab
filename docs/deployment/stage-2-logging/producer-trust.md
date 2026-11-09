@@ -25,25 +25,23 @@ protected local storage and separately held encrypted backups/passphrase.
    passphrase separately. Record the CA fingerprint through an independent channel.
 2. Select local paths and the passphrase without putting secret values in history:
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    read -r -e -p 'Protected authority directory: ' LOGGING_AUTHORITY_DIR
    read -r -s -p 'Authority key passphrase: ' LOGGING_AUTHORITY_PASSPHRASE
    export LOGGING_AUTHORITY_DIR LOGGING_AUTHORITY_PASSPHRASE
    cp -n ansible/group_vars/logging_authority.yml.example ansible/group_vars/logging_authority.yml
    ```
 
-   Edit these files using the fields below:
+   Edit in **`<prefix>-tier-0/`**.
 
-   ```text
-   # Edit in <prefix>-tier-0/
-   ansible/group_vars/logging_authority.yml
-   # Edit: Approved request identities, CSR paths and authority custody/validity policy.
-   ```
+   - `ansible/group_vars/logging_authority.yml`: Approved request identities, CSR paths and authority
+     custody/validity policy.
 
 3. Review the local file, then approve first initialization on an empty directory:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/logging-authority.yml -e @ansible/group_vars/logging_authority.yml -e logging_authority_initialize=true
@@ -58,8 +56,9 @@ native `community.crypto` primitives and exports only `public/`. [1]
 1. On the protected deployment controller, prepare its server key/request. These are
    outside Git; the unencrypted service key is later installed only on the receiver:
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    read -r -e -p 'Protected receiver credential directory: ' LOGGING_RECEIVER_DIR
    read -r -p 'Receiver inventory name: ' LOGGING_RECEIVER_NAME
    read -r -p 'Approved receiver DNS name: ' LOGGING_RECEIVER_DNS
@@ -74,8 +73,9 @@ native `community.crypto` primitives and exports only `public/`. [1]
 2. Transfer the public CSR through authenticated custody to the signing controller.
    Inspect its native metadata there:
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    read -r -e -p 'Reviewed public CSR path: ' LOGGING_CSR
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible localhost -i localhost, -c local -m community.crypto.openssl_csr_info -a "path=$LOGGING_CSR"
    ```
@@ -112,7 +112,7 @@ native `community.crypto` primitives and exports only `public/`. [1]
    Match the Tier 0 receiver catalogue's CN, observed address, tier and classification.
 3. On the signing controller, issue or renew the approved requests and refresh the CRL:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/logging-authority.yml -e @ansible/group_vars/logging_authority.yml

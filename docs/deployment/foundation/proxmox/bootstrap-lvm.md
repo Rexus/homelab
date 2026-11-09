@@ -38,8 +38,9 @@ read -r -p 'Verified extracted bundle directory on mounted media: ' BUNDLE
 
 ## 1. Identify disks and the existing root LV
 
+Run on **`boot-1`** as automation. Read-only discovery.
+
 ```bash
-# Run on boot-1 as automation. Read-only discovery.
 lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
 findmnt -n -o SOURCE,FSTYPE /
 findmnt -T /home
@@ -74,8 +75,9 @@ Root growth gives `/home` more space only when `/home` is on that root filesyste
    This example requires the PV partition to have free space immediately after it.
 3. Grow partition **2**, then check its size before resizing the PV:
 
+   Run on **`boot-1`**. Example only: /dev/sda, partition 2 is the verified root PV.
+
    ```bash
-   # Run on boot-1. Example only: /dev/sda, partition 2 is the verified root PV.
    sudo growpart /dev/sda 2
    sudo udevadm settle
    lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
@@ -86,8 +88,9 @@ Root growth gives `/home` more space only when `/home` is on that root filesyste
    kernel still reports the old size, then check again. Optional preview: `growpart -N /dev/sda 2`. [3]
 4. Enlarge the **existing PV** to use the partition's new capacity:
 
+   Run on **`boot-1`**. Preserve the existing root PV and VG.
+
    ```bash
-   # Run on boot-1. Preserve the existing root PV and VG.
    sudo pvresize /dev/sda2
    sudo pvs
    sudo vgs
@@ -102,7 +105,7 @@ Root growth gives `/home` more space only when `/home` is on that root filesyste
    enable **Backup**. Identify the new guest device again with `lsblk`; do not assume it is `sdb`.
 2. For the example's **new, empty `/dev/sdb` only**, inspect signatures:
 
-   Run on `boot-1`. Read-only check of the proposed NEW disk.
+   Run on **`boot-1`**. Read-only check of the proposed NEW disk.
 
    ```bash
    sudo wipefs --no-act /dev/sdb
@@ -111,8 +114,9 @@ Root growth gives `/home` more space only when `/home` is on that root filesyste
    Require the intended blank disk with no required data, partitions or mounts. **The next block
    replaces its partition table. Never run it on the existing root disk.**
 
+   Run on **`boot-1`** only after identifying /dev/sdb as the new empty disk.
+
    ```bash
-   # Run on boot-1 only after identifying /dev/sdb as the new empty disk.
    sudo parted /dev/sdb --script mklabel gpt
    sudo parted /dev/sdb --script mkpart primary 1MiB 100%
    sudo parted /dev/sdb --script set 1 lvm on
@@ -123,8 +127,9 @@ Root growth gives `/home` more space only when `/home` is on that root filesyste
 
 3. Require the new partition `/dev/sdb1`, initialize its physical volume and inspect the existing VG:
 
+   Run on **`boot-1`**. Initialize only the new partition.
+
    ```bash
-   # Run on boot-1. Initialize only the new partition.
    sudo pvcreate /dev/sdb1
    sudo pvs
    sudo vgs
@@ -143,8 +148,9 @@ Root growth gives `/home` more space only when `/home` is on that root filesyste
    or create another VG as a workaround. [4]
 4. Add that PV to the **existing root VG**, then verify its new capacity:
 
+   Run on **`boot-1`**. Example root VG verified in Step 1: rocky.
+
    ```bash
-   # Run on boot-1. Example root VG verified in Step 1: rocky.
    sudo vgextend rocky /dev/sdb1
    sudo pvs
    sudo vgs
@@ -156,8 +162,9 @@ Root growth gives `/home` more space only when `/home` is on that root filesyste
 
 For the example's verified root LV:
 
+Run on **`boot-1`**. Replace the path if discovery showed a different root LV.
+
 ```bash
-# Run on boot-1. Replace the path if discovery showed a different root LV.
 sudo lvextend -r -l +100%FREE /dev/rocky/lvroot
 sudo lvs -o lv_path,lv_size,devices
 df -h / /home
@@ -168,8 +175,9 @@ including any free space that existed before this change. Stop if filesystem res
 
 Create the bootstrap directories on the expanded root filesystem:
 
+Run on **`boot-1`** as automation; /srv/tier0 is a directory on root for this layout.
+
 ```bash
-# Run on boot-1 as automation; /srv/tier0 is a directory on root for this layout.
 sudo install -d -m 0700 -o "$(id -un)" -g "$(id -gn)" \
   /srv/tier0/src /srv/tier0/artifacts /srv/tier0/offline /srv/tier0/tmp/proxmox-upload
 findmnt -T /srv/tier0

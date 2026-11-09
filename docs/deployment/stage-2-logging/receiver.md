@@ -29,7 +29,7 @@ never substitute Fedora RPMs, nightly packages or disabled signature checks. [1]
 
 1. On the receiver, identify the separate data disk by its actual device/serial:
 
-   Run on the selected Tier 0 log receiver.
+   Run on **the selected Tier 0 log receiver**.
 
    ```bash
    lsblk --output NAME,SERIAL,SIZE,FSTYPE,UUID,MOUNTPOINTS
@@ -44,8 +44,9 @@ never substitute Fedora RPMs, nightly packages or disabled signature checks. [1]
    `ansible/group_vars/syslog.yml`. For multiple collectors, put each UUID in its
    inventory host variables instead. Check UUID and free capacity on each host:
 
+   Run on **the selected Tier 0 log receiver**.
+
    ```bash
-   # Run on the selected Tier 0 log receiver.
    findmnt --mountpoint /srv/security-logging --output TARGET,SOURCE,UUID,FSTYPE,OPTIONS
    df -h /srv/security-logging
    ```
@@ -101,8 +102,9 @@ without the mount. The preflight free-space threshold is a gate, not a capacity 
 Set execution-host file paths interactively, without placing private-key contents in
 configuration or command history:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 read -r -e -p 'Receiver CA bundle path: ' SYSLOG_NG_TLS_CA_FILE
 read -r -e -p 'Receiver certificate chain path: ' SYSLOG_NG_TLS_CERT_FILE
 read -r -e -p 'Receiver private key path: ' SYSLOG_NG_TLS_KEY_FILE
@@ -123,7 +125,7 @@ receiver events; the OS logger's journal/socket/configuration remain untouched.
 
 1. From the Tier 0 repository root, after reviewing local inputs:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    bash scripts/deploy.sh syslog --ansible-only
@@ -136,8 +138,9 @@ receiver events; the OS logger's journal/socket/configuration remain untouched.
    The unused vendor unit is disabled/masked after installation to prevent a boot conflict.
 2. On the receiver, inspect service state and diagnose failures without deleting queues:
 
+   Run on **the selected Tier 0 log receiver**.
+
    ```bash
-   # Run on the selected Tier 0 log receiver.
    sudo systemctl status syslog-ng-receiver.service
    sudo journalctl --unit syslog-ng-receiver.service --since '-10 minutes'
    ```

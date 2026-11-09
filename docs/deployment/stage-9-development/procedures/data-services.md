@@ -74,7 +74,7 @@ From Tier 1, initialize local inputs using the existing helper:
 For an existing collection, first review/register `development-data` under the
 [setup ownership contract](../../../development/generated-repositories.md#setup-ownership).
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup development-data
@@ -87,21 +87,14 @@ has separate state from `development`, which retains the alternative Podman
 data VMs need an explicitly reviewed state migration/import before this root
 can own them; adding dependencies must not remove or replace a live `git-1`.
 
-Edit these files:
+Edit in **`<prefix>-tier-1/`**.
 
-```text
-# Edit in <prefix>-tier-1/
-terraform/deployments/development-data/terraform.tfvars
-# Edit: The three VM entries, unused VMIDs, accepted storage and explicitly approved EL9
-#       default_linux_vm_template_id
-ansible/inventory/hosts.yml
-# Edit: All three matching host keys in development_data
-ansible/group_vars/development_data.yml
-# Edit: Matching platform_host_ips and development_data_hosts host/component maps, actual endpoints and
-#       package/TLS/backup inputs below
-.env.local
-# Edit: Tier 1 API credentials and local TF_VAR_ssh_public_key_files paths
-```
+- `terraform/deployments/development-data/terraform.tfvars`: The three VM entries, unused VMIDs, accepted
+  storage and explicitly approved EL9 `default_linux_vm_template_id`
+- `ansible/inventory/hosts.yml`: All three matching host keys in `development_data`
+- `ansible/group_vars/development_data.yml`: Matching `platform_host_ips` and `development_data_hosts`
+  host/component maps, actual endpoints and package/TLS/backup inputs below
+- `.env.local`: Tier 1 API credentials and local `TF_VAR_ssh_public_key_files` paths
 
 Select an approved **EL9 x86_64** template explicitly through this deployment's
 `default_linux_vm_template_id`, or verify that its selected shared default already
@@ -115,7 +108,7 @@ before package installation. See [template lifecycle](../../../administration/vi
 
 Provision only the VMs first; the product recipe in Step 3 has its own explicit apply gate:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 bash scripts/deploy.sh development-data --terraform-only
@@ -175,8 +168,9 @@ is used only for bucket/policy provisioning, never exported into chart Secrets.
 Set `GITLAB_S3_ENDPOINT` and `AWS_CA_BUNDLE` to the actual HTTPS endpoint and CA.
 Using an approved AWS CLI, create the two fresh users and their keys once:
 
+Run on **the independent storage custodian's execution host**.
+
 ```bash
-# Run on the independent storage custodian's execution host.
 umask 077
 aws --profile gitlab-provisioner --endpoint-url "$GITLAB_S3_ENDPOINT" iam create-user --user-name gitlab-app
 aws --profile gitlab-provisioner --endpoint-url "$GITLAB_S3_ENDPOINT" iam create-user --user-name gitlab-backup
@@ -208,8 +202,9 @@ approve the package host and any redirect destinations before installation.
 Install the tier/shared requirements and these additional role-local dependencies
 inside the accepted deployment virtual environment:
 
+Run from **`<prefix>-tier-1/`**.
+
 ```bash
-# Run from <prefix>-tier-1/
 ansible-galaxy collection install -r ansible/roles/development_data/requirements.yml
 python3 -m pip install 'boto3>=1.35' netaddr
 ```
@@ -233,7 +228,7 @@ The private extra-vars file supplies `development_data_postgresql_password`,
 `development_data_redis_password`, `development_data_gitaly_token`,
 `development_data_shell_token` and `development_data_s3_keys`. Encrypt it before use.
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/development-data.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass
@@ -247,7 +242,7 @@ The playbook checks module and Python dependencies before any provisioning.
 
 After reviewing those files and network/storage prerequisites, install:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/development-data.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml -e @/absolute/private/gitlab-data-secrets.yml --ask-vault-pass -e development_data_action=apply -e development_data_apply_confirm=true
@@ -305,7 +300,7 @@ toolbox backup CronJob through `platform-inputs.yml`, enabled with schedule
 reconciliation; no separate Helm overlay or manual Helm upgrade is required.
 For first acceptance, trigger an application backup explicitly:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 kubectl --kubeconfig "$KUBECONFIG" -n gitlab exec deploy/gitlab-toolbox -- backup-utility

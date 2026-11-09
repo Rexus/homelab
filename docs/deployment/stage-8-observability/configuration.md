@@ -25,22 +25,19 @@ Source ownership remains in
 [`ansible/roles/observability_platform/`](../../../tier-1/ansible/roles/observability_platform).
 Run from the **Tier 1 root** in the prepared deployment virtual environment:
 
+Run from **`<prefix>-tier-1/`**.
+
 ```bash
-# Run from <prefix>-tier-1/
 umask 077
 cp -n ansible/group_vars/observability_platform.yml.example ansible/group_vars/observability_platform.yml
 cp -n ansible/group_vars/observability_platform_secrets.yml.example ansible/group_vars/observability_platform_secrets.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-1/`**.
 
-```text
-# Edit in <prefix>-tier-1/
-ansible/group_vars/observability_platform.yml
-# Edit: Required site values in the following input fields.
-ansible/group_vars/observability_platform_secrets.yml
-# Edit: Follow the private-input/encryption steps below for secret values.
-```
+- `ansible/group_vars/observability_platform.yml`: Required site values in the following input fields.
+- `ansible/group_vars/observability_platform_secrets.yml`: Follow the private-input/encryption steps below
+  for secret values.
 
 Edit `ansible/group_vars/observability_platform.yml`; fill Secret values only in the
 separate private file. Preserve the reviewed native chart pins.
@@ -100,7 +97,7 @@ For explicit bootstrap ownership, fill the private `observability_secrets` map i
 `ansible/group_vars/observability_platform_secrets.yml` and set that file's
 `observability_manage_secrets: true`. Encrypt the completed file:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ansible-vault encrypt ansible/group_vars/observability_platform_secrets.yml
@@ -181,7 +178,7 @@ Helm release state and render output therefore need secret-level custody.
    Set database-storage acceptance only after qualifying the live block class.
 2. Render the selected inputs:
 
-   Run from `<prefix>-tier-1/`.
+   Run from **`<prefix>-tier-1/`**.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass
@@ -189,7 +186,7 @@ Helm release state and render output therefore need secret-level custody.
 
 3. Review private output under `secrets/observability-platform/`, then apply:
 
-   Run from `<prefix>-tier-1/`.
+   Run from **`<prefix>-tier-1/`**.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass -e observability_action=apply

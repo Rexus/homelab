@@ -18,19 +18,16 @@ This configures an existing Vault; it does not initialize, unseal or replace it.
 
 From the **Tier 0 root**, create the local input file:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 cp -n terraform/deployments/ci-auth/terraform.tfvars.example terraform/deployments/ci-auth/terraform.tfvars
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-terraform/deployments/ci-auth/terraform.tfvars
-# Edit: GitLab issuer/project/ref claims, Vault policy and scoped credential paths.
-```
+- `terraform/deployments/ci-auth/terraform.tfvars`: GitLab issuer/project/ref claims, Vault policy and
+  scoped credential paths.
 
 | Field in `terraform/deployments/ci-auth/terraform.tfvars` | Set |
 | --- | --- |
@@ -46,8 +43,9 @@ terraform/deployments/ci-auth/terraform.tfvars
 3. With a short-lived independently authorized Vault operator token, review/apply
    this root. `VAULT_ADDR`, `VAULT_CACERT` and `VAULT_TOKEN` stay outside Git.
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 umask 077
 mkdir -p .terraform/state/ci-auth .terraform/plans
 terraform -chdir=terraform/deployments/ci-auth init -backend-config="path=$PWD/.terraform/state/ci-auth/terraform.tfstate"
@@ -56,7 +54,7 @@ terraform -chdir=terraform/deployments/ci-auth plan -out="$PWD/.terraform/plans/
 
 Review the authentication backend, exact claims, policy path and planned changes.
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 terraform -chdir=terraform/deployments/ci-auth apply "$PWD/.terraform/plans/ci-auth.tfplan"
@@ -78,7 +76,7 @@ Prepare a private JSON file with `proxmox_api_url`, `proxmox_api_token_id`,
 `proxmox_api_token_secret` and `ssh_private_key`. Use the least-privilege API/SSH
 identities required for this repository; never reuse a human or root credential.
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 vault kv put kv/ci/tier0 @/absolute/private/tier0-ci.json

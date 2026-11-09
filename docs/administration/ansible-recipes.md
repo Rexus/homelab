@@ -24,7 +24,7 @@ maintenance compose the same roles without owning separate inventories or state.
    `ansible/group_vars/<setup>.yml`; keep the accepted inputs and any environment overlay.
 3. Run the selected recipe. For Tier 0 directory health checks:
 
-Run from `<prefix>-tier-0/` on the protected execution host.
+Run from **`<prefix>-tier-0/`** on the protected execution host.
 
 ```bash
 bash scripts/deploy.sh foundation --recipe maintenance
@@ -54,7 +54,7 @@ restore approved configuration using the product's runbook. Normal deployment wi
 1. Review `ansible/group_vars/issuer.yml` and the `issuing_ca` inventory group.
 2. Run the read-only service/configuration/API checks:
 
-   Run from `<prefix>-tier-0/` on the protected execution host.
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
 
    ```bash
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml

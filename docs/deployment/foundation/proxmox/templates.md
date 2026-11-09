@@ -64,9 +64,10 @@ Keep artifacts independently of the factory/registry for Tier 0 recovery.
 
 For a Bash workstation, from the directory containing the verified Talos download:
 
+Run on **the acquisition workstation in the verified download directory**.
+Unpack before uploading to Proxmox Import; retain the verified `.xz` archive.
+
 ```bash
-# Run on the acquisition workstation in the verified download directory.
-# Unpack before uploading to Proxmox Import; retain the verified .xz archive.
 unxz --keep nocloud-amd64.raw.xz
 sha256sum nocloud-amd64.raw
 ```
@@ -179,8 +180,9 @@ Terraform modules request full clones explicitly.
 
 On the **Proxmox host**, test the running disposable clone's agent:
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 read -r -p "Disposable clone VMID: " CLONE_VMID
 qm agent "$CLONE_VMID" ping
 ```
@@ -188,8 +190,9 @@ qm agent "$CLONE_VMID" ping
 If the agent does not respond, check **inside the cloned Linux VM**, not on Proxmox
 or the deployment host:
 
+Run inside the **disposable cloned Linux VM**.
+
 ```bash
-# Run inside the disposable cloned Linux VM.
 rpm -q qemu-guest-agent
 systemctl status qemu-guest-agent --no-pager
 ```

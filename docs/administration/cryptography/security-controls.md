@@ -38,8 +38,9 @@ public HTTPS only when selected, and named incident responders.
 
 2. From an approved client, test the actual HTTPS listener without verification bypass:
 
+   Run on **an approved HTTPS client**.
+
    ```bash
-   # Run on an approved HTTPS client.
    read -r -p 'Approved HTTPS service URL: ' SERVICE_URL
    curl --proto '=https' --head --show-error "$SERVICE_URL"
    ```
@@ -59,7 +60,7 @@ RSA exchange or weaken checks to repair an integration. Protocol/PQC changes req
 
 1. On the issuer, emit a harmless OS marker:
 
-   Run on the existing issuer host.
+   Run on **the existing issuer host**.
 
    ```bash
    logger -t pki-acceptance 'pki-security-check-001'

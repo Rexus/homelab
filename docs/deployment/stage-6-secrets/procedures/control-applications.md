@@ -48,19 +48,16 @@ retain one reconciliation owner per resource.
 
 From Tier 0, prepare local inputs:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-ansible/group_vars/control_applications.yml
-# Edit: Component selection, cluster context, TLS/SSO, database and backup-phase inputs.
-```
+- `ansible/group_vars/control_applications.yml`: Component selection, cluster context, TLS/SSO, database and
+  backup-phase inputs.
 
 Edit **`ansible/group_vars/control_applications.yml`**, not the `.example` file.
 Preserve previously accepted Stage 5 identity settings; select only the components being installed.
@@ -107,25 +104,22 @@ lists every required namespace/name and key. For an existing Secret controller, 
 the listed Secrets through that owner and keep `control_applications_manage_secrets: false`.
 For explicit bootstrap ownership, create a private file:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 umask 077
 mkdir -p secrets
 cp -n ansible/group_vars/control_applications_secrets.yml.example secrets/control-applications.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-secrets/control-applications.yml
-# Edit: Follow the private-input/encryption steps below for secret values.
-```
+- `secrets/control-applications.yml`: Follow the private-input/encryption steps below for secret values.
 
 Fill only selected products in `secrets/control-applications.yml` and set its
 `control_applications_manage_secrets: true`. Then encrypt it:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 ansible-vault encrypt secrets/control-applications.yml
@@ -162,8 +156,9 @@ not generate a CA/key, request a certificate through future Vault, or initialize
 Use the prepared deployment virtual environment and Tier 0 requirements. From the
 **Tier 0 root**, render the selected components:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/control-applications.yml \
   -e @secrets/control-applications.yml --ask-vault-pass
@@ -172,8 +167,9 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 Review native workloads, CNPG/backup resources, ingress, required Secret names,
 storage and RBAC. Then explicitly apply reviewed inputs:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/control-applications.yml \
   -e @secrets/control-applications.yml --ask-vault-pass \

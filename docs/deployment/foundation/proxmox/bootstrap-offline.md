@@ -38,7 +38,7 @@ Start from a clean matching VM with the same approved repositories and signing k
 
 Install acquisition tools separately from the Python environment:
 
-Run on the connected matching acquisition host.
+Run on **the connected matching acquisition host**.
 
 ```bash
 sudo dnf install -y dnf-plugins-core python3 python3-pip git gnupg2
@@ -50,8 +50,9 @@ to configure the approved Terraform package repository and install Terraform **o
 Run in Bash. Enter the absolute path to the reviewed upstream kit checkout;
 require a clean committed revision. Use a new bundle directory for each release.
 
+Run on **the connected matching acquisition host**.
+
 ```bash
-# Run on the connected matching acquisition host.
 set -euo pipefail
 read -r -p "Reviewed kit checkout (absolute path): " KIT
 test -z "$(git -C "$KIT" status --porcelain)"
@@ -91,8 +92,9 @@ Keep this acquisition venv outside the bundle; virtual environments are rebuilt
 on the target, not copied. Download binary wheels and all transitive collection
 dependencies from the repository manifests. [3][4]
 
+Run on **the connected matching acquisition host**.
+
 ```bash
-# Run on the connected matching acquisition host.
 python3 -m venv "$HOME/.local/share/homelab/acquisition-venv"
 source "$HOME/.local/share/homelab/acquisition-venv/bin/activate"
 python3 -m pip install -r "$KIT/tier-0/ansible/runtime-requirements.txt"
@@ -130,8 +132,9 @@ template publisher, logging, trust VMs and the Tier 2 cache. Add other roots to
 this array **before** transfer if required. No plan/apply or platform credentials
 are needed. The local module sources remain in the transferred repositories. [5][6]
 
+Run on **the connected matching acquisition host**.
+
 ```bash
-# Run on the connected matching acquisition host.
 sudo dnf install -y terraform
 TF_PLATFORM="$(terraform version -json | python3 -c 'import json,sys; print(json.load(sys.stdin)["platform"])')"
 terraform version -json > "$BUNDLE/acquisition-terraform.json"
@@ -159,8 +162,9 @@ On the connected host, create checksums, pack the reviewed bundle and record the
 archive checksum independently. Set `BOOTSTRAP` to the verified SSH destination.
 SSH host-key verification must remain enabled.
 
+Run on **the connected matching acquisition host**.
+
 ```bash
-# Run on the connected matching acquisition host.
 (cd "$BUNDLE" && find . -type f ! -path './SHA256SUMS' -print0 |
   sort -z | xargs -0 sha256sum > SHA256SUMS)
 tar --sparse -C "$(dirname "$BUNDLE")" -cf "$HOME/homelab-bootstrap.tar" "$(basename "$BUNDLE")"
@@ -174,8 +178,9 @@ On **`boot-1`**, compare the archive digest with that independent record
 **before unpacking**; stop on any mismatch. A digest transferred with the archive
 detects corruption but does not independently authenticate its source.
 
+Run on **`boot-1`** as automation.
+
 ```bash
-# Run on boot-1 as automation.
 set -euo pipefail
 cd /srv/tier0/offline
 sha256sum homelab-bootstrap.tar
@@ -205,8 +210,9 @@ Local-package signature checking is explicitly enabled. [9]
 For the early storage-tools branch, keep `BUNDLE` set to the verified bundle on mounted media;
 otherwise the default below selects the transferred workspace copy.
 
+Run on **`boot-1`** as automation.
+
 ```bash
-# Run on boot-1 as automation.
 BUNDLE="${BUNDLE:-/srv/tier0/offline/homelab-bootstrap}"
 sudo rpm --import "$BUNDLE/keys/hashicorp.asc"
 rpmkeys --checksig "$BUNDLE"/rpms/*.rpm
@@ -224,8 +230,9 @@ repositories to bypass an incomplete offline install.
 
 For a **new** installation only, create the checkout and generated collection:
 
+Run on **`boot-1`** as automation.
+
 ```bash
-# Run on boot-1 as automation.
 BUNDLE=/srv/tier0/offline/homelab-bootstrap
 mkdir -p /srv/tier0/src
 git clone "$BUNDLE/homelab.bundle" /srv/tier0/src/homelab
@@ -247,7 +254,7 @@ cp -a "$BUNDLE/artifacts/." /srv/tier0/artifacts/
 
 Generate from the restored upstream kit checkout, keeping the same prepared shell:
 
-Run from the reviewed upstream kit checkout on `boot-1` (`/srv/tier0/src/homelab`).
+Run from the reviewed upstream kit checkout on **`boot-1`** (`/srv/tier0/src/homelab`).
 
 ```bash
 bash scripts/init-tier-repos.sh
@@ -263,8 +270,9 @@ not the eventual hosted remote.
 Create a private shell setup file outside Git. Terraform's explicit filesystem
 mirror has **no `direct` fallback**; a provider cache alone is insufficient. [6]
 
+Run on **`boot-1`** as automation.
+
 ```bash
-# Run on boot-1 as automation.
 mkdir -p "$HOME/.config/homelab"
 cat > "$HOME/.config/homelab/offline.tfrc" <<EOF
 disable_checkpoint = true
@@ -287,8 +295,9 @@ source "$HOME/.config/homelab/offline.env"
 
 Check Tier 0's template tooling and locked provider initialization:
 
+Run from **`<prefix>-tier-0/`** on **`boot-1`**.
+
 ```bash
-# Run from <prefix>-tier-0/ on boot-1.
 source "$HOME/.config/homelab/offline.env"
 bash scripts/proxmox-templates.sh setup
 terraform -chdir=terraform/deployments/templates init -backend=false -input=false -lockfile=readonly
@@ -296,8 +305,9 @@ terraform -chdir=terraform/deployments/templates init -backend=false -input=fals
 
 Check the initial Linux cache's collection prerequisites separately:
 
+Run from **`<prefix>-tier-2/`** on **`boot-1`**.
+
 ```bash
-# Run from <prefix>-tier-2/ on boot-1.
 source "$HOME/.config/homelab/offline.env"
 ansible-playbook -i localhost, ansible/playbooks/control-node.yml \
   -e control_node_setup=cache -e control_node_require_terraform=true

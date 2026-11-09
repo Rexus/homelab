@@ -63,9 +63,10 @@ In the upstream kit, the same collection manifest is under `shared/ansible/requi
 
 From the generated tier's **`ansible/` directory**, create a private input file:
 
+Run from **`<prefix>-tier-0/ansible/`**, **`<prefix>-tier-1/ansible/`** or
+**`<prefix>-tier-2/ansible/`** on the execution host.
+
 ```bash
-# Run from the owning tier's ansible/ directory on the execution host:
-# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 install -d -m 0700 "$HOME/.config/homelab"
 cp -n group_vars/host_security.yml.example "$HOME/.config/homelab/host-security.yml"
 chmod 600 "$HOME/.config/homelab/host-security.yml"
@@ -127,9 +128,10 @@ an existing unrestricted VRRP allow into the new zone. [4]
 
 Use a Linux controller or WSL. From the generated tier's `ansible/` directory:
 
+Run from **`<prefix>-tier-0/ansible/`**, **`<prefix>-tier-1/ansible/`** or
+**`<prefix>-tier-2/ansible/`** on the execution host.
+
 ```bash
-# Run from the owning tier's ansible/ directory on the execution host:
-# <prefix>-tier-0/ansible/, <prefix>-tier-1/ansible/ or <prefix>-tier-2/ansible/.
 ansible-playbook -i localhost, playbooks/deployment/host-security.yml -c local \
   -e "@$HOME/.config/homelab/host-security.yml" \
   -e host_security_hosts=localhost -e host_security_action=render \
@@ -144,7 +146,7 @@ version. Render only writes the review directory. Review `sshd_config`,
 Native syntax validation also runs during apply; `--check` is deliberately rejected
 for apply because it cannot establish a fresh authenticated connection or enforce a firewall.
 
-Run from the owning tier's `ansible/` directory on the execution host: `<prefix>-tier-0/ansible/`,
+Run from the owning tier's **`ansible/`** directory on the execution host: `<prefix>-tier-0/ansible/`,
 `<prefix>-tier-1/ansible/` or `<prefix>-tier-2/ansible/`.
 
 ```bash

@@ -23,7 +23,7 @@ settings and test them; tags alone are not access control. [1]
 
 From Tier 0:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup infrastructure-runner
@@ -36,31 +36,29 @@ Terraform, Vault CLI, Ansible and optional cluster/image tools.
 Add pinned packages to `infrastructure_runner_tool_packages` where needed.
 No vendor `curl | bash` setup script is executed.
 
-Edit these files:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-terraform/deployments/infrastructure-runner/terraform.tfvars
-# Edit: iac-1 VMID, image, placement, management attachment and disk/size
-ansible/inventory/hosts.yml
-# Edit: Matching iac-1 in infrastructure_runner
-ansible/group_vars/infrastructure_runner.yml
-# Edit: platform_host_ips.iac-1, actual GitLab URL, pinned runner version, local CA path and tool packages
-# Edit: infrastructure_runner_trust_ci_control_plane: true only after Step 1's trust decision
-```
+- `terraform/deployments/infrastructure-runner/terraform.tfvars`: iac-1 VMID, image, placement, management
+  attachment and disk/size
+- `ansible/inventory/hosts.yml`: Matching iac-1 in `infrastructure_runner`
+- `ansible/group_vars/infrastructure_runner.yml`: `platform_host_ips.iac-1`, actual GitLab URL, pinned
+  runner version, local CA path and tool packages. Set `infrastructure_runner_trust_ci_control_plane: true`
+  only after Step 1's trust decision.
 
 Enter the newly created **project runner** token without recording it in shell history:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 read -r -s -p "Protected infrastructure runner authentication token: " INFRASTRUCTURE_RUNNER_TOKEN
 export INFRASTRUCTURE_RUNNER_TOKEN
 ```
 
 Deploy from Tier 0:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 bash scripts/deploy.sh infrastructure-runner
 unset INFRASTRUCTURE_RUNNER_TOKEN
 ```

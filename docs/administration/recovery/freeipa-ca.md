@@ -37,8 +37,9 @@ CSR/key-generation path as a restoration step.
 1. Select an approved interruption window on a CA-enabled FreeIPA server.
 2. Run as an authorized root operator on that server:
 
+   Run on **the selected FreeIPA server as the authorized root operator**.
+
    ```bash
-   # Run on the selected FreeIPA server as the authorized root operator.
    ipa-backup
    ipactl status
    ```
@@ -63,8 +64,9 @@ CSR/key-generation path as a restoration step.
 3. On that new VM, as root, run the following guarded operation. The exclusive attempt directory
    prevents retries into a partially restored host; build another replacement after a failed attempt.
 
+   Run on **the selected FreeIPA server as the authorized root operator**.
+
    ```bash
-   # Run on the selected FreeIPA server as the authorized root operator.
    set -euo pipefail
    umask 077
    read -r -p "Extracted full native FreeIPA backup directory: " IPA_FULL_BACKUP
@@ -94,8 +96,9 @@ CSR/key-generation path as a restoration step.
 1. On the restored server, check service health, then authenticate through the independent
    recovery credential before testing the directory API:
 
+   Run on **the selected FreeIPA server as the authorized root operator**.
+
    ```bash
-   # Run on the selected FreeIPA server as the authorized root operator.
    ipactl status
    ipa ping
    ```

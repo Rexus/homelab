@@ -20,7 +20,7 @@ a permitted network. [Platform inputs](../reference/platform-inputs.md) owns tho
 
 Initialize only this setup from the Tier 2 repository root:
 
-Run from `<prefix>-tier-2/`.
+Run from **`<prefix>-tier-2/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup lab
@@ -46,12 +46,9 @@ network and a free address outside DHCP. Unsafe workloads first need the
 
 ### 2a: Inventory identity
 
-Edit these files:
+Edit in **`<prefix>-tier-2/`**.
 
-```text
-# Edit in <prefix>-tier-2/
-ansible/inventory/hosts.yml  # all.children.lab.hosts: add lab-2; retain existing hosts
-```
+- `ansible/inventory/hosts.yml`: add `lab-2` under `all.children.lab.hosts`; retain existing hosts.
 
 Add this host entry:
 
@@ -61,12 +58,9 @@ lab-2: {}
 
 ### 2b: IP selection
 
-Edit these files:
+Edit in **`<prefix>-tier-2/`**.
 
-```text
-# Edit in <prefix>-tier-2/
-ansible/group_vars/lab.yml  # platform_host_ips: add lab-2 and its reserved IP
-```
+- `ansible/group_vars/lab.yml`: `platform_host_ips`: add lab-2 and its reserved IP
 
 Add this address:
 
@@ -79,12 +73,9 @@ use the [environment contract](../reference/platform-inputs.md#loading-and-overr
 
 ### 2c: Hardware selection
 
-Edit these files:
+Edit in **`<prefix>-tier-2/`**.
 
-```text
-# Edit in <prefix>-tier-2/
-terraform/deployments/lab/terraform.tfvars  # vm_instances: add the matching lab-2 key
-```
+- `terraform/deployments/lab/terraform.tfvars`: `vm_instances`: add the matching lab-2 key
 
 Add this hardware entry:
 
@@ -134,8 +125,9 @@ The [lab recipe](../../tier-2/ansible/playbooks/deployment/lab-vms.yml) applies 
 
 Run from Tier 2 with the accepted Ansible environment:
 
+Run from **`<prefix>-tier-2/`**.
+
 ```bash
-# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-inventory -i ansible/inventory/hosts.yml --graph lab
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible lab-2 -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/lab.yml -m ansible.builtin.debug -a var=ansible_host
 ```
@@ -144,7 +136,7 @@ Require `lab-2` in the lab group and the selected IP. The debug action resolves 
 it does not test SSH or install anything. [1]
 Optional provisioning preview, with authorized Proxmox access:
 
-Run from `<prefix>-tier-2/`.
+Run from **`<prefix>-tier-2/`**.
 
 ```bash
 bash scripts/deploy.sh lab --plan-only
@@ -153,7 +145,7 @@ bash scripts/deploy.sh lab --plan-only
 Expect the new VM and no unexplained removal/replacement of existing guests.
 The preview is not required before deployment. To provision the reviewed extension:
 
-Run from `<prefix>-tier-2/`.
+Run from **`<prefix>-tier-2/`**.
 
 ```bash
 bash scripts/deploy.sh lab
@@ -166,20 +158,19 @@ Use `--auto-approve` only for approved unattended CI. Adding a guest does not in
 
 1. Reuse an existing role where its contract fits. Edit these files:
 
-   ```text
-   # Edit in <prefix>-tier-2/
-   ansible/roles/<service>/tasks/main.yml        # implementation, templates and handlers as needed
-   ansible/playbooks/deployment/lab-service.yml # target selected lab hosts; compose accepted roles
-   ansible/requirements.yml                    # add required collections
-   ansible/playbooks/control-node.yml          # collection catalog and lab precheck mapping
-   # Mapping fields: control_node_collection_catalog and control_node_setup_collection_names.lab
-   ```
+   Edit in **`<prefix>-tier-2/`**.
+
+   - `ansible/roles/<service>/tasks/main.yml`: implementation, templates and handlers as needed
+   - `ansible/playbooks/deployment/lab-service.yml`: target selected lab hosts; compose accepted roles
+   - `ansible/requirements.yml`: add required collections
+   - `ansible/playbooks/control-node.yml`: collection catalog and lab precheck mapping:
+     `control_node_collection_catalog` and `control_node_setup_collection_names.lab`
 
    Shared is for reusable stateless behavior consumed by multiple tiers.
    Maintenance recipes reuse roles for supported operations.
 2. After implementing/reviewing the role and recipe, run configuration only:
 
-   Run from `<prefix>-tier-2/`.
+   Run from **`<prefix>-tier-2/`**.
 
    ```bash
    bash scripts/deploy.sh lab --ansible-only --playbook deployment/lab-service.yml
@@ -211,7 +202,7 @@ A genuinely Terraform-only workflow requires its dedicated command/validation co
 
 From the **kit root**, review generation without writing a collection:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 bash scripts/init-tier-repos.sh --dry-run

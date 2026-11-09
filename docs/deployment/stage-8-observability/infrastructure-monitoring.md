@@ -78,14 +78,13 @@ To enable the Tier 0 bridge after the Tier 1 metrics receiver is accepted:
 
 1. Edit these existing files:
 
-   ```text
-   # Edit in <prefix>-tier-0/
-   ansible/group_vars/infrastructure_monitoring.yml
-   # Edit: infrastructure_monitoring_export_endpoint to the accepted private gateway/metrics port.
-   #       Restrict infrastructure_monitoring_export_metrics / _export_labels to approved data.
-   ansible/group_vars/infrastructure_monitoring_secrets.yml
-   # Edit: Encrypted private-file map with scoped export.crt/export.key and CA trust.
-   ```
+   Edit in **`<prefix>-tier-0/`**.
+
+   - `ansible/group_vars/infrastructure_monitoring.yml`: `infrastructure_monitoring_export_endpoint` to the
+     accepted private gateway/metrics port. Restrict `infrastructure_monitoring_export_metrics` /
+     _export_labels to approved data.
+   - `ansible/group_vars/infrastructure_monitoring_secrets.yml`: Encrypted private-file map with scoped
+     export.crt/export.key and CA trust.
 
 2. Render/review and reapply the [existing monitoring recipe](../stage-6-secrets/monitoring.md#step-3-enable-and-verify-independent-alerts).
    It retains local diagnostics/alerts and adds the selected bridge; it grants Tier 1 no poller credentials.

@@ -21,7 +21,7 @@
 
 From the cloned kit, create the collection with one command:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 bash scripts/init-tier-repos.sh
@@ -35,8 +35,9 @@ working directory. Add `--dry-run` to preview without writing.
 The generator requires Python 3.9 or later and PyYAML. An existing Python
 environment containing PyYAML needs no additional install. If it is missing:
 
+Run from **upstream kit root**.
+
 ```bash
-# Run from upstream kit root
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -r scripts/tier-repos/requirements.txt
@@ -310,30 +311,27 @@ control cluster are not prerequisites for that local workflow.
 
 Initialize local working files from the Tier 0 repository root:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup syslog
 ```
 
-Edit these files:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-.env.local                                         # actual API endpoint, token and public-key paths
-terraform/common.tfvars                            # selected private network attachment
-terraform/deployments/syslog/terraform.tfvars        # log-1 VMID, sizing, storage and data disk
-ansible/inventory/hosts.yml                         # foundation_logging host membership
-ansible/group_vars/all.yml                          # domain and SSH account
-ansible/group_vars/syslog.yml                       # reserved log-1 IP; receiver settings follow later
-```
+- `.env.local`: actual API endpoint, token and public-key paths
+- `terraform/common.tfvars`: selected private network attachment
+- `terraform/deployments/syslog/terraform.tfvars`: log-1 VMID, sizing, storage and data disk
+- `ansible/inventory/hosts.yml`: `foundation_logging` host membership
+- `ansible/group_vars/all.yml`: domain and SSH account
+- `ansible/group_vars/syslog.yml`: reserved log-1 IP; receiver settings follow later
 
 Confirm network placement and permissions before provisioning.
 This uses the same base context as [Stage 2 logging](../deployment/stage-2-logging/README.md).
 For a disposable environment, retain the same `--env` on every command and complete
 [environment isolation](../reference/repository-scripts.md#environment-isolation) first.
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh syslog --terraform-only
@@ -401,7 +399,7 @@ Refresh preserves its existing contents and recreates the starter catalog if mis
 
 After updating the upstream kit, run this from its checkout:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 bash scripts/init-tier-repos.sh --refresh
@@ -503,8 +501,9 @@ protected by the normal ownership rules. These are diff inputs, not another depl
 Use the latest report's paths; older, unlisted comparison files may remain for manual cleanup.
 For example, compare the printed paths with:
 
+Run on **the workstation holding the generated collection**.
+
 ```bash
-# Run on the workstation holding the generated collection.
 read -r -p 'Preserved local file path: ' LOCAL_FILE
 read -r -p 'Rendered template path from the review report: ' CURRENT_TEMPLATE
 git diff --no-index -- "$LOCAL_FILE" "$CURRENT_TEMPLATE"

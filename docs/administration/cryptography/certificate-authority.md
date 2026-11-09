@@ -27,7 +27,7 @@ copies and the original package/configuration/schema binding.
 1. From Tier 0, with the existing `ansible/group_vars/issuer.yml` and protected
    controller credentials, run the read-only service/configuration/API checks:
 
-   Run from `<prefix>-tier-0/` on the protected execution host.
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
 
    ```bash
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
@@ -37,7 +37,7 @@ copies and the original package/configuration/schema binding.
    installs no updates and performs no issuance, backup or key initialization.
 2. On the issuer, inspect scheduled CRL publication:
 
-   Run on the existing issuer host.
+   Run on **the existing issuer host**.
 
    ```bash
    systemctl status openxpki-crl.timer --no-pager
@@ -59,8 +59,9 @@ issuance. Use the qualified consumer procedure for those different profiles.
 
 1. On the authorized service/recovery host, inspect the current **public** leaf: [2]
 
+   Run on **the authorized service/certificate recovery host**.
+
    ```bash
-   # Run on the authorized service/certificate recovery host.
    read -r -e -p 'Current service certificate PEM path: ' CURRENT_LEAF
    openssl x509 -in "$CURRENT_LEAF" -noout -subject -issuer -serial -dates -ext subjectAltName
    ```
@@ -68,8 +69,9 @@ issuance. Use the qualified consumer procedure for those different profiles.
 2. For a new P-384 key/CSR under the approved server policy, use a new protected
    directory outside Git. This command prompts for key encryption; it prints no private key. [3]
 
+   Run on **the authorized service/certificate recovery host**.
+
    ```bash
-   # Run on the authorized service/certificate recovery host.
    umask 077
    read -r -e -p 'New absolute protected request directory: ' LEAF_WORK
    read -r -p 'Approved service DNS name: ' SERVICE_DNS
@@ -84,8 +86,9 @@ issuance. Use the qualified consumer procedure for those different profiles.
    names, validity and issued serial. Renewal is another approved CSR workflow.
 4. Verify the returned chain, SAN, validity and CSR/certificate public-key match: [2][5]
 
+   Run on **the authorized service/certificate recovery host**.
+
    ```bash
-   # Run on the authorized service/certificate recovery host.
    read -r -e -p 'Returned service certificate PEM path: ' NEW_LEAF
    read -r -e -p 'Approved root certificate PEM path: ' ROOT_CERT
    read -r -e -p 'Approved issuing chain PEM path: ' ISSUER_CHAIN
@@ -111,7 +114,7 @@ suspect credential. A file-copy or playbook success does not verify client trust
    revocation action. For suspected compromise, use the [incident path](security-controls.md#detect-and-respond).
 2. On the issuer, as the authorized custodian, request native CRL publication: [1]
 
-   Run on the issuer host as the authorized CA custodian.
+   Run on **the issuer host as the authorized CA custodian**.
 
    ```bash
    sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem workflow create --realm infrastructure --type crl_issuance
@@ -122,8 +125,9 @@ suspect credential. A file-copy or playbook success does not verify client trust
 3. From a consumer, download the configured public DER CRL and verify it with the
    independently approved issuer certificate: [4]
 
+   Run on **an authorized CRL consumer**.
+
    ```bash
-   # Run on an authorized CRL consumer.
    read -r -p 'Configured issuer CRL URL: ' ISSUER_CRL_URL
    read -r -e -p 'Approved issuer certificate PEM path: ' ISSUER_CERT
    CRL_CHECK_DIR="$(mktemp -d)"

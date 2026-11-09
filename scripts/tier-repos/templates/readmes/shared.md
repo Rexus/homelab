@@ -25,13 +25,10 @@ then start from the owning deployment repository:
 Run the shared scripts from that tier's root. Keep reviewed copies of this
 repository and its dependencies available locally for recovery.
 
-Edit these files:
+Edit in **`${repo_prefix}-shared/`**.
 
-```text
-# Edit in ${repo_prefix}-shared/
-config/platform.tfvars           # edit common placement, storage and network references
-templates/proxmox-catalog.tfvars  # select the clone-tested consumer image defaults
-```
+- `config/platform.tfvars`: edit common placement, storage and network references
+- `templates/proxmox-catalog.tfvars`: select the clone-tested consumer image defaults
 
 ## Repository structure
 

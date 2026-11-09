@@ -34,19 +34,15 @@ Do not imply that this example implements their upgrade/recovery workflows.
 
 From the **dedicated Tier 0 infrastructure project checkout**, create the pipeline starter:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 cp -n ci/gitlab-iac.yml.example .gitlab-ci.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-.gitlab-ci.yml
-# Edit: Selected setup/context and protected pipeline settings below.
-```
+- `.gitlab-ci.yml`: Selected setup/context and protected pipeline settings below.
 
 If `.gitlab-ci.yml` already exists, review and merge the protected jobs explicitly;
 `cp -n` does not modify it. In GitLab's project settings, protect the selected branch

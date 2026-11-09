@@ -165,7 +165,7 @@ Use this flow:
 
 Initialize the selected context from Tier 0 before editing inputs:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup immutable-template --env test
@@ -199,7 +199,7 @@ including a unique builder VMID and IP. Keep the builder in its original state t
 Prepare the builder VM; review Terraform's inline plan and enter `yes` only for
 the intended changes (`--plan-only` is an optional preview, `--auto-approve` is for approved CI):
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh immutable-template --env test
@@ -216,7 +216,7 @@ Rerun Ansible, then set the builder VM to `template = true` and
 `started = false` in the same `terraform/deployments/immutable-template/terraform.test.tfvars`.
 Run only Terraform for the final conversion:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh immutable-template --env test --terraform-only

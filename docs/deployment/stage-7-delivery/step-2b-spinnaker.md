@@ -111,19 +111,16 @@ interface are consumed, never Tier 0 control credentials. No NAS gateway is adde
 
 From the **Tier 1 root**, create the local settings without replacing existing inputs:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-1/`**.
 
-```text
-# Edit in <prefix>-tier-1/
-ansible/group_vars/delivery_platform.yml
-# Edit: Selected delivery controller, cluster context, SSO, storage and egress inputs.
-```
+- `ansible/group_vars/delivery_platform.yml`: Selected delivery controller, cluster context, SSO, storage
+  and egress inputs.
 
 Edit `ansible/group_vars/delivery_platform.yml` using the table below. Set the
 existing Tier 1 kubeconfig/context explicitly; keep `delivery_platform_install_harbor: false`
@@ -184,8 +181,9 @@ Request approved leaf material from the PKI custodian. With files in private
 `$SPINNAKER_TLS_DIR/<service>/{tls.crt,tls.key,ca.crt}` and a protected
 `$SPINNAKER_TLS_DIR/keystore.password`, import them from an authorized Tier 1 worker:
 
+Run from **`<prefix>-tier-1/`**.
+
 ```bash
-# Run from <prefix>-tier-1/
 : "${KUBECONFIG:?Set the Tier 1-only kubeconfig}"
 : "${TIER1_CONTEXT:?Set the exact Tier 1 context}"
 : "${SPINNAKER_TLS_DIR:?Set the private preissued leaf directory}"
@@ -293,8 +291,9 @@ to its actual mountpoint. Run with an authorized storage identity; leave reposit
 files writable by the backup pod's UID/GID `999`, including under NFS root squash.
 Existing repositories keep their original password and marker; skip initialization.
 
+Run from **`<prefix>-tier-1/`**.
+
 ```bash
-# Run from <prefix>-tier-1/
 export RESTIC_REPOSITORY="${SPINNAKER_NAS_MOUNT:?Set the verified NAS mountpoint}/spinnaker"
 export RESTIC_PASSWORD_FILE=/absolute/private/spinnaker-restic.password
 mountpoint -q "$SPINNAKER_NAS_MOUNT" || exit 1
@@ -351,7 +350,7 @@ and scoped target contracts are all included. The output directory contains:
 
 Read the rendered checksum:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 cat secrets/delivery-platform/spinnaker.sha256

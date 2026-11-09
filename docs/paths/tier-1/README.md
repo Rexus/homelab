@@ -36,7 +36,7 @@ scope before planning a rollout.
 
 Initialize the platform cluster if it does not exist:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 bash scripts/kubernetes-cluster.sh init

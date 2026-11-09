@@ -71,7 +71,7 @@ replacement/recovery plan. The EFI volume lives on each node's selected live dat
 
 ## Step 1: Initialize and edit inputs
 
-Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+Run from the selected cluster owner: **`<prefix>-tier-0/`**, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
 
 ```bash
 bash scripts/kubernetes-cluster.sh init
@@ -85,18 +85,13 @@ For an existing applied SDN subnet, select
 instead of repeating prefix/gateway values. Node IPs remain in this tier's group vars;
 all node bridges must select that VNet with no additional VLAN tag.
 
-Edit these files:
+Edit in the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
 
-```text
-# Edit in the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
-ansible/inventory/hosts.yml
-# Edit: Retain/add control planes and workers under talos_control_plane / talos_workers, both under talos.
-#       Tier 0 starts with k8ctl-1/2/3; retain the other tiers' own host keys.
-ansible/group_vars/talos.yml
-# Edit: One reserved platform_host_ips address for every node.
-terraform/deployments/kubernetes/terraform.tfvars
-# Edit: The fields below; this root does not read Linux common.tfvars.
-```
+- `ansible/inventory/hosts.yml`: Retain/add control planes and workers under `talos_control_plane` /
+  `talos_workers`, both under talos. Tier 0 starts with k8ctl-1/2/3; retain the other tiers' own host keys.
+- `ansible/group_vars/talos.yml`: One reserved `platform_host_ips` address for every node.
+- `terraform/deployments/kubernetes/terraform.tfvars`: The fields below; this root does not read Linux
+  common.tfvars.
 
 Shared supplies [common sizes](../../../../shared/config/guest-sizes.json), read directly by
 tier-local Terraform, and [approved image metadata](../../../../shared/templates/proxmox-catalog.tfvars),
@@ -148,8 +143,9 @@ On the independent execution host, load the already configured owning tier's loc
 environment and export the provider's native names. Run in a protected shell;
 never enable shell tracing or print token values:
 
+Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 set -a
 source .env.local
 set +a
@@ -190,7 +186,7 @@ a registry, resolver, time service or firewall policy.
 
 ## Step 3: Plan and deploy
 
-Run from the selected cluster owner: `<prefix>-tier-0/`, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
+Run from the selected cluster owner: **`<prefix>-tier-0/`**, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
 
 ```bash
 bash scripts/kubernetes-cluster.sh plan
@@ -200,8 +196,9 @@ Review every VMID, source template, initial host, disk, MAC, endpoint, and secre
 resource before continuing. A failed re-plan removes the saved plan so an older
 plan cannot be applied accidentally.
 
+Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 bash scripts/kubernetes-cluster.sh apply
 bash scripts/kubernetes-cluster.sh credentials
 ```
@@ -229,8 +226,9 @@ gate the apply job on approval of that exact protected plan; there is no additio
 
 1. Export the client paths from the Tier 0 repository root:
 
+   Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
+
    ```bash
-   # Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
    export TALOSCONFIG="$PWD/secrets/talos/talosconfig"
    export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
    kubectl get --raw='/readyz'
@@ -245,8 +243,9 @@ gate the apply job on approval of that exact protected plan; there is no additio
 
 ## Step 5: Verify and hand over
 
+Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
+
 ```bash
-# Run from the selected cluster owner: <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/.
 export TALOSCONFIG="$PWD/secrets/talos/talosconfig"
 export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
 talosctl health

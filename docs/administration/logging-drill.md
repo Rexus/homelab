@@ -50,8 +50,9 @@ On the Tier 0 execution host, create an ignored, protected working directory and
 three independent test batches. Keep their manifests/digests outside the collector
 before fault injection; do not place raw exports or credentials in Git.
 
+Run from **`<prefix>-tier-0/`** on the protected execution host.
+
 ```bash
-# Run from <prefix>-tier-0/ on the protected execution host.
 umask 077
 mkdir -p .logging-evidence
 RUN_DIR="$(mktemp -d "$PWD/.logging-evidence/drill.XXXXXX")"
@@ -78,8 +79,9 @@ The [checker reference](../reference/logging-evidence.md) defines inputs and exi
    after copying all three batches through an authenticated channel. In that producer session,
    select their actual directory; `$RUN_DIR` on the execution host is not inherited: [2]
 
+   Run on **the approved disposable producer**.
+
    ```bash
-   # Run on the approved disposable producer.
    read -r -e -p "Producer directory containing the copied drill batches: " LOGGING_PRODUCER_BATCHES
    logger --socket-errors=on --size 4096 --tag homelab-logging-drill --file "$LOGGING_PRODUCER_BATCHES/before.jsonl"
    ```
@@ -91,7 +93,7 @@ The [checker reference](../reference/logging-evidence.md) defines inputs and exi
    this whole batch. Record that backup ID and its covered manifest before the fault.
 2. Apply one approved fault using the recorded command. While it is active, run on the producer:
 
-   Run on the approved disposable producer.
+   Run on **the approved disposable producer**.
 
    ```bash
    logger --socket-errors=on --size 4096 --tag homelab-logging-drill --file "$LOGGING_PRODUCER_BATCHES/during.jsonl"
@@ -100,7 +102,7 @@ The [checker reference](../reference/logging-evidence.md) defines inputs and exi
    Observe durable spooling, alarms and the declared rejection/backpressure behavior.
 3. Recover using the approved undo command, then run on the producer:
 
-   Run on the approved disposable producer.
+   Run on **the approved disposable producer**.
 
    ```bash
    logger --socket-errors=on --size 4096 --tag homelab-logging-drill --file "$LOGGING_PRODUCER_BATCHES/after.jsonl"
@@ -111,8 +113,9 @@ The [checker reference](../reference/logging-evidence.md) defines inputs and exi
    original drill messages from the retained archive, not a dashboard or sender spool.
    Reconcile all three batches against `received.jsonl`:
 
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    read -r -e -p "Existing checker-side drill directory: " RUN_DIR
    bash scripts/log-evidence.sh verify \
      --expected "$RUN_DIR/before.jsonl" "$RUN_DIR/during.jsonl" "$RUN_DIR/after.jsonl" \
@@ -139,15 +142,16 @@ not silently removed or treated as exactly-once delivery.
 
 For a systemd-managed disposable receiver, an example **process** fault is: [5]
 
+Run on **the approved disposable receiver**.
+
 ```bash
-# Run on the approved disposable receiver.
 read -r -p "Approved disposable receiver service unit: " RECEIVER_UNIT
 sudo systemctl status "$RECEIVER_UNIT" --no-pager
 ```
 
 Verify the unit and recorded fault authorization, then inject abrupt process loss:
 
-Run on the approved disposable receiver.
+Run on **the approved disposable receiver**.
 
 ```bash
 sudo systemctl kill --kill-whom=main --signal=SIGKILL "$RECEIVER_UNIT"
@@ -155,8 +159,9 @@ sudo systemctl kill --kill-whom=main --signal=SIGKILL "$RECEIVER_UNIT"
 
 For this service, recover with the recorded systemd operation if automatic restart has not recovered it:
 
+Run on **the approved disposable receiver**.
+
 ```bash
-# Run on the approved disposable receiver.
 sudo systemctl start "$RECEIVER_UNIT"
 sudo systemctl status "$RECEIVER_UNIT" --no-pager
 ```
@@ -192,8 +197,9 @@ then return to the Tier 0 checker with an authenticated export from the restored
 3. Export the original drill messages from the **restored records** as `restored.jsonl`.
    The pre-fault backup above must contain the whole before-batch:
 
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    read -r -e -p "Existing checker-side drill directory: " RUN_DIR
    bash scripts/log-evidence.sh verify --expected "$RUN_DIR/before.jsonl" \
      --observed "$RUN_DIR/restored.jsonl" > "$RUN_DIR/restored-report.json"

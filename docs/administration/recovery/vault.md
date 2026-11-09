@@ -31,10 +31,11 @@ shows TLS, storage and audit requirements, not a restore installer. On Kubernete
 isolated cluster/namespace and a single Vault replica with fresh claims and reviewed values. Do not
 run ordinary Helm convergence against the failed cluster as a recovery shortcut.
 
-Run on the recovery workstation, with `VAULT_ADDR` naming only that isolated instance:
+Run on the recovery workstation, with **`VAULT_ADDR`** naming only that isolated instance:
+
+Run on **the independent isolated recovery workstation**.
 
 ```bash
-# Run on the independent isolated recovery workstation.
 set -euo pipefail
 set -o noclobber
 umask 077
@@ -72,8 +73,9 @@ snapshot path and isolated target context for these commands.
 
 Authenticate with the temporary target's new root token through a hidden prompt, then restore:
 
+Run on **the independent isolated recovery workstation**.
+
 ```bash
-# Run on the independent isolated recovery workstation.
 read -r -s -p 'Temporary isolated target root token: ' VAULT_TOKEN
 export VAULT_TOKEN
 printf '\n'

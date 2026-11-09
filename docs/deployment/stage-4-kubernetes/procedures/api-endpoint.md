@@ -100,7 +100,7 @@ Install the common and Tier 0 Ansible requirements as described in
 
 From the generated Tier 0 repository root:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup cluster-endpoint
@@ -157,7 +157,7 @@ and shared storage/power dependencies separately.
 Run once. Review the displayed plan, which must create only the gateway pair,
 then enter `yes` to provision and configure them:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh cluster-endpoint
@@ -176,8 +176,9 @@ It has no cross-tier state or cluster-provider dependency.
 For an approved **existing** pair, use only Ansible with its original provisioning
 owner and state:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 export ANSIBLE_CONFIG="$PWD/ansible/ansible.cfg"
 ansible-playbook -i ansible/inventory/hosts.yml \
   ansible/playbooks/deployment/cluster-endpoint.yml \
@@ -210,8 +211,9 @@ acceptance check.
 
 Run parser checks on both gateways after installation:
 
+Run on **each private API gateway (api-gw-1 and api-gw-2)**.
+
 ```bash
-# Run on each private API gateway (api-gw-1 and api-gw-2).
 sudo haproxy -c -f /etc/haproxy/haproxy.cfg
 sudo keepalived --config-test -f /etc/keepalived/keepalived.conf
 ```
@@ -219,8 +221,9 @@ sudo keepalived --config-test -f /etc/keepalived/keepalived.conf
 After bootstrapping the cluster, from its authorized administration host using
 the owning tier's protected kubeconfig:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 kubectl get --raw='/readyz?verbose'
 kubectl get nodes -o wide
 ```
@@ -242,7 +245,7 @@ the live failover and isolation tests below.
 
 Offline regression checks run from this upstream root:
 
-Run from the upstream deployment-kit checkout.
+Run from **the upstream deployment-kit checkout**.
 
 ```bash
 python3 -B -m unittest discover -s tests -p 'test_tier_cluster_endpoint.py' -v

@@ -35,8 +35,9 @@ provisioning/root token.
 3. With a separately authorized provisioning credential and verified `VAULT_ADDR`, `VAULT_CACERT`
    and `VAULT_TLS_SERVER_NAME`, create the policy and enable a dedicated cert mount **once**:
 
+   Run from **`<prefix>-tier-0/`** on the authorized Vault administration workstation.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
    vault policy write control-raft-snapshot ansible/roles/control_backup/files/vault-snapshot.hcl
    vault auth enable -path=control-backup-cert cert
    ```
@@ -47,8 +48,9 @@ provisioning/root token.
    do not authorize a general CA without identity constraints. Native cert auth supports trusted
    certificate/CA entries; renewal of this pinned leaf requires an explicit role update. [1][2]
 
+   Run from **`<prefix>-tier-0/`** on the authorized Vault administration workstation.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
    set -euo pipefail
    read -r -e -p "Approved client certificate PEM path: " BACKUP_CLIENT_CERT
    read -r -p "Exact approved client DNS SAN: " BACKUP_CLIENT_DNS
@@ -83,8 +85,9 @@ Inherited identity/group policies must not broaden this backup identity.
    Keep issuance/recovery independent of Vault/SSO. Monitor before the default seven-day expiry margin.
 2. Have the CA custodian issue the replacement client identity. On the administration workstation:
 
+   Run from **`<prefix>-tier-0/`** on the authorized Vault administration workstation.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
    read -r -p "Approved replacement client certificate PEM: " BACKUP_CLIENT_CERT
    openssl x509 -in "$BACKUP_CLIENT_CERT" -noout -sha256 -fingerprint -dates
    openssl x509 -in "$BACKUP_CLIENT_CERT" -noout -checkend 604800
@@ -110,8 +113,9 @@ Select `control_backup_vault_auth: approle` explicitly when the site operates Se
 Use an existing reviewed `approle` mount and the same policy. Define the approved SecretID lifetime
 and use limit with its owner; these are not hidden permanent credentials or a daily-rotation default:
 
+Run from **`<prefix>-tier-0/`** on the authorized Vault administration workstation.
+
 ```bash
-# Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
 read -r -p "Approved recovery-host source CIDR: " RECOVERY_CIDR
 read -r -p "Approved SecretID lifetime: " BACKUP_SECRET_ID_TTL
 read -r -p "Approved SecretID login-use limit: " BACKUP_SECRET_ID_USES
@@ -127,8 +131,9 @@ vault write auth/approle/role/control-raft-snapshot \
 
 Capture the values directly into a **new private directory outside Git**, rather than printing them:
 
+Run from **`<prefix>-tier-0/`** on the authorized Vault administration workstation.
+
 ```bash
-# Run from <prefix>-tier-0/ on the authorized Vault administration workstation.
 umask 077
 read -r -e -p "New absolute credential directory outside Git: " AUTH_DIRECTORY
 mkdir -m 0700 "$AUTH_DIRECTORY" &&

@@ -26,19 +26,16 @@ then return here before publishing a website.
 
 From the **Tier 2 root**, create the private override:
 
-Run from `<prefix>-tier-2/`.
+Run from **`<prefix>-tier-2/`**.
 
 ```bash
 cp -n ansible/group_vars/public-https.yml.example ansible/group_vars/public-https.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-2/`**.
 
-```text
-# Edit in <prefix>-tier-2/
-ansible/group_vars/public-https.yml
-# Edit: Approved DNS names, edge mapping, ACME account and staging/production gates.
-```
+- `ansible/group_vars/public-https.yml`: Approved DNS names, edge mapping, ACME account and
+  staging/production gates.
 
 Start with Tier 2's [public HTTPS example](../../../tier-2/ansible/group_vars/public-https.yml.example).
 Edit `ansible/group_vars/public-https.yml`, preserving existing host addresses,
@@ -106,8 +103,9 @@ The [edge deployment view](../stage-7-delivery/procedures/edge-proxy.md#default-
 
 From the Tier 2 repository, reconcile the HTTP bootstrap edge:
 
+Run from **`<prefix>-tier-2/`**.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/deploy.sh edge --ansible-only --playbook deployment/edge-proxy.yml \
   --ansible-vars ansible/group_vars/public-https.yml
 ```
@@ -116,8 +114,9 @@ Before a production certificate exists, only HTTP-01 is served; other HTTP
 requests return 503 and there is no public TLS listener. With
 `edge_acme_production: false` and the subscriber terms accepted:
 
+Run from **`<prefix>-tier-2/`**.
+
 ```bash
-# Run from <prefix>-tier-2/
 bash scripts/deploy.sh edge --recipe maintenance --playbook maintenance/public-certificates.yml \
   --ansible-vars ansible/group_vars/public-https.yml
 ```
@@ -154,8 +153,9 @@ installs a systemd timer, not a daemon on each edge. Supply a private vars file:
 | `public_certificate_schedule_inputs` | Absolute private production override, mode 0600, owned by that user |
 | `public_certificate_schedule_state` | Same private state directory, mode 0700, owned by that user |
 
+Run from **`<prefix>-tier-2/`**.
+
 ```bash
-# Run from <prefix>-tier-2/
 ANSIBLE_CONFIG=ansible/ansible.cfg \
   ansible-playbook --ask-become-pass -i localhost, ansible/playbooks/deployment/public-certificate-schedule.yml \
   -e @/absolute/private/renewal-schedule.yml

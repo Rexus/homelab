@@ -81,7 +81,7 @@ their original timestamps and source identity. Record any earlier unbuffered gap
 
 1. Initialize local inputs from the Tier 0 repository root:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    bash scripts/init-local-files.sh --setup syslog
@@ -102,7 +102,7 @@ their original timestamps and source identity. Record any earlier unbuffered gap
 3. Provision the VM and disks. Review Terraform's displayed plan; enter `yes` only
    for the intended changes:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    bash scripts/deploy.sh syslog --terraform-only
@@ -112,8 +112,9 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    can add `--auto-approve`; this does not prepare the data mount or receiver trust.
 4. Check SSH from the execution host, using the address set above:
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    read -r -p 'Reserved log-1 IP: ' LOG_HOST_IP
    ssh "automation@$LOG_HOST_IP"
    ```

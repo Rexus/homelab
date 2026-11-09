@@ -57,8 +57,9 @@ failure model. Never lower expected votes to disguise a production partition. [1
 
 On a Proxmox host, verify membership:
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pvecm status
 pvecm nodes
 ```

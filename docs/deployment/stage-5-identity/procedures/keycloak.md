@@ -26,20 +26,18 @@ backup storage and protected cluster log delivery. None may depend on later Vaul
 
 Initialize the local file without overwriting existing selections:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
 export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
 kubectl get nodes -o wide
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-ansible/group_vars/control_applications.yml
-# Edit: Component selection, cluster context, TLS/SSO, database and backup-phase inputs.
-```
+- `ansible/group_vars/control_applications.yml`: Component selection, cluster context, TLS/SSO, database and
+  backup-phase inputs.
 
 Edit **`ansible/group_vars/control_applications.yml`**. Select only `keycloak` for
 this stage. The [shared product contract](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership)
@@ -77,8 +75,9 @@ point-in-time recovery is required; a file backup recovers only to a completed s
 
 Create the encrypted input before entering secrets:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 cp -n ansible/group_vars/control_applications_secrets.yml.example ansible/group_vars/control_applications_secrets.yml
 ansible-vault encrypt ansible/group_vars/control_applications_secrets.yml
 ansible-vault edit ansible/group_vars/control_applications_secrets.yml
@@ -110,7 +109,7 @@ dependency belongs in these inputs. Keep TLS verification enabled on the control
 
 1. Keep `files` / `prepare` in the local application inputs. Render without live changes:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=render
@@ -119,7 +118,7 @@ dependency belongs in these inputs. Keep TLS verification enabled on the control
 2. Inspect `secrets/control-applications/`, including the database preparation
    resources and Secret references, then prepare the database:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
@@ -147,7 +146,7 @@ no storage gateway and does not move live database volumes. Return to Step 4.
 With the selected backup inputs complete, rerender using the Step 3a render command.
 Inspect database, backup, TLS, ingress and federation selections before applying:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply

@@ -8,7 +8,7 @@ Detection is defense in depth, not a proof that arbitrary passwords or private d
 
 Install an approved Gitleaks CLI from verified release artifacts. Run from the owning tier repository:
 
-Run from the owning `<prefix>-tier-N/` repository.
+Run from the owning **`<prefix>-tier-N/`** repository.
 
 ```bash
 bash '../<prefix>-shared/scripts/check-secrets.sh' staged

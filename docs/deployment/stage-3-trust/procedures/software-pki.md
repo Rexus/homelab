@@ -48,19 +48,16 @@ Restrict host administration and qualify the
 
 1. On the Linux Tier 0 controller, create the private policy input outside Git:
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    read -r -e -p 'Absolute private issuer policy file path: ' ISSUER_POLICY_FILE
    cp -n ansible/group_vars/issuer-policy.yml.example "$ISSUER_POLICY_FILE"
    ```
 
-   Edit these files using the fields below:
+   Edit in **`<prefix>-tier-0/`**.
 
-   ```text
-   # Edit in <prefix>-tier-0/
-   "$ISSUER_POLICY_FILE"
-   # Edit: Required site values in the following input fields.
-   ```
+   - `"$ISSUER_POLICY_FILE"`: Required site values in the following input fields.
 
    Its parent directory must already be protected. Edit that file:
 
@@ -76,8 +73,9 @@ Restrict host administration and qualify the
    controller (install the OS's `argon2` package first), independently for each
    account. The password travels on stdin, not the process command line: [2]
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    read -rsp 'New account password: ' account_password; echo
    printf '%s' "$account_password" | argon2 "$(openssl rand -hex 16)" -id -e -t 3 -m 16 -p 4
    unset account_password
@@ -89,8 +87,9 @@ Restrict host administration and qualify the
 
 3. Prepare independent secrets in a private shell:
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    read -rsp 'Issuer key passphrase (32+ characters): ' OPENXPKI_SIGNER_PASSWORD; echo
    export OPENXPKI_SIGNER_PASSWORD
    export OPENXPKI_DATAVAULT_SECRET="$(openssl rand -hex 32)"
@@ -102,7 +101,7 @@ Restrict host administration and qualify the
 
 4. Build from the Tier 0 repository root:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/openxpki-bundle.yml -e "@$ISSUER_POLICY_FILE"
@@ -144,7 +143,7 @@ an approved portal certificate before normal operations.
    Keep `openxpki_activate_runtime: false`. The explicit fresh-key recipe creates
    an encrypted P-384 key on the issuer and fetches only its CSR:
 
-   Run from `<prefix>-tier-0/`.
+   Run from **`<prefix>-tier-0/`**.
 
    ```bash
    bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki-key.yml --ansible-vars ansible/group_vars/issuer.yml

@@ -27,13 +27,10 @@ allocation are links to the maintained manual rather than copied rules.
 Replace the reference values with agreed standards; exact hosts and addresses remain
 in tier-local inventory, not a second documentation inventory.
 
-Edit these files:
+Edit in **`<prefix>-architecture/`**.
 
-```text
-# Edit in <prefix>-architecture/
-platform-standards.md  # agreed naming, tags, VMID reservations and network choices
-docs/README.md        # selected paths and separate deployed/verified capability checks
-```
+- `platform-standards.md`: agreed naming, tags, VMID reservations and network choices
+- `docs/README.md`: selected paths and separate deployed/verified capability checks
 
 The single platform record, `docs/README.md`, selects the paths and tracks each
 capability as deployed and verified separately. Its links point to the actual
@@ -126,7 +123,13 @@ not permission to overwrite project-authored documents.
 
 ## Writing command examples
 
-For a single-line command, put its working repository or machine and any guidance immediately
-above the fence; keep only the command inside. Multiline examples may retain comments when
-they explain the sequence. Keep file-edit lists separate from executable commands.
+Put the **working repository or machine** immediately above each command/configuration example.
+Use inline code for file paths and exact variable names; state the edits in a short paragraph or
+file list above the example. Avoid commented path lists and repeated `# Edit:` instructions.
+
+Use the actual fence language: `bash` for commands, `yaml`/`hcl`/`dotenv` for configuration,
+and `text` for output or file trees. Do not style instructions as executable code.
+When a comment is needed inside an example, keep it short, indent wrapped lines consistently,
+and separate logical groups with blank lines. Preserve required native syntax,
+such as shebangs, Cloud-Init headers and literal configuration content.
 Use the [command conventions](../README.md#read-command-examples) for placeholders and context.

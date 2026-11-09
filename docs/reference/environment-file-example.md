@@ -14,12 +14,9 @@ the owning tier repository (or `tier-N/` inside a private source checkout).
 
 ## Example
 
-Edit these files:
+Edit in the owning **`<prefix>-tier-N/`** repository.
 
-```text
-# Edit in the owning <prefix>-tier-N/ repository
-.env.local  # actual API endpoint, token ID/secret and local vault-password path
-```
+- `.env.local`: actual API endpoint, token ID/secret and local vault-password path
 
 Minimal contents:
 

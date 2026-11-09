@@ -144,7 +144,7 @@ They have independent roots and state. Deploy both only when both runtimes are r
 
 Initialize local inputs:
 
-Run from `<prefix>-tier-2/`.
+Run from **`<prefix>-tier-2/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup lab
@@ -152,25 +152,18 @@ bash scripts/init-local-files.sh --setup lab
 
 Edit these files together before deployment:
 
-Edit these files:
+Edit in **`<prefix>-tier-2/`**.
 
-```text
-# Edit in <prefix>-tier-2/
-terraform/deployments/lab/terraform.tfvars
-# Edit: Complete vm_instances/lxc_instances, unused VMIDs, sizes and storage
-terraform/common.tfvars
-# Edit: Tier-local application network override for the selected isolated lab subnet
-ansible/inventory/hosts.yml
-# Edit: Matching logical host keys and lab groups
-ansible/group_vars/lab.yml
-# Edit: Matching platform_host_ips
-.env.local
-# Edit: This tier's verified API endpoint/token and local SSH public-key paths
-```
+- `terraform/deployments/lab/terraform.tfvars`: Complete `vm_instances`/`lxc_instances`, unused VMIDs, sizes
+  and storage
+- `terraform/common.tfvars`: Tier-local application network override for the selected isolated lab subnet
+- `ansible/inventory/hosts.yml`: Matching logical host keys and lab groups
+- `ansible/group_vars/lab.yml`: Matching `platform_host_ips`
+- `.env.local`: This tier's verified API endpoint/token and local SSH public-key paths
 
 Run with independently authorized execution credentials:
 
-Run from `<prefix>-tier-2/`.
+Run from **`<prefix>-tier-2/`**.
 
 ```bash
 bash scripts/deploy.sh lab
@@ -184,7 +177,7 @@ commands; ordinary workload users receive no Proxmox credentials.
 
 1. From Tier 2, initialize the dedicated cluster inputs:
 
-   Run from `<prefix>-tier-2/`.
+   Run from **`<prefix>-tier-2/`**.
 
    ```bash
    bash scripts/kubernetes-cluster.sh init

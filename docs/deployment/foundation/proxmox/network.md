@@ -252,7 +252,7 @@ iface vmbr1 inet static
 
 Verify RSTP after applying the host network change:
 
-Run on the selected Proxmox host as an authorized root operator.
+Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
 ovs-appctl rstp/show

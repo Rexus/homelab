@@ -122,8 +122,9 @@ The restic manifest records the source export/mount mapping and selected paths f
    [control backup](../backups/control-applications.md#operate-and-verify).
 2. On the recovery host, inspect the configured source mount:
 
+   Run on **the independent recovery host**.
+
    ```bash
-   # Run on the independent recovery host.
    read -r -p "Configured input-source mount (for example /mnt/control-inputs-provisioner): " INPUT_MOUNT
    findmnt -rn -M "$INPUT_MOUNT" -o TARGET,SOURCE,FSTYPE,OPTIONS
    ```

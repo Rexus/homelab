@@ -58,8 +58,9 @@ The matching GUI pages are **Datacenter > Permissions > Roles** and **Groups**.
 
 <a id="1-create-focused-roles"></a>
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 platform_vm_privs="VM.Allocate VM.Audit VM.Clone VM.Config.CDROM"
 platform_vm_privs="$platform_vm_privs VM.Config.CPU VM.Config.Cloudinit"
 platform_vm_privs="$platform_vm_privs VM.Config.Disk VM.Config.HWType"
@@ -74,7 +75,7 @@ pveum role add PlatformAutomationNetwork --privs "SDN.Use SDN.Audit"
 
 <a id="2-create-the-automation-group"></a>
 
-Run on the selected Proxmox host as an authorized root operator.
+Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
 pveum group add platform-automation --comment "Platform automation"
@@ -91,7 +92,7 @@ Keep host/cluster administration and permission management outside these roles.
 Role names are case-sensitive. For an older network role containing only `SDN.Use`,
 append the missing privilege instead of creating a second role:
 
-Run on the selected Proxmox host as an authorized root operator.
+Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
 pveum role modify PlatformAutomationNetwork --append 1 --privs "SDN.Audit"
@@ -105,7 +106,7 @@ This changes every ACL using that role; it preserves the existing privileges and
 
 **VMs:** the current Terraform model uses explicit VMIDs without pool placement:
 
-Run on the selected Proxmox host as an authorized root operator.
+Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
 pveum acl modify /vms --groups platform-automation --roles PlatformAutomationVM
@@ -118,8 +119,9 @@ Cloning still needs access to the source template. [1]
 
 **Live storage:** enter an actual datastore ID; repeat for every approved disk/CloudInit target:
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 read -r -p "Live VM datastore ID (for example local-zfs): " VM_DATASTORE
 pveum acl modify "/storage/$VM_DATASTORE" --groups platform-automation --roles PlatformAutomationStorage
 ```
@@ -127,7 +129,7 @@ pveum acl modify "/storage/$VM_DATASTORE" --groups platform-automation --roles P
 **Tier 0 images:** also grant storage visibility/allocation on the Import datastore.
 For the example `local` datastore:
 
-Run on the selected Proxmox host as an authorized root operator.
+Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
 pveum acl modify /storage/local --groups platform-automation --roles PlatformAutomationStorage
@@ -136,8 +138,9 @@ pveum acl modify /storage/local --groups platform-automation --roles PlatformAut
 **Tier 0 upload permission:** create this role once and assign it only to publishing
 automation on its actual Import datastore. Keep it out of ordinary consuming-tier access. [6][7]
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum role add PlatformTemplateUpload --privs "Datastore.AllocateTemplate"
 pveum acl modify /storage/local --groups platform-automation --roles PlatformTemplateUpload
 ```
@@ -149,8 +152,9 @@ not upload them, but an adoption plan can include creation of missing files.
 
 **Node:** repeat for each allowed destination and source-template node:
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 read -r -p "Authorized Proxmox node name: " PVE_NODE
 pveum acl modify "/nodes/$PVE_NODE" --groups platform-automation --roles PlatformAutomationNode
 ```
@@ -164,7 +168,7 @@ do not authorize an SDN VNet. GUI equivalent: **Datacenter > Permissions > Add >
 
 Use the narrowest prepared path. This example allows VLAN 10 on `vmbr0`:
 
-Run on the selected Proxmox host as an authorized root operator.
+Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
 pveum acl modify /sdn/zones/localnetwork/vmbr0/10 --groups platform-automation --roles PlatformAutomationNetwork
@@ -177,7 +181,7 @@ Repeat for the actual selected VLANs, then continue at **Step 3**.
 
 For VNet `edge` in zone `dmz`:
 
-Run on the selected Proxmox host as an authorized root operator.
+Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
 pveum acl modify /sdn/zones/dmz/edge --groups platform-automation --roles PlatformAutomationNetwork
@@ -191,8 +195,9 @@ then continue at **Step 3**. Subnet lookup uses the same scoped role's `SDN.Audi
 
 <a id="7-create-the-automation-user-and-assign-the-group"></a>
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum user add automation@pve --comment "Platform automation from deployment machine"
 pveum user modify automation@pve --groups platform-automation
 ```
@@ -202,7 +207,7 @@ pveum user modify automation@pve --groups platform-automation
 The established group-managed bootstrap example inherits this dedicated user's
 permissions. Adding the user to other groups also expands this token's permissions. [1]
 
-Run on the selected Proxmox host as an authorized root operator.
+Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
 pveum user token add automation@pve provision --privsep 0 --comment "Platform provisioning token"
@@ -217,8 +222,9 @@ use the [matching ACL procedure](#existing-or-privilege-separated-tokens) before
 **Still on the Proxmox host**, inspect the actual token ID and actual resource paths.
 The commands contain no token secret:
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum user permissions 'automation@pve!provision' --path /storage/local
 pveum user permissions 'automation@pve!provision' --path "/storage/$VM_DATASTORE"
 pveum user permissions 'automation@pve!provision' --path "/nodes/$PVE_NODE"
@@ -226,7 +232,7 @@ pveum user permissions 'automation@pve!provision' --path "/nodes/$PVE_NODE"
 
 For the selected SDN example:
 
-Run on the selected Proxmox host as an authorized root operator.
+Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
 pveum user permissions 'automation@pve!provision' --path /sdn/zones/dmz/edge
@@ -255,8 +261,9 @@ to initialize **Tier 0** and edit its ignored **`.env.local`**.
 
 For another consuming tier, create that tier's file if absent, from its repository root:
 
+Run from the selected **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`** repository.
+
 ```bash
-# Run from the selected <prefix>-tier-0/, <prefix>-tier-1/ or <prefix>-tier-2/ repository.
 cp -n env.local.example .env.local
 chmod 600 .env.local
 ```
@@ -297,8 +304,9 @@ For a separated token, mirror each selected VM, node, datastore and attachment g
 from Step 2 using `--tokens 'automation@pve!provision'` instead of `--groups`.
 For example, the Tier 0 Import datastore and an allowed VNet:
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 pveum acl modify /storage/local --tokens 'automation@pve!provision' --roles PlatformAutomationStorage,PlatformTemplateUpload
 pveum acl modify /sdn/zones/dmz/edge --tokens 'automation@pve!provision' --roles PlatformAutomationNetwork
 ```

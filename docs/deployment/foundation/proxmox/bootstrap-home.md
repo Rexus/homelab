@@ -31,7 +31,7 @@ From the normal `automation` login, install the tools using the matching OS bloc
 
 Enterprise Linux / Fedora:
 
-Run on `boot-1` as automation.
+Run on **`boot-1`** as automation.
 
 ```bash
 sudo dnf install -y rsync policycoreutils-python-utils
@@ -39,7 +39,7 @@ sudo dnf install -y rsync policycoreutils-python-utils
 
 Debian / Ubuntu without SELinux:
 
-Run on `boot-1` as automation.
+Run on **`boot-1`** as automation.
 
 ```bash
 sudo apt-get install -y rsync
@@ -57,14 +57,15 @@ Open the **Proxmox console**, obtain a root shell, stop deployment jobs and clos
 other user sessions. Keep this console open until SSH and reboot checks pass.
 Do not perform the cutover from the only SSH session.
 
-Run on `boot-1` from its independent console; enter the root shell first.
+Run on **`boot-1`** from its independent console; enter the root shell first.
 
 ```bash
 sudo -i
 ```
 
+Run on **`boot-1`** as root from the independent console.
+
 ```bash
-# Run on boot-1 as root from the independent console.
 cd /root
 findmnt -T /home
 findmnt -T /srv/tier0
@@ -81,8 +82,9 @@ consistently if it is not `/srv/tier0`.
 existing homes, numeric owners, hidden files, permissions, hard links, ACLs and
 extended attributes. The dry run must show no differences before continuing. [1]
 
+Run on **`boot-1`** as root from the independent console.
+
 ```bash
-# Run on boot-1 as root from the independent console.
 set -e
 mountpoint -q /srv/tier0
 test ! -e /srv/tier0/home
@@ -99,8 +101,9 @@ For **enabled SELinux**, add a persistent home-context equivalence and relabel
 only the new home subtree. Keep SELinux enabled; do not relabel all artifacts/state
 as home data. Skip this block when SELinux is disabled. [2]
 
+Run on **`boot-1`** as root from the independent console.
+
 ```bash
-# Run on boot-1 as root from the independent console.
 semanage fcontext -a -e /home /srv/tier0/home
 restorecon -RFv /srv/tier0/home
 ```
@@ -123,8 +126,9 @@ homes on the OS disk. [3]
 
 Validate and activate the mount:
 
+Run on **`boot-1`** as root from the independent console.
+
 ```bash
-# Run on boot-1 as root from the independent console.
 findmnt --verify
 systemctl daemon-reload
 mount /home

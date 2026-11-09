@@ -16,8 +16,9 @@ deployment, physical failover, protected retention or disaster recovery.
 Prepare the [developer environment](local-setup.md#step-1-prepare-the-developer-environment).
 From the upstream kit root, install test dependencies in that virtual environment:
 
+Run from **upstream kit root**.
+
 ```bash
-# Run from upstream kit root
 python3 -m pip install -r tests/requirements.txt
 python3 -B -m unittest discover -s tests -p 'test_tier*.py' -v
 ```
@@ -31,8 +32,9 @@ coverage. Tests create disposable files and local test services, not remote reso
 
 For the standalone Tier 0 template module, run from the upstream kit root:
 
+Run from **upstream kit root**.
+
 ```bash
-# Run from upstream kit root
 terraform -chdir=tier-0/terraform/modules/proxmox_templates init -backend=false
 terraform -chdir=tier-0/terraform/modules/proxmox_templates test
 ```

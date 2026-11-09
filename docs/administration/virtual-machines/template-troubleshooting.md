@@ -19,8 +19,9 @@ This runbook diagnoses failures; it does not authorize deleting images or state.
    the original cause.
 2. On the **target Proxmox host**, inspect logs, capacity and the image datastore:
 
+   Run on **the selected Proxmox host as an authorized root operator**.
+
    ```bash
-   # Run on the selected Proxmox host as an authorized root operator.
    journalctl -u pveproxy -u pvedaemon --since '-30 min' --no-pager | tail -n 80
    df -h / /var/tmp /var/lib/vz
    df -i /var/tmp /var/lib/vz
@@ -29,8 +30,9 @@ This runbook diagnoses failures; it does not authorize deleting images or state.
 
 3. On the **bootstrap/execution host**, inspect its own staging filesystem:
 
+   Run on **`boot-1`** as automation.
+
    ```bash
-   # Run on boot-1 as automation.
    df -h / /tmp /var/tmp
    df -i /tmp /var/tmp
    findmnt -T /tmp
@@ -60,8 +62,9 @@ an AnyEvent connection-buffer limit; check effective upload permissions too. [1]
    private writable directory and record its absolute path.
 2. Edit Tier 0 `.env.local`, using that literal path, for example:
 
+   Edit in **`<prefix>-tier-0/.env.local`**; use the prepared absolute staging path.
+
    ```dotenv
-   # Edit in <prefix>-tier-0/.env.local; use the prepared absolute staging path.
    PROXMOX_VE_TMPDIR=/srv/src/template-upload-tmp
    ```
 
@@ -84,7 +87,7 @@ or files used by active uploads to make space.
    Stop on incomplete or unverified bytes.
 3. From the **Tier 0 root**, prepare a new adoption plan:
 
-   Run from `<prefix>-tier-0/` on the protected execution host.
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
 
    ```bash
    bash scripts/proxmox-templates.sh import --env-file .env.local

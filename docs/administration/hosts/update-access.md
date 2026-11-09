@@ -36,8 +36,9 @@ independent console and a known rollback configuration.
 
 3. Run the supplied host recipe:
 
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-0/ on the protected execution host.
    export ANSIBLE_CONFIG="$PWD/ansible/ansible.cfg"
    read -r -p "Proxmox host SSH user (example: root): " PVE_SSH_USER
    ansible-playbook -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e "ansible_user=$PVE_SSH_USER" ansible/playbooks/proxmox-hosts.yml
@@ -59,7 +60,7 @@ receives download requests, not Tier 0 administrative authority.
 2. Enter the accepted proxy, for example `http://cache.corp.example.com:3128`, and save.
 3. On a Proxmox host, inspect the cluster-wide setting:
 
-   Run on the selected Proxmox host as an authorized root operator.
+   Run on **the selected Proxmox host as an authorized root operator**.
 
    ```bash
    grep '^http_proxy:' /etc/pve/datacenter.cfg
@@ -76,8 +77,9 @@ receives download requests, not Tier 0 administrative authority.
 
 1. On the **Proxmox host**, select the accepted endpoint and test it explicitly:
 
+   Run on **the selected Proxmox host as an authorized root operator**.
+
    ```bash
-   # Run on the selected Proxmox host as an authorized root operator.
    read -r -p "Approved proxy URL (example: http://cache.corp.example.com:3128): " CACHE_PROXY_URL
    read -r -p "Approved small repository metadata URL: " SOURCE_URL
    curl --fail --noproxy '' --proxy "$CACHE_PROXY_URL" --output /dev/null "$SOURCE_URL"
@@ -88,8 +90,9 @@ receives download requests, not Tier 0 administrative authority.
 2. As **root on that host**, preserve the prior owned file if present, then write the
    accepted literal endpoint. The shell expands the value in this block:
 
+   Run on **the selected Proxmox host as an authorized root operator**.
+
    ```bash
-   # Run on the selected Proxmox host as an authorized root operator.
    if [ -f /etc/apt/apt.conf.d/76pveproxy ]; then
      cp -a /etc/apt/apt.conf.d/76pveproxy /etc/apt/apt.conf.d/76pveproxy.before-change
    fi
@@ -124,8 +127,9 @@ see [transport limits](../../deployment/stage-1-software-intake/proxy-cache.md#t
 
 For a manual image fetch in the current download shell:
 
+Run on **the authorized acquisition host in its artifact download directory**.
+
 ```bash
-# Run on the authorized acquisition host in its artifact download directory.
 read -r -p "Approved proxy URL: " CACHE_PROXY_URL
 read -r -p "Approved artifact URL: " IMAGE_URL
 no_proxy='' https_proxy="$CACHE_PROXY_URL" http_proxy="$CACHE_PROXY_URL" wget "$IMAGE_URL"

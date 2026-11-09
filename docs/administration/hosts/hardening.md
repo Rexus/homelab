@@ -58,8 +58,9 @@ workloads and general runners have no host-administration credentials.
 
 1. On each affected Proxmox host, run these read-only checks:
 
+   Run on **the selected Proxmox host as an authorized root operator**.
+
    ```bash
-   # Run on the selected Proxmox host as an authorized root operator.
    pveversion -v
    pvesm status
    systemctl --failed
@@ -69,7 +70,7 @@ workloads and general runners have no host-administration credentials.
 
 2. On a clustered host, also inspect quorum:
 
-   Run on the selected Proxmox host as an authorized root operator.
+   Run on **the selected Proxmox host as an authorized root operator**.
 
    ```bash
    pvecm status

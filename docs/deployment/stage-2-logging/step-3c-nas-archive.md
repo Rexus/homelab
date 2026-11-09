@@ -70,20 +70,18 @@ restrictions for that mode. [1]
    encryption, NAS-owned snapshots, retention and NAS-side access auditing.
 2. From the Tier 0 root, copy and edit the archive inputs:
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    cp -n ansible/group_vars/logging_archive.yml.example ansible/group_vars/logging_archive.yml
    read -r -e -p 'Restricted NAS transfer credential file: ' LOGGING_NAS_CREDENTIALS_FILE
    export LOGGING_NAS_CREDENTIALS_FILE
    ```
 
-   Edit these files using the fields below:
+   Edit in **`<prefix>-tier-0/`**.
 
-   ```text
-   # Edit in <prefix>-tier-0/
-   ansible/group_vars/logging_archive.yml
-   # Edit: Archive transport/target, local credential paths and retention inputs.
-   ```
+   - `ansible/group_vars/logging_archive.yml`: Archive transport/target, local credential paths and retention
+     inputs.
 
    Set the SMB source, marker, snapshot owner/runbook, required active OS source
    names, capacity/lag budgets and an **external dead-man URL** that alerts when
@@ -107,8 +105,9 @@ restrictions for that mode. [1]
    [source setup](sources.md#1-prepare-tier-owned-streams). Explicitly load global
    settings, the collector setup/IP map, archive settings and finally host overrides:
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    read -r -p 'Collector inventory host (for example log-1): ' LOGGING_COLLECTOR
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
      -i ansible/inventory/hosts.yml --limit "${LOGGING_COLLECTOR:?Select one collector}" \
@@ -127,21 +126,19 @@ restrictions for that mode. [1]
    outside the NAS/collector failure domain. Add that existing host to `logging_recovery`
    in Tier 0 inventory, never `foundation_logging`. Copy/edit its backup inputs:
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    cp -n ansible/group_vars/logging_backup.yml.example ansible/group_vars/logging_backup.yml
    read -r -e -p 'Read-only NAS recovery credential file: ' LOGGING_BACKUP_NAS_CREDENTIALS_FILE
    read -r -e -p 'Separately held restic password file: ' LOGGING_BACKUP_PASSWORD_FILE
    export LOGGING_BACKUP_NAS_CREDENTIALS_FILE LOGGING_BACKUP_PASSWORD_FILE
    ```
 
-   Edit these files using the fields below:
+   Edit in **`<prefix>-tier-0/`**.
 
-   ```text
-   # Edit in <prefix>-tier-0/
-   ansible/group_vars/logging_backup.yml
-   # Edit: Independent recovery target, backup repository and watchdog inputs.
-   ```
+   - `ansible/group_vars/logging_backup.yml`: Independent recovery target, backup repository and watchdog
+     inputs.
 
    Set source/marker, independent mounted repository, schedule and a separate external
    dead-man check. Keep password/recovery keys off the collector. Approve repository
@@ -161,8 +158,9 @@ restrictions for that mode. [1]
    | `logging_backup_calendar` | Approved native systemd calendar, such as the supplied `hourly` |
    | `logging_backup_watchdog_url` | Separate external dead-man URL for independent backups |
 
+   Run from **`<prefix>-tier-0/`**.
+
    ```bash
-   # Run from <prefix>-tier-0/
    read -r -p 'Independent recovery inventory host: ' LOGGING_RECOVERY_HOST
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
      -i ansible/inventory/hosts.yml --limit "${LOGGING_RECOVERY_HOST:?Select one recovery host}" \

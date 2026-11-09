@@ -45,7 +45,7 @@ GitLab/artifact/proxy endpoint CIDRs and Tier 1 API service/backend CIDRs.
 The manager alone may reach that API; jobs use a tokenless `ci-job` identity.
 Do not allow broad LAN or Tier 0 ranges. Test actual service-DNAT behavior for the CNI.
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml
@@ -54,7 +54,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbo
 Review values, manifests and `gitlab-runner-support.yml` under
 `secrets/development-platform/`. Then apply the same inputs:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml -e development_platform_action=apply

@@ -94,8 +94,9 @@ mounts and independent retention are prerequisites, not installed storage servic
    administration separately. Keep NFS root-squash and qualify UID/GID mapping, or use scoped SMB.
 2. Persistently mount it **outside `/var/opt/gitlab` and `/etc/gitlab`**. Read the actual mount identity:
 
+   Run on **the selected GitLab data VM during the approved maintenance window**.
+
    ```bash
-   # Run on the selected GitLab data VM during the approved maintenance window.
    read -r -p "Commissioned backup mount: " BACKUP_MOUNT
    findmnt -rn -M "$BACKUP_MOUNT" -o TARGET,SOURCE,FSTYPE
    ```
@@ -117,8 +118,9 @@ a local directory to force success. The role does not change export permissions.
 
 **On each data VM**, during the approved service-interruption window:
 
+Run on **the selected GitLab data VM during the approved maintenance window**.
+
 ```bash
-# Run on the selected GitLab data VM during the approved maintenance window.
 sudo systemctl list-timers --all development-data-backup.timer
 sudo systemctl cat development-data-backup.timer
 sudo systemctl start development-data-backup.service
@@ -136,14 +138,15 @@ buckets in the [product recovery plan](../recovery/tier-1-products.md). [2]
 
 On the selected VM, enter an authorized root shell. Load only the installed root-owned profile:
 
-Run on the selected GitLab data VM during the approved maintenance window.
+Run on **the selected GitLab data VM during the approved maintenance window**.
 
 ```bash
 sudo -i
 ```
 
+Run on **the selected GitLab data VM as root, using its installed backup profile**.
+
 ```bash
-# Run on the selected GitLab data VM as root, using its installed backup profile.
 set -a
 source /etc/development-data/backup.env
 set +a
@@ -151,16 +154,18 @@ set +a
 
 For **NAS/filesystem** repositories:
 
+Run on **the selected GitLab data VM as root, retaining the installed profile exports**.
+
 ```bash
-# Run on the selected GitLab data VM as root, retaining the installed profile exports.
 restic snapshots --json
 restic check --read-data
 ```
 
 For **SFTP**, use the same qualified key/host-key options as the installed job:
 
+Run on **the selected GitLab data VM as root, retaining the installed profile exports**.
+
 ```bash
-# Run on the selected GitLab data VM as root, retaining the installed profile exports.
 RESTIC_SFTP_ARGS='-i /etc/development-data/backup.key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/development-data/known_hosts'
 restic -o "sftp.args=$RESTIC_SFTP_ARGS" snapshots --json
 restic -o "sftp.args=$RESTIC_SFTP_ARGS" check --read-data
@@ -171,8 +176,9 @@ restic -o "sftp.args=$RESTIC_SFTP_ARGS" check --read-data
 On an independent recovery host, configure the same repository/password from independent custody;
 for SFTP also supply its authorized key and verified host keys. Preserve incident/source data.
 
+Run on **the independent isolated recovery workstation**.
+
 ```bash
-# Run on the independent isolated recovery workstation.
 set -euo pipefail
 read -r -p "Full recorded component snapshot ID: " RECOVERY_SNAPSHOT
 read -r -p "NEW absolute extraction directory on encrypted recovery storage: " RECOVERY_TARGET
@@ -186,7 +192,7 @@ mkdir -m 0700 "$RECOVERY_TARGET"
 
 Choose the configured transport. For NAS/filesystem:
 
-Run on the independent isolated recovery workstation.
+Run on **the independent isolated recovery workstation**.
 
 ```bash
 restic restore "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --verify
@@ -194,7 +200,7 @@ restic restore "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --verify
 
 For SFTP, after configuring that recovery host's credential paths:
 
-Run on the independent isolated recovery workstation.
+Run on **the independent isolated recovery workstation**.
 
 ```bash
 restic -o "sftp.args=$RESTIC_SFTP_ARGS" restore "$RECOVERY_SNAPSHOT" --target "$RECOVERY_TARGET" --verify

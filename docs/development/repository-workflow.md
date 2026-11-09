@@ -58,8 +58,9 @@ collection root. Hosted source control is optional for initial deployment;
 1. On the bootstrap execution host, enter one generated repository. For a new repo
    without Git history, initialize it and inspect ignored paths:
 
+   Run from **the owning generated repository root**.
+
    ```bash
-   # Run from the owning generated repository root
    git init -b main
    git status --short --ignored
    ```
@@ -91,8 +92,9 @@ bootstrap/recovery custody under the [secret strategy](../administration/secret-
 
 From the **upstream kit root**, after updating its source, preview the same collection:
 
+Run from **upstream kit root**.
+
 ```bash
-# Run from upstream kit root
 read -r -p 'Original project prefix: ' PROJECT_PREFIX
 python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh --dry-run
 ```
@@ -100,7 +102,7 @@ python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh --dr
 Reuse the original `--root` on both commands if customized. Keep the same prefix. Review
 the preview, preserve private changes/backups, then apply that refresh:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --refresh
@@ -121,8 +123,9 @@ Review replacements, backups and preserved differences before any affected deplo
 After accepting hosted source control, create an empty **private** remote per repo.
 From each generated repo with reviewed local commits and no `origin` yet:
 
+Run from **the owning generated repository root**.
+
 ```bash
-# Run from the owning generated repository root
 read -r -p 'Private repository SSH or HTTPS URL without embedded credentials: ' PRIVATE_REMOTE_URL
 git remote add origin "$PRIVATE_REMOTE_URL"
 git push -u origin main
@@ -139,8 +142,9 @@ Infrastructure runners require the explicit Tier 0 trust contract, not general b
 
 ## Step 5: Review before publishing
 
+Run from **the owning generated repository root**.
+
 ```bash
-# Run from the owning generated repository root
 git status --short --ignored
 git diff --cached --check
 git diff --cached --stat

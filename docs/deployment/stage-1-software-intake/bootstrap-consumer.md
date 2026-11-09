@@ -28,19 +28,16 @@ or the commissioned native-mirror checks. Continue when approved retrieval and a
 
 From the Tier 2 checkout used in Stage 1, return to Tier 0 and create the ignored local input:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 cp -n ansible/group_vars/bootstrap.yml.example ansible/group_vars/bootstrap.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-ansible/group_vars/bootstrap.yml
-# Edit: Supply mode, accepted proxy/mirror settings and internal proxy-bypass destinations.
-```
+- `ansible/group_vars/bootstrap.yml`: Supply mode, accepted proxy/mirror settings and internal proxy-bypass
+  destinations.
 
 Select **2a** or **2b**, then continue at **3**. This is not an `init-local-files.sh` deployment setup.
 
@@ -91,8 +88,9 @@ Verify [bootstrap sudo access](../foundation/proxmox/bootstrap.md#verify-sudo-ac
 For disconnected execution, source the prepared `offline.env`.
 The precheck below validates installed collections without attempting acquisition:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 CONTROL_NODE_COLLECTIONS_MODE=check ANSIBLE_CONFIG=ansible/ansible.cfg \
   ansible-playbook -i localhost, ansible/playbooks/deployment/bootstrap-software-intake.yml \
   -e @ansible/group_vars/bootstrap.yml

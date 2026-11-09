@@ -412,14 +412,14 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("`<prefix>` means the generated repository folder prefix", overview)
         self.assertIn("the default is `homelab`", overview)
         deployment = (generated / "deployment/README.md").read_text()
-        self.assertIn("Run from `verify-tier-2/`.\n\n```bash\n", deployment)
-        self.assertIn("# Edit in verify-shared/", deployment)
+        self.assertIn("Run from **`verify-tier-2/`**.\n\n```bash\n", deployment)
+        self.assertIn("Edit in **`verify-shared/`**.", deployment)
         self.assertNotIn("<prefix>-tier-", deployment)
         for tier in range(3):
             readme = (self.root / f"verify-tier-{tier}/README.md").read_text()
-            self.assertIn(f"Run from `verify-tier-{tier}/`.\n\n```bash\n", readme)
-            self.assertIn(f"# Edit in verify-tier-{tier}/", readme)
-            self.assertIn("# Edit in verify-shared/", readme)
+            self.assertIn(f"Run from **`verify-tier-{tier}/`**.\n\n```bash\n", readme)
+            self.assertIn(f"Edit in **`verify-tier-{tier}/`**.", readme)
+            self.assertIn("Edit in **`verify-shared/`**.", readme)
 
     def test_file_edit_lists_do_not_invoke_an_assumed_editor(self):
         for document in (UPSTREAM / "docs").rglob("*.md"):

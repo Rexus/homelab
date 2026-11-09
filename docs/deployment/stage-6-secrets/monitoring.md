@@ -28,31 +28,28 @@ Protected `log-1` and optional `log-2` are rejected as monitoring targets by thi
 
 Create local settings and private inputs without replacing existing files:
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 umask 077
 cp -n ansible/group_vars/infrastructure_monitoring.yml.example ansible/group_vars/infrastructure_monitoring.yml
 cp -n ansible/group_vars/infrastructure_monitoring_secrets.yml.example ansible/group_vars/infrastructure_monitoring_secrets.yml
 ```
 
-Edit these files:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-ansible/inventory/hosts.yml
-# Edit: Add the approved existing host to infrastructure_monitoring; preserve other groups
-ansible/group_vars/infrastructure_monitoring.yml
-# Edit: Actual listen address/allowed operator sources, pinned packages, Proxmox/Redfish targets and tested
-#       health rules
-# Edit: Set infrastructure_monitoring_export_endpoint: "" until Stage 8's private metric intake exists
-ansible/group_vars/infrastructure_monitoring_secrets.yml
-# Edit: Target credentials, native TLS files, notification/watchdog inputs and approved exporter image
-```
+- `ansible/inventory/hosts.yml`: Add the approved existing host to `infrastructure_monitoring`; preserve
+  other groups
+- `ansible/group_vars/infrastructure_monitoring.yml`: Actual listen address/allowed operator sources, pinned
+  packages, Proxmox/Redfish targets and tested health rules.
+  Set `infrastructure_monitoring_export_endpoint: ""` until Stage 8's private metric intake exists.
+- `ansible/group_vars/infrastructure_monitoring_secrets.yml`: Target credentials, native TLS files,
+  notification/watchdog inputs and approved exporter image
 
 Set the outside-cluster and read-only-credential acceptance flags only after verifying
 those properties. Encrypt the filled private input file:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 ansible-vault encrypt ansible/group_vars/infrastructure_monitoring_secrets.yml
@@ -149,7 +146,7 @@ The existing receiver and cluster recipes do not install these services.
 
 Render the complete selected configuration before changing the host:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass
@@ -210,7 +207,7 @@ through the external service to administrators outside that service boundary.
 
 After preparing notification/watchdog inputs, install the complete monitoring configuration:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass -e infrastructure_monitoring_action=apply

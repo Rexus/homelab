@@ -120,8 +120,9 @@ An existing qualified target is valid; neither path requires an object-storage A
 
 For one approved disposable guest, the equivalent manual run on a Proxmox host is:
 
+Run on **the selected Proxmox host as an authorized root operator**.
+
 ```bash
-# Run on the selected Proxmox host as an authorized root operator.
 read -r -p "Disposable guest VMID: " BACKUP_VMID
 read -r -p "Commissioned backup-storage ID: " BACKUP_STORAGE
 vzdump "$BACKUP_VMID" --storage "$BACKUP_STORAGE" --mode snapshot
@@ -140,8 +141,9 @@ live-disk storage. Keep the original guest/state and backup intact.
 
 1. List the target's backups, then record the selected volume/file ID and backup time:
 
+   Run on **the selected Proxmox host as an authorized root operator**.
+
    ```bash
-   # Run on the selected Proxmox host as an authorized root operator.
    read -r -p "Backup-storage ID: " BACKUP_STORAGE
    pvesm list "$BACKUP_STORAGE" --content backup
    ```
@@ -149,8 +151,9 @@ live-disk storage. Keep the original guest/state and backup intact.
 2. In the GUI, select that backup and **Restore** to a **new VMID** and approved live storage.
    Leave **Start after restore** and **Live restore** off. For a VM, the native CLI alternative is:
 
+   Run on **the selected Proxmox host as an authorized root operator**.
+
    ```bash
-   # Run on the selected Proxmox host as an authorized root operator.
    read -r -p "Selected VM backup volume ID or archive path: " BACKUP_VOLUME
    read -r -p "Unused test VMID, verified in Datacenter: " RESTORE_VMID
    read -r -p "Approved live VM datastore ID: " RESTORE_STORAGE

@@ -44,8 +44,9 @@ not a recovery-time rename. The manually created bootstrap is outside the suppli
 
 Boot through the console. Confirm the selected workspace filesystem before opening its repositories:
 
+Run on **the restored bootstrap. Substitute its recorded workspace mount if different**.
+
 ```bash
-# Run on the restored bootstrap. Substitute its recorded workspace mount if different.
 findmnt -T /srv/tier0
 df -h / /srv/tier0
 ```

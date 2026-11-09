@@ -29,8 +29,9 @@ and identify the exact setup, environment and original state. Shared owns no inv
    that selected setup's state, not just the VM currently being investigated. [1]
 3. Run the native wrapper. This example removes the Tier 2 cache setup:
 
+   Run from **`<prefix>-tier-2/`** on the protected execution host.
+
    ```bash
-   # Run from <prefix>-tier-2/ on the protected execution host.
    test -s .terraform/state/cache/prod/terraform.tfstate || exit 1
    bash scripts/deploy.sh cache --destroy --terraform-only --env-file .env.local
    ```

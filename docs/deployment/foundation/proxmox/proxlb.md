@@ -33,7 +33,7 @@ guarantee service availability. Keep the first deployment to one active schedule
 
 1. Install the selected signed release using the maintained
    [upstream installation instructions](https://github.com/credativ/ProxLB#installation).
-   Run on an existing protected Tier 0 execution host; this kit installs no extra VM or ProxLB service.
+   Run on **an existing protected Tier 0 execution host; this kit installs no extra VM or ProxLB service**.
    Keep the API token/config local and private, use certificate verification and scope permissions
    to inspected nodes/guests. The balancer's credentials are Tier 0 authority.
 2. Start from that release's [example configuration](https://github.com/credativ/ProxLB/blob/main/config/proxlb_example.yaml).
@@ -42,7 +42,7 @@ guarantee service availability. Keep the first deployment to one active schedule
    balancing, 75% trigger, 10-point imbalance and a 60-minute interval; tune after measurements.
 3. With the service stopped, review a one-shot dry run:
 
-   Run on the commissioned ProxLB service host with the service stopped.
+   Run on **the commissioned ProxLB service host with the service stopped**.
 
    ```bash
    proxlb --config /etc/proxlb/proxlb.yaml --dry-run

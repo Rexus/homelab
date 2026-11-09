@@ -27,7 +27,7 @@ is reused with tier-owned inventory, state and credentials. Tier 0 remains indep
 
 From the **Tier 1 root**:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 bash scripts/kubernetes-cluster.sh init
@@ -35,18 +35,12 @@ bash scripts/kubernetes-cluster.sh init
 
 Retain the existing cluster's original identities and state.
 
-Edit these files:
+Edit in **`<prefix>-tier-1/`**.
 
-```text
-# Edit in <prefix>-tier-1/
-ansible/inventory/hosts.yml
-# Edit: Tier 1 talos_control_plane / talos_workers hosts
-ansible/group_vars/talos.yml
-# Edit: Their actual reserved platform_host_ips
-terraform/deployments/kubernetes/terraform.tfvars
-# Edit: Cluster name/private API endpoint, unique VMIDs, approved template/source node, releases/installer,
-#       Tier 1 attachment and native patches
-```
+- `ansible/inventory/hosts.yml`: Tier 1 `talos_control_plane` / `talos_workers` hosts
+- `ansible/group_vars/talos.yml`: Their actual reserved `platform_host_ips`
+- `terraform/deployments/kubernetes/terraform.tfvars`: Cluster name/private API endpoint, unique VMIDs,
+  approved template/source node, releases/installer, Tier 1 attachment and native patches
 
 Complete the [common cluster configuration](../../stage-4-kubernetes/procedures/talos-terraform.md#configure),
 including image access, firmware, CNI patches and an independent API endpoint.
@@ -57,7 +51,7 @@ supply `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` through the accepted pro
 
 ## Step 2: Deploy and qualify the cluster
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 bash scripts/kubernetes-cluster.sh plan
@@ -65,8 +59,9 @@ bash scripts/kubernetes-cluster.sh plan
 
 Review the saved plan's addresses, disks, templates and failure-domain placement, then apply:
 
+Run from **`<prefix>-tier-1/`**.
+
 ```bash
-# Run from <prefix>-tier-1/
 bash scripts/kubernetes-cluster.sh apply
 bash scripts/kubernetes-cluster.sh credentials
 ```
@@ -91,19 +86,16 @@ values, cluster credentials and resources. No add-on code is copied between tier
 
 Create the local inputs:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster_platform.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-1/`**.
 
-```text
-# Edit in <prefix>-tier-1/
-ansible/group_vars/cluster_platform.yml
-# Edit: Cluster context, selected components, chart/image pins, storage, network and DNS inputs.
-```
+- `ansible/group_vars/cluster_platform.yml`: Cluster context, selected components, chart/image pins,
+  storage, network and DNS inputs.
 
 Edit `ansible/group_vars/cluster_platform.yml`: Tier 1's kubeconfig/context, exact chart pins, image access,
 storage and issuer prerequisites. Retain Tier 1's explicit component selection:
@@ -118,8 +110,9 @@ Add `barman_cloud` only for the object/WAL database backup option. Live database
 volumes remain on qualified Proxmox/Ceph-backed block CSI; NAS backup claims are separate.
 From Tier 1, render and review:
 
+Run from **`<prefix>-tier-1/`**.
+
 ```bash
-# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/cluster-platform.yml \
   -e @ansible/group_vars/cluster_platform.yml
@@ -127,8 +120,9 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 
 With accepted inputs and the explicit Tier 1 context, apply the same selection:
 
+Run from **`<prefix>-tier-1/`**.
+
 ```bash
-# Run from <prefix>-tier-1/
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/cluster-platform.yml \
   -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=apply

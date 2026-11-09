@@ -35,8 +35,9 @@ Default local paths, relative to the owning tier:
    Do not substitute these local defaults for a different authoritative backend.
 2. Initialize **against the existing file**, then inspect it. This block does not query or change VMs:
 
+   Run from **`<prefix>-tier-2/`** for the existing default production cache state.
+
    ```bash
-   # Run from <prefix>-tier-2/ for the existing default production cache state.
    set -euo pipefail
    IAC_ROOT="$PWD/terraform/deployments/cache"
    IAC_STATE="$PWD/.terraform/state/cache/prod/terraform.tfstate"
@@ -52,8 +53,9 @@ Default local paths, relative to the owning tier:
    to make a missing original disappear. Providers must be available from the approved source/mirror.
 3. Save a private pre-change copy; state can contain secrets. Keep the independent backup too:
 
+   Run from **the same owning tier root, with IAC_ROOT and TF_DATA_DIR from above**.
+
    ```bash
-   # Run from the same owning tier root, with IAC_ROOT and TF_DATA_DIR from above.
    umask 077
    IAC_ARCHIVE="$PWD/.local-archive/cache-prod-$(date -u +%Y%m%dT%H%M%SZ)"
    test ! -e "$IAC_ARCHIVE" || exit 1
@@ -76,8 +78,9 @@ is intended. For a VM awaiting restoration, retain its binding and use [recovery
    from `state list`, not an entire module or a whole-state pattern.
 2. Preview the selected binding:
 
+   Run from **the owning tier root, in the prepared state-maintenance shell**.
+
    ```bash
-   # Run from the owning tier root, in the prepared state-maintenance shell.
    read -r -p 'Exact resource address (e.g. module.vms["cache-1"].proxmox_virtual_environment_vm.this): ' IAC_ADDRESS
    terraform -chdir="$IAC_ROOT" state rm -dry-run "$IAC_ADDRESS"
    ```
@@ -85,8 +88,9 @@ is intended. For a VM awaiting restoration, retain its binding and use [recovery
 3. Require exactly the intended match. The following command changes state immediately; it has
    no separate approval prompt and does not remove any host-side disk or VM. [1]
 
+   Run only after reviewing the exact binding and confirming host-side deletion.
+
    ```bash
-   # Run only after reviewing the exact binding and confirming host-side deletion.
    terraform -chdir="$IAC_ROOT" state rm -lock-timeout=60s "$IAC_ADDRESS"
    terraform -chdir="$IAC_ROOT" state list
    ```
@@ -96,7 +100,7 @@ is intended. For a VM awaiting restoration, retain its binding and use [recovery
    explicitly accept the resulting creation plan. Never treat creation as recovery of its old data.
 5. Review a new plan through the normal owning wrapper with the original input overrides:
 
-   Run from `<prefix>-tier-2/` for the default production cache example.
+   Run from **`<prefix>-tier-2/`** for the default production cache example.
 
    ```bash
    bash scripts/deploy.sh cache --plan-only --env-file .env.local
@@ -114,8 +118,9 @@ It needs matching credentials/inputs and must not commit apparent deletions whil
    because of a wrong API endpoint/permission. Preserve the recorded state and independent backup.
 2. Review `state list` in the prepared context. For the cache/prod example, archive only its directories:
 
+   Run from **`<prefix>-tier-2/`**, using the prepared cache/prod state context and IAC_ARCHIVE.
+
    ```bash
-   # Run from <prefix>-tier-2/, using the prepared cache/prod state context and IAC_ARCHIVE.
    test -f .deployment-setups && test -s "$IAC_ARCHIVE/before.tfstate" || exit 1
    test "$IAC_ROOT" = "$PWD/terraform/deployments/cache" || exit 1
    test "$TF_DATA_DIR" = "$PWD/.terraform/data/cache/prod" || exit 1

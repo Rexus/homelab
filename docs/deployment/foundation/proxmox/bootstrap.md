@@ -128,7 +128,7 @@ temporary acquisition path is not permission for unrestricted Tier 0 Internet ac
 
 ### Verify sudo access
 
-Run on `boot-1` as `automation`; this checks sudo without a cached password or an interactive prompt:
+Run on **`boot-1`** as `automation`; this checks sudo without a cached password or an interactive prompt:
 
 ```bash
 sudo -k -n true
@@ -166,8 +166,9 @@ LVM root. Complete only the selected path before installing tools or copying art
    The Enterprise Linux storage manual covers filesystem preparation and UUID-based mounts. [3]
 3. Check the mount and free space:
 
+Run on **`boot-1`** as automation.
+
 ```bash
-# Run on boot-1 as automation.
 findmnt -T /srv/tier0
 df -h / /srv/tier0 /tmp
 ```
@@ -175,8 +176,9 @@ df -h / /srv/tier0 /tmp
 Require the intended data filesystem, not `/` as an accidental fallback. Then create
 private workspace, artifact and upload directories on it:
 
+Run on **`boot-1`** as automation.
+
 ```bash
-# Run on boot-1 as automation.
 (
   mountpoint -q /srv/tier0 || { echo 'Mount the data filesystem before continuing.' >&2; exit 1; }
   sudo install -d -m 0700 -o "$(id -un)" -g "$(id -gn)" \
@@ -244,8 +246,9 @@ before accepting it; retain signature and TLS verification. [6]
 For a new workspace, obtain the reviewed kit revision using the approved source.
 The public clone example is:
 
+Run on **`boot-1`** as automation.
+
 ```bash
-# Run on boot-1 as automation.
 umask 077
 git clone https://github.com/Rexus/homelab.git /srv/tier0/src/homelab
 ```
@@ -328,11 +331,10 @@ reuse that path/prefix during refresh. Keep the kit checkout separate from its
 five generated repositories; the collection directory is not a Git repository.
 Record site choices and completed capabilities:
 
-```text
-# Edit in <prefix>-architecture/
-platform-standards.md # Actual host names, VMIDs and network allocations.
-docs/README.md # Selected paths and deployment/verification progress.
-```
+Edit in **`<prefix>-architecture/`**.
+
+- `platform-standards.md`: Actual host names, VMIDs and network allocations.
+- `docs/README.md`: Selected paths and deployment/verification progress.
 
 Read the rendered upstream [Tier 0 checklist](../../../paths/tier-0/README.md) in
 the browser while executing commands from the named generated repository.
@@ -370,16 +372,18 @@ Linux clone key lists are empty until configured in each consuming tier.
 Create a dedicated execution-account key. Enter a passphrase when prompted; do not
 overwrite an existing key. Keep both files under the account's `.ssh/`, never in Git.
 
+Run on **`boot-1`** as automation.
+
 ```bash
-# Run on boot-1 as automation.
 install -d -m 0700 "$HOME/.ssh"
 ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519" -C "homelab-bootstrap"
 ```
 
 Load the private key into a local agent for the deployment session:
 
+Run on **`boot-1`** as automation.
+
 ```bash
-# Run on boot-1 as automation.
 eval "$(ssh-agent -s)"
 ssh-add "$HOME/.ssh/id_ed25519"
 ssh-add -l
@@ -394,7 +398,7 @@ Do not copy an administrator's private workstation key into a repository or temp
 
 **Both paths continue at Step 4.** Print the absolute public-key path for the input below:
 
-Run on `boot-1` as automation.
+Run on **`boot-1`** as automation.
 
 ```bash
 realpath "$HOME/.ssh/id_ed25519.pub"
@@ -416,7 +420,7 @@ public key; Ansible uses its matching private key through SSH. See the
    to create the scoped roles, group and token. Return here after its token permission checks.
 3. Back on **`boot-1`**, initialize Tier 0's local files:
 
-   Run from `<prefix>-tier-0/` on the protected execution host.
+   Run from **`<prefix>-tier-0/`** on the protected execution host.
 
    ```bash
    bash scripts/proxmox-templates.sh init
@@ -441,10 +445,9 @@ public key; Ansible uses its matching private key through SSH. See the
    `PROXMOX_VE_TMPDIR` keeps provider upload staging on the prepared data filesystem. [2]
 5. Configure common platform references before the first managed guest:
 
-   ```text
-   # Edit in <prefix>-shared/
-   config/platform.tfvars # Set the initial node, live-disk classes and common network attachment.
-   ```
+   Edit in **`<prefix>-shared/`**.
+
+   - `config/platform.tfvars`: Set the initial node, live-disk classes and common network attachment.
 
    | Field | Enter |
    | --- | --- |

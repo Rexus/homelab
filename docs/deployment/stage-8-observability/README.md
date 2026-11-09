@@ -82,22 +82,19 @@ Grafana's live block volumes from its scheduled NAS copies.
 
 Create local inputs before Step 2:
 
+Run from **`<prefix>-tier-1/`**.
+
 ```bash
-# Run from <prefix>-tier-1/
 umask 077
 cp -n ansible/group_vars/observability_platform.yml.example ansible/group_vars/observability_platform.yml
 cp -n ansible/group_vars/observability_platform_secrets.yml.example ansible/group_vars/observability_platform_secrets.yml
 ```
 
-Edit these files using the fields below:
+Edit in **`<prefix>-tier-1/`**.
 
-```text
-# Edit in <prefix>-tier-1/
-ansible/group_vars/observability_platform.yml
-# Edit: Required site values in the following input fields.
-ansible/group_vars/observability_platform_secrets.yml
-# Edit: Follow the private-input/encryption steps below for secret values.
-```
+- `ansible/group_vars/observability_platform.yml`: Required site values in the following input fields.
+- `ansible/group_vars/observability_platform_secrets.yml`: Follow the private-input/encryption steps below
+  for secret values.
 
 Edit the local files using [configuration Step 1](configuration.md#inputs-and-execution):
 kubeconfig/context, physical domains, block storage, private endpoints, IdP clients and source scopes.
@@ -129,7 +126,7 @@ contains the exact commands and the backup handoff; do not skip from prepare to 
 
 For each pass, render from Tier 1:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass
@@ -137,7 +134,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbo
 
 Review `secrets/observability-platform/`, then apply:
 
-Run from `<prefix>-tier-1/`.
+Run from **`<prefix>-tier-1/`**.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/observability-platform.yml -e @ansible/group_vars/observability_platform.yml -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass -e observability_action=apply

@@ -13,12 +13,9 @@ Image approval and promotion follow the [software-supply design](../architecture
 
 ## Inputs and defaults
 
-Edit these files:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-templates/proxmox.yml  # common all: values and each approved templates: build
-```
+- `templates/proxmox.yml`: common all: values and each approved templates: build
 
 The YAML catalog is an input file, not another IaC implementation. The resources live in
 Tier 0's `terraform/modules/proxmox_templates/`; `terraform/deployments/templates/main.tf`

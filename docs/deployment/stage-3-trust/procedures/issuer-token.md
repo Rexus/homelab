@@ -19,8 +19,9 @@ Commands below run on the issuer with authorized local privilege.
 
 ## Verify identity
 
+Run on **ca-1 with authorized issuer privilege**.
+
 ```bash
-# Run on ca-1 with authorized issuer privilege.
 openssl verify -CAfile /srv/openxpki/identity/root.pem /srv/openxpki/identity/issuer.pem
 openssl x509 -in /srv/openxpki/identity/issuer.pem -noout -text -fingerprint -sha256
 openssl x509 -in /srv/openxpki/identity/issuer.pem -pubkey -noout |
@@ -44,8 +45,9 @@ authentication for protected and out-of-realm commands. [1]
 Inspect `oxi --help` and `oxi token add --help` for the approved package
 revision. With the default realm and paths:
 
+Run on **ca-1 with authorized issuer privilege**.
+
 ```bash
-# Run on ca-1 with authorized issuer privilege.
 sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem certificate add \
   --cert /srv/openxpki/identity/root.pem
 sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem token add \
@@ -64,8 +66,9 @@ master secret; it needs no fabricated self-signed DataVault certificate. [1]
 
 ## Publish and test
 
+Run on **ca-1 with authorized issuer privilege**.
+
 ```bash
-# Run on ca-1 with authorized issuer privilege.
 sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem workflow create \
   --realm infrastructure --type crl_issuance
 sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem workflow create \

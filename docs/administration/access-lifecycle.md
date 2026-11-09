@@ -92,16 +92,18 @@ does not grant cluster, CI or infrastructure administration.
 
 1. Identify the directory account before changing it:
 
+   Run on **the authorized directory administration host with the approved operator identity**.
+
    ```bash
-   # Run on the authorized directory administration host with the approved operator identity.
    read -r -p "Approved account to disable: " IPA_ACCOUNT
    ipa user-show "$IPA_ACCOUNT"
    ```
 
 2. After verifying the person/scope, disable the account without deleting its identity history: [1]
 
+   Run on **the authorized directory administration host with the approved operator identity**.
+
    ```bash
-   # Run on the authorized directory administration host with the approved operator identity.
    ipa user-disable "$IPA_ACCOUNT"
    ipa user-show "$IPA_ACCOUNT"
    ```

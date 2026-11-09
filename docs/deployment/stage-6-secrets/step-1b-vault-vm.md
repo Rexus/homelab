@@ -93,7 +93,7 @@ platform.
 
 Initialize missing local files from Tier 0:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup vault
@@ -170,7 +170,7 @@ and Proxmox tags.
 
 Prepare the TLS files and local inputs above, then deploy:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh vault
@@ -189,8 +189,9 @@ Add `--plan-only` for a preview without installation; approved unattended jobs u
 Use a trusted operator terminal, not CI logs. Configure the CLI with the actual
 HTTPS endpoint and local CA bundle from the chosen TLS configuration. [1]
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 read -r -p "Vault HTTPS URL from vault_api_addr: " VAULT_ADDR
 read -r -p "Absolute path to the trusted Vault CA bundle: " VAULT_CACERT
 export VAULT_ADDR VAULT_CACERT
@@ -203,7 +204,7 @@ existing service uses its original data and keys, never another initialization. 
 Prepare protected share/root-token custody first; PGP output encryption is supported. [3]
 For the selected three-share/two-custodian Shamir example:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 vault operator init -key-shares=3 -key-threshold=2
@@ -212,8 +213,9 @@ vault operator init -key-shares=3 -key-threshold=2
 Retain the resulting material under the selected custody policy. Enter two distinct
 shares interactively, then authenticate before configuring the audit device: [2][4]
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 vault operator unseal
 vault operator unseal
 vault login

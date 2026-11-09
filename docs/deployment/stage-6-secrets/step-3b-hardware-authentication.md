@@ -85,8 +85,9 @@ Typical flow:
 
 Example CLI shape:
 
+Run on **the authorized identity-administration workstation**.
+
 ```bash
-# Run on the authorized identity-administration workstation.
 kinit admin
 ipa otptoken-add-yubikey --owner alice
 ipa user-mod alice --user-auth-type otp

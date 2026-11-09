@@ -119,7 +119,7 @@ Ansible/Helm recipe. See [Stage 9](../deployment/stage-9-development/README.md).
 
 Create `../<prefix>-iac/` with the five repositories inside:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 bash scripts/init-tier-repos.sh
@@ -130,7 +130,7 @@ to choose the collection's parent, and `--dry-run` to preview without writing.
 
 Generate only shared automation and Tier 0:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 bash scripts/init-tier-repos.sh --repo shared --repo tier-0
@@ -138,7 +138,7 @@ bash scripts/init-tier-repos.sh --repo shared --repo tier-0
 
 Refresh generated files only:
 
-Run from upstream kit root.
+Run from **upstream kit root**.
 
 ```bash
 bash scripts/init-tier-repos.sh --refresh
@@ -161,7 +161,7 @@ Read [Generated repository model](../development/generated-repositories.md) for 
 authoritative ownership, inventory, prerequisite, and refresh contracts.
 From the Tier 0 root, use the local shortcut to Shared automation:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup foundation --env test
@@ -177,7 +177,7 @@ only the setups registered in the current tier.
 
 Create the base production files:
 
-Run from the owning tier repository root.
+Run from **the owning tier repository root**.
 
 ```bash
 bash scripts/init-local-files.sh
@@ -185,7 +185,7 @@ bash scripts/init-local-files.sh
 
 Create only the shared defaults and foundation files:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup foundation
@@ -193,7 +193,7 @@ bash scripts/init-local-files.sh --setup foundation
 
 Create foundation files plus a disposable `test` environment:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/init-local-files.sh --setup foundation --env test
@@ -201,7 +201,7 @@ bash scripts/init-local-files.sh --setup foundation --env test
 
 Refresh local files from current examples and keep timestamped backups:
 
-Run from the owning tier repository root.
+Run from **the owning tier repository root**.
 
 ```bash
 bash scripts/init-local-files.sh --overwrite
@@ -209,7 +209,7 @@ bash scripts/init-local-files.sh --overwrite
 
 Remove timestamped backups created by `--overwrite`:
 
-Run from the owning tier repository root.
+Run from **the owning tier repository root**.
 
 ```bash
 bash scripts/init-local-files.sh --clean-backups
@@ -248,7 +248,7 @@ the same live resource into another state. Review every plan against the allocat
 
 After completing [environment isolation](#environment-isolation), deploy a setup from its owning tier:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh foundation --env test
@@ -260,7 +260,7 @@ add `--plan-only` to the same command.
 
 For an approved pipeline, suppress Terraform prompts and fail on missing Terraform inputs:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh foundation --env test --auto-approve
@@ -276,7 +276,7 @@ Destroy a disposable environment:
 Use [destroy and retirement](../administration/provisioning.md) for scope/backup checks and
 [state reconciliation](../administration/terraform-state.md) when objects were already removed on the host.
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh foundation --env test --destroy
@@ -285,7 +285,7 @@ bash scripts/deploy.sh foundation --env test --destroy
 When destroying and recreating VMs with the same IPs, clear stale SSH host keys
 for that setup before Ansible runs:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh foundation --env test --reset-known-hosts
@@ -299,7 +299,7 @@ rebuild and verify replacement fingerprints through a trusted channel.
 
 Run production by omitting `--env`:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh foundation
@@ -307,7 +307,7 @@ bash scripts/deploy.sh foundation
 
 Use another environment file when `.env.local` is not the right source:
 
-Run from `<prefix>-tier-0/`.
+Run from **`<prefix>-tier-0/`**.
 
 ```bash
 bash scripts/deploy.sh foundation --env test --env-file secrets/proxmox-test.env
@@ -401,8 +401,9 @@ and shared baseline roles without setting an extra path variable.
 
 1. Prepare local files.
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 cp env.local.example .env.local
 cp terraform/common.tfvars.example terraform/common.tfvars
 cp terraform/deployments/foundation/terraform.tfvars.example \
@@ -414,24 +415,22 @@ cp ansible/group_vars/all.env.yml.example ansible/group_vars/all.test.yml
 cp ansible/group_vars/foundation.yml.example ansible/group_vars/foundation.test.yml
 ```
 
-Edit these files:
+Edit in **`<prefix>-tier-0/`**.
 
-```text
-# Edit in <prefix>-tier-0/
-.env.local                                        # verified endpoint and scoped API credentials
-terraform/common.tfvars                           # prepared private network attachments
-terraform/deployments/foundation/terraform.tfvars  # unused VMIDs, sizing and storage selections
-ansible/inventory/hosts.yml                        # authorized hosts and groups
-ansible/group_vars/all.yml                        # base domain and SSH account
-ansible/group_vars/foundation.yml                 # base IP map and service configuration
-ansible/group_vars/all.test.yml                   # test domain/name overrides
-ansible/group_vars/foundation.test.yml            # complete non-conflicting test IP/service values
-```
+- `.env.local`: verified endpoint and scoped API credentials
+- `terraform/common.tfvars`: prepared private network attachments
+- `terraform/deployments/foundation/terraform.tfvars`: unused VMIDs, sizing and storage selections
+- `ansible/inventory/hosts.yml`: authorized hosts and groups
+- `ansible/group_vars/all.yml`: base domain and SSH account
+- `ansible/group_vars/foundation.yml`: base IP map and service configuration
+- `ansible/group_vars/all.test.yml`: test domain/name overrides
+- `ansible/group_vars/foundation.test.yml`: complete non-conflicting test IP/service values
 
 2. Load or export provider credentials.
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 set -a
 . ./.env.local
 set +a
@@ -443,8 +442,9 @@ export TF_VAR_proxmox_api_token_secret="${PROXMOX_API_TOKEN_SECRET}"
 
 3. Prepare the deployment machine.
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG="$PWD/ansible/ansible.cfg" ansible-playbook -i localhost, \
   ansible/playbooks/control-node.yml \
   -e control_node_setup=foundation
@@ -459,8 +459,9 @@ use `shared` for that sibling in the source layout.
 Commands remain at the repository root. `-chdir` resolves Terraform inputs from the deployment root;
 absolute data/backend paths retain the selected working data and original state. [2][3]
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 export TF_DATA_DIR="$PWD/.terraform/data/foundation/test"
 
 terraform -chdir=terraform/deployments/foundation init -reconfigure \
@@ -480,8 +481,9 @@ replace `apply` with `plan` in the same command; the standalone preview is not a
 
 5. Run the mapped Ansible playbook.
 
+Run from **`<prefix>-tier-0/`**.
+
 ```bash
-# Run from <prefix>-tier-0/
 ANSIBLE_CONFIG="$PWD/ansible/ansible.cfg" ansible-playbook \
   -i ansible/inventory/hosts.yml \
   -e @ansible/group_vars/all.yml \
