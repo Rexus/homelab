@@ -29,8 +29,8 @@ and copied files are not substitutes for an accepted restore.
 <a id="target-outcome"></a>
 
 Prepare the destination and protect original inputs during
-[Foundation Step 2](../../deployment/foundation/README.md#step-2-prepare-the-bootstrap-execution-host).
-Guest backup/restore tests follow the first disposable clone in Step 3.
+[Foundation Step 3](../../deployment/foundation/README.md#step-3-prepare-the-bootstrap-execution-host).
+Guest backup/restore tests follow the first disposable clone in Step 4.
 This guide configures existing products manually; no supplied role installs PBS or NAS storage.
 
 <a id="backup-policy"></a>

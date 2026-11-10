@@ -313,8 +313,11 @@ application-private files require separate approved collection. Collector-own
 pod logs are excluded to avoid a forwarding feedback loop. No workload annotation
 can opt out of collection. Raw CRI fragments remain separate records.
 
-Return to [Stage 4 acceptance](../README.md#step-3-verify-operation-and-recovery)
-after recording all selected tests; installing collectors alone is insufficient.
+For the initial Tier 0 installation, return to
+[Stage 4, Step 2](../README.md#step-2-establish-the-basic-platform), action **4**:
+qualify live storage, then complete the remaining add-ons and Flux before acceptance.
+When called by another tier's stage, return to that owning stage's platform sequence.
+Retain the recorded logging tests; installing collectors alone does not complete the platform.
 
 ## Queues and maintenance
 

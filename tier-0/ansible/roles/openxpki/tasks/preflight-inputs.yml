@@ -1,0 +1,69 @@
+---
+- name: Require the qualified platform and explicit deployment inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Debian'
+      - ansible_distribution_major_version == '12'
+      - ansible_architecture == 'x86_64'
+      - not ansible_check_mode
+      - openxpki_data_mount is match('^/srv/[a-zA-Z0-9_-]+$')
+      - openxpki_data_uuid == '' or openxpki_data_uuid is match('^[A-Fa-f0-9-]{16,64}$')
+      - openxpki_data_device is match('^/dev/[A-Za-z0-9_./+-]+$')
+      - openxpki_data_fstype in ['xfs', 'ext4']
+      - openxpki_deployment_id is match('^[a-zA-Z0-9_-]{3,64}$')
+      - openxpki_configuration_src is match('^/')
+      - openxpki_configuration_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_repository_key_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_repository_uri is match('^https://')
+      - openxpki_repository_key_url is match('^https://')
+      - openxpki_package_versions.keys() | sort == ['libopenxpki-perl', 'openxpki-cgi-session-driver', 'openxpki-i18n']
+      - openxpki_realm is match('^[a-z][a-z0-9-]+$')
+      - openxpki_portal_fqdn is match('^[a-zA-Z0-9.-]+$')
+      - openxpki_listen_address is match('^[0-9.]+$')
+      - openxpki_listen_address not in ['0.0.0.0', '127.0.0.1']
+      - openxpki_admin_networks | length > 0
+      - openxpki_publication_networks | length > 0
+    fail_msg: >-
+      OpenXPKI requires Debian 12 amd64, explicit signed package versions, a reviewed
+      configuration archive, dedicated guest storage and restricted networks. Check mode is
+      not an installation preview; inspect the inputs and use a disposable host first.
+
+- name: Reject package wildcards and unsafe Apache network arguments
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-zA-Z0-9.+:~_-]+$')
+      - "'REPLACE' not in item"
+  loop: "{{ openxpki_package_versions.values() | list }}"
+
+- name: Validate restricted source networks
+  ansible.builtin.assert:
+    that:
+      - item is match('^[0-9.]+/[0-9]{1,2}$')
+      - item not in ['0.0.0.0/0', '0.0.0.0/1', '128.0.0.0/1']
+  loop: "{{ openxpki_admin_networks + openxpki_publication_networks }}"
+
+- name: Require independent database and session secrets
+  ansible.builtin.assert:
+    that:
+      - openxpki_database_password | length >= 32
+      - openxpki_session_password | length >= 32
+      - openxpki_session_secret | length >= 32
+      - openxpki_database_password != openxpki_session_password
+  no_log: true
+
+- name: Verify the controller configuration archive
+  ansible.builtin.stat:
+    path: "{{ openxpki_configuration_src }}"
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: openxpki_configuration_stat
+
+- name: Require the exact reviewed configuration artifact
+  ansible.builtin.assert:
+    that:
+      - openxpki_configuration_stat.stat.isreg | default(false)
+      - openxpki_configuration_stat.stat.checksum | default('') == openxpki_configuration_sha256
+
+- name: Check any visible immutable binding before storage changes
+  ansible.builtin.import_tasks: binding.yml

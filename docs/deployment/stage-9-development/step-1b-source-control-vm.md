@@ -7,7 +7,7 @@ Run repository scripts from this root; paths below are repository-relative.
 
 **Branch from:** [Step 1](README.md#step-1-deploy-source-control-and-sso), instead of deploying source control in the Tier 1 cluster.
 **Change:** Use the VM service deployment without changing runner authority.
-**Return:** [Step 2](README.md#step-2-add-on-demand-build-execution) to continue with delivery integration and runner handover.
+**Return:** [Step 1 acceptance](README.md#step-1-deploy-source-control-and-sso), then Step 2 runner selection.
 
 **Design:** [delivery service variants](../../architecture/software/README.md).
 
@@ -30,8 +30,8 @@ Use this path when the private cloud needs source control, CI/CD coordination,
 and a starting point for internal software projects.
 
 The reference implementation is GitLab on one dedicated Podman VM. This keeps
-the first deployment simple and movable. Dedicated runners, Harbor, bootc image
-builds, and Kubernetes build on top of this path later.
+the source-control runtime separate from the existing Tier 1 cluster and Stage 7 registry.
+Runner selection follows at Step 2; image builds are an optional extension there.
 
 <a id="before-you-start"></a>
 
@@ -161,7 +161,8 @@ sudo podman exec -it gitlab grep 'Password:' /etc/gitlab/initial_root_password
 Rotate/store the new administrator credential through the accepted secret path. Complete the
 project-owned OIDC configuration and its live SSO gate before accepting ordinary users.
 Verify HTTPS, SSO/denials, clone/push, protected logging and clean-target recovery,
-then return to [Stage 9 Step 2](README.md#step-2-add-on-demand-build-execution).
+then return to [Stage 9 Step 1 acceptance](README.md#step-1-deploy-source-control-and-sso).
+Continue with Step 2's runner selection; the Kubernetes/data-VM installers are not part of this alternative.
 
 For a separate test installation, follow [environment isolation](../../reference/repository-scripts.md#environment-isolation)
 and add `--env test` consistently to initialization/deployment. Test and production
@@ -213,9 +214,9 @@ The [Kubernetes installer](procedures/gitlab.md) separates application compute
 from managed data services. Migration requires a deliberate product-data restore
 and one deployment owner; multiple pods alone do not establish HA.
 
-Do not scale this by starting several independent GitLab containers. The later
-Kubernetes path needs shared stateful services and the GitLab cloud-native
-deployment model.
+Do not scale this by starting several independent GitLab containers. Moving to the
+Kubernetes alternative needs shared stateful services and the GitLab cloud-native
+deployment model, plus the deliberate migration above.
 
 ## Read more
 

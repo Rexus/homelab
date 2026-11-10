@@ -49,12 +49,20 @@ class RepositoryWriter:
         path = self.root / relative
         if path.is_symlink() or not path.resolve().is_relative_to(self.root):
             raise ValueError(f"Refusing generated output through symlink: {path}")
+        example = path.name.endswith(".example")
+        if example:
+            # Reference examples follow the kit, including inside otherwise project-owned trees.
+            owned = False
+            if self.refresh:
+                self.owned_paths.discard(relative)
         data = content.encode("utf-8") if isinstance(content, str) else content
         digest = hashlib.sha256(data).hexdigest()
         existing = None
         if path.exists():
             existing = hashlib.sha256(path.read_bytes()).hexdigest()
-            if not owned and relative not in self.hashes and relative not in self.owned_paths:
+            if self.refresh and example:
+                action = "unchanged" if existing == digest else "update"
+            elif not owned and relative not in self.hashes and relative not in self.owned_paths:
                 action = "preserve"
             elif existing == digest:
                 action = "unchanged"
@@ -85,6 +93,8 @@ class RepositoryWriter:
             else:
                 reason = "locally edited generated file"
         self.review.record(relative, data, source, reason)
+        if self.refresh and example and action in ("create", "update"):
+            self.review.updated_examples[relative] = Path(source).resolve() if source else None
         self.counts[action] += 1
         quiet_document = self.refresh and action == "preserve" and not needs_operational_review(relative)
         if action != "unchanged" and not quiet_document:

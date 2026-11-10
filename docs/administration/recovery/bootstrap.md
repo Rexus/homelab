@@ -86,9 +86,9 @@ sudo pvs
 sudo lvs -o lv_path,devices
 ```
 
-If `/home` uses the optional bind mount, verify the [home layout checks](../../deployment/foundation/proxmox/bootstrap-home.md).
+If `/home` uses the optional bind mount, verify the [home layout checks](../../deployment/foundation/bootstrap/step-3c-bootstrap-home.md).
 All selected layout checks must pass before Step 7. See the
-[LVM layout](../../deployment/foundation/proxmox/bootstrap-lvm.md) if needed.
+[LVM layout](../../deployment/foundation/bootstrap/step-3b-bootstrap-lvm.md) if needed.
 
 <a id="3-recover-the-authoritative-workspace"></a>
 
@@ -115,7 +115,7 @@ use on this recovery path; [state handling](../terraform-state.md) distinguishes
 
 On **the restored bootstrap**, compare installed tools with the recorded versions. Rebuild
 unavailable/non-portable Python environments from the
-[retained offline bundle](../../deployment/foundation/proxmox/bootstrap-offline.md).
+[retained offline bundle](../../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md).
 Do not generate a replacement collection or new service identities.
 
 <a id="4-verify-access-before-enabling-writers"></a>

@@ -40,7 +40,7 @@ class DiagramDependencies(unittest.TestCase):
             ("stage-4-kubernetes/README.md", 0, "PVE", "CP1 ~~~ CP2 ~~~ CP3"),
             ("stage-7-delivery/README.md", 0, "Nodes", "CP1 ~~~ CP2 ~~~ CP3"),
             ("stage-7-delivery/procedures/edge-proxy.md", 0, "PVE", "A ~~~ B ~~~ C"),
-            ("stage-10-lab-environments/public-https.md", 0, "PVE", "A ~~~ B ~~~ C"),
+            ("stage-10-lab-environments/step-3b-public-https.md", 0, "PVE", "A ~~~ B ~~~ C"),
         ]
         for path, index, group, peers in cases:
             with self.subTest(document=path):

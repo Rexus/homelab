@@ -176,9 +176,13 @@ must not enlarge its source scope.
 
 Index permissions, document-level security and field-level security define reader
 access. Document/field filters do not remove separately granted write privileges;
-readers must have no update/delete or index-management permissions. [11][12]
-Tier 1 index deletion never deletes Tier 0 originals. Dashboard tenants alone
-are not the data-authorization boundary.
+readers must have no ingest, update, delete, delete-by-query or index-management
+permissions, and no retention or backup authority. [11][12]
+Dashboard tenants organize saved objects; their permissions are separate from
+log-data access, not a data-authorization boundary. [17] The
+[protected logging access model](security-logging.md#segmented-access) defines
+source scopes and custody roles. Tier 1 index deletion never deletes Tier 0 originals.
+Test cross-tenant isolation using hostile labels and direct API queries, not only UI views.
 
 ## Realization
 
@@ -187,7 +191,7 @@ are not the data-authorization boundary.
 keeps foundation visibility outside cluster outages.
 [Observability deployment](../../deployment/stage-8-observability/README.md)
 adds Netdata diagnostics, infrastructure coverage, gateways, both backends and UIs;
-[workload collection](../../deployment/stage-10-lab-environments/telemetry.md)
+[workload collection](../../deployment/stage-10-lab-environments/step-3c-telemetry.md)
 connects applications.
 
 Tier-owned native release inputs realize this design. Project GitOps folders are
@@ -218,3 +222,4 @@ Sources checked 2026-11-09; qualify documentation against selected releases.
 14. [Netdata Prometheus export](https://learn.netdata.cloud/docs/exporting-metrics/prometheus)
 15. [Netdata parent clustering and failover](https://learn.netdata.cloud/docs/netdata-parents/metrics-centralization-points/clustering-and-high-availability-of-netdata-parents)
 16. [Grafana high availability and shared database](https://grafana.com/docs/grafana/latest/setup-grafana/set-up-for-high-availability/)
+17. [OpenSearch Dashboards tenant scope](https://docs.opensearch.org/latest/security/multi-tenancy/tenant-index/)

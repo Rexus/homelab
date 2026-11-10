@@ -1,5 +1,10 @@
 # Vault authentication for infrastructure CI
 
+**Stage route:** [Stage 9, Step 3](../README.md#step-3-authorize-ci-through-vault) creates exact job authority.
+**Return:** to Step 3 after policy configuration. Credential placement and real job tests belong to
+[Step 4](../README.md#step-4-hand-over-infrastructure-execution), after `iac-1` is installed;
+finish them before state handover.
+
 **Working repository:** `<prefix>-tier-0`.
 **Prerequisites:** accepted Vault with audit/backup/recovery, GitLab HTTPS,
 independently authorized Vault administration and accepted direct-CI trust.

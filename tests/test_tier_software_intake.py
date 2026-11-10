@@ -73,8 +73,9 @@ class SoftwareIntake(TierRepositoryTestCase):
             for step in range(1, 4):
                 self.assertIn(f"## Step {step}:", capability)
             for expected in ("cache-1", "cache-2", "proxy-cache.md", "**IaC:**", "Harbor",
-                             "works independently of later hosted", "not installed by this path"):
+                             "works independently of later hosted", "Harbor belongs to Stage 7"):
                 self.assertIn(expected, capability)
+            self.assertIn("../stage-3-trust/README.md#3b-verified-repository-and-artifact-publication", capability)
             foundation = (deployment / "foundation/README.md").read_text()
             self.assertIn("../stage-1-software-intake/README.md", foundation)
             self.assertNotIn("step-3b-outbound-cache.md", foundation)

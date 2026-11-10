@@ -1,5 +1,11 @@
 # Edge proxy path
 
+**Branch from:** [Stage 7, Step 3d](../README.md#step-3-connect-approved-artifact-supply) for an existing
+approved backend, or [Stage 10, Step 3b](../../stage-10-lab-environments/README.md#step-3-deploy-and-verify-applications)
+when the website needs a new pool.
+**Return:** to Stage 7 after private listener/failover acceptance; to Stage 10's
+[public HTTPS guide](../../stage-10-lab-environments/step-3b-public-https.md) before website publication.
+
 **Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
 Run repository scripts from this root; paths below are repository-relative.
 
@@ -168,9 +174,10 @@ Add `--plan-only` for a preview without installation; approved unattended jobs u
 
 ## Step 3: Verify before publication
 
-For a browser-facing website, use the [public HTTPS procedure](../../stage-10-lab-environments/public-https.md)
-for HTTP-01, trusted public certificates, verified origin TLS and scheduled renewal.
-The generic edge recipe does not select or obtain those certificates on its own.
+For **Stage 7 Step 3d**, finish checks 1–2 below and return to the Delivery README.
+Keep public DNS/NAT closed; the backend and private TLS must already exist.
+For **Stage 10 Step 3b**, complete the [public HTTPS procedure](../../stage-10-lab-environments/step-3b-public-https.md)
+for certificates/renewal before check 3. The generic edge recipe does not obtain them.
 
 1. Test the selected VIP/listener from an approved internal client, backend health,
    TLS/service hostname and denied access from an unauthorized subnet.

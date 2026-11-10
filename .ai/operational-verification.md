@@ -37,7 +37,7 @@ and automatic patch rollout remain separate integrations.
 **Procedure:** [Stage 1](../docs/deployment/stage-1-software-intake/README.md) and
 [existing-cache migration](../docs/deployment/stage-1-software-intake/proxy-cache.md#update-an-existing-cache).
 The first five checks cover the basic route; the remaining checks apply to the selected
-[verified extension](../docs/deployment/stage-1-software-intake/verified-intake.md). None qualify patch rollout.
+[verified extension](../docs/deployment/stage-3-trust/step-3b-verified-intake.md). None qualify patch rollout.
 
 - [ ] **INTAKE-1: Real network enforcement.** From every selected subnet, approve actual sources and
   redirects; deny another source, a forbidden client and direct WAN bypass. Check HTTP and CONNECT,

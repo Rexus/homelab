@@ -39,6 +39,11 @@ not install those rules or enable the cluster firewall.
 Run the relevant checks below from approved and unapproved source networks.
 Record actual results rather than treating rule names as proof.
 
+In Foundation, test the existing workstation, host-management and pilot-guest paths.
+Use a known listening test service to distinguish a firewall denial from an absent server.
+Keep later service rules closed until their owning stage deploys and tests the listener;
+identity, ingress and hosted runners are not Foundation acceptance prerequisites.
+
 | Test | Expected result |
 | --- | --- |
 | public client to published edge listener | only the published service succeeds |

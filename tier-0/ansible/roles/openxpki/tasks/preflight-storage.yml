@@ -1,0 +1,84 @@
+---
+- name: Inspect existing mount identities without preparing storage
+  ansible.builtin.import_tasks: storage-inspect.yml
+
+- name: Refresh prepared storage facts
+  ansible.builtin.setup:
+    gather_subset: ['!all', mounts]
+
+- name: Select issuer and database mounts
+  ansible.builtin.set_fact:
+    openxpki_data_facts: "{{ ansible_mounts | selectattr('mount', 'equalto', openxpki_data_mount) | list }}"
+    openxpki_database_facts: "{{ ansible_mounts | selectattr('mount', 'equalto', '/var/lib/mysql') | list }}"
+    openxpki_root_facts: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | list }}"
+
+- name: Resolve the pinned or persistently recorded filesystem identity
+  ansible.builtin.set_fact:
+    openxpki_effective_data_uuid: >-
+      {{ openxpki_data_uuid if openxpki_data_uuid | length > 0 else
+         (openxpki_data_fstab | map(attribute='source') | first | default('') | regex_replace('^UUID=', '')) }}
+
+- name: Refuse an absent, incorrect or exhausted data disk and database bind mount
+  ansible.builtin.assert:
+    that:
+      - openxpki_data_facts | length == 1
+      - openxpki_database_facts | length == 1
+      - openxpki_root_facts | length == 1
+      - openxpki_volume_mounts | length == 1
+      - openxpki_volume_mounts[0].fsroot == '/'
+      - openxpki_effective_data_uuid is match('^[A-Fa-f0-9-]{16,64}$')
+      - openxpki_data_facts[0].uuid == openxpki_effective_data_uuid
+      - openxpki_volume_mounts[0].uuid == openxpki_effective_data_uuid
+      - openxpki_database_facts[0].uuid == openxpki_effective_data_uuid
+      - openxpki_data_facts[0].uuid != openxpki_root_facts[0].uuid
+      - openxpki_data_facts[0].fstype == openxpki_data_fstype
+      - openxpki_data_fstab | length == 1
+      - openxpki_data_fstab[0].source in ['UUID=' ~ openxpki_effective_data_uuid, openxpki_data_device]
+      - openxpki_data_fstab[0].fstype == openxpki_data_fstype
+      - openxpki_mysql_mounts | length == 1
+      - openxpki_mysql_fstab | length == 1
+      - openxpki_mysql_mounts[0].uuid == openxpki_effective_data_uuid
+      - "'rw' in openxpki_data_facts[0].options.split(',')"
+      - "['rw', 'nodev', 'nosuid', 'noexec'] | difference(openxpki_mysql_mounts[0].options.split(',')) | length == 0"
+      - openxpki_data_facts[0].size_available | int >= openxpki_min_free_mb | int * 1024 * 1024
+    fail_msg: >-
+      The issuer volume and /mysql database bind must already be mounted with their
+      expected identity and reserve. Backup, restore and signer bootstrap never prepare storage.
+      Use the normal inactive runtime installation for a new target; recover missing volumes explicitly.
+
+- name: Recheck the immutable binding on verified mounted storage
+  ansible.builtin.import_tasks: binding.yml
+
+- name: Inspect existing application configuration
+  ansible.builtin.stat:
+    path: /etc/openxpki/config.d
+    follow: false
+  register: openxpki_existing_config
+
+- name: Refuse takeover of an unregistered CA
+  ansible.builtin.assert:
+    that:
+      - openxpki_binding_stat.stat.exists or not openxpki_existing_config.stat.exists
+    fail_msg: Existing OpenXPKI configuration requires an explicit migration or recovery, never a fresh install.
+
+- name: Inspect managed directories without following links
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - "{{ openxpki_data_mount }}/configuration"
+    - "{{ openxpki_release_dir }}"
+    - "{{ openxpki_data_mount }}/public"
+    - "{{ openxpki_data_mount }}/keys"
+    - "{{ openxpki_data_mount }}/identity"
+    - /etc/openxpki
+    - /etc/openxpki/portal-tls
+  register: openxpki_directories
+
+- name: Refuse linked or non-directory runtime paths
+  ansible.builtin.assert:
+    that:
+      - not item.stat.exists or (item.stat.isdir | default(false) and not item.stat.islnk | default(false))
+  loop: "{{ openxpki_directories.results }}"
+  loop_control:
+    label: "{{ item.item }}"

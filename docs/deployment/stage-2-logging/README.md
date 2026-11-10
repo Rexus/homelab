@@ -10,10 +10,19 @@ Run repository scripts from this root; Shared is execution code, not an evidence
 **Prerequisites:** verified [foundation](../foundation/README.md): approved Linux templates, Control networking, local tools/state,
 independent bootstrap credentials and protected storage. Kubernetes, FreeIPA,
 Keycloak, Vault and Tier 1 analytics are not prerequisites.
-**Automation:** the Linux/NAS main-path mechanisms are supplied; prepared storage,
+**Automation:** guest data-volume preparation and the Linux/NAS main-path mechanisms are supplied;
 NAS custody and live acceptance remain required. See [coverage](../../reference/implementation-support.md#stage-coverage).
 
 ## Main path
+
+| Step / option | Detailed path | Rejoin |
+| --- | --- | --- |
+| 1: first receiver VM/disks | Provision below; no platform PKI or cluster required | Step 2 |
+| 2: trust, receiver, then producers | [Independent signing](producer-trust.md), [receiver](receiver.md), then [sources](sources.md) | Step 3 after authorized test events arrive |
+| 3a: single collector, main | Retain the first collector's explicit failure limits | Select storage 3c or 3d |
+| 3b: extra receiver, optional | [Redundant intake](step-3b-redundant-intake.md) | Select storage 3c or 3d for the resulting topology |
+| 3c: NAS retention, main | [NAS checkpoints and independent backup](step-3c-nas-archive.md) | Final fault/restore acceptance below |
+| 3d: locked retention instead or in addition | [Retention-locked storage integration](step-3d-retention-lock.md); requires a qualified existing endpoint | Final fault/restore acceptance below |
 
 1. [Provision the log host](#step-1-provision-the-log-host)
 2. [Install the receiver, then connect and test sources](#step-2-enable-protected-collection)
@@ -27,7 +36,8 @@ NAS and locked retention are storage choices with separate acceptance gates.
 
 The IaC provisions hosts/disks, installs the isolated receiver, configures supported
 Linux producers and publishes NAS checkpoints with independent encrypted backups.
-Storage preparation, NAS-owned snapshots and live acceptance remain explicit gates;
+Guarded Ansible prepares the local filesystem and UUID mount. NAS-owned snapshots
+and live acceptance remain explicit gates;
 this asynchronous main path has declared durability limits, not lossless HA.
 At Step 3, use [NAS-backed retention](step-3c-nas-archive.md) for a trusted-admin
 homelab or [retention locks](step-3d-retention-lock.md) for protection from privileged
@@ -119,7 +129,7 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    ssh "automation@$LOG_HOST_IP"
    ```
 
-   Use the configured SSH account if different. Continue Step 2's storage preparation on this host;
+   Use the configured SSH account if different. Step 2 prepares storage through Ansible;
    return to the Tier 0 execution shell for repository commands.
 
 Edit the local files seeded from examples. The starter creates `log-1`
@@ -193,9 +203,9 @@ installation; it does not require an already-running receiver to generate that r
 
 ### 1. Install and test the receiver
 
-Complete [receiver Steps 1-3](receiver.md). Prepare the local data mount, issue its
-independent TLS identity and run the receiver installation. These are required
-steps, not optional background reading. The recipe refuses missing storage/trust.
+Complete [receiver Steps 1-3](receiver.md). Select the local data device, issue its
+independent TLS identity and run the receiver installation, including filesystem/mount preparation.
+These are required steps, not optional background reading. The recipe refuses unsafe storage or missing trust.
 
 Return here after `log-1-os` reaches protected intake, then continue with action 2.
 
@@ -299,7 +309,8 @@ flowchart BT
 
 **IaC:** Tier 0 [archive recipe](../../../tier-0/ansible/playbooks/deployment/logging-archive.yml)
 and [backup recipe](../../../tier-0/ansible/playbooks/deployment/logging-backup.yml) configure existing hosts.
-NAS accounts/snapshots and the independent recovery disk are prepared separately;
+NAS accounts/snapshots and the independent recovery host are existing prerequisites.
+The backup recipe prepares its explicitly selected attached disk, or adopts a commissioned mount.
 Tier 1 analytics is a later capability, not installed by these recipes.
 
 The view expands the NAS main path: the NAS is not the receiver's live data disk,
@@ -309,14 +320,14 @@ data into the recovery boundary. That group remains inside the Tier 0 ownership
 box, not inside the receiver's runtime or NAS custody. Choice B replaces or supplements
 the NAS custody boundary with qualified retention-locked storage.
 
-1. **Main path:** complete [NAS archive Steps 1-3](step-3c-nas-archive.md), including
+1. Choose **3a** (one collector) or complete
+   [3b: redundant intake](step-3b-redundant-intake.md) now, including its separate sender/storage integration.
+   Return here before archive configuration; two receivers do not convert asynchronous delivery into lossless HA.
+2. **Main path 3c:** complete [NAS archive Steps 1-3](step-3c-nas-archive.md), including
    the archive installation and independent backup recipe. A trusted homelab operator
    may hold the separate credentials; record that custody assumption.
    **Alternative:** [locked retention](step-3d-retention-lock.md) replaces or supplements
    NAS snapshots when privileged deletion must be prevented. Return here afterward.
-2. If the required failure envelope needs another collector, complete
-   [3b: redundant intake](step-3b-redundant-intake.md) now, including its separate sender/storage integration.
-   Return here before acceptance; two receivers do not convert asynchronous delivery into lossless HA.
 3. Complete the [numbered fault/restore drill](../../administration/logging-drill.md)
    and acceptance matrix below for the selected topology. Keep live results with the project records.
 4. Record [readiness](../readiness.md#readiness-levels), checkpoint/snapshot/backup lag

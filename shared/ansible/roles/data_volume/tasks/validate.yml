@@ -1,0 +1,66 @@
+---
+- name: Require a writable leaf device with an unambiguous target
+  ansible.builtin.assert:
+    that:
+      - data_volume_block.children | default([]) | length == 0
+      - not data_volume_block.ro | bool
+      - data_volume_block.size | int >= 1073741824
+      - data_volume_block.type != 'rom'
+      - data_volume_block['maj:min'] is match('^[0-9]+:[0-9]+$')
+      - data_volume_target_mounts | length <= 1
+      - data_volume_target_fstab | length <= 1
+      - data_volume_target_mounts | rejectattr('maj:min', 'equalto', data_volume_block['maj:min']) | list | length == 0
+      - data_volume_target_mounts | rejectattr('fsroot', 'equalto', '/') | list | length == 0
+    fail_msg: Refuse an OS/partitioned/read-only device, a foreign mount or a bind/subdirectory mount.
+
+- name: Refuse mounted uses outside the data root and explicitly declared subdirectory binds
+  ansible.builtin.assert:
+    that:
+      - >-
+        (item.target == data_volume_path and item.fsroot | default('') == '/') or
+        (data_volume_allowed_bind_mounts | selectattr('path', 'equalto', item.target) |
+         selectattr('fsroot', 'equalto', item.fsroot | default('')) | list | length == 1)
+    fail_msg: This device is mounted outside its declared data root or service subdirectory binds.
+  loop: "{{ data_volume_device_mounts }}"
+
+- name: Refuse to hide files beneath a new mount
+  ansible.builtin.assert:
+    that:
+      - >-
+        data_volume_target_mounts | length > 0 or
+        (data_volume_target_entries.matched | default(0) == 0 and
+         data_volume_target_entries.skipped_paths | default({}) | length == 0)
+    fail_msg: The unmounted target contains files; retain and recover them before attaching storage.
+
+- name: Initialize only an undeclared signature-free device
+  ansible.builtin.assert:
+    that:
+      - data_volume_expected_uuid | length == 0
+      - data_volume_target_fstab | length == 0
+      - data_volume_target_mounts | length == 0
+      - data_volume_device_mounts | length == 0
+    fail_msg: A declared data volume is missing; restore it instead of formatting its replacement.
+  when: data_volume_is_blank | bool
+
+- name: Reuse only a recognized compatible filesystem with its original identity
+  ansible.builtin.assert:
+    that:
+      - data_volume_block.fstype == data_volume_fstype
+      - data_volume_block.uuid | default('', true) | length > 0
+      - data_volume_signatures | length > 0
+      - data_volume_signatures | map(attribute='type') | unique | list == [data_volume_fstype]
+      - data_volume_signatures | map(attribute='uuid') | unique | list == [data_volume_block.uuid]
+      - data_volume_expected_uuid == '' or data_volume_expected_uuid == data_volume_block.uuid
+      - >-
+        data_volume_target_mounts | length > 0 or data_volume_expected_uuid | length > 0 or
+        data_volume_target_fstab | length > 0 or data_volume_block.label | default('') == data_volume_label
+    fail_msg: Existing storage has an incompatible or unrecognized identity; it will not be reformatted.
+  when: not data_volume_is_blank | bool
+
+- name: Preserve any existing fstab identity and filesystem type
+  ansible.builtin.assert:
+    that:
+      - item.fstype == data_volume_fstype
+      - item.source in [data_volume_device, data_volume_realpaths.results[0].stdout, 'UUID=' ~ data_volume_block.uuid]
+    fail_msg: Existing fstab belongs to different storage; an explicit recovery/migration is required.
+  loop: "{{ data_volume_target_fstab }}"

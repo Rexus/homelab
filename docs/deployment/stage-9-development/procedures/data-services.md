@@ -1,5 +1,9 @@
 # GitLab Data Services
 
+**Stage route:** [Stage 9, Step 1a](../README.md#step-1-deploy-source-control-and-sso), before the GitLab chart.
+**Return:** after the chart-input handoff, continue with [GitLab installation](gitlab.md).
+After GitLab is installed, finish [joint recovery checks](#backups-and-recovery), then return to Stage 9 Step 1.
+
 **Working repository:** `<prefix>-tier-1`; upstream implementation: `tier-1/`.
 This procedure supplies PostgreSQL, Redis and Gitaly on dedicated VMs for the
 [GitLab CE chart](gitlab.md). The main path consumes versioned tenant buckets and
@@ -36,7 +40,7 @@ The data VMs' encrypted recovery copies use a separate file/SFTP repository.
 | Queue/cache | `kv-1`, CE package `redis_master_role`, TLS 6379 | One authenticated instance; no plaintext listener or eviction |
 | Repositories | `repo-1`, CE package `gitaly_role`, TLS 8076 | `default` storage on its persistent VM disk; RPC and hook secrets |
 | Objects | Existing qualified object storage, ten versioned tenant buckets | S3-compatible API; separate application and toolbox identities; no Tier 0 storage-admin keys in Tier 1 |
-| Recovery | Per-host encrypted restic repositories on commissioned NAS mounts or existing SFTP destinations | Systemd jobs; independent custody and separately retained keys |
+| Recovery | Per-host encrypted restic repositories on commissioned NAS shares or existing SFTP destinations | Native guest mount setup and systemd jobs; independent custody and retained keys |
 
 These are GitLab's native Linux-package roles on EL9 x86_64; this recipe validates
 AlmaLinux, Rocky Linux or RHEL 9. The exact CE package application version must
@@ -60,11 +64,13 @@ receive GitLab project permissions, never database, Gitaly, S3-admin or recovery
 | PKI | Server certificate/key for each endpoint, `serverAuth` and DNS SAN; database client certificate with `CN=gitlab`, `clientAuth`; trusted CA bundle for GitLab callbacks and dependencies |
 | Network | DNS for the three hosts; permit only actual Tier 1 cluster client/SNAT CIDRs to 5432, 6379, 8076; Gitaly must reach itself and the GitLab HTTPS callback |
 | Object storage | Approved existing endpoint or Tier 0 tenant handoff; S3-compatible API, versioned buckets, verified TLS and qualified multipart/data APIs; Ceph provisioning mode alone requires account IAM APIs [2] |
-| Recovery | Commissioned per-host NAS mount/repository, or existing scoped SFTP destination; independent encryption password, retention/snapshot custody and recovery-key copies [4] |
+| Recovery | Commissioned per-host NAS share/repository/marker, or scoped SFTP destination; encryption password, retention/snapshot custody and recovery-key copies [4] |
 | Custody | Private/encrypted Ansible inputs outside source control; one accepted Secret owner and a retained recovery kit |
 
 The baseline does not create firewall policy, issue certificates or commission the
-NAS export/mount or SFTP server. Restrict each identity to its own backup area. Set
+NAS export/share, marker or SFTP server. IaC sets up the guest NAS mount from its
+per-host contract; no manual guest mount is required for the normal route.
+Restrict each identity to its own backup area. Set
 `development_data_backup_custody_accepted=true` only after independent copies and
 retention are configured: a data host's writable repository alone is not protected
 retention. The [storage-interface choice](../../../architecture/data/README.md#storage-interfaces)
@@ -254,7 +260,8 @@ In **`<prefix>-tier-1/`**, complete `ansible/group_vars/development_data.yml`:
 | `development_data_chart_app_version`, `development_data_package_*` | Matching signed EL9 CE package, exact URL/checksum and verified signing key/fingerprint |
 | `development_data_endpoints`, `development_data_client_cidrs` | Real DNS names and only the cluster clients that reach these VMs |
 | `development_data_ca_src`, `development_data_tls`, PostgreSQL client certificate/key paths | Preissued leaf material; no CA private key |
-| `development_data_backup_transport`, `development_data_backup_repository` | Commissioned SFTP repositories or NAS file mounts; live data stays on VM block disks |
+| `development_data_backup_transport`, `development_data_backup_repository` | Commissioned SFTP repositories or NAS shares; live data stays on VM block disks |
+| `development_data_backup_filesystem` | Per-host mount/source/type, UID/GID, independent marker and `manage_mount: true`; CIFS also needs private `credentials_src` |
 | `development_data_backup_*_src`, `development_data_backup_custody_accepted` | Independently retained encryption/transport material and verified custody |
 
 Require commissioned TLS, permitted client CIDRs and a usable backup destination before apply.
@@ -391,7 +398,8 @@ component snapshots need a coordinated maintenance recovery point for joint use.
 Verify SSO, denied access, push/hooks, LFS/artifacts, jobs and audit delivery after
 restore. Installation and offline parsing do not establish live acceptance.
 
-Return to [GitLab chart installation](gitlab.md#render-and-install).
+Return to [Stage 9, Step 1 acceptance](../README.md#step-1-deploy-source-control-and-sso),
+then continue with Step 2. Do not reinstall GitLab after these joint recovery checks.
 
 ## References
 

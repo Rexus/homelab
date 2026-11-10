@@ -29,9 +29,17 @@ these definitions, inventory or state into Tier 0 or Shared.
 
 ## Main path
 
-1. [Define the approved request](#step-1-define-the-approved-request)
-2. [Provision the workload runtime](#step-2-provision-the-workload-runtime)
-3. [Deploy and verify applications](#step-3-deploy-and-verify-applications)
+Follow Steps 1–3. Select only the runtimes and application options needed for this environment.
+
+| Step | Path or option | Continue when |
+| --- | --- | --- |
+| 1 | [Approve scope](#step-1-define-the-approved-request); for Kubernetes, select [isolation](isolated-clusters.md#step-1-select-the-isolation-profile) | Owner, limits and isolation are approved; go to Step 2 |
+| 2a | [Linux VM/LXC labs](#step-2a-linux-vmlxc-labs) | OS baseline and isolated attachment accepted; go to Step 3 |
+| 2b | [Kubernetes labs](#step-2b-kubernetes-labs), instead of or alongside 2a | Cluster, add-ons, identity and recovery accepted; go to Step 3 |
+| 2c | Optional [bounded self-service integration](isolated-clusters.md#step-3-introduce-bounded-automation), after an accepted operator deployment | Project-owned dispatcher must be implemented/tested; no portal or allocator is supplied |
+| 3a | [Private application](step-3a-application.md) for 2b; project-owned application installer for 2a | Application access, update and rollback work |
+| 3b | Optional [public HTTPS](step-3b-public-https.md) for an accepted website; provision the [edge pool](../stage-7-delivery/procedures/edge-proxy.md) first if absent | Return to Step 3 for recovery and operational handoff |
+| 3c | [Scoped collection](step-3c-telemetry.md) for instrumented Kubernetes applications; protected Linux forwarding for 2a | Verify source-to-query delivery, then complete Step 3 recovery checks |
 
 ## Step 1: Define the approved request
 
@@ -94,18 +102,20 @@ separately authorized. Kubernetes retains its dedicated operator lifecycle comma
 the CI example is not a multi-cluster request controller. Shared owns neither inventory nor resources.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":32,"padding":12,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart BT
   subgraph T2["Tier 2 / alternative runtime selections"]
-    subgraph PVE["Existing Proxmox cluster"]
-      subgraph Cluster["A: kubernetes root / lab network"]
+    direction TB
+    subgraph PVE["Guests on existing Proxmox hosts"]
+      direction TB
+      subgraph Cluster["2b: kubernetes root / lab network"]
         direction LR
         CP1["wctl-1"]
         CP2["wctl-2"]
         CP3["wctl-3"]
         CP1 ~~~ CP2 ~~~ CP3
       end
-      subgraph Guests["B: lab root / application network"]
+      subgraph Guests["2a: lab root / selected isolated network"]
         direction LR
         VM["lab-1<br/>Linux VM"]
         CT["util-1<br/>LXC container"]
@@ -115,12 +125,12 @@ flowchart TB
     end
   end
   subgraph T0["Tier 0 / authorized execution"]
-      Runner["Existing privileged workstation<br/>or iac-1 protected runner"]
+    direction LR
+    Runner["Existing privileged workstation<br/>or iac-1 protected runner"]
     State[("Protected tier-local state")]
     Runner <--> State
   end
-  T2 ~~~ T0
-  Runner -->|Approved API operations| PVE
+  T0 -->|Approved provisioning API operations| T2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
@@ -136,7 +146,7 @@ flowchart TB
 and [cluster entry point](../../../tier-2/scripts/kubernetes-cluster.sh), or
 [VM/LXC inputs](../../../tier-2/terraform/deployments/lab/terraform.tfvars.example)
 and [lab recipe](../../../tier-2/ansible/playbooks/deployment/lab-vms.yml).
-A and B are independent roots, not one command that creates both; choose the required runtime.
+Paths 2a and 2b are independent roots, not one command that creates both; choose the required runtime.
 The [Shared executor](../../../shared/scripts/deploy.sh) consumes Tier 2 inventory/state, never owns them.
 
 Choose **2a: Linux VM/LXC** or **2b: Kubernetes** below; both return to Step 3.
@@ -259,6 +269,9 @@ then rejoin below.
 
 Before either branch rejoins Step 3, verify isolation, readiness, original-state
 locking and independent recovery. No autoscaler or multi-cluster allocator is installed.
+Select **2c: bounded automation** only after that operator deployment works; complete the
+[dispatcher integration contract](isolated-clusters.md#step-3-introduce-bounded-automation)
+and its acceptance tests before handing requests to users. Otherwise continue directly to Step 3.
 
 **Result:** the [compute runtime](../../architecture/hosting/README.md) is ready within
 the workload's allocated scope, without changing Tier 0 ownership.
@@ -300,17 +313,19 @@ and [inputs](../../../tier-2/ansible/group_vars/lab_environment.yml.example) ren
 the [native resources](../../../tier-2/ansible/roles/lab_environment/templates/environment.yml.j2).
 The namespace, quota, policies, reader role, two app replicas and private route are
 installed together. The cluster and trusted TLS Secret are explicit prerequisites.
-See [application installation](application.md) for commands and acceptance.
+See [application installation](step-3a-application.md) for commands and acceptance.
 
-1. For Kubernetes, install the [bounded application reference](application.md): prepare its namespace TLS,
+1. Complete **3a: private application**. For Kubernetes, install the [bounded application reference](step-3a-application.md): prepare its namespace TLS,
    render/review, apply and verify its reader/isolation boundary. For Linux, complete and accept the
    project-owned application installation instead. Keep one owner for subsequent revisions.
-2. Connect [workload collection](telemetry.md) for the selected runtime. Linux security/audit senders
-   use the protected-source recipe; the supplied application Collector runs in Kubernetes only.
-   Its logs/metrics/traces need actual application SDK instrumentation, not just the HTTP reference image.
-   Security/audit submissions still go directly to Tier 0; Tier 1 receives only approved copies.
-3. For a public website, take [3b: public HTTPS](public-https.md), then return here.
+2. For a public website, take [3b: public HTTPS](step-3b-public-https.md), then return here.
    Private applications skip that branch.
+3. Complete **3c: [workload collection](step-3c-telemetry.md)** for instrumented Kubernetes applications.
+   Linux security/audit senders use the [protected-source recipe](../stage-2-logging/sources.md);
+   the supplied application Collector runs in Kubernetes only.
+   Its logs/metrics/traces need actual application SDK instrumentation, not just the HTTP reference image.
+   Record uninstrumented application signals as deferred; do not claim their collection.
+   Security/audit submissions still go directly to Tier 0; Tier 1 receives only approved copies.
 4. Exercise an update, rollback and restore, including the behavior when source control
    is unavailable. Source loss pauses new requests; it never authorizes deletion.
 5. Hand recurring operations to [administration](../../administration/README.md), retaining

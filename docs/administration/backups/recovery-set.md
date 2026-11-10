@@ -30,7 +30,7 @@ owners, versions, backup IDs/times and integrity records. Record unused capabili
   Shared platform profile/template catalog and project standards, in the sibling repository layout.
 - [ ] **Approved software:** guest/template images and checksums, matching OS packages, wheels,
   transitive collections, provider mirror and required product/chart/OCI artifacts. The
-  [offline bundle](../../deployment/foundation/proxmox/bootstrap-offline.md) covers controller
+  [offline bundle](../../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md) covers controller
   dependencies, not every guest or application download.
 - [ ] **Independent access:** accepted CA/API trust and SSH host fingerprints; separately protected
   console/API, SSH, backend and NAS/PBS recovery credentials, plus backup encryption keys.

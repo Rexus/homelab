@@ -11,9 +11,12 @@ all:
   children:
     hypervisors:
       hosts: {}
-    # Independently prepared existing hosts; never placed in the observed cluster.
+    # Stage 6 managed monitor or accepted existing host; outside observed Kubernetes clusters.
     infrastructure_monitoring:
       hosts: {}
+      # Managed path: replace hosts: {} above with these uncommented lines.
+      # hosts:
+      #   mon-1: {}
     control_recovery:
       hosts: {}
     foundation_logging:

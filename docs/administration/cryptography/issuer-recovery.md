@@ -119,10 +119,14 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
    working copy with the intended target in `ansible/inventory/hosts.yml` and
    `platform_host_ips.ca-1` in `ansible/group_vars/foundation.yml`. Retain the other
    host entries; do not run Terraform or the identity recipe against this recovery map.
-2. Prepare the exact approved Debian runtime and encrypted data/mysql mounts using
+2. Prepare the exact approved Debian runtime and dedicated data/mysql mounts using
    [issuer installation](../../deployment/stage-3-trust/procedures/issuer.md#step-2-install-the-runtime).
    Initialize the empty schema once; keep activation **false**. Create no issuer key,
    token or certificate and preserve the original immutable bundle/binding. [3]
+   The normal installer prepares storage; the restore recipe only checks existing mounts.
+   Select the new isolated target's device and filesystem explicitly. Leave the optional UUID pin
+   empty only when commissioning that genuinely new disk; retain it when recovering the original volume.
+   Provide approved storage encryption separately; filesystem preparation does not encrypt the disk.
 3. Transfer the verified decrypted set to **`/srv/pki-restore/recovery` on the isolated
    target**, outside its live data mount, with root-only `0700` parent directories.
    Keep the verified source and independent encrypted archive intact.

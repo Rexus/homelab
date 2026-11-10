@@ -1,5 +1,9 @@
 # Deploy the selected registry variant
 
+**Branch from:** [Stage 7, Step 3](../README.md#step-3-connect-approved-artifact-supply):
+3a installs Harbor; 3b accepts an existing registry; optional 3c adds separately integrated acceleration.
+**Return:** to Step 3 after the selected supply, access and recovery checks.
+
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
 The cluster variant uses [clusters/tier1/platform/artifact-registry/](../../../../tier-1/clusters/tier1/platform/artifact-registry);
 the integrated source-control variant uses the selected source-control deployment.
@@ -72,7 +76,9 @@ The presence of a platform-cluster skeleton does not install these services.
    separately reviewed `delivery_platform_harbor_version` override is required.
 3. Prepare the Secrets and Keycloak client described below before running the
    [common render/review/apply commands](delivery-installer.md#render-and-apply).
-4. Complete [acceptance](#acceptance) and return to Stage 7 for Observability.
+4. Complete [acceptance](#acceptance), then return to
+   [Stage 7, Step 3](../README.md#step-3-connect-approved-artifact-supply)
+   for any selected acceleration/edge options before continuing to Observability.
 
 | Field in `ansible/group_vars/delivery_platform.yml` | Value |
 | --- | --- |

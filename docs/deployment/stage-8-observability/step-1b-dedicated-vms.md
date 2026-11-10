@@ -106,7 +106,7 @@ The [baseline recipe](../../../tier-1/ansible/playbooks/deployment/telemetry-hos
 reuses Shared's baseline role against Tier 1 inventory. No Collector, metric store,
 search service, UI or private failover endpoint is installed by that command.
 Proxmox placement is creation-only, not persistent anti-affinity; preserve failure
-separation through the selected [cluster policy](../foundation/step-1b-cluster-ha.md#terraform-against-the-cluster).
+separation through the selected [cluster policy](../foundation/proxmox/step-1b-cluster-ha.md#terraform-against-the-cluster).
 
 ## Step 3: Integrate and accept the services
 

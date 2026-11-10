@@ -145,7 +145,8 @@ bash scripts/init-tier-repos.sh --refresh
 ```
 
 Run refresh from the updated upstream checkout with the same custom root and
-prefix flags used at creation. It preserves existing edits, restores missing generation targets
+prefix flags used at creation. It refreshes automation and examples, preserves live configuration,
+restores missing generation targets
 and removes obsolete files only inside `docs/auto-docs/`.
 
 The generator creates `<prefix>-tier-0`, `<prefix>-tier-1`,
@@ -153,8 +154,9 @@ The generator creates `<prefix>-tier-0`, `<prefix>-tier-1`,
 `<prefix>-iac/`. Only the child directories are repository homes.
 It populates tier-owned service code and common modules/helpers, plus separate
 inventory examples, group vars, and Terraform setups in each tier. Python and
-PyYAML are required. Refresh uses recorded hashes and preserves locally edited
-files. Root READMEs, project documentation, and cluster/bootstrap skeletons are
+PyYAML are required. Refresh replaces current example files and flags existing local counterparts
+for comparison; it does not merge live configuration. Automation edits are backed up before replacement.
+Root READMEs, project documentation, and cluster/bootstrap skeletons are
 seeded when missing and preserved while present; `docs/auto-docs/` holds refreshable upstream guidance.
 
 Read [Generated repository model](../development/generated-repositories.md) for the
@@ -262,6 +264,11 @@ Terraform displays its plan once and asks for `yes` before applying. Enter `no` 
 Ansible runs only after Terraform succeeds. [1] For an optional preview without applying,
 add `--plan-only` to the same command.
 
+After a successful installation, update the matching entry/options in
+**`<prefix>-architecture/deployments.md`**. Deployment wrappers print a reminder;
+direct Terraform/Ansible commands require the same manual update. A Terraform-only
+run can leave service configuration pending; complete the linked path before checking it.
+
 For an approved pipeline, suppress Terraform prompts and fail on missing Terraform inputs:
 
 Run from **`<prefix>-tier-0/`**.
@@ -350,18 +357,18 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 
 | Setup | What it targets | Start with |
 | --- | --- | --- |
-| `foundation` | shared identity, DNS, issuing CA, and optional root CA hosts | [Identity foundation path](../deployment/stage-5-identity/procedures/freeipa.md) |
-| `syslog` | Tier 0 VMs/disks, baseline and isolated TLS receiver after mount/certificate preparation; not an HA/WORM installer | [Foundational logging](../deployment/stage-2-logging/README.md) |
+| `foundation` | Tier 0 online issuer, directory and optional independent monitoring VM resources share the original state; select Stage 6 monitor provisioning with `--terraform-only`; root custody stays offline | [Issuer](../deployment/stage-3-trust/procedures/issuer.md), [directory](../deployment/stage-5-identity/procedures/freeipa.md), [monitor](../deployment/stage-6-secrets/monitoring.md#step-1-prepare-the-monitoring-runtime) |
+| `syslog` | Tier 0 VMs/disks, guarded filesystem/UUID mount and isolated TLS receiver; accepted certificate files are inputs, with HA/WORM outside this installer | [Protected logging](../deployment/stage-2-logging/README.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-7-delivery/procedures/edge-proxy.md) |
-| `cache` | shared cache pair or larger set for controlled outbound access | [Software intake](../deployment/stage-1-software-intake/README.md) |
-| `intake` | Tier 1 verified RPM/APT and selected-artifact publication; prepared data mount required | [Verified intake](../deployment/stage-1-software-intake/verified-intake.md) |
+| `cache` | Tier 2 ordinary cache pair or larger set for controlled outbound access | [Software intake](../deployment/stage-1-software-intake/README.md) |
+| `intake` | Tier 1 verified RPM/APT and selected-artifact publication with managed VM/disks and UUID-mounted data volume; Stage 3 option 3b | [Verified intake](../deployment/stage-3-trust/step-3b-verified-intake.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-9-development/step-1b-source-control-vm.md) |
-| `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-6-secrets/step-1b-vault-vm.md) |
+| `vault` | Stage 6 dedicated secret-service VM alternative | [Vault VM deployment](../deployment/stage-6-secrets/step-1b-vault-vm.md) |
 | `observability` | Optional Tier 1 gateway, metrics and search VMs; OS baseline only, not the Kubernetes product deployment or Tier 0 evidence | [Observability VM alternative](../deployment/stage-8-observability/step-1b-dedicated-vms.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../deployment/stage-9-development/step-2b-podman-runner.md) |
 | `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../deployment/stage-9-development/step-2c-image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../deployment/foundation/proxmox/templates.md) |
-| `hsm` | USB or software HSM gateway deployment pattern | [USB HSM active-active blueprint](../deployment/stage-3-trust/step-1b-usb-hsm.md) |
+| `hsm` | Tier 0 signing-service host pool and OS baseline; device/provider, HA endpoint and key commissioning remain separate integration | [USB HSM host-pool option](../deployment/stage-3-trust/step-1b-usb-hsm.md) |
 | `lab` | general-purpose lab guests | this reference and the local inventory |
 
 ## What the deployment wrapper does

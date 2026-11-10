@@ -59,7 +59,7 @@ def tier_readme(writer, tier, prefix, setups):
             f"Prepare [Proxmox hosts]({docs}/deployment/foundation/proxmox/README.md#first-deployment-order)\n"
             "first, including optional cluster HA and SDN before important guests.\n\n"
             "For the first installation, create one Linux template manually, then prepare\n"
-            f"the [bootstrap execution host]({docs}/deployment/foundation/proxmox/bootstrap.md).\n"
+            f"the [bootstrap execution host]({docs}/deployment/foundation/bootstrap/README.md).\n"
             "Its tools, artifact storage, Proxmox CA trust and API credentials must be ready\n"
             "before the publication command below. An accepted privileged workstation is also valid.\n\n"
             "**Templates before VMs.** Initialize the local image catalog:\n\n"
@@ -72,7 +72,7 @@ def tier_readme(writer, tier, prefix, setups):
             "to plan, publish, and test templates before deploying guests. For existing manual templates,\n"
             f"use [import and apply]({docs}/administration/virtual-machines/template-lifecycle.md#adopt-existing-templates).\n"
             f"An intentional OS-disk replacement uses [boot-disk maintenance]({docs}/administration/virtual-machines/template-disk.md).\n"
-            f"Complete [Foundation Step 3]({docs}/deployment/foundation/README.md#step-3-publish-and-test-vm-templates)\n"
+            f"Complete [Foundation Step 4]({docs}/deployment/foundation/README.md#step-4-publish-and-test-vm-templates)\n"
             "before Stage 1; it lists the commands for both paths. No hosted CI or control cluster is required.\n\n"
             f"Accept [Stage 1: software intake]({docs}/deployment/stage-1-software-intake/README.md) first,\n"
             "using existing approved supply or the Tier 2 proxy/cache path.\n\n"
@@ -154,6 +154,11 @@ def copy_documentation(writer, prefix, upstream):
             "> Reuse this collection's `--prefix` and `--root` flags if customized.\n"
             f"> Keep local decisions in [project documentation]({project_docs}) instead.\n"
         )
+        if path.is_relative_to(upstream / "docs/deployment"):
+            checklist = Path(os.path.relpath(writer.root / "deployments.md",
+                                            (writer.root / target).parent)).as_posix()
+            notice += (f"> After completing this deployment path, update its entry and selected options in the "
+                       f"[deployment checklist]({checklist}).\n")
         heading, _, body = content.partition("\n")
         if heading.startswith("# "):
             body = body.lstrip("\n")

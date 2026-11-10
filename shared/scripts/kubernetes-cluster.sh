@@ -107,6 +107,8 @@ case "$action" in
     terraform -chdir="$root" apply -input=false -lock-timeout=60s "$plan"
     rm -f "$plan" "$plan_json"
     echo "Export protected client files with: bash scripts/kubernetes-cluster.sh credentials"
+    source "$shared/scripts/lib/deployment-record.sh"
+    print_deployment_record "$repo_root" kubernetes
     ;;
   export-plan)
     directory="$(dirname "$plan_json")"

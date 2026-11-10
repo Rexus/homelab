@@ -1,6 +1,11 @@
-# Connect a consumer to verified publication
+# Step 3b: Connect a consumer to verified publication
 
-Use this after the worker's [first accepted intake](verified-intake.md#7-run-and-inspect-the-first-intake).
+**Branch from:** [Step 3](README.md#step-3-enable-and-verify-routine-issuance), within option **3b**,
+after the worker's [first accepted intake](step-3b-verified-intake.md#5-run-and-inspect-the-first-intake).
+**Change:** connect a selected native package consumer to the accepted publication.
+**Return:** [Stage 3 completion](README.md#capability-available) after the selected consumer passes
+and [worker scheduling](step-3b-verified-intake.md#6-connect-consumers-and-schedule-intake) is complete.
+
 It changes the consumer's native repository definitions; the worker never installs packages into consumers.
 Complete one disposable consumer before changing bootstrap or Proxmox.
 
@@ -97,7 +102,7 @@ public HTTPS feeds; authenticated subscription sources require a separately qual
 1. Confirm every enabled source uses accepted supply and native verification remains enabled.
 2. Deny direct WAN bypass independently. Stop the mirror in a disposable test and require a clear
    refresh failure, not fallback to an external source.
-3. For **boot-1**, select the existing [mirror-mode recipe](bootstrap-consumer.md#2b-native-mirrors-or-disconnected-supply)
+3. For **boot-1**, select the existing [mirror-mode recipe](../stage-1-software-intake/bootstrap-consumer.md#2b-native-mirrors-or-disconnected-supply)
    after repository/tool supply is commissioned. Other tools still need their own accepted supply.
 4. Record the previous and selected URLs. Follow the [rollback and recovery runbook](../../administration/software-intake.md)
    for another selection; patch rollout/reboots remain separate maintenance operations.

@@ -36,16 +36,9 @@ DNS and the proxy must work without later FreeIPA, Vault or Kubernetes services.
 
 ### 2. Register the existing hosts and proxy
 
-Initialize missing files from **`<prefix>-tier-0/`** on **`boot-1`**:
-
-```bash
-bash scripts/init-local-files.sh --setup foundation
-```
-
-Existing files are preserved. For first use, complete [host-management Steps 2–5](management.md#2-register-the-installed-hosts):
-register `hypervisors`, authorize the bootstrap public key and require Ansible `pong`.
-Return here afterward. Existing accepted registrations can be reused.
-The `foundation` initializer creates the common files; its VM deployment is not the host-management task.
+For first use, complete [host-management Steps 1–5](management.md#1-initialize-the-local-files):
+initialize the local files, register `hypervisors`, authorize the bootstrap public key and require
+Ansible `pong`. Return here afterward. Existing accepted registrations can be reused.
 
 Then edit **`<prefix>-tier-0/ansible/group_vars/all.yml`** with the accepted endpoint:
 

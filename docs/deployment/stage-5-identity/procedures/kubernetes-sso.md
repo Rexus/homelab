@@ -16,6 +16,9 @@ CA bundle under independent custody, three healthy control planes, matching
 selected schema is Talos **1.13 v1alpha1**, as in the
 [basic platform](../../stage-4-kubernetes/procedures/basic-platform.md).
 Do not apply this document to 1.14's split configuration schema. [1]
+The supplied recipe also requires the original **Terraform-owned** plan and machine configurations.
+It does not support the manual Stage 4 lifecycle: retain that owner and qualify its separate native
+OIDC rollout/recovery procedure rather than creating a new Terraform state or a synthetic plan.
 API acceptance also needs an independently prepared OIDC login client for the `headlamp` audience
 and the intended namespace/group RBAC. This rollout does not register that client, obtain a user's token
 or install Headlamp. If that verification path is absent, API acceptance remains blocked; do not set its flag true.
@@ -293,7 +296,8 @@ admin to fix OIDC. Reconcile the same rollback in Terraform inputs before its
 next apply. CA rotation requires an overlap bundle and a separately reviewed
 file replacement/serial reboot, not `op: create` over the existing file.
 
-Return to [Stage 5](../README.md#capability-available). Stage 6 separately installs
+Return to [Stage 5, Step 3](../README.md#step-3-accept-identity-and-human-sso)
+to finish the service SSO gate and identity acceptance. Stage 6 separately installs
 [NetBox change collection](../../stage-6-secrets/procedures/netbox-audit.md) and
 [scheduled control recovery copies](../../../administration/backups/control-applications.md#configure-and-schedule).
 Neither recipe is an outcome of Kubernetes SSO.

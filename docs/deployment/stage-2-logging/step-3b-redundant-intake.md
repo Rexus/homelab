@@ -78,9 +78,9 @@ bash scripts/deploy.sh syslog --terraform-only
 ```
 
 Add `--plan-only` for an optional preview. Keep existing hosts and state; no
-replacement archive or second Terraform owner is introduced. Prepare each new data
-mount and its host-specific UUID/TLS inputs using the [receiver guide](receiver.md),
-then configure:
+replacement archive or second Terraform owner is introduced. Select each data
+device and its host-specific UUID/TLS inputs using the [receiver guide](receiver.md);
+the receiver recipe prepares guarded filesystems and mounts. Then configure:
 
 Run from **`<prefix>-tier-0/`**.
 
@@ -106,4 +106,6 @@ replication or durable acceptance. Record when senders may release an event.
 
 Use numbered events and source/receiver/archive counts. Record remaining source
 gaps separately from loss of accepted records; do not claim exactly-once delivery.
-Return to [Stage 2 acceptance](README.md#capability-available).
+Return to [Stage 2, Step 3](README.md#step-3-protect-and-verify-retained-evidence).
+Complete the selected **3c NAS** or **3d locked-retention** path for the resulting topology,
+then the final fault/restore checks. Adding a receiver does not complete archive protection.

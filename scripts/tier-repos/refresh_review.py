@@ -34,6 +34,7 @@ class RefreshReview:
         self.current_paths = set()
         self.removed_paths = {}
         self.replaced_paths = {}
+        self.updated_examples = {}
         self.preserved = {}
 
     def record(self, relative, data, source, reason):
@@ -64,6 +65,13 @@ def use_color(mode, stream):
     if mode != "auto":
         return mode == "always"
     return stream.isatty() and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
+
+
+def example_companion(relative):
+    path = Path(relative)
+    # The environment-file initializer uses a hidden working file.
+    name = ".env.local" if path.name == "env.local.example" else path.name.removesuffix(".example")
+    return path.with_name(name)
 
 
 def artifact_path(collection, directory, repository, relative):
@@ -115,13 +123,21 @@ def print_refresh_review(reviews, collection, *, dry_run=False, color="auto", st
                for relative, reason in sorted(review.removed_paths.items())]
     replaced = [(review.root / relative, backup) for review in reviews
                 for relative, backup in sorted(review.replaced_paths.items())]
+    examples = [(review, relative, source) for review in reviews
+                for relative, source in sorted(review.updated_examples.items())]
+    comparisons = [(review, relative, source) for review, relative, source in examples
+                   if needs_operational_review(example_companion(relative))
+                   and (review.root / example_companion(relative)).is_file()]
     print("\nRefresh review", file=stream)
     print("  Scope: automation and configuration; README/prose documentation is omitted.", file=stream)
     print(f"  YELLOW: {len(yellow)} preserved differences; RED: {len(red)} retired files.", file=stream)
-    if not yellow and not red and not removed and not replaced:
+    if examples:
+        print(f"  Examples: {len(examples)} {'would be refreshed' if dry_run else 'refreshed'}; "
+              f"{len(comparisons)} local configurations to compare.", file=stream)
+    if not yellow and not red and not removed and not replaced and not examples:
         print("  No preserved differences or retired generated files to review.", file=stream)
         return
-    print("  Configuration, project-owned files and unverified existing paths remain protected.", file=stream)
+    print("  Live configuration and project-owned files remain protected.", file=stream)
     if removed:
         print(f"  Auto-docs: {len(removed)} {'would be removed' if dry_run else 'removed'}.", file=stream)
     colored = use_color(color, stream)
@@ -146,6 +162,13 @@ def print_refresh_review(reviews, collection, *, dry_run=False, color="auto", st
                 print(f"  Source template: {item.source}", file=stream)
     for path, reason in red:
         entry("RED", path, reason)
+    for review, relative, source in comparisons:
+        live = review.root / example_companion(relative)
+        entry("YELLOW", live, "example would be refreshed; compare after refresh" if dry_run
+              else "example refreshed; review local configuration")
+        print(f"  {'Planned example' if dry_run else 'Current example'}: {review.root / relative}", file=stream)
+        if dry_run and source:
+            print(f"  Source template: {source}", file=stream)
     for path, reason in removed:
         entry("WOULD REMOVE" if dry_run else "REMOVED", path, reason)
     for path, backup in replaced:

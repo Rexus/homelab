@@ -2,7 +2,9 @@
 # Input contract and production bundle: docs/reference/openxpki.md
 openxpki_deployment_id: infrastructure-ca-1
 openxpki_data_mount: /srv/openxpki
-openxpki_data_uuid: REPLACE_WITH_PREPARED_FILESYSTEM_UUID
+openxpki_data_device: /dev/sdb  # dedicated extra disk from the ca-1 Terraform inputs
+openxpki_data_fstype: xfs      # set ext4 only when reusing an approved ext4 volume
+openxpki_data_uuid: ""         # optional existing UUID pin; never substitute a missing volume
 openxpki_configuration_src: /REPLACE_WITH_ABSOLUTE_PATH/secrets/openxpki/configuration.tar.gz
 openxpki_configuration_sha256: REPLACE_WITH_REVIEWED_ARCHIVE_SHA256
 openxpki_repository_key_sha256: REPLACE_WITH_INDEPENDENTLY_VERIFIED_KEY_SHA256

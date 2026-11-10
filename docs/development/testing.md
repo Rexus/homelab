@@ -14,12 +14,11 @@ deployment, physical failover, protected retention or disaster recovery.
 ## Basic suite
 
 Prepare the [developer environment](local-setup.md#step-1-prepare-the-developer-environment).
-From the upstream kit root, install test dependencies in that virtual environment:
+That step installs `tests/requirements.txt`; keep the same virtual environment active.
 
 Run from **upstream kit root**.
 
 ```bash
-python3 -m pip install -r tests/requirements.txt
 python3 -B -m unittest discover -s tests -p 'test_tier*.py' -v
 ```
 
@@ -60,10 +59,14 @@ HTTPS; cached-only product validators use the following explicit paths.
 | Fluent Bit config, local mTLS and replay | `FLUENT_BIT_TEST_BINARY` with its native library search path where required |
 | Native logging patches | `TALOSCTL_TEST_BINARY` (1.13), optional `TALOSCTL14_TEST_BINARY` (1.14) |
 | Kubernetes SSO/config preservation | `HOMELAB_TALOSCTL`, the selected Talos 1.13 CLI |
+| Guest filesystem lifecycle | `HOMELAB_DATA_VOLUME_MOUNT_TESTS=1`, native Ansible collections, root in a private mount namespace, a private `/etc/fstab`, disposable loopback disks and ext4 tools; `DATA_VOLUME_TEST_FSTYPE=xfs` selects XFS tools instead |
 
 The test modules document additional optional native tools for PKI, receiver,
 backup and evidence checks. No real credentials belong in test fixtures. Local
 test certificates are disposable and must never become deployment trust anchors.
+The data-volume lifecycle fixture verifies its private fstab sentinel before creating storage;
+never enable it against a live host's mount namespace or storage. It tests UUID persistence,
+rerun/growth preservation, declared subdirectory binds and refusal of a missing volume's replacement.
 
 The cached delivery/development/lab fixture isolates Helm's configuration/cache/data
 directories and trusts only its temporary repository CA. It keeps real chart versions,

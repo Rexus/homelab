@@ -2,6 +2,7 @@
 
 **Working repository:** `<prefix>-tier-1`. Continue
 [Stage 9, Step 2](../README.md#step-2-add-on-demand-build-execution).
+**Return:** to Step 2 bounded-job checks and optional image lifecycle, then Step 3 Vault authorization.
 **Prerequisites:** accepted GitLab, CNI policy enforcement, worker capacity and
 approved non-root build/helper images. General jobs never receive Tier 0 credentials.
 Verify node access to the approved image mirror and its pull credentials first;
@@ -48,7 +49,9 @@ Do not allow broad LAN or Tier 0 ranges. Test actual service-DNAT behavior for t
 Run from **`<prefix>-tier-1/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/development-platform.yml \
+  -e @ansible/group_vars/development_platform.yml -e development_platform_action=render
 ```
 
 Review values, manifests and `gitlab-runner-support.yml` under
@@ -57,7 +60,9 @@ Review values, manifests and `gitlab-runner-support.yml` under
 Run from **`<prefix>-tier-1/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/development-platform.yml -e @ansible/group_vars/development_platform.yml -e development_platform_action=apply
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/development-platform.yml \
+  -e @ansible/group_vars/development_platform.yml -e development_platform_action=apply
 ```
 
 The native chart installs one manager; the Kubernetes executor creates a separate

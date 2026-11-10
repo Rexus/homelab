@@ -41,9 +41,11 @@ class Observability(TierRepositoryTestCase):
             design = (docs / "architecture/operations/telemetry.md").read_text()
             for expected in ("logs, metrics and distributed traces", "Security Logging and Audit",
                              "do **not** have equal resource needs", "existing Tier 1 Kubernetes cluster",
-                             "included initially", "readers must have no update/delete",
+                             "included initially",
                              "Tier 1 index deletion never deletes Tier 0 originals"):
                 self.assertIn(expected, design)
+            self.assertIn("readers must have no ingest, update, delete, delete-by-query or "
+                          "index-management permissions", " ".join(design.split()))
             deployment = (docs / "deployment/stage-8-observability/README.md").read_text()
             for expected in ("OpenSearch is included initially", "observability-platform.yml",
                              "writes to both", "replica shards", "test worker/physical-host loss",
@@ -106,9 +108,11 @@ class Observability(TierRepositoryTestCase):
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             logging = (docs / "architecture/operations/security-logging.md").read_text()
             for expected in ("no loss of accepted records within a declared failure envelope",
-                             "not the HA acceptance state", "Dashboards", "WORM",
+                             "not the HA acceptance state", "Dashboards",
                              "Producers cannot read, edit or delete", "Application owner / developer"):
                 self.assertIn(expected, logging)
+            self.assertIn("[Search read boundaries](telemetry.md#read-boundaries)", logging)
+            self.assertIn("log-retention.md#choose-the-protection-boundary", logging)
             telemetry = (docs / "architecture/operations/telemetry.md").read_text()
             for expected in ("Data Prepper", "vmalert", "Alertmanager", "Tier 2 normally retains collection",
                              "not independent querying or alerts", "separate SigNoZ/ClickHouse"):
@@ -129,8 +133,10 @@ class Observability(TierRepositoryTestCase):
             self.assertIn("persistent local host logs from first boot", foundation)
             logging = (docs / "architecture/operations/security-logging.md").read_text()
             for expected in ("## Offline-readable evidence", "UTF-8 JSON Lines",
-                             "independently held recovery kit", "no retention or backup authority"):
+                             "independently held recovery kit"):
                 self.assertIn(expected, logging)
+            read_boundaries = (docs / "architecture/operations/telemetry.md").read_text()
+            self.assertIn("no retention or backup authority", read_boundaries)
             procedure = (docs / "deployment/stage-2-logging/README.md").read_text()
             self.assertIn("before PKI and FreeIPA", procedure)
             self.assertIn("Only the log-data volume and offline kit survive", procedure)

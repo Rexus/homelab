@@ -1,7 +1,7 @@
 # Proxmox API setup
 
 Create scoped API access for template publication and guest provisioning.
-Complete this after installing verified CA trust on the [bootstrap host](bootstrap.md).
+Complete this after installing verified CA trust on the [bootstrap host](../bootstrap/README.md).
 This procedure does not deploy guests.
 
 **Working repository:** `<prefix>-tier-0` for bootstrap inputs (source: `tier-0/`).
@@ -190,7 +190,7 @@ pveum acl modify /sdn/zones/dmz/edge --groups platform-automation --roles Platfo
 ```
 
 Repeat for every selected VNet, including stopped templates' attachments. Complete
-[SDN activation](../step-1c-sdn.md#step-3-activate-sdn-on-the-nodes) before use,
+[SDN activation](step-1c-sdn.md#step-3-activate-sdn-on-the-nodes) before use,
 then continue at **Step 3**. Subnet lookup uses the same scoped role's `SDN.Audit`.
 
 ### Step 3: Create the user and token
@@ -258,7 +258,7 @@ After provisioning, test permitted and denied operations on disposable guests. [
 
 ### Step 4: Set inputs on the bootstrap host
 
-Return to [Bootstrap Step 4](bootstrap.md#step-4-configure-trust-credentials-and-platform-inputs)
+Return to [Bootstrap Step 4](../bootstrap/README.md#step-4-configure-trust-credentials-and-platform-inputs)
 to initialize **Tier 0** and edit its ignored **`.env.local`**.
 
 For another consuming tier, create that tier's file if absent, from its repository root:
@@ -279,7 +279,7 @@ PROXMOX_API_TOKEN_SECRET=replace-with-the-issued-secret
 ```
 
 Each tier owns its own credentials; Shared and another tier's file do not supply them.
-Also configure the [execution account's SSH public-key path](bootstrap.md#step-3-prepare-the-execution-accounts-ssh-key)
+Also configure the [execution account's SSH public-key path](../bootstrap/README.md#step-3-prepare-the-execution-accounts-ssh-key)
 before Linux clones are created.
 
 <a id="endpoint-values"></a>
@@ -292,7 +292,7 @@ before Linux clones are created.
 | Packer | Uses `PROXMOX_URL=https://pve01.example.internal:8006/api2/json` and its separate build inputs |
 
 Terraform endpoints use the HTTPS root, **without `/api2/json`**. [3][4]
-Return to [foundation template publication](../README.md#step-3-publish-and-test-vm-templates)
+Return to [foundation template publication](../README.md#step-4-publish-and-test-vm-templates)
 after the bootstrap host's remaining Shared profile and recovery checks.
 Do not deploy the `foundation` Linux setup merely to validate this token.
 

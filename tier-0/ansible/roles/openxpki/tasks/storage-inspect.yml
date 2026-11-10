@@ -1,0 +1,140 @@
+---
+# Read-only inspection shared by installation and the backup/restore preflight.
+- name: Read live mounts and persistent storage declarations
+  ansible.builtin.command:
+    argv: "{{ item }}"
+  loop:
+    - [findmnt, --json, --list, --output, 'TARGET,SOURCE,UUID,FSTYPE,FSROOT,MAJ:MIN,OPTIONS']
+    # Retain declared spellings and UUID= tags; explicit guest realpath checks below reject aliases.
+    - [findmnt, --fstab, --nocanonicalize, --json, --list, --output, 'TARGET,SOURCE,FSTYPE,OPTIONS']
+  register: openxpki_mount_tables
+  changed_when: false
+  failed_when: openxpki_mount_tables.rc not in [0, 1]
+
+- name: Require readable fstab even when no entries were parsed
+  ansible.builtin.slurp:
+    src: /etc/fstab
+  no_log: true
+
+- name: Require complete readable mount tables without parser warnings
+  ansible.builtin.assert:
+    that:
+      - openxpki_mount_tables.results[0].rc == 0
+      - openxpki_mount_tables.results[0].stderr | trim == ''
+      - openxpki_mount_tables.results[1].stderr | trim == ''
+    fail_msg: Mount or fstab inspection failed; partial or unreadable declarations cannot authorize a database mount.
+
+- name: Resolve the issuer and MySQL mount declarations
+  ansible.builtin.set_fact:
+    openxpki_mysql_mounts: >-
+      {{ (openxpki_mount_tables.results[0].stdout | from_json).filesystems |
+         selectattr('target', 'equalto', '/var/lib/mysql') | list }}
+    openxpki_volume_mounts: >-
+      {{ (openxpki_mount_tables.results[0].stdout | from_json).filesystems |
+         selectattr('target', 'equalto', openxpki_data_mount) | list }}
+    openxpki_storage_fstab: >-
+      {{ (openxpki_mount_tables.results[1].stdout | from_json).filesystems
+         if openxpki_mount_tables.results[1].rc == 0 else [] }}
+
+- name: Resolve every absolute fstab target on the guest
+  ansible.builtin.command:
+    argv: [realpath, --canonicalize-missing, --, "{{ item }}"]
+  loop: "{{ openxpki_storage_fstab | map(attribute='target') | select('match', '^/') | unique | list }}"
+  register: openxpki_fstab_targets
+  changed_when: false
+
+- name: Refuse aliased declarations of issuer mount targets
+  ansible.builtin.assert:
+    that: item.item == item.stdout
+    fail_msg: Normalize the existing aliased issuer mount declaration through explicit recovery before installation.
+  loop: "{{ openxpki_fstab_targets.results }}"
+  when: item.stdout in [openxpki_data_mount, '/var/lib/mysql']
+
+- name: Resolve existing database bind sources on the guest
+  ansible.builtin.command:
+    argv: [realpath, --canonicalize-missing, --, "{{ item.source }}"]
+  loop: >-
+    {{ openxpki_storage_fstab | selectattr('target', 'equalto', '/var/lib/mysql') |
+       selectattr('source', 'match', '^/') | list }}
+  register: openxpki_fstab_mysql_sources
+  changed_when: false
+
+- name: Refuse database sources outside the selected data directory
+  ansible.builtin.assert:
+    that: item.stdout == openxpki_data_mount ~ '/mysql'
+  loop: "{{ openxpki_fstab_mysql_sources.results }}"
+
+- name: Inspect the MySQL target without following links
+  ansible.builtin.stat:
+    path: /var/lib/mysql
+    follow: false
+    get_checksum: false
+  register: openxpki_mysql_target
+
+- name: Resolve the MySQL target including its parent directories
+  ansible.builtin.command:
+    argv: [realpath, --canonicalize-missing, --, /var/lib/mysql]
+  register: openxpki_mysql_target_realpath
+  changed_when: false
+
+- name: Refuse a linked target, non-directory or foreign database mount
+  ansible.builtin.assert:
+    that:
+      - openxpki_mysql_target_realpath.stdout == '/var/lib/mysql'
+      - not openxpki_mysql_target.stat.islnk | default(false)
+      - not openxpki_mysql_target.stat.exists or openxpki_mysql_target.stat.isdir | default(false)
+      - openxpki_mysql_mounts | length <= 1
+      - openxpki_volume_mounts | length <= 1
+      - >-
+        openxpki_mysql_mounts | length == 0 or
+        (openxpki_mysql_mounts[0].fsroot == '/mysql' and
+         openxpki_mysql_mounts[0].fstype == openxpki_data_fstype and
+         openxpki_mysql_mounts[0].uuid | default('', true) | length > 0)
+      - >-
+        openxpki_mysql_mounts | length == 0 or
+        (openxpki_volume_mounts | length == 1 and
+         openxpki_mysql_mounts[0].uuid == openxpki_volume_mounts[0].uuid and
+         openxpki_mysql_mounts[0]['maj:min'] == openxpki_volume_mounts[0]['maj:min'])
+    fail_msg: >-
+      /var/lib/mysql must be an ordinary empty directory or the existing /mysql bind
+      on the issuer volume. No linked path, foreign mount or live root-disk database is moved or hidden.
+
+- name: Inspect an unmounted MySQL directory including hidden entries
+  ansible.builtin.find:
+    paths: /var/lib/mysql
+    hidden: true
+    recurse: false
+    file_type: any
+    follow: false
+  register: openxpki_mysql_target_entries
+  when:
+    - openxpki_mysql_mounts | length == 0
+    - openxpki_mysql_target.stat.isdir | default(false)
+
+- name: Refuse to hide existing database files
+  ansible.builtin.assert:
+    that:
+      - >-
+        openxpki_mysql_mounts | length > 0 or
+        (openxpki_mysql_target_entries.matched | default(0) == 0 and
+         openxpki_mysql_target_entries.skipped_paths | default({}) | length == 0)
+    fail_msg: Existing unmounted MySQL data requires an explicit database migration or recovery.
+
+- name: Select persistent issuer and MySQL declarations
+  ansible.builtin.set_fact:
+    openxpki_data_fstab: "{{ openxpki_storage_fstab | selectattr('target', 'equalto', openxpki_data_mount) | list }}"
+    openxpki_mysql_fstab: "{{ openxpki_storage_fstab | selectattr('target', 'equalto', '/var/lib/mysql') | list }}"
+
+- name: Refuse duplicate or conflicting database boot declarations
+  ansible.builtin.assert:
+    that:
+      - openxpki_mysql_fstab | length <= 1
+      - >-
+        openxpki_mysql_fstab | length == 0 or openxpki_data_fstab | length == 1 or
+        openxpki_volume_mounts | length == 1
+      - >-
+        openxpki_mysql_fstab | length == 0 or
+        (openxpki_mysql_fstab[0].source == openxpki_data_mount ~ '/mysql' and
+         openxpki_mysql_fstab[0].fstype == 'none' and
+         'bind' in openxpki_mysql_fstab[0].options.split(','))
+    fail_msg: Existing /var/lib/mysql fstab entries must describe exactly the selected issuer /mysql bind.

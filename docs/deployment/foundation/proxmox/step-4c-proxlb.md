@@ -1,7 +1,11 @@
-# ProxLB balancing alternative
+# Step 4c: ProxLB balancing alternative
+
+**Branch from:** [Foundation Step 4c](../README.md#4c-finish-selected-ha-and-balancing-options),
+after cluster readiness, API credentials and a movable test guest exist.
+**Return:** [Foundation readiness](../README.md#foundation-ready) after scheduler ownership and failover pass.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Prerequisites:** accepted [native HA foundation](../step-1b-cluster-ha.md), movable guests,
+**Prerequisites:** accepted [native HA foundation](step-1b-cluster-ha.md), movable guests,
 trusted Proxmox API TLS, a protected execution host and a reviewed pinned ProxLB release.
 
 The main path uses Proxmox VE 9.2+ native balancing. Select ProxLB only for a

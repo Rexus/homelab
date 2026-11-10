@@ -32,12 +32,22 @@ class ReceiverContract(TierRepositoryTestCase):
         self.assertEqual(defaults["syslog_ng_sources"], [])
         self.assertEqual(defaults["syslog_ng_legacy_sources"], [])
         self.assertEqual(defaults["syslog_ng_data_uuid"], "")
+        self.assertEqual(defaults["syslog_ng_data_device"], "/dev/sdb")
+        self.assertEqual(defaults["syslog_ng_data_fstype"], "xfs")
+        shared = self.root / "verify-shared/ansible/roles/data_volume/tasks/main.yml"
+        self.assertTrue(shared.is_file())
 
     def test_safety_guards_and_native_modules_remain_explicit(self):
         preflight = (ROLE / "tasks/preflight.yml").read_text()
-        self.assertIn("syslog_ng_data_facts[0].uuid == syslog_ng_data_uuid", preflight)
+        self.assertIn("syslog_ng_data_facts[0].uuid == syslog_ng_effective_data_uuid", preflight)
+        self.assertIn("syslog_ng_effective_data_uuid == syslog_ng_data_uuid", preflight)
         self.assertIn("syslog_ng_root_facts[0].device", preflight)
-        self.assertIn("syslog_ng_legacy_sources", preflight)
+        self.assertIn("syslog_ng_legacy_sources", (ROLE / "tasks/inputs.yml").read_text())
+        entries = yaml.safe_load((ROLE / "tasks/main.yml").read_text())
+        self.assertEqual([task['ansible.builtin.import_tasks'] for task in entries[:3]],
+                         ['inputs.yml', 'storage.yml', 'preflight.yml'])
+        storage = yaml.safe_load((ROLE / "tasks/storage.yml").read_text())
+        self.assertEqual(storage[0]['ansible.builtin.include_role']['name'], 'data_volume')
         tasks = "\n".join(path.read_text() for path in (ROLE / "tasks").glob("*.yml"))
         for forbidden in ("ansible.builtin.shell", "community.general.filesystem", "ansible.posix.mount",
                           "state: absent", "name: rsyslog", "recurse: true"):

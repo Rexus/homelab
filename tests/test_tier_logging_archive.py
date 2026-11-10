@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -150,6 +151,7 @@ class GeneratedLoggingPayload(TierRepositoryTestCase):
         from jinja2 import Environment, StrictUndefined
 
         environment = Environment(undefined=StrictUndefined)
+        environment.filters['quote'] = shlex.quote
         cases = [
             (UPSTREAM / 'shared/ansible/roles/log_forwarder/templates/health.sh.j2',
              dict(log_forwarder_streams=[dict(name='producer')],
@@ -157,7 +159,9 @@ class GeneratedLoggingPayload(TierRepositoryTestCase):
                   log_forwarder_queue_bytes=16777216, log_forwarder_min_free_bytes=16777216)),
             (UPSTREAM / 'tier-0/ansible/roles/logging_backup/templates/backup.sh.j2',
              dict(logging_backup_repository='/mnt/recovery', logging_backup_mount='/mnt/security-logs',
-                  logging_backup_marker='commissioned-archive')),
+                  logging_backup_marker='commissioned-archive',
+                  logging_backup_repository_guard_source='UUID=12345678-1234-1234-1234-123456789abc',
+                  logging_backup_repository_guard_fstype='xfs')),
         ]
         self.parent.mkdir(parents=True)
         for index, (path, values) in enumerate(cases):

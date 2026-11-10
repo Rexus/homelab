@@ -3,7 +3,7 @@
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** three accepted Proxmox VE 9.2+ hosts, resilient shared live storage,
 tested watchdog/fencing, N+1 capacity and independent console/backup access.
-Complete [HA configuration](../step-1b-cluster-ha.md) first.
+Complete [HA configuration](step-1b-cluster-ha.md) first.
 
 This worked example uses the existing directory pair, not additional VMs. The
 host placements and HA rules below are an **operator-selected example**, not created

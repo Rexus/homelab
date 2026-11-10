@@ -1,0 +1,99 @@
+---
+- name: Refuse unsafe MySQL targets before preparing any volume
+  ansible.builtin.import_tasks: storage-inspect.yml
+
+- name: Prepare the dedicated guest volume using Shared storage behavior
+  ansible.builtin.include_role:
+    name: data_volume
+  vars:
+    data_volume_device: "{{ openxpki_data_device }}"
+    data_volume_path: "{{ openxpki_data_mount }}"
+    data_volume_fstype: "{{ openxpki_data_fstype }}"
+    data_volume_label: "{{ openxpki_data_label }}"
+    data_volume_expected_uuid: "{{ openxpki_data_uuid }}"
+    data_volume_min_free_bytes: "{{ openxpki_min_free_mb | int * 1024 * 1024 }}"
+    data_volume_allowed_bind_mounts:
+      - {path: /var/lib/mysql, fsroot: /mysql}
+    data_volume_environment: >-
+      {{ {'http_proxy': repository_proxy_url,
+          'https_proxy': repository_proxy_effective_https_url,
+          'no_proxy': shell_proxy_no_proxy}
+         if repository_proxy_active | default(false) | bool else {} }}
+
+- name: Retain the verified storage identity for this installation
+  ansible.builtin.set_fact:
+    openxpki_effective_data_uuid: "{{ data_volume_result.uuid }}"
+
+- name: Check the immutable binding now visible on the mounted volume
+  ansible.builtin.import_tasks: binding.yml
+
+- name: Inspect the database source without following links
+  ansible.builtin.stat:
+    path: "{{ openxpki_data_mount }}/mysql"
+    follow: false
+    get_checksum: false
+  register: openxpki_mysql_source
+
+- name: Refuse a linked or non-directory database source
+  ansible.builtin.assert:
+    that:
+      - not openxpki_mysql_source.stat.islnk | default(false)
+      - not openxpki_mysql_source.stat.exists or openxpki_mysql_source.stat.isdir | default(false)
+
+- name: Inspect existing database source entries
+  ansible.builtin.find:
+    paths: "{{ openxpki_data_mount }}/mysql"
+    hidden: true
+    recurse: false
+    file_type: any
+    follow: false
+  register: openxpki_mysql_source_entries
+  when: openxpki_mysql_source.stat.isdir | default(false)
+
+- name: Refuse takeover of unregistered database files on the data volume
+  ansible.builtin.assert:
+    that:
+      - >-
+        openxpki_binding_stat.stat.exists or
+        (openxpki_mysql_source_entries.matched | default(0) == 0 and
+         openxpki_mysql_source_entries.skipped_paths | default({}) | length == 0)
+    fail_msg: A populated MySQL source without its runtime binding requires explicit migration or recovery.
+
+- name: Create the database subdirectory only when absent
+  ansible.builtin.file:
+    path: "{{ openxpki_data_mount }}/mysql"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  when: not openxpki_mysql_source.stat.exists
+
+- name: Inspect the filesystem actually backing the database source
+  ansible.builtin.command:
+    argv: [findmnt, --json, --list, --target, "{{ openxpki_data_mount }}/mysql", --output,
+           'TARGET,UUID,FSTYPE,FSROOT,MAJ:MIN']
+  register: openxpki_mysql_source_mount
+  changed_when: false
+
+- name: Refuse nested or foreign filesystems beneath the database source
+  ansible.builtin.assert:
+    that:
+      - mounts | length == 1
+      - mounts[0].target == openxpki_data_mount
+      - mounts[0].uuid == data_volume_result.uuid
+      - mounts[0]['maj:min'] == data_volume_block['maj:min']
+      - mounts[0].fstype == openxpki_data_fstype
+      - mounts[0].fsroot == '/'
+    fail_msg: The database source must be an ordinary directory on the verified issuer volume, not a nested mount.
+  vars:
+    mounts: "{{ (openxpki_mysql_source_mount.stdout | from_json).filesystems }}"
+
+- name: Persist the protected database subdirectory bind before package installation
+  ansible.posix.mount:
+    path: /var/lib/mysql
+    src: "{{ openxpki_data_mount }}/mysql"
+    fstype: none
+    opts: bind,nodev,nosuid,noexec
+    dump: '0'
+    passno: '0'
+    state: mounted

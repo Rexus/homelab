@@ -38,9 +38,29 @@ conversion. Expanding a virtual disk still requires the guest's partition, volum
 and filesystem layers to consume the additional space. Verify the selected image's
 first-boot resize behavior on a disposable clone.
 
+<a id="talos-version-contract"></a>
+
+### Select the Talos version before downloading
+
+The complete Tier 0 reference path through **Stage 5 Kubernetes SSO** uses an approved exact
+**Talos 1.13.x** release and matching `talosctl`. Record that patch release and Factory schematic
+before downloading. Keep these selections together:
+
+| Input | Reference selection |
+| --- | --- |
+| Image Factory and Tier 0 `templates/proxmox.yml` build `release` / `schematic_id` | Same approved exact 1.13.x release and schematic |
+| Cluster `cluster.talos_version` / `cluster.installer_image` | Same release (`v1.13.x`) and matching NoCloud installer schematic; select a compatible Kubernetes pin separately |
+| `cluster_security_logging_talos_schema` | `v1.13`; this is a schema selection, not the exact OS patch release |
+| Operator `talosctl` and Stage 5 serial SSO | Matching 1.13 client; the rollout checks the plan and running nodes too |
+
+Talos **1.14 is not qualified for the complete path**: its logging renderer is available, but that
+does not qualify the Cilium configuration or the Stage 5 serial SSO workflow. Select another minor
+only as a separately qualified variant. Image Factory and linked hardware documentation may show
+a newer release; they do not select an upgrade for this deployment. Do not downgrade an existing cluster.
+
 For Talos, make these Image Factory selections in order: [1][2]
 
-1. **Cloud server**, then the selected pinned Talos version.
+1. **Cloud server**, then the approved exact **1.13.x** version for the reference path.
 2. **NoCloud**, architecture **amd64**.
 3. System extension **`siderolabs/qemu-guest-agent`**.
 4. Bootloader **UEFI only**, not Secure Boot.
@@ -104,7 +124,7 @@ qualify live migration on mixed hardware.
 For IaC publication, set the shared template bridge/VLAN under `all:`; the publisher
 selects NIC and OS-specific controller defaults without per-image tuning. Optional
 overrides are listed in the [catalog reference](../../../administration/virtual-machines/template-lifecycle.md#catalog-fields-and-defaults).
-For an existing [SDN VNet](../step-1c-sdn.md), set `bridge` to its ID and
+For an existing [SDN VNet](step-1c-sdn.md), set `bridge` to its ID and
 `vlan_id: null`. Complete that guide's **Datacenter > SDN > Apply** and VNet
 permission steps first. The publisher attaches the template; it does not create zones,
 VNets, port-isolation settings or firewall rules. Managed Linux and Kubernetes
@@ -136,7 +156,7 @@ For EL packages or cleanup that require booting a builder, follow the
 [mutable Linux refresh](../../../administration/virtual-machines/template-lifecycle.md#mutable-linux-refresh); never capture a configured
 Talos node back into a base template. Disposable clone tests must not modify the template.
 
-For the initial foundation, continue with the [bootstrap execution host](bootstrap.md):
+For the initial foundation, continue with the [bootstrap execution host](../bootstrap/README.md):
 clone the tested Linux template to prepare the machine that will run the remaining IaC.
 Do not capture that machine's credentials or state back into the reusable template.
 
@@ -153,7 +173,7 @@ that VMID and matching firmware; the template ID is not allocated in every tier.
 Publication state belongs to Tier 0. A manually created template is not automatically
 managed/imported by the publication root.
 After preparing the bootstrap host, complete
-[Foundation Step 3: import or publish with IaC](../README.md#step-3-publish-and-test-vm-templates)
+[Foundation Step 4: import or publish with IaC](../README.md#step-4-publish-and-test-vm-templates)
 before Stage 1. That step selects the plan for existing templates or new candidates.
 
 Fresh Talos publication and cluster examples explicitly select `ovmf`, `q35`,

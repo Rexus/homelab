@@ -58,7 +58,7 @@ flowchart BT
 ```
 
 **Architecture:** the optional worker and publication interface have a separate
-[deployment path](../../deployment/stage-1-software-intake/verified-intake.md).
+[deployment path](../../deployment/stage-3-trust/step-3b-verified-intake.md).
 Requests point toward their supplier; publication is a scoped write. Storage links mean custody.
 The scope is acquisition and Tier 0 consumption; other tiers can consume the same approved
 publication. Tier-boundary arrows identify the supplier interface, not access to every service.
@@ -107,6 +107,13 @@ depth, not a sandbox for processing hostile files. [4][5]
 | Approved publication | Immutable version identity, atomic selection of a complete set, read-only consumers; retain the previous accepted set |
 | Tier 0 retained supply | Independently recoverable bytes, trust roots, receipts and tools; not solely a Tier 1 share or cache |
 
+The reference deployment provisions a separate data disk and manages its XFS/ext4 filesystem,
+restricted mount and growth through IaC. Only a verified new blank device is initialized;
+recognized existing data keeps its filesystem identity and is mounted by UUID. A missing declared
+volume or conflicting identity requires recovery rather than automatic replacement formatting.
+Publisher keys and HTTPS trust remain external inputs. See the
+[deployment inputs](../../deployment/stage-3-trust/step-3b-verified-intake.md#1-initialize-inputs).
+
 Recheck content identity immediately before promotion and prevent modification between verification
 and publication. Consumers must never resolve a partially published snapshot. Quarantine full,
 scanner failure, stale definitions or incomplete assessment stops new promotion; it must not delete
@@ -132,7 +139,7 @@ need severity-based alerts. A proxy denial alone is not a confirmed malicious ar
 
 ## Implementation boundary
 
-The optional [verified intake installer](../../deployment/stage-1-software-intake/verified-intake.md)
+The optional [verified intake installer](../../deployment/stage-3-trust/step-3b-verified-intake.md)
 adds one Tier 1 Linux worker outside Kubernetes. DNF reposync and debmirror retain native repository
 layout/metadata; curl acquires bounded selected files. Vendor GPG tooling authenticates signing
 material, and a narrow format verifier binds copied indexes/packages to their metadata before

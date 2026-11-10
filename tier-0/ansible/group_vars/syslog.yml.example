@@ -5,8 +5,11 @@ platform_host_ips:
   log-1: 10.10.10.30
   # log-2: 10.10.10.31
 
-# Set the UUID of the deliberately prepared data filesystem, not its device name.
-# With multiple receivers, put each UUID in its own inventory host variables.
+# Terraform's scsi1 data disk; the shared role guards creation and persists a UUID-based mount.
+syslog_ng_data_device: /dev/sdb
+syslog_ng_data_fstype: xfs
+# Leave empty for a new blank disk. Pin the original UUID for an existing/restored volume.
+# With multiple receivers, put each explicit UUID/device override in its own inventory host variables.
 syslog_ng_data_uuid: ""
 syslog_ng_data_mount: /srv/security-logging
 # Firewalld must already run; use the actual zone containing the intake interface.

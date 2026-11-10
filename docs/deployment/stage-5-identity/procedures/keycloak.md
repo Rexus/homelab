@@ -32,11 +32,13 @@ Run from **`<prefix>-tier-0/`**.
 
 ```bash
 cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
-export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+export KUBECONFIG="${KUBECONFIG:-$PWD/secrets/talos/kubeconfig}"
 kubectl get nodes -o wide
 ```
 
 **Expected:** the intended Tier 0 nodes are listed. Stop if the kubeconfig selects another cluster.
+Retain the export from Stage 4. For a manual cluster in a new shell, set `KUBECONFIG` to its existing
+`secrets/<cluster-name>/kubeconfig` first; do not switch it to the Terraform workflow's fallback path.
 
 ### 2. Edit the identity-provider settings
 
@@ -236,7 +238,8 @@ login, event arrival, failover and clean-target restoration remain operator
 acceptance checks. Restore the existing realm/database; reinstalling an empty
 realm changes identity state and is not recovery.
 
-Return to [Stage 5](../README.md#capability-available), then continue to Stage 6.
+Return to [Stage 5, Step 3](../README.md#step-3-accept-identity-and-human-sso)
+for Kubernetes human SSO and the service-access gates before Stage 6.
 
 ## References
 

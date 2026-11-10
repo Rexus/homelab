@@ -31,8 +31,14 @@ independent authorized execution host. Tier 0 recovery must not depend on Tier 1
 Install Terraform, matching `talosctl`, and compatible `kubectl`. Provider constraints
 and checksums live in `terraform/deployments/kubernetes/`.
 
+For the complete Tier 0 reference through Stage 5, select the approved exact **Talos 1.13.x**
+release from the [Foundation version contract](../../foundation/proxmox/templates.md#talos-version-contract).
+The example's version placeholders do not select that minor automatically. Keep the image,
+installer, `cluster.talos_version`, CLI and logging schema consistent before planning.
+Talos 1.14 requires separate full-platform/SSO qualification, not just a different version string.
+
 - Complete [Proxmox preparation](../../foundation/proxmox/README.md#first-deployment-order),
-  optional [HA](../../foundation/step-1b-cluster-ha.md), and [Talos template publication](../../foundation/proxmox/templates.md).
+  optional [HA](../../foundation/proxmox/step-1b-cluster-ha.md), and [Talos template publication](../../foundation/proxmox/templates.md).
 - Approve the template ID, title, and source node in the sibling shared
   [catalog](../../../reference/template-catalog.md). Retain the disk and matching installer image.
 - Reserve each VM's inventory IP outside DHCP, and configure `bootstrap_network`
@@ -304,7 +310,7 @@ kubectl get pods -A
 With CNI disabled for Cilium, nodes/DNS can remain unready until the
 [network installer](basic-platform.md#render-and-apply) runs; API access must already work.
 After installation, stop on unhealthy nodes or system pods. Confirm the independent API endpoint,
-CNI, and [failover checks](../../foundation/step-1b-cluster-ha.md#prove-failover) before services
+CNI, and [failover checks](../../foundation/proxmox/step-1b-cluster-ha.md#prove-failover) before services
 depend on this cluster. Terraform completion alone does not prove readiness.
 
 Continue with the [cluster-foundation checklist](kubernetes.md#cluster-foundation).

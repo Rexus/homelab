@@ -32,7 +32,7 @@ destinations receive copies; they do not become the live database volume.
 2. Select a datastore accepting VM disks for live VM/CloudInit disks. The common
    `local` Import/ISO datastore is not automatically suitable; `local-zfs` is a
    separate datastore ID. Check every selected destination node.
-3. During [bootstrap Step 4](../proxmox/bootstrap.md#step-4-configure-trust-credentials-and-platform-inputs),
+3. During [bootstrap Step 4](../bootstrap/README.md#step-4-configure-trust-credentials-and-platform-inputs),
    map those actual IDs into **Shared `config/platform.tfvars` → `proxmox_storage_classes`**.
    Keep Tier 0's **`templates/proxmox.yml` → `all.image_datastore_id`** pointed at Import storage.
 4. Select backup interfaces from the table. Follow **2a**, **2b**, or both as required

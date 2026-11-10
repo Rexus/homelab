@@ -6,8 +6,12 @@ rules. Successful configuration is not evidence of complete hardening or central
 
 **Working repository:** the consuming `<prefix>-tier-0`, `<prefix>-tier-1` or
 `<prefix>-tier-2` (upstream `tier-0/`, `tier-1/`, `tier-2/`). Shared owns the stateless
-[`host_security` role](../../../../shared/ansible/roles/host_security/tasks/main.yml).
+[`host_security` role](../../../shared/ansible/roles/host_security/tasks/main.yml).
 Inventory, selected hosts, access policy and acceptance records remain tier-owned.
+
+**First deployment choice:** [Stage 1, option 4b](../../deployment/stage-1-software-intake/README.md#4b-apply-the-linux-security-profile--optional),
+after the cache VMs and their package access exist. Later Linux service deployments can reuse this recipe
+at their own post-install step. Return to that stage's verification after applying the profile.
 
 ## Table of Contents
 
@@ -37,7 +41,7 @@ Inventory, selected hosts, access policy and acceptance records remain tier-owne
   `/var/log/audit/audit.log`, without immutable or `never,task` suppression policy.
 
 Activate the accepted controller virtual environment from
-[local setup](../../../development/local-setup.md). Prepare the Python dependencies from
+[local setup](../../development/local-setup.md). Prepare the Python dependencies from
 the owning tier's `ansible/` directory on the execution host: `<prefix>-tier-0/ansible/`,
 `<prefix>-tier-1/ansible/` or `<prefix>-tier-2/ansible/`.
 
@@ -75,7 +79,7 @@ chmod 600 "$HOME/.config/homelab/host-security.yml"
 Edit **`$HOME/.config/homelab/host-security.yml`** using the fields below. Existing
 files are preserved. The file is passed explicitly, not loaded for ordinary hosts.
 Keep keys outside Git; `public_key_files` contains local absolute paths, not key text.
-Complete [bootstrap SSH setup](bootstrap.md#step-3-prepare-the-execution-accounts-ssh-key)
+Complete [bootstrap SSH setup](../../deployment/foundation/bootstrap/README.md#step-3-prepare-the-execution-accounts-ssh-key)
 first if no usable execution key/agent exists.
 
 | Input | Required Selection |
@@ -158,7 +162,7 @@ failure. Before mutation, it verifies the observed SSH source/user/port and pars
 each public-key file. After SSH reload it opens a new connection, then validates
 and activates firewalld and opens another new connection. There is **no automatic
 timed rollback**; use the console recovery procedure in
-[host security operations](../../../administration/host-security.md).
+[host security operations](../host-security.md).
 
 ## Policy and Ownership
 
@@ -191,11 +195,11 @@ CIS/STIG claim, egress firewall, patch scheduler, MAC-policy installer or immuta
 4. Confirm `auditctl -s` shows enabled recording and zero lost records; inspect
    `auditctl -l`, exercise one account/config change and verify its local audit record.
 5. After service commissioning, test journal/audit forwarding and protected intake
-   using the separate [security logging procedure](../../../administration/security-logging.md).
+   using the separate [security logging procedure](../security-logging.md).
 6. Reboot the pilot, repeat access/firewall/time/audit tests, then rerun the
    maintenance recipe. Record actual image versions and evidence before expanding scope.
 
-Return to [foundation template acceptance](../README.md#step-3-publish-and-test-vm-templates)
+Return to [Stage 1 verification](../../deployment/stage-1-software-intake/README.md#step-5-test-the-selected-intake-path)
 when qualifying the disposable clone. Service deployments use their own tier-owned
 host-security inputs; do not reuse an SSH-only pilot policy on a listening service.
 

@@ -63,7 +63,7 @@ class AnsibleOwnership(TierRepositoryTestCase):
         self.assertEqual({p.name for p in (shared / "ansible/roles").iterdir()},
                          {"baseline", "shared", "log_forwarder", "helm_release", "kubernetes_applications",
                           "cluster_platform", "cluster_security_logging", "host_security",
-                          "postgresql_file_backup"})
+                          "postgresql_file_backup", "data_volume"})
         self.assertEqual({p.name for p in (shared / "ansible/playbooks").iterdir()},
                          {"control-node.yml", "site.yml", "reset-known-hosts.yml"})
         self.assertFalse((shared / "terraform").exists())

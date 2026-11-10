@@ -1,11 +1,15 @@
 # Bootstrap-to-CI handover
 
+**Stage route:** [Stage 9, Step 4](../README.md#step-4-hand-over-infrastructure-execution), after runner and
+Vault job-authorization acceptance.
+**Return:** to Step 4 for audit, credential-cleanup and independent recovery checks before Stage 10.
+
 **Working repositories:** `<prefix>-tier-0` for the dedicated infrastructure project and
 runner; each target tier keeps its definitions, inventory, inputs and state.
 **Prerequisites:** accepted [runner](infrastructure-runner.md), [Vault job authority](vault-ci.md),
 GitLab backup/recovery and a maintained independent Tier 0 workstation.
 This path runs **trusted operator IaC**, not untrusted Tier 2 request code.
-It continues the [foundation bootstrap-host workflow](../../foundation/proxmox/bootstrap.md):
+It continues the [foundation bootstrap-host workflow](../../foundation/bootstrap/README.md):
 `boot-1` runs the initial deployments; the new `iac-1` becomes the protected runner.
 Push the reviewed local repository histories after GitLab is accepted, but transfer
 ignored inputs/state separately through the protected restore path below.

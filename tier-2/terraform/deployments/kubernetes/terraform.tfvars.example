@@ -5,6 +5,8 @@
 # VMID allocations: docs/conventions/vmid-convention.md
 # The 3xxx lab allocation group remains Tier 2-owned; it is not another security tier.
 # Set the image ID from the shared approved catalog, and pin matching releases/schematic.
+# Complete reference path: approved exact Talos 1.13.x image, installer and talosctl.
+# The supplied human SSO rollout does not qualify Talos 1.14; generic version validation is not that proof.
 # Configure native proxy/DNS/time or approved mirrors before denying direct egress.
 # Reference: docs/deployment/stage-4-kubernetes/procedures/talos-terraform.md#controlled-image-access
 # Linux common.tfvars and Ansible proxy settings do not apply to these nodes.

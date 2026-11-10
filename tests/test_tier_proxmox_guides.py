@@ -9,10 +9,10 @@ class ProxmoxGuides(TierRepositoryTestCase):
     def test_ha_distinguishes_native_recovery_balancing_and_manual_setup(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            ha = (docs / "deployment/foundation/step-1b-cluster-ha.md").read_text()
+            ha = (docs / "deployment/foundation/proxmox/step-1b-cluster-ha.md").read_text()
             for term in ("Proxmox VE 9+", "9.2+ native HA", "fenced", "cold restart",
                          "HA-managed resources only", "does not create the host cluster",
-                         "proxmox/failover.md", "reference/proxmox-ha.md", "proxmox/proxlb.md"):
+                         "(failover.md)", "reference/proxmox-ha.md", "(step-4c-proxlb.md)"):
                 self.assertIn(term, ha)
             reference = (docs / "reference/proxmox-ha.md").read_text()
             for field in ("Max. Restart", "Max. Relocate", "Failback", "Auto-Rebalance",
@@ -21,7 +21,7 @@ class ProxmoxGuides(TierRepositoryTestCase):
                           "Imbalance Threshold", "Hold Duration", "Minimum Imbalance Improvement",
                           "Rebalancing Method", "Disarm"):
                 self.assertIn(field, reference)
-            alternative = (docs / "deployment/foundation/proxmox/proxlb.md").read_text()
+            alternative = (docs / "deployment/foundation/proxmox/step-4c-proxlb.md").read_text()
             self.assertIn("plb_ignore_<purpose>", alternative)
             self.assertIn("does **not** enroll guests", alternative)
             self.assertIn("--dry-run", alternative)

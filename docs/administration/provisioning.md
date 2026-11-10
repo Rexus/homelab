@@ -86,7 +86,7 @@ explicit destruction guards and its [separate removal path](virtual-machines/tem
    resources deliberately; do not copy retired state or saved plans into the new installation.
 
 Recovering the original services instead uses the original state and backups through
-[bootstrap-led recovery](recovery/bootstrap.md). The [offline bundle](../deployment/foundation/proxmox/bootstrap-offline.md)
+[bootstrap-led recovery](recovery/bootstrap.md). The [offline bundle](../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md)
 prepares tooling, not a replacement for either service backups or guest package repositories.
 
 ## References

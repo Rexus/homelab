@@ -11,15 +11,6 @@
     - {path: "{{ openxpki_release_dir }}", mode: "0755"}
     - {path: /etc/openxpki, mode: "0755"}
 
-- name: Record the deployment binding before initializing any application state
-  ansible.builtin.copy:
-    content: "{{ openxpki_binding | to_nice_json }}\n"
-    dest: "{{ openxpki_data_mount }}/deployment.json"
-    owner: root
-    group: root
-    mode: "0600"
-  no_log: true
-
 - name: Transfer the checksum-verified production configuration archive
   ansible.builtin.copy:
     src: "{{ openxpki_configuration_src }}"

@@ -1,5 +1,9 @@
 # Native delivery installation
 
+**Stage route:** [Stage 7, Step 2](../README.md#step-2-select-and-qualify-delivery) for the selected
+controller; [Step 3](../README.md#step-3-connect-approved-artifact-supply) for Harbor.
+**Return:** to that step's acceptance checks. Select only its component; these are separate runs.
+
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`). The
 [delivery role](../../../../tier-1/ansible/roles/delivery_platform) owns product
 configuration; Shared executes Helm releases without owning inventory or state.

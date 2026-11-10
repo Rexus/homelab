@@ -22,7 +22,7 @@ Proxmox host administration and every template lifecycle belong to Tier 0.
 ### Step 1: Record host values
 
 Record these in the project platform standards, or a temporary protected record before
-the [bootstrap host](bootstrap.md) generates that worksheet.
+the [bootstrap host](../bootstrap/README.md) generates that worksheet.
 
 | Item | Record before installation |
 | --- | --- |
@@ -50,8 +50,8 @@ Use the [Proxmox conventions](../../../conventions/proxmox-conventions.md) and
 | Branch | Complete now | Return |
 | --- | --- | --- |
 | Single-host pilot | No cluster required; retain the selected host/storage inputs | Step 4 below |
-| 1b: Cluster and HA | [Join empty hosts](../step-1b-cluster-ha.md#prepare-and-join-hosts), qualify guest mobility; enroll/test disposable HA guests later | Step 4 below |
-| 1c: Guest SDN | [Create and activate VNets](../step-1c-sdn.md); this can accompany either host option | Step 4 below |
+| 1b: Cluster and HA | [Join empty hosts](step-1b-cluster-ha.md#prepare-and-join-hosts), qualify guest mobility; enroll/test disposable HA guests later | Step 4 below |
+| 1c: Guest SDN | [Create and activate VNets](step-1c-sdn.md); this can accompany either host option | Step 4 below |
 
 Joining a cluster replaces the joining node's configuration; decide before populating
 it with templates/VMs. HA needs usable shared/replicated storage, fencing, capacity and
@@ -59,15 +59,10 @@ explicit resource enrollment; membership alone is insufficient.
 
 ### Step 4: Return to the foundation path
 
-1. Confirm [storage prerequisites](../storage/README.md) and [firewall checks](../network/firewall.md).
-2. Create the [first manual Linux template](templates.md).
-3. Follow [bootstrap execution host](bootstrap.md), then
-   [foundation template import/apply](../README.md#step-3-publish-and-test-vm-templates).
-4. Continue to [Stage 1: Software intake](../../stage-1-software-intake/README.md).
-
-The numbered [foundation path](../README.md) owns the full sequence; this page owns
-host preparation. API tokens and Terraform come after the first manual template and
-bootstrap execution host.
+Return to [Foundation Step 1](../README.md#step-1-prepare-hosts-and-networks), actions **3–4**,
+for storage and firewall checks. Continue through that README's manual-template, bootstrap and
+managed-publication steps in order; do not skip directly to Stage 1 from host preparation.
+API tokens and Terraform follow creation of the first manual template and bootstrap host.
 
 ## Platform guides
 
@@ -79,9 +74,9 @@ bootstrap execution host.
 | Import a verified image in the GUI | [VM templates](templates.md) |
 | Publish/adopt and maintain templates | [Template lifecycle](../../../administration/virtual-machines/template-lifecycle.md) |
 | HA controls and fault behavior | [Menu reference](../../../reference/proxmox-ha.md), [worked failover](failover.md) |
-| ProxLB instead of native rebalancing | [Alternative balancer](proxlb.md) |
+| ProxLB instead of native rebalancing | [Alternative balancer](step-4c-proxlb.md) |
 | Restore a disposable guest | [Backup/restore](../../../administration/backups/virtual-machines.md) |
-| Apply the Linux service-VM profile | [Host security](host-security.md) |
+| Apply the Linux service-VM profile after guest deployment | [Stage 1, option 4b](../../stage-1-software-intake/README.md#4b-apply-the-linux-security-profile--optional) |
 
 <a id="related-references"></a>
 

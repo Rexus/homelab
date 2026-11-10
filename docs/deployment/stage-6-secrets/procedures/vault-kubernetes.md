@@ -1,5 +1,9 @@
 # Vault on Kubernetes
 
+**Stage route:** [Stage 6, Step 1a](../README.md#step-1-deploy-the-secret-service).
+**Return:** to Step 1 for access/audit/restore acceptance before Step 2; this is the Kubernetes ceremony,
+not an additional Vault beside the VM alternative.
+
 Install the Tier 0 Vault service with three Raft voters, separate per-pod data and
 audit claims, TLS, persistent plus stdout audit and scoped human OIDC. Initialization,
 unseal and root-token custody belong to the authorized operators.
@@ -193,4 +197,4 @@ Guidance checked 2026-10-26.
 3. [Vault operator initialization](https://developer.hashicorp.com/vault/docs/commands/operator/init).
 4. [Vault OIDC authentication](https://developer.hashicorp.com/vault/docs/auth/jwt).
 5. [Vault file audit backend and stdout](https://developer.hashicorp.com/vault/docs/audit/file).
-6. [Vault Raft snapshots](https://developer.hashicorp.com/vault/docs/commands/operator/raft/snapshot).
+6. [Vault Raft snapshots](https://developer.hashicorp.com/vault/docs/commands/operator/raft#snapshot).

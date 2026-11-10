@@ -1,29 +1,4 @@
 ---
-- name: Inspect the independent portal certificate on the controller
-  community.crypto.x509_certificate_info:
-    path: "{{ openxpki_tls_cert_src }}"
-    valid_at:
-      now: "+0s"
-  delegate_to: localhost
-  become: false
-  register: openxpki_portal_certificate
-
-- name: Inspect the matching portal key without exposing it
-  community.crypto.openssl_privatekey_info:
-    path: "{{ openxpki_tls_key_src }}"
-  delegate_to: localhost
-  become: false
-  register: openxpki_portal_key
-  no_log: true
-
-- name: Refuse expired, mismatched or incorrectly named portal credentials
-  ansible.builtin.assert:
-    that:
-      - openxpki_portal_certificate.valid_at.now
-      - openxpki_portal_certificate.public_key == openxpki_portal_key.public_key
-      - "('DNS:' ~ openxpki_portal_fqdn) in openxpki_portal_certificate.subject_alt_name | default([])"
-  no_log: true
-
 - name: Create private TLS and public certificate publication directories
   ansible.builtin.file:
     path: "{{ item.path }}"

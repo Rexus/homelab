@@ -59,7 +59,7 @@ def main():
                         help="Parent of <prefix>-iac/ (default: beside this kit checkout).")
     parser.add_argument("--repo", action="append", choices=[*REPOSITORIES, "all"], help="Repeat to select repositories.")
     parser.add_argument("--refresh", action="store_true",
-                        help="Refresh kit automation with backups of local edits; preserve configuration and project files.")
+                        help="Refresh automation and examples; back up code edits and preserve live configuration/project files.")
     parser.add_argument("--code-conflicts", choices=("replace", "preserve", "ask"), default="replace",
                         help="Edited kit automation on refresh: replace with backup (default), preserve, or ask per file.")
     parser.add_argument("--dry-run", action="store_true", help="Report changes without writing files.")

@@ -55,11 +55,11 @@ development_data_backup_custody_accepted: false
 # Backups TO NAS only: live PostgreSQL/Redis/Gitaly data stays on the VM disks
 # backed by Proxmox/Ceph. Never mount a NAS export over /var/opt/gitlab or PGDATA.
 # Direct NAS backup alternative: transport=filesystem, replace the repository map, and
-# supply all three host contracts below. This role does not mount, create NAS
-# directories/markers, alter export permissions or install a storage gateway.
-# Commission persistent rw NFS/SMB mounts and private directories before apply.
-# Use exact findmnt TARGET,SOURCE,FSTYPE; independently create each mount's
-# .development-data-backup-target file with that host's unique marker value.
+# supply all three host contracts below. IaC installs the client, mounts the share
+# and persists the verified mount. The NAS administrator prepares each export/share,
+# private repository directory and independent .development-data-backup-target marker.
+# No NAS server/export/snapshot/marker creation or storage gateway is supplied.
+# The marker value must be recorded independently; the client never creates/replaces it.
 # Keep root-squash; grant the mapped UID/GID (or SMB identity) access on the NAS.
 # The root-run job verifies create/read/sync/rename/delete and effective UID/GID.
 # development_data_backup_transport: filesystem
@@ -75,8 +75,18 @@ development_data_backup_custody_accepted: false
 #     marker: <independently-generated-unique-32-plus-character-token>
 #     uid: 65534
 #     gid: 65534
+#     manage_mount: true
+#     options: [vers=4.1, proto=tcp] # Optional protocol/tuning overrides only; hard/noexec/etc. remain required.
 #   kv-1: <same contract, its own export and unique marker>
 #   repo-1: <same contract, its own export and unique marker>
+# SMB variant: fstype: cifs; source: //nas.internal.example.com/gitlab-db;
+# credentials_src: /absolute/private/gitlab-db-smb.credentials
+# options: [vers=3.1.1, cache=strict]; uid/gid are the client-visible NAS write identity.
+# Native credentials file: username=..., password=..., optional domain=... on separate lines.
+# Store it encrypted/private, outside Git; IaC copies it root-only and requires SMB3 encryption.
+# Existing commissioned mounts can use manage_mount: false to verify without replacing mount management.
+# For legacy CIFS contracts without credentials_src, existing mounts remain verify-only;
+# an absent mount fails rather than creating a local fallback. Normal new CIFS uses credentials_src.
 # SSH key/known_hosts inputs apply only to sftp; encryption password is always required.
 development_data_backup_min_free_bytes: 10737418240 # 10 GiB reserve; size for actual growth.
 development_data_backup_timeout_seconds: 7200 # Failure deadline; 60s termination grace.

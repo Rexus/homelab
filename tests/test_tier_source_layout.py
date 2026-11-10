@@ -19,7 +19,7 @@ from payload import TIERS, copy_payload, validate_layout
 
 
 class SourceLayout(TierRepositoryTestCase):
-    def test_source_comment_documentation_references_resolve(self):
+    def test_source_documentation_references_resolve(self):
         for name in ("shared", *TIERS):
             for path in (UPSTREAM / name).rglob("*"):
                 if not path.is_file() or any(part.startswith(".") for part in path.relative_to(UPSTREAM).parts):
@@ -31,9 +31,8 @@ class SourceLayout(TierRepositoryTestCase):
                 if path.suffix == ".yml" and ("inventory" in path.parts or "group_vars" in path.parts):
                     continue
                 for line in path.read_text(encoding="utf-8").splitlines():
-                    if line.lstrip().startswith("#"):
-                        for target in re.findall(r"docs/[\w/.-]+\.md", line):
-                            self.assertTrue((UPSTREAM / target).is_file(), (path, target))
+                    for target in re.findall(r"docs/[\w/.-]+\.md", line):
+                        self.assertTrue((UPSTREAM / target).is_file(), (path, target))
 
     def test_source_payloads_match_generated_paths_and_inputs(self):
         validate_layout(UPSTREAM)

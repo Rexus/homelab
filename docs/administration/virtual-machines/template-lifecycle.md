@@ -33,7 +33,7 @@ and no concurrent publisher or clone-maintenance operation.
 
 | Item | Location / action |
 | --- | --- |
-| Execution host and dependencies | [Bootstrap host](../../deployment/foundation/proxmox/bootstrap.md); `apply`, `verify` and `replace-disk` prepare their ignored Python runtime automatically |
+| Execution host and dependencies | [Bootstrap host](../../deployment/foundation/bootstrap/README.md); `apply`, `verify` and `replace-disk` prepare their ignored Python runtime automatically |
 | Provider access | Tier 0 `.env.local`; pass `--env-file .env.local`. No `source`, `set -a` or token concatenation |
 | Public image authenticity | Verify the vendor release outside restricted custody, retain approval and hash the unpacked artifact; a supplied hash alone is not vendor authentication |
 | Site/common settings and selected builds | `templates/proxmox.yml`; shared values under `all:`, per-image overrides under `templates:` |
@@ -87,7 +87,7 @@ Talos uses fresh approved raw images; Linux package-refresh recipes do not apply
 **Expected:** stopped template candidates exist, policy verification passes and Shared
 references are synchronized. This does not upgrade existing guests or select a new default.
 Select the accepted image in [promotion](#how-is-a-tested-image-promoted-or-rolled-back).
-For an SDN change, [activate the VNet and grant its scoped permissions](../../deployment/foundation/step-1c-sdn.md)
+For an SDN change, [activate the VNet and grant its scoped permissions](../../deployment/foundation/proxmox/step-1c-sdn.md)
 before applying; policy verification alone does not check NICs.
 
 <a id="adopt-existing-templates"></a>
@@ -156,20 +156,13 @@ networking have their own acceptance checks. An **Apply complete** line is insuf
 
 ## What if publication fails?
 
-1. Keep the same state, catalog keys, VMIDs and artifact files. Back up state before recovery;
-   a failed apply can still have completed imports/resources. Never start with empty state.
-2. Follow [publication troubleshooting](template-troubleshooting.md) for upload, permission,
-   capacity or connection errors. Retain the complete first error and the affected path.
-3. Resolve the cause, then prepare a new adoption plan:
+Keep the same state, catalog keys, VMIDs and artifact files. Back up state before recovery;
+a failed apply can still have completed imports/resources. Never start with empty state.
 
-   Run from **`<prefix>-tier-0/`** on the protected execution host.
-
-   ```bash
-   bash scripts/proxmox-templates.sh import --env-file .env.local
-   ```
-
-4. Review successful prior work and the remaining changes before applying that new plan.
-   The wrapper discards plans after apply attempts; do not retry an older saved plan.
+Follow [publication troubleshooting](template-troubleshooting.md) to diagnose the first error,
+then its [partial-publication recovery steps](template-troubleshooting.md#how-is-partial-publication-recovered)
+to prepare a new adoption plan and return to publication. Review successful prior work and all
+remaining changes. The wrapper discards plans after apply attempts; do not retry an older saved plan.
 
 **Stop:** incomplete remote image bytes, uncertain resource ownership or unexplained
 replacement. Do not remove lifecycle guards or delete backing disks to force progress.

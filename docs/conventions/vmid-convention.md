@@ -83,6 +83,7 @@ or role. The [published template catalog](../reference/template-catalog.md) reco
 | `231-233` | Tier 0 HSM gateways, `hsm-1` through optional `hsm-3` |
 | `301`, `302` | Tier 0 Kubernetes API gateways, `api-gw-1` and `api-gw-2` |
 | `401`, `402` | Tier 0 protected logging, `log-1` and optional `log-2` |
+| `411` | Tier 0 independent monitoring VM, optional `mon-1` at Stage 6 |
 | `501` | Reserved for the manually created Tier 0 bootstrap host, `boot-1` |
 | `511` | Tier 0 infrastructure runner, `iac-1` |
 | `521` | Tier 0 optional ceremony administration VM, `cadm-1` |

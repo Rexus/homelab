@@ -238,6 +238,7 @@ if [[ ! "$deployment_env" =~ ^[A-Za-z0-9-]+$ ]]; then
 fi
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib/deployment-context.sh"
+source "$automation_root/scripts/lib/deployment-record.sh"
 require_owned_setup "$setup_name"
 require_current_terraform_layout "$setup_name"
 if [[ -n "$saved_plan" ]]; then
@@ -728,6 +729,9 @@ if [[ "$plan_only" == true || "$terraform_only" == true ]]; then
   if [[ -n "$saved_plan" && "$plan_only" != true ]]; then
     rm -f -- "$saved_plan.applied.context"
   fi
+  if [[ "$plan_only" == false && "$destroy" == false ]]; then
+    print_deployment_record "$repo_root" "$setup_name ($deployment_env)" infrastructure
+  fi
   exit 0
 fi
 
@@ -739,4 +743,7 @@ reset_known_host_entries
 run_ansible_playbooks
 if [[ -n "$saved_plan" ]]; then
   rm -f -- "$saved_plan.applied.context"
+fi
+if [[ "$recipe" == deployment && "$playbook_override" != maintenance/* ]]; then
+  print_deployment_record "$repo_root" "$setup_name ($deployment_env)"
 fi

@@ -1,6 +1,8 @@
 ---
 # Role-local dependencies; install alongside tier/shared requirements.
 collections:
+  - name: ansible.posix
+    version: ">=1.5.0,<3.0.0"
   - name: community.postgresql
     version: ">=4.2.0,<5.0.0"
   - name: amazon.aws

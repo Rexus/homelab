@@ -13,9 +13,9 @@ Tier 1 or Tier 2. Start here for a new installation.
 
 ## Deployment order
 
-Begin with the unnumbered [foundation prerequisites](../../deployment/foundation/README.md):
+Begin with the [Foundation steps](../../deployment/foundation/README.md):
 first manual Linux template, then the
-[bootstrap execution host](../../deployment/foundation/proxmox/bootstrap.md), then template adoption/publication.
+[bootstrap execution host](../../deployment/foundation/bootstrap/README.md), then template adoption/publication.
 The bootstrap guide covers local tools, artifacts, Proxmox CA/API access and repository generation;
 record [project conventions](../../development/project-documentation.md#start-with-project-values) there.
 Verify the foundation,
@@ -28,7 +28,7 @@ options branch from the relevant decision and return to the main path.
 | --- | --- | --- |
 | **1: Software intake** | Configure approved consumers; Tier 2 owns the ordinary proxy/cache | [Software intake](../../deployment/stage-1-software-intake/README.md) |
 | **2: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1-3](../../deployment/stage-2-logging/README.md) |
-| **3: Cryptographic trust** | Offline root and online issuer; optional hardware protection | [Trust](../../deployment/stage-3-trust/README.md) |
+| **3: Cryptographic trust** | Offline root and online issuer; optional hardware protection and approved Tier 0 consumers of verified intake | [Trust](../../deployment/stage-3-trust/README.md) |
 | **4: Kubernetes** | Control-cluster lifecycle, basic platform, node/API logging and recovery | [Kubernetes, Steps 1-3](../../deployment/stage-4-kubernetes/README.md) |
 | **5: Identity** | Dedicated FreeIPA pair and Keycloak/OIDC on the accepted cluster | [Identity](../../deployment/stage-5-identity/README.md) |
 | **6: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../deployment/stage-6-secrets/README.md), [monitoring](../../deployment/stage-6-secrets/monitoring.md) |
@@ -37,15 +37,15 @@ options branch from the relevant decision and return to the main path.
 | **9: Development platform** | Install the dedicated runner and Vault CI policy; hand over original state with explicit CI trust | [Development platform](../../deployment/stage-9-development/README.md) |
 | **10: Lab environments** | Approve bounded infrastructure requests; an automated allocator is not supplied | [Lab environments](../../deployment/stage-10-lab-environments/README.md) |
 
-Select optional [HA](../../deployment/foundation/step-1b-cluster-ha.md) and
-[SDN](../../deployment/foundation/step-1c-sdn.md) before important guests.
+Select optional [HA](../../deployment/foundation/proxmox/step-1b-cluster-ha.md) and
+[SDN](../../deployment/foundation/proxmox/step-1c-sdn.md) before important guests.
 Protect access and backups from the first step; the
 [support map](../../reference/implementation-support.md) identifies automation and remaining integration.
 
 ## Getting started
 
 **Templates before managed VMs.** One manual Linux template creates the bootstrap
-VM first; the [bootstrap guide](../../deployment/foundation/proxmox/bootstrap.md)
+VM first; the [bootstrap guide](../../deployment/foundation/bootstrap/README.md)
 prepares the execution host before API publication.
 
 Run from **`<prefix>-tier-0/`**.
@@ -60,7 +60,7 @@ to configure, plan, publish, and test images. Tier 0 approves references in the
 Verified existing templates are valid. No hosted CI or cluster is required.
 For manual templates, select the
 [import path](../../administration/virtual-machines/template-lifecycle.md#adopt-existing-templates).
-[Foundation Step 3](../../deployment/foundation/README.md#step-3-publish-and-test-vm-templates)
+[Foundation Step 4](../../deployment/foundation/README.md#step-4-publish-and-test-vm-templates)
 lists import/new-publication commands and the apply step; complete it before Stage 1.
 
 After templates, accept [software intake](../../deployment/stage-1-software-intake/README.md),
@@ -101,5 +101,5 @@ Replace `homelab` in paths if another prefix was selected.
 - `terraform/modules/`: infrastructure building blocks owned by this tier
 - `ansible/`: inventory, group vars, playbooks, and service roles
 - `templates/`, `packer/`, `ci/`: image recipes, optional builds, publication jobs
-- `clusters/tier0/`: cluster-service skeletons
+- `clusters/tier0/`: optional project GitOps definitions; native installers live in `ansible/roles/`
 - `scripts/`: template/cluster commands and entry points to shared Linux helpers

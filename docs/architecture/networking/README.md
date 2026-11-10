@@ -141,7 +141,7 @@ release-promotion rights nor control over the host, cluster or network.
 Proxmox SDN zones group guest networks for deployment and permissions; gateway
 firewall zones group networks for traffic policy. Matching purpose names makes
 the two views easier to navigate, but does not synchronize their configuration
-or create firewall rules. The [SDN mapping](../../deployment/foundation/step-1c-sdn.md#step-2-create-the-vnets)
+or create firewall rules. The [SDN mapping](../../deployment/foundation/proxmox/step-1c-sdn.md#step-2-create-the-vnets)
 connects the reference VNets and VLANs to both groups.
 
 The [layered view](../README.md#layered-model) reads left to right:
@@ -297,7 +297,7 @@ labels do not synchronize configuration or grant access.
 
 The [Tier 2 edge guide](../../deployment/stage-7-delivery/procedures/edge-proxy.md)
 owns load-balancer installation and listener/VIP inputs. The
-[public HTTPS path](../../deployment/stage-10-lab-environments/public-https.md) owns selected
+[public HTTPS path](../../deployment/stage-10-lab-environments/step-3b-public-https.md) owns selected
 external publication and origin trust. [Cluster platform installation](../../deployment/stage-4-kubernetes/procedures/basic-platform.md#certificates-and-ingress)
 owns the runtime ingress realization. These procedures provide implementation
 details and acceptance limits; no public listener is implied by this architecture.

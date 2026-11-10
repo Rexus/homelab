@@ -1,4 +1,10 @@
-# Publish a website with verified HTTPS
+# Step 3b: Publish a website with verified HTTPS
+
+**Branch from:** [Step 3](README.md#step-3-deploy-and-verify-applications), option **3b**, after the private
+website and origin TLS are accepted. Private-only applications skip this option.
+**Change:** publish the accepted website through the selected edge pool with verified HTTPS.
+**Return:** [Step 3](README.md#step-3-deploy-and-verify-applications) after public access, renewal
+and denied-path checks; finish collection and recovery.
 
 Use Let's Encrypt for browser-facing trust and the private PKI for verified
 proxy-to-origin TLS. The public edge holds no CA signing or root key.

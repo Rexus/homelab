@@ -28,7 +28,7 @@
       - software_intake_timeout_seconds | int >= 60
       - software_intake_timer_enabled is boolean
       - software_intake_freshclam_enabled is boolean
-    fail_msg: Use EL10 or Debian-family systemd, prepared /srv/intake, bounded policy and explicit HTTPS inputs.
+    fail_msg: Use EL10 or Debian-family systemd, a dedicated intake volume, bounded policy and explicit HTTPS inputs.
 
 - name: Validate each source and its independent trust input
   ansible.builtin.assert:
@@ -110,30 +110,6 @@
   ansible.builtin.assert:
     that: item is match('^[A-Za-z0-9][A-Za-z0-9.-]+$')
   loop: "{{ software_intake_clam_mirrors }}"
-
-- name: Check the actual prepared mount before any installation
-  ansible.builtin.command:
-    argv: [findmnt, --json, --mountpoint, "{{ software_intake_data_dir }}", --output, 'TARGET,OPTIONS,AVAIL']
-  register: software_intake_mount
-  changed_when: false
-
-- name: Reject missing, read-only or exhausted intake storage
-  ansible.builtin.assert:
-    that:
-      - (software_intake_mount.stdout | from_json).filesystems | length == 1
-      - (software_intake_mount.stdout | from_json).filesystems[0].target == software_intake_data_dir
-      - "['rw', 'nodev', 'nosuid', 'noexec'] | difference((software_intake_mount.stdout | from_json).filesystems[0].options.split(',')) | length == 0"
-    fail_msg: Prepare the dedicated rw,nodev,nosuid,noexec data mount; this role never formats or mounts a disk.
-
-- name: Read mount capacity as bytes
-  ansible.builtin.command:
-    argv: [findmnt, --bytes, --noheadings, --mountpoint, "{{ software_intake_data_dir }}", --output, AVAIL]
-  register: software_intake_available
-  changed_when: false
-
-- name: Enforce the configured free-space reserve
-  ansible.builtin.assert:
-    that: software_intake_available.stdout | trim | int >= software_intake_min_free_bytes | int
 
 - name: Discover approved controller module payloads without Galaxy downloads
   ansible.builtin.command:

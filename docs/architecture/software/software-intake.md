@@ -85,7 +85,7 @@ B is the stronger fit when Tier 0 must consume only retained, approved releases
 without depending on live public repositories. Synchronization and promotion are
 separate operations; downloading into a mirror does not itself approve a release.
 An existing mirror is valid. The repository supplies A and an optional
-[verified RPM/APT and artifact publication path](../../deployment/stage-1-software-intake/verified-intake.md)
+[verified RPM/APT and artifact publication path](../../deployment/stage-3-trust/step-3b-verified-intake.md)
 for B. C still requires a prepared, independently verified offline supply bundle.
 
 ## Transport and integrity

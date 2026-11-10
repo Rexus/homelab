@@ -1,4 +1,4 @@
-# Offline bootstrap preparation
+# Step 3e: Offline bootstrap preparation
 
 Prepare dependencies on a connected, approved acquisition host, transfer one
 reviewed bundle, then install on `boot-1` without public package access.
@@ -11,12 +11,15 @@ instead of replacing them with generated examples.
 
 **Working repositories:** reviewed upstream kit for acquisition; `<prefix>-tier-0`
 and `<prefix>-tier-2` after generation, with sibling Shared automation.
-**Branch from:** [Bootstrap Step 2b](bootstrap.md#2b-transfer-a-prepared-bundle--offline-alternative).
-**Prerequisites:** [Bootstrap Step 2](bootstrap.md#step-2-prepare-tools-repositories-and-artifacts)
+**Branch from:** [Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), option **3e**,
+at [Bootstrap Step 2b](README.md#2b-transfer-a-prepared-bundle--offline-alternative).
+**Return:** [Foundation Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), continuing with
+[bootstrap SSH/trust setup](README.md#step-3-prepare-the-execution-accounts-ssh-key) after offline tool checks.
+**Prerequisites:** [Bootstrap Step 2](README.md#step-2-prepare-tools-repositories-and-artifacts)
 has prepared the selected workspace filesystem and private `automation`-owned directories
 under `/srv/tier0`, including `offline/`; SSH/console and approved package-signing keys are available.
 An existing mount such as `/srv/src` is valid: substitute absolute paths consistently.
-For [workspace disk preparation](bootstrap-storage.md) or [root-LVM expansion](bootstrap-lvm.md), storage tools may be installed first from a verified
+For [workspace disk preparation](step-3a-bootstrap-storage.md) or [root-LVM expansion](step-3b-bootstrap-lvm.md), storage tools may be installed first from a verified
 bundle on independently mounted media. In Step 7, set `BUNDLE` to that media path, then return
 to storage preparation before transferring the full bundle to the completed workspace.
 The connected host must match the target's **distribution, release, architecture
@@ -50,7 +53,7 @@ Run on **the connected matching acquisition host**.
 sudo dnf install -y dnf-plugins-core python3 python3-pip git gnupg2
 ```
 
-Then use [Bootstrap 2a, action 2](bootstrap.md#2a-install-through-approved-sources)
+Then use [Bootstrap 2a, action 2](README.md#2a-install-through-approved-sources)
 to configure the approved Terraform package repository and install Terraform **on the connected host**.
 
 <a id="1a-download-os-packages-and-reviewed-source"></a>
@@ -91,7 +94,7 @@ dependencies already installed on the acquisition host. It is not a whole OS mir
 
 The bundle also includes `rsync` and Enterprise Linux 10's
 `policycoreutils-python-utils` for the optional
-[home-directory migration](bootstrap-home.md). Prepare these before restricting
+[home-directory migration](step-3c-bootstrap-home.md). Prepare these before restricting
 package access; installing the tools does not move `/home` or change SELinux policy.
 The LVM/partition/XFS tools support the optional root-capacity expansion; downloading
 or installing them does not resize or partition any disk.
@@ -162,7 +165,7 @@ cp -a "$IMAGE_DIR/." "$BUNDLE/artifacts/"
 ```
 
 Stage the exact approved `.qcow2`/unpacked `.raw` images and their vendor
-checksums/provenance required by the [template guide](templates.md). Include an
+checksums/provenance required by the [template guide](../proxmox/templates.md). Include an
 LXC template only when selected. Preserve the lockfiles; stop if `init` requests a
 lock update and review/reissue the source revision rather than upgrading offline.
 No API tokens, SSH private keys, existing state or ignored project inputs belong
@@ -398,7 +401,7 @@ execution environment, not the scripts' allowlisted Proxmox `.env.local` file.
 Both `check` modes refuse dependency acquisition; template runtime `auto` may
 invoke Galaxy and must not be used for this disconnected path.
 
-**Rejoin:** [Bootstrap Step 3](bootstrap.md#step-3-prepare-the-execution-accounts-ssh-key),
+**Rejoin:** [Bootstrap Step 3](README.md#step-3-prepare-the-execution-accounts-ssh-key),
 then configure verified Proxmox CA/API access, local inputs and approved images.
 Retain the selected stage's review/approval gates; this guide does not deploy guests.
 

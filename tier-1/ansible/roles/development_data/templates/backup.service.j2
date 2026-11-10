@@ -2,6 +2,9 @@
 Description=Encrypted cold backup of the GitLab {{ data_component }} service
 After=network-online.target gitlab-runsvdir.service
 Wants=network-online.target
+{% if development_data_backup_transport == 'filesystem' %}
+RequiresMountsFor={{ development_data_backup_filesystem[data_backup_host | default(inventory_hostname)].mount }}
+{% endif %}
 
 [Service]
 Type=oneshot

@@ -1,6 +1,10 @@
 ---
 # Tier 0 runtime contract: docs/reference/openxpki.md
 openxpki_data_mount: /srv/openxpki
+openxpki_data_device: /dev/sdb
+openxpki_data_fstype: xfs
+openxpki_data_label: openxpki
+# Optional identity pin; ordinary installation persists the detected UUID in fstab.
 openxpki_data_uuid: ""
 openxpki_min_free_mb: 2048
 openxpki_deployment_id: ""

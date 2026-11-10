@@ -22,10 +22,17 @@ This stage integrates secret-service and operator access with that provider.
 
 ## Main path
 
-1. [Deploy the secret service](#step-1-deploy-the-secret-service)
-2. [Add operational tools](#step-2-add-operational-tools)
-3. [Integrate access and recovery](#step-3-integrate-access-and-recovery)
-4. [Establish independent monitoring](#step-4-establish-independent-monitoring)
+Follow Steps 1–4. Choose one Vault placement; seal and authentication options are additions, not extra instances.
+
+| Step | Path or option | Continue when |
+| --- | --- | --- |
+| 1a | [Kubernetes Vault](#step-1-deploy-the-secret-service): [inputs/install](procedures/control-applications.md), then [ceremony](procedures/vault-kubernetes.md) | Vault access, audit and recovery are accepted; go to Step 2 |
+| 1b | [Dedicated Vault VM](step-1b-vault-vm.md), instead of 1a | Rejoin Step 1 acceptance, then Step 2 |
+| 1c | Optional [seal integration](step-1c-seal-integration.md); decide **before** either placement is initialized | Qualified provider and recovery path; return to selected 1a/1b |
+| 2 | [Operational tools](#step-2-add-operational-tools): prepare the [monitoring host](monitoring.md#step-1-prepare-the-monitoring-runtime), install NetBox, add [change audit](procedures/netbox-audit.md), then Headlamp | Tools, SSO, protected audit and backups work; go to Step 3 |
+| 3a | [Access and independent recovery](#step-3-integrate-access-and-recovery), required for either Vault placement | Allowed/denied access and break-glass recovery pass |
+| 3b | Optional [hardware authentication](step-3b-hardware-authentication.md) after 3a | Return to Step 3 checks before Step 4 |
+| 4 | [Independent monitoring](#step-4-establish-independent-monitoring): complete [installation and alerts](monitoring.md) on the host prepared at Step 2 | Verify cluster-loss detection before Stage 7 |
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -84,7 +91,7 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
 | --- | --- |
 | Existing Keycloak / OIDC | Secret-service and operator-tool access where supported |
 | CloudNativePG | NetBox database |
-| Issuing CA | cert-manager requests; Vault integration only through a supported provider |
+| Issuing CA | Preissued service/database certificates; automated enrollment needs a separately accepted issuer integration |
 | Cluster API | Headlamp with scoped RBAC |
 
 <a id="step-2-deploy-operational-services"></a>
@@ -147,10 +154,11 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
 
 ## Step 2: Add operational tools
 
-1. Prepare the existing independent host through [monitoring Step 1](monitoring.md#step-1-prepare-the-monitoring-runtime):
-   select capacity, register its SSH address/account in `infrastructure_monitoring`, and prepare protected
-   host forwarding. NetBox audit collection needs this host now; Netdata installation still follows in Step 4.
-   This recipe creates no VM and cannot use the protected receivers as monitoring targets.
+1. Complete [monitoring Step 1](monitoring.md#step-1-prepare-the-monitoring-runtime):
+   choose **1a: provision `mon-1`** through the existing foundation Terraform root, or
+   **1b: accept an existing independent host**. Prepare SSH/sudo and protected forwarding.
+   NetBox audit collection needs this host now; Netdata installation still follows in Step 4.
+   Keep accepted issuer/directory inputs and state; protected receivers cannot be monitoring targets.
 2. In **`<prefix>-tier-0/ansible/group_vars/control_applications.yml`**, select `[netbox]`;
    retain accepted Vault and identity inputs. Complete [application installation](procedures/control-applications.md)
    with live database/media storage and the existing IdP client. For NAS backups, first prepare the NetBox
@@ -180,15 +188,16 @@ Ordinary application logging does not preserve NetBox's complete change ledger.
 2. Test permitted/denied roles and privileged recovery without directory or IdP login.
 3. Record independent recovery custody before restricting bootstrap credentials.
 
-Optional [3b: hardware-backed authentication](step-3b-hardware-authentication.md)
-adds stronger operator login after recovery is working. Restrict routine bootstrap
+Choose **3a: existing accepted authentication**, or add
+[3b: hardware-backed authentication](step-3b-hardware-authentication.md)
+after recovery is working. Both finish the checks in this step. Restrict routine bootstrap
 credentials only after independent break-glass access and recovery custody are verified.
 
 ## Step 4: Establish independent monitoring
 
-Complete [independent monitoring](monitoring.md), Steps 1–3: select the existing host,
+Complete [independent monitoring](monitoring.md), Steps 1–3, using the host prepared at Step 2:
 edit collector/alert inputs, install and test external alerts. This is part of the main path;
-the recipe creates no monitoring VM and cannot use `log-1` or `log-2` as its target.
+the service recipe configures that host and cannot use `log-1` or `log-2` as its target.
 
 Required cluster-loss detection stays outside the observed cluster. Observability
 is a separate [Stage 8 capability](../stage-8-observability/README.md), not a prerequisite

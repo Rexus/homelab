@@ -134,9 +134,13 @@ Inspect the private values/manifests under `secrets/cluster-platform/`, then app
 Run from **`<prefix>-tier-0/`**.
 
 ```bash
-export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+export KUBECONFIG="${KUBECONFIG:-$PWD/secrets/talos/kubeconfig}"
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=apply
 ```
+
+Retain the selected lifecycle's exported `KUBECONFIG`; manual clusters use their existing
+`secrets/<cluster-name>/kubeconfig`. Do not create another cluster or copy another tier's credentials
+to satisfy the Terraform-path fallback.
 
 The installer disables image automation/reflection controllers, requires native
 source/Kustomization CRDs and waits for the four selected controller deployments.
@@ -168,5 +172,5 @@ then [Stage 4, Step 3](../README.md#step-3-verify-operation-and-recovery).
 
 1. [Flux SOPS and age integration](https://fluxcd.io/flux/guides/mozilla-sops/).
 2. [Flux GitRepository commit/authentication contract](https://fluxcd.io/flux/components/source/gitrepositories/).
-3. [Flux community Helm charts](https://fluxcd-community.github.io/helm-charts/).
+3. [Flux community Helm charts](https://github.com/fluxcd-community/helm-charts).
 4. [Flux Kustomization dependencies, decryption and readiness](https://fluxcd.io/flux/components/kustomize/kustomizations/).

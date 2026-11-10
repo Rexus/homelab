@@ -1,0 +1,18 @@
+---
+- name: Provision the dedicated receiver filesystem and persistent mount
+  ansible.builtin.include_role:
+    name: data_volume
+  vars:
+    data_volume_device: "{{ syslog_ng_data_device }}"
+    data_volume_path: "{{ syslog_ng_data_mount }}"
+    data_volume_fstype: "{{ syslog_ng_data_fstype }}"
+    data_volume_label: security-log
+    data_volume_expected_uuid: "{{ syslog_ng_data_uuid }}"
+    data_volume_min_free_bytes: "{{ syslog_ng_min_free_mb | int * 1024 * 1024 }}"
+    data_volume_environment: "{{ syslog_ng_data_environment }}"
+    data_volume_allowed_bind_mounts: []
+
+- name: Retain the explicit receiver pin or use the verified filesystem identity
+  ansible.builtin.set_fact:
+    syslog_ng_effective_data_uuid: >-
+      {{ syslog_ng_data_uuid if syslog_ng_data_uuid | length > 0 else data_volume_result.uuid }}

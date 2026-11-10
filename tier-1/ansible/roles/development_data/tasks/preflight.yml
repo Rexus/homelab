@@ -115,6 +115,9 @@
         development_data_backup_password_src, development_data_s3_ca_src]
        + ([development_data_backup_ssh_key_src, development_data_backup_known_hosts_src]
           if development_data_backup_transport == 'sftp' else [])
+       + (development_data_backup_filesystem.values() | selectattr('credentials_src', 'defined')
+          | map(attribute='credentials_src') | reject('equalto', '') | list
+          if development_data_backup_transport == 'filesystem' else [])
        + development_data_tls.values() | map(attribute='cert_src') | list
        + development_data_tls.values() | map(attribute='key_src') | list }}
   register: development_data_files

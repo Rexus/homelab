@@ -8,14 +8,11 @@ bootstrap software access. New cache VMs need an approved initial package source
 **Working repositories:** `<prefix>-tier-2` for cache resources, `<prefix>-tier-0` for existing-host consumers,
 and Shared for common platform references.
 **Automation:** the Squid/keepalived installer and existing-host proxy configuration are supplied.
-The optional [verified intake extension](verified-intake.md) adds RPM/APT repository and selected-file
-verification, scanning/quarantine and versioned publication. Harbor and automated patch rollout
-are not installed by this path.
+This stage is complete without PKI or a hosted registry. Verified publication is selected at
+[Stage 3, option 3b](../stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional),
+after its trust/logging prerequisites exist. Harbor belongs to Stage 7.
 See [coverage](../../reference/implementation-support.md#stage-coverage).
 **Design:** [controlled software intake](../../architecture/software/software-intake.md).
-
-Already running the cache pair? Use [Adopt an intake update](adopt-update.md) to refresh the existing
-collection, reconcile retained configuration and register the optional Tier 1 worker.
 
 ## Main path
 
@@ -26,8 +23,6 @@ collection, reconcile retained configuration and register the optional Tier 1 wo
 5. [Test the selected intake path](#step-5-test-the-selected-intake-path), including existing supply.
 6. [Connect the bootstrap host](#step-6-connect-the-bootstrap-host).
 7. [Connect Proxmox host updates](#step-7-connect-proxmox-host-updates).
-8. Optional: [add verified repository/artifact publication](verified-intake.md), with existing trust/logging
-   or after Stages 2–3 establish them. Either supply route can feed this extension.
 
 **New cache pair:** follow **1a → 2 → 3 → 4 → 5 → 6 → 7**.
 **Existing supply:** follow **1b → 5 → 6 → 7**; create no cache resources.
@@ -40,7 +35,7 @@ Use the supplied `cache-1`/`cache-2` installer when controlled outbound access i
 Retain independent bootstrap/recovery artifacts. Continue at **Step 2**.
 
 An OS-packaged `ansible-core` with compatible collections can run this cache recipe;
-the precheck prepares its collections. Complete [Bootstrap Ansible installation](../foundation/proxmox/bootstrap.md#4-install-ansible)
+the precheck prepares its collections. Complete [Bootstrap Ansible installation](../foundation/bootstrap/README.md#4-install-ansible)
 first; a manual venv is not universally required.
 
 <a id="2b-use-existing-approved-supply--alternative"></a>
@@ -59,6 +54,10 @@ repository and OCI services.
 
 ## Step 2: Initialize cache inputs
 
+Choose **2a** for a fresh cache deployment or **2b** to update an existing pair.
+
+### 2a: Initialize a new pair — main path
+
 Run from **`<prefix>-tier-2/`** on the prepared bootstrap host:
 
 ```bash
@@ -68,9 +67,15 @@ bash scripts/init-local-files.sh --setup cache
 **Expected:** missing ignored local inputs are created; existing configuration is preserved.
 This does not create VMs or select deployment-ready values.
 
+### 2b: Adopt an update to an existing pair
+
+Complete [update adoption, Steps 1–4](step-2b-adopt-update.md), preserving live configuration and state.
+Return at **Step 5** after reconciling the cache; this branch does not install verified publication.
+
 ## Step 3: Configure the cache deployment
 
 Complete each required edit below. The network attachment has two alternatives.
+Use the [proxy policy and sizing reference](proxy-cache.md) while setting the client/source allowlists.
 
 <a id="shared-references-check-once"></a>
 
@@ -99,7 +104,7 @@ Edit in **`<prefix>-tier-2/`**:
 | `ansible/group_vars/all.yml` | `platform_domain`, hostname prefix/suffix and `ansible_user` matching the clone's login account |
 
 In **Tier 2 `.env.local`**, uncomment `TF_VAR_ssh_public_key_files` and use the actual absolute
-public-key path from [bootstrap SSH setup](../foundation/proxmox/bootstrap.md#step-3-prepare-the-execution-accounts-ssh-key):
+public-key path from [bootstrap SSH setup](../foundation/bootstrap/README.md#step-3-prepare-the-execution-accounts-ssh-key):
 
 ```dotenv
 TF_VAR_ssh_public_key_files='["/home/automation/.ssh/id_ed25519.pub"]'
@@ -156,6 +161,8 @@ so their initial installation does not depend on their own unfinished VIP.
 
 ## Step 4: Deploy the cache pair
 
+### 4a: Provision and configure the pair — main path
+
 The selected data device (`/dev/sdb` by default) is formatted for rebuildable cache data.
 Confirm that the target VMs/disks contain no required data.
 Review the separate [Proxmox NIC and guest-filtering controls](../foundation/network/firewall.md#proxmox-guest-interfaces);
@@ -211,7 +218,14 @@ The VIP fails over; it does not replicate cache data or balance both VMs concurr
 **Expected:** both hosts accept SSH, Squid responds and exactly one host owns the VIP.
 Default validation briefly stops keepalived to test takeover, then restores it.
 If Terraform fails partway through, retain state and follow [partial-apply recovery](../../reference/repository-scripts.md#partial-terraform-apply).
-Continue at **Step 5**.
+Continue through **4b** if selected, then **Step 5**.
+
+### 4b: Apply the Linux security profile — optional
+
+With SSH and approved package access working on both cache VMs, apply the
+[Linux service-VM profile](../../administration/hosts/linux-security.md).
+Include the approved client ports, operator sources and VRRP peers before activating its firewall.
+Return here for **Step 5** to retest the cache and takeover under the selected policy.
 
 <a id="3a-test-the-intake-path"></a>
 
@@ -308,7 +322,7 @@ See the [policy and sizing reference](proxy-cache.md) when extending the allowed
 
 | Extension | When and ownership | Relation to the early path |
 | --- | --- | --- |
-| Retained RPM/APT repositories and selected files | [Verified intake installer](verified-intake.md), or an existing qualified Tier 1 service | Native acquisition, verification and scanning before immutable publication; independently retained Tier 0 supply |
+| Retained RPM/APT repositories and selected files | [Stage 3, option 3b](../stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional) | Install after trust/logging, then accept consumer cutover before leaving Stage 3 |
 | Wider vulnerability policy | [Design extension](../../architecture/software/artifact-verification.md); OCI/Trivy integration remains separate | Add target-specific gates; ordinary proxy tunnels remain unscanned |
 | OCI registry | [Stage 7 artifact supply](../stage-7-delivery/procedures/registry.md); Tier 1, Harbor is an example | Store/promote container images and compatible OCI artifacts; does not replace RPM/APT repositories |
 | Patch rollout | Tier-owned maintenance automation; not supplied end to end | Use approved content with test/reboot/health gates; content availability alone is not patch compliance |

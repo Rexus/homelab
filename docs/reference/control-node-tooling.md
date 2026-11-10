@@ -22,7 +22,7 @@ start with [local development setup](../development/local-setup.md).
 This reference covers Linux/WSL infrastructure execution. Repository generation
 needs only the [declared Python/PyYAML prerequisites](../development/generated-repositories.md#purpose-and-prerequisites),
 without platform access. Real deployment needs the inputs below. For the first installation, follow the
-[bootstrap execution-host guide](../deployment/foundation/proxmox/bootstrap.md):
+[bootstrap execution-host guide](../deployment/foundation/bootstrap/README.md):
 manual Linux template, bootstrap VM, tools/artifacts, verified CA/API access, then IaC.
 The bootstrap guide owns first-install commands; this reference owns tool scope,
 compatibility, runtime behavior and dependency declarations.
@@ -82,7 +82,7 @@ and `ansible.mariadb`, while `cache` needs `community.general` and
 
 Run the tier's `ansible/playbooks/control-node.yml`, which imports shared checks
 with tier-owned requirements. Follow the
-[offline bootstrap workflow](../deployment/foundation/proxmox/bootstrap-offline.md)
+[offline bootstrap workflow](../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md)
 for matching-host package/wheel preparation, transitive Galaxy archives, locked
 providers, verified SCP transfer and local installation. Shared owns `community.crypto`
 for private PKI and public ACME. Tier 0 adds `freeipa.ansible_freeipa` and
@@ -121,23 +121,23 @@ define package/collection bounds.
 
 | Dependency | Authoritative source / installation scope |
 | --- | --- |
-| OS commands | [Bootstrap Step 2a](../deployment/foundation/proxmox/bootstrap.md#2a-install-through-approved-sources): Git, Bash, Python/pip, SSH, CA/curl/OpenSSL, archive/storage utilities, Terraform and `qemu-img`; [offline OS download/install](../deployment/foundation/proxmox/bootstrap-offline.md#1a-download-os-packages-and-reviewed-source) |
-| Optional home-directory migration | Pre-stage `rsync` and, on Enterprise Linux 10, `policycoreutils-python-utils` before restricting package access; included in the offline RPM download list for the [home-directory guide](../deployment/foundation/proxmox/bootstrap-home.md) |
-| Separate bootstrap workspace filesystem | Prepare `parted` and `xfsprogs` before creating the new data mount; follow [workspace disk preparation](../deployment/foundation/proxmox/bootstrap-storage.md) before copying artifacts or installing the full runtime |
-| Optional root-LVM expansion | EL10: pre-stage `lvm2`, `parted` and `xfsprogs`, included in the offline RPM list; the [existing-disk or new-PV guide](../deployment/foundation/proxmox/bootstrap-lvm.md) also lists Debian/Ubuntu package names |
+| OS commands | [Bootstrap Step 2a](../deployment/foundation/bootstrap/README.md#2a-install-through-approved-sources): Git, Bash, Python/pip, SSH, CA/curl/OpenSSL, archive/storage utilities, Terraform and `qemu-img`; [offline OS download/install](../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md#1a-download-os-packages-and-reviewed-source) |
+| Optional home-directory migration | Pre-stage `rsync` and, on Enterprise Linux 10, `policycoreutils-python-utils` before restricting package access; included in the offline RPM download list for the [home-directory guide](../deployment/foundation/bootstrap/step-3c-bootstrap-home.md) |
+| Separate bootstrap workspace filesystem | Prepare `parted` and `xfsprogs` before creating the new data mount; follow [workspace disk preparation](../deployment/foundation/bootstrap/step-3a-bootstrap-storage.md) before copying artifacts or installing the full runtime |
+| Optional root-LVM expansion | EL10: pre-stage `lvm2`, `parted` and `xfsprogs`, included in the offline RPM list; the [existing-disk or new-PV guide](../deployment/foundation/bootstrap/step-3b-bootstrap-lvm.md) also lists Debian/Ubuntu package names |
 | Python execution runtime | Tier 0 [runtime requirements](../../tier-0/ansible/runtime-requirements.txt); accepted interpreter plus Ansible/PyYAML/HCL tooling |
 | Python module clients | Owning tier's requirements: [Tier 0](../../tier-0/ansible/requirements.txt), [Tier 1](../../tier-1/ansible/requirements.txt), [Tier 2](../../tier-2/ansible/requirements.txt); install in the accepted venv |
 | Ansible collections | [Shared](../../shared/ansible/requirements.yml) plus [Tier 0](../../tier-0/ansible/requirements.yml), [Tier 1](../../tier-1/ansible/requirements.yml), [Tier 2](../../tier-2/ansible/requirements.yml); include transitive archives |
 | Generator only | Upstream kit `scripts/tier-repos/requirements.txt`; [generation prerequisite contract](../development/generated-repositories.md#purpose-and-prerequisites) |
-| Terraform providers | Each selected tier-local `terraform/deployments/<setup>/.terraform.lock.hcl`; [mirror selected roots without upgrading](../deployment/foundation/proxmox/bootstrap-offline.md#1c-mirror-locked-providers-and-stage-guest-artifacts) |
+| Terraform providers | Each selected tier-local `terraform/deployments/<setup>/.terraform.lock.hcl`; [mirror selected roots without upgrading](../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md#1c-mirror-locked-providers-and-stage-guest-artifacts) |
 | Guest/service and Kubernetes software | Selected stage's roles, group vars, chart/product inputs and image sources; **outside** the controller dependency bundle, even when controller Python clients are included |
 
 ## Automation VM example
 
 After the first template exists, a small dedicated automation VM is often
 easier to keep stable than using a personal workstation.
-Create it with the [bootstrap deployment guide](../deployment/foundation/proxmox/bootstrap.md),
-then follow its [package and Terraform installation steps](../deployment/foundation/proxmox/bootstrap.md#2a-install-through-approved-sources).
+Create it with the [bootstrap deployment guide](../deployment/foundation/bootstrap/README.md),
+then follow its [package and Terraform installation steps](../deployment/foundation/bootstrap/README.md#2a-install-through-approved-sources).
 An accepted independent workstation is
 also valid. Proxmox hosts and Talos nodes are not general-purpose deployment machines.
 
@@ -147,7 +147,7 @@ Ansible from the checked-out manifests. EPEL is not required by that path;
 additional repositories remain an explicit software-intake choice. [1][2]
 Use versions satisfying the selected Terraform roots and Ansible collections;
 an installed executable alone is not compatibility evidence. For an offline host,
-use the [connected-host bundle preparation and SCP handoff](../deployment/foundation/proxmox/bootstrap-offline.md).
+use the [connected-host bundle preparation and SCP handoff](../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md).
 Do not make
 this initial tool setup depend on the proxy/cache or hosted registry being deployed.
 
@@ -164,7 +164,7 @@ Keep the automation VM simple:
 
 ## Ansible environment
 
-The [explicit Ansible installation step](../deployment/foundation/proxmox/bootstrap.md#4-install-ansible)
+The [explicit Ansible installation step](../deployment/foundation/bootstrap/README.md#4-install-ansible)
 offers an OS-package path for cache/compatible Linux recipes and an isolated, manifest-based
 reference runtime for the complete toolchain. OS-packaged Ansible does not need venv activation;
 `deploy.sh` prepares the collections for its selected setup. Collection `requires_ansible`
@@ -188,7 +188,7 @@ Activate that environment in each new deployment shell before invoking tier
 scripts. Install the owning tier's `ansible/requirements.txt` there and its declared
 collections through that environment's `ansible-galaxy`; avoid `sudo pip` and user-site
 installs mixed with a different system Ansible. For local-only installation, use
-the [offline workflow](../deployment/foundation/proxmox/bootstrap-offline.md#3b-restore-the-kit-and-install-the-isolated-pythonansible-environment).
+the [offline workflow](../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md#3b-restore-the-kit-and-install-the-isolated-pythonansible-environment).
 
 ### Automatic template runtime
 
@@ -268,7 +268,7 @@ encrypted off-host recovery separately.
 ## Read more
 
 - [Environment variable conventions](environment-variables.md)
-- [Offline bootstrap preparation and later approved-source handover](../deployment/foundation/proxmox/bootstrap-offline.md)
+- [Offline bootstrap preparation and later approved-source handover](../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md)
 - [Repository scripts](repository-scripts.md)
 - [Secret strategy](../administration/secret-handling/strategy.md)
 - [Identity foundation path](../deployment/stage-5-identity/procedures/freeipa.md)

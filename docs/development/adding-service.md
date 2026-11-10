@@ -111,8 +111,8 @@ are inherited through the existing [catalog/profile contract](../reference/platf
 flowchart TB
   subgraph Tier["Tier 2 / proposed extension, not applied"]
     direction TB
-    Ansible["Inventory + IP map<br/>hosts.yml / lab.yml<br/>lab-2 / 10.20.20.12"]
-    Hardware["Hardware map<br/>terraform.tfvars<br/>lab-2 / VMID 3203"]
+  Ansible["Inventory + IP map<br/>hosts.yml / lab.yml<br/>lab-2"]
+  Hardware["Hardware map<br/>terraform.tfvars<br/>lab-2"]
     Guest["One Linux VM<br/>module.vms[lab-2]"]
     Ansible -->|Identity / address| Guest
     Hardware -->|Hardware selection| Guest

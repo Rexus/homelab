@@ -1,0 +1,71 @@
+---
+- name: Create the requested filesystem on the verified new volume
+  community.general.filesystem:
+    dev: "{{ data_volume_realpaths.results[0].stdout }}"
+    fstype: "{{ data_volume_fstype }}"
+    force: false
+    opts: "-L {{ data_volume_label }}"
+    state: present
+  when: data_volume_is_blank | bool
+
+- name: Read the persistent filesystem identity
+  ansible.builtin.command:
+    argv: [blkid, --probe, --match-tag, UUID, --output, value, --,
+           "{{ data_volume_realpaths.results[0].stdout }}"]
+  register: data_volume_uuid_probe
+  changed_when: false
+
+- name: Require the expected UUID before changing mount configuration
+  ansible.builtin.assert:
+    that:
+      - data_volume_uuid_probe.stdout | trim is match('^[A-Fa-f0-9-]{16,64}$')
+      - data_volume_expected_uuid == '' or data_volume_expected_uuid == data_volume_uuid_probe.stdout | trim
+
+- name: Mount the data filesystem by UUID and persist its boot dependency
+  ansible.posix.mount:
+    path: "{{ data_volume_path }}"
+    src: "UUID={{ data_volume_uuid_probe.stdout | trim }}"
+    fstype: "{{ data_volume_fstype }}"
+    opts: "{{ data_volume_mount_options }}"
+    dump: '0'
+    passno: "{{ '0' if data_volume_fstype == 'xfs' else '2' }}"
+    boot: true
+    state: mounted
+
+- name: Grow the existing filesystem when the attached volume expands
+  community.general.filesystem:
+    dev: "{{ data_volume_realpaths.results[0].stdout }}"
+    fstype: "{{ data_volume_fstype }}"
+    force: false
+    resizefs: true
+    state: present
+
+- name: Verify the mounted identity and restrictions
+  ansible.builtin.command:
+    argv: [findmnt, --json, --bytes, --mountpoint, "{{ data_volume_path }}", --output,
+           'TARGET,UUID,FSTYPE,OPTIONS,AVAIL,MAJ:MIN,FSROOT']
+  register: data_volume_verified_mount
+  changed_when: false
+
+- name: Require a real writable mount with the configured identity and reserve
+  ansible.builtin.assert:
+    that:
+      - mounts | length == 1
+      - mounts[0].target == data_volume_path
+      - mounts[0].uuid == data_volume_uuid_probe.stdout | trim
+      - mounts[0]['maj:min'] == data_volume_block['maj:min']
+      - mounts[0].fstype == data_volume_fstype
+      - mounts[0].fsroot == '/'
+      - "['rw', 'nodev', 'nosuid', 'noexec'] | difference(mounts[0].options.split(',')) | length == 0"
+      - mounts[0].avail | int >= data_volume_min_free_bytes | int
+    fail_msg: The verified data mount is unavailable, has changed identity or lacks its required reserve.
+  vars:
+    mounts: "{{ (data_volume_verified_mount.stdout | from_json).filesystems }}"
+
+- name: Expose the verified storage identity to the calling service
+  ansible.builtin.set_fact:
+    data_volume_result:
+      path: "{{ data_volume_path }}"
+      device: "{{ data_volume_realpaths.results[0].stdout }}"
+      uuid: "{{ data_volume_uuid_probe.stdout | trim }}"
+      fstype: "{{ data_volume_fstype }}"

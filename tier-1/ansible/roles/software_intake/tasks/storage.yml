@@ -1,5 +1,5 @@
 ---
-- name: Recheck the prepared mount immediately before creating data directories
+- name: Recheck the managed mount immediately before creating data directories
   ansible.builtin.command:
     argv: [findmnt, --noheadings, --mountpoint, "{{ software_intake_data_dir }}", --output, 'TARGET,OPTIONS']
   register: software_intake_storage_mount

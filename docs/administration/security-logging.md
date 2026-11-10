@@ -140,7 +140,7 @@ This verifies readability, not live-collector HA or protection against every phy
 ## How is receiver configuration reapplied?
 
 **Work from:** the **Tier 0 repository root** on the approved execution host.
-**Prerequisites:** existing inventory, local `syslog.yml`, approved TLS files, prepared data mount
+**Prerequisites:** existing inventory, local `syslog.yml`, approved TLS files, the original data-volume binding
 and independent recovery. Review the failure/queue budget before any source or queue change.
 
 1. Edit `ansible/group_vars/syslog.yml` and its accepted source catalogue. Preserve the

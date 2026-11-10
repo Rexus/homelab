@@ -16,6 +16,8 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
   identities; the default Stage 3 TLS-server profile is not used for these identities.
 - [ ] The selected Kubernetes SSO path matches qualified Talos 1.13 configuration; initial OIDC
   test-client/token and RBAC access work before Headlamp. Talos 1.14 needs separate qualification.
+- [ ] Observability has an independently qualified private authenticated gateway and failover path;
+  NodePort listeners alone do not supply authentication, balancing or HA.
 - [ ] Local credentials, original state, cluster secrets and restore tools exist outside hosted services.
 
 ## Capability Gates
@@ -23,7 +25,7 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
 | ID | Stage | Pass condition |
 | --- | --- | --- |
 | HOST-1 | Foundation | Key-only SSH, time, source-scoped host rules and audit survive reboot; required VRRP/ICMP/service traffic passes and unrelated sources are denied; console recovery works |
-| BOOT-1 | Foundation Step 2 | A manual Linux clone or accepted workstation can generate/restore the collection, verify Proxmox TLS, stage approved artifacts and recover original local inputs/state without GitLab, Vault, FreeIPA or Kubernetes; independent recovery survives loss of the bootstrap VM and its host |
+| BOOT-1 | Foundation Step 3 | A manual Linux clone or accepted workstation can generate/restore the collection, verify Proxmox TLS, stage approved artifacts and recover original local inputs/state without GitLab, Vault, FreeIPA or Kubernetes; independent recovery survives loss of the bootstrap VM and its host |
 | BOOT-2 | Offline new-install test | With public egress denied, a matching verified bundle installs a fresh boot-1; empty tier state adopts the recreated manual template, publishes and boots qualified candidates, then installs cache guests from prepared local package sources. Retain old state separately and record exact revision, paths, failures and limits; this does not establish all-stage offline support or original-identity recovery |
 | HA-1 | Foundation HA option | Native 9.2+ HA recovers the same VMID after tested host death/fencing, preserves affinity and data, and accepts a clean Terraform plan; constrained/no-quorum cases wait safely; rebalancing and returned-host behavior are measured separately |
 | IMAGE-1 | Foundation | Approved UEFI raw/qcow2 imports boot disposable clones with correct EFI/storage/CPU and fixed Talos RAM; schematic agent, NoCloud static networking (or selected DHCP), native configuration and recovery are qualified; legacy BIOS inputs are not migrated implicitly |
@@ -32,6 +34,7 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
 | API-1 | Before 4/7/10 | One private API VIP owner at a time, correct isolated backends, client denial and gateway/peer/link failure cases pass without public-edge or cluster dependencies |
 | STORE-1 | Before storage consumers | Actual native file/object interface, transport, scoped access, capacity and required operations are qualified; no unsupported NAS feature is inferred |
 | STORE-2 | Before backup acceptance | NAS/path/host loss and wrong/missing mounts fail closed; independent encrypted copies restore with retained keys, without silently writing to local fallback paths |
+| STORE-3 | Guest data-volume deployments | Normal IaC creates the selected blank data filesystem and UUID mount; reboot/rerun preserves records, expanded disks grow without UUID changes, and a missing/wrong declared volume stops without formatting or OS-disk fallback; CA binds remain on the selected volume |
 | K8S-1 | 4 | Expected nodes, cross-node CNI/DNS, selected NodePorts and retained PVCs survive the selected restart/failure cases |
 | K8S-2 | 4 | Flux fetches only the approved commit; SOPS canary decrypts; source/key failure does not prune or bootstrap replacement resources |
 | K8S-3 | 4 | Numbered Talos, Kubernetes API and container events reach the catalogued Tier 0 identity; receiver outage/replay stays within measured limits |

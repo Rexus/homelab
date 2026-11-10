@@ -2,6 +2,8 @@
 
 **Working repository:** `<prefix>-tier-0`. Branch from
 [Stage 9, Step 4](../README.md#step-4-hand-over-infrastructure-execution).
+**Return:** to Step 4 for Vault credential/job tests and original-state handover before routine apply.
+Its direct-CI trust decision is also required at Stage 9 Step 3, before creating the Vault policy.
 The reference adds `iac-1` on the management network, outside Kubernetes.
 It survives a control-cluster outage, but not loss of its hypervisor/storage;
 retain the independent recovery workstation.

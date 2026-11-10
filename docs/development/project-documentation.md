@@ -31,20 +31,24 @@ in tier-local inventory, not a second documentation inventory.
 Edit in **`<prefix>-architecture/`**.
 
 - `platform-standards.md`: agreed naming, tags, VMID reservations and network choices
-- `docs/README.md`: selected paths and separate deployed/verified capability checks
+- `docs/README.md`: selected design, navigation and operating records
+- `deployments.md`: completed deployments, nested options and links to guides/owning repositories
 
-The single platform record, `docs/README.md`, selects the paths and tracks each
-capability as deployed and verified separately. Its links point to the actual
-architecture, deployment, administration and development guides under `auto-docs/`.
-An existing accepted service can satisfy a prerequisite without being redeployed.
+After a successful Terraform and/or Ansible installation, update the matching entry
+and selected options in `deployments.md`: use `- [x]` for completed paths and `~~text~~`
+for unselected options. A Terraform-only run can leave service configuration pending;
+note that status until the full linked path is complete. Keep live acceptance and
+restore evidence separate from deployment progress. Existing accepted services can
+satisfy prerequisites without being redeployed.
 
 ## Architecture repository layout
 
 ```text
 README.md                    # short front door: 1, 2, 3
 platform-standards.md        # local standards beside the front door
+deployments.md               # editable completion checklist and options
 docs/
-  README.md                  # local selections, capability checklist and navigation
+  README.md                  # local design selections, evidence links and navigation
   auto-docs/                 # full upstream manual, refreshed with provenance notices
 ```
 
@@ -82,18 +86,15 @@ Do not copy complete guide bodies into project records.
 
 ## Existing collections
 
-Root READMEs, the platform record and naming conventions are seeded when missing.
+Root READMEs, the platform record, deployment checklist and standards are seeded when missing.
 Refresh preserves their existing edits and restores missing current starter files.
 Unchanged auto-docs update; missing copies return and obsolete auto-doc paths are removed.
+For an existing collection, transfer any deployment checks from `docs/README.md`
+into the new `deployments.md`; the old record is preserved for review.
 
-From the upstream checkout, preview an update:
-
-```bash
-bash scripts/init-tier-repos.sh --refresh --dry-run
-```
-
-Reuse original `--prefix`/`--root` flags if customized. Review the preview before
-omitting `--dry-run`. No inventory, infrastructure or state is moved.
+Use the [refresh procedure, actions 1–3](generated-repositories.md#refresh-and-local-ownership)
+to preview and update the existing collection. Then review the local documentation below;
+refresh does not migrate project-authored content.
 
 | Existing material | Adoption |
 | --- | --- |
@@ -112,6 +113,7 @@ reorganized. Do not delete `.generated-files.json` to force an update. See the
 
 `scripts/tier-repos/templates/readmes/architecture.md` owns the short front door;
 `templates/project/index.md` supplies the single local platform record;
+`templates/project/deployments.md` supplies the completion checklist;
 `templates/project/platform-standards.md` supplies the standards worksheet.
 `project_docs.py` seeds these records, while `documentation.py` publishes the full
 manual. Tier-specific project/workflow templates remain separate.
@@ -141,6 +143,14 @@ the action or command to perform, then a brief expected result. Use as many step
   link architecture for rationale and reference docs for optional detail.
 - Put a choice where it occurs, such as **2a/2b**. Complete the selected path in order and state
   its rejoin point; never make an alternative look like the next required action.
+- Name a dedicated path or option `step-<number><letter>-<task>.md`, matching its owning README route
+  and `Step <number><letter>` title. Use the same prefix for companion guides belonging to that path.
+  Reusable procedures and references keep descriptive task names; link them from each consuming step.
+  When numbering changes, rename affected files and update links and refresh-move targets together.
+- Link every deployment guide/option from the owning README at its numbered decision or required action.
+  A guide-to-guide link alone must not hide a selectable path. Keep each selected stage completable before
+  the next: place enhancements after their real prerequisites, even when they extend an earlier capability.
+  State external/manual prerequisites and supplied automation separately; never imply a missing installer exists.
 - Number required actions consecutively; reserve lettered alternatives for real choices.
   A genuine capability milestone may contain required numbered sub-actions, with a clear continuation.
 - Use EL10 and Talos examples where appropriate. Add Debian/Ubuntu package or layout substitutions
@@ -148,7 +158,7 @@ the action or command to perform, then a brief expected result. Use as many step
 - Retain useful diagrams, checks and rollback instructions. A shorter guide must still include
   the prerequisites and verification needed to complete it.
 
-See [bootstrap LVM expansion](../deployment/foundation/proxmox/bootstrap-lvm.md) for two sequential storage paths.
+See [bootstrap LVM expansion](../deployment/foundation/bootstrap/step-3b-bootstrap-lvm.md) for two sequential storage paths.
 
 ## Writing command examples
 

@@ -1,0 +1,215 @@
+---
+- name: Require an explicit Linux data volume and bounded mount path
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Linux'
+      - ansible_os_family in ['RedHat', 'Debian']
+      - data_volume_device is match('^/dev/[A-Za-z0-9_./+-]+$')
+      - "'..' not in data_volume_device.split('/')"
+      - data_volume_path is match('^/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)+$')
+      - data_volume_path not in ['/var/log', '/var/lib', '/usr/local', '/home/root']
+      - data_volume_fstype in ['xfs', 'ext4']
+      - data_volume_label is match('^[A-Za-z][A-Za-z0-9_-]{0,11}$')
+      - data_volume_expected_uuid == '' or data_volume_expected_uuid is match('^[A-Fa-f0-9-]{16,64}$')
+      - data_volume_min_free_bytes | int >= 0
+      - "['nodev', 'nosuid', 'noexec'] | difference(data_volume_mount_options.split(',')) | length == 0"
+      - "['ro', 'bind', 'rbind', 'noauto', 'nofail'] | intersect(data_volume_mount_options.split(',')) | length == 0"
+    fail_msg: Select a dedicated Linux block device, XFS/ext4 and a persistent restricted data mount.
+
+- name: Validate explicitly permitted service subdirectory binds
+  ansible.builtin.assert:
+    that:
+      - item.path is match('^/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)+$')
+      - item.path != data_volume_path
+      - item.fsroot is match('^/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$')
+      - data_volume_allowed_bind_mounts | selectattr('path', 'equalto', item.path) | list | length == 1
+  loop: "{{ data_volume_allowed_bind_mounts }}"
+
+- name: Install native filesystem and inspection tools from accepted repositories
+  ansible.builtin.package:
+    name: "{{ ['util-linux', 'xfsprogs' if data_volume_fstype == 'xfs' else 'e2fsprogs'] }}"
+    state: present
+  environment: "{{ data_volume_environment }}"
+
+- name: Wait for the configured attached device
+  ansible.builtin.wait_for:
+    path: "{{ data_volume_device }}"
+    timeout: "{{ data_volume_wait_timeout }}"
+
+- name: Resolve the block device without accepting a regular file
+  ansible.builtin.stat:
+    path: "{{ data_volume_device }}"
+    follow: true
+    get_checksum: false
+  register: data_volume_device_stat
+
+- name: Require a block device
+  ansible.builtin.assert:
+    that: data_volume_device_stat.stat.isblk | default(false)
+
+- name: Resolve device and target identities before changing storage
+  ansible.builtin.command:
+    argv: "{{ item }}"
+  loop:
+    - [realpath, --, "{{ data_volume_device }}"]
+    - [realpath, --canonicalize-missing, --, "{{ data_volume_path }}"]
+  register: data_volume_realpaths
+  changed_when: false
+
+- name: Refuse mount paths through symlinks
+  ansible.builtin.assert:
+    that: data_volume_realpaths.results[1].stdout == data_volume_path
+
+- name: Inspect the selected device and its descendants
+  ansible.builtin.command:
+    argv: [lsblk, --json, --bytes, --paths, --output, 'NAME,TYPE,SIZE,FSTYPE,UUID,LABEL,RO,MAJ:MIN',
+           --, "{{ data_volume_realpaths.results[0].stdout }}"]
+  register: data_volume_lsblk
+  changed_when: false
+
+- name: Read all existing signatures without erasing them
+  ansible.builtin.command:
+    argv: [wipefs, --json, --no-act, --output, 'TYPE,UUID,LABEL', --,
+           "{{ data_volume_realpaths.results[0].stdout }}"]
+  register: data_volume_wipefs
+  changed_when: false
+
+- name: Read current mounts and persistent storage declarations
+  ansible.builtin.command:
+    argv: "{{ item }}"
+  loop:
+    - [findmnt, --json, --list, --output, 'TARGET,SOURCE,UUID,MAJ:MIN,FSROOT']
+    - [findmnt, --fstab, --canonicalize, --evaluate, --json, --list, --output, 'TARGET,SOURCE,FSTYPE']
+  register: data_volume_mount_tables
+  changed_when: false
+  failed_when: data_volume_mount_tables.rc not in [0, 1]
+
+- name: Verify fstab remains readable even when its parsed table is empty
+  ansible.builtin.slurp:
+    src: /etc/fstab
+  register: data_volume_fstab_file
+  no_log: true
+
+- name: Require complete device inspection and a readable live mount table
+  ansible.builtin.assert:
+    that:
+      - data_volume_mount_tables.results[0].rc == 0
+      - data_volume_mount_tables.results[0].stderr | trim == ''
+      - data_volume_mount_tables.results[1].stderr | trim == ''
+      - (data_volume_lsblk.stdout | from_json).blockdevices | length == 1
+    fail_msg: Mount inspection or fstab parsing failed; incomplete storage declarations cannot authorize formatting.
+
+- name: Inspect the target without following links
+  ansible.builtin.stat:
+    path: "{{ data_volume_path }}"
+    follow: false
+    get_checksum: false
+  register: data_volume_target_stat
+
+- name: Refuse non-directory mount targets
+  ansible.builtin.assert:
+    that:
+      - not data_volume_target_stat.stat.exists or data_volume_target_stat.stat.isdir | default(false)
+      - not data_volume_target_stat.stat.islnk | default(false)
+
+- name: Read the unmounted directory contents without changing them
+  ansible.builtin.find:
+    paths: "{{ data_volume_path }}"
+    hidden: true
+    recurse: false
+    file_type: any
+    follow: false
+  register: data_volume_target_entries
+  when: data_volume_target_stat.stat.isdir | default(false)
+
+- name: Resolve the inspected device and mount tables
+  ansible.builtin.set_fact:
+    data_volume_block: "{{ (data_volume_lsblk.stdout | from_json).blockdevices | first }}"
+    data_volume_signatures: "{{ (data_volume_wipefs.stdout | from_json).signatures }}"
+    data_volume_mounts: "{{ (data_volume_mount_tables.results[0].stdout | from_json).filesystems }}"
+    data_volume_fstab: >-
+      {{ (data_volume_mount_tables.results[1].stdout | from_json).filesystems
+         if data_volume_mount_tables.results[1].rc == 0 else [] }}
+
+- name: Resolve persistent target aliases before comparing storage ownership
+  ansible.builtin.command:
+    argv: [realpath, --canonicalize-missing, --, "{{ item.target }}"]
+  loop: "{{ data_volume_fstab }}"
+  when: item.target is string and item.target is match('^/')
+  register: data_volume_fstab_targets
+  changed_when: false
+
+- name: Start the canonical persistent declaration list
+  ansible.builtin.set_fact:
+    data_volume_fstab: []
+
+- name: Retain every persistent declaration with its resolved target
+  ansible.builtin.set_fact:
+    data_volume_fstab: >-
+      {{ data_volume_fstab +
+         [item.item | combine({'target': item.stdout | default(item.item.target, true),
+                               'declared_target': item.item.target})] }}
+  loop: "{{ data_volume_fstab_targets.results }}"
+  loop_control:
+    label: "{{ item.item.target }}"
+
+- name: Select target declarations and mounted uses of this block device
+  ansible.builtin.set_fact:
+    data_volume_target_mounts: "{{ data_volume_mounts | selectattr('target', 'equalto', data_volume_path) | list }}"
+    data_volume_device_mounts: >-
+      {{ data_volume_mounts | selectattr('maj:min', 'equalto', data_volume_block['maj:min']) | list }}
+    data_volume_target_fstab: "{{ data_volume_fstab | selectattr('target', 'equalto', data_volume_path) | list }}"
+    data_volume_is_blank: "{{ data_volume_signatures | length == 0 and not data_volume_block.fstype }}"
+
+- name: Refuse an aliased fstab target before a literal mount entry could duplicate it
+  ansible.builtin.assert:
+    that: data_volume_target_fstab | rejectattr('declared_target', 'equalto', data_volume_path) | list | length == 0
+    fail_msg: An existing fstab target aliases this path; reconcile its spelling before managing the canonical mount.
+
+- name: Require resolvable local block declarations before initializing a blank device
+  when: data_volume_is_blank | bool
+  vars:
+    data_volume_local_fstab: >-
+      {{ data_volume_fstab
+         | selectattr('source', 'match', '^(/dev/|(UUID|LABEL|PARTUUID|PARTLABEL)=)')
+         | list }}
+  block:
+    - name: Refuse source declarations that findmnt could not resolve
+      ansible.builtin.assert:
+        that:
+          - item.source is string and item.source | length > 0
+          - item.source is not match('^(UUID|LABEL|PARTUUID|PARTLABEL)=')
+        fail_msg: Unresolved local block declaration; restore its device or correct fstab before initializing storage.
+      loop: "{{ data_volume_fstab }}"
+      loop_control:
+        label: "{{ item.source }} -> {{ item.target }}"
+
+    - name: Inspect declared local device paths without probing their contents
+      ansible.builtin.stat:
+        path: "{{ item.source }}"
+        follow: true
+        get_checksum: false
+        get_mime: false
+        get_attributes: false
+      loop: "{{ data_volume_local_fstab }}"
+      loop_control:
+        label: "{{ item.source }}"
+      register: data_volume_fstab_devices
+
+    - name: Refuse missing aliases or non-block local device declarations
+      ansible.builtin.assert:
+        that: item.stat.isblk | default(false)
+        fail_msg: Unresolved local block declaration; do not assume the blank device is unrelated to missing storage.
+      loop: "{{ data_volume_fstab_devices.results }}"
+      loop_control:
+        label: "{{ item.item.source }} -> {{ item.item.target }}"
+
+- name: Refuse persistent declarations of this device at another path
+  ansible.builtin.assert:
+    that: item.target == data_volume_path
+    fail_msg: This device is already assigned to another fstab target; it will not be repurposed.
+  loop: "{{ data_volume_fstab }}"
+  when: >-
+    item.source in [data_volume_device, data_volume_realpaths.results[0].stdout] or
+    (data_volume_block.uuid | default('', true) | length > 0 and item.source == 'UUID=' ~ data_volume_block.uuid) or
+    (data_volume_block.label | default('', true) | length > 0 and item.source == 'LABEL=' ~ data_volume_block.label)

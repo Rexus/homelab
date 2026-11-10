@@ -4,12 +4,13 @@
 **Execution:** Proxmox GUI and the existing switch/gateway configuration; this is a manual prerequisite.
 Consuming tiers own their guest-network inputs.
 
-**Branch from:** [host/network preparation](README.md#before-starting-hosts-and-networks), before attaching guests.
+**Branch from:** [Step 1](../README.md#step-1-prepare-hosts-and-networks), before attaching guests.
 **Change:** use VLAN-backed SDN VNets instead of direct bridge/VLAN guest attachments.
-**Return:** [foundation prerequisites](README.md#before-starting-hosts-and-networks)
+**Return:** [Step 1](../README.md#step-1-prepare-hosts-and-networks)
 after activation; finish storage/firewall checks before creating the first template.
-API authorization and local inputs follow on the bootstrap host.
-**Design:** [network placement](../../architecture/networking/README.md).
+API authorization and local inputs follow at [Step 3f](../README.md#3f-connect-bootstrap-to-proxmox-host-management),
+before template IaC and Foundation completion.
+**Design:** [network placement](../../../architecture/networking/README.md).
 
 ## Contents
 
@@ -91,9 +92,9 @@ nodes; gateway rules alone do not filter traffic switched within one VLAN.
 Enable port isolation only for a selected guest network whose peer traffic should
 be blocked. Restart affected guests for the setting to take effect. [1]
 
-Use the [zone/VNet network plan](../../conventions/network-plan.md#network-allocations)
+Use the [zone/VNet network plan](../../../conventions/network-plan.md#network-allocations)
 for the per-zone **VLAN ID, Name, Alias, Subnet and Gateway** values. Its
-[deployment mapping](../../conventions/network-plan.md#deployment-mapping) identifies
+[deployment mapping](../../../conventions/network-plan.md#deployment-mapping) identifies
 which current inputs use SDN and which still use direct bridge/VLAN attachments.
 Create only the selected networks; optional reference entries are not existing deployments. [4]
 
@@ -127,9 +128,9 @@ Open the selected VNet's **Subnets > Create** dialog. For the `ident` example:
 | DHCP ranges / DHCP configuration | Leave unconfigured; retain the existing gateway DHCP service |
 
 This records metadata; it does not select Proxmox routing/DHCP. [1] Use the actual
-values from the [network plan](../../conventions/network-plan.md), not the identity
+values from the [network plan](../../../conventions/network-plan.md), not the identity
 example for every VNet. Keep static guest addresses outside dynamic pools.
-Continue at **Step 3**; [lookup](../../reference/network-inputs.md#sdn-subnet-lookup)
+Continue at **Step 3**; [lookup](../../../reference/network-inputs.md#sdn-subnet-lookup)
 reads only applied subnet configuration.
 
 <a id="step-3-apply-and-connect-iac"></a>
@@ -149,12 +150,12 @@ in Proxmox before attaching templates or guests. The template publisher's Terraf
    configuration alone is not evidence that it is active on a host.
 
 **First installation, before the bootstrap host/token exists:** return now to
-[foundation prerequisites](README.md#before-starting-hosts-and-networks), then the manual template and bootstrap host.
+[foundation prerequisites](../README.md#before-starting-hosts-and-networks), then the manual template and bootstrap host.
 Complete Step 4 below when configuring API access and local inputs on that host.
 
 ## Step 4: Authorize and connect IaC
 
-1. Grant automation [SDN use](proxmox/api-access.md#6-grant-bridge-vlan-or-sdn-use-to-the-group)
+1. Grant automation [SDN use](api-access.md#6-grant-bridge-vlan-or-sdn-use-to-the-group)
    on each selected VNet. A `vmbr0` grant does not carry over to an SDN VNet;
    privilege-separated tokens also need matching token ACLs.
 2. Test a disposable guest's address, gateway, DNS and permitted connectivity.
@@ -182,7 +183,7 @@ identity = {
 ```
 
 Preserve the other `network_zones` entries. Require both `SDN.Use` and `SDN.Audit`
-for the actual consuming token. The [lookup contract](../../reference/network-inputs.md#sdn-subnet-lookup)
+for the actual consuming token. The [lookup contract](../../../reference/network-inputs.md#sdn-subnet-lookup)
 also covers Kubernetes bootstrap. Review the resolved plan before changing existing guests.
 
 The shared `application` attachment lives in **Shared's** `config/platform.tfvars`
@@ -200,11 +201,11 @@ vlan_id: null
 ```
 
 These two fields belong **under `all:`**, or under one selected build for an override.
-Then follow [Foundation Step 3](README.md#step-3-publish-and-test-vm-templates).
+Then follow [Foundation Step 4](../README.md#step-4-publish-and-test-vm-templates).
 The VNet permission applies to the publishing token too. Existing clones keep
 their own NIC settings; changing the template does not move them.
 
-See [network input ownership and overrides](../../reference/network-inputs.md).
+See [network input ownership and overrides](../../../reference/network-inputs.md).
 
 ## DNS with an existing gateway
 
@@ -223,21 +224,21 @@ For the UniFi reference path:
   VLAN's gateway. `gateway_ipv4` does not set guest DNS. [6]
 - **Kubernetes bootstrap:** use the selected root's optional
   `bootstrap_network.dns_servers` when an explicit gateway resolver is needed;
-  see [platform inputs](../../reference/platform-inputs.md).
+  see [platform inputs](../../../reference/platform-inputs.md).
 - **Local names for static guests:** create the required records on the gateway;
   an SDN VNet name alone does not create host or service DNS records. [7]
 
 Keep bootstrap DNS independent of later services. When adding directory DNS, follow
-the [identity DNS prerequisites](../stage-5-identity/procedures/freeipa.md)
+the [identity DNS prerequisites](../../stage-5-identity/procedures/freeipa.md)
 so the selected resolver can resolve that domain as well.
 
 ## Return to the main path
 
 After **Datacenter > SDN > Apply** succeeds and the VNet checks pass, return to
-[foundation prerequisites](README.md#before-starting-hosts-and-networks) for storage/firewall acceptance
+[foundation prerequisites](../README.md#before-starting-hosts-and-networks) for storage/firewall acceptance
 before creating the first template.
 Complete Step 4 above when the bootstrap host/API token exists. If templates are
-already managed, return directly to [Foundation Step 3](README.md#step-3-publish-and-test-vm-templates)
+already managed, return directly to [Foundation Step 4](../README.md#step-4-publish-and-test-vm-templates)
 to review their attachment change. Changing SDN configuration alone does not update guest NICs.
 
 ## References

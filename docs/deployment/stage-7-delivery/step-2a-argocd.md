@@ -2,6 +2,7 @@
 
 **Working repository:** `<prefix>-tier-1`.
 **Branch from:** [Step 2](README.md#step-2-select-and-qualify-delivery).
+**Return:** to Step 2 controller acceptance, then Step 3 artifact supply.
 **Change:** select application GitOps instead of Spinnaker release pipelines.
 **Prerequisites:** accepted Tier 1 cluster, reviewed controller release, TLS,
 independent bootstrap source and Keycloak. This option replaces Spinnaker ownership.

@@ -35,7 +35,7 @@ These services give later projects a common base:
 | DNS and private domain | stable names such as `identity-1.corp.example.com` or `secrets-1.internal.example.com` |
 | identity | one user and group authority for operators, services, and automation |
 | PKI | trusted certificates for internal TLS, mTLS, service identity, and device identity |
-| secret platform | one controlled place for long-lived secrets, tokens, and service credentials |
+| secret platform | controlled storage for long-lived secrets, tokens and service credentials; later dynamic credential paths |
 | Security Logging and Audit | Tier 0 protected evidence and traceability; submission does not grant read or deletion rights |
 | Observability | Tier 1 operational logs, metrics and distributed traces; approved evidence copies and scoped diagnostics |
 
@@ -49,19 +49,11 @@ This is not only convenience. It also removes many weak defaults:
 
 ## Private domain services
 
-The private domain path creates a trust base for the environment.
-
-In the architecture model, that means:
-
-| Capability | Role |
-| --- | --- |
-| identity authority and DNS | shared users, groups, hosts, directory data, DNS, and host enrollment |
-| PKI | private certificate hierarchy for internal services |
-| user hardware keys | optional OTP, PIV, FIDO2, or similar hardening for privileged users |
-| secret platform | secret storage and later dynamic credential paths |
-| Security Logging and Audit | retained security evidence with governed reads and independent recovery |
-| Observability | operational diagnosis using logs, metrics and distributed traces |
-| cryptographic hardening | stronger protection for selected CA, seal, or signing keys |
+The private domain path combines the [shared services above](#why-shared-services-matter)
+into a trust base with users, groups, hosts, directory data and host enrollment.
+Optional [operator hardware keys](identity/README.md#design-choices), such as OTP,
+PIV or FIDO2, harden privileged-user authentication. [Key-protection choices](cryptography/hsm-selection.md)
+separately harden CA, seal or signing-key custody.
 
 The path is still optional. With an existing domain, DNS, PKI, secret
 platform, or telemetry stack, use those systems as prerequisites and configure

@@ -69,7 +69,9 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
         self.assertEqual(pipeline["template-publish"]["when"], "manual")
         self.assertEqual(pipeline["template-plan"]["resource_group"],
                          pipeline["template-publish"]["resource_group"])
-        self.assertIn(pipeline_path, json.loads((tier0 / ".generated-files.json").read_text())["owned"])
+        manifest = json.loads((tier0 / ".generated-files.json").read_text())
+        self.assertIn(pipeline_path, manifest["files"])
+        self.assertNotIn(pipeline_path, manifest["owned"])
 
     def test_refresh_does_not_move_live_inputs_state_or_rewrite_owned_jobs(self):
         self.generate()
@@ -79,7 +81,7 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
             "verify-tier-1/.terraform/state/template-refresh/prod/terraform.tfstate": '{"serial": 7}\n',
             "verify-tier-1/terraform/deployments/template-refresh/main.tf": "# Existing owner\n",
             "verify-tier-0/templates/proxmox.yml": "templates: {local: {vm_id: 9500}}\n",
-            "verify-tier-0/ci/gitlab-templates.yml.example": "# Owned CI starter\n",
+            "verify-tier-0/.gitlab-ci.yml": "# Owned CI jobs\n",
         }
         for path, content in preserved.items():
             target = self.root / path

@@ -113,7 +113,7 @@ Review the [secret-scanning checks](secret-scanning.md) before publication.
 
 ## Step 4: Select the deployment path when needed
 
-For real infrastructure work, follow the [bootstrap execution-host guide](../deployment/foundation/proxmox/bootstrap.md).
+For real infrastructure work, follow the [bootstrap execution-host guide](../deployment/foundation/bootstrap/README.md).
 It owns manual template/VM creation, verified API trust, SSH, artifacts and initial
 state. An independent authorized workstation can also satisfy that contract;
 Proxmox hosts and Talos nodes are not general-purpose execution hosts.

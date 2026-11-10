@@ -1,0 +1,66 @@
+---
+- name: Prepare an explicitly selected local recovery disk
+  ansible.builtin.include_role:
+    name: data_volume
+  vars:
+    data_volume_device: "{{ logging_backup_repository_device }}"
+    data_volume_path: "{{ logging_backup_repository }}"
+    data_volume_fstype: "{{ logging_backup_repository_fstype }}"
+    data_volume_label: log-backup
+    data_volume_expected_uuid: "{{ logging_backup_repository_uuid }}"
+    data_volume_min_free_bytes: "{{ logging_backup_repository_min_free_bytes }}"
+    data_volume_environment: "{{ logging_backup_environment }}"
+    data_volume_allowed_bind_mounts: []
+  when: logging_backup_repository_device | length > 0
+
+- name: Inspect the exact repository, archive input and root mounts
+  ansible.builtin.command:
+    argv: [findmnt, --json, --bytes, --mountpoint, "{{ item }}", --output,
+           'TARGET,SOURCE,FSTYPE,UUID,MAJ:MIN,OPTIONS,AVAIL']
+  loop: ["{{ logging_backup_repository }}", "{{ logging_backup_mount }}", /]
+  register: logging_backup_mount_inspection
+  changed_when: false
+
+- name: Require unambiguous mounted filesystems
+  ansible.builtin.assert:
+    that: (item.stdout | from_json).filesystems | length == 1
+  loop: "{{ logging_backup_mount_inspection.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Resolve the verified repository and its excluded filesystems
+  ansible.builtin.set_fact:
+    logging_backup_repository_facts: >-
+      {{ (logging_backup_mount_inspection.results[0].stdout | from_json).filesystems[0] }}
+    logging_backup_source_facts: >-
+      {{ (logging_backup_mount_inspection.results[1].stdout | from_json).filesystems[0] }}
+    logging_backup_root_facts: >-
+      {{ (logging_backup_mount_inspection.results[2].stdout | from_json).filesystems[0] }}
+
+- name: Refuse fallback storage, the archive source or a changed UUID
+  ansible.builtin.assert:
+    that:
+      - logging_backup_repository_facts.target == logging_backup_repository
+      - logging_backup_source_facts.target == logging_backup_mount
+      - logging_backup_root_facts.target == '/'
+      - logging_backup_repository_facts.fstype in ['xfs', 'ext4', 'btrfs', 'zfs', 'nfs', 'nfs4', 'cifs']
+      - "'rw' in logging_backup_repository_facts.options.split(',')"
+      - "'ro' in logging_backup_source_facts.options.split(',')"
+      - logging_backup_repository_facts['maj:min'] != logging_backup_root_facts['maj:min']
+      - logging_backup_repository_facts['maj:min'] != logging_backup_source_facts['maj:min']
+      - logging_backup_repository_facts.source != logging_backup_source_facts.source
+      - >-
+        logging_backup_repository_uuid == '' or
+        logging_backup_repository_facts.uuid | default('', true) == logging_backup_repository_uuid
+      - logging_backup_repository_facts.avail | int >= logging_backup_repository_min_free_bytes | int
+    fail_msg: >-
+      Require a dedicated writable recovery mount separate from root and the read-only archive input.
+      Restore the original destination on identity, mount or capacity failures; never initialize a replacement.
+
+- name: Retain the verified identity for every scheduled backup
+  ansible.builtin.set_fact:
+    logging_backup_repository_guard_source: >-
+      {{ 'UUID=' ~ logging_backup_repository_facts.uuid
+         if logging_backup_repository_facts.uuid | default('', true) | length > 0
+         else logging_backup_repository_facts.source }}
+    logging_backup_repository_guard_fstype: "{{ logging_backup_repository_facts.fstype }}"

@@ -3,7 +3,8 @@
 Project-owned design and operating records for this repository. Start with the
 [platform record](../../${repo_prefix}-architecture/docs/README.md),
 follow its reference links, then inspect the owned components in the selected
-design below. Deployment guides establish that result and record its acceptance.
+design below. Track completed paths in the
+[deployment checklist](../../${repo_prefix}-architecture/deployments.md).
 
 | Intent | Project record | Upstream reference |
 | --- | --- | --- |

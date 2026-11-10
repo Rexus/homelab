@@ -17,6 +17,14 @@ ACME variants need integration; see [coverage](../../reference/implementation-su
 
 ## Main path
 
+| Step / option | Detailed path | Rejoin |
+| --- | --- | --- |
+| 1a: software custody, main | [Software PKI](procedures/software-pki.md), with [local key custody](procedures/local-key-custody.md) | Step 2 after key/CSR preparation |
+| 1b / 1c / 1d: hardware custody | [USB pool](step-1b-usb-hsm.md), [network HSM](step-1c-network-hsm.md), or [single USB](step-1d-single-usb.md) | Step 2 after provider qualification |
+| 2: signing and activation | [Software root ceremony](procedures/offline-software-root.md) or [hardware root ceremony](procedures/offline-root.md); [issuer runtime](procedures/issuer.md) and [token activation](procedures/issuer-token.md) | Step 3 |
+| 3a: API certificate transition, optional | [Adopt platform PKI](../../administration/hosts/proxmox-tls.md#step-2-adopt-the-platform-pki) | Verify every API caller before completion |
+| 3b: verified intake, optional | [Worker installer](step-3b-verified-intake.md), then [consumer cutover](step-3b-verified-consumers.md) | Stage 3 completion after selected sources/consumers pass |
+
 1. [Prepare issuer and key custody](#step-1-prepare-issuer-and-key-custody)
 2. [Establish the certificate hierarchy](#step-2-establish-the-certificate-hierarchy)
 3. [Enable and verify routine issuance](#step-3-enable-and-verify-routine-issuance)
@@ -48,7 +56,7 @@ flowchart BT
       subgraph Crypto["cryptography network"]
         direction TB
         Issuer["ca-1<br/>OpenXPKI runtime"]
-        Data[("scsi1 / CA data disk<br/>Manual mount and activation")]
+        Data[("scsi1 / CA data disk<br/>IaC-managed data mount")]
         Issuer -->|Attached disk| Data
       end
       Identity ~~~ Crypto
@@ -71,7 +79,7 @@ and [issuer recipe](../../../tier-0/ansible/playbooks/deployment/openxpki.yml).
 The unchanged starter root allocates all three VMs; directory configuration follows in Stage 5.
 The issuer is configured first and drawn to the right; the FreeIPA CA remains its
 sibling under the offline root, not a subordinate of the infrastructure issuer.
-The root ceremony, data mount and CA activation require the linked procedures.
+Ansible prepares the data mount; the root ceremony and CA activation remain controlled operations.
 Hardware options replace software key custody; they are not additional default VMs.
 
 ## Step 1: Prepare issuer and key custody
@@ -139,10 +147,20 @@ not imply a CA migration or become a prerequisite for this service.
    or the selected hardware path's equivalent, then record evidence before Stage 4.
 The Community ACME adapter is a separate qualification gate, not an installed cert-manager integration.
 
+### 3a: Adopt platform PKI for Proxmox — optional
+
 If the selected policy replaces Proxmox API certificates, complete the
 [API PKI transition](../../administration/hosts/proxmox-tls.md#step-2-adopt-the-platform-pki)
 and verify every caller. Retaining the independently trusted Proxmox CA is also valid;
 neither path retains an API verification bypass.
+
+### 3b: Verified repository and artifact publication — optional
+
+Complete the [verified intake installer](step-3b-verified-intake.md), including its
+[selected consumer cutover](step-3b-verified-consumers.md), now that issued HTTPS identities and protected
+logging exist. The Tier 1 worker extends Stage 1 supply without requiring Kubernetes, Vault or Harbor.
+Return here after first publication, failure handling and the selected consumers pass; otherwise record
+this option as not selected. Continue to Stage 4 only after all selected Stage 3 paths are complete.
 
 Root signing, key initialization and sensitive replication remain separately
 authorized ceremonies. Routine CI may maintain approved hosts and software later;
@@ -154,7 +172,3 @@ it must not acquire ceremony authority.
 [cryptography design](../../architecture/cryptography/README.md), independently of the
 future cluster. Record recovery evidence and continue with
 [Stage 4: Kubernetes](../stage-4-kubernetes/README.md).
-
-If selected, the [Stage 1 verified-intake extension](../stage-1-software-intake/verified-intake.md)
-can now use this issuer's HTTPS identity and Stage 2's protected decision logging. It remains a
-separate Tier 1 software-supply option, not part of the CA or a Kubernetes prerequisite.

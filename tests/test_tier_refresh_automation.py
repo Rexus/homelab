@@ -38,7 +38,6 @@ class AutomationRefresh(TierRepositoryTestCase):
             path.write_bytes(data)
         protected = [self.root / relative for relative in (
             "verify-tier-0/ansible/group_vars/bootstrap.yml",
-            "verify-tier-0/ansible/group_vars/bootstrap.yml.example",
             "verify-tier-0/ansible/ansible.cfg", "verify-tier-0/terraform/common.tfvars",
             "verify-tier-0/README.md", "verify-tier-0/.env.local",
             "verify-tier-0/.terraform/state/original.tfstate",

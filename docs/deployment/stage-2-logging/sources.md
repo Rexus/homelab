@@ -196,7 +196,13 @@ The health timer checks unit state, spool usage below 80% of its budget, free sp
 leaf expiry and chain/CRL validity before pinging. This measures capacity/credentials,
 not receiver commitment; required source freshness is checked separately at the archive.
 
-Continue with [NAS checkpoints and independent backup](step-3c-nas-archive.md).
+During first installation, return to [Stage 2, Step 2](README.md#step-2-enable-protected-collection)
+to finish source coverage, then select archive protection in Step 3.
+For a source added by a later stage, preserve existing archive custody. On the NAS path, append each
+new required OS heartbeat to `logging_archive_required_sources` and reconcile the existing
+[archive health configuration](step-3c-nas-archive.md#step-2-connect-collection-to-retained-copies),
+retaining its marker, mounts and credentials. Then return to the stage that requested enrollment;
+do not repeat first-time archive or backup initialization.
 
 ## References
 

@@ -83,7 +83,7 @@ Tier-local original state and the [product procedures](README.md) control subseq
 Follow [bootstrap recovery](bootstrap.md), restoring every disk required by its recorded layout.
 Recover the latest coherent original state/inputs even if the VM backup contains an older copy.
 If no bootstrap VM backup exists, use an independent trusted execution host or the
-[manual bootstrap foundation](../../deployment/foundation/proxmox/bootstrap.md), then recover the
+[manual bootstrap foundation](../../deployment/foundation/bootstrap/README.md), then recover the
 original private repositories/inputs/state; do not substitute generated starter values.
 
 Verify the replacement Proxmox CA and API access independently. Old API tokens and host credentials

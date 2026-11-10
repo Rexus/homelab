@@ -1,4 +1,10 @@
 ---
+- name: Validate receiver choices before preparing storage
+  ansible.builtin.import_tasks: inputs.yml
+
+- name: Prepare the guarded receiver data volume
+  ansible.builtin.import_tasks: storage.yml
+
 - name: Validate receiver prerequisites
   ansible.builtin.import_tasks: preflight.yml
 

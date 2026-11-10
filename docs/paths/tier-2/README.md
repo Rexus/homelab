@@ -17,10 +17,10 @@ These setups retain independent inventory selections and state.
 Client VLANs are network-policy references, not provisioned server guests.
 Keep clients, public edge and Tier 1 build/supply hosts in separate subnets.
 
-For an independent Kubernetes workload runtime, use this tier's
-`terraform/deployments/kubernetes/` and `bash scripts/kubernetes-cluster.sh init`.
-Follow the [common cluster procedure](../../deployment/stage-4-kubernetes/procedures/kubernetes.md),
-then record [scoped application delivery](../../architecture/software/controllers.md).
+For an independent Kubernetes workload runtime, enter through
+[Stage 10's runtime choice](../../deployment/stage-10-lab-environments/README.md).
+Its Kubernetes path selects this tier's `terraform/deployments/kubernetes/`, cluster credentials,
+platform installation and acceptance before scoped application delivery.
 The Linux `lab` workflow below is a separate VM option, not the cluster installer.
 
 | Step | What to do | Ready to continue when |
@@ -31,7 +31,7 @@ The Linux `lab` workflow below is a separate VM option, not the cluster installe
 | 4. Deliver the application | Add project-specific definitions under `workloads/` or the chosen runtime's delivery path | Service checks, backups, and rollback are tested |
 
 The Linux `lab` setup supplies an OS baseline; its application installer is project-owned.
-The [Stage 10 application recipe](../../deployment/stage-10-lab-environments/application.md)
+The [Stage 10 application recipe](../../deployment/stage-10-lab-environments/step-3a-application.md)
 supplies a bounded Kubernetes HTTP example after an accepted cluster, not a Linux application installer.
 Future self-service requests are controlled by Tier 0; that controller is
 [not implemented yet](../../architecture/hosting/provisioning.md#delegated-provisioning).
@@ -82,6 +82,6 @@ same inventory; no separate shared inventory is required.
 
 - [Inventory and automation layout](../../development/code-layout.md)
 - [Lab environments stage](../../deployment/stage-10-lab-environments/README.md)
-- [VM placement and Proxmox HA](../../deployment/foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
+- [VM placement and Proxmox HA](../../deployment/foundation/proxmox/step-1b-cluster-ha.md#terraform-against-the-cluster)
 - [Development-platform handover](../../deployment/stage-9-development/procedures/handover.md)
 - [Project conventions and recovery records](../../development/project-documentation.md)

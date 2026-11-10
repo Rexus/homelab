@@ -1,0 +1,14 @@
+---
+# One dedicated guest filesystem. The calling tier owns its device and mount inputs.
+data_volume_device: ""
+data_volume_path: ""
+data_volume_fstype: xfs
+data_volume_label: ""
+data_volume_expected_uuid: ""
+data_volume_mount_options: defaults,nodev,nosuid,noexec
+data_volume_min_free_bytes: 1073741824
+data_volume_wait_timeout: 60
+data_volume_environment: {}
+# Existing subdirectory binds are accepted only at these exact targets/FSROOTs.
+# The calling service owns their guarded creation and persistent bind-mount entries.
+data_volume_allowed_bind_mounts: []

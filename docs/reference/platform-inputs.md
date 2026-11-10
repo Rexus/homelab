@@ -103,7 +103,7 @@ Each guest can override the default with `proxmox_node_name` in its tier-owned d
 inputs. The default may stay `null` only when every selected guest supplies an override.
 
 This is initial placement. Later Proxmox-managed VM migration follows the
-[HA placement contract](../deployment/foundation/step-1b-cluster-ha.md#make-guests-movable).
+[HA placement contract](../deployment/foundation/proxmox/step-1b-cluster-ha.md#make-guests-movable).
 
 ## Loading and overrides
 
@@ -201,7 +201,7 @@ Package policy does not update packages or replace repository definitions/keys; 
 
 SSH access policy, NTP/chrony, host-firewall rules and audit collection must be
 prepared and verified through approved templates/OS configuration and the relevant
-service procedures. The separate guarded [Linux host security profile](../deployment/foundation/proxmox/host-security.md)
+service procedures. The separate guarded [Linux host security profile](../administration/hosts/linux-security.md)
 supplies native SSH, chrony, firewalld and audit controls with tier-owned inputs;
 it is not silently enabled by the baseline. Service-specific roles add only their implemented controls;
 an installed listener does not imply a permitted or safely restricted network path.

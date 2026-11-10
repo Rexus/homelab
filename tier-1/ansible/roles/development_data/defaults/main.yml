@@ -29,8 +29,12 @@ development_data_namespace: gitlab
 development_data_backup_repository: {}
 development_data_backup_transport: sftp
 # Backup destinations only; live GitLab data stays on Proxmox/Ceph-backed VM disks.
-# Filesystem mounts and empty repository directories are commissioned outside this role.
+# The role mounts client filesystems; the NAS share and independent marker are commissioned externally.
 development_data_backup_filesystem: {}
+development_data_backup_mount_defaults:
+  nfs: [vers=3, proto=tcp]
+  nfs4: [vers=4.1, proto=tcp]
+  cifs: [vers=3.1.1, cache=strict]
 development_data_backup_min_free_bytes: 10737418240
 development_data_backup_timeout_seconds: 7200
 development_data_backup_password_src: ""

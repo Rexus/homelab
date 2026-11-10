@@ -48,7 +48,7 @@ public HTTPS only when selected, and named incident responders.
    A deliberate HTTP 401/403 can be correct; this is a connection/trust check,
    not application authorization acceptance. Never add `--insecure` to make it pass.
 3. Use [CA renewal/publication checks](certificate-authority.md) for the private issuer
-   and the [public HTTPS acceptance](../../deployment/stage-10-lab-environments/public-https.md#accept-and-operate)
+   and the [public HTTPS acceptance](../../deployment/stage-10-lab-environments/step-3b-public-https.md#accept-and-operate)
    for edge/origin chains. Test wrong CA/SAN, expiry and denied-origin paths with
    disposable material, never by replacing live trust with an unverified root.
 

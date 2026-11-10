@@ -1,5 +1,9 @@
 # Independent foundation monitoring
 
+**Stage route:** [Stage 6, Step 2](README.md#step-2-add-operational-tools) prepares the host;
+[Step 4](README.md#step-4-establish-independent-monitoring) installs monitoring and alerts.
+**Return:** complete the corresponding stage step after the checks below.
+
 Add critical health history, diagnostics, rule evaluation and alerts to the existing
 protected logging capability. This is the monitoring deployment in Stage 6, not a
 prerequisite for the earlier collector.
@@ -16,28 +20,92 @@ runtime/storage and independent recovery inputs. Tier 1 Observability is not req
 3. [Enable and verify independent alerts](#step-3-enable-and-verify-independent-alerts)
 
 The [dedicated recipe](../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml)
-installs native Netdata on an approved existing RedHat-family host, with persistent
+installs native Netdata on the managed `mon-1` VM or an accepted existing RedHat-family host, with persistent
 history, local health rules and independent notifications. Redfish jobs and a local Proxmox
 API exporter keep management credentials in Tier 0. Optional metric export is strictly allowlisted.
-It creates no VM and does not install agents on hypervisors.
+The foundation Terraform root provisions the optional VM; this service recipe does not create it
+or install agents on hypervisors.
 
 Run all commands below from the **Tier 0 root**, not its `ansible/` subdirectory.
 Protected `log-1` and optional `log-2` are rejected as monitoring targets by this recipe.
 
 ## Step 1: Prepare the monitoring runtime
 
-When preparing the host for [NetBox audit collection](procedures/netbox-audit.md), establish its capacity,
-SSH connection file and protected host forwarding first. Complete Netdata-specific credentials/settings
-when returning for monitoring installation; NetBox audit does not require a running Netdata service.
+Prepare the host now for [NetBox audit collection](procedures/netbox-audit.md).
+Netdata installation follows at Stage 6 Step 4; audit collection does not require Netdata yet.
 
-1. Select an existing independent host or provision reviewed Tier 0 capacity.
-   This recipe deliberately uses a different host from the protected logging receivers.
-   A monitor does not independently detect its own complete host loss.
-2. Keep required cluster-outage detection outside that cluster. Cluster manifests
-   may add internal monitoring, but cannot replace the external detector.
-3. Record placement, local access, storage/backups and signal ownership. If changing
-   host capacity, review its owning provisioning inputs before applying. There is no
-   separate Terraform `monitoring` setup; this Ansible recipe consumes existing capacity.
+Choose **1a: managed VM** below or **1b: accepted existing host**. Both must stay outside
+the observed Kubernetes clusters and separate from `log-1`/`log-2`.
+An external dead-man service detects loss of the monitor itself; one VM is not HA or
+independent of its underlying Proxmox host/storage.
+
+### 1a. Provision the managed monitor
+
+In **`<prefix>-tier-0/`**, enable the commented `mon-1` entries in the existing local inputs:
+
+| File | Edit |
+| --- | --- |
+| `terraform/deployments/foundation/terraform.tfvars` | Add the optional `mon-1` block; verify free VMID `411`, approved RedHat-family image, placement, `management` network and capacity |
+| `ansible/inventory/hosts.yml` | Replace only `infrastructure_monitoring.hosts: {}` with `hosts:` containing `mon-1: {}` |
+| `ansible/group_vars/foundation.yml` | Add its reserved `platform_host_ips.mon-1`, initially `10.10.10.60`; keep every issuer/directory address |
+
+Do not pass a monitor-only `platform_host_ips` file to Terraform: its shallow YAML merge would
+replace the complete issuer/directory map. Keep all addresses in the existing foundation input.
+
+Use the current examples to copy only these optional entries if older local files lack them.
+Set `vm_instances["mon-1"].template_vm_id` explicitly if the shared/root default is not an approved
+RedHat-family image; do not inherit the Debian CA image.
+The starter is two vCPUs, 4 GiB RAM and one 40 GiB OS/data disk. Terraform manages that disk;
+Netdata history and the audit ledger use its filesystem. No separate manual disk preparation is needed.
+Review capacity and recovery copies before accepting the host.
+
+Run from **`<prefix>-tier-0/`**, using the same environment/state as the issuer and directory:
+
+```bash
+bash scripts/deploy.sh foundation --terraform-only
+```
+
+Review the **whole foundation plan**. It should add `mon-1`, without replacing/removing accepted
+issuer/directory resources. Preserve their entries and the original
+`.terraform/state/foundation/<env>/terraform.tfstate`; do not create monitor-only state or use `-target`.
+Retain the original `--env` flag if one was used. This command runs no identity installation.
+
+Wait for its SSH login, then apply the existing Shared OS baseline only to `mon-1`:
+
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible -i ansible/inventory/hosts.yml mon-1 \
+  -m ansible.builtin.wait_for_connection -a timeout=300 \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml
+```
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  --limit mon-1 "../<prefix>-shared/ansible/playbooks/site.yml" \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml
+```
+
+The Shared path names the sibling repository in the generated collection.
+For a named environment, load its `all.<env>.yml` and `foundation.<env>.yml` after the base files.
+Verify approved software access and SSH/sudo before audit collection.
+Continue with the settings below; do not run `deploy.sh foundation` without `--terraform-only`
+to prepare this monitor, because its default Ansible recipe configures FreeIPA.
+
+### 1b. Accept an existing host
+
+Skip VM provisioning when independently managed capacity satisfies the same placement,
+storage/recovery and RedHat-family requirements. Register it in `infrastructure_monitoring` and create
+`ansible/host_vars/<monitor-host>.yml` with its actual `ansible_host` and SSH/sudo settings.
+Retain its existing provisioning/state owner; do not also add it as a new foundation VM.
+Verify its baseline and approved software access, then rejoin below.
+
+### Prepare the service inputs
+
+For either host path, complete [logging source Steps 1–2](../stage-2-logging/sources.md)
+for this host's OS/audit streams before NetBox audit collection. Add it to Tier 0's
+`logging_producers`, approve its independent producer identity and verify delivery at protected intake.
+The monitoring installer does not enroll or configure these senders.
 
 Create local settings and private inputs without replacing existing files:
 
@@ -52,9 +120,8 @@ mkdir -p ansible/host_vars
 
 Edit in **`<prefix>-tier-0/`**.
 
-- `ansible/inventory/hosts.yml`: Add the approved existing host to `infrastructure_monitoring`; preserve
-  other groups. Create `ansible/host_vars/<monitor-host>.yml` with its real `ansible_host` and any
-  host-specific SSH/sudo settings; this independently prepared host has no Terraform setup IP map.
+- `ansible/inventory/hosts.yml`: Keep the selected host in `infrastructure_monitoring`; preserve other groups.
+  Managed `mon-1` uses the foundation IP map; only the existing-host path needs a connection override file.
 - `ansible/group_vars/infrastructure_monitoring.yml`: Actual listen address/allowed operator sources, pinned
   packages, Proxmox/Redfish targets and tested health rules.
   Set `infrastructure_monitoring_export_endpoint: ""` until Stage 8's private metric intake exists.
@@ -72,16 +139,24 @@ ansible-vault encrypt ansible/group_vars/infrastructure_monitoring_secrets.yml
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
+flowchart TB
   subgraph T0["Tier 0 / Control"]
     subgraph PVE["Existing Proxmox hosts"]
-      Existing["log-1<br/>Existing protected intake"]
-      Cluster["Existing Tier 0 Kubernetes"]
+      direction LR
+      subgraph Context["Existing / unchanged"]
+        direction TB
+        Cluster["Existing Tier 0<br/>Kubernetes"]
+        Existing["log-1<br/>Protected intake"]
+        Cluster ~~~ Existing
+      end
+      subgraph Project["mon-1 / managed monitoring VM"]
+        direction TB
+        Host["Native Netdata parent<br/>History / alerts"]
+        Disk[("OS and monitoring<br/>data disk")]
+        Host --- Disk
+      end
+      Context ~~~ Project
     end
-    subgraph Project["Native installation / outside observed clusters"]
-      Host["Inventory-selected independent host<br/>Netdata parent / persistent history / alerts"]
-    end
-    Project ~~~ PVE
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
@@ -89,17 +164,19 @@ flowchart LR
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class Existing data
+  class Existing,Disk data
   class T0,Host control
   class Cluster services
-  class PVE boundary
+  class PVE,Context boundary
   class Project replicas
 ```
 
-**IaC:** Tier 0's [role](../../../tier-0/ansible/roles/infrastructure_monitoring),
+**IaC:** Tier 0's [foundation inputs](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
+optionally provision `mon-1` and its disk in the existing foundation state. Tier 0's
+[role](../../../tier-0/ansible/roles/infrastructure_monitoring),
 [recipe](../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) and local
-inputs own the installation on an existing host. The log-host Terraform and cluster starters
-provide context only. No additional VM is provisioned; host placement remains a prerequisite.
+inputs own the subsequent service installation on that selected host. The log-host Terraform and cluster
+starters provide context only. An accepted existing host is an alternative to the managed VM.
 
 **Result:** a selected runtime that remains available during the required cluster outage.
 
@@ -152,6 +229,9 @@ The existing receiver and cluster recipes do not install these services.
 
 Render the complete selected configuration before changing the host:
 
+For **1b: existing host**, append `-e "@ansible/host_vars/$MONITOR_HOST.yml"` to this render command
+and the Step 3 apply command. Managed `mon-1` needs no connection override file.
+
 Run from **`<prefix>-tier-0/`**.
 
 ```bash
@@ -159,9 +239,10 @@ read -r -p 'Monitoring inventory host: ' MONITOR_HOST
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
   --limit "${MONITOR_HOST:?Select the prepared host}" \
   ansible/playbooks/deployment/infrastructure-monitoring.yml \
-  -e @ansible/group_vars/all.yml -e @ansible/group_vars/infrastructure_monitoring.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml \
+  -e @ansible/group_vars/infrastructure_monitoring.yml \
   -e @ansible/group_vars/infrastructure_monitoring_secrets.yml \
-  -e "@ansible/host_vars/$MONITOR_HOST.yml" --ask-vault-pass \
+  --ask-vault-pass \
   -e infrastructure_monitoring_action=render
 ```
 
@@ -227,9 +308,10 @@ read -r -p 'Monitoring inventory host: ' MONITOR_HOST
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
   --limit "${MONITOR_HOST:?Select the prepared host}" \
   ansible/playbooks/deployment/infrastructure-monitoring.yml \
-  -e @ansible/group_vars/all.yml -e @ansible/group_vars/infrastructure_monitoring.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml \
+  -e @ansible/group_vars/infrastructure_monitoring.yml \
   -e @ansible/group_vars/infrastructure_monitoring_secrets.yml \
-  -e "@ansible/host_vars/$MONITOR_HOST.yml" --ask-vault-pass \
+  --ask-vault-pass \
   -e infrastructure_monitoring_action=apply
 ```
 
@@ -238,9 +320,11 @@ sources, stalled evidence writes, capacity thresholds and monitoring-host loss. 
 hosted source control, normal SSO or secret services. Record alert delivery, acknowledgement authority,
 recovery and blind spots. The independent heartbeat must detect loss of the local detector.
 
-The host file is last so its SSH overrides take precedence over global inputs. For named environments,
-insert the approved `all.<env>.yml` overlay after `all.yml`, before the other inputs.
-Apply changes the existing host immediately;
+For **1b: existing host**, append `-e "@ansible/host_vars/$MONITOR_HOST.yml"` to both render/apply
+commands so its connection settings override the common inputs. For named environments, load the
+approved `all.<env>.yml` and complete `foundation.<env>.yml` after their base files.
+Keep the full foundation `platform_host_ips` map; a monitor-only override replaces that map, it does not merge it.
+Apply changes the selected host immediately;
 it is not a Terraform plan and has no additional confirmation prompt.
 
 **Result:** required foundation failures produce independently delivered alerts.
@@ -250,7 +334,8 @@ it is not a Terraform plan and has no additional confirmation prompt.
 | Repository | Path inside that repository | Coverage |
 | --- | --- | --- |
 | Tier 0 | [ansible/roles/infrastructure_monitoring/](../../../tier-0/ansible/roles/infrastructure_monitoring) | Native parent, rules, jobs, external heartbeat and optional approved metric bridge |
-| Tier 0 | [deployment playbook](../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) | Existing host only; default private rendering, explicit apply |
+| Tier 0 | [deployment playbook](../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) | Service installation on the selected host; private rendering, explicit apply |
+| Tier 0 | [terraform/deployments/foundation/](../../../tier-0/terraform/deployments/foundation) | Optional `mon-1` VM/disk alongside retained issuer/directory state |
 | Tier 0 | [terraform/deployments/syslog/](../../../tier-0/terraform/deployments/syslog) | Protected logging resources remain separate |
 | Tier 0 | [clusters/tier0/](../../../tier-0/clusters/tier0) | Project cluster manifests; no monitoring installer |
 | Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) | Existing protected log receiver; unchanged by monitoring |
@@ -267,7 +352,7 @@ credentials and critical alerts when Tier 1 is unavailable.
 
 | Input / prerequisite | Required contract |
 | --- | --- |
-| Existing host | RedHat family, approved signed Netdata repository, local recovery access; outside all observed clusters and protected receiver hosts |
+| Managed or accepted existing host | RedHat family, approved signed Netdata repository, local recovery access; outside observed Kubernetes clusters and separate from protected receivers |
 | `infrastructure_monitoring_private_files` | Native TLS files, per-BMC passwords, notification config, external heartbeat curl config; kept under `/etc/netdata/private/` |
 | Proxmox identities | Fixed targets and read-only `PVEMonitor`-equivalent access; no guest/host power, configuration or mutation privileges |
 | BMC identities | Read-only sensor privileges, trusted HTTPS certificates; qualify vendor coverage explicitly |
@@ -281,7 +366,8 @@ Proxmox credentials are not bridge inputs. The exporter binds loopback, so Tier 
 request arbitrary management targets. Export filtering happens before OTLP transfer.
 See [infrastructure monitoring](../stage-8-observability/infrastructure-monitoring.md) for
 coverage and [private intake](../stage-8-observability/configuration.md#private-cross-cluster-intake)
-for the endpoint/firewall contract. Protected search-copy export is a separate prerequisite.
+for the endpoint/firewall contract. Leave metric export disabled until that Stage 8 step.
+Protected search-copy export is a separate Stage 8 option, not a Stage 6 prerequisite.
 
 Rendering and source tests do not establish live alert delivery, package/OS compatibility,
 vendor sensor completeness, physical isolation or recovery. Record those acceptance results.

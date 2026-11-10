@@ -21,10 +21,19 @@ Steps 1–2 stay in Tier 1; Steps 3–4 explicitly switch to Tier 0.
 
 ## Main path
 
-1. [Deploy source control and SSO](#step-1-deploy-source-control-and-sso)
-2. [Add on-demand build execution](#step-2-add-on-demand-build-execution)
-3. [Authorize CI through Vault](#step-3-authorize-ci-through-vault)
-4. [Hand over infrastructure execution](#step-4-hand-over-infrastructure-execution)
+Follow Steps 1–4. Choose one GitLab placement and one general build runner;
+the protected infrastructure runner is a separate required deployment at Step 4.
+
+| Step | Path or option | Continue when |
+| --- | --- | --- |
+| 1a | Kubernetes GitLab: [data VMs](procedures/data-services.md), [GitLab/SSO](procedures/gitlab.md), then [joint backup checks](procedures/data-services.md#backups-and-recovery) | Source control and recovery are accepted; go to Step 2 |
+| 1b | [Source-control VM](step-1b-source-control-vm.md), instead of 1a | Complete its project-supplied SSO and backup/restore integration, then Step 2 |
+| 1c | Optional [delivery-controller ownership](procedures/gitlab.md#delivery-ownership) for 1a, instead of direct Ansible apply | Choose before chart apply; rejoin Step 1 backup/SSO checks after adoption |
+| 2a | [Kubernetes job runners](procedures/kubernetes-runners.md) | Accept bounded jobs and cleanup before Step 3 |
+| 2b | [Podman build runner](step-2b-podman-runner.md), instead of 2a | Accept the same isolation boundary, then Step 3 |
+| 2c | Optional [image-based Linux](step-2c-image-based-linux.md) after the selected runner | Qualify image build, protected publication and rollback, then Step 3 |
+| 3 | [Vault CI authorization](procedures/vault-ci.md#configure-exact-job-authority), after [direct-CI trust](procedures/infrastructure-runner.md#step-1-accept-direct-ci-trust) | Policies exist; real privileged job tests wait for Step 4's runner |
+| 4 | [Install the infrastructure runner](procedures/infrastructure-runner.md), [place/test Vault credentials](procedures/vault-ci.md#place-scoped-credentials), then [transfer original state](procedures/handover.md) | One state writer, protected jobs and independent recovery are accepted before Stage 10 |
 
 ## Step 1: Deploy source control and SSO
 
@@ -37,13 +46,17 @@ Steps 1–2 stay in Tier 1; Steps 3–4 explicitly switch to Tier 0.
    Toolbox backup tests come after GitLab installation; no toolbox exists yet.
 3. In **`<prefix>-tier-1/`**, complete [GitLab installation](procedures/gitlab.md):
    register the IdP client, prepare the complete Secret map, render/review and install with one release owner.
-   Direct Ansible is the supplied bootstrap path; Argo CD/Spinnaker ownership needs its stated integration.
+   Direct Ansible is the supplied bootstrap path. Select **1c** before apply if using the accepted
+   Argo CD/Spinnaker owner; complete its stated integration instead of running a second reconciler.
 4. Now run the [joint application backup and restore checks](procedures/data-services.md#backups-and-recovery),
    including toolbox, repositories, objects, configuration and Secrets. Accept SSO/denials and clone/push
    before creating ordinary users or moving source histories into the service.
 
 Tier 1 owns its data and scoped credentials. The existing storage owner retains
 administration of the object endpoint; this stage installs no storage gateway.
+Within **1a**, choose [existing tenant buckets](procedures/data-services.md#4a-existing-tenant-buckets-and-keys)
+or [Ceph account provisioning](procedures/data-services.md#optional-ceph-account-provisioning)
+before data-service apply. The latter manages accounts on an existing RGW; it does not deploy RGW.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -109,8 +122,10 @@ For **2a**, follow these actions:
 
 For **2b**, complete [Podman runner installation](step-2b-podman-runner.md) and the same trust/isolation
 checks instead. Both paths rejoin at **Step 3**.
-[2c: image-based Linux](step-2c-image-based-linux.md) is a later optional image-lifecycle extension,
-not another required runner or a replacement for one.
+If selecting [2c: image-based Linux](step-2c-image-based-linux.md), complete it after the runner's
+bounded-job checks and before Step 3. It adds image lifecycle, not another runner.
+Use the accepted Stage 7 registry or an independently commissioned GitLab registry;
+the Kubernetes GitLab chart does not enable its bundled registry.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%

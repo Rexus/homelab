@@ -1,8 +1,14 @@
-# Prepare the bootstrap workspace disk
+# Step 3a: Bootstrap workspace disk
+
+**Branch from:** [Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), option **3a**,
+at [bootstrap Step 2, storage A](README.md#a-separate-workspace-filesystem--reference-layout).
+**Return:** [Foundation Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), continuing with
+[bootstrap tool acquisition](README.md#2a-install-git-terraform-and-ansible) after mount/reboot checks;
+select the offline alternative there if needed.
 
 Prepare the separate local data filesystem used by `boot-1` for repositories, state and artifacts.
-This is the [bootstrap storage A](bootstrap.md#a-separate-workspace-filesystem--reference-layout) path.
-For an expanded LVM root, use [storage B](bootstrap-lvm.md) instead.
+This is the [bootstrap storage A](README.md#a-separate-workspace-filesystem--reference-layout) path.
+For an expanded LVM root, use [storage B](step-3b-bootstrap-lvm.md) instead.
 
 **Run on `boot-1`**, using its normal SSH account with authorized sudo and independent console access.
 **Before starting:** a recoverable VM backup and a new, empty attached data disk with **Backup** enabled.
@@ -40,7 +46,7 @@ For offline preparation, first select the verified extracted bundle on independe
 read -r -p 'Verified extracted bundle directory on mounted media: ' BUNDLE
 ```
 
-Install its OS packages using [offline Step 7](bootstrap-offline.md#7-install-signed-os-packages).
+Install its OS packages using [offline Step 7](step-3e-bootstrap-offline.md#7-install-signed-os-packages).
 Return here before creating Python environments or copying the full artifact bundle.
 
 ## 2. Identify the data disk
@@ -141,9 +147,9 @@ On **`boot-1`**, as its normal SSH account:
 ```
 
 Include both disks in the independent [bootstrap recovery set](../../../administration/backups/recovery-set.md).
-Optionally [move home directories](bootstrap-home.md) before creating Python environments or cloning the kit.
-Then return to [Bootstrap 2a](bootstrap.md#2a-install-through-approved-sources), or
-[2b offline](bootstrap.md#2b-transfer-a-prepared-bundle--offline-alternative).
+Optionally [move home directories](step-3c-bootstrap-home.md) before creating Python environments or cloning the kit.
+Then return to [Bootstrap 2a](README.md#2a-install-through-approved-sources), or
+[2b offline](README.md#2b-transfer-a-prepared-bundle--offline-alternative).
 
 If mount preparation fails, retain both disks and use the console to restore the recorded fstab configuration.
 Formatting cannot be undone by removing an fstab entry; recover mistakenly overwritten data from backup.

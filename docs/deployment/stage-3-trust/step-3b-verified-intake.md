@@ -1,18 +1,27 @@
-# Verified software intake — optional Stage 1 extension
+# Step 3b: Verified software intake
+
+**Branch from:** [Step 3](README.md#step-3-enable-and-verify-routine-issuance), after issuer acceptance.
+**Change:** extend Stage 1 software intake with a Tier 1 verification and publication worker.
+**Return:** [Stage 3 completion](README.md#capability-available) after the selected sources and consumers pass.
 
 Add `intake-1` to acquire RPM/APT repositories and selected artifacts, verify and scan a private
 copy, then publish an identified version over read-only HTTPS. The existing cache remains unchanged.
 This extension works with either Stage 1 supply route; it does not deploy Kubernetes or Harbor.
 
+**Provisioning:** one `deploy.sh intake` command in **Step 3** creates `intake-1`, prepares its
+data volume and installs the service. Terraform owns the VM/disks; Ansible manages the filesystem
+and UUID mount. Step 1 initializes configuration files only.
+
 **Working repository:** `<prefix>-tier-1` owns the worker and state; Shared supplies platform references.
 
-**Existing collection:** first follow [update adoption](adopt-update.md). Refresh preserves the local
+**Existing collection:** first follow [update adoption](../stage-1-software-intake/step-2b-adopt-update.md). Refresh preserves the local
 setup registry and inventory; register `intake` / `software_intake` there before initialization below.
 
-**Before starting:** complete the [basic intake route](README.md), reserve an address on
-`delivery_edge`, and supply a trusted HTTPS certificate. With this repo's CA, return here after
-[Stage 3](../stage-3-trust/README.md). Use the [logging source guide](../stage-2-logging/sources.md)
-to protect intake decisions. Existing commissioned trust and logging are also valid.
+**Before starting:** complete [Stage 1 intake](../stage-1-software-intake/README.md),
+[Stage 2 logging](../stage-2-logging/README.md) and this stage's issuer acceptance.
+Reserve an address on `delivery_edge` and issue its HTTPS certificate before installation.
+Use the [logging source guide](../stage-2-logging/sources.md) to protect intake decisions.
+No Kubernetes, Vault, Harbor or GitLab service is required.
 
 **Host:** a clone-tested EL10 or Debian-family systemd image. Its approved repositories must supply
 the [native packages](../../../tier-1/ansible/roles/software_intake/defaults/main.yml), including
@@ -25,12 +34,10 @@ an older distribution's default packages may not satisfy these gates.
 
 - [1. Initialize inputs](#1-initialize-inputs)
 - [2. Select sources and trust](#2-select-sources-and-trust)
-- [3. Provision the VM](#3-provision-the-vm)
-- [4. Prepare the data filesystem](#4-prepare-the-data-filesystem)
-- [5. Install the service](#5-install-the-service)
-- [6. Supply current scanner definitions](#6-supply-current-scanner-definitions)
-- [7. Run and inspect the first intake](#7-run-and-inspect-the-first-intake)
-- [8. Connect consumers and schedule intake](#8-connect-consumers-and-schedule-intake)
+- [3. Deploy the VM and service](#3-deploy-the-vm-and-service)
+- [4. Supply current scanner definitions](#4-supply-current-scanner-definitions)
+- [5. Run and inspect the first intake](#5-run-and-inspect-the-first-intake)
+- [6. Connect consumers and schedule intake](#6-connect-consumers-and-schedule-intake)
 
 ## 1. Initialize inputs
 
@@ -57,11 +64,24 @@ Edit in **`<prefix>-tier-1/`**:
 | `ansible/group_vars/all.yml` | Domain and the clone's SSH user |
 | `ansible/group_vars/intake.yml` | Reserved `intake-1` IP, HTTPS identity/files, reader CIDRs, proxy and selected sources |
 
-The starter uses VMID `1221`, IP `10.30.31.40`, a 40 GB OS disk and 200 GB `scsi1` data disk.
+The starter uses VMID `1221`, IP `10.30.31.40`, a 40 GiB OS disk and 200 GiB `scsi1` data disk.
 Size for **two working copies**, retained versions, quarantine and the free-space reserve;
-200 GB is a starter, not capacity for every distribution. See [input precedence](../../reference/platform-inputs.md).
+200 GiB is a starter, not capacity for every distribution. See [input precedence](../../reference/platform-inputs.md).
 Measure a small architecture/component selection first; large trees also need a suitable
 `software_intake_timeout_seconds` rather than an assumption that a complete distro fits the default window.
+
+In **Tier 1 `ansible/group_vars/intake.yml`**, keep these defaults for the new `scsi1` disk:
+
+```yaml
+software_intake_data_device: /dev/sdb
+software_intake_data_fstype: xfs
+software_intake_data_dir: /srv/intake
+software_intake_data_uuid: ""
+```
+
+Use `ext4` instead of `xfs` if selected for that volume. Leave the UUID empty for a new blank disk;
+pin the existing UUID when adopting or restoring data. Existing data must match the selected
+device, filesystem and recorded mount identity; an unrecognized volume is not reformatted.
 
 ## 2. Select sources and trust
 
@@ -97,25 +117,57 @@ bash scripts/deploy.sh cache --recipe maintenance
 
 For an existing supply service, make the equivalent client/source-policy change there.
 
-## 3. Provision the VM
+Select the definition supply in **Tier 1 `ansible/group_vars/intake.yml`** before deploying:
+
+- **Connected updates (4a):** set `software_intake_freshclam_enabled: true` and configure the
+  approved `software_intake_environment.http_proxy` / `https_proxy` route.
+- **Disconnected supply (4b):** keep the updater disabled and prepare verified official database
+  files for transfer in Step 4.
+
+Allow only approved clients to `intake-1:443`, bootstrap management to SSH and the worker to its
+approved proxy, DNS/time and protected logging. Deny direct Internet bypass independently.
+Nginx also restricts readers to `software_intake_allowed_cidrs`; this is a shared reader scope,
+not per-repository user authentication.
+
+<a id="3-provision-the-vm"></a>
+<a id="4-prepare-the-data-filesystem"></a>
+<a id="5-install-the-service"></a>
+
+## 3. Deploy the VM and service
 
 Run from **`<prefix>-tier-1/`**:
 
 ```bash
-bash scripts/deploy.sh intake --terraform-only
+bash scripts/deploy.sh intake
 ```
 
 Review the plan and enter `yes`. Approved CI can add `--auto-approve`; optional preview uses
-`--plan-only`. This first run creates the VM and disks, without configuring a filesystem.
+`--plan-only`. Terraform provisions the VM and disks; Ansible then prepares the data volume and
+installs the service. No manual formatting or mount setup is needed.
+
+**Expected:** a writable `/srv/intake` mounted by UUID with `nodev,nosuid,noexec`, isolated fetch/scan
+accounts, root-owned policy, read-only HTTPS publication and `intake.service`. Only a verified new
+blank disk is formatted. Recognized existing data is preserved; a missing declared volume or a
+different filesystem/UUID stops deployment. There is no fallback to the OS disk.
+
+The installer checks the supplied TLS chain/key, publisher fingerprints and scanner capabilities.
+No intake runs yet; keep `software_intake_timer_enabled: false` until Step 6.
+
+Before the first intake in Step 5, enroll **`intake-1`** through
+[logging source preparation, signing and installation](../stage-2-logging/sources.md).
+Use Tier 1's `ansible/group_vars/intake.yml` as its existing setup map. Verify its journal stream
+at protected Tier 0 intake; add a separate file stream for the actual Nginx access/error logs.
+The intake recipe installs neither forwarding nor receiver enrollment. Return here for Step 4
+after the host's test event arrives; do not start acquisition before that gate.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":16,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   subgraph T1["Tier 1 / delivery_edge"]
     subgraph PVE["Existing Proxmox host"]
-      VM["intake-1 / VMID 1221<br/>Full Linux clone"]
-      OS[("scsi0 / 40 GB OS")]
-      DATA[("scsi1 / 200 GB data<br/>Prepare /srv/intake in Step 4")]
+      VM["intake-1<br/>Full Linux clone"]
+      OS[("scsi0 / OS disk")]
+      DATA[("scsi1 / data disk<br/>IaC-managed /srv/intake")]
       VM --- OS
       VM --- DATA
     end
@@ -131,87 +183,34 @@ flowchart LR
 
 **IaC:** Tier 1 [VM inputs](../../../tier-1/terraform/deployments/intake/terraform.tfvars.example),
 [resource root](../../../tier-1/terraform/deployments/intake/main.tf) and
-[inventory](../../../tier-1/ansible/inventory/hosts.yml.example). Storage links mean attachment.
+[inventory](../../../tier-1/ansible/inventory/hosts.yml.example). The Tier 1
+[deployment playbook](../../../tier-1/ansible/playbooks/deployment/intake.yml) uses Shared's
+[data-volume role](../../../shared/ansible/roles/data_volume/tasks/main.yml) to manage the filesystem,
+UUID mount and growth. Storage links mean attachment.
 One VM is not HA; its outage pauses both new intake and its publication endpoint.
 
-## 4. Prepare the data filesystem
+<a id="6-supply-current-scanner-definitions"></a>
 
-On **`intake-1`**, identify the new disk:
+## 4. Supply current scanner definitions
 
-```bash
-lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
-```
-
-**4a — New blank disk:** only if `/dev/sdb` is the unused data disk, format it. This erases that
-disk. For an existing filesystem use **4b** instead.
-
-Install XFS tooling on **`intake-1`** if absent, using its accepted initial package supply. For an
-EL10 host that needs the approved proxy before persistent configuration exists:
-
-```bash
-read -r -p 'Approved HTTP proxy URL: ' INTAKE_PROXY
-sudo env http_proxy="$INTAKE_PROXY" https_proxy="$INTAKE_PROXY" dnf install -y xfsprogs
-```
-
-For Debian/Ubuntu replace `dnf install -y xfsprogs` with `apt-get install -y xfsprogs`.
-With commissioned internal repositories or prepositioned tools, use that native/offline path instead.
-Then prepare the confirmed blank disk:
-
-```bash
-sudo mkfs.xfs /dev/sdb
-sudo install -d -m 0755 /srv/intake
-DATA_UUID=$(sudo blkid -s UUID -o value /dev/sdb)
-printf 'UUID=%s /srv/intake xfs defaults,nodev,nosuid,noexec 0 2\n' "$DATA_UUID" | sudo tee -a /etc/fstab
-sudo mount /srv/intake
-```
-
-**4b — Existing prepared data:** mount its preserved filesystem at `/srv/intake` through `/etc/fstab`
-with `nodev,nosuid,noexec`; do not format it. Both paths continue with:
-
-```bash
-findmnt --mountpoint /srv/intake
-```
-
-**Expected:** a separate writable filesystem. The installer refuses an ordinary OS directory,
-missing mount or insufficient reserve; it does not partition, format or mount storage.
-
-## 5. Install the service
-
-Set the allowed source/redirect domains and FreshClam definition hosts in the existing proxy
-policy. Allow only approved clients to `intake-1:443`, bootstrap management to SSH and the worker
-to its approved proxy, DNS/time and protected logging. Deny direct Internet bypass independently.
-Nginx also restricts readers to `software_intake_allowed_cidrs`; this is a shared reader scope,
-not per-repository user authentication.
-
-Run from **`<prefix>-tier-1/`**:
-
-```bash
-bash scripts/deploy.sh intake --ansible-only
-```
-
-**Expected:** isolated fetch/scan accounts, root-owned policy, read-only HTTPS publication and
-`intake.service`. No intake runs yet; the timer defaults to disabled. The installer verifies
-the supplied TLS chain/key, selected publisher fingerprints and scanner capabilities.
-
-## 6. Supply current scanner definitions
-
-**6a — Approved connected updates:** configure `software_intake_environment.http_proxy` and
-`https_proxy`, then set `software_intake_freshclam_enabled: true` in Tier 1 `intake.yml` and
-repeat Step 5. The native FreshClam service supplies `/var/lib/clamav` through that proxy.
-
-On **`intake-1`**, check initialization:
+**4a — Approved connected updates:** the selected native FreshClam service supplies `/var/lib/clamav`
+through the approved proxy. On **`intake-1`**, check initialization:
 
 ```bash
 sudo journalctl -u clamav-freshclam.service -n 30 --no-pager
 sudo ls -lh /var/lib/clamav
 ```
 
-**6b — Disconnected supply:** transfer independently verified official ClamAV database files
+**4b — Disconnected supply:** transfer independently verified official ClamAV database files
 to `/var/lib/clamav`, preserving the native updater's ownership and read permission for scanners.
 Refresh them before `software_intake_max_definition_age_days` expires (default two days).
 No current definitions means no publication; an HTTP cache is not an offline definition bundle.
 
-## 7. Run and inspect the first intake
+Both routes continue at **Step 5**.
+
+<a id="7-run-and-inspect-the-first-intake"></a>
+
+## 5. Run and inspect the first intake
 
 Run from **`<prefix>-tier-1/`**:
 
@@ -236,13 +235,15 @@ file using the returned URLs. A new source stays 404 until accepted; rejected by
 under `/approved/`. Complete the [failure checks](../../administration/software-intake.md#how-is-the-publication-gate-tested)
 in a disposable test source before selecting production consumers.
 
-## 8. Connect consumers and schedule intake
+<a id="8-connect-consumers-and-schedule-intake"></a>
+
+## 6. Connect consumers and schedule intake
 
 Use the returned **versioned content URL** as the native repository base URL. Keep vendor keys,
 package/metadata signature checks, TLS verification and APT freshness checks enabled. Package-manager
 syntax belongs to the selected distribution; preserve its existing repository IDs and policy.
 Do not configure `latest.json` as a repository or disable verification to use an expired snapshot.
-Follow the copyable [RPM/APT consumer cutover](verified-consumers.md) for the actual file edits and refresh checks.
+Follow the copyable [RPM/APT consumer cutover](step-3b-verified-consumers.md) for the actual file edits and refresh checks.
 
 Tier 0 operators select and verify these versions, retain recovery supply independently and deny
 live-source bypass. The worker holds no Tier 0 credentials. Artifact consumers retain the approved
@@ -256,7 +257,7 @@ flowchart BT
   end
   subgraph T1["Tier 1 / delivery_edge"]
     subgraph PVE["Existing Proxmox host"]
-      subgraph VM["intake-1 / VMID 1221"]
+    subgraph VM["intake-1"]
         direction LR
         WEB["Nginx<br/>GET-only publication"]
         JOBS["intake.service<br/>Fetch / verify / ClamAV / publish"]
@@ -296,7 +297,7 @@ Proxmox, proxy, trust,
 firewall and protected logging are commissioned prerequisites, not additional resources from this setup.
 
 After first-publication and failure acceptance, set `software_intake_timer_enabled: true` and
-the desired `software_intake_schedule` in Tier 1 `intake.yml`; repeat Step 5. Retain the deployment
+the desired `software_intake_schedule` in Tier 1 `intake.yml`; repeat Step 3. Retain the deployment
 inputs, public keys, receipts and VM/data backup independently. Continue the main
-[deployment path](../README.md); use the [operations runbook](../../administration/software-intake.md)
+[Stage 3 completion](README.md#capability-available); use the [operations runbook](../../administration/software-intake.md)
 for incidents, rollback and storage cleanup.

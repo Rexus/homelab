@@ -1,5 +1,8 @@
 # NetBox change-audit collection
 
+**Stage route:** [Stage 6, Step 2](../README.md#step-2-add-operational-tools), after NetBox installation.
+**Return:** to Step 2 after proving real changes reach protected intake; then complete Headlamp access.
+
 **Working repository:** `<prefix>-tier-0`. NetBox and protected logging already exist.
 The selected collector runs on the independently prepared Tier 0 monitoring host;
 it is not a new VM or another syslog receiver.
@@ -7,8 +10,9 @@ it is not a new VM or another syslog receiver.
 **Prerequisites:** a healthy NetBox API, protected forwarding for this host,
 retained source history and an external dead-man monitor.
 First complete [monitoring host preparation](../monitoring.md#step-1-prepare-the-monitoring-runtime):
-one existing host in `infrastructure_monitoring`, verified SSH/sudo and an explicit
-`ansible/host_vars/<monitor-host>.yml` connection file. Netdata need not be installed yet.
+managed `mon-1` or an accepted existing host in `infrastructure_monitoring`, verified SSH/sudo
+and protected forwarding. Managed `mon-1` uses the foundation IP map; an external host uses
+`ansible/host_vars/<monitor-host>.yml`. Netdata need not be installed yet.
 
 ## Contents
 
@@ -74,13 +78,14 @@ read -r -p 'Prepared monitoring inventory host: ' AUDIT_HOST
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
   --limit "localhost,${AUDIT_HOST:?Select the prepared host}" \
   ansible/playbooks/deployment/netbox-audit.yml \
-  -e @ansible/group_vars/all.yml -e @ansible/group_vars/netbox_audit.yml \
-  -e "@ansible/host_vars/$AUDIT_HOST.yml"
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml \
+  -e @ansible/group_vars/netbox_audit.yml
 ```
 
 Keep `localhost` in the limit: the first play checks that exactly one monitoring host is assigned.
-The host file is last so its real address/account override global defaults. Stop if the selected remote
-host is skipped. For a named environment, load `all.<env>.yml` after `all.yml` and before the host override.
+For an existing external host, append `-e "@ansible/host_vars/$AUDIT_HOST.yml"` so its address/account
+override the common inputs. Stop if the selected remote host is skipped.
+For a named environment, load `all.<env>.yml` and the complete `foundation.<env>.yml` after their base files.
 
 The timer issues GET requests only, with validated TLS and no redirects. It scans retained
 history in ascending-ID pages instead of relying on an ID high-water cursor: transactions can

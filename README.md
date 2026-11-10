@@ -49,12 +49,13 @@ before assigning Proxmox guest or template IDs. Then follow `<prefix>-tier-0/REA
 from that tier's root; its
 commands use tier-local code and shared helpers with local inputs. Substitute
 the prefix if customized. Each README is a developer-owned starter template.
+Track completed deployment paths and options in `<prefix>-architecture/deployments.md`.
 
 The [deployment checklist](docs/paths/tier-0/README.md#deployment-order) leads
 from foundation prerequisites through software intake, protected logging, trust, Kubernetes, identity,
 shared services and controlled automation. Each capability has a numbered deployment path.
-Use `<prefix>-architecture/docs/README.md` to record selected paths and deployed/verified
-capabilities. Its links lead directly to the maintained `docs/auto-docs/` manual;
+Use `<prefix>-architecture/docs/README.md` for selected design and evidence links,
+and `deployments.md` beside its root README for completed paths/options. These lead to the `docs/auto-docs/` manual;
 add project documentation only for local differences or operating records.
 
 <a id="update-your-collection"></a>
@@ -68,13 +69,15 @@ bash scripts/init-tier-repos.sh --refresh
 ```
 
 Reuse the `--prefix` and `--root` flags if customized. Add `--dry-run` to preview.
-Refresh updates kit automation, saving backups before replacing local code edits.
+Refresh updates kit automation and replaces example files with their current versions,
+saving backups before replacing local code edits.
 It preserves local configuration and project records, restores missing generated files,
 and removes obsolete auto-docs. Use `--code-conflicts ask` to choose per edited automation file,
 or `--code-conflicts preserve` to keep local development changes. See the
 [refresh contract](docs/development/generated-repositories.md#refresh-and-local-ownership).
 A final review summary links preserved automation/configuration differences to current templates and lists
-retired generated code. README/prose differences are omitted; project documents stay protected.
+retired generated code. Changed examples point to matching local configuration for comparison.
+README/prose differences are omitted; project documents stay protected.
 
 <a id="find-your-way"></a>
 

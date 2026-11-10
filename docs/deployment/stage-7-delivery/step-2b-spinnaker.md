@@ -2,6 +2,7 @@
 
 **Working repository:** `<prefix>-tier-1`.
 **Branch from:** [Step 2](README.md#step-2-select-and-qualify-delivery).
+**Return:** to Step 2 controller acceptance, then Step 3 artifact supply.
 **Change:** install native Spinnaker release pipelines instead of Argo CD application GitOps.
 **Prerequisites:** accepted Tier 1 cluster, storage, private DNS, Traefik,
 preissued TLS Secrets and Keycloak. An independently commissioned cert-manager issuer

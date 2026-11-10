@@ -4,7 +4,7 @@ Initialize Tier 0's local files and register the installed Proxmox hosts for Ans
 Complete this once before running host-management tasks from `boot-1` or another approved execution host.
 
 **Working repository:** `<prefix>-tier-0/`, with its sibling Shared checkout.
-**Prerequisites:** installed Proxmox hosts, the [prepared bootstrap tools and SSH key](../../deployment/foundation/proxmox/bootstrap.md),
+**Prerequisites:** installed Proxmox hosts, the [prepared bootstrap tools and SSH key](../../deployment/foundation/bootstrap/README.md),
 permitted management-network SSH access and independent host-console access.
 Existing hosts are registered here; they are not created or imported into Terraform.
 

@@ -27,48 +27,60 @@ never substitute Fedora RPMs, nightly packages or disabled signature checks. [1]
 
 ## Step 1: Prepare the data volume
 
-### 1. Identify the data disk
+<a id="1-identify-the-data-disk"></a>
 
-On **`log-1`**, identify the separate data disk by its actual device/serial:
+### 1. Select the attached disk
+
+Edit **`<prefix>-tier-0/ansible/group_vars/syslog.yml`**. The starter attaches its separate
+100 GiB data disk at `scsi1`; `/dev/sdb` is the reference guest device, not the OS disk:
+
+```yaml
+syslog_ng_data_device: /dev/sdb
+syslog_ng_data_mount: /srv/security-logging
+syslog_ng_data_fstype: xfs
+```
+
+For a different guest layout, set its actual dedicated device or stable `/dev/disk/by-id/` path.
+The role refuses root/mounted devices, partitioned whole disks, conflicting mounts and populated
+unmounted targets. An existing partition can be selected directly; it is never repartitioned.
+
+<a id="2-prepare-the-persistent-mount"></a>
+
+### 2a. New blank disk — main path
+
+In the **same Tier 0 file**, retain:
+
+```yaml
+syslog_ng_data_uuid: ""
+```
+
+Continue at Step 2. Installation creates XFS only on a signature-free, unmounted device with no
+existing mount declaration, then persists its UUID mount. No manual formatting or mount command is needed. [5][6]
+
+### 2b. Existing or recovered filesystem — adoption path
+
+Set `syslog_ng_data_device`, `syslog_ng_data_fstype` (`xfs` or `ext4`) and `syslog_ng_data_uuid`
+to the retained filesystem's actual values. Obtain its UUID from the recovery record or, on **`log-1`**:
 
 ```bash
 lsblk --output NAME,SERIAL,SIZE,FSTYPE,UUID,MOUNTPOINTS
 ```
 
-**Expected:** the OS disk and separate data disk are distinguishable. Stop if the data disk is unidentified.
+Stop if identity is uncertain. An explicit UUID mismatch, incompatible signature or missing declared
+volume blocks deployment; it never authorizes replacement or evidence deletion. Existing encrypted
+storage also needs its qualified unlock mapping and independently held keys; this recipe creates neither.
+Both paths continue at Step 2. For multiple receivers, keep each pin/device override in its inventory host vars.
 
-### 2. Prepare the persistent mount
+<a id="3-record-the-mounted-volume"></a>
 
-On **`log-1`**, prepare an approved XFS/ext4 filesystem and persistent UUID-based mount at
-`/srv/security-logging`, including encryption and independently held keys where required.
-An existing prepared volume is valid. This is manual storage preparation, not a playbook action.
-Verify the disk and backup before any formatting; never format the OS disk or historical evidence.
+### 3. Retain the storage binding
 
-Reboot the receiver and reconnect. Inspect its mount and free capacity:
-
-```bash
-findmnt --mountpoint /srv/security-logging --output TARGET,SOURCE,UUID,FSTYPE,OPTIONS
-df -h /srv/security-logging
-```
-
-**Expected:** the intended data filesystem remains mounted after reboot, with the required capacity.
-Stop if the persistent mount is not ready; deployment cannot create it safely from an assumed device name.
-
-### 3. Record the mounted volume
-
-On the execution host, edit **`<prefix>-tier-0/ansible/group_vars/syslog.yml`**.
-Use the UUID reported above, not a device name:
-
-```yaml
-syslog_ng_data_mount: /srv/security-logging
-syslog_ng_data_uuid: REPLACE_WITH_VERIFIED_FILESYSTEM_UUID
-```
-
-For multiple collectors, put each UUID in its inventory host variables instead and repeat these checks per host.
-
-The role requires this exact writable mount on a different filesystem/device from
-`/`; it never partitions, formats or mounts disks. The service also refuses startup
-without the mount. The preflight free-space threshold is a gate, not a capacity alarm.
+**IaC:** the Tier 0 [receiver role](../../../tier-0/ansible/roles/syslog_ng/tasks/main.yml) invokes
+[Shared's guarded data-volume role](../../../shared/ansible/roles/data_volume/tasks/main.yml)
+before validating the receiver. Its verified UUID supplies the effective receiver identity when the input
+is empty. `/etc/fstab` retains that UUID for later runs; an explicit input pin remains authoritative.
+Keep both the guest's storage declaration and its recovery records. The service requires the mount;
+free-space checks are deployment gates, not continuous capacity alarms.
 
 ## Step 2: Register trust and producers
 
@@ -76,6 +88,8 @@ without the mount. The preflight free-space threshold is a gate, not a capacity 
 
 From the protected **Tier 0 signing controller**, complete [logging trust Steps 1-2](producer-trust.md),
 then return here. An existing qualified independent authority is an alternative.
+If this receiver's approved identity was already issued, verify and reuse its original material;
+do not initialize another authority or regenerate its service key to follow this link again.
 
 **Expected:** public CA bundle, current server certificate/full chain with the receiver identity in its
 SAN and server-auth usage, matching unencrypted service key, and current signed CRL. Protect service files
@@ -145,19 +159,25 @@ Run from **`<prefix>-tier-0/`**, retaining the certificate environment from acti
 bash scripts/deploy.sh syslog --ansible-only
 ```
 
-**Expected:** `syslog-ng-receiver.service` is installed as a dedicated unprivileged network-only instance.
+**Expected:** the guarded filesystem is mounted at `/srv/security-logging`, and
+`syslog-ng-receiver.service` is installed as a dedicated unprivileged network-only instance.
 It does not start the vendor `syslog-ng.service`, stop rsyslog, consume `/dev/log` or replace journald.
 A running/enabled vendor syslog-ng instance blocks this recipe; select an explicit alternative instead.
 The unused vendor unit is disabled/masked after installation to prevent a boot conflict.
 
 ### 9. Check the service
 
-On **`log-1`**, inspect startup errors without deleting queues:
+On **`log-1`**, verify the data mount and inspect startup errors without deleting queues:
 
 ```bash
+findmnt --mountpoint /srv/security-logging --output TARGET,SOURCE,UUID,FSTYPE,OPTIONS
+df -h /srv/security-logging
 sudo systemctl status syslog-ng-receiver.service
 sudo journalctl --unit syslog-ng-receiver.service --since '-10 minutes'
 ```
+
+**Expected:** the selected UUID, filesystem and capacity are present. Record the UUID outside the guest;
+verify the persistent mount after a controlled reboot before accepting recovery readiness.
 
 ### 10. Enable the first producer and verify its event
 
@@ -181,9 +201,11 @@ Do not remove sources or change queue paths/capacities with an unreviewed backlo
 
 ## References
 
-Sources checked 2026-10-19.
+Sources checked 2026-11-10.
 
 1. [Fedora package catalogue: syslog-ng and EPEL versions](https://packages.fedoraproject.org/pkgs/syslog-ng/syslog-ng/index.html)
 2. [syslog-ng TLS, certificate validation and subject restrictions](https://syslog-ng.github.io/admin-guide/100_TLS-encrypted_message_transfer/004_TLS_options.html)
 3. [syslog-ng first-read TLS peer metadata fix](https://github.com/syslog-ng/syslog-ng/pull/5603)
 4. [Upstream stable package availability and binary-installation entry](https://www.syslog-ng.com/community/b/blog/posts/syslog-ng-4-11-0-packaging-status)
+5. [Ansible native filesystem creation and growth](https://docs.ansible.com/projects/ansible/latest/collections/community/general/filesystem_module.html)
+6. [Ansible persistent filesystem mounts](https://docs.ansible.com/projects/ansible/latest/collections/ansible/posix/mount_module.html)

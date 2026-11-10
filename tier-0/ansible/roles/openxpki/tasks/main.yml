@@ -1,9 +1,27 @@
 ---
-- name: Validate issuer prerequisites before making changes
-  ansible.builtin.import_tasks: preflight.yml
+- name: Validate issuer inputs before storage mutation
+  ansible.builtin.import_tasks: preflight-inputs.yml
+
+- name: Validate independent portal credentials before storage changes
+  ansible.builtin.import_tasks: portal-preflight.yml
+
+- name: Prepare the dedicated issuer volume and database bind
+  ansible.builtin.import_tasks: storage.yml
+
+- name: Validate mounted issuer state before installing packages
+  ansible.builtin.import_tasks: preflight-storage.yml
 
 - name: Validate existing signing identity before any active-runtime changes
   ansible.builtin.import_tasks: signer.yml
+
+- name: Record the deployment binding before initializing any application state
+  ansible.builtin.copy:
+    content: "{{ openxpki_binding | to_nice_json }}\n"
+    dest: "{{ openxpki_data_mount }}/deployment.json"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
 
 - name: Install the approved native runtime
   ansible.builtin.import_tasks: packages.yml

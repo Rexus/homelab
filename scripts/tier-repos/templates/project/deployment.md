@@ -4,6 +4,9 @@ Project-owned procedures for realizing the [selected architecture](../architectu
 Select the capability stage, then record the local main path and any option branches.
 Existing services can satisfy verified prerequisites.
 
+After completing a deployment or option, check its entry in the shared
+[deployment checklist](${checklist}). Keep local exceptions and acceptance evidence here.
+
 | Stage | Selected variant / local procedure | Acceptance evidence | Reference |
 | --- | --- | --- | --- |
 | Foundation prerequisites | Record hosts, networks, templates, provisioning access and independent recovery | Pending review | [Foundation](${docs}/deployment/foundation/README.md) |

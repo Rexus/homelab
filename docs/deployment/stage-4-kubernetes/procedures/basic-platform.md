@@ -91,8 +91,12 @@ Run from **`<prefix>-tier-0/`**, using the exported cluster credentials:
 
 ```bash
 cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster_platform.yml
-export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+export KUBECONFIG="${KUBECONFIG:-$PWD/secrets/talos/kubeconfig}"
 ```
+
+Retain the kubeconfig exported by the selected cluster lifecycle. For a manual cluster in a new shell,
+set `KUBECONFIG` to its existing `secrets/<cluster-name>/kubeconfig` before this block; the fallback
+above is only the Terraform workflow's export path. Set `cluster_platform_kubeconfig` to that same file.
 
 **Expected:** missing inputs copied; existing selections preserved. On **the execution host**, complete
 the [control-node tooling](../../../reference/control-node-tooling.md) for the coordinated tier-local

@@ -1,5 +1,10 @@
 # Install Tier 0 control applications
 
+**Stage route:** [Stage 6, Step 1a](../README.md#step-1-deploy-the-secret-service) installs Vault;
+[Step 2](../README.md#step-2-add-operational-tools) installs NetBox/Headlamp separately.
+**Return:** to the selected step for its ceremony and acceptance checks. Keycloak belongs to
+[Stage 5](../../stage-5-identity/README.md#step-2-deploy-identity-federation); do not reinstall it here.
+
 Render or install Keycloak, Vault, NetBox and Headlamp with tier-owned product
 configuration and Shared's native Helm/Kubernetes execution. Select products by
 stage; an install does not grant operational acceptance or transfer directory authority.

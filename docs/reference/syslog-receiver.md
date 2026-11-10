@@ -1,7 +1,8 @@
 # Syslog receiver contract
 
 Tier 0 owns `ansible/roles/syslog_ng/`, the `foundation_logging` inventory and
-receiver inputs. Shared supplies only baseline/execution code. Deployment is in
+receiver inputs. Shared supplies reusable baseline/data-volume/execution code,
+with no inventory or resource ownership. Deployment is in
 [Stage 2 receiver setup](../deployment/stage-2-logging/receiver.md); the
 [evidence design](../architecture/operations/security-logging.md) owns retention and trust boundaries.
 
@@ -36,7 +37,9 @@ overrides stay in ignored Tier 0 group/host vars, never Shared.
 
 | Input | Default / contract |
 | --- | --- |
-| `syslog_ng_data_mount`, `syslog_ng_data_uuid` | `/srv/security-logging`; UUID required, prepared independent writable XFS/ext4 filesystem |
+| `syslog_ng_data_device`, `syslog_ng_data_mount` | `/dev/sdb`, `/srv/security-logging`; dedicated guest block device and persistent UUID mount |
+| `syslog_ng_data_fstype`, `syslog_ng_data_uuid` | `xfs`, empty; new blank disk may be initialized, while existing/restored storage retains its explicit UUID pin; `ext4` also supported |
+| `syslog_ng_data_environment` | `{}`; optional approved package-download environment for Shared's filesystem prerequisites; baseline configures native repository access |
 | `syslog_ng_min_free_mb` | 2048; startup/deployment gate, not continuous quota or alarm |
 | `syslog_ng_sources` | Empty, blocks deployment; entries: `name`, observed IPv4 `address`, numeric `tier` 0/1/2, exact `tls_dn` with matching CN |
 | `syslog_ng_legacy_sources` | Empty, no UDP; explicit accepted entries: `name`, `address`, `tier`; names unique across both lists |
@@ -76,7 +79,7 @@ does not cryptographically authenticate every device behind it.
 | Control | Supplied behavior / remaining limit |
 | --- | --- |
 | Host logger | No local socket/journal consumption or OS logger changes; running/enabled vendor daemon blocks adoption; unused vendor unit masked; configure OS forwarding separately |
-| Storage safety | Exact mount/UUID/device/free-space preflight; systemd mount requirement; no formatting, retention deletion or queue pruning |
+| Storage safety | Shared prepares only an undeclared signature-free disk, persists a UUID mount and grows the filesystem; explicit pins/fstab prevent silent replacement. Receiver checks mount/UUID/device/free space; systemd requires the mount. No retention deletion or queue pruning |
 | TLS | Trusted client chain plus exact subject allowlist and observed-IP/CN routing; first CA validity/constraint and server validity/key checks before file copy; no automatic issuance |
 | Host isolation | Dedicated non-login service user, read-only system, limited bind capability and native SELinux labels/ports; policy remains enabled |
 | Network ACL | Narrow per-source host rules; no automatic removal of stale/pre-existing broader firewall rules; review gateway and host rules on source removal |

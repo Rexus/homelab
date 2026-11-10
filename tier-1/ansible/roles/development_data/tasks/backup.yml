@@ -30,6 +30,10 @@
   no_log: true
   diff: false
 
+- name: Mount and verify the independent NAS backup destination
+  ansible.builtin.include_tasks: backup-mount.yml
+  when: development_data_backup_transport == 'filesystem'
+
 - name: Install SFTP credentials only for the SFTP transport
   ansible.builtin.copy:
     src: "{{ item.src }}"

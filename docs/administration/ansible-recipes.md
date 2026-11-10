@@ -109,8 +109,8 @@ explicit kubeconfig. Their default action is offline `render`; `apply` is explic
 | 1 | `deployment/delivery-platform.yml` | [Delivery](../deployment/stage-7-delivery/README.md) |
 | 1 | `deployment/observability-platform.yml` | [Observability](../deployment/stage-8-observability/README.md) |
 | 1 | `deployment/development-platform.yml` | [GitLab and runners](../deployment/stage-9-development/procedures/gitlab.md) |
-| 2 | `deployment/lab-environment.yml` | [Bounded application](../deployment/stage-10-lab-environments/application.md) |
-| 2 | `deployment/workload-telemetry.yml` | [Scoped application telemetry](../deployment/stage-10-lab-environments/telemetry.md) |
+| 2 | `deployment/lab-environment.yml` | [Bounded application](../deployment/stage-10-lab-environments/step-3a-application.md) |
+| 2 | `deployment/workload-telemetry.yml` | [Scoped application telemetry](../deployment/stage-10-lab-environments/step-3c-telemetry.md) |
 
 Tier 0's `deployment/infrastructure-monitoring.yml` instead targets an explicitly
 prepared host outside observed clusters; use the [independent monitoring guide](../deployment/stage-6-secrets/monitoring.md).

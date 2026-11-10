@@ -63,10 +63,10 @@ Optional preview uses `--plan-only`; approved provisioning jobs can use `--auto-
 
    This cleans cloud-init state, SSH host keys and caches. The staged VM is no longer
    a normal reusable running guest; proceed to conversion.
-   **Acceptance pause:** inspect cleanup results before conversion. The current role does not fail
-   the play on a `cloud-init clean` error. Verify its success and the intended machine-ID/SSH-key
-   reset through the builder's independent console; an overall green recap is insufficient.
-   Keep the builder unconverted if cleanup is uncertain. Do not rerun the package/update recipe
+   **Acceptance pause:** the role aborts on a `cloud-init clean` error. Require successful cleanup
+   and verify the intended machine-ID/SSH-key reset through the builder's independent console
+   before conversion. Keep the builder unconverted if cleanup is uncertain.
+   Do not rerun the package/update recipe
    after cleanup merely to inspect it; that can reboot the cleaned guest before conversion.
 3. In its Terraform guest entry, set `template = true` and `started = false`, then run:
 

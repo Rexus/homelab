@@ -11,15 +11,21 @@
       - logging_backup_password is match('^/')
       - logging_backup_repository is match('^/[A-Za-z0-9_./-]+$')
       - "'..' not in logging_backup_repository.split('/')"
+      - "'' not in logging_backup_repository.split('/')[1:]"
+      - logging_backup_repository not in ['/', '/var', '/var/log', '/var/lib', '/srv', '/mnt', '/home', '/etc']
+      - logging_backup_repository != logging_backup_mount
       - not logging_backup_repository.startswith(logging_backup_mount + '/')
+      - not logging_backup_mount.startswith(logging_backup_repository + '/')
+      - logging_backup_repository_min_free_bytes | int >= 0
       - logging_backup_watchdog_url is match('^https://[A-Za-z0-9./_?=&:%-]+$')
       - "logging_backup_calendar is match('^[A-Za-z0-9*: ,./-]+$')"
-    fail_msg: Use a separately administered recovery host and an independent mounted recovery repository.
+    fail_msg: Use a separately administered recovery host and an explicitly selected independent recovery volume.
 
 - name: Install supported native backup dependencies
   ansible.builtin.package:
-    name: [restic, cifs-utils, python3, curl]
+    name: [restic, cifs-utils, python3, curl, util-linux]
     state: present
+  environment: "{{ logging_backup_environment }}"
 
 - name: Install recovery-only secrets without exposing them to the collector
   ansible.builtin.copy:
@@ -42,10 +48,8 @@
     opts: ro,credentials=/etc/security-log-backup-nas.credentials,vers=3.1.1,seal,nosuid,nodev,noexec,_netdev,nofail,dir_mode=0700,file_mode=0600
     state: mounted
 
-- name: Inspect the explicitly commissioned independent recovery mount
-  ansible.builtin.command:
-    argv: [mountpoint, --quiet, "{{ logging_backup_repository }}"]
-  changed_when: false
+- name: Prepare and validate the independent recovery repository mount
+  ansible.builtin.import_tasks: repository.yml
 
 - name: Prepare backup tooling and private status directory
   ansible.builtin.file:

@@ -2,7 +2,16 @@
 # Add an existing independent Linux host under logging_recovery in Tier 0 inventory.
 logging_backup_source: ""  # NAS archive share; read-only credential distinct from transfer identity
 logging_backup_marker: ""
-logging_backup_repository: ""  # independent mounted filesystem root; not the source NAS
+# New path: a dedicated attached disk on the independent recovery host, outside the source NAS failure domain.
+# Shared prepares a guarded filesystem and UUID mount; select the actual guest device before deployment.
+logging_backup_repository: /srv/security-log-backup
+logging_backup_repository_device: /dev/sdb
+logging_backup_repository_fstype: xfs
+# Empty for a new blank disk; pin the original filesystem UUID for existing/restored local storage.
+logging_backup_repository_uuid: ""
+logging_backup_repository_min_free_bytes: 1073741824
+# Adoption alternative: set repository_device to "" and repository to its already commissioned mount root.
+# That route never formats or changes its mount declaration; the role still checks identity/separation.
 logging_backup_initialize: false  # approve only first initialization; restore existing repository otherwise
 logging_backup_calendar: hourly
 logging_backup_watchdog_url: ""  # independent dead-man check, separate from collector checkpoint check

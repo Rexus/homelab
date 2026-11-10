@@ -137,6 +137,6 @@ is a reference allocation, independent of network policy.
 Selected implementation details live in the [reference platform](../reference-platform.md),
 [host/image prerequisites](../../deployment/foundation/README.md) and
 [cluster deployment guide](../../deployment/stage-4-kubernetes/README.md).
-The [HA realization](../../deployment/foundation/step-1b-cluster-ha.md) distinguishes
+The [HA realization](../../deployment/foundation/proxmox/step-1b-cluster-ha.md) distinguishes
 failure recovery, placement rules and rebalancing; guest restart is not uninterrupted
 application service or recovery from lost data.

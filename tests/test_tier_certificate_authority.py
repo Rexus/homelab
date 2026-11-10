@@ -35,7 +35,7 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
             issuer = (docs / 'deployment/stage-3-trust/procedures/issuer.md').read_text()
             for expected in (f'{prefix}-tier-0', 'deployment/openxpki.yml', 'template_vm_id',
                              '--plan-only', 'foundation --terraform-only',
-                             'extra-disk input', 'Debian 12', '2028-06-30', 'openxpki_required_state_paths'):
+                             'extra_disks', 'Debian 12', '2028-06-30', 'openxpki_required_state_paths'):
                 self.assertIn(expected, issuer)
             self.assertNotIn('bash scripts/deploy.sh openxpki', issuer)
             identity = (docs / 'deployment/stage-5-identity/procedures/freeipa.md').read_text()

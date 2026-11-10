@@ -36,7 +36,9 @@ That branch owns device initialization, acceptance and the return to issuer setu
 
 The intended consumer works, unauthorized operations fail, and a recovery custodian
 can restore service without undocumented local material. Record the selected threat
-model and outage tolerance, then return to the [hierarchy step](../README.md#step-2-establish-the-certificate-hierarchy).
+model and outage tolerance, then return to
+[issuer preparation](../README.md#step-1-prepare-issuer-and-key-custody).
+Complete the selected runtime/key/CSR path before the hierarchy-signing step.
 
 ## References
 

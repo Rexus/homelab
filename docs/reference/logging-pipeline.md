@@ -20,9 +20,10 @@ Start with [Stage 2](../deployment/stage-2-logging/README.md), not these impleme
 | --- | --- | --- |
 | Each tier | `ansible/playbooks/deployment/logging-producers.yml`, local inventory/group/host vars | Select host streams and run Shared's role |
 | Shared | `ansible/roles/log_forwarder/` | Stateless native rsyslog/journal/file configuration; no inventory or signing key |
+| Shared | `ansible/roles/data_volume/` | Guarded guest filesystem/mount execution; device, UUID and resource/state ownership stay tier-local |
 | Tier 0 | `ansible/playbooks/deployment/logging-authority.yml`, `ansible/roles/logging_authority/` | Protected controller signing/renewal, cumulative CRL; public CSR approval, no producer key export |
 | Tier 0 | `ansible/playbooks/deployment/logging-archive.yml`, `ansible/roles/logging_archive/` | NAS mount, create-only publication, source/copy health, application copies, read-audit rules |
-| Tier 0 | `ansible/playbooks/deployment/logging-backup.yml`, `ansible/roles/logging_backup/` | Separate `logging_recovery` host, read-only NAS identity, encrypted restic backup and repository check |
+| Tier 0 | `ansible/playbooks/deployment/logging-backup.yml`, `ansible/roles/logging_backup/` | Separate `logging_recovery` host, read-only NAS identity, guarded local repository preparation or adopted mount, encrypted restic backup and identity checks |
 | Tier 0 | `ansible/playbooks/deployment/logging-export.yml`, `ansible/roles/logging_export/` | Native Collector reads only field-allowlisted copies; persistent outbound queue and scoped mTLS to Tier 1 search |
 | Tier 0 | `ansible/playbooks/deployment/netbox-audit.yml`, `ansible/roles/netbox_audit/` | GET-only NetBox change ledger on the independent monitor; dedicated security stream into protected intake |
 
@@ -97,7 +98,15 @@ Exact defaults live with the named role; local overrides are ignored tier vars.
 | `log_forwarder_` | Per-host stream name/kind/input/files, receiver address/exact peer, public/request directories, queue and journal budgets |
 | `logging_authority_` | Protected directory/passphrase, reviewed CSR fingerprints/profile/SAN, revocation serials; explicit first initialization |
 | `logging_archive_` | Encrypted SMB source, independent marker, restricted credential file, snapshot contract, required source identities, free-space/lag/batch budgets, external dead-man URL; optional application source/group map |
-| `logging_backup_` | Independent host and prepared mounted repository, read-only NAS source/marker/credential, separately held password file, schedule/dead-man URL; explicit repository initialization |
+| `logging_backup_` | Independent host, explicit local repository device/path/fstype/UUID or adopted commissioned mount, free-space reserve, read-only NAS source/marker/credential, separately held password file and schedule/dead-man URL; explicit repository initialization |
+
+`logging_backup_repository_device` defaults to empty for compatibility with existing commissioned mounts.
+The new starter explicitly selects `/dev/sdb` at `/srv/security-log-backup`; Shared's `data_volume`
+prepares only eligible blank local storage and persists its UUID. Existing UUID pins are retained.
+Adoption changes no filesystem or mount declaration; supported destinations are XFS/ext4/Btrfs/ZFS
+or already mounted NFS/SMB. Root, the archive input, volatile filesystems and conflicting identities
+are rejected. Each job verifies the selected UUID (or remote source) and filesystem type before writing. [4]
+Storage labels/paths do not establish independent custody or hardware failure domains.
 
 SMB main-path mounts require 3.1.1 encryption and no executable/suid/device content;
 they do not format storage or commission NAS accounts/snapshots. Credential files
@@ -106,7 +115,7 @@ Secrets and marker/health URLs remain local, not upstream examples or CI output.
 
 ## Tests
 
-`test_tier_logging_archive.py`, `test_tier_logging_trust.py` and
+`test_tier_logging_archive.py`, `test_tier_logging_backup.py`, `test_tier_logging_trust.py` and
 `test_tier_syslog_receiver.py` cover generated ownership, native crypto policy,
 native TLS forwarding/restart, partial JSONL prefixes, create-only retries,
 collisions, forged application classification, offline verification and clean restic restore.
@@ -118,8 +127,9 @@ buffers, denied reads and alert delivery still require the
 
 ## References
 
-Sources checked 2026-10-19.
+Sources 1-3 checked 2026-10-19; mount identity reference 4 checked 2026-11-10.
 
 1. [Native rsyslog TLS and queue controls](https://docs.rsyslog.com/doc/configuration/modules/omfwd.html)
 2. [restic backup completion and errors](https://restic.readthedocs.io/en/stable/040_backup.html)
 3. [restic restore](https://restic.readthedocs.io/en/stable/050_restore.html)
+4. [Native findmnt source, target and filesystem selection](https://man7.org/linux/man-pages/man8/findmnt.8.html)

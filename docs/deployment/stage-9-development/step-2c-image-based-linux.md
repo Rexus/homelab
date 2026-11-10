@@ -5,7 +5,8 @@ Run repository scripts from this root; Tier 1 consumers keep their own workload 
 
 <a id="image-based-linux-path"></a>
 
-**Branch from:** [Step 2](README.md#step-2-add-on-demand-build-execution), when choosing the Tier 1 host lifecycle.
+**Branch from:** [Step 2](README.md#step-2-add-on-demand-build-execution), after the selected general runner
+and its registry destination are accepted. This adds host-image lifecycle, not another runner alternative.
 **Change:** Use image-based hosts while Tier 0 retains template ownership.
 **Return:** [Step 3](README.md#step-3-authorize-ci-through-vault) for secret integration before infrastructure handover.
 
@@ -80,22 +81,21 @@ it. General build services can prepare candidates, but acceptance and privileged
 publication remain protected at Tier 0. Offline custody uses separate transfers.
 See [Template lifecycle](../../administration/virtual-machines/template-lifecycle.md).
 
-Harbor is not required to start with bootc. The first useful internal path can
-run during the GitLab stage by using a dedicated GitLab runner and GitLab's
-built-in registry.
+Use the accepted Stage 7 registry for this Stage 9 option. A separately commissioned GitLab registry
+is another valid destination; the supplied Kubernetes GitLab chart disables its bundled registry.
+Installing GitLab does not satisfy that alternative's registry prerequisite.
 
 | Mode | Requirements | Use case |
 | --- | --- | --- |
 | standalone pilot | local build host and temporary registry or image source | initial evaluation of the model |
-| GitLab-stage path | GitLab, a bootc runner, and GitLab registry | automated internal OS image builds before Kubernetes |
+| GitLab-stage path | GitLab, a bootc runner, and an accepted registry | automated internal OS image builds |
 | shared registry path | GitLab CI/CD plus Harbor registry | scanning, promotion, and private update delivery across platforms |
 | hardened production path | signed images, protected tags, staged rollout, rollback tests | bootc becomes the normal server lifecycle |
 
 Red Hat image mode docs list a container registry as a prerequisite, and bootc
 docs note that private registries are common for fleets.[1][3] A local or
-external registry can satisfy that prerequisite for a pilot. GitLab's built-in
-registry is enough for the first internal bootc builds. Harbor is the repo
-reference for the later shared registry stage.
+external registry can satisfy that prerequisite for a pilot. The accepted Stage 7
+Harbor service is the reference destination here; a separately commissioned GitLab registry is also valid.
 
 ## What this deploys
 
@@ -154,12 +154,13 @@ and [builder recipe](../../../tier-0/ansible/playbooks/deployment/immutable-temp
 The same guest becomes a template after explicit verification; this does not create workload clones.
 CI/image publication is an existing prerequisite or project integration, not installed by the builder recipe.
 
-Figure: this workflow uses GitLab for the build and initial registry. Harbor is
-an optional promotion destination, not a required next stage. Other approved
+Figure: this workflow uses GitLab CI and the accepted registry destination. Harbor already belongs to
+Stage 7; it is not a later prerequisite. Other approved
 sources follow the selected [artifact-supply design](../../architecture/software/artifact-supply.md).
 Dashed lines mark approval boundaries, not implicit live access. Custody uses
-offline transfer; host updates remain separate. The [Podman runner procedure](step-2b-podman-runner.md)
-supplies the first build host.
+offline transfer; host updates remain separate. If native Podman builds are needed, select and accept
+the [Podman runner](step-2b-podman-runner.md) at Step 2b; a generic Kubernetes runner alone does not supply
+that build runtime.
 
 ## Template conversion flow
 
@@ -275,8 +276,9 @@ Initial bootc installation remains a prerequisite to image switching in this pat
 building disk images directly from the bootc image with the distro-supported
 image tooling when that path is ready for the environment.
 
-**Return:** [Stage 9, Step 3](README.md#step-3-authorize-ci-through-vault), or defer this optional
-image-lifecycle integration and continue there without converting a template.
+**Return after image-lifecycle acceptance:** [Stage 9, Step 3](README.md#step-3-authorize-ci-through-vault).
+If initial installation, conversion or rollback remains unqualified, record 2c as incomplete;
+the preparation role alone does not complete this option.
 
 ## Distro support
 

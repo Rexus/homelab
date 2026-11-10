@@ -1,0 +1,46 @@
+---
+- name: Verify the mounted filesystem identity before checking its independent marker
+  ansible.builtin.command:
+    argv: [findmnt, -rn, -M, "{{ data_backup_filesystem.mount }}", -o, 'TARGET,SOURCE,FSTYPE']
+  register: data_backup_mounted_identity
+  changed_when: false
+  failed_when: >-
+    data_backup_mounted_identity.rc != 0 or data_backup_mounted_identity.stdout !=
+    data_backup_filesystem.mount ~ ' ' ~ data_backup_filesystem.source ~ ' ' ~ data_backup_filesystem.fstype
+
+- name: Inspect the independent NAS marker without following links
+  ansible.builtin.stat:
+    path: "{{ data_backup_filesystem.mount }}/.development-data-backup-target"
+    follow: false
+  register: data_backup_marker
+
+- name: Require the custodian's existing ordinary marker file
+  ansible.builtin.assert:
+    that:
+      - data_backup_marker.stat.isreg | default(false)
+      - not data_backup_marker.stat.islnk | default(false)
+    fail_msg: The independent NAS marker is missing or unsafe; the backup client never creates or replaces it.
+
+- name: Read the existing NAS marker
+  ansible.builtin.slurp:
+    src: "{{ data_backup_filesystem.mount }}/.development-data-backup-target"
+  register: data_backup_marker_content
+
+- name: Match the independently recorded share identity
+  ansible.builtin.assert:
+    that: >-
+      data_backup_marker_content.content | b64decode | regex_replace('\n+$', '') == data_backup_filesystem.marker
+    fail_msg: Wrong NAS marker; preserve the share and correct the approved inputs before retrying.
+
+- name: Inspect the custodian's existing repository directory without modifying the NAS
+  ansible.builtin.stat:
+    path: "{{ data_backup_repository }}"
+    follow: false
+  register: data_backup_repository_directory
+
+- name: Require the independent private repository directory
+  ansible.builtin.assert:
+    that:
+      - data_backup_repository_directory.stat.isdir | default(false)
+      - not data_backup_repository_directory.stat.islnk | default(false)
+    fail_msg: The NAS custodian must provision the private repository directory and its write identity.

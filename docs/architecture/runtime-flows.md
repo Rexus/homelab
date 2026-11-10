@@ -157,7 +157,7 @@ and recovery. Detail: [infrastructure control](hosting/provisioning.md).
 
 ## Certificate and secret consumption
 
-The [certificate hierarchy](reference-platform.md#certificate-trust) is the
+The [certificate hierarchy](cryptography/README.md#completed-design) is the
 authoritative cross-tier trust view. It distinguishes offline authorization of
 intermediates from routine online issuance. The
 [cryptography domain](cryptography/README.md) expands signing, key custody,

@@ -1,5 +1,9 @@
 # Kubernetes platform path
 
+**Branch from:** [Stage 7, Step 1a](../README.md#step-1-create-the-platform-runtime) for a new cluster.
+**Return:** to Step 1 readiness, then Step 2 controller selection. An accepted existing cluster uses
+Step 1b and does not repeat this creation procedure.
+
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`) for the delivery platform.
 Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes) and
 [clusters/tier1/](../../../../tier-1/clusters/tier1); other clusters use their own tier repositories.

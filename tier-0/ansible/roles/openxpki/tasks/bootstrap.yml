@@ -25,7 +25,7 @@
       - ansible_mounts | selectattr('mount', 'equalto', openxpki_data_mount) | list | length == 1
       - >-
         (ansible_mounts | selectattr('mount', 'equalto', openxpki_data_mount) | first).uuid
-        == openxpki_data_uuid
+        == openxpki_effective_data_uuid
 
 - name: Inspect bootstrap state without following links
   ansible.builtin.stat:

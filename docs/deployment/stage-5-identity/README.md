@@ -14,7 +14,17 @@ prerequisites, optional variants and live acceptance.
 **Design:** [identity authority](../../architecture/identity/README.md) and
 [cluster runtime](../../architecture/hosting/README.md).
 
+The supplied API SSO rollout uses the **Terraform-owned Talos 1.13.x** reference from Stage 4.
+A manual cluster needs its own qualified native SSO/recovery integration; the plan-based recipe
+does not adopt it. Talos 1.14 remains outside this complete reference path until separately qualified.
+
 ## Main path
+
+| Step | Detailed path | Rejoin |
+| --- | --- | --- |
+| 1: directory | [FreeIPA](procedures/freeipa.md), including its separate CA-signing pause | Step 2 after primary/replica acceptance |
+| 2: federation | [Keycloak](procedures/keycloak.md), including database/backup preparation | Step 3 after federation works |
+| 3: human access | [Kubernetes SSO](procedures/kubernetes-sso.md) and [service SSO contracts](procedures/service-sso.md) | Accept current identity clients; each later service connects SSO during its own installation |
 
 1. [Deploy the directory pair](#step-1-deploy-the-directory-pair)
 2. [Deploy identity federation](#step-2-deploy-identity-federation)

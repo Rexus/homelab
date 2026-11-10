@@ -150,7 +150,7 @@ For a ZFS template whose replacement still has a `vm-*` name,
 6. Wait for successful completion and refresh **Hardware**. The old unused row
    should be gone; the current `scsi0`, EFI and CloudInit entries must remain.
    Check the storage's **VM Disks** view for the old volume's removal, then
-   [review a fresh template plan](#step-3-verify-and-clone-test).
+   [review a fresh template plan](#step-6-review-the-template-plan).
 
 After deletion, rollback to that disk requires its independent backup; the receipt
 alone cannot restore it.

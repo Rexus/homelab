@@ -1,0 +1,73 @@
+---
+- name: Select this host's NAS client contract
+  ansible.builtin.set_fact:
+    data_backup_filesystem: "{{ development_data_backup_filesystem[inventory_hostname] }}"
+    data_backup_repository: "{{ development_data_backup_repository[inventory_hostname] }}"
+
+- name: Select mount management without changing legacy CIFS custody
+  ansible.builtin.set_fact:
+    data_backup_manage_mount: >-
+      {{ data_backup_filesystem.manage_mount | default(
+         data_backup_filesystem.fstype != 'cifs' or
+         data_backup_filesystem.credentials_src | default('') | length > 0) | bool }}
+
+- name: Inspect mount targets and persistent declarations without changing filesystems
+  ansible.builtin.include_tasks: backup-mount-inspect.yml
+
+- name: Install native NAS client packages
+  # host.yml intentionally qualifies these GitLab package services on EL9.
+  ansible.builtin.package:
+    name: "{{ 'cifs-utils' if data_backup_filesystem.fstype == 'cifs' else 'nfs-utils' }}"
+    state: present
+  when: data_backup_manage_mount
+
+- name: Install root-only SMB client credentials outside fstab
+  ansible.builtin.copy:
+    src: "{{ data_backup_filesystem.credentials_src }}"
+    dest: /etc/development-data/backup-smb.credentials
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+  diff: false
+  when:
+    - data_backup_manage_mount
+    - data_backup_filesystem.fstype == 'cifs'
+
+- name: Compose safe NAS options without weakening required protections
+  ansible.builtin.set_fact:
+    data_backup_mount_options: >-
+      {{ (['_netdev', 'nofail', 'rw', 'nosuid', 'nodev', 'noexec'] +
+          (['hard'] if data_backup_filesystem.fstype != 'cifs' else
+           ['seal', 'sec=ntlmssp', 'forceuid', 'forcegid',
+            'uid=' ~ data_backup_filesystem.uid, 'gid=' ~ data_backup_filesystem.gid,
+            'file_mode=0600', 'dir_mode=0700', 'credentials=/etc/development-data/backup-smb.credentials']) +
+          data_backup_filesystem.options | default(development_data_backup_mount_defaults[data_backup_filesystem.fstype]))
+          | join(',') }}
+  when: data_backup_manage_mount
+
+- name: Mount a new share without persisting an unverified NAS identity
+  ansible.posix.mount:
+    path: "{{ data_backup_filesystem.mount }}"
+    src: "{{ data_backup_filesystem.source }}"
+    fstype: "{{ data_backup_filesystem.fstype }}"
+    opts: "{{ data_backup_mount_options }}"
+    state: ephemeral
+  when:
+    - data_backup_manage_mount
+    - data_backup_existing_mount.rc != 0
+
+- name: Verify the independently commissioned NAS identity and repository
+  ansible.builtin.include_tasks: backup-mount-identity.yml
+
+- name: Persist the verified client mount for boot and backup services
+  ansible.posix.mount:
+    path: "{{ data_backup_filesystem.mount }}"
+    src: "{{ data_backup_filesystem.source }}"
+    fstype: "{{ data_backup_filesystem.fstype }}"
+    opts: "{{ data_backup_mount_options }}"
+    boot: true
+    dump: '0'
+    passno: '0'
+    state: mounted
+  when: data_backup_manage_mount

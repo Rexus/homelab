@@ -20,6 +20,11 @@ and Talos configuration, start with [Talos Terraform](procedures/talos-terraform
 both routes use the verification and handover steps below. Cluster service
 directories are starters, not installed services.
 
+**Downstream integration:** the supplied Stage 5 serial SSO recipe requires an original Terraform
+plan, so it cannot manage this manual lifecycle. This branch requires a separately qualified native
+OIDC rollout/recovery procedure before Stage 5 acceptance. Do not bootstrap Terraform over these nodes
+or fabricate a plan to bypass that ownership gate.
+
 ## Table of contents
 
 - [Prepare](#prepare)
@@ -48,13 +53,16 @@ Tier 2 uses the same workflow with its own repository, API, credentials and
 Before starting, have:
 
 - Prepared [Proxmox hosts](../foundation/proxmox/README.md#first-deployment-order), storage,
-  guest networks, and optional [HA/SDN](../foundation/step-1b-cluster-ha.md).
+  guest networks, and optional [HA/SDN](../foundation/proxmox/step-1b-cluster-ha.md).
 - A tested [Talos template](../foundation/proxmox/templates.md), its pinned release
   and schematic, and the matching installer image retained for recovery.
   Obtain its approved ID, title, and source node from the [shared catalog](../../reference/template-catalog.md).
 - Matching `talosctl`, compatible `kubectl`, and the required container images.
 - Recorded node IPs, names, VMIDs, API endpoint, and non-overlapping pod/service
   CIDRs. Provide DNS, time, and image access before this cluster exists.
+
+Retain the [approved Talos 1.13.x reference pin](../foundation/proxmox/templates.md#talos-version-contract)
+across the template, installer and CLI. Another minor requires complete platform and SSO qualification.
 
 The fast path uses the tested NoCloud template, a **network-only CloudInit drive**
 for each clone's static IP/gateway. For the Stage 4 reference, change the generated node configurations to
@@ -137,6 +145,30 @@ Review `controlplane.yaml`, `worker.yaml`, and `talosconfig`. Check installation
 disk, endpoint, DNS/time, address ranges, image access, and CNI settings before
 continuing. The empty `infrastructure/cni/` directory installs nothing.
 
+Create a separate reviewed machine file for each node from its role's generated file.
+For the reference control planes, run from **the owning tier's root** in the same shell:
+
+```bash
+cp -n "$CLUSTER_DIR/controlplane.yaml" "$CLUSTER_DIR/k8ctl-1.yaml"
+cp -n "$CLUSTER_DIR/controlplane.yaml" "$CLUSTER_DIR/k8ctl-2.yaml"
+cp -n "$CLUSTER_DIR/controlplane.yaml" "$CLUSTER_DIR/k8ctl-3.yaml"
+```
+
+For the reference Talos 1.13 schema, append one native hostname document per node,
+matching the names selected in the logging inputs. For `k8ctl-1`, use:
+
+```yaml
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+hostname: k8ctl-1
+auto: "off"
+```
+
+Use each node's own hostname in its own file. Do not apply `k8ctl-1`'s completed file to every
+control plane. This matches the [Terraform realization](../../../tier-0/terraform/deployments/kubernetes/machines.tf);
+do not add a conflicting legacy `machine.network.hostname` field. Other schemas require qualification.
+
 Before applying any node file, also complete [logging preparation Steps 1–3](procedures/security-logging.md#configure-and-render).
 Merge its native system/API audit settings into the appropriate node files alongside image-access/CNI settings,
 then return here. Rendering those patches needs charts, not a live cluster. Keep manual ownership;
@@ -192,10 +224,11 @@ export KUBECONFIG="$CLUSTER_DIR/kubeconfig"
 )
 ```
 
-When CNI is disabled for Cilium, install [networking](procedures/basic-platform.md#render-and-apply)
-before expecting node readiness or a successful `talosctl health`. The API and
-exported kubeconfig must already work. With networking installed, run `talosctl health`
-and continue the checks below.
+**Stage 4 checkpoint:** with API access and exported credentials working, return now to
+[Step 2](README.md#step-2-establish-the-basic-platform). Complete its interleaved Cilium,
+protected logging, storage and remaining add-on sequence. Nodes may remain NotReady before CNI;
+do not wait for `talosctl health` or install the full platform a second time here.
+After that sequence, run `talosctl health` and the handover checks below.
 
 If health checks time out after bootstrap was accepted, troubleshoot networking,
 images, and node state; do not simply run bootstrap again. In a new shell, set
@@ -209,13 +242,13 @@ node allocations and recovery references in project documentation. The manual
 route does not generate Terraform state or Ansible inventory; the Terraform
 route uses the owning tier's inventory and retains its own state.
 
-For HA, perform the [Proxmox failure checks](../foundation/step-1b-cluster-ha.md#prove-failover)
+For HA, perform the [Proxmox failure checks](../foundation/proxmox/step-1b-cluster-ha.md#prove-failover)
 and verify Kubernetes quorum/API availability separately. A VM restart alone
 does not prove cluster or application availability.
 
-For Tier 0, prepare the [Cilium node settings](procedures/basic-platform.md#prepare-talos)
-before bootstrap, then use the [native basic platform installer](procedures/basic-platform.md)
-and its [Flux/SOPS procedure](procedures/flux-sops.md). The starter Kustomizations
+Tier 0's [Step 2](README.md#step-2-establish-the-basic-platform) already installed the selected
+platform and Flux/SOPS. Verify that result here; do not rerun an alternative bootstrap.
+The starter Kustomizations
 do not install Flux or the named services. The alternative [Flux CLI bootstrap][4]
 has commit/push side effects and needs separate review and a single controller owner.
 Keep reviewed controller manifests and images for recovery without hosted source control.
@@ -226,7 +259,8 @@ Tier 0's controller credentials or automatically bootstrap Flux in other tiers.
 
 Continue with the shared [cluster foundation checklist](procedures/kubernetes.md#cluster-foundation)
 for SOPS/bootstrap secrets, storage, cert-manager, ingress, and CloudNativePG
-before adding the owning tier's service clients.
+before adding the owning tier's service clients. Return to
+[Stage 4, Step 3](README.md#step-3-verify-operation-and-recovery) for the Tier 0 acceptance gate.
 
 ## Recovery
 

@@ -1,5 +1,10 @@
 # Observability Configuration
 
+**Stage route:** [Stage 8, Step 1a](README.md#step-1-prepare-the-runtime) uses actions 1–4;
+[Step 2](README.md#step-2-deploy-the-signal-pipelines) uses actions 5–10 for the selected backup path.
+**Return:** to the owning step after those actions. Action 11 and the intake/reference sections support
+[Step 4's source and reader checks](README.md#step-4-publish-and-verify-read-only-views).
+
 The Tier 1 `observability_platform` role owns native product values, source routing,
 OpenSearch policy/bootstrap and readiness checks. Shared executes the pinned charts.
 Start with the [Stage 8 main path](README.md). All filled inputs and render outputs are private.
@@ -318,7 +323,7 @@ These are configurable inputs, not a second inventory. Services use `externalTra
 Provide a reviewed private TCP load balancer with node-local endpoint health checks, or a
 client routing configuration that uses the private workers currently hosting gateway pods.
 A DNS list alone does not establish exporter failover. Keep this endpoint contract aligned
-with [Tier 2 workload collection](../stage-10-lab-environments/telemetry.md).
+with [Tier 2 workload collection](../stage-10-lab-environments/step-3c-telemetry.md).
 
 Firewall rules admit only approved source CIDRs to the selected private worker NodePorts.
 No public edge route is created. Verify the CNI's NodePort/source-IP behavior against the
@@ -329,7 +334,7 @@ or ingress policy; native chart probes use its pod-local HTTP API. Ingestion its
 
 ## Approved Search Projections
 
-Tier 0 supplies the [approved-copy publisher and native Collector exporter](protected-log-search.md).
+Tier 0 supplies the [approved-copy publisher and native Collector exporter](step-4b-protected-log-search.md).
 The Observability recipe does not install them or acquire original-archive access.
 Until the separate Tier 0 export recipe is installed and accepted, projection search
 is configured but receives no evidence copies.

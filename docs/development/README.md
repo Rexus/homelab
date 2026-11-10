@@ -84,8 +84,6 @@ The collection directory is not itself a Git repository.
    keep the deployment figure and inputs aligned when the topology changes.
 3. Run the relevant [focused checks](testing.md), then review the diff.
 
-From the edited repository:
-
 Run from **the edited repository root**.
 
 ```bash
@@ -93,9 +91,7 @@ git diff --check
 git diff --stat
 ```
 
-For upstream generation changes, preview from the **kit root**:
-
-Run from **the upstream kit checkout**.
+For upstream generation changes, preview from **the upstream kit checkout**.
 
 ```bash
 bash scripts/init-tier-repos.sh --dry-run

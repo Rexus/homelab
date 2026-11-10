@@ -22,7 +22,7 @@ all:
   image_datastore_id: local
   # SDN alternative: use the existing VNet ID as bridge and set vlan_id: null.
   # The VNet owns VLAN tagging; zones/VNets are prepared separately.
-  # Reference: docs/deployment/foundation/step-1c-sdn.md
+  # Reference: docs/deployment/foundation/proxmox/step-1c-sdn.md
   bridge: vmbr0
   # Select the prepared bootstrap/control VLAN once here; use null for untagged.
   vlan_id: 10
@@ -66,6 +66,8 @@ templates:
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
     tags: [] # Optional image variants, for example [test] or [hardened].
   talos-build-1:
+    # Complete reference path with human SSO: select an approved exact Talos 1.13.x release.
+    # Match installer/schematic and talosctl; 1.14 is not qualified by the supplied SSO rollout.
     family: talos
     distribution: talos
     release: REPLACE_WITH_EXACT_TALOS_VERSION

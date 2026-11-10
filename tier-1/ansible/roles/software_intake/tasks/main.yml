@@ -1,11 +1,23 @@
 ---
-- name: Validate intake policy and prepared prerequisites
+- name: Validate intake policy and trusted inputs
   ansible.builtin.import_tasks: preflight.yml
+
+- name: Provision the attached intake data volume
+  ansible.builtin.include_role:
+    name: data_volume
+  vars:
+    data_volume_device: "{{ software_intake_data_device }}"
+    data_volume_path: "{{ software_intake_data_dir }}"
+    data_volume_fstype: "{{ software_intake_data_fstype }}"
+    data_volume_label: intake-data
+    data_volume_expected_uuid: "{{ software_intake_data_uuid }}"
+    data_volume_min_free_bytes: "{{ software_intake_min_free_bytes }}"
+    data_volume_environment: "{{ software_intake_environment }}"
 
 - name: Install native tools and approved controller collections
   ansible.builtin.import_tasks: install.yml
 
-- name: Prepare isolated identities and existing data storage
+- name: Prepare isolated identities and managed data storage
   ansible.builtin.import_tasks: storage.yml
 
 - name: Verify and install only pinned public publisher keys

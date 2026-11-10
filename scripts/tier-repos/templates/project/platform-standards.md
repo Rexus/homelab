@@ -124,4 +124,4 @@ not an automatic rename during refresh.
 - [VM/DNS patterns](docs/auto-docs/conventions/proxmox-conventions.md#vm-names)
 - [Tag conventions](docs/auto-docs/conventions/proxmox-conventions.md#vm-tags)
 - [Network allocations and deployment mapping](docs/auto-docs/conventions/network-plan.md)
-- [SDN fields and setup](docs/auto-docs/deployment/foundation/step-1c-sdn.md)
+- [SDN fields and setup](docs/auto-docs/deployment/foundation/proxmox/step-1c-sdn.md)

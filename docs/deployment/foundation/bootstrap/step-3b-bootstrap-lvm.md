@@ -1,4 +1,10 @@
-# Expand the bootstrap root filesystem with LVM
+# Step 3b: Expand the bootstrap root with LVM
+
+**Branch from:** [Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), option **3b**,
+at bootstrap Step 2, storage B. Choose enlargement **A** or new-PV **B** below.
+**Return:** [Foundation Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), continuing with
+[bootstrap tool acquisition](README.md#2a-install-git-terraform-and-ansible) after root/workspace checks;
+the separate-data mount and home-bind steps do not apply to this layout.
 
 <a id="expand-bootstrap-storage-with-rocky-linux-lvm"></a>
 
@@ -7,7 +13,7 @@ Prefer A when only more capacity is needed. Both paths grow root, including `/ho
 
 **Run on `boot-1`**, using the configured SSH account and authorized sudo. Have a current VM backup
 and Proxmox console access. This guide requires an ordinary LVM root filesystem; it does not apply to Talos.
-Start from [bootstrap storage B](bootstrap.md#b-expand-the-existing-rocky-linux-root--lvm-alternative).
+Start from [bootstrap storage B](README.md#b-expand-the-existing-rocky-linux-root--lvm-alternative).
 
 ## Contents
 
@@ -40,7 +46,7 @@ For an offline installation, first set the verified bundle path on **`boot-1`**:
 read -r -p 'Verified extracted bundle directory on mounted media: ' BUNDLE
 ```
 
-Follow [offline OS package installation](bootstrap-offline.md#7-install-signed-os-packages) using that
+Follow [offline OS package installation](step-3e-bootstrap-offline.md#7-install-signed-os-packages) using that
 bundle, then return here. The offline reference supplies EL10 RPMs; Debian/Ubuntu needs its own matching
 signed package bundle.
 
@@ -274,8 +280,8 @@ Keep the existing root mount; no new `/etc/fstab` entry or `/home` bind mount is
 Back up all disks containing the root VG in the [bootstrap recovery set](../../../administration/backups/recovery-set.md).
 Rollback uses the pre-change VM backup; shrinking root or unplugging a PV is not an undo step.
 
-**Continue:** [Bootstrap 2a](bootstrap.md#2a-install-through-approved-sources), or
-[Bootstrap 2b](bootstrap.md#2b-transfer-a-prepared-bundle--offline-alternative) for offline installation.
+**Continue:** [Bootstrap 2a](README.md#2a-install-through-approved-sources), or
+[Bootstrap 2b](README.md#2b-transfer-a-prepared-bundle--offline-alternative) for offline installation.
 For 2b, transfer and verify the full bundle in the completed workspace before restoring the kit/runtime.
 Skip the separate-filesystem mount check in bootstrap storage A.
 

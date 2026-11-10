@@ -2,7 +2,7 @@
 
 Build an offline root and an OpenXPKI infrastructure issuer in Stage 3.
 Stage 5 adds the sibling FreeIPA CA using that root; it is not installed by this procedure.
-Public websites use [Let's Encrypt at the edge](../../stage-10-lab-environments/public-https.md),
+Public websites use [Let's Encrypt at the edge](../../stage-10-lab-environments/step-3b-public-https.md),
 not this private root. Root keys never enter a connected hypervisor.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
@@ -179,8 +179,9 @@ an approved portal certificate before normal operations.
 Before accepting Stage 3, pass the selected
 [CA acceptance tests](../../../administration/cryptography/certificate-authority.md#acceptance-evidence),
 including [independent restoration](../../../administration/cryptography/issuer-recovery.md).
-Record the issuer's readiness before continuing to
-[Stage 4: Kubernetes](../../stage-4-kubernetes/README.md).
+Record the issuer's readiness, then return to
+[Stage 3, Step 3](../README.md#step-3-enable-and-verify-routine-issuance).
+Complete any selected API-certificate transition or verified-intake option there before Stage 4.
 
 In Stage 5, use the [two-phase FreeIPA installation](../../stage-5-identity/procedures/freeipa.md).
 Sign its CSR in a separate root ceremony using the same subordinate constraints.
@@ -189,7 +190,7 @@ issuer, not a leaf issued through the TLS-server portal.
 
 Public edge deployment is separate later work, not a Stage 3 acceptance dependency.
 When publishing public services, follow the
-[HTTPS deployment](../../stage-10-lab-environments/public-https.md) for origin trust, renewal
+[HTTPS deployment](../../stage-10-lab-environments/step-3b-public-https.md) for origin trust, renewal
 and failover, and retain [independent security alerts](../../../administration/cryptography/security-controls.md).
 
 ## References

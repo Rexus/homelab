@@ -14,6 +14,11 @@ The diagrams map selected resources and existing dependencies to IaC; they are n
 
 Use [Conventions](../conventions/README.md) when choosing names, tags, VMIDs or network allocations.
 
+After completing a deployment path, check its entry and selected options in
+**`<prefix>-architecture/deployments.md`**. Use `- [x]` for completed installations
+and `~~text~~` for unselected options. Keep live acceptance evidence separate;
+see [project records](../development/project-documentation.md#start-with-project-values).
+
 ## Table of contents
 
 - [Deployment stages](#deployment-stages)
@@ -26,9 +31,9 @@ Use [Conventions](../conventions/README.md) when choosing names, tags, VMIDs or 
 
 | Stage | Capability available | Working repository | Walkthrough |
 | --- | --- | --- | --- |
-| 1: Software intake | Controlled repository access, then retained repository/OCI extensions | Tier 2 proxy/cache; tier-local consumers; later Tier 1 content services | [Software intake](stage-1-software-intake/README.md) |
+| 1: Software intake | Controlled repository access and accepted bootstrap/host consumers | Tier 2 proxy/cache; tier-local consumers | [Software intake](stage-1-software-intake/README.md) |
 | 2: Protected logging | Independent collection, protected evidence and offline investigation | Tier 0 | [Protected logging](stage-2-logging/README.md) |
-| 3: Cryptographic trust | Offline root custody and an online issuing service | Tier 0 | [Trust](stage-3-trust/README.md) |
+| 3: Cryptographic trust | Offline root and online issuer; optional verified publication after issuance | Tier 0 trust; optional Tier 1 worker | [Trust](stage-3-trust/README.md) |
 | 4: Kubernetes | Independently bootstrapped Tier 0 cluster and basic platform | Tier 0 | [Kubernetes](stage-4-kubernetes/README.md) |
 | 5: Identity | Directory authority and federated OIDC access | Tier 0 | [Identity](stage-5-identity/README.md) |
 | 6: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-6-secrets/README.md), [monitoring](stage-6-secrets/monitoring.md) |
@@ -79,8 +84,9 @@ The [IaC capability map](#iac-capability-map) links each entry point to its sele
 
 For a new installation, follow this order. Existing infrastructure can satisfy a
 stage's verified prerequisites; a stage number is not a tier, network or state boundary.
-Software intake begins with controlled update access; its later repository and
-OCI extensions connect to Stage 7 while bootstrap supply remains independent.
+Stage 1 supplies controlled update access. Verified RPM/APT/artifact publication is
+[Stage 3 option 3b](stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional),
+after logging and issuance. OCI supply belongs to Stage 7; bootstrap supply stays independent.
 
 ## IaC capability map
 
@@ -102,7 +108,7 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Tier 0 | `infrastructure-runner` | Stage 9: dedicated trusted infrastructure CI VM | [Runner](stage-9-development/procedures/infrastructure-runner.md) |
 | Tier 0 | `ci-auth` | Stage 9: Vault JWT backend, bounded claims and policies; native Vault root | [Vault CI](stage-9-development/procedures/vault-ci.md) |
 | Tier 1 | `kubernetes` | Stage 7: shared platform cluster | [Platform runtime](stage-7-delivery/procedures/platform-cluster.md) |
-| Tier 1 | `intake` | Stage 1 option: verified repository and artifact intake VM | [Verified intake](stage-1-software-intake/verified-intake.md) |
+| Tier 1 | `intake` | Stage 3 option 3b: verified repository and artifact intake VM | [Verified intake](stage-3-trust/step-3b-verified-intake.md) |
 | Tier 1 | `development` | Stage 9 option: source-control VM | [Source-control VM](stage-9-development/step-1b-source-control-vm.md) |
 | Tier 1 | `development-data` | Stage 9: dedicated PostgreSQL, Redis and Gitaly VMs | [GitLab data services](stage-9-development/procedures/data-services.md) |
 | Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-9-development/step-2b-podman-runner.md) |
@@ -168,13 +174,18 @@ Edit in **`<prefix>-shared/`**.
    stage's prerequisites and intended result.
 2. Follow the numbered steps in the main README. At a decision, select an adjacent
    option such as Trust's `step-1b-usb-hsm.md`, then return to the stated step.
-3. Follow each named capability's numbered deployment and diagrams; use linked
+3. Complete every selected option and its return-point checks before leaving the stage.
+   A new-install option must consume only foundation, earlier stages or the already completed
+   steps of its own stage. Enhancements that need later prerequisites belong at that later decision point.
+4. Follow each named capability's numbered deployment and diagrams; use linked
    procedures for exact product configuration. Record selected options
    and acceptance evidence in the project's deployment documents.
 
 Each action names its working repository, files to edit, command and expected result.
 Branches such as **2a** and **2b** are alternatives; follow the selected branch and its
 return link instead of executing every option.
+Additive options are labelled **optional**; apply them after their prerequisites, then rejoin.
+External/manual integrations are labelled explicitly and must be qualified before the selected path is complete.
 
 For Linux setups, `bash scripts/deploy.sh <setup>` displays the plan and asks for `yes`,
 then configures the hosts. A separate `--plan-only` run is optional. Approved pipelines

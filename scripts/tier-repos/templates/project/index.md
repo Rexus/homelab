@@ -1,6 +1,7 @@
 # ${prefix} Platform Record
 
-Record selected paths and completion here; use auto-docs for the instructions.
+Record selected paths here; track completed deployments in [the checklist](../deployments.md).
+Use auto-docs for the instructions.
 Reference choices below are editable placeholders, not an accepted or deployed configuration.
 Exact hosts, addresses and resources remain in the owning tier's inputs.
 
@@ -22,7 +23,7 @@ connects these implementation choices to the overall system design.
 | --- | --- | --- |
 | Standards | Record local names, domains, tags and the zone/VNet network plan | [Platform standards](../platform-standards.md) |
 | VMID allocation | Follow the convention; keep individual assignments in tier-local Terraform | [VMID quick reference](auto-docs/conventions/vmid-convention.md) |
-| Hosting | Reference: Proxmox VE 9.2+, three hosts, native HA and dynamic rebalancing | [HA and failover](auto-docs/deployment/foundation/step-1b-cluster-ha.md) |
+| Hosting | Reference: Proxmox VE 9.2+, three hosts, native HA and dynamic rebalancing | [HA and failover](auto-docs/deployment/foundation/proxmox/step-1b-cluster-ha.md) |
 | Networks | Reference: VLAN-aware bridges; record SDN selection if used | [Network design](auto-docs/architecture/networking/README.md) |
 | Storage | Reference: Proxmox/Ceph live volumes, separate NAS backups | [Storage interfaces](auto-docs/architecture/data/README.md#storage-interfaces) |
 | Trust | Reference: software custody; record USB/network HSM selection if used | [Cryptography variants](auto-docs/architecture/cryptography/README.md) |
@@ -34,34 +35,11 @@ The [runtime relationships](auto-docs/architecture/runtime-flows.md) explain cro
 
 ## Deployment checklist
 
-Follow the linked main path, selecting adjacent options only where needed. In each
-row, replace the reference choice with the actual selection. Check **Deployed** after
-installation and **Verified** only after the guide's acceptance checks; an existing
-accepted service can satisfy the step without reinstalling it. Link non-secret evidence.
-Unchecked boxes are deliberate: generation proves no operational result.
-
-- [ ] **Foundation accepted:** hosts/network/storage, first Linux template,
-  [bootstrap execution host](auto-docs/deployment/foundation/proxmox/bootstrap.md), CA/API trust,
-  protected inputs/state and
-  [adopted or published templates](auto-docs/deployment/foundation/README.md#step-3-publish-and-test-vm-templates).
-  [Preparation](auto-docs/deployment/foundation/README.md).
-
-| Capability | Run from | Selected path / evidence | Deployed | Verified |
-| --- | --- | --- | :---: | :---: |
-| [1. Software intake](auto-docs/deployment/stage-1-software-intake/README.md) | Tier 2; consumers in every tier | Policy proxy/cache or existing approved supply | &#9744; | &#9744; |
-| [2. Protected logging](auto-docs/deployment/stage-2-logging/README.md) | Tier 0 | Syslog receiver, NAS copies and independent backup | &#9744; | &#9744; |
-| [3. Trust](auto-docs/deployment/stage-3-trust/README.md) | Tier 0 | Software PKI; [USB HSM option](auto-docs/deployment/stage-3-trust/step-1b-usb-hsm.md) | &#9744; | &#9744; |
-| [4. Kubernetes](auto-docs/deployment/stage-4-kubernetes/README.md) | Tier 0 | Control cluster and base platform | &#9744; | &#9744; |
-| [5. Identity](auto-docs/deployment/stage-5-identity/README.md) | Tier 0 | Dedicated directory pair and cluster IdP | &#9744; | &#9744; |
-| [6. Secrets](auto-docs/deployment/stage-6-secrets/README.md) | Tier 0 | Vault and control applications | &#9744; | &#9744; |
-| [7. Delivery](auto-docs/deployment/stage-7-delivery/README.md) | Tier 1; Flux remains Tier 0 | Select Argo CD or Spinnaker; record registry | &#9744; | &#9744; |
-| [8. Observability](auto-docs/deployment/stage-8-observability/README.md) | Tier 1; exports from Tier 0/2 | Metrics, traces and searchable log copies | &#9744; | &#9744; |
-| [9. Development platform](auto-docs/deployment/stage-9-development/README.md) | Tier 1; protected executor in Tier 0 | GitLab, runners, direct-CI trust, Vault and original-state handover | &#9744; | &#9744; |
-| [10. Lab environments](auto-docs/deployment/stage-10-lab-environments/README.md) | Tier 2 | Select isolated VMs or cluster environments | &#9744; | &#9744; |
-
-Replace a table checkbox with `&#9745;` when complete. Record deferred/not-selected
-capabilities explicitly; they are not failures or permission to skip prerequisites.
-This checklist tracks progress, not resource or state ownership.
+Use [deployments.md](../deployments.md) for completed IaC paths and their nested options.
+After Terraform and/or Ansible completes the linked installation, check that entry;
+strike through unselected options. Terraform-only can leave service configuration pending.
+Keep non-secret acceptance/recovery evidence in the operating records below;
+generation proves no operational result. Existing accepted services can satisfy prerequisites.
 
 | Repository | Local code and inputs |
 | --- | --- |

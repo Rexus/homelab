@@ -1,5 +1,9 @@
 # Infrastructure monitoring
 
+**Stage route:** [Stage 8, Step 3](README.md#step-3-connect-infrastructure-monitoring), after signal intake is ready.
+**Return:** to Step 3 after proving local diagnostics, independent alerts and approved metric delivery;
+then continue with Step 4 reader access.
+
 Connect IT-system health to [Stage 8, Step 3](README.md#step-3-connect-infrastructure-monitoring):
 Netdata live diagnostics plus retained infrastructure metrics and actionable alerts.
 This extends earlier Tier 0 monitoring; it does not relocate it into Tier 1.

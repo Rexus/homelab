@@ -1,6 +1,6 @@
 # Proxmox VE HA controls
 
-Field reference for the [cluster/HA setup](../deployment/foundation/step-1b-cluster-ha.md).
+Field reference for the [cluster/HA setup](../deployment/foundation/proxmox/step-1b-cluster-ha.md).
 Target Proxmox VE 9+; native dynamic balancing and HA arm/disarm require 9.2+.
 Values below are a conservative homelab starting policy, not settings applied by this kit.
 Use the installed UI's help if its patch-level labels differ.

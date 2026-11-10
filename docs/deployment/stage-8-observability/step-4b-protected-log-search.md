@@ -1,4 +1,10 @@
-# Protected-log search copies
+# Step 4b: Protected-log search copies
+
+**Branch from:** [Step 4](README.md#step-4-publish-and-verify-read-only-views), option **4b**, after the
+private projection listener and its scope policy are accepted.
+**Change:** export authorized copies into the existing search interface.
+**Return:** [Step 4](README.md#step-4-publish-and-verify-read-only-views) for reader-denial, replay and recovery tests.
+Application-only search skips this exporter.
 
 **Working repositories:** `<prefix>-tier-0` publishes and exports approved copies;
 `<prefix>-tier-1` owns the existing authenticated ingestion and search workloads.
@@ -116,15 +122,27 @@ Edit in **`<prefix>-tier-0/`**.
 
 Edit `ansible/group_vars/logging_export.yml`: match each scope's `name`/`group` to
 the approved copy, set the actual Tier 1 `endpoint` and the external certificate/key/CA
-paths. Set `logging_export_allow_egress_accepted: true` only after verifying its firewall path.
+paths. Match `logging_export_root` to the publisher's `logging_archive_projection_root` if customized.
+Set `logging_export_allow_egress_accepted: true` only after verifying its firewall path.
 
 From Tier 0, after the first approved files exist:
 
 Run from **`<prefix>-tier-0/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/logging-export.yml -e @ansible/group_vars/logging_export.yml
+read -r -p 'Receiver holding the approved copies (for example log-1): ' EXPORT_HOST
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  --limit "${EXPORT_HOST:?Select the receiver holding the approved copies}" \
+  ansible/playbooks/deployment/logging-export.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml \
+  -e @ansible/group_vars/logging_export.yml
 ```
+
+The direct playbook needs both common SSH settings and the receiver's `platform_host_ips` map;
+these setup files are not automatically loaded from `ansible/group_vars/`.
+For a named environment, load its `all.<env>.yml` and `syslog.<env>.yml` overrides after their
+base files. Run only against a receiver that actually holds this approved scope; adding `log-2`
+does not publish the same copy there automatically.
 
 The role installs a non-root native Collector using Podman Quadlet. Each container mounts only its
 selected copy directory read-only, its own credentials and writable local queue/cursors. It cannot

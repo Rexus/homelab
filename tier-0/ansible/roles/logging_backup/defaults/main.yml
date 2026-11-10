@@ -5,6 +5,12 @@ logging_backup_marker: ""
 logging_backup_mount: /mnt/security-log-recovery-source
 logging_backup_credentials: "{{ lookup('ansible.builtin.env', 'LOGGING_BACKUP_NAS_CREDENTIALS_FILE') }}"
 logging_backup_repository: ""
+# Empty preserves adoption of an existing independently commissioned mount.
+logging_backup_repository_device: ""
+logging_backup_repository_fstype: xfs
+logging_backup_repository_uuid: ""
+logging_backup_repository_min_free_bytes: 1073741824
+logging_backup_environment: {}
 logging_backup_password: "{{ lookup('ansible.builtin.env', 'LOGGING_BACKUP_PASSWORD_FILE') }}"
 logging_backup_initialize: false
 logging_backup_calendar: hourly

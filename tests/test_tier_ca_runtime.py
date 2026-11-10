@@ -41,12 +41,14 @@ class CertificateAuthorityRuntime(TierRepositoryTestCase):
 
     @unittest.skipUnless(os.name != 'nt' and shutil.which('ansible-playbook'), 'Requires Ansible on Linux/WSL')
     def test_native_preflight_and_database_guards_reject_unsafe_states(self):
-        tasks = yaml.safe_load((ROLE / 'tasks/preflight.yml').read_text())
+        tasks = [task for name in ('preflight-inputs', 'binding', 'storage-inspect', 'preflight-storage')
+                 for task in yaml.safe_load((ROLE / f'tasks/{name}.yml').read_text())]
         assertions = [task for task in tasks if 'ansible.builtin.assert' in task]
         valid = yaml.safe_load((ROLE / 'defaults/main.yml').read_text())
         valid.update(
             ansible_distribution='Debian', ansible_distribution_major_version='12', ansible_architecture='x86_64',
-            openxpki_data_uuid='data-uuid', openxpki_deployment_id='test-ca',
+            openxpki_data_uuid='11111111-1111-1111-1111-111111111111', openxpki_deployment_id='test-ca',
+            openxpki_effective_data_uuid='11111111-1111-1111-1111-111111111111', openxpki_data_fstype='ext4',
             openxpki_configuration_src='/local/configuration.tar.gz', openxpki_configuration_sha256='a' * 64,
             openxpki_repository_key_sha256='b' * 64, openxpki_portal_fqdn='ca.internal.example.com',
             openxpki_listen_address='10.20.21.10', openxpki_admin_networks=['10.10.10.0/24'],
@@ -56,9 +58,21 @@ class CertificateAuthorityRuntime(TierRepositoryTestCase):
             openxpki_database_password='x' * 40, openxpki_session_password='y' * 40,
             openxpki_session_secret='z' * 40,
             openxpki_configuration_stat=dict(stat=dict(isreg=True, checksum='a' * 64)),
-            openxpki_data_facts=[dict(uuid='data-uuid', fstype='ext4', options='rw', size_available=10 * 1024**3)],
-            openxpki_database_facts=[dict(uuid='data-uuid', options='rw')],
+            openxpki_data_facts=[dict(uuid='11111111-1111-1111-1111-111111111111', fstype='ext4',
+                                     options='rw', size_available=10 * 1024**3)],
+            openxpki_database_facts=[dict(uuid='11111111-1111-1111-1111-111111111111', options='rw')],
             openxpki_root_facts=[dict(uuid='root-uuid')],
+            openxpki_mount_tables=dict(results=[dict(rc=0, stderr=''), dict(rc=0, stderr='')]),
+            openxpki_fstab_targets=dict(results=[]), openxpki_fstab_mysql_sources=dict(results=[]),
+            openxpki_mysql_target=dict(stat=dict(exists=True, isdir=True, islnk=False)),
+            openxpki_mysql_target_realpath=dict(stdout='/var/lib/mysql'),
+            openxpki_mysql_mounts=[dict(fsroot='/mysql', fstype='ext4',
+                                      uuid='11111111-1111-1111-1111-111111111111',
+                                      options='rw,nodev,nosuid,noexec', **{'maj:min': '8:16'})],
+            openxpki_volume_mounts=[dict(uuid='11111111-1111-1111-1111-111111111111', fsroot='/', **{'maj:min': '8:16'})],
+            openxpki_mysql_fstab=[dict(source='/srv/openxpki/mysql', fstype='none', options='bind,nodev,nosuid,noexec')],
+            openxpki_data_fstab=[dict(source='UUID=11111111-1111-1111-1111-111111111111', fstype='ext4')],
+            openxpki_mysql_target_entries=dict(matched=0, skipped_paths={}),
             openxpki_binding_stat=dict(stat=dict(exists=False)), openxpki_existing_config=dict(stat=dict(exists=False)),
             openxpki_directories=dict(results=[dict(item='keys', stat=dict(exists=False))]),
         )
@@ -75,8 +89,19 @@ class CertificateAuthorityRuntime(TierRepositoryTestCase):
             ('missing data mount', dict(openxpki_data_facts=[])),
             ('wrong data mount', dict(openxpki_data_uuid='wrong')),
             ('missing database mount', dict(openxpki_database_facts=[])),
-            ('root storage', dict(openxpki_root_facts=[dict(uuid='data-uuid')])),
-            ('read-only database', dict(openxpki_database_facts=[dict(uuid='data-uuid', options='ro')])),
+            ('root storage', dict(openxpki_root_facts=[dict(uuid='11111111-1111-1111-1111-111111111111')])),
+            ('read-only database', dict(openxpki_mysql_mounts=[dict(valid['openxpki_mysql_mounts'][0], options='ro')])),
+            ('foreign database subdirectory', dict(openxpki_mysql_mounts=[dict(valid['openxpki_mysql_mounts'][0], fsroot='/foreign')])),
+            ('data-root subdirectory bind', dict(openxpki_volume_mounts=[dict(valid['openxpki_volume_mounts'][0], fsroot='/foreign')])),
+            ('linked database directory', dict(openxpki_mysql_target=dict(stat=dict(exists=True, islnk=True)))),
+            ('populated root database', dict(openxpki_mysql_mounts=[], openxpki_mysql_target_entries=dict(matched=1))),
+            ('malformed fstab with no rows', dict(openxpki_mount_tables=dict(results=[
+                dict(rc=0, stderr=''), dict(rc=1, stderr='parse error')]))),
+            ('partially parsed fstab', dict(openxpki_mount_tables=dict(results=[
+                dict(rc=0, stderr=''), dict(rc=0, stderr='parse error')]))),
+            ('aliased database target', dict(openxpki_fstab_targets=dict(results=[
+                dict(item='/var/lib/./mysql', stdout='/var/lib/mysql')]))),
+            ('foreign database source', dict(openxpki_fstab_mysql_sources=dict(results=[dict(stdout='/foreign')]))),
             ('unrestricted portal', dict(openxpki_admin_networks=['0.0.0.0/0'])),
             ('unregistered CA', dict(openxpki_existing_config=dict(stat=dict(exists=True)))),
             ('linked keys', dict(openxpki_directories=dict(results=[
@@ -100,6 +125,18 @@ class CertificateAuthorityRuntime(TierRepositoryTestCase):
                           openxpki_tables=dict(query_result=[[dict(total=tables)]]),
                           openxpki_initialize_database=initialize)
             cases.append((name, values, [guard], rejected))
+        portal = yaml.safe_load((ROLE / 'tasks/portal-preflight.yml').read_text())[-1]
+        portal_values = dict(openxpki_portal_fqdn='ca.internal.example.com',
+                             openxpki_portal_certificate=dict(valid_at=dict(now=True), public_key='public-key',
+                                                            subject_alt_name=['DNS:ca.internal.example.com']),
+                             openxpki_portal_key=dict(public_key='public-key'))
+        cases.append(('approved portal credentials', portal_values, [portal], False))
+        for name, changes in (
+            ('expired portal certificate', dict(openxpki_portal_certificate=dict(
+                portal_values['openxpki_portal_certificate'], valid_at=dict(now=False)))),
+            ('different portal key', dict(openxpki_portal_key=dict(public_key='different-key'))),
+        ):
+            cases.append((name, dict(portal_values, **changes), [portal], True))
         policy = yaml.safe_load((ROLE / 'tasks/policy.yml').read_text())[-1]
         policy_values = dict(
             openxpki_realm='infrastructure', openxpki_realms={'infrastructure': {}},

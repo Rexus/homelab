@@ -1,12 +1,15 @@
 # Connect the bootstrap host to accepted software intake
 
+**Continue from:** [Stage 1, Step 6](README.md#step-6-connect-the-bootstrap-host).
+**Return:** [Step 7](README.md#step-7-connect-proxmox-host-updates) after the selected consumer path passes.
+
 Configure the manually created `boot-1` after the Stage 1 supply is accepted.
 Use an internal policy proxy or commissioned native mirrors for subsequent updates;
 temporary acquisition access is not the permanent update path.
 
 **Working repository:** `<prefix>-tier-0`, on `boot-1` itself. The sibling Shared repository supplies
 the reusable tasks. This local play creates no guest, inventory entry or Terraform state.
-**Prerequisites:** the [prepared bootstrap environment](../foundation/proxmox/bootstrap.md),
+**Prerequisites:** the [prepared bootstrap environment](../foundation/bootstrap/README.md),
 its accepted Ansible installation and `community.general` collection, sudo access, working DNS/CA trust,
 and a tested Stage 1 endpoint reachable from the bootstrap network.
 
@@ -71,7 +74,7 @@ Use hostnames or IPs without `http://`, `https://` or a path.
 ### 2b. Native mirrors or disconnected supply
 
 Commission and test native client configurations first, using the
-[offline preparation workflow](../foundation/proxmox/bootstrap-offline.md#use-approved-sources-after-bootstrap)
+[offline preparation workflow](../foundation/bootstrap/step-3e-bootstrap-offline.md#use-approved-sources-after-bootstrap)
 for retained artifacts and tool configuration. Then set:
 
 ```yaml
@@ -86,7 +89,7 @@ Retain verified package signatures, TLS trust, provider lockfiles and independen
 ## 3. Apply the local configuration
 
 Use the accepted Ansible installation; activate the venv only if that installation path was selected.
-Verify [bootstrap sudo access](../foundation/proxmox/bootstrap.md#verify-sudo-access) first.
+Verify [bootstrap sudo access](../foundation/bootstrap/README.md#verify-sudo-access) first.
 For disconnected execution, source the prepared `offline.env`.
 The precheck below validates installed collections without attempting acquisition:
 

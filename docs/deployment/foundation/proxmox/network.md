@@ -54,9 +54,9 @@ before declaring the path ready.
 
 | Selection | Continue with | Return after |
 | --- | --- | --- |
-| Direct guest bridge/VLAN | Keep `bridge = "vmbr0"` and the actual `vlan_id` in guest inputs | [Foundation Step 1](../README.md#step-1-create-the-first-linux-template-manually) |
-| SDN VNet attachments | [1c: SDN setup and activation](../step-1c-sdn.md) | Activated VNets and matching switch trunks are checked |
-| Clustered hosts | [1b: Cluster/HA preparation](../step-1b-cluster-ha.md) | Every eligible host has the same guest attachment |
+| Direct guest bridge/VLAN | Keep `bridge = "vmbr0"` and the actual `vlan_id` in guest inputs | [Foundation Step 2](../README.md#step-2-create-the-first-linux-template-manually) |
+| SDN VNet attachments | [1c: SDN setup and activation](step-1c-sdn.md) | Activated VNets and matching switch trunks are checked |
+| Clustered hosts | [1b: Cluster/HA preparation](step-1b-cluster-ha.md) | Every eligible host has the same guest attachment |
 | Additional NIC capacity/resilience | [Bonds and bridges](#bonds-and-bridges) | Switch-side aggregation and host path are verified |
 | Direct full-mesh Ceph fabric | [OVS/RSTP alternative](#storage-fabric-ovsrstp) | Separate storage path, MTU and loop recovery are qualified |
 
@@ -260,7 +260,7 @@ ovs-appctl rstp/show
 
 ## Optional SDN for guest networks
 
-Follow [Step 1c: SDN guest networks](../step-1c-sdn.md) before attaching guests.
+Follow [Step 1c: SDN guest networks](step-1c-sdn.md) before attaching guests.
 The procedure owns VNet setup and Terraform attachment examples; the host underlay
 and validation checklist remain in this guide.
 

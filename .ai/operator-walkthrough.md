@@ -1,6 +1,6 @@
 # Operator walkthrough checklist
 
-Guide sequences rechecked 2026-11-09 against the current worktree, from the
+Guide sequences rechecked 2026-11-10 against the current worktree, from the
 perspective of a software engineer with newly installed servers and UniFi switches.
 This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
@@ -18,6 +18,101 @@ Validation: 75 distinct focused regression checks passed, with targeted navigati
 the final correction; 576 Bash blocks passed syntax checks. Original Markdown anchors were retained.
 
 ## Current source consistency review
+
+### Connectivity and consolidation follow-up, 2026-11-10
+
+- [x] Trace all 220 public Markdown pages, including the root README, from the front door;
+  no unreachable pages or pages without incoming references remain.
+- [x] Add whole-manual source/generated reachability checks, including diagram assets and
+  detection of orphan cycles. Keep selectable deployment-path checks separate and stricter.
+- [x] Consolidate refresh, developer dependency setup, host registration and partial-publication
+  recovery into their existing authoritative guides, with explicit return points.
+- [x] Remove the repeated architecture service inventory and centralize search permissions,
+  tenant separation and retention detail. Retain task-local commands, prerequisites and short summaries.
+- [x] Recheck affected local links and the consolidated OpenSearch access references.
+
+Validation: **561 portable cases; 322 passed and 239 explicit native/tool-dependent skips**.
+All 12 targeted security-contract, source/generated link and reachability checks passed.
+The isolated redacted secret scan and final staged-file whitespace check also passed.
+
+The earlier operational and external-link exclusions still apply. Publication is explicitly
+authorized in this follow-up; preserve the configured signed-commit policy.
+
+### Repository audit, 2026-11-10
+
+Reviewed the front doors, all 219 public documentation pages, generated repository
+navigation and all ten stage-to-IaC paths. The deployment subtree has 91 guides,
+including 30 numbered option files. This is source/local qualification, not live acceptance.
+
+- [x] Align numbered choices, dedicated filenames, branch returns and legacy link migration;
+  separate bootstrap preparation from Proxmox-specific guides.
+- [x] Place verified intake after accepted logging/trust at Stage 3 option 3b, and host hardening
+  after service hosts exist. Correct detailed coverage tables and retired source/runtime doc links.
+- [x] Preserve manual-cluster credentials through later guides, qualify Talos 1.13.x before
+  image/node selection, and disclose the manual-cluster SSO implementation gap before that choice.
+- [x] Supply the optional Stage 6 `mon-1` VM/disks through the existing foundation root/state;
+  preserve issuer/directory maps, run Terraform only, then baseline, enroll logging and install monitoring.
+  Keep the existing-host alternative and single-monitor outage limits explicit.
+- [x] Correct receiver/export target selection, actual host connection inputs, native render commands,
+  accepted-registry pipeline examples and required certificate enrollment handoffs.
+- [x] Align implementation diagrams, source/input links, completion records and VMID reservations;
+  keep deployment allocations out of figures and retain stable architecture role labels.
+- [x] Replace three missing external references: Flux community chart documentation, Vault snapshot
+  commands and the RHEL bootc catalog page. HEAD false negatives were retried with GET.
+
+Validation:
+
+- Full portable suite: **558 cases; 319 passed, 239 explicit native/tool-dependent skips**.
+- **21 Terraform roots** validated with tracked locks and cached providers; **86 mocked cases** passed.
+  The optional monitor also passed before/after mocked plans, retaining the original three guests.
+- Two bounded native/source/generated runs passed: **81 cases (10 explicit skips)** and **34 cases**.
+  These include real module/task/configuration paths against disposable local fixtures, not remote hosts.
+  The final documentation-only changes passed **25 targeted monitoring, diagram, link and navigation checks**.
+- **543 YAML files, 27 Bash scripts and 133 Python files** passed source syntax/duplicate-key checks.
+- Amended figures rendered locally with Mermaid 11.17.2 on light/dark backgrounds at normal/narrow
+  widths; nested-heading clipping was corrected. Hosted-renderer parity remains a separate review.
+- **550 distinct public pages** were probed. Three confirmed missing links were replaced;
+  26 pages remain unverified because of access controls, throttling, TLS trust or timeout.
+  URL reachability does not establish that every cited claim or remote fragment is correct.
+
+Live outage, recovery, identity, durability and denial checks remain unchecked in
+[operational verification](operational-verification.md) and
+[platform acceptance](platform-verification.md). Remaining alternative implementations
+and intake integration work stay in their respective unchecked lists below.
+
+<details>
+<summary>External pages requiring manual verification (26)</summary>
+
+- [ ] [HTTP 403](https://developers.redhat.com/articles/2026/02/12/how-build-image-mode-pipeline-gitlab)
+- [ ] [HTTP 403](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/installing_and_using_dynamic_programming_languages/installing-and-using-python)
+- [ ] [HTTP 403](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_file_systems/index)
+- [ ] [HTTP 403](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_external_red_hat_utilities_with_identity_management/setting-up-samba-on-an-idm-domain-member)
+- [ ] [HTTP 403](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_idm_users_groups_hosts_and_access_control_rules/managing-public-ssh-keys-for-users-and-hosts)
+- [ ] [HTTP 403](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_image_mode_for_rhel_to_build_deploy_and_manage_operating_systems/introducing-image-mode-for-rhel)
+- [ ] [HTTP 403](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html-single/managing_smart_card_authentication/managing_smart_card_authentication)
+- [ ] [HTTP 403](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/installing_and_using_dynamic_programming_languages/assembly_installing-and-using-python_installing-and-using-dynamic-programming-languages)
+- [ ] [HTTP 403](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/securing_networks/using-shared-system-certificates_securing-networks)
+- [ ] [HTTP 403](https://docs.redhat.com/en/documentation/red_hat_satellite/6.18/html/configuring_capsules_with_a_load_balancer/installing-and-configuring-the-load-balancer)
+- [ ] [HTTP 403](https://files.openstack.org/docs/keystone/latest/index.html)
+- [ ] [HTTP 403](https://fedora.gitlab.io/bootc/docs/bootc/base-images/)
+- [ ] [HTTP 403](https://help.ui.com/hc/en-us/articles/19133507506711-Configuring-MC-LAG-in-UniFi-Network)
+- [ ] [HTTP 403](https://help.ui.com/hc/en-us/articles/26136855808919-Switch-Port-VLAN-Assignment-Trunk-Access-Ports)
+- [ ] [HTTP 403](https://help.ui.com/hc/en-us/articles/360007279753-Port-Aggregation-FAQs)
+- [ ] [HTTP 403](https://help.ui.com/hc/en-us/articles/360012622613-UniFi-Device-Adoption)
+- [ ] [HTTP 403](https://static.openstack.org/docs/keystone/2024.1/admin/cli-manage-projects-users-and-roles.html)
+- [ ] [HTTP 403](https://support.hashicorp.com/hc/en-us/articles/10773573595923-How-to-restore-a-snapshot-to-a-Vault-cluster-running-on-Kubernetes)
+- [ ] [HTTP 403](https://www.cisa.gov/audiences/small-and-medium-businesses/secure-your-business/back-up-business-data)
+- [ ] [HTTP 403](https://www.cisa.gov/sites/default/files/2023-01/fact-sheet-implementing-phishing-resistant-mfa-508c.pdf)
+- [ ] [TLS trust](https://www.haproxy.com/documentation/haproxy-configuration-manual/new/latest/management/)
+- [ ] [TLS trust](https://www.haproxy.com/documentation/haproxy-configuration-tutorials/protocol-support/tcp/)
+- [ ] [TLS trust](https://www.haproxy.com/documentation/haproxy-configuration-tutorials/reliability/health-checks/)
+- [ ] [HTTP 403](https://www.hhs.gov/hipaa/for-professionals/security/guidance/cybersecurity-newsletter-october-2022/index.html)
+- [ ] [HTTP 429](https://www.hashicorp.com/en/trust/security)
+- [ ] [Timeout](https://www.cyber.gov.au/publication/best-practices-for-event-logging-and-threat-detection)
+
+</details>
+
+### Previous review, 2026-11-09
 
 The 2026-11-09 repository-wide follow-up traces the ten stages and alternatives from
 documentation through generated repositories, local inputs, entry points and actual
@@ -77,11 +172,53 @@ and [operational verification](operational-verification.md) before checking live
   Keep malware detection, publisher authentication and vulnerability assessment distinct.
 
 The subsequent verified-intake implementation adds the optional Tier 1 `intake` setup and
-source-mapped [deployment guide](../docs/deployment/stage-1-software-intake/verified-intake.md).
+source-mapped [deployment guide](../docs/deployment/stage-3-trust/step-3b-verified-intake.md).
 It supplies native RPM/APT acquisition, copied-content verification, ClamAV gates, private quarantine,
-immutable HTTPS publication and scheduling. The single worker requires prepared storage, approved
-native tools, trust material and current definitions; it is not HA or automatic patch management.
+immutable HTTPS publication and scheduling. Terraform supplies its VM/disks; guarded Ansible supplies
+the dedicated filesystem and UUID mount. The single worker still requires approved native tools,
+trust material and current definitions; it is not HA or automatic patch management.
 Live acceptance remains [INTAKE-6–9](operational-verification.md#software-intake).
+
+Proposal-completeness review, 2026-11-10: the core staged-intake installer is supplied;
+the following implementation/integration work remains before the entire proposal is covered:
+
+- [ ] Replace [manual consumer repository edits](../docs/deployment/stage-3-trust/step-3b-verified-consumers.md)
+  with tier-owned RPM/APT configuration inputs and recipes. Preserve vendor keys, metadata policy,
+  pinned versions and strict refresh failures; qualify independent network bypass denial.
+- [ ] Add intake-specific health metrics and severity-based alerts: definition age, scanner/job
+  failure, last successful intake and quarantine/storage capacity. Generic Netdata/OpenSearch
+  installation and local error-priority syslog events do not supply these rules.
+- [ ] Connect the worker/cache decision streams to explicit Tier 0 source registrations and
+  approved OpenSearch projections. Existing logging automation is reusable, but the intake installer
+  does not commission that path. Add run/incident and candidate-hash correlation without inventing
+  a requesting client for a scheduled pull or exposing private URLs/scanner diagnostics.
+- [ ] Automate or accept an existing independently retained Tier 0 critical-software supply.
+  Selecting a URL on intake-1 alone does not retain usable packages/tools outside Tier 1/2 failure.
+- [ ] Complete the optional OCI publisher-verification and vulnerability-policy promotion path.
+  Harbor installs Trivy later; that does not connect Cosign or a Trivy gate to this worker.
+- [ ] Define and qualify a separate VM-image intake path if templates are included in staged supply.
+  The current worker deliberately holds raw/qcow2/ISO and other opaque images; scanning the outer
+  file must never be described as checking every guest file.
+- [ ] Record the proposal's selected NIST control-to-implementation/test/evidence mapping.
+  Product selection and design descriptions alone are not an accepted control-evidence record.
+
+Live network/failover, current-definition scans, confinement, delivery and restore results remain
+in [INTAKE-1–9](operational-verification.md#software-intake), separate from this implementation list.
+
+Guest-storage automation review, 2026-11-10: normal intake, logging and issuer deployment now
+prepares dedicated filesystems and persistent UUID mounts through Shared's guarded data-volume
+role. The issuer also manages its database bind; backup recipes manage their selected client/disk
+mounts. No manual guest mkfs/fstab prerequisite remains on those new-install paths. Independent
+NAS commissioning, existing-service adoption and signing/recovery custody remain explicit.
+Native disposable XFS (Ansible 2.16.16) and ext4 lifecycle tests passed creation, unchanged reruns,
+growth, retained data/UUIDs, declared binds and refusal of missing-volume replacements.
+Nineteen focused native storage/NAS/backup checks passed; CA loopback provisioning, retained
+database ownership, refusal gates and source/generated syntax passed separately.
+The portable suite ran 518 cases with 226 explicit skips and one stale guide-wording assertion;
+that assertion was corrected and the five affected correspondence/documentation checks passed.
+Source syntax and light/dark intake figures at normal/narrow widths also passed local checks.
+These results do not satisfy [STORE-3](platform-verification.md#capability-gates) or any live
+reboot, Proxmox, NAS-outage or recovery acceptance gate.
 
 Verified-extension evidence: the portable regression run completed **493 cases: 287 passed,
 206 explicit native/tool skips**. Separate native fixtures passed 19 RPM/APT adapter cases,
@@ -255,6 +392,10 @@ supplied. Their live proof is tracked in the separate
 - [x] **P1: Independent monitoring and Observability installers.** Tier 1 native product
   releases and Tier 0 scoped infrastructure polling/export are supplied. Their budgets,
   replication/read routing and source coverage are explicit, not inferred from pod count.
+- [ ] **Alternative: manual-cluster human SSO.** The guarded supplied rollout requires
+  the original Terraform-owned plan. The manual cluster branch needs its own configuration
+  persistence, reviewed rollout and recovery implementation before it can pass the complete
+  Identity/Headlamp path. This is an implementation gap, not merely an unperformed live test.
 - [x] **P1: Product integration mechanisms.** Tier 0 supplies approved-copy publication,
   non-root mTLS export, GET-only NetBox audit capture and independent native Vault
   snapshot/input/media transport. Search copies never acquire original-archive authority.
@@ -279,6 +420,16 @@ inspected. Every selected path still needs its own live acceptance evidence.
 
 | Path | Entry | Review outcome / remaining proof |
 | --- | --- | --- |
+| Bootstrap workspace | [Foundation 3a](../docs/deployment/foundation/bootstrap/step-3a-bootstrap-storage.md) | Local filesystem, persistent UUID mount and reboot path; independent backup/restore proof remains manual |
+| Bootstrap LVM root | [Foundation 3b](../docs/deployment/foundation/bootstrap/step-3b-bootstrap-lvm.md) | Disk/PV/root growth or added PV; verify the real layout and retain every required disk in recovery copies |
+| Bootstrap home bind | [Foundation 3c](../docs/deployment/foundation/bootstrap/step-3c-bootstrap-home.md) | Ownership, SSH and SELinux checks before repository/key creation; console/reboot/rollback proof remains manual |
+| Offline bootstrap tooling | [Foundation 3e](../docs/deployment/foundation/bootstrap/step-3e-bootstrap-offline.md) | Matching OS/Python/CPU, verified bundle/provider artifacts; does not imply every later stage is disconnected-ready |
+| Alternative balancing | [Foundation 4c](../docs/deployment/foundation/proxmox/step-4c-proxlb.md) | ProxLB qualification after API and a movable guest exist; one scheduling owner and live failover proof required |
+| Existing cache update | [Software intake 2b](../docs/deployment/stage-1-software-intake/step-2b-adopt-update.md) | Preserve original inputs/state, refresh automation and retest consumers; verified worker installation remains Stage 3 |
+| Protected search projections | [Observability 4b](../docs/deployment/stage-8-observability/step-4b-protected-log-search.md) | Tier 0-approved copies and scoped ingestion; test denial/replay without granting original-archive authority |
+| Private application | [Lab 3a](../docs/deployment/stage-10-lab-environments/step-3a-application.md) | Native namespace/application path; verify access isolation, update/rollback and recovery |
+| Public website | [Lab 3b](../docs/deployment/stage-10-lab-environments/step-3b-public-https.md) | Existing edge or explicitly provision it first; real DNS, origin TLS, renewal/failover and denied-route proof required |
+| Workload signals | [Lab 3c](../docs/deployment/stage-10-lab-environments/step-3c-telemetry.md) | Scoped Collector, queues and distinct credentials; verify source-to-query delivery and recovery |
 | Foundation | [Preparation](../docs/deployment/foundation/README.md) | Network, access, templates and recovery precede capability deployment; live commissioning required |
 | Software intake | [Stage 1](../docs/deployment/stage-1-software-intake/README.md) | Early Squid/VIP path; independent bootstrap supply and later repository/Harbor extensions; no complete patch controller |
 | Logging | [Stage 2](../docs/deployment/stage-2-logging/README.md) | Linux/NAS recipes supplied; actual NAS custody, devices, bounded-loss fault and restore acceptance outstanding |
@@ -290,8 +441,8 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Observability | [Stage 8](../docs/deployment/stage-8-observability/README.md) | Native Kubernetes signal backends/UIs and independent Tier 0 polling; scoped projections and live availability/access tests remain required |
 | Development platform | [Stage 9](../docs/deployment/stage-9-development/README.md) | Native GitLab/runner charts and separate native data VMs, dedicated infrastructure runner, Vault JWT root and saved-plan handover; data/backup commissioning and live acceptance required |
 | Lab environments | [Stage 10](../docs/deployment/stage-10-lab-environments/README.md) | VM/cluster, bounded application/policy/RBAC, scoped telemetry and opt-in HTTPS; profiles are not an allocator; live tenant acceptance required |
-| Proxmox HA | [Foundation 1b](../docs/deployment/foundation/step-1b-cluster-ha.md) | Quorum/storage/fencing separate from VM creation; physical failure tests outstanding |
-| Guest SDN | [Foundation 1c](../docs/deployment/foundation/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
+| Proxmox HA | [Foundation 1b](../docs/deployment/foundation/proxmox/step-1b-cluster-ha.md) | Quorum/storage/fencing separate from VM creation; physical failure tests outstanding |
+| Guest SDN | [Foundation 1c](../docs/deployment/foundation/proxmox/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
 | Redundant logging | [Logging 3b](../docs/deployment/stage-2-logging/step-3b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
 | NAS-backed evidence | [Logging 3c](../docs/deployment/stage-2-logging/step-3c-nas-archive.md) | Checkpoint/backup/audit-view recipes supplied; NAS-owned snapshots/accounts and live failure/access proof remain commissioning |
 | Retention-locked evidence | [Logging 3d](../docs/deployment/stage-2-logging/step-3d-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |

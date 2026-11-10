@@ -1,0 +1,138 @@
+---
+- name: Resolve backup and live-data paths without creating them
+  ansible.builtin.command:
+    argv: [realpath, -m, --, "{{ item }}"]
+  loop: ["{{ data_backup_filesystem.mount }}", "{{ data_backup_repository }}", /var/opt/gitlab, /etc/gitlab]
+  register: data_backup_resolved_paths
+  changed_when: false
+
+- name: Reject aliases and overlap with live database or configuration paths
+  ansible.builtin.assert:
+    that:
+      - data_backup_resolved_paths.results[0].stdout == data_backup_filesystem.mount
+      - data_backup_resolved_paths.results[1].stdout == data_backup_repository
+      - not item.stdout.startswith(data_backup_filesystem.mount + '/')
+      - item.stdout != data_backup_filesystem.mount
+      - not data_backup_filesystem.mount.startswith(item.stdout + '/')
+      - not data_backup_repository.startswith(item.stdout + '/')
+    fail_msg: Backup mounts must be canonical paths separate from live GitLab data and configuration.
+  loop: "{{ data_backup_resolved_paths.results[2:] }}"
+
+- name: Inspect the exact active NAS mount before changing configuration
+  ansible.builtin.command:
+    argv: [findmnt, -rn, -M, "{{ data_backup_filesystem.mount }}", -o, 'TARGET,SOURCE,FSTYPE']
+  register: data_backup_existing_mount
+  changed_when: false
+  failed_when: data_backup_existing_mount.rc not in [0, 1] or data_backup_existing_mount.stderr | trim != ''
+
+- name: Read canonical persistent assignments with the native fstab parser
+  ansible.builtin.command:
+    argv: [findmnt, --fstab, --canonicalize, --json, --list, --output, 'TARGET,SOURCE,FSTYPE']
+  register: data_backup_fstab_table
+  changed_when: false
+  failed_when: data_backup_fstab_table.rc not in [0, 1] or data_backup_fstab_table.stderr | trim != ''
+
+- name: Require readable fstab even when its parsed table is empty
+  ansible.builtin.slurp:
+    src: /etc/fstab
+  register: data_backup_fstab_file
+  no_log: true
+
+- name: Require an empty native table to come from an empty or comment-only fstab
+  ansible.builtin.assert:
+    that: >-
+      data_backup_fstab_table.rc == 0 or
+      (data_backup_fstab_file.content | b64decode).splitlines()
+      | reject('match', '^\s*(#|$)') | list | length == 0
+    fail_msg: Nonempty fstab did not yield a readable native table; stop before changing storage.
+
+- name: Read all persistent declarations before resolving target aliases
+  ansible.builtin.set_fact:
+    data_backup_fstab: >-
+      {{ (data_backup_fstab_table.stdout | from_json).filesystems
+         if data_backup_fstab_table.rc == 0 else [] }}
+
+- name: Resolve every absolute persistent target with the native path resolver
+  ansible.builtin.command:
+    argv: [realpath, --canonicalize-missing, --, "{{ item.target }}"]
+  loop: "{{ data_backup_fstab }}"
+  when: item.target is string and item.target is match('^/')
+  register: data_backup_fstab_targets
+  changed_when: false
+
+- name: Start the canonical persistent declaration list
+  ansible.builtin.set_fact:
+    data_backup_fstab: []
+
+- name: Retain each persistent assignment and its original target spelling
+  ansible.builtin.set_fact:
+    data_backup_fstab: >-
+      {{ data_backup_fstab + [item.item | combine({
+         'target': item.stdout | default(item.item.target, true), 'declared_target': item.item.target})] }}
+  loop: "{{ data_backup_fstab_targets.results }}"
+  loop_control:
+    label: "{{ item.item.target }}"
+
+- name: Select all persistent assignments resolving to this backup target
+  ansible.builtin.set_fact:
+    data_backup_target_fstab: "{{ data_backup_fstab | selectattr('target', 'equalto', data_backup_filesystem.mount) | list }}"
+
+- name: Refuse conflicting or duplicate persistent declarations
+  ansible.builtin.assert:
+    that:
+      - data_backup_target_fstab | length <= 1
+      - data_backup_target_fstab | rejectattr('source', 'equalto', data_backup_filesystem.source) | list | length == 0
+      - data_backup_target_fstab | rejectattr('fstype', 'equalto', data_backup_filesystem.fstype) | list | length == 0
+      # The mount module manages a literal target; an alias must not survive beside a new canonical entry.
+      - data_backup_target_fstab | rejectattr('declared_target', 'equalto', data_backup_filesystem.mount) | list | length == 0
+    fail_msg: Existing fstab assigns this target through other, duplicate or aliased storage; reconcile it before applying.
+
+- name: Refuse a foreign mount or an absent externally managed mount
+  ansible.builtin.assert:
+    that:
+      - >-
+        data_backup_existing_mount.rc != 0 or data_backup_existing_mount.stdout ==
+        data_backup_filesystem.mount ~ ' ' ~ data_backup_filesystem.source ~ ' ' ~ data_backup_filesystem.fstype
+      - data_backup_manage_mount or data_backup_existing_mount.rc == 0
+      - >-
+        not data_backup_manage_mount or data_backup_filesystem.fstype != 'cifs' or
+        data_backup_filesystem.credentials_src | default('') | length > 0
+    fail_msg: >-
+      Refusing to replace another mount. A missing legacy mount needs managed setup;
+      CIFS management requires a private credentials_src file. Existing legacy CIFS without that input is verified only.
+
+- name: Inspect the target without following links
+  ansible.builtin.stat:
+    path: "{{ data_backup_filesystem.mount }}"
+    follow: false
+    get_checksum: false
+  register: data_backup_target_stat
+
+- name: Reject links and nondirectory mount targets
+  ansible.builtin.assert:
+    that:
+      - not data_backup_target_stat.stat.exists or data_backup_target_stat.stat.isdir | default(false)
+      - not data_backup_target_stat.stat.islnk | default(false)
+    fail_msg: NAS backup target must be absent or an ordinary directory, never a link or file.
+
+- name: Check an existing unmounted directory for local files
+  ansible.builtin.find:
+    paths: "{{ data_backup_filesystem.mount }}"
+    recurse: false
+    hidden: true
+    file_type: any
+    follow: false
+  register: data_backup_local_entries
+  when:
+    - data_backup_existing_mount.rc != 0
+    - data_backup_target_stat.stat.isdir | default(false)
+
+- name: Refuse unreadable targets and hidden local fallback data
+  ansible.builtin.assert:
+    that:
+      - data_backup_local_entries.matched == 0
+      - data_backup_local_entries.skipped_paths | default({}) | length == 0
+    fail_msg: Preserve local files and resolve unreadable directories before mounting; skipped inspection is not empty storage.
+  when:
+    - data_backup_existing_mount.rc != 0
+    - data_backup_target_stat.stat.isdir | default(false)

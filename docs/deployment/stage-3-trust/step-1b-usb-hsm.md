@@ -7,7 +7,8 @@ Run repository scripts from this root; Shared contributes only the named reusabl
 
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before creating production issuer keys.
 **Change:** Use a capacity-sized Tier 0 service pool, one local HSM per host, with co-hosted endpoint functions.
-**Return:** [Step 2](README.md#step-2-establish-the-certificate-hierarchy) for intermediate signing and issuer verification.
+**Return:** [Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody) to install the issuer runtime
+and prepare its provider-backed key/CSR before Step 2 signing.
 
 **Design:** [replicated USB services and endpoint variants](../../architecture/cryptography/usb-hsm.md).
 
@@ -131,7 +132,7 @@ These are independently managed replicas, not a native HSM cluster.
 
 Keep USB affinity explicit. The VM code does not configure device passthrough,
 host pinning or Proxmox HA restrictions. Initial placement alone is not a runtime
-affinity guarantee; review [cluster mobility](../foundation/step-1b-cluster-ha.md#terraform-against-the-cluster)
+affinity guarantee; review [cluster mobility](../foundation/proxmox/step-1b-cluster-ha.md#terraform-against-the-cluster)
 before permitting a device-facing VM to move. A single-host rehearsal is not host HA.
 
 Scope firewall rules to hosts and actual listeners, following the

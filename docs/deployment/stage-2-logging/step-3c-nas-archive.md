@@ -15,7 +15,8 @@ retention is not required for this selected homelab model.
 credentials and a recovery destination outside that NAS's failure domain.
 **Automation boundary:** Tier 0 supplies separate archive and independent-backup
 recipes; `deploy.sh syslog` alone installs neither. NAS account/snapshot commissioning
-and the independent recovery filesystem remain prerequisites, not collector privileges.
+remains an external prerequisite, not a collector privilege. The backup recipe prepares an explicitly
+selected local recovery disk; an already commissioned independent mount is an adoption alternative.
 
 ## Contents
 
@@ -57,8 +58,8 @@ access independently; this role does not open gateway rules or a public query li
 For UniFi NAS, create a dedicated Shared Drive and file-service identity using
 the [SMB setup](https://help.ui.com/hc/en-us/articles/14276882157975-Adding-UniFi-Drive-to-Your-Desktop-via-SMB).
 Use supported authenticated/encrypted transport on the restricted archive network.
-The supplied archive/backup recipes use encrypted SMB, not NFS. An NFS alternative requires separate
-qualified integration, including its identity/network trust; changing the share path does not switch transports.
+The supplied archive and backup-source mounts use encrypted SMB. Changing their share path does not
+select NFS. An independently commissioned NFS repository is supported only through destination adoption below.
 Do not enable
 no-root-squash merely to solve client permissions. UniFi documents material
 restrictions for that mode. [1]
@@ -124,7 +125,7 @@ restrictions for that mode. [1]
    create-only hashed chunks and manifests, then advances its local cursor. It never
    copies live queue files, mirrors deletion or removes local evidence. Linux audit
    records raw/view reads; forward `/var/log/audit/audit.log` as a security stream.
-4. On a separate, Tier 0-owned Linux recovery host, prepare a mounted recovery filesystem
+4. Select a separate, Tier 0-owned Linux recovery host with an attached dedicated disk
    outside the NAS/collector failure domain. Add that existing host to `logging_recovery`
    in Tier 0 inventory, never `foundation_logging`. Copy/edit its backup inputs:
 
@@ -142,7 +143,7 @@ restrictions for that mode. [1]
    - `ansible/group_vars/logging_backup.yml`: Independent recovery target, backup repository and watchdog
      inputs.
 
-   Set source/marker, independent mounted repository, schedule and a separate external
+   Set source/marker, independent repository, schedule and a separate external
    dead-man check. Keep password/recovery keys off the collector. Approve repository
    initialization only for a deliberately new destination; otherwise use the existing
    repository/password. Create `ansible/host_vars/<recovery-host>.yml` with its
@@ -155,10 +156,32 @@ restrictions for that mode. [1]
    | Field | Enter |
    | --- | --- |
    | `logging_backup_source`, `logging_backup_marker` | Same commissioned NAS archive and marker; access uses the separate read-only account |
-   | `logging_backup_repository` | Independent mounted recovery filesystem path, outside the NAS/collector failure domain |
+   | `logging_backup_repository` | Dedicated recovery mount root, such as `/srv/security-log-backup`, outside the NAS/collector failure domain |
+   | `logging_backup_repository_device` | Actual attached local block device; starter `/dev/sdb`. Empty selects adoption of an already commissioned mount |
+   | `logging_backup_repository_fstype` | `xfs` for a new local disk; `ext4` also supported; match retained local filesystems |
+   | `logging_backup_repository_uuid` | Empty for a new blank disk; original UUID for an existing/restored local filesystem |
+   | `logging_backup_repository_min_free_bytes` | Required free-space reserve before commissioning |
    | `logging_backup_initialize` | `true` for the first approved empty repository only; return to `false` after success |
    | `logging_backup_calendar` | Approved native systemd calendar, such as the supplied `hourly` |
    | `logging_backup_watchdog_url` | Separate external dead-man URL for independent backups |
+
+   **4a: New local disk (main path):** retain the starter's explicit device, mount root and
+   `xfs`, with an empty UUID. Shared creates a filesystem only on an undeclared signature-free disk,
+   persists the UUID mount and grows the filesystem when its device expands. No guest `mkfs` or
+   manual mount is required. Stop on a device/pin mismatch; do not erase storage to bypass a guard.
+
+   **4b: Adopt an existing mount:** set `logging_backup_repository_device: ""` and keep the
+   commissioned mount path. The recipe inspects it without formatting or changing fstab;
+   set its original UUID when available. Existing NFS/SMB targets remain an adoption route,
+   not a new remote-mount installer. Their external exports, credentials and persistent client
+   mount must already be commissioned. Both routes continue with the same command below.
+
+   The role rejects root, the archive input, overlapping paths, read-only/volatile destinations and
+   insufficient reserve. Distinct paths do not prove distinct physical failure domains: record the
+   actual host, storage and custody separation. Never use the source archive NAS as the recovery copy.
+
+   **IaC:** Tier 0's [repository preparation](../../../tier-0/ansible/roles/logging_backup/tasks/repository.yml)
+   invokes [Shared storage](../../../shared/ansible/roles/data_volume/tasks/main.yml) only for an explicit device.
 
    Run from **`<prefix>-tier-0/`**.
 
@@ -171,9 +194,13 @@ restrictions for that mode. [1]
      ansible/playbooks/deployment/logging-backup.yml
    ```
 
-   It verifies complete checkpoints, backs up only that fixed verified file list with
-   restic, checks the encrypted repository and pings only after success. No automatic
-   expiry/prune or NAS administration is granted. Native NAS backup tasks are also a
+   The recipe prepares/validates the selected repository, then verifies complete checkpoints and
+   backs up only that fixed verified file list with restic, checks the encrypted repository and pings
+   only after success. No automatic
+   expiry/prune or NAS administration is granted. Each scheduled run checks the mount and its
+   selected UUID/source/type before writing; a missing or substituted mount fails, with no local fallback.
+   After the first success, set `logging_backup_initialize: false`, record the UUID/mount in the recovery
+   set and verify persistent mounting after a controlled reboot. Native NAS backup tasks are also a
    valid independently qualified alternative; avoid two unreviewed retention owners.
 
 For named environments, insert `all.<env>.yml` and the selected setup overlay after

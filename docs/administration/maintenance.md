@@ -100,7 +100,7 @@ The kit supplies no universal upgrade command. A maintenance reconciliation is n
    labels. Verify that surviving capacity can meet the selected quorum/availability contract.
    Preserve incident evidence before reusing disks if compromise is suspected.
 2. Prepare the replacement through the [foundation](../deployment/foundation/README.md) and
-   [cluster HA procedure](../deployment/foundation/step-1b-cluster-ha.md). Verify API trust, storage,
+   [cluster HA procedure](../deployment/foundation/proxmox/step-1b-cluster-ha.md). Verify API trust, storage,
    networking and recovery access before moving or restoring a guest.
 3. Use Proxmox's native migration/backup restore with original guest identities and tier state.
    VM placement inputs are creation-time choices; changing `proxmox_node_name` is not an IaC

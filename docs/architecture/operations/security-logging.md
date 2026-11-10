@@ -77,14 +77,11 @@ Offline custody has no online logging route; authorized evidence transfer is a c
 | Tier 1 analytics administrator | Operate searchable copies | Authority over the Tier 0 evidence archive |
 
 The reference publishes separately routed/indexed copies to Tier 1, with redaction
-where required. OpenSearch role/index permissions enforce data access; Dashboards
-tenants organize saved objects and are not by themselves log-data isolation. [1][2]
+where required. [Search read boundaries](telemetry.md#read-boundaries) define the
+OpenSearch permission model, dashboard separation and cross-tenant checks. [1][2]
 SSO authenticates the user; application authorization grants the selected scope.
-Cross-tenant isolation is tested using hostile labels and direct API queries, not only UI views.
 
-Application query roles have no ingest, update, delete, delete-by-query or management
-rights over log records/indexes, and no retention or backup authority. Dashboard saved-object
-permissions are separate from log-data permissions. A Tier 1 administrator may damage searchable copies,
+A Tier 1 administrator may damage searchable copies,
 but has no credentials or storage path that can erase the Tier 0 originals or their backups.
 Reader roles remain separate from retention custodians even when one person holds both roles.
 
@@ -153,15 +150,14 @@ an event that a source never emitted or persisted.
 
 ## Protected retention
 
-Select [NAS-backed retention or storage-enforced locks](log-retention.md) according
-to the trusted-administrator boundary. A homelab may trust the same person with
-collector, NAS and recovery administration while using separate service/admin
-credentials. That is a valid declared model, not WORM protection.
+Select [NAS-backed retention or storage-enforced locks](log-retention.md#choose-the-protection-boundary)
+according to the trusted-administrator boundary. The archive design owns
+[role separation as access grows](log-retention.md#roles-and-growth) and
+[checkpoint and recovery limits](log-retention.md#durability-and-recovery).
 
 Append-only permissions do not make a VM disk or ordinary NAS share immutable
-against its administrators. Protection from privileged deletion requires qualified
-retention locks and governed keys; Object Lock modes have different bypass
-powers. [5] Hashes/signatures detect alteration but do not prevent deletion.
+against its administrators; the selected retention model defines privileged
+deletion protection. [5] Hashes/signatures detect alteration but do not prevent deletion.
 Independent backups, offline readability and denied producer/query deletion remain
 required under either choice. Failure and privilege limits must be recorded explicitly.
 

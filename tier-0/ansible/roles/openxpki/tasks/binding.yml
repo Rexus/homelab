@@ -1,0 +1,40 @@
+---
+- name: Inspect the deployment binding
+  ansible.builtin.stat:
+    path: "{{ openxpki_data_mount }}/deployment.json"
+    follow: false
+  register: openxpki_binding_stat
+
+- name: Refuse a linked or non-file deployment binding
+  ansible.builtin.assert:
+    that:
+      - not openxpki_binding_stat.stat.islnk | default(false)
+      - >-
+        not openxpki_binding_stat.stat.exists or
+        (openxpki_binding_stat.stat.isreg | default(false) and
+        not openxpki_binding_stat.stat.islnk | default(false))
+
+- name: Read the existing deployment binding
+  ansible.builtin.slurp:
+    src: "{{ openxpki_data_mount }}/deployment.json"
+  register: openxpki_binding_file
+  when: openxpki_binding_stat.stat.exists
+
+- name: Define the immutable runtime and secret binding
+  ansible.builtin.set_fact:
+    openxpki_binding:
+      deployment_id: "{{ openxpki_deployment_id }}"
+      configuration_sha256: "{{ openxpki_configuration_sha256 }}"
+      package_versions: "{{ openxpki_package_versions }}"
+      secret_digest: "{{ [openxpki_database_password, openxpki_session_password, openxpki_session_secret] | to_json | hash('sha256') }}"
+  no_log: true
+
+- name: Refuse implicit configuration, schema or credential replacement
+  ansible.builtin.assert:
+    that:
+      - openxpki_binding_file.content | b64decode | from_json == openxpki_binding
+    fail_msg: >-
+      The installed runtime binding differs. Use the backed-up, rehearsed upgrade or
+      credential-rotation procedure, not routine reconciliation, to change this deployment.
+  no_log: true
+  when: openxpki_binding_stat.stat.exists

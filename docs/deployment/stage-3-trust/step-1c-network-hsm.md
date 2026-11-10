@@ -7,7 +7,8 @@ Appliance commissioning uses the vendor procedure; no appliance installer is sup
 
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before creating production keys.
 **Change:** Use a supported network appliance and its client integration.
-**Return:** [Step 2](README.md#step-2-establish-the-certificate-hierarchy) for intermediate signing and issuer verification.
+**Return:** [Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody) to install the issuer runtime
+and prepare its provider-backed key/CSR before Step 2 signing.
 
 **Design:** [option D](../../architecture/cryptography/network-hsm.md).
 **Prerequisites:** approved appliance/provider, entitlement, client compatibility,
@@ -37,7 +38,8 @@ Root custody remains separately offline; online appliance availability does not
 justify routing into the ceremony environment.
 
 Record recurring health, client rotation and restore procedures under project
-administration. Return to [Step 2](README.md#step-2-establish-the-certificate-hierarchy).
+administration. Return to [Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody)
+for issuer runtime/key preparation; continue to Step 2 only when its reviewed CSR exists.
 
 ## References
 

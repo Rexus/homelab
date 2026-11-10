@@ -1,7 +1,10 @@
 ---
 # Stage 2 receiver contract: docs/reference/syslog-receiver.md
 syslog_ng_data_mount: /srv/security-logging
+syslog_ng_data_device: /dev/sdb
+syslog_ng_data_fstype: xfs
 syslog_ng_data_uuid: ""
+syslog_ng_data_environment: {}
 syslog_ng_min_free_mb: 2048
 syslog_ng_listen_address: "{{ ansible_host }}"
 syslog_ng_tls_port: 6514

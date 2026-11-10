@@ -146,7 +146,7 @@ policy does require an explicit boundary. Keep the following distinctions visibl
 
 Use the [firewall contracts](../architecture/networking/firewall-policy.md) for
 permitted listeners and denials, the [UniFi guide](../deployment/foundation/network/unifi.md)
-for gateway policy, and the [SDN guide](../deployment/foundation/step-1c-sdn.md)
+for gateway policy, and the [SDN guide](../deployment/foundation/proxmox/step-1c-sdn.md)
 for VNet/subnet preparation. These are manual network prerequisites.
 
 ## Separate host and VM administration

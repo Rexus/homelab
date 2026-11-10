@@ -25,6 +25,7 @@
             - ansible-collection-community-general
       ansible.posix:
         name: ansible.posix
+        version: '>=1.5.0'
         os_packages:
           RedHat:
             - ansible-collection-ansible-posix
@@ -126,7 +127,7 @@
         fail_msg: >-
           Missing collections: {{ control_node_missing_collections | map(attribute='name') | join(', ') }}.
           Install the prepared local Galaxy requirements before retrying; check mode never downloads dependencies.
-          See docs/deployment/foundation/proxmox/bootstrap-offline.md.
+          See docs/deployment/foundation/bootstrap/step-3e-bootstrap-offline.md.
       when: control_node_collections_mode == 'check'
 
     - name: Install missing Ansible collections from OS packages first

@@ -1,12 +1,13 @@
 # Verified software intake operations
 
 Operate the optional Tier 1 `intake-1` service. The proxy/cache remains a separate transport service.
-First installation belongs to the [deployment guide](../deployment/stage-1-software-intake/verified-intake.md);
+First installation belongs to the [deployment guide](../deployment/stage-3-trust/step-3b-verified-intake.md);
 the [design](../architecture/software/artifact-verification.md) explains authority and trust.
 
 ## Contents
 
 - [How is intake run or scheduled?](#how-is-intake-run-or-scheduled)
+- [How is the data volume managed or expanded?](#how-is-the-data-volume-managed-or-expanded)
 - [Why was a candidate rejected?](#why-was-a-candidate-rejected)
 - [How is an incident retained or cleared?](#how-is-an-incident-retained-or-cleared)
 - [How is a consumer rolled back?](#how-is-a-consumer-rolled-back)
@@ -24,7 +25,7 @@ the [design](../architecture/software/artifact-verification.md) explains authori
    bash scripts/deploy.sh intake --recipe maintenance
    ```
 
-3. Inspect `latest.json` and its versioned receipt using the [deployment checks](../deployment/stage-1-software-intake/verified-intake.md#7-run-and-inspect-the-first-intake).
+3. Inspect `latest.json` and its versioned receipt using the [deployment checks](../deployment/stage-3-trust/step-3b-verified-intake.md#7-run-and-inspect-the-first-intake).
    To schedule accepted policy, set `software_intake_timer_enabled: true`, select
    `software_intake_schedule` and repeat the first command. There is one serialized service,
    not overlapping workers. To pause new intake, set that value to `false` and reapply.
@@ -35,6 +36,35 @@ On **`intake-1`**, inspect execution and scheduling:
 sudo systemctl status intake.service intake.timer --no-pager
 sudo journalctl -u intake.service -n 60 --no-pager
 ```
+
+## How is the data volume managed or expanded?
+
+Terraform owns `scsi1`; the deployment recipe uses Shared's data-volume role to manage its XFS/ext4
+filesystem and UUID mount at `/srv/intake`. Only a verified new blank disk is formatted. Recognized
+existing data is preserved; a missing declared volume, conflicting mount or mismatched identity fails.
+Keep `software_intake_data_device`, `software_intake_data_fstype` and any `software_intake_data_uuid`
+pin in **Tier 1 `ansible/group_vars/intake.yml`** aligned with the retained disk. Never clear a mount
+record or UUID pin to make an unexpected replacement pass.
+
+To expand capacity:
+
+1. Increase `extra_disks[].size_gb` for `scsi1` in **Tier 1 `terraform/deployments/intake/terraform.tfvars`**.
+   Retain its interface and storage mapping; this path grows the filesystem, not shrinks it.
+2. Run from **`<prefix>-tier-1/`**:
+
+   ```bash
+   bash scripts/deploy.sh intake
+   ```
+
+3. On **`intake-1`**, verify the retained UUID, mount restrictions and added space:
+
+   ```bash
+   findmnt --mountpoint /srv/intake -o TARGET,SOURCE,UUID,FSTYPE,OPTIONS
+   df -h /srv/intake
+   ```
+
+**Expected:** the same filesystem identity and data, with increased capacity. Filesystem type changes
+and partition/LVM resizing need a separate migration plan; replace lost data through recovery.
 
 ## Why was a candidate rejected?
 
@@ -48,7 +78,7 @@ sudo journalctl -u intake.service -n 60 --no-pager
 | Publisher/hash/metadata failure | Check the independently trusted key, expected digest, repository selection and vendor metadata; do not bypass the gate |
 | Detection, encrypted/broken archive or scan limit | Retain for review; narrow the selection or qualify content support before changing policy |
 | Missing/stale database or scanner error | Restore current approved definitions/engine; an engine error is not a clean result |
-| Low disk space or lost mount | Restore the prepared mount/reserve; inspect retained incident/history usage before retrying |
+| Low disk space or lost mount | Recover the original data volume or grow it through the deployment inputs; inspect retained incident/history usage before retrying |
 | Worker timeout/interruption | Confirm the service is stopped; private staging/publishing remnants were never served. Preserve evidence, then remove only the abandoned job directories |
 | Reporting/discovery failure | Inspect the actual version and `latest.json`; a committed publication can exist even if later reporting failed |
 
@@ -103,7 +133,9 @@ only after checking every consumer pin and the independent recovery copy.
 2. For a consistent backup, stop new intake and wait for `intake.service` to be inactive before capturing
    both disks. Protect private quarantine and the TLS key; ordinary readers receive only public content.
 3. Restore to an isolated target using the [VM recovery runbook](recovery/virtual-machines.md), verify
-   the data mount and restore policy/trust. Keep the timer off, verify retained hashes and HTTPS reads,
+   the data-disk UUID and restore policy/trust. Select that device/filesystem and pin its UUID in
+   `software_intake_data_uuid` before rerunning `deploy.sh intake` from **`<prefix>-tier-1/`**.
+   Keep the timer off, verify retained hashes and HTTPS reads,
    refresh definitions, then pass a clean and rejected test source before reconnecting consumers.
 
 A single worker/publication VM has no service-level redundancy. Its recovery point is the last

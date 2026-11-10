@@ -5,7 +5,7 @@ These cold component copies are separate from GitLab Toolbox backups and applica
 
 **Working repository:** generated Tier 1.
 **Run configuration on:** the deployment host. **Run checks on:** each existing data VM.
-**Prerequisites:** commissioned storage/mounts or SFTP service, independent encryption passwords,
+**Prerequisites:** commissioned NAS shares/identities or SFTP service, independent encryption passwords,
 approved restic 0.17+ and [accepted data services](../../deployment/stage-9-development/procedures/data-services.md#render-and-apply).
 **Design:** [backup and recovery](../../architecture/operations/backup-recovery.md).
 
@@ -32,6 +32,8 @@ approved restic 0.17+ and [accepted data services](../../deployment/stage-9-deve
    | `development_data_backup_transport` | `filesystem` for NAS mount, or `sftp` for a qualified SSH file service |
    | `development_data_backup_repository` | A distinct repository per data VM, matching the selected transport |
    | `development_data_backup_filesystem` | NAS mode: exact mount/source/type, marker and effective write UID/GID per VM |
+   | Per-host `manage_mount`, `options` | `true` for normal IaC setup; optional safe protocol/tuning list, such as `[vers=4.1, proto=tcp]` |
+   | Per-host `credentials_src` | CIFS only: absolute private controller credentials-file path; copied root-only to the VM |
    | `development_data_backup_password_src` | Independently retained encryption-password file |
    | `development_data_backup_ssh_key_src`, `development_data_backup_known_hosts_src` | SFTP mode: scoped private key and independently verified host keys |
    | `development_data_backup_calendar` | Native systemd expression; default `"*-*-* 02:00:00"`, plus up to 15 minutes random delay |
@@ -42,7 +44,8 @@ approved restic 0.17+ and [accepted data services](../../deployment/stage-9-deve
 2. For NAS, complete the next task before applying. For SFTP, qualify scoped credentials and
    repository access through the existing service; retain the selected transport on existing projects.
 3. Apply via the [data-service installer](../../deployment/stage-9-development/procedures/data-services.md#render-and-apply).
-   It probes repository/mount identity before scheduling. It installs no NAS server, export or mount.
+   It mounts the client, verifies the independent marker/repository, persists the mount and probes access before scheduling.
+   It installs no NAS server or export and never creates/replaces the marker.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":18,"padding":10,"wrappingWidth":350,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -82,33 +85,50 @@ flowchart TB
 [inputs](../../../tier-1/ansible/group_vars/development_data.yml.example) install one
 timer/service per existing data VM. Scope: selected `filesystem` recovery copies,
 not GitLab application objects or the SFTP alternative. Proxmox disks, NAS exports,
-mounts and independent retention are prerequisites, not installed storage services.
+share identities and independent retention remain existing prerequisites. Client mounts are installed by
+[native mount tasks](../../../tier-1/ansible/roles/development_data/tasks/backup-mount.yml).
 
 <a id="commission-a-nas-mount"></a>
 
 ## How to commission a NAS mount?
 
-**Storage custodian + each data VM administrator:**
+**NAS custodian, then deployment operator:**
 
 1. Prepare a private export/share and capacity budget per host; retain snapshot/pruning
    administration separately. Keep NFS root-squash and qualify UID/GID mapping, or use scoped SMB.
-2. Persistently mount it **outside `/var/opt/gitlab` and `/etc/gitlab`**. Read the actual mount identity:
-
-   Run on **the selected GitLab data VM during the approved maintenance window**.
+2. On the **NAS**, have the custodian create the private repository directory and
+   `.development-data-backup-target` at the mount root with the recorded unique host marker.
+   The client validates existing contents; it never establishes its own target identity.
+3. Edit **Tier 1 `ansible/group_vars/development_data.yml`**. Supply each host's export/share,
+   target path, type, marker and UID/GID. Set `manage_mount: true`. For CIFS, also set
+   `credentials_src` to a private controller file with `username=`, `password=` and optional
+   `domain=` lines. Keep credentials outside Git; Ansible copies them as root-only files. [4][6]
+4. Apply through [the data-service installer](../../deployment/stage-9-development/procedures/data-services.md#render-and-apply).
+   IaC installs the NAS client, rejects conflicting mount/fstab declarations and nonempty or unreadable
+   local targets, mounts, checks the independent marker and repository, then persists the accepted mount.
+   Require capacity and create/read/sync/rename/delete probes to pass before any component stops.
+5. Verify on the **selected data VM**:
 
    ```bash
-   read -r -p "Commissioned backup mount: " BACKUP_MOUNT
-   findmnt -rn -M "$BACKUP_MOUNT" -o TARGET,SOURCE,FSTYPE
+   read -r -p "Configured backup mount: " BACKUP_MOUNT
+   findmnt -rn -M "$BACKUP_MOUNT" -o TARGET,SOURCE,FSTYPE,OPTIONS
+   sudo systemctl cat development-data-backup.service
    ```
 
-3. Have the custodian create the private repository directory and
-   `.development-data-backup-target` at the mount root with the recorded unique host marker.
-   Set those exact values in the per-host filesystem contract.
-4. Apply configuration and require mount, marker, capacity and create/read/sync/rename/delete
-   checks to pass before stopping any component. Every backup repeats the mount contract.
+Managed NFS defaults to hard I/O; managed SMB requires encryption and private UID/GID mapping.
+Managed mounts are `noexec,nosuid,nodev`.
+`nofail` keeps unavailable backup storage from preventing VM boot; the backup service and script still require
+the exact NAS mount and marker. Live PostgreSQL/Redis/Gitaly data stays on Proxmox-backed VM disks. [4][5][6]
+
+**Existing commissioned mounts:** `manage_mount: false` retains external mount management and still verifies
+the full identity. Legacy CIFS without `credentials_src` follows that verify-only path; a missing mount fails.
+Verify-only mode does not upgrade existing mount options.
+To adopt CIFS into IaC, provide `credentials_src` and set `manage_mount: true` in an approved maintenance window.
 
 **Stop on mismatch.** Do not enable `no_root_squash`, replace a marker or redirect the job into
-a local directory to force success. The role does not change export permissions.
+a local directory to force success. The role does not change export permissions. A new mount that fails
+marker verification remains temporary: correct the approved contract or have the operator unmount it;
+the role does not persist that unverified mount or initialize its repository.
 
 <a id="run-and-restore"></a>
 
@@ -243,3 +263,6 @@ Record actual schedule/outage behavior, accepted RPO/RTO and independently retai
 1. [Restic mounted-file and SFTP repositories](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html).
 2. [GitLab backup/restore requirements](https://docs.gitlab.com/administration/backup_restore/).
 3. [Restic native restore verification](https://restic.readthedocs.io/en/stable/050_restore.html).
+4. [Native Ansible mount lifecycle](https://docs.ansible.com/ansible/latest/collections/ansible/posix/mount_module.html).
+5. [NFS hard-mount behavior](https://man7.org/linux/man-pages/man5/nfs.5.html).
+6. [SMB credentials and encryption](https://manpages.debian.org/trixie/cifs-utils/mount.cifs.8.en.html).

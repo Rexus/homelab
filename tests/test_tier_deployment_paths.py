@@ -52,7 +52,7 @@ class DeploymentPaths(TierRepositoryTestCase):
                 "stage-2-logging/README.md": ["1", "2", "3"],
                 "stage-6-secrets/monitoring.md": ["1", "2", "3"],
                 "stage-8-observability/README.md": ["1", "2", "3", "4"],
-                "stage-10-lab-environments/telemetry.md": ["1", "2", "3"],
+                "stage-10-lab-environments/step-3c-telemetry.md": ["1", "2", "3"],
             }
             for relative, expected in expected_steps.items():
                 content = (root / relative).read_text()
@@ -62,7 +62,7 @@ class DeploymentPaths(TierRepositoryTestCase):
                 self.assertIn("```mermaid", content, relative)
                 # Installation/verification substeps reuse their one selected topology;
                 # resource-growth overviews explain each changed realization separately.
-                if relative != "stage-10-lab-environments/telemetry.md":
+                if relative != "stage-10-lab-environments/step-3c-telemetry.md":
                     for section in sections:
                         self.assertIn("```mermaid", section, relative)
                 self.assertRegex(content, r"\*\*Working repositor(?:y|ies):\*\*", relative)
@@ -98,10 +98,14 @@ class DeploymentPaths(TierRepositoryTestCase):
             self.assertEqual(len(entries), len(expected))
             self.assertRegex(
                 capability_map,
-                r"(?m)^\| Tier 1 \| `intake` \| Stage 1[^\n]+"
-                r"\(stage-1-software-intake/verified-intake\.md\) \|$",
+                r"(?m)^\| Tier 1 \| `intake` \| Stage 3[^\n]+"
+                r"\(stage-3-trust/step-3b-verified-intake\.md\) \|$",
             )
             self.assertIn("never rename state roots", index)
+            support = (docs / "reference/implementation-support.md").read_text()
+            detailed = support.split("## Detailed coverage", 1)[1]
+            row = next(line for line in detailed.splitlines() if "| Verified repository/artifact supply |" in line)
+            self.assertRegex(row, r"^\| 3\b", "Reference coverage must place verified intake after trust/logging")
 
     def test_kubernetes_is_a_complete_reader_path_before_identity_consumers(self):
         self.generate()

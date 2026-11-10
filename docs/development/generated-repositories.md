@@ -57,7 +57,8 @@ It creates directories and files; it does not initialize Git or create remotes.
 ### 3. Set local standards and follow the owning repository
 
 Edit **`<prefix>-architecture/platform-standards.md`** for local names and network/storage choices.
-Record selected paths in **`<prefix>-architecture/docs/README.md`**.
+Record design selections in **`<prefix>-architecture/docs/README.md`** and completed paths/options
+in **`<prefix>-architecture/deployments.md`**.
 Then follow **`<prefix>-tier-0/README.md`** and the
 [foundation steps](../deployment/foundation/README.md).
 If a bootstrap host is not prepared, complete that guide before attempting deployment commands.
@@ -97,7 +98,7 @@ prefix reuses the lowercase directories and does not rewrite those owned documen
 | `<prefix>-tier-1` | platform service playbooks and roles, inventory, Terraform roots, cluster definitions |
 | `<prefix>-tier-2` | public edge/cache and workload playbooks, inventory, Terraform roots, project and application definitions |
 | `<prefix>-shared` | baseline roles, common helpers, sizes, image and platform references |
-| `<prefix>-architecture` | maintained auto-docs, one local selection/progress record and naming conventions |
+| `<prefix>-architecture` | maintained auto-docs, design selections, `deployments.md` completion checklist and platform standards |
 
 The collection directory groups five sibling repositories and is not itself a
 Git repository:
@@ -349,8 +350,7 @@ bash scripts/deploy.sh syslog --terraform-only
 
 Terraform displays its plan and asks for `yes` before provisioning. Add `--plan-only` for
 an optional preview, or `--auto-approve` only in approved unattended CI.
-Then follow Stage 2's storage/TLS preparation and Ansible steps.
-Do not run the full receiver recipe on an unprepared disk.
+Then follow Stage 2's storage/TLS inputs and Ansible steps; the recipe prepares the selected data disk.
 The existing [script options](../reference/repository-scripts.md) apply in every tier.
 In a private source checkout, start in `tier-0/` and use
 `bash scripts/init-local-files.sh` or `bash scripts/deploy.sh ...`.
@@ -403,7 +403,8 @@ bash scripts/init-tier-repos.sh --refresh
 ```
 
 Include customized `--prefix` and `--root` values on this command. Optional preview: add `--dry-run`.
-Edited kit automation is backed up before replacement; local configuration and project records are preserved.
+Edited kit automation is backed up before replacement. Example files are replaced with current kit versions;
+live configuration and project records are preserved.
 Continue at **3**.
 
 ### 2b. Review each edited automation file interactively
@@ -420,16 +421,21 @@ or select `--code-conflicts preserve`; dry runs never prompt. Continue at **3**.
 
 ### 3. Review the final report
 
-Review yellow preserved differences against their linked current templates, red retired files and
-any replacement backup paths. Automatic cleanup is confined to obsolete auto-docs; review retired
+Review yellow preserved differences and updated-example comparisons, red retired files and
+any replacement backup paths. Compare each flagged live file with its current example and merge
+required settings manually. Automatic cleanup is confined to obsolete auto-docs; review retired
 files elsewhere manually. Follow the owning stage's checks before executing changed automation.
 Refresh itself runs neither deployment nor local-file initialization.
 
 ### Ownership rules
 
 Tier/Shared repositories receive project-owned design and operating records.
-The architecture repository starts with only `README.md`, `docs/README.md`
-(selected paths, deployment checkboxes and navigation), and `platform-standards.md`.
+The architecture repository starts with `README.md`, `platform-standards.md`,
+`deployments.md` (completed paths/options) and `docs/README.md` (design selections and navigation).
+After a successful installation, check the matching deployment entry; Terraform-only completion can
+still leave service configuration pending. Keep acceptance evidence in project operating records.
+For an older collection, transfer any checks from `docs/README.md` to `deployments.md` once;
+refresh preserves both existing records rather than merging their progress.
 Its `docs/auto-docs/` is the full maintained manual, not another local documentation hierarchy.
 Add local exceptions/runbooks as needed; no domain, workflow or site skeletons are generated there.
 Existing collections keep project documents outside `docs/auto-docs/`;
@@ -461,23 +467,26 @@ another operating system does not invalidate those hashes or break Bash scripts.
 | New upstream file, never generated at that path | create it |
 | Managed file still matches its recorded generated hash | update from the kit |
 | Edited kit automation with a recorded generation hash | back up the local version, then update; `--code-conflicts` selects another policy |
-| Edited configuration/example or unrecognized existing file at a current target | preserve; report a yellow difference |
+| Current `*.example` file, including edited or formerly project-owned examples | replace with the current kit version; flag an existing live counterpart for comparison |
+| Edited configuration or unrecognized existing file other than a current example | preserve; report a yellow difference |
 | Current generated file deleted locally, including a project-owned starter | recreate from the current template |
 | File under `docs/auto-docs/` outside the current generation | remove it, even if edited or untracked; prune empty directories |
 | Previously generated file outside the current generation and outside auto-docs | retain; report an existing file in red |
 | Live inventory, local vars, credentials, state | never targeted |
-| Root READMEs, project docs, bootstrap/cluster skeletons, CI starter, `.deployment-setups` | seed when missing; preserve existing contents |
+| Root READMEs, project docs, bootstrap/cluster skeletons, `.deployment-setups` | seed when missing; preserve existing contents |
 
 Kit automation includes scripts, Ansible playbooks/roles (including role defaults and templates),
 product vars and dependency manifests, Terraform `.tf`/provider lock files, and Packer recipes.
-Put site values in local inventory, group vars, tfvars and profiles. Edited `*.example` files,
+Put site values in local inventory, group vars, tfvars and profiles. Current `*.example` files are
+kit-owned references and refresh even with `--code-conflicts preserve` or `ask`. This also adopts
+older examples recorded as project-owned or absent from the manifest. Their local edits are not retained.
 `ansible.cfg`, shared sizes/profiles/catalogs and project-owned records remain protected.
 New project playbooks, roles and modules at paths the kit does not generate remain untouched.
 
 Source files retain their syntax and use the manifest for provenance. Every
 auto-doc has a visible do-not-edit notice. A marker alone never
 authorizes overwriting a file. Files produced by the older marker-only
-generator are preserved when their origin cannot be verified by the manifest.
+generator are preserved when their origin cannot be verified by the manifest, except current `*.example` targets.
 Only `docs/auto-docs/` is automatically cleaned. Its expected paths come from the current manual,
 including assets and its license; obsolete redirects are removed too. Existing edits to current
 auto-docs remain preserved and appear in yellow. Review older project README links against the
@@ -485,7 +494,7 @@ reported replacement guides after removing retired paths. Refresh does not merge
 Keep local designs in `docs/architecture/`, procedures in `docs/deployment/`,
 `docs/development/` and `docs/administration/`, and project conventions in
 `platform-standards.md`; upstream guidance updates under `docs/auto-docs/`.
-A locally edited example remains preserved. Use `--code-conflicts preserve` when developing
+Keep local values in the working file without `.example`. Use `--code-conflicts preserve` when developing
 changes inside existing kit modules or playbooks; upstream fixes then require manual integration.
 
 To reset a generated file, delete it and run the same refresh command. This restores the **current
@@ -500,10 +509,15 @@ The yellow/red review covers automation and configuration. README files and pros
 (`.md`, `.rst`, `.adoc`) are omitted, including their routine `preserve` messages. Their ownership
 and contents remain unchanged. Configurations such as `.deployment-setups`, YAML/HCL examples and
 Python requirement files remain visible; obsolete auto-docs cleanup is still reported.
+When an example changes or is restored, an existing adjacent working file gets a yellow notice with
+the current example path. `env.local.example` points to `.env.local`. Unchanged examples do not repeat
+these notices. Refresh prints paths only; it never displays a live configuration's contents or merges
+its values. Dry runs show planned example paths without replacing files.
 
 | Label / terminal color | Meaning | Comparison reference |
 | --- | --- | --- |
 | `YELLOW` | A current automation/configuration target differs but was preserved: local edit, project-owned configuration or unverified existing file | Exact rendered template and its upstream source |
+| `YELLOW` with `example refreshed` | An updated example has a matching local working file | The refreshed example beside that file; review and merge required changes locally |
 | `RED` | Formerly generated automation/configuration outside auto-docs remains outside the current fresh generation | Review its consumers and local ownership before cleanup |
 | `REMOVED` / `WOULD REMOVE` (red) | Obsolete or extra file inside auto-docs, removed during refresh or listed by dry run | Current guide location when a known move exists |
 | `REPLACED` / `WOULD REPLACE` (cyan) | Edited kit automation updated or scheduled for update | Previous local version's backup path |
@@ -596,7 +610,7 @@ Before deploying after this update:
    within the tier, and size profiles come from shared `config/guest-sizes.json`.
 3. Update developer-owned READMEs and CI jobs. Template jobs run
    `bash scripts/proxmox-templates.sh` from Tier 0 and no longer need a shared
-   checkout or `TIER0_SHARED_COMMIT`. The CI starter is not overwritten.
+   checkout or `TIER0_SHARED_COMMIT`. Live CI configuration is not overwritten; CI examples refresh.
 4. Discard old saved plans, reinitialize module sources, and replan from the owning
    tier using existing state. Moving guest/template module sources does not change
    module/resource addresses; no `state mv` is needed for this code-only move.

@@ -108,10 +108,10 @@ class OperatorJourney(TierRepositoryTestCase):
         self.generate("--repo", "architecture")
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             foundation = (docs / "deployment/foundation/README.md").read_text()
-            step2, step3 = foundation.split("## Step 2:", 1)[1].split("## Step 3:", 1)
-            self.assertIn("before provisioning", step2)
-            self.assertIn("first disposable clone in Step 3", step2)
-            self.assertIn("Back up and restore a disposable clone", step3)
+            bootstrap, publication = foundation.split("## Step 3:", 1)[1].split("## Step 4:", 1)
+            self.assertIn("before provisioning", bootstrap)
+            self.assertIn("first disposable clone in Step 4", bootstrap)
+            self.assertIn("Back up and restore a disposable clone", publication)
             backup = (docs / "administration/backups/virtual-machines.md").read_text()
             self.assertIn("An existing qualified target is valid", backup)
             criteria = backup.split('id="done-criteria"', 1)[1].split('id="read-more"', 1)[0]

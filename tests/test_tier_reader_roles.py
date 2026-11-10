@@ -24,7 +24,7 @@ class ReaderRoles(TierRepositoryTestCase):
             for document in [*root.glob("stage-*/**/*.md"), *root.glob("foundation/**/*.md"),
                              *root.glob("stage-1-software-intake/**/*.md")]:
                 opening = "\n".join(document.read_text(encoding="utf-8").splitlines()[:22])
-                if (document.relative_to(root).as_posix().startswith("foundation/proxmox/") and
+                if (document.relative_to(root).as_posix().startswith("foundation/bootstrap/") and
                         "**Run on `boot-1`**" in opening):
                     # Manual host preparation can precede checkout/generation of any tier repository.
                     continue
@@ -203,4 +203,7 @@ class ReaderRoles(TierRepositoryTestCase):
         self.assertIn("auto-docs/architecture/variants.md", platform)
         self.assertIn("Tier 2, Tier 1, Tier 0", platform)
         self.assertIn("Edge, Application, Control", platform)
-        self.assertIn("| Deployed | Verified |", platform)
+        self.assertIn("[deployments.md](../deployments.md)", platform)
+        checklist = (self.root / "verify-architecture/deployments.md").read_text()
+        self.assertIn("- [ ]", checklist)
+        self.assertNotIn("| Deployed | Verified |", platform)

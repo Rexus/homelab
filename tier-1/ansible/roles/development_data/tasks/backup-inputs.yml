@@ -9,7 +9,7 @@
       - development_data_backup_password_src is match('^/')
       - development_data_backup_min_free_bytes | int > 0
       - development_data_backup_timeout_seconds | int >= 60
-    fail_msg: Select sftp or a commissioned NAS filesystem, independent encryption keys and accepted recovery custody.
+    fail_msg: Select sftp or an independently commissioned NAS share, independent keys and accepted recovery custody.
 
 - name: Validate SFTP repository addresses
   ansible.builtin.assert:
@@ -39,12 +39,34 @@
       - item.value.gid is integer
       - item.value.uid >= 0
       - item.value.gid >= 0
+      - item.value.manage_mount | default(true) is boolean
+      - item.value.credentials_src | default('') == '' or item.value.credentials_src is match('^/')
       - development_data_backup_repository[item.key] is match('^/[A-Za-z0-9_/-]+$')
       - development_data_backup_repository[item.key].startswith(item.value.mount + '/')
       - "'' not in item.value.mount.split('/')[1:]"
       - "'' not in development_data_backup_repository[item.key].split('/')[1:]"
     fail_msg: >-
-      Commission a dedicated NFS/SMB mount, unique per-host marker and precreated repository directory.
-      Supply the actual findmnt source/type and effective NAS write UID/GID, including root-squash mapping.
+      Commission a dedicated NFS/SMB export/share and independent per-host marker.
+      Supply its exact mount/source/type and effective NAS write UID/GID, including root-squash mapping.
+  loop: "{{ development_data_backup_filesystem | dict2items }}"
+  when: development_data_backup_transport == 'filesystem'
+
+- name: Reject unsafe or secret-bearing NAS mount option overrides
+  ansible.builtin.assert:
+    that:
+      - item.value.options | default(development_data_backup_mount_defaults[item.value.fstype]) is sequence
+      - item.value.options | default(development_data_backup_mount_defaults[item.value.fstype]) is not string
+      - item.value.options | default(development_data_backup_mount_defaults[item.value.fstype]) is not mapping
+      - >-
+        item.value.options | default(development_data_backup_mount_defaults[item.value.fstype])
+        | reject('match',
+          ('^(vers=(' ~ ('3' if item.value.fstype == 'nfs' else '4|4\.1|4\.2') ~
+           ')|proto=tcp|sec=(sys|krb5i|krb5p)|rsize=[0-9]+|wsize=[0-9]+|timeo=[0-9]+|retrans=[0-9]+|nconnect=[0-9]+)$'
+           if item.value.fstype != 'cifs' else
+           '^(vers=3\.(0|0\.2|1\.1)|cache=(strict|none)|actimeo=[0-9]+|echo_interval=[0-9]+|serverino|noserverino)$'))
+        | list | length == 0
+    fail_msg: >-
+      Use the supported protocol/performance option list only. Read-write, hard NFS or encrypted SMB,
+      noexec/nosuid/nodev and private credentials are enforced; never place passwords in mount options.
   loop: "{{ development_data_backup_filesystem | dict2items }}"
   when: development_data_backup_transport == 'filesystem'

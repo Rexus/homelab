@@ -6,7 +6,7 @@ separately signed issuer. An existing qualified issuer is also a valid prerequis
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Design:** [certificate authority](../../../architecture/cryptography/certificate-authority.md).
 **Prerequisites:** accepted logging, independent SSH/DNS, approved Debian template,
-prepared data storage, production configuration bundle and authorized custodians.
+an attached dedicated data disk, production configuration bundle and authorized custodians.
 
 ## Contents
 
@@ -70,7 +70,7 @@ bash scripts/deploy.sh foundation --terraform-only
 
 Add `--plan-only` for an optional preview, or `--auto-approve` for an approved unattended provisioning job.
 Neither authorizes a CA ceremony. **Expected:** allocated host/disks; the identity recipe has not run.
-The extra-disk input attaches storage without partitioning, formatting or mounting it.
+Terraform attaches the data disk. The runtime installer below prepares its filesystem and database bind.
 
 ## Step 2: Install the runtime
 
@@ -80,9 +80,12 @@ For software custody, build the private artifact using
 [software PKI Step 2](software-pki.md#build-the-private-policy-bundle), then return here.
 If that guide already built the bundle, reuse its reviewed path/checksum.
 
-On **`ca-1`**, prepare the dedicated data filesystem and `mysql` bind mount at `/var/lib/mysql`
-before MariaDB installation, following the [runtime storage contract](../../../reference/openxpki.md).
-Configure independent access and [Stage 2 forwarding](../../stage-2-logging/sources.md).
+Select the dedicated disk in the inputs below. The installer uses Shared's guarded volume role to
+create XFS on an undeclared blank disk, mount it persistently by UUID, and bind its `mysql` subdirectory
+at `/var/lib/mysql` before MariaDB packages are installed. Existing compatible storage is retained;
+files in an unmounted database directory or conflicting mount declarations stop the installation.
+See the [storage contract](../../../reference/openxpki.md#storage) for existing-volume and recovery rules.
+Configure independent access and [Stage 2 forwarding](../../stage-2-logging/sources.md) on **`ca-1`**.
 
 **Gate:** verify an issuer-host test event at protected intake before continuing.
 
@@ -94,7 +97,9 @@ secret-only Ansible override. [1][3]
 
 | Field | Enter |
 | --- | --- |
-| `openxpki_data_uuid` | Verified dedicated data filesystem UUID |
+| `openxpki_data_device`, `openxpki_data_mount` | Dedicated attached disk, normally `/dev/sdb`, and `/srv/openxpki` |
+| `openxpki_data_fstype` | `xfs` for a new disk; set `ext4` explicitly when retaining a qualified ext4 filesystem |
+| `openxpki_data_uuid` | Optional existing-volume UUID pin; leave empty for a new disk. The installer persists its UUID |
 | `openxpki_configuration_src`, `openxpki_configuration_sha256` | Absolute private bundle path and reviewed archive SHA256 |
 | `openxpki_repository_key_sha256`, `openxpki_package_versions` | Independently approved key hash and exact native package versions |
 | `openxpki_admin_networks`, `openxpki_publication_networks` | Restricted portal clients and approved public-object readers |

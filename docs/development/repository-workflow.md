@@ -93,32 +93,11 @@ bootstrap/recovery custody under the [secret strategy](../administration/secret-
 
 This action is needed when adopting a kit update. Otherwise continue at **Step 4**.
 
-From the **upstream kit root**, after updating its source, preview the same collection:
-
-Run from **upstream kit root**.
-
-```bash
-read -r -p 'Original project prefix: ' PROJECT_PREFIX
-read -r -p 'Parent directory containing the existing collection (absolute path): ' PROJECT_PARENT
-python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --root "$PROJECT_PARENT" --refresh --dry-run
-```
-
-Use the existing collection's parent, not the collection directory itself. Review the preview's
-destination and changes, preserve private changes/backups, then apply that same refresh:
-
-Run from **upstream kit root**.
-
-```bash
-python3 scripts/tier-repos/generate.py --prefix "$PROJECT_PREFIX" --root "$PROJECT_PARENT" --refresh
-```
-
-Follow the [refresh contract](generated-repositories.md#refresh-and-local-ownership): kit automation updates,
-with a backup before local code edits are replaced. Site inputs and project-owned records stay protected.
-Keep project extensions in new playbooks, roles or module paths. For edits inside existing kit code,
-use `--code-conflicts ask` to choose interactively or `--code-conflicts preserve` during development.
-Missing current generation targets are restored; obsolete files under `docs/auto-docs/` are removed.
-Refresh does not merge live YAML/HCL/dotenv, move state or deploy infrastructure.
-Review replacements, backups and preserved differences before any affected deployment.
+Follow the [refresh procedure, actions 1–3](generated-repositories.md#refresh-and-local-ownership)
+from the **updated upstream kit root**, reusing the original prefix and collection parent.
+Choose automatic backups or interactive code-conflict review there; inspect its final report
+before running affected automation. Refresh does not deploy infrastructure or migrate state.
+Return here at **Step 4** for publication checks.
 
 <a id="before-you-push"></a>
 <a id="pre-push-checks"></a>

@@ -44,7 +44,7 @@ On the gateway, assign the subnet to `Services` or a separate `Lab` zone when
 its policy differs. The firewall-zone
 name is not a Terraform field. With Proxmox SDN, use the short VNet ID as
 `bridge` and omit `vlan_id` when tagging is handled by the VNet.
-The [SDN field guide](../deployment/foundation/step-1c-sdn.md) maps these keys to
+The [SDN field guide](../deployment/foundation/proxmox/step-1c-sdn.md) maps these keys to
 zone IDs, VNet IDs, VLAN tags and gateway firewall zones. An SDN zone's DNS fields
 manage DNS records through an API integration; guest resolver settings are separate.
 

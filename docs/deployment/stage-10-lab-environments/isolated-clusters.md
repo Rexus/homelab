@@ -3,6 +3,9 @@
 **Working repositories:** `<prefix>-tier-2` for profiles/definitions/state;
 `<prefix>-tier-0` for privileged execution.
 **Branch from:** [Stage 10, Step 1](README.md#step-1-define-the-approved-request).
+**Return:** after isolation selection, return to Step 1 approval; provision through
+[Step 2b](README.md#step-2b-kubernetes-labs). Optional dispatcher work is selected at Step 2c only
+after that operator deployment is accepted.
 **Design:** [workload isolation](../../architecture/hosting/workload-isolation.md).
 **Scope:** operator-first deployment and the future bounded request contract.
 No multi-cluster allocator, expiry controller or portal is installed by this path.
@@ -53,4 +56,5 @@ A future external web service can consume this interface without administering i
 No public endpoint or portal implementation is supplied here.
 Measure creation time: seconds require qualified warm capacity or another realization,
 not an assumption about fresh VM bootstrap.
-**Return:** [Stage 10, Step 2](README.md#step-2-provision-the-workload-runtime).
+**Return after dispatcher acceptance:** [Stage 10, Step 3](README.md#step-3-deploy-and-verify-applications).
+The existing operator deployment is retained; do not run Step 2 again to create the same cluster.

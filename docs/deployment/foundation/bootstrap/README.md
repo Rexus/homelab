@@ -5,11 +5,16 @@ working repositories, stages approved artifacts, trusts the Proxmox API and owns
 the initial local inputs/state. It is not a CI runner and needs no hosted GitLab,
 FreeIPA, Vault or Kubernetes.
 
+Use a protected existing Linux host or the reference `boot-1` VM. An existing host starts at
+**Step 2** and skips Proxmox VM creation. Proxmox API trust is needed later
+because this repository provisions Proxmox resources, not because bootstrap requires that hypervisor.
+
 **Working repository:** `<prefix>-tier-0` and sibling repositories after generation.
 Step 1 uses the Proxmox GUI and an independent privileged workstation; Steps 2–4
 prepare and use the bootstrap VM before any hosted runner exists.
-**Prerequisites:** prepared hosts/network/storage, one tested
-[manual Linux template](templates.md), and independent console/recovery access.
+**Prerequisites:** approved software access and independent console/recovery access.
+The reference VM path also needs prepared hosts/network/storage and one tested
+[manual Linux template](../proxmox/templates.md).
 **Design:** [protected execution](../../../architecture/hosting/provisioning.md#execution-contexts).
 
 ## Contents
@@ -159,7 +164,7 @@ LVM root on EL10 or Debian/Ubuntu. Complete only the selected path before instal
 
 1. In **VM > Hardware > Add > Hard Disk**, add `scsi1` on the selected live-disk datastore.
    Keep its **Backup** option enabled.
-2. Complete [workspace disk preparation](bootstrap-storage.md): identify the empty disk, create its
+2. Complete [workspace disk preparation](step-3a-bootstrap-storage.md): identify the empty disk, create its
    filesystem, record the UUID mount, verify after reboot and create the private directories.
    An existing filesystem is valid; retain its data and verify the actual selected mount.
 3. Require the intended data filesystem from `findmnt -T /srv/tier0`, with enough space for compressed
@@ -168,14 +173,14 @@ LVM root on EL10 or Debian/Ubuntu. Complete only the selected path before instal
 The workspace guide refuses an unmounted directory with `mountpoint -q /srv/tier0` before creating private
 paths such as `/srv/tier0/src/homelab`. Back up the data disk independently and include it in bootstrap VM backup jobs.
 
-**Optional, before installing tools/cloning:** follow [home directories on the data disk](bootstrap-home.md)
+**Optional, before installing tools/cloning:** follow [home directories on the data disk](step-3c-bootstrap-home.md)
 to bind `/srv/tier0/home` at `/home`. Complete the selected storage/home path, then continue at **2a/2b**.
 
 <a id="b-expand-the-existing-rocky-linux-root--lvm-alternative"></a>
 
 #### B: Expand the existing root — LVM alternative
 
-Follow [LVM expansion](bootstrap-lvm.md): choose **A** to enlarge the existing disk, or **B**
+Follow [LVM expansion](step-3b-bootstrap-lvm.md): choose **A** to enlarge the existing disk, or **B**
 to add a disk to the existing volume group. Each path has its own numbered commands and checks.
 
 For this layout, `/srv/tier0` is a directory on the expanded root filesystem. Use that guide's
@@ -327,7 +332,8 @@ Record site choices and completed capabilities:
 Edit in **`<prefix>-architecture/`**.
 
 - `platform-standards.md`: Actual host names, VMIDs and network allocations.
-- `docs/README.md`: Selected paths and deployment/verification progress.
+- `docs/README.md`: Selected design and verification evidence links.
+- `deployments.md`: Completed deployment steps and selected options; update after each completed path.
 
 Read the rendered upstream [Tier 0 checklist](../../../paths/tier-0/README.md) in
 the browser while executing commands from the named generated repository.
@@ -336,7 +342,7 @@ the browser while executing commands from the named generated repository.
 
 Acquire approved images/checksums into `/srv/tier0/artifacts` and retain their provenance. Copy the first
 manually uploaded Linux artifact here too if its file/template will be adopted.
-Follow [verify, unpack and upload](templates.md#step-1-verify-unpack-and-upload)
+Follow [verify, unpack and upload](../proxmox/templates.md#step-1-verify-unpack-and-upload)
 for raw/qcow2 handling; catalog hashes describe the **unpacked** bytes. Retain
 provider/tool/collection artifacts outside this VM for independent recovery.
 
@@ -348,7 +354,7 @@ Packer and later-stage tools such as Helm, kubectl and talosctl belong to their 
 
 ### 2b: Transfer a prepared bundle — offline alternative
 
-Follow the [offline bootstrap workflow](bootstrap-offline.md) to prepare on a matching
+Follow the [offline bootstrap workflow](step-3e-bootstrap-offline.md) to prepare on a matching
 connected machine, copy with `scp` or approved media, verify, then install without
 public package services. It installs Ansible from local wheels and its declared collections.
 It lists controller dependencies separately from the artifacts required inside later guests/clusters.
@@ -410,7 +416,7 @@ public key; Ansible uses its matching private key through SSH. See the
    and its caller-verification gate **on the bootstrap VM**. Obtain the public CA through
    console/verified SSH, compare fingerprints, install it in the OS trust store and verify
    the endpoint name. Browser trust on another workstation is insufficient.
-2. Follow [API setup](api-access.md#create-platform-automation-access) on a **Proxmox host**
+2. Follow [API setup](../proxmox/api-access.md#create-platform-automation-access) on a **Proxmox host**
    to create the scoped roles, group and token. Return here after its token permission checks.
 3. Back on **`boot-1`**, initialize Tier 0's local files:
 
@@ -469,7 +475,7 @@ public key; Ansible uses its matching private key through SSH. See the
 **Ready:** operator SSH/console, usable outbound SSH key/agent, tools, artifacts,
 verified API trust, scoped credentials, configured Shared profile and independent recovery.
 Return to
-[Foundation Step 3](../README.md#step-3-publish-and-test-vm-templates) to adopt
+[Foundation Step 4](../README.md#step-4-publish-and-test-vm-templates) to adopt
 existing templates or publish new candidates, including the Kubernetes node image.
 Do not boot the reusable template or capture this credential-bearing VM back into it.
 

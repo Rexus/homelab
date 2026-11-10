@@ -1,4 +1,10 @@
-# Scoped workload collection
+# Step 3c: Scoped workload collection
+
+**Branch from:** [Step 3](README.md#step-3-deploy-and-verify-applications), option **3c**, after the application's
+private route and any selected public HTTPS branch work.
+**Change:** install scoped collection for the selected application's signals.
+**Return:** [Step 3](README.md#step-3-deploy-and-verify-applications) after source-to-query
+and authorization checks, then complete update/restore handoff.
 
 Connect application logs, metrics and distributed traces to the accepted Tier 1
 Observability interfaces. Security/audit evidence continues directly to Tier 0;
@@ -106,7 +112,7 @@ Edit **`ansible/group_vars/workload_telemetry.yml`**:
 
 | Field | Set |
 | --- | --- |
-| `workload_telemetry_kubeconfig`, `workload_telemetry_namespace` | Tier 2 cluster and the application namespace |
+| `workload_telemetry_kubeconfig`, `workload_telemetry_context`, `workload_telemetry_namespace` | Tier 2 kubeconfig, exact context and the application namespace |
 | `workload_telemetry_chart_version`, `workload_telemetry_image_tag` | Exact qualified Collector chart/image versions |
 | `workload_telemetry_storage_class` | Accepted persistent-queue CSI class |
 | `workload_telemetry_metrics_endpoint`, `workload_telemetry_application_endpoint` | Reachable private Tier 1 gateway names/ports |
@@ -135,7 +141,9 @@ The Collector cannot create its remote listener, source CA or reader mapping.
 Run from **`<prefix>-tier-2/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/workload-telemetry.yml -e @ansible/group_vars/workload_telemetry.yml
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/workload-telemetry.yml \
+  -e @ansible/group_vars/workload_telemetry.yml -e workload_telemetry_action=render
 ```
 
 Review `secrets/workload-telemetry/otel-agent-values.yml` and native manifests.
@@ -144,7 +152,9 @@ Set the explicit kubeconfig path, then apply:
 Run from **`<prefix>-tier-2/`**.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/workload-telemetry.yml -e @ansible/group_vars/workload_telemetry.yml -e workload_telemetry_action=apply
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/workload-telemetry.yml \
+  -e @ansible/group_vars/workload_telemetry.yml -e workload_telemetry_action=apply
 ```
 
 Shared executes the official pinned chart; Tier 2 owns the namespace, release,

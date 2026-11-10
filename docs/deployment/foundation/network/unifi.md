@@ -95,7 +95,7 @@ independently of tier ownership.
 Assign each network to one zone. [1]
 
 For the optional Proxmox SDN path, use the matching `dmz`, `services` and
-`control` groups in the [SDN field guide](../step-1c-sdn.md). Create the VLAN
+`control` groups in the [SDN field guide](../proxmox/step-1c-sdn.md). Create the VLAN
 membership on both platforms; SDN groups do not configure the gateway's policy.
 
 | Layer / purpose | Zone | Example member networks |

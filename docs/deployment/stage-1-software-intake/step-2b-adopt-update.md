@@ -1,4 +1,8 @@
-# Adopt an intake update with existing cache servers
+# Step 2b: Adopt an intake update with existing cache servers
+
+**Branch from:** [Step 2](README.md#step-2-initialize-cache-inputs), option **2b**, for an existing pair.
+**Change:** refresh automation and reconcile the retained cache configuration/state.
+**Return:** [Step 5](README.md#step-5-test-the-selected-intake-path) after update adoption and cache reconciliation.
 
 Update the generated collection, reconcile the existing cache pair, then register the optional
 Tier 1 verified-intake setup. Existing VMs, local inputs and original state stay in place.
@@ -7,7 +11,7 @@ Tier 1 verified-intake setup. Existing VMs, local inputs and original state stay
 `<prefix>-tier-0` for existing host consumers; `<prefix>-tier-1` for `intake-1`.
 **Prerequisites:** recoverable copies of local inputs/state, working bootstrap tools and SSH,
 and the published kit revision containing the update. The kit must be on that revision's branch.
-The verified worker also needs [commissioned trust, logging and packages](verified-intake.md).
+The verified worker also needs [commissioned trust, logging and packages](../stage-3-trust/step-3b-verified-intake.md).
 
 ## Contents
 
@@ -15,7 +19,7 @@ The verified worker also needs [commissioned trust, logging and packages](verifi
 - [2. Refresh the existing collection](#2-refresh-the-existing-collection)
 - [3. Reconcile the existing cache](#3-reconcile-the-existing-cache)
 - [4. Register the new Tier 1 setup](#4-register-the-new-tier-1-setup)
-- [5. Initialize and deploy verified intake](#5-initialize-and-deploy-verified-intake)
+- [5. Return to the numbered path](#5-return-to-the-numbered-path)
 
 ## 1. Update the kit checkout
 
@@ -117,27 +121,13 @@ software_intake: null
 Keep other hosts/groups and check for existing names, VMIDs and address reservations.
 This is inventory/recipe registration only, not a Terraform import or a VM creation.
 
-## 5. Initialize and deploy verified intake
+## 5. Return to the numbered path
 
-Run from **`<prefix>-tier-1/`**:
+Return to [Stage 1, Step 5](README.md#step-5-test-the-selected-intake-path) to verify the cache
+and its consumers, then complete Stages 2 and 3 in order. Registering the worker setup above creates
+no worker VM and does not complete verified publication.
 
-```bash
-bash scripts/init-local-files.sh --setup intake
-```
-
-**Expected:** missing intake inputs are created. Tier 1 needs its own actual `.env.local` API endpoint,
-credentials and SSH public-key paths; it does not inherit Tier 0's file. Configure Shared references,
-the `delivery_edge` attachment and Tier 1 service inputs using
-[verified-intake Steps 1–2](verified-intake.md#1-initialize-inputs).
-
-The deployment precheck requires `community.general`, `ansible.posix`, `community.crypto` and
-`ansible.utils` on bootstrap. Cache-only tooling may not include the latter two. Supply them through
-approved OS/Galaxy sources, or prepare the offline collection bundle and select `CONTROL_NODE_COLLECTIONS_MODE=check`;
-the [control-node tooling contract](../../reference/control-node-tooling.md#deployment-machine)
-explains acquisition and native Python dependencies. The worker receives these installed collections from bootstrap.
-
-Then follow **Steps 3–8 in that guide**: provision the VM, prepare its data mount, configure TLS/keys,
-install the worker, supply current definitions and test publication before enabling the timer.
-Start with one small source and retain the current consumer supply until the new path is accepted.
-If commissioned CA/logging are not yet available, finish Stages 2–3 and return here; a working proxy
-alone does not satisfy those worker prerequisites.
+Select [Stage 3, option 3b](../stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional)
+when protected logging and the issuer are accepted. That single installer owns worker inputs,
+VM/disks, service setup and consumer cutover; no later-stage service is needed.
+If Stage 3 is already accepted, the option can be deployed directly from that numbered decision point.

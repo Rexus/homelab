@@ -46,8 +46,8 @@ For a design review, follow this reading order:
    [runtime relationships](architecture/runtime-flows.md).
 3. Drill into [foundational capabilities](architecture/README.md#foundational-capabilities) and
    [select compatible variants](architecture/variants.md).
-4. Record selected paths in the generated architecture repository's `docs/README.md`;
-   complete `platform-standards.md` for local standards.
+4. Record selected design in the generated architecture repository's `docs/README.md`;
+   complete `platform-standards.md` for local standards and use `deployments.md` for completion checks.
 5. Follow the [deployment stages](deployment/README.md), using verified
    existing services wherever they satisfy the prerequisites.
 
@@ -56,8 +56,10 @@ Deployment guides name the working repository; the
 and Shared to generated checkouts and source directories.
 
 The architecture repository's `docs/auto-docs/` is the complete maintained manual.
-Its only initial local documents are one platform checklist/navigation record and
-the platform standards worksheet. Tier/Shared repositories retain their code-specific records;
+Its initial local documents are the platform design/navigation record, `deployments.md`
+completion checklist and platform standards worksheet. After a successful installation,
+check the matching deployment and options in `<prefix>-architecture/deployments.md`;
+keep acceptance evidence separate. Tier/Shared repositories retain their code-specific records;
 extra site design/runbooks are added only when needed.
 
 Architecture defines the result and its boundaries. Deployment realizes it;

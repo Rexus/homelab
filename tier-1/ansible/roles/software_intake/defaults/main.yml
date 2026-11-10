@@ -2,6 +2,9 @@
 software_intake_sources: []
 software_intake_config_dir: /etc/software-intake
 software_intake_data_dir: /srv/intake
+software_intake_data_device: /dev/sdb
+software_intake_data_fstype: xfs
+software_intake_data_uuid: ""
 software_intake_runtime_dir: /usr/local/share/software-intake/runtime
 software_intake_collections_dir: /usr/local/share/software-intake/collections
 software_intake_fetch_user: intake-fetch

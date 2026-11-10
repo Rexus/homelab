@@ -16,7 +16,21 @@ platform and protected cluster-source collection roles in Shared.
 See [coverage](../../reference/implementation-support.md#stage-coverage).
 **Design:** [Kubernetes runtime](../../architecture/hosting/kubernetes.md).
 
+**Version decision before provisioning:** retain the approved **Talos 1.13.x** image, installer
+schematic/release and matching CLI selected in
+[Foundation](../foundation/proxmox/templates.md#talos-version-contract).
+The reference Cilium patches and Stage 5 SSO workflow use that minor. A 1.14 logging-render option
+does not qualify the complete platform or SSO path; do not upgrade/downgrade existing nodes here.
+
 ## Main path
+
+| Step / option | Detailed path | Rejoin |
+| --- | --- | --- |
+| 1: endpoint before nodes | [Private API endpoint](procedures/api-endpoint.md); [node image access](procedures/image-access.md) | Choose 1a or 1b before provisioning |
+| 1a: Terraform, main | [Talos cluster](procedures/talos-terraform.md), Steps 1–3 | Step 2; do not run another cluster lifecycle |
+| 1b: manual alternative | [Manual cluster](step-1b-manual-cluster.md); Stage 5 SSO needs a separately qualified manual integration | Step 2 after client export |
+| 2: platform and source collection | [Base add-ons](procedures/basic-platform.md), [cluster logging](procedures/security-logging.md), [Flux/SOPS](procedures/flux-sops.md) | Follow the interleaved order in Step 2 below |
+| 3: acceptance | [Common cluster contract](procedures/kubernetes.md), then verification below | Stage 5 after recovery checks |
 
 1. [Create the Kubernetes cluster](#step-1-create-the-kubernetes-cluster)
 2. [Establish the basic platform](#step-2-establish-the-basic-platform)

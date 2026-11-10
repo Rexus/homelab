@@ -30,6 +30,19 @@ def contrast(first, second):
 
 
 class DiagramConventions(TierRepositoryTestCase):
+    def test_source_and_generated_figures_omit_deployment_allocations(self):
+        self.generate("--repo", "architecture")
+        roots = (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs",
+                 UPSTREAM / "scripts/tier-repos/templates")
+        for root in roots:
+            for document in root.rglob("*.md"):
+                for code in diagrams(document):
+                    self.assertNotRegex(code, r"(?i)\b(?:vm[ _-]?id|guest[ _-]?id)\b", str(document))
+                    self.assertNotRegex(code, r"\b\d+(?:\.\d+){3}(?:/\d+)?\b", str(document))
+                    self.assertNotRegex(code, r"\b(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\b", str(document))
+                    if re.search(r"(?m)^(?:flowchart|block-beta)\b", code):
+                        self.assertNotRegex(code, r"\b\d+\s*(?:GiB|GB|MiB|MB|vCPUs?)\b", str(document))
+
     def test_palette_pairs_are_legible_on_light_and_dark_pages(self):
         palette = json.loads((UPSTREAM / "docs" / PALETTE).read_text())
         for role, style in palette["roles"].items():

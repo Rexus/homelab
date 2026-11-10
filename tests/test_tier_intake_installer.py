@@ -188,19 +188,8 @@ class IntakeInstaller(TierRepositoryTestCase):
                 self.assertIn('explicit consumer CIDRs', result.stdout, result.stdout + result.stderr)
                 self.assertNotIn('Check the actual prepared mount', result.stdout)
 
-    def test_native_mount_and_public_key_qualification_gates(self):
+    def test_native_public_key_qualification_gates(self):
         role = UPSTREAM / 'tier-1/ansible/roles/software_intake'
-        preflight = yaml.safe_load((role / 'tasks/preflight.yml').read_text())
-        mount = next(task for task in preflight if task['name'] == 'Reject missing, read-only or exhausted intake storage')
-        flags = ['rw', 'nodev', 'nosuid', 'noexec']
-        for missing in [None, *flags]:
-            with self.subTest(missing_flag=missing):
-                values = self.inputs(role)
-                values['software_intake_mount'] = {'stdout': json.dumps({'filesystems': [{
-                    'target': '/srv/intake', 'options': ','.join(flag for flag in flags if flag != missing),
-                }]})}
-                result = self.run_tasks([mount], values, Path(self.temp.name))
-                self.assertEqual(result.returncode == 0, missing is None, result.stdout + result.stderr)
         keys = yaml.safe_load((role / 'tasks/keys.yml').read_text())
         block = next(task['block'] for task in keys if 'block' in task)
         gate = next(task for task in block if task['name'].startswith('Require exactly the pinned public primary key'))

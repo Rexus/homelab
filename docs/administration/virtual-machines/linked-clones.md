@@ -48,8 +48,9 @@ This needs no second datastore and produces an independent VM. [1]
 3. Keep the original off. Test the copy on an isolated network first; its copied
    guest settings can include the same IP, hostname and application identity.
    Qualify boot, networking, guest control and application data before cutover.
-4. Record the new VMID and reconcile its owning IaC inputs/state before the next
-   deployment. Then retire the original VM and its linked disks when recovery
+4. Record the new VMID and [rebind the existing Linux VM resource](../recovery/terraform-import.md)
+   before the next deployment. That procedure retains the original state and all unrelated resources.
+   Then retire the original VM and its linked disks when recovery
    copies are accepted. Merely shutting down the original leaves its dependency.
 
 A full clone copies current guest contents, not the source VM's complete snapshot

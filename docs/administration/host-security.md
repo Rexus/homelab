@@ -1,7 +1,7 @@
 # Linux Host Security Operations
 
 Maintain the opt-in `linux-host-v1` profile on the selected tier's Linux leaf hosts.
-The [deployment procedure](../deployment/foundation/proxmox/host-security.md)
+The [deployment procedure](../administration/hosts/linux-security.md)
 owns supported systems, inputs, configuration boundaries and first-run acceptance.
 Keep the approved inputs, external public-key files and independent console
 credentials available without Kubernetes, SSO or higher-tier services.
@@ -27,7 +27,7 @@ and an independently tested console. This profile excludes Proxmox and Kubernete
 1. Edit the existing private input file from initial deployment,
    `$HOME/.config/homelab/host-security.yml`. Review the pilot host, operator sources,
    complete SSH key lists, service allows, NTP endpoints and keepalived peer addresses.
-2. Use the [controller-local render procedure](../deployment/foundation/proxmox/host-security.md#review-and-apply)
+2. Use the [controller-local render procedure](../administration/hosts/linux-security.md#review-and-apply)
    for the actual host OS. Inspect its four output files before changing policy.
    The render role writes on its selected target; the local procedure prevents review files
    from being written onto a managed host.

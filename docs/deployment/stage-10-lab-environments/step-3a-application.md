@@ -1,4 +1,9 @@
-# Bounded application environment
+# Step 3a: Bounded application environment
+
+**Branch from:** [Step 3](README.md#step-3-deploy-and-verify-applications), path **3a**, after Kubernetes Step 2b.
+**Change:** install the selected application inside its approved namespace and access boundary.
+**Return:** [Step 3](README.md#step-3-deploy-and-verify-applications) after boundary checks;
+then select public HTTPS/collection and finish recovery.
 
 **Working repository:** `<prefix>-tier-2`. Return to [Stage 10, Step 3](README.md#step-3-deploy-and-verify-applications).
 **Prerequisites:** accepted cluster networking/storage/ingress, at least two schedulable
@@ -110,7 +115,7 @@ Two replicas require capacity; they do not establish storage or physical failove
 2. Test the reader group: its namespace logs are readable; other namespaces, Secrets
    and mutations are denied. Identity authentication does not itself grant this role.
 3. Prove default-deny isolation and quota enforcement, then connect selected
-   [telemetry](telemetry.md). Protected evidence remains outside this namespace.
+   [telemetry](step-3c-telemetry.md). Protected evidence remains outside this namespace.
 
 Namespace isolation is not a hard boundary for hostile tenants. Use dedicated
 [cluster isolation](isolated-clusters.md) where required. Keep automatic allocation,

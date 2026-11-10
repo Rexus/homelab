@@ -20,15 +20,25 @@ See [coverage](../../reference/implementation-support.md#stage-coverage) for liv
 
 ## Main path
 
-1. [Create the platform runtime](#step-1-create-the-platform-runtime)
-2. [Select and qualify delivery](#step-2-select-and-qualify-delivery)
-3. [Connect approved artifact supply](#step-3-connect-approved-artifact-supply)
+Follow Steps 1–3. Choose one runtime path, one controller and one registry source.
+
+| Step | Path or option | Continue when |
+| --- | --- | --- |
+| 1a | [Create the Tier 1 cluster](procedures/platform-cluster.md) | Complete [Step 1 readiness](#step-1-create-the-platform-runtime), then Step 2 |
+| 1b | [Accept an existing cluster](#step-1-create-the-platform-runtime) with the same platform gates | Rejoin Step 2 without creating another cluster |
+| 2a | [Argo CD](step-2a-argocd.md), using the [common installer](procedures/delivery-installer.md) | Complete controller access/recovery checks, then Step 3 |
+| 2b | [Spinnaker](step-2b-spinnaker.md), instead of 2a, using the same installer | Complete controller access/recovery checks, then Step 3 |
+| 3a | [Install Harbor](procedures/registry.md#install-harbor) | Complete [Step 3 supply checks](#step-3-connect-approved-artifact-supply) |
+| 3b | [Accept an existing registry](procedures/registry.md#select-the-procedure), instead of 3a | Same supply checks; newly deployed Stage 9 GitLab is not available yet |
+| 3c | Optional [registry acceleration](procedures/registry.md#select-the-procedure) after 3a/3b; project integration | Accept the selected distribution clients before completing Step 3 |
+| 3d | Optional [Tier 2 edge pool](procedures/edge-proxy.md) for an existing approved backend | Accept the private pool and failover, then return to Step 3; public websites belong to Stage 10 |
 
 <a id="step-1-deploy-shared-delivery-services"></a>
 
 ## Step 1: Create the platform runtime
 
-1. In **`<prefix>-tier-1/`**, complete the [platform-cluster procedure](procedures/platform-cluster.md)
+1. Choose **1a: create a cluster** or **1b: accept an existing cluster**.
+   For 1a, in **`<prefix>-tier-1/`**, complete the [platform-cluster procedure](procedures/platform-cluster.md)
    through cluster creation, credential export and basic-platform installation. It contains the
    saved-plan commands and the add-on commands; run each installation once.
 2. Verify CNI, persistent storage, private ingress, logging, physical placement and recovery.
@@ -101,17 +111,21 @@ Within the selected branch, complete these actions in order:
 
 ## Step 3: Connect approved artifact supply
 
-1. Use [Harbor](procedures/registry.md#install-harbor) for the supplied main path, or an
+1. Choose **3a: Harbor** or **3b: an existing approved registry**.
+   Use [Harbor](procedures/registry.md#install-harbor) for the supplied main path, or an
    existing approved registry with the same acceptance contract. GitLab's integrated registry
    is an option only when that service is already commissioned; Stage 9 has not created it yet.
 2. For Harbor, complete its storage, TLS, identity and private credential inputs, then render/review/apply.
    For an existing registry, verify those contracts without running another installer.
    Retain the selected controller's existing owner; the registry guide explains controller-only/Harbor-only runs.
 3. Verify authorized/denied push and pull, promotion and a clean-target restore.
-4. If an application already needs public access, complete the [Tier 2 edge branch](procedures/edge-proxy.md)
-   and its HTTPS publication checks, then return here. Otherwise defer edge publication until
-   [Stage 10's public-website branch](../stage-10-lab-environments/public-https.md).
-   Private controller APIs do not require public edge publication.
+4. If selected, complete **3c: registry acceleration** through the
+   [registry procedure](procedures/registry.md#select-the-procedure). It needs its own product integration;
+   the Harbor installer does not install Dragonfly.
+5. For an existing approved backend, **3d: [Tier 2 edge pool](procedures/edge-proxy.md)** can provision
+   and qualify private listeners/failover now. Return here after those checks. Keep public DNS/NAT closed;
+   website certificates/publication belong to [Stage 10](../stage-10-lab-environments/step-3b-public-https.md).
+   Private controller APIs require no edge deployment or later-stage service.
 
 Harbor extends [early software intake](../stage-1-software-intake/README.md#extend-the-capability-later);
 it does not deploy another ordinary proxy/cache.

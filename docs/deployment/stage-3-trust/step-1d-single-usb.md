@@ -5,7 +5,8 @@ Device initialization and custody are operator procedures, not a supplied instal
 
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before creating keys.
 **Change:** use one host-local hardware device instead of a software key store.
-**Return:** [Step 2](README.md#step-2-establish-the-certificate-hierarchy) for intermediate signing and issuer verification.
+**Return:** [Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody) to install the issuer runtime
+and prepare its provider-backed key/CSR before Step 2 signing.
 **Design:** [single-device custody](../../architecture/cryptography/hsm-selection.md#options-a-d).
 
 This option protects a selected root or issuer key without deploying gateway replicas.
@@ -25,9 +26,9 @@ remains offline; online issuer use does not create a route to root custody.
 
 ## Return to the main path
 
-After signing, denied-operation and restore tests pass, return to
-[Step 2](README.md#step-2-establish-the-certificate-hierarchy) for the intermediate
-certificate ceremony and issuer acceptance. Replicated
+After disposable signing, denied-operation and restore tests pass, return to
+[Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody) for issuer runtime/key preparation.
+Continue to Step 2 with its reviewed CSR for the intermediate certificate ceremony. Replicated
 [USB gateways](step-1b-usb-hsm.md) are a separate service pattern, not a required next step.
 
 When Vault, signing workflows or other selected consumers require higher throughput

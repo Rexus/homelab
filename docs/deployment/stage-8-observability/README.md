@@ -28,10 +28,17 @@ are in [configuration](configuration.md); live boundaries are in [stage coverage
 
 ## Main path
 
-1. [Prepare the runtime](#step-1-prepare-the-runtime)
-2. [Deploy the signal pipelines](#step-2-deploy-the-signal-pipelines)
-3. [Connect infrastructure monitoring](#step-3-connect-infrastructure-monitoring)
-4. [Publish and verify read-only views](#step-4-publish-and-verify-read-only-views)
+Follow Steps 1–4. Choose the runtime and database-backup path before installation.
+
+| Step | Path or option | Continue when |
+| --- | --- | --- |
+| 1a | [Existing Tier 1 Kubernetes](#step-1-prepare-the-runtime); complete [configuration actions 1–4](configuration.md#inputs-and-execution) | Inputs, trust, storage and SSO are ready for Step 2 |
+| 1b | [Dedicated VMs](step-1b-dedicated-vms.md), instead of 1a; supplied IaC is an OS baseline only | Project-owned product installation must be complete before rejoining Step 3 |
+| 2a | [NAS-file database backups](#step-2-deploy-the-signal-pipelines): prepare database, commission destination, apply full stack | Complete [configuration actions 5–10](configuration.md#install-and-verify), then Step 3 |
+| 2b | Existing object/WAL backup destination instead of 2a's NAS preparation | Join [configuration action 8](configuration.md#8-render-the-complete-platform), then finish Step 2 |
+| 3 | [Infrastructure monitoring](infrastructure-monitoring.md) | Tier 0 collection and approved metric export are accepted; go to Step 4 |
+| 4a | [Existing application sources and scoped readers](#step-4-publish-and-verify-read-only-views) | Test enrolled sources; Stage 10 adds later applications, not a prerequisite |
+| 4b | Optional [protected-log search copies](step-4b-protected-log-search.md), alongside or instead of application-log sources | Approve/export in Tier 0, then return to Step 4 access/recovery checks |
 
 <a id="step-1-prepare-the-investigation-runtime"></a>
 
@@ -307,10 +314,12 @@ defined in Step 2. Readers enter from the left and query Tier 1 only. Tier 0 ori
 this query view: no archive mount or write path is granted. Export/redaction remains
 separately authorized in Tier 0 before an approved copy reaches OpenSearch.
 
-1. Select source enrollment: for approved Tier 0 evidence copies, complete the
-   [approved-copy publisher/exporter](protected-log-search.md) in **`<prefix>-tier-0/`**;
-   for application-only visibility, skip that exporter and use the
-   [application collection path](../stage-10-lab-environments/telemetry.md) when the application exists.
+1. Select source enrollment: **4a: existing application sources**, **4b: approved Tier 0 evidence copies**,
+   or both. For 4b, complete the [approved-copy publisher/exporter](step-4b-protected-log-search.md)
+   in **`<prefix>-tier-0/`**. For 4a, enroll approved producers that already exist using the
+   [configured private intake](configuration.md#private-cross-cluster-intake).
+   Stage 10's [application collection path](../stage-10-lab-environments/step-3c-telemetry.md)
+   enrolls future applications; it is not required to finish this stage.
    Keep unenrolled source scopes explicitly unverified; do not claim their coverage yet.
 2. In **`<prefix>-tier-1/ansible/group_vars/observability_platform.yml`**, verify each
    `observability_log_scopes` entry and its `reader_backend_roles` against the approved IdP groups.
@@ -356,7 +365,7 @@ Record deployment and acceptance evidence. Native rendering and configuration va
 establish neither live HA nor failure/recovery acceptance. Accept the projection adapter,
 private endpoints, TLS/users, storage/backups and external Tier 0 notifications separately.
 Continue with [Stage 9: Development platform](../stage-9-development/README.md)
-and later [Stage 10 workload collection](../stage-10-lab-environments/telemetry.md). Do not add a second
+and later [Stage 10 workload collection](../stage-10-lab-environments/step-3c-telemetry.md). Do not add a second
 syslog archive merely because an operational UI needs approved log visibility.
 
 ## References

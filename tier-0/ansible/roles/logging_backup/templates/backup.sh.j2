@@ -4,6 +4,9 @@ set -eu
 export RESTIC_REPOSITORY='{{ logging_backup_repository }}'
 export RESTIC_PASSWORD_FILE=/etc/security-log-backup.password
 mountpoint --quiet '{{ logging_backup_repository }}'
+findmnt --noheadings --output TARGET --mountpoint '{{ logging_backup_repository }}' \
+  --source {{ logging_backup_repository_guard_source | quote }} \
+  --types {{ logging_backup_repository_guard_fstype | quote }} >/dev/null
 python3 -c 'from logging_io import require_mount; require_mount("{{ logging_backup_mount }}", "{{ logging_backup_marker }}")'
 python3 /usr/local/lib/security-logging/logging_checkpoint.py verify --root '{{ logging_backup_mount }}' --files-list /var/lib/security-log-backup/files
 # Nonzero/partial backups must not ping the independent dead-man monitor.

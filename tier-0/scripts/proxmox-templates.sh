@@ -390,4 +390,11 @@ else
     echo "Shared catalog not found; template publication completed without updating consumer references."
     echo "Check out Shared beside Tier 0, then rerun plan/apply to synchronize references."
   fi
+  # Publication also works before Shared exists; keep this output independent of its helpers.
+  checklist='<prefix>-architecture/deployments.md'
+  if [[ "${repo_root##*/}" =~ ^(.+)-tier-0$ ]]; then
+    checklist="${repo_root%/*}/${BASH_REMATCH[1],,}-architecture/deployments.md"
+  fi
+  printf '\nDeployment checklist: %s\n' "$checklist"
+  printf '%s\n' 'After completing the linked deployment path, manually update the matching entry/option for templates.'
 fi

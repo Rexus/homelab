@@ -123,6 +123,12 @@ Local configuration may change counts or names; the generated project's owned de
 records must describe those selections. Upstream diagrams describe the linked examples,
 not live-state discovery. Keep source, diagrams and contract tests in the same change.
 
+Keep figure labels stable and clean: omit VMIDs, literal IP/MAC allocations and configured disk/RAM/CPU sizes.
+Identify instances by their inventory/resource names and relationships; keep exact IDs in the linked
+Terraform inputs or reference tables. One-to-one correspondence uses those resource keys, not a numeric
+allocation printed in the picture. Keep interfaces, roles, protocol names and actual containment visible.
+A convention figure explaining an allocation format is the reference exception.
+
 ## Boundaries and colour
 
 The [palette](../reference/diagrams/palette.json) defines reusable visual roles.

@@ -12,7 +12,8 @@ Existing installations retain their network values until an explicit migration.
 
 **Branch from:** [Step 2](README.md#step-2-add-on-demand-build-execution), when choosing general build execution.
 **Change:** Use a Podman-based general runner, not the protected Tier 0 runner.
-**Return:** [Step 3](README.md#step-3-authorize-ci-through-vault) for secret integration before infrastructure handover.
+**Return:** [Step 2](README.md#step-2-add-on-demand-build-execution) for bounded-job acceptance and
+the optional image-lifecycle choice, then Step 3 Vault authorization.
 
 **Design:** [build and execution boundaries](../../architecture/software/README.md).
 
@@ -35,10 +36,9 @@ Existing installations retain their network values until an explicit migration.
 Use this guide to add a dedicated internal runner to an existing GitLab service
 for building bootc images for server templates and hosts.
 
-This is the first image-based Linux implementation path. It does not require
-Kubernetes, Harbor, or Dragonfly. The runner builds with Podman and pushes the
-image to the GitLab built-in registry. When the shared registry path exists,
-the same pipeline can promote or copy images into Harbor.
+The runner builds with Podman independently of Kubernetes or Dragonfly. The CI example uses
+the accepted Stage 7 registry, such as Harbor. A separately commissioned GitLab registry is also valid;
+the supplied Kubernetes GitLab chart does not enable one.
 
 ## What this deploys
 
@@ -77,7 +77,7 @@ This path has dedicated IaC:
 | Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) | Common host preparation |
 | Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) | Execution helper called from Tier 1's root |
 | GitLab | Runner authentication token and project settings | Runs the bootc image pipeline; credentials stay outside Git |
-| GitLab registry | Project or group registry | Stores the first internal bootc images |
+| Accepted Stage 7 registry | Scoped project and robot credentials | Stores candidate bootc images |
 
 Default to one runner VM. Add more runners when build time, project isolation,
 or trust boundaries require it.
@@ -213,8 +213,8 @@ runner secret, or external secret system.
    A Shell executor runs trusted jobs on its host; it is not an untrusted-code sandbox.
 
 Add `--plan-only` for preview or `--auto-approve` for an approved unattended job.
-Return to [Stage 9 Step 3](README.md#step-3-authorize-ci-through-vault), or continue
-with the optional image-build example below.
+Return to [Stage 9 Step 2](README.md#step-2-add-on-demand-build-execution) for runner acceptance
+and the 2c image-lifecycle decision. If selecting 2c, the image-build example below prepares its source.
 
 ## Bootc image project
 
@@ -259,9 +259,18 @@ and bootc images as operating system artifacts.[4][5]
 
 ## GitLab CI example
 
-GitLab provides predefined variables for its registry, including
-`CI_REGISTRY`, `CI_REGISTRY_IMAGE`, `CI_REGISTRY_USER`, and
-`CI_REGISTRY_PASSWORD`.[6]
+In **GitLab > the image project > CI/CD variables**, configure the accepted registry:
+
+| Variable | Value |
+| --- | --- |
+| `REGISTRY_HOST` | Accepted registry hostname, without `https://` |
+| `REGISTRY_PROJECT` | Existing project/path that accepts candidate images |
+| `REGISTRY_USER`, `REGISTRY_PASSWORD` | Scoped push identity and masked secret; protect them when builds are restricted to protected refs |
+
+Trust that registry's CA on the runner and qualify push/pull before starting the build.
+The Kubernetes GitLab main path disables its integrated registry, so its `CI_REGISTRY*`
+variables are not prerequisites. For a separately enabled GitLab registry, set the same
+four inputs to that service's hostname, project path and scoped credentials. [6]
 
 If the image is based on RHEL, add protected and masked GitLab CI/CD variables:
 
@@ -277,7 +286,7 @@ stages:
   - build
 
 variables:
-  BOOTC_IMAGE: "$CI_REGISTRY_IMAGE/server-base"
+  BOOTC_IMAGE: "$REGISTRY_HOST/$REGISTRY_PROJECT/server-base"
 
 build_bootc_image:
   stage: build
@@ -286,8 +295,8 @@ build_bootc_image:
   script:
     - set -euo pipefail
     - |
-      printf '%s' "$CI_REGISTRY_PASSWORD" |
-        podman login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+      printf '%s' "$REGISTRY_PASSWORD" |
+        podman login "$REGISTRY_HOST" -u "$REGISTRY_USER" --password-stdin
     - |
       if [ -n "${RH_REGISTRY_USER:-}" ]; then
         printf '%s' "$RH_REGISTRY_PASSWORD" |
@@ -311,21 +320,26 @@ so do not publish derived RHEL OS images to a public registry.[7]
 
 ## Promotion path
 
-Start with this flow:
+The main path publishes directly to the accepted Stage 7 registry:
+
+```text
+GitLab project -> Podman runner -> Harbor -> accepted bootc image
+```
+
+For the separately commissioned GitLab-registry alternative:
 
 ```text
 GitLab project -> Podman runner -> GitLab registry -> bootc template or host
 ```
 
-Later, when Harbor exists:
+If promoting those candidates into the accepted Stage 7 Harbor service:
 
 ```text
 GitLab project -> Podman runner -> GitLab registry -> Harbor -> bootc hosts
 ```
 
-Use GitLab's registry as the early artifact location. Move to Harbor when the
-registry becomes a shared platform service with project boundaries, scanning,
-retention, and Kubernetes pull scaling.
+These are optional distribution shapes, not stages to install in order. Harbor already exists
+when selected in Stage 7; it can receive builds directly without a GitLab-registry intermediate.
 
 ## Read more
 
@@ -342,4 +356,4 @@ retention, and Kubernetes pull scaling.
 4. [Red Hat image mode pipeline with GitLab](https://developers.redhat.com/articles/2026/02/12/how-build-image-mode-pipeline-gitlab)
 5. [Red Hat image mode for RHEL](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_image_mode_for_rhel_to_build_deploy_and_manage_operating_systems/introducing-image-mode-for-rhel)
 6. [GitLab predefined CI/CD variables](https://docs.gitlab.com/ci/variables/predefined_variables/)
-7. [RHEL bootc base image](https://catalog.redhat.com/en/software/containers/rhel9/rhel-bootc/)
+7. [RHEL bootc base image](https://catalog.redhat.com/en/software/containers/rhel9/rhel-bootc/6605573d4dbfe41c3d839c69)

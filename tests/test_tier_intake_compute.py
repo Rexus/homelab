@@ -230,14 +230,15 @@ run "explicit_overrides" {
             self.check_starter_diagram(vm)
 
     def check_starter_diagram(self, vm):
-        guide = UPSTREAM / "docs/deployment/stage-1-software-intake/verified-intake.md"
+        guide = UPSTREAM / "docs/deployment/stage-3-trust/step-3b-verified-intake.md"
         diagrams = re.findall(r"```mermaid\n(.*?)\n```", guide.read_text(), re.DOTALL)
-        identity = f"{vm['name']} / VMID {vm['vm_id']:g}"
+        identity = f'VM["{vm["name"]}<br/>'
         drawings = [diagram for diagram in diagrams if identity in diagram and "scsi0" in diagram]
         self.assertEqual(len(drawings), 1, "A provisioning view must map the resolved starter VM and disks")
         for disk in vm["disk"]:
-            expected = rf"{re.escape(disk['interface'])}\s*/\s*{disk['size']:g}\s*(?:GB|GiB)\b"
-            self.assertRegex(drawings[0], expected)
+            self.assertIn(f"{disk['interface']} /", drawings[0])
+        self.assertIn("/srv/intake", drawings[0])
+        self.assertNotRegex(drawings[0], r"\b\d+\s*(?:GB|GiB)\b")
 
 
 if __name__ == "__main__":

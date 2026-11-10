@@ -27,6 +27,25 @@ This file keeps durable context for AI-assisted work across sessions.
   is explicit; otherwise qualify Proxmox's inherited defaults. bootstrap_network = null
   retains the previous DHCP path. The Talos API still owns machine configuration.
 - name capabilities by the goal, keeping implementation products explicit only where relevant
+- Deployment READMEs own the complete numbered path and alphabetic choices. Link every child guide
+  from its owning README at the actual action/decision; each option states its branch and rejoin.
+  Dedicated path/option filenames and titles match that route: step-<number><letter>-<task>.md.
+  Companion guides share the path prefix; reusable procedures/references retain descriptive task names.
+  Renumbering updates filenames, links and refresh-move targets together, not just README labels.
+  Complete all selected paths before the next stage. Enhancements are scheduled after their real
+  prerequisites, even when they extend earlier capabilities; never send a fresh operator to a future
+  stage and back to finish a supposedly completed stage. Qualified existing/manual interfaces remain explicit.
+- Foundation now has four numbered actions: hosts/networks, first manual Linux template, bootstrap,
+  then managed publication/clone/recovery qualification. Select HA/SDN before guests, complete SDN
+  authorization after bootstrap, and qualify guest HA/ProxLB before leaving Foundation. Old anchors remain.
+  Linux host security belongs under administration/hosts/linux-security.md and is first selected at
+  Stage 1 option 4b after cache VMs exist, not a pre-guest Foundation deployment.
+- Normal post-bootstrap deployment provisions the complete selected realization through IaC:
+  Terraform owns guests, attached disks and state; Ansible owns guest filesystems, persistent mounts
+  and service configuration. Reuse Shared's guarded data_volume role for dedicated XFS/ext4 volumes.
+  Never turn guest mkfs/fstab work into an undocumented manual prerequisite. Existing data, UUID
+  pins and mount declarations are preserved; missing storage requires recovery, not silent replacement.
+  NAS-side exports/access/snapshots and offline signing/recovery custody remain explicit prerequisites.
 - Prefer 3–8 character unqualified guest hostnames, including the instance suffix: boot-1,
   idm-1, log-1. Keep role abbreviations in docs/conventions/proxmox-conventions.md.
   This is a readability preference, not the DNS limit or SDN VNet's hard naming restriction;
@@ -41,8 +60,14 @@ This file keeps durable context for AI-assisted work across sessions.
   preserved HTTP freshness/privacy, sanitized structured decisions and native consumer verification.
   CONNECT is unscanned. The optional Tier 1 intake-1 realization uses native reposync/debmirror,
   pinned publisher verification, ClamAV on a sealed copy and immutable read-only HTTPS publication.
-  Prepared /srv/intake, approved feature-compatible packages/definitions and existing TLS are prerequisites;
-  the role never formats storage or creates signing keys. Fetch, scan and web identities cannot write
+  Normal deployment uses one deploy.sh intake: Terraform provisions VM/disks and Ansible uses Shared's
+  data_volume role to initialize only verified new blank storage, mount by UUID and grow XFS/ext4.
+  This is Stage 3 option 3b after issuer/logging acceptance, not an unfinished Stage 1 option.
+  Intake defaults are /dev/sdb, xfs and /srv/intake; software_intake_data_uuid optionally pins existing
+  data. Preserve recognized filesystems; an absent declared volume or conflicting fstab identity fails
+  rather than formatting a replacement. Do not add manual mkfs/fstab prerequisites to normal
+  post-bootstrap deployments. Approved feature-compatible packages/definitions, publisher keys and
+  existing TLS remain external inputs; no signing keys are created. Fetch, scan and web identities cannot write
   accepted content. OCI/Trivy gates and opaque guest-filesystem scanning remain separate integrations.
   Keep publisher trust, malware assessment and vulnerability policy distinct;
   Tier 0 selects/verifies updates and retains independently usable supply. See
@@ -100,6 +125,9 @@ This file keeps durable context for AI-assisted work across sessions.
   and credential contracts. The old script delegates; old roots require deliberate migration
 - `docs/deployment/stage-4-kubernetes/procedures/kubernetes.md` owns cluster choices and common readiness;
   its `talos-terraform.md` sibling and stage's `step-1b-manual-cluster.md` own implementation procedures
+- The complete supplied human-SSO rollout qualifies Talos 1.13.x and requires the original
+  Terraform-owned plan. Manual cluster credentials survive later guides, but that alternative's
+  SSO configuration persistence/rollout/recovery implementation is still a recorded gap.
 - all three tiers own a Kubernetes root, inventory/IP map, state and credentials;
   shared/scripts/kubernetes-cluster.sh is execution only, with tier-local shortcuts
 - all tiers use tier-owned cluster-platform playbooks/inputs with Shared's stateless
@@ -178,8 +206,11 @@ This file keeps durable context for AI-assisted work across sessions.
 - `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
   notices; existing root READMEs/project templates remain project-owned and are not overwritten;
   refresh recreates missing current starters
-- Fresh architecture repositories contain only a short README, docs/README.md platform
-  selections/progress/navigation and platform-standards.md, plus the full auto-docs manual.
+- Fresh architecture repositories contain a short README, docs/README.md design/navigation record,
+  platform-standards.md and a root deployments.md completion checklist, plus the full auto-docs manual.
+  The checklist uses real Markdown tasks for main deployments and nested options, with guide and
+  owning-repository links. Check after completing the linked path, not merely Terraform provisioning;
+  keep acceptance evidence separate. Preserve local checks/notes on refresh and seed missing records.
   Do not seed a second domain/workflow/site hierarchy. Preserve old project documents
   on refresh; consolidation is manual, with local runbooks added only when needed.
 - preserve existing README contents when promoting them to owned files;
@@ -200,6 +231,10 @@ This file keeps durable context for AI-assisted work across sessions.
   Tier-owned Terraform calls Shared's stateless read-only helper through the external provider;
   token/TLS environment, SDN.Audit and tier-local IP inventory remain required. Explicit inputs still work.
 - refresh uses `.generated-files.json`, updates kit automation and preserves configuration/project edits.
+  Current *.example targets are kit-owned references: always replace them on --refresh, even if edited,
+  formerly owned or unrecorded. Never overwrite their live counterparts. Flag changed/restored examples
+  with adjacent live files in the final yellow review, linking the refreshed example; env.local.example
+  maps to .env.local. Print paths only, avoid unchanged-example noise, and keep dry runs write-free.
   Back up edited tracked automation under collection-level .refresh-backups/ before replacement;
   --code-conflicts preserve keeps local code, while ask offers an interactive choice (Enter preserves).
   Unknown existing paths and new project files remain protected. Recreate missing current
@@ -303,6 +338,9 @@ This file keeps durable context for AI-assisted work across sessions.
   deployment uses exact starter instances and counts, linked inputs and executing code;
   explicitly bound manual/existing/project integration rather than implying an empty starter installs services;
   workflow and acceptance diagrams describe actions, not additional infrastructure
+- Keep figures free of VMIDs, literal IP/MAC allocations and configured disk/RAM/CPU sizes. Use stable
+  role/resource labels, interfaces and source links for correspondence; exact allocations and sizing
+  belong in inputs/reference tables. Convention format illustrations remain reference exceptions.
 - retain local logs from first boot; central intake precedes PKI/FreeIPA and Kubernetes;
   portable evidence and an independent reader/key kit support offline data-volume inspection
 - critical-data recovery follows 3-2-1 with independent offline/immutable custody;
@@ -313,6 +351,10 @@ This file keeps durable context for AI-assisted work across sessions.
   trusted source attribution, index permissions and read auditing enforce segmentation, not UI tenants alone
 - independent Tier 0 critical monitoring/Netdata parent complements Tier 1 Observability and Tier 2
   collectors; no default SigNoZ/ClickHouse or full per-tier stack
+- Stage 6 can provision optional `mon-1` through the original Tier 0 foundation root with
+  `--terraform-only`; preserve the issuer/directory guest and IP maps/state. Its commented starter
+  stays disabled earlier. Baseline, producer enrollment and monitoring installation follow separately;
+  an accepted existing host is the alternative, and one VM is not HA.
 - one receiver is bootstrap only; HA acceptance specifies durable acknowledgement/replication semantics,
   independent failure domains, bounded queues and protected retention; UDP and source-loss gaps stay explicit
 - each stage has a main README with numbered local steps, diagrams, a capability result,
@@ -454,11 +496,12 @@ This file keeps durable context for AI-assisted work across sessions.
 - variants.md records stable consumer contracts and different guarantees; detailed alternatives stay
   inside their owning domain; project architecture records one compatible selected composition
 - upstream reference views follow overview, relationships, domains and detailed variants;
-  project starters link them from one compact selection/progress record, without duplicating the tree
+  project starters link them from compact design and deployment records, without duplicating the tree
 - hosting/, networking/, data/, identity/, cryptography/, software/ and operations/ own capability designs;
   zero-trust access, scaling, failure domains and recovery constrain all seven rather than form stages
 - architecture is the static intended design: context, components, interfaces, variants and constraints
-- docs/deployment/readiness.md owns capability progress and acceptance; the deployment index owns stages
+- docs/deployment/readiness.md owns acceptance criteria; generated deployments.md owns site completion
+  tracking and selected options; the deployment index owns stages
 - use direct IT-domain directories, not intermediate system-design/subsystem-design indexes
 - design records contain required guarantees, never stage-based states or current readiness
 - hardware signing-custody rollover is an administration procedure, not an architecture page;
@@ -473,8 +516,11 @@ This file keeps durable context for AI-assisted work across sessions.
 - developer examples name the working repository, distinguish private live inputs from upstream examples,
   reuse actual modules/roles and link exact contracts instead of repeating long input/tooling explanations
 - Tier/Shared generated repos retain seed-owned code-specific workflow records;
-  the architecture repo has one platform record and standards, with auto-docs as the main manual
-- foundation docs are grouped in proxmox/, network/ and storage/; proxmox/templates.md
+  the architecture repo has a platform record, deployment checklist and standards; auto-docs is the main manual
+- foundation docs are grouped in bootstrap/, proxmox/, network/ and storage/.
+  bootstrap/README.md owns independent execution/recovery tooling and its numbered storage/offline paths;
+  Proxmox hosts, templates, HA, SDN and API setup belong under proxmox/. Reference VM hosting does not
+  make bootstrap a hypervisor capability. proxmox/templates.md
   owns the shared Alma/Rocky/Talos wizard. Mutable Linux refresh belongs in administration.
 - refresh retains existing project records and links them from new starters; unchanged
   moved auto-docs become compatibility pointers only in existing collections

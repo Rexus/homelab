@@ -2,6 +2,7 @@
 
 **Working repository:** `<prefix>-tier-1`. Branch from
 [Stage 9, Step 1](../README.md#step-1-deploy-source-control-and-sso).
+**Return:** to Step 1 for the joint data/toolbox backup and restore checks, then Step 2 runners.
 The native Ansible recipe renders or installs the official Helm chart.
 The main path installs Community Edition; no paid Vault CI integration is required.
 

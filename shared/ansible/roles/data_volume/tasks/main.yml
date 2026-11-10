@@ -1,0 +1,9 @@
+---
+- name: Validate the selected guest volume
+  ansible.builtin.import_tasks: inspect.yml
+
+- name: Refuse unsafe volume changes
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Converge filesystem and persistent mount
+  ansible.builtin.import_tasks: prepare.yml

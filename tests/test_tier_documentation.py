@@ -16,7 +16,7 @@ from generate import REPOSITORIES
 from generated_files import MARKER, RepositoryWriter
 
 PROJECT_DOCS = (
-    "docs/README.md", "platform-standards.md",
+    "docs/README.md", "platform-standards.md", "deployments.md",
 )
 
 
@@ -96,7 +96,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertIn(f"## {heading}", naming.read_text())
         self.assertFalse((architecture / "docs/generated").exists())
 
-    def test_architecture_starter_is_a_single_platform_record_and_standards(self):
+    def test_architecture_starter_has_design_standards_and_deployment_checklist(self):
         self.generate()
         repo = self.root / "verify-architecture"
         local_docs = sorted(path.relative_to(repo).as_posix() for path in repo.rglob("*.md")
@@ -107,12 +107,44 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         record = (repo / "docs/README.md").read_text()
         self.assertIn("## Selected design", record)
         self.assertIn("## Deployment checklist", record)
-        self.assertIn("| Deployed | Verified |", record)
-        self.assertIn("&#9744;", record)
+        self.assertIn("[deployments.md](../deployments.md)", record)
+        self.assertNotIn("| Deployed | Verified |", record)
+        checklist = (repo / "deployments.md").read_text()
+        self.assertIn("- [ ] Cache servers deployed", checklist)
+        self.assertIn("  - [ ] Consumers switched", checklist)
+        self.assertIn("`- [x]`", checklist)
+        self.assertIn("~~text~~", checklist)
+        self.assertIn("VMs ready; configuration pending", checklist)
+        self.assertNotIn("&#9744;", checklist)
+        self.assertNotRegex(checklist, r"(?m)^\s*- \[[xX]\]")
+        for tier in range(3):
+            self.assertIn(f"../verify-tier-{tier}/README.md", checklist)
         self.assertIn("generation proves no operational result", record)
         self.assertIn("auto-docs/architecture/README.md", record)
         for name in REPOSITORIES:
             self.assertTrue((self.root / f"verify-{name}/README.md").exists())
+
+    def test_refresh_adds_checklist_without_rewriting_previous_records(self):
+        self.generate()
+        architecture = self.root / "verify-architecture"
+        checklist = architecture / "deployments.md"
+        checklist.unlink()
+        old_record = "# Site progress\n\n- [x] Cache deployed\n"
+        (architecture / "docs/README.md").write_text(old_record)
+        previous_frontdoor = "# Site architecture\n\n[Progress](docs/README.md)\n"
+        (architecture / "README.md").write_text(previous_frontdoor)
+        self.generate("--refresh", "--dry-run")
+        self.assertFalse(checklist.exists())
+        self.generate("--refresh")
+        self.assertTrue(checklist.is_file())
+        self.assertEqual((architecture / "docs/README.md").read_text(), old_record)
+        self.assertEqual((architecture / "README.md").read_text(), previous_frontdoor)
+        progress = checklist.read_text().replace("- [ ] Cache servers deployed", "- [x] Cache servers deployed")
+        progress = progress.replace("- [ ] Argo CD", "- [ ] ~~Argo CD~~")
+        progress += "\nDeployment evidence: private change record 42.\n"
+        checklist.write_text(progress)
+        self.generate("--refresh")
+        self.assertEqual(checklist.read_text(), progress)
 
     def test_platform_standards_retains_the_previous_root_worksheet(self):
         self.check_previous_standards("naming-conventions.md")
@@ -330,7 +362,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                         key=lambda path: int(path.parent.name.split("-")[1]))
         self.assertEqual(len(stages), 10)
         index = (docs / "deployment/README.md").read_text()
-        project = (self.root / "verify-architecture/docs/README.md").read_text()
+        project = (self.root / "verify-architecture/deployments.md").read_text()
         for number, stage in enumerate(stages, 1):
             content = stage.read_text(encoding="utf-8")
             self.assertTrue(content.startswith(f"# Stage {number}: "), stage)
@@ -351,12 +383,13 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                 self.assertIn("**Change:**", text, option)
                 self.assertIn("Return", text, option)
                 self.assertIn(f"({option.name})", content, option)
+                self.assertIn(f"{stage.parent.name}/{option.name}", project, option)
         intake, logging, trust, cluster, identity, control, delivery, observability, development, workloads = (
             stage.read_text(encoding="utf-8") for stage in stages
         )
         foundation = (docs / "deployment/foundation/README.md").read_text()
-        self.assertIn("proxmox/bootstrap.md", foundation)
-        bootstrap = (docs / "deployment/foundation/proxmox/bootstrap.md").read_text()
+        self.assertIn("bootstrap/README.md", foundation)
+        bootstrap = (docs / "deployment/foundation/bootstrap/README.md").read_text()
         self.assertIn("not itself a reachable Flux source", " ".join(bootstrap.split()))
         self.assertIn("## Step 1: Provision the log host", logging)
         self.assertIn("Hardware protection", trust)
@@ -382,7 +415,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("not a native HSM cluster", hardware)
         self.assertEqual(hardware.count("```mermaid"), 1)
         self.assertIn("step-1b-usb-hsm.md", project)
-        self.assertIn("direct-CI trust, Vault and original-state handover", project)
+        self.assertIn("Direct-CI trust, Vault and original-state handover", project)
         design = (docs / "architecture/reference-platform.md").read_text()
         self.assertIn("not a claim that every service is automated", design)
         self.assertIn("no network route", design)
@@ -467,6 +500,9 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertIn("bash scripts/init-tier-repos.sh --refresh", content)
             link = re.search(r"\[project documentation\]\(([^)]+)\)", content)[1]
             self.assertEqual((document.parent / link).resolve(), architecture / "docs/README.md")
+            if source.is_relative_to(UPSTREAM / "docs/deployment"):
+                checklist = re.search(r"\[deployment checklist\]\(([^)]+)\)", content)[1]
+                self.assertEqual((document.parent / checklist).resolve(), architecture / "deployments.md")
             self.assertIn(relative, manifest["files"])
             self.assertNotIn(relative, manifest["owned"])
 

@@ -17,9 +17,10 @@ def owned_template(writer, template, target, legacy=None, **values):
     writer.write(target, content, owned=True, source=TEMPLATES / template)
 
 
-def workflow_guides(writer, repo, docs):
+def workflow_guides(writer, repo, docs, prefix):
     title = repo.replace("-", " ").title()
-    owned_template(writer, "project/deployment.md", "docs/deployment/README.md", title=title, docs=docs)
+    owned_template(writer, "project/deployment.md", "docs/deployment/README.md", title=title, docs=docs,
+                   checklist=f"../../../{prefix.lower()}-architecture/deployments.md")
     workflows = {
         "development": (
             "Change, review and validation procedures for this repository.",
@@ -70,7 +71,7 @@ def repository_guides(writer, repo, prefix, scope):
     owned_template(writer, "project/repository-design.md", "docs/architecture/README.md",
                    legacy="docs/architecture.md", title=title, prefix=prefix, repo_prefix=repo_prefix,
                    scope=f"This repository owns {scope}.", selections=selections[repo], docs=f"../{docs}")
-    workflow_guides(writer, repo, f"../{docs}")
+    workflow_guides(writer, repo, f"../{docs}", prefix)
     if repo == "tier-0":
         owned_template(writer, "project/logging-evidence.md", "docs/administration/logging-evidence.md",
                        docs=f"../{docs}")
@@ -82,6 +83,7 @@ def architecture_scaffold(writer, prefix):
     for template, target in (
         ("readmes/architecture.md", "README.md"),
         ("project/index.md", "docs/README.md"),
+        ("project/deployments.md", "deployments.md"),
     ):
         owned_template(writer, template, target, prefix=prefix, repo_prefix=prefix.lower(),
                        legacy=previous_design if target == "docs/README.md" else None)
@@ -92,4 +94,4 @@ def architecture_scaffold(writer, prefix):
     if any((writer.root / path).exists() for path in ("docs/architecture", "docs/deployment",
                                                     "docs/development", "docs/administration")):
         print("Existing project documents preserved. The compact starter uses docs/README.md "
-              "for selections and progress; consolidate older records manually if appropriate.")
+              "for selections and deployments.md for progress; transfer older checks manually if appropriate.")
