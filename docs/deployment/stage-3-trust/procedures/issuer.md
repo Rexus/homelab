@@ -85,7 +85,7 @@ create XFS on an undeclared blank disk, mount it persistently by UUID, and bind 
 at `/var/lib/mysql` before MariaDB packages are installed. Existing compatible storage is retained;
 files in an unmounted database directory or conflicting mount declarations stop the installation.
 See the [storage contract](../../../reference/openxpki.md#storage) for existing-volume and recovery rules.
-Configure independent access and [Stage 2 forwarding](../../stage-2-logging/sources.md) on **`ca-1`**.
+Configure independent access and [Stage 2 forwarding](../../stage-2-logging/procedures/sources.md) on **`ca-1`**.
 
 **Gate:** verify an issuer-host test event at protected intake before continuing.
 

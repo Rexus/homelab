@@ -102,7 +102,7 @@ public HTTPS feeds; authenticated subscription sources require a separately qual
 1. Confirm every enabled source uses accepted supply and native verification remains enabled.
 2. Deny direct WAN bypass independently. Stop the mirror in a disposable test and require a clear
    refresh failure, not fallback to an external source.
-3. For **boot-1**, select the existing [mirror-mode recipe](../stage-1-software-intake/bootstrap-consumer.md#2b-native-mirrors-or-disconnected-supply)
+3. For **boot-1**, select the existing [mirror-mode recipe](../stage-1-software-intake/step-6-bootstrap-consumer.md#2b-native-mirrors-or-disconnected-supply)
    after repository/tool supply is commissioned. Other tools still need their own accepted supply.
 4. Record the previous and selected URLs. Follow the [rollback and recovery runbook](../../administration/software-intake.md)
    for another selection; patch rollout/reboots remain separate maintenance operations.

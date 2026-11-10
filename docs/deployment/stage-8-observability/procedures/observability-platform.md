@@ -1,13 +1,13 @@
 # Observability Configuration
 
-**Stage route:** [Stage 8, Step 1a](README.md#step-1-prepare-the-runtime) uses actions 1–4;
-[Step 2](README.md#step-2-deploy-the-signal-pipelines) uses actions 5–10 for the selected backup path.
+**Stage route:** [Stage 8, Step 1a](../README.md#step-1-prepare-the-runtime) uses actions 1–4;
+[Step 2](../README.md#step-2-deploy-the-signal-pipelines) uses actions 5–10 for the selected backup path.
 **Return:** to the owning step after those actions. Action 11 and the intake/reference sections support
-[Step 4's source and reader checks](README.md#step-4-publish-and-verify-read-only-views).
+[Step 4's source and reader checks](../README.md#step-4-publish-and-verify-read-only-views).
 
 The Tier 1 `observability_platform` role owns native product values, source routing,
 OpenSearch policy/bootstrap and readiness checks. Shared executes the pinned charts.
-Start with the [Stage 8 main path](README.md). All filled inputs and render outputs are private.
+Start with the [Stage 8 main path](../README.md). All filled inputs and render outputs are private.
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
 
@@ -36,7 +36,7 @@ Start with the [Stage 8 main path](README.md). All filled inputs and render outp
 ## 1. Create local inputs
 
 Source ownership remains in
-[`ansible/roles/observability_platform/`](../../../tier-1/ansible/roles/observability_platform).
+[`ansible/roles/observability_platform/`](../../../../tier-1/ansible/roles/observability_platform).
 Run from **`<prefix>-tier-1/`**, using the prepared deployment virtual environment.
 
 ```bash
@@ -74,8 +74,8 @@ Do not run this recipe and a delivery controller as concurrent owners of the sam
 | `observability_search_bootstrap` | True only for the initial empty cluster; false after first green acceptance and for all restarts, scaling and recovery |
 | `observability_log_scopes` | Per-source name, application/projection kind, listener, NodePort and explicit reader backend roles |
 | `observability_telemetry_cidrs`, `observability_egress` | Observed source networks after routing/SNAT and exact IdP/API/kubelet destinations; replace the IdP ingress placeholder |
-| Database backup method | Scheduled verified full copies to a separate NAS file PVC, or the existing object/WAL option; [storage prerequisites](../foundation/storage/README.md) install no gateway |
-| `observability_backup_mode`, `observability_backup_files_phase` | Fresh examples use `files` / `prepare`; [commission the NAS destination](../../administration/backups/postgresql.md), then select `backup` to enable copies and continue installation |
+| Database backup method | Scheduled verified full copies to a separate NAS file PVC, or the existing object/WAL option; [storage prerequisites](../../foundation/storage/README.md) install no gateway |
+| `observability_backup_mode`, `observability_backup_files_phase` | Fresh examples use `files` / `prepare`; [commission the NAS destination](../../../administration/backups/postgresql.md), then select `backup` to enable copies and continue installation |
 | `observability_database_storage_class` | Explicit live Proxmox/Ceph-backed block class, independent of the NAS backup claim |
 | `observability_backup_destination`, `observability_backup_endpoint` | Object/WAL option only: Grafana database backup prefix and HTTPS S3-compatible endpoint, with scoped tenant keys and independent custody |
 | `observability_manage_secrets` | False by default; an existing secret owner supplies native Kubernetes Secrets |
@@ -188,7 +188,7 @@ the provider TLS CA. Grafana verifies ID-token signatures, uses PKCE and permits
 configured operator group as `Viewer`; unmatched groups are denied. Grafana's endpoints
 follow the selected Keycloak realm; secure `SameSite=Lax` cookies permit OAuth callbacks. [11]
 Prepare the client, redirect and group settings from the
-[service SSO gate](../stage-5-identity/procedures/service-sso.md) now.
+[service SSO gate](../../stage-5-identity/procedures/service-sso.md) now.
 Run its live login/denial, provider-outage, cookie and signing-key-rotation tests in Step 11,
 after the UIs exist. Configuration alone is not a live-login test.
 
@@ -241,7 +241,7 @@ instead of `--ask-vault-pass`.
 
 ## 7. Commission the NAS backup destination
 
-Complete [PostgreSQL NAS backup commissioning](../../administration/backups/postgresql.md),
+Complete [PostgreSQL NAS backup commissioning](../../../administration/backups/postgresql.md),
 using `grafana-db` in the selected Tier 1 namespace. Return here after verifying the retained
 backup PVC, actual NAS backing, database system identifier, repository marker and access.
 
@@ -305,7 +305,7 @@ Require readiness again. Never re-enable the flag for restart, scaling or recove
 
 ## 11. Connect sources and verify
 
-Continue at [Stage 8, Step 3](README.md#step-3-connect-infrastructure-monitoring), then Step 4.
+Continue at [Stage 8, Step 3](../README.md#step-3-connect-infrastructure-monitoring), then Step 4.
 Complete the live service SSO gate and verify scoped readers, denied access, failure/replay
 and clean-target recovery before acceptance.
 The [intake](#private-cross-cluster-intake), [search-copy](#approved-search-projections) and
@@ -323,7 +323,7 @@ These are configurable inputs, not a second inventory. Services use `externalTra
 Provide a reviewed private TCP load balancer with node-local endpoint health checks, or a
 client routing configuration that uses the private workers currently hosting gateway pods.
 A DNS list alone does not establish exporter failover. Keep this endpoint contract aligned
-with [Tier 2 workload collection](../stage-10-lab-environments/step-3c-telemetry.md).
+with [Tier 2 workload collection](../../stage-10-lab-environments/step-3c-telemetry.md).
 
 Firewall rules admit only approved source CIDRs to the selected private worker NodePorts.
 No public edge route is created. Verify the CNI's NodePort/source-IP behavior against the
@@ -334,7 +334,7 @@ or ingress policy; native chart probes use its pod-local HTTP API. Ingestion its
 
 ## Approved Search Projections
 
-Tier 0 supplies the [approved-copy publisher and native Collector exporter](step-4b-protected-log-search.md).
+Tier 0 supplies the [approved-copy publisher and native Collector exporter](../step-4b-protected-log-search.md).
 The Observability recipe does not install them or acquire original-archive access.
 Until the separate Tier 0 export recipe is installed and accepted, projection search
 is configured but receives no evidence copies.
@@ -371,7 +371,7 @@ The object/WAL option additionally uses Barman Cloud, `ObjectStore` and
 The role gates the selected resources, database readiness and a completed backup.
 A completed backup is not a tested restore. Retain database/password/encryption
 secrets independently and qualify the actual recovery point and elapsed restore time.
-Use [NAS-file recovery](../../administration/recovery/cnpg-files.md) for scheduled file
+Use [NAS-file recovery](../../../administration/recovery/cnpg-files.md) for scheduled file
 sets; the Barman recovery procedure applies only to the object/WAL variant.
 
 The initial Grafana/vmauth metrics view is for platform operators. It is one approved
@@ -398,7 +398,7 @@ health, membership and allocated shards before starting Data Prepper. Policy, us
 membership changes create a new policy-bootstrap Job. These are installation gates. Worker/physical-host
 loss, metric catch-up, parent replication, certificate/credential failures, denied direct APIs,
 forged scope, queue replay, index rebuild with unchanged Tier 0 originals, and clean restores
-remain required [Stage 8 acceptance](README.md#capability-available).
+remain required [Stage 8 acceptance](../README.md#capability-available).
 
 ## References
 

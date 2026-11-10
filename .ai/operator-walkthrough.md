@@ -19,6 +19,70 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Controller and cache repair follow-up, 2026-11-10
+
+- [x] Check the selected network-filter Python dependency independently of collection presence.
+  Install OS `python3-netaddr` or the active venv's declared requirement; `check` remains acquisition-free.
+- [x] Expose explicit approved DNF baseurls for existing selected sections, preserving keys,
+  verification settings, other repositories and timestamped backups. Explain dynamic-mirror limitations
+  in the bootstrap path and distinguish source selection from the cache allowlist.
+- [x] Select cache `scsi1` by its existing stable by-id identity. Replace the legacy unguarded
+  filesystem sequence with Shared data-volume qualification before stopping Squid or preparing storage.
+- [x] Reject malformed VIP prefixes, including a retained placeholder marker and `/0`.
+  Require every keepalived member in the active play/batch before gathering facts or stopping its owner.
+- [ ] Finish live acceptance after correcting site disk/prefix inputs: qualify both service members,
+  VIP prefix/ownership, source retrieval, takeover/restoration, denied destinations and ordinary OS refresh.
+
+Evidence so far: 10 controller/dependency/syntax checks passed; five Python-runtime checks passed
+(OS acquisition simulated, venv pip/filter execution native); four source-selection checks passed
+against temporary files; four VIP-gate checks covered 14 native inventory/play scenarios. Native
+invalid-input and source/generated-link checks passed. Live feedback confirmed OS netaddr 1.3.0;
+remaining cache/storage/network acceptance is separate from those local fixtures.
+The cache-volume follow-up passed six regressions and eight Shared volume checks without skips:
+OS/partitioned/root devices stop before service/storage changes, accepted volumes retain identity,
+and blank-volume preparation uses the Shared UUID path. Device/service/filesystem boundaries in
+the cache integration fixture are simulated; no live block writes or mounts were performed locally.
+Live inspection identified reversed Linux disk letters and the existing scsi1 by-id link on both guests.
+The malformed VIP input retained a placeholder marker; the unconfigured peer still had stock keepalived
+addresses. Corrected site inputs and a complete pair rerun remain required for operational acceptance.
+
+### Galaxy acquisition behind the cache, 2026-11-10
+
+- [x] Select `ansible.utils` for cache CIDR validation before guest changes, retaining its
+  collection bounds and controller `netaddr` dependency in source/generated output.
+- [x] Include the Galaxy API and document explicit artifact-route approval or prepared archives;
+  do not make one observed regional redirect hostname a universal dependency. Document retained-policy
+  adoption and the one-time approved-source repair for an existing cache.
+- [x] Use native Galaxy `--no-cache` acquisition to bypass malformed API-response metadata;
+  preserve installed collections, version bounds, TLS/proxy policy and offline `check` behavior.
+- [x] Reproduce the poisoned-response failure and real collection installation through a loopback
+  proxy; verify retained collection/cache files and an idempotent, network-free second run.
+- [ ] Complete site acceptance after proxy denial and subsequent VIP connection timeout:
+  verify services/VIP ownership, approved API plus redirected artifact download and denied destinations.
+
+Validation: 11 focused controller/version/link/preflight checks passed; two Squid-binary checks were
+explicitly skipped in that harness. The new native metadata-cache regression passed on Ansible
+2.16 and 2.21; removing `--no-cache` reproduced the failure. No live cache changes were executed.
+
+### Numbered guide ownership follow-up, 2026-11-10
+
+- [x] Name the dedicated bootstrap consumer guide for Stage 1 Step 6 and the infrastructure
+  monitoring guide for Stage 8 Step 3; keep their README entry and return points explicit.
+- [x] Keep cache installation in the Stage 1 README and update reconciliation in option 2b.
+  Move policy/tuning lookup to reference, removing repeated installation instructions.
+- [x] Group reusable logging, monitoring, Observability and isolated-cluster guides under
+  their stage's procedures directory. Preserve diagrams, implementation and lifecycle scope.
+- [x] Update source/generated links, source pointers and direct refresh-migration targets;
+  check numbered filenames/titles and separation of steps, procedures and references.
+
+Validation: 564 portable cases, including 240 explicit tool-dependent skips. The first run exposed
+two documentation-coverage checks: an option-only filename assumption and missing checklist rows.
+Both were corrected and passed focused reruns; all other executed portable cases passed.
+All 20 focused navigation, source/generated-link, graph and source-pointer checks passed.
+The guide-command/monitoring fixture run passed 12 checks with three explicit root-only skips.
+All 220 public pages remain reachable/referenced; moved Mermaid bodies are unchanged.
+No live deployment or hosted-renderer acceptance is implied.
+
 ### Connectivity and consolidation follow-up, 2026-11-10
 
 - [x] Trace all 220 public Markdown pages, including the root README, from the front door;
@@ -426,6 +490,8 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Offline bootstrap tooling | [Foundation 3e](../docs/deployment/foundation/bootstrap/step-3e-bootstrap-offline.md) | Matching OS/Python/CPU, verified bundle/provider artifacts; does not imply every later stage is disconnected-ready |
 | Alternative balancing | [Foundation 4c](../docs/deployment/foundation/proxmox/step-4c-proxlb.md) | ProxLB qualification after API and a movable guest exist; one scheduling owner and live failover proof required |
 | Existing cache update | [Software intake 2b](../docs/deployment/stage-1-software-intake/step-2b-adopt-update.md) | Preserve original inputs/state, refresh automation and retest consumers; verified worker installation remains Stage 3 |
+| Bootstrap intake | [Software intake Step 6](../docs/deployment/stage-1-software-intake/step-6-bootstrap-consumer.md) | Apply the accepted endpoint, activate the shell and prove package/tool access before retiring temporary egress |
+| Infrastructure health | [Observability Step 3](../docs/deployment/stage-8-observability/step-3-infrastructure-monitoring.md) | Connect Tier 0-owned hardware/host collection and approved Tier 1 metric delivery; verify alerts and isolation |
 | Protected search projections | [Observability 4b](../docs/deployment/stage-8-observability/step-4b-protected-log-search.md) | Tier 0-approved copies and scoped ingestion; test denial/replay without granting original-archive authority |
 | Private application | [Lab 3a](../docs/deployment/stage-10-lab-environments/step-3a-application.md) | Native namespace/application path; verify access isolation, update/rollback and recovery |
 | Public website | [Lab 3b](../docs/deployment/stage-10-lab-environments/step-3b-public-https.md) | Existing edge or explicitly provision it first; real DNS, origin TLS, renewal/failover and denied-route proof required |

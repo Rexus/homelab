@@ -18,7 +18,7 @@ NAS custody and live acceptance remain required. See [coverage](../../reference/
 | Step / option | Detailed path | Rejoin |
 | --- | --- | --- |
 | 1: first receiver VM/disks | Provision below; no platform PKI or cluster required | Step 2 |
-| 2: trust, receiver, then producers | [Independent signing](producer-trust.md), [receiver](receiver.md), then [sources](sources.md) | Step 3 after authorized test events arrive |
+| 2: trust, receiver, then producers | [Independent signing](procedures/producer-trust.md), [receiver](procedures/receiver.md), then [sources](procedures/sources.md) | Step 3 after authorized test events arrive |
 | 3a: single collector, main | Retain the first collector's explicit failure limits | Select storage 3c or 3d |
 | 3b: extra receiver, optional | [Redundant intake](step-3b-redundant-intake.md) | Select storage 3c or 3d for the resulting topology |
 | 3c: NAS retention, main | [NAS checkpoints and independent backup](step-3c-nas-archive.md) | Final fault/restore acceptance below |
@@ -203,7 +203,7 @@ installation; it does not require an already-running receiver to generate that r
 
 ### 1. Install and test the receiver
 
-Complete [receiver Steps 1-3](receiver.md). Select the local data device, issue its
+Complete [receiver Steps 1-3](procedures/receiver.md). Select the local data device, issue its
 independent TLS identity and run the receiver installation, including filesystem/mount preparation.
 These are required steps, not optional background reading. The recipe refuses unsafe storage or missing trust.
 
@@ -214,10 +214,10 @@ Return here after `log-1-os` reaches protected intake, then continue with action
 ### 2. Connect the other producers
 
 Receiver setup enrolls `log-1`'s own OS stream first. Extend coverage by completing
-[source Steps 1-2](sources.md) for each supported Proxmox host and additional
-approved stream. Prepare host keys/CSRs, approve them through [producer trust](producer-trust.md#3-approve-producer-requests),
+[source Steps 1-2](procedures/sources.md) for each supported Proxmox host and additional
+approved stream. Prepare host keys/CSRs, approve them through [producer trust](procedures/producer-trust.md#3-approve-producer-requests),
 register each identity in Tier 0 and install forwarding. Add appliance exports using
-[source Step 3](sources.md#3-extend-coverage).
+[source Step 3](procedures/sources.md#3-extend-coverage).
 
 Send the numbered test event shown there and locate it in the Tier 0 records.
 A working listener without enrolled producers is not a completed collection path.
@@ -372,5 +372,5 @@ Do not move Tier 1 observability state or reuse a VM under two states.
 **Result:** protected logging realizes the [evidence design](../../architecture/operations/security-logging.md)
 at its recorded readiness, before PKI or identity. Add sources as each tier appears.
 Continue with [Stage 3: Cryptographic trust](../stage-3-trust/README.md).
-Later [monitoring](../stage-6-secrets/monitoring.md) and
+Later [monitoring](../stage-6-secrets/procedures/independent-monitoring.md) and
 [Observability](../stage-8-observability/README.md) extend visibility without replacing the archive.

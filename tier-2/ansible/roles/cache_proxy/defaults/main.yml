@@ -72,9 +72,11 @@ cache_squid_initialize_cache: true
 cache_squid_data_disk_enabled: false
 cache_squid_data_device: ""
 cache_squid_data_device_wait_timeout: 60
+cache_squid_data_uuid: ""
+cache_squid_data_min_free_bytes: 0
 cache_squid_data_fstype: xfs
 cache_squid_data_fstype_package: xfsprogs
-cache_squid_data_mount_opts: defaults,noatime
+cache_squid_data_mount_opts: defaults,noatime,nodev,nosuid,noexec
 cache_validation_enabled: true
 cache_validation_url: ""
 cache_validation_denied_url: http://software-intake-denied.invalid/

@@ -118,7 +118,7 @@ Stop on an unexpected target, changed host key or failed login. Correct registra
 | --- | --- | --- |
 | Configure approved update access | [Proxmox proxy configuration, action 2](update-access.md#2-register-the-existing-hosts-and-proxy) | Existing `proxmox-hosts.yml` manages the Datacenter/APT proxy only |
 | Restrict management access | [Proxmox access and hardening](hardening.md) | Reviewed host/gateway policy and manual acceptance |
-| Collect host security events | [Protected log sources](../../deployment/stage-2-logging/sources.md) | Enroll each host's source identity before forwarding |
+| Collect host security events | [Protected log sources](../../deployment/stage-2-logging/procedures/sources.md) | Enroll each host's source identity before forwarding |
 | Trust the provisioning API | [Proxmox API trust](proxmox-tls.md#step-1-trust-the-bootstrap-ca) | Separate verified HTTPS trust for API callers |
 
 Registration alone changes no host configuration. Retain the inventory and approved SSH identity

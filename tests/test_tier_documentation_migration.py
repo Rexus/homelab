@@ -105,7 +105,16 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "administration/compute/backup-restore.md",
                     "administration/compute/proxmox-tls.md",
                     "administration/compute/template-lifecycle.md",
-                    "administration/compute/reinstall.md"]
+                    "administration/compute/reinstall.md",
+                    "deployment/stage-1-software-intake/bootstrap-consumer.md",
+                    "deployment/stage-1-software-intake/proxy-cache.md",
+                    "deployment/stage-2-logging/receiver.md",
+                    "deployment/stage-2-logging/sources.md",
+                    "deployment/stage-2-logging/producer-trust.md",
+                    "deployment/stage-6-secrets/monitoring.md",
+                    "deployment/stage-8-observability/configuration.md",
+                    "deployment/stage-8-observability/infrastructure-monitoring.md",
+                    "deployment/stage-10-lab-environments/isolated-clusters.md"]
         for old in examples:
             relative = f"docs/auto-docs/{old}"
             path = repo / relative

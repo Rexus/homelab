@@ -29,8 +29,10 @@ This file keeps durable context for AI-assisted work across sessions.
 - name capabilities by the goal, keeping implementation products explicit only where relevant
 - Deployment READMEs own the complete numbered path and alphabetic choices. Link every child guide
   from its owning README at the actual action/decision; each option states its branch and rejoin.
-  Dedicated path/option filenames and titles match that route: step-<number><letter>-<task>.md.
-  Companion guides share the path prefix; reusable procedures/references retain descriptive task names.
+  Dedicated filenames and titles match that route: step-<number>-<task>.md for main steps,
+  step-<number><letter>-<task>.md for options. Companion guides share the path prefix;
+  reusable guides spanning several steps or lifecycle operations live under procedures/.
+  Optional lookup material belongs in docs/reference/, not beside numbered installation steps.
   Renumbering updates filenames, links and refresh-move targets together, not just README labels.
   Complete all selected paths before the next stage. Enhancements are scheduled after their real
   prerequisites, even when they extend earlier capabilities; never send a fresh operator to a future
@@ -58,6 +60,14 @@ This file keeps durable context for AI-assisted work across sessions.
   account password or Ansible --ask-become-pass; keep that flag optional for password-based sudo.
 - Software intake keeps the Tier 2 Squid/Keepalived pair small: explicit client/source policy,
   preserved HTTP freshness/privacy, sanitized structured decisions and native consumer verification.
+  Reference cache storage selects the scsi1 by-id link, never assumes Linux disk letters match
+  across clones, and uses Shared data_volume inspection/validation before stopping Squid or
+  creating filesystems. Persist accepted mounts by UUID. VIP checks require the complete active
+  member group before any disruptive test; malformed/missing IPv4 VIP prefixes are rejected early.
+  A mirror-list service's domain does not cover returned mirror hosts. Explicit DNF source selections
+  pin existing stanzas to approved HTTPS baseurls while preserving publisher trust settings.
+  Galaxy's regional artifact redirects are reviewed choices or replaced by prepared collection
+  archives; do not hardcode one observed regional hostname as a universal source contract.
   CONNECT is unscanned. The optional Tier 1 intake-1 realization uses native reposync/debmirror,
   pinned publisher verification, ClamAV on a sealed copy and immutable read-only HTTPS publication.
   Normal deployment uses one deploy.sh intake: Terraform provisions VM/disks and Ansible uses Shared's

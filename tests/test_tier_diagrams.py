@@ -251,7 +251,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn('flowchart LR', access)
         self.assertIn('Reader -->|Read-only queries| T1', access)
         self.assertNotIn('Read-only results| Reader', access)
-        alerts = diagrams(root / "deployment/stage-6-secrets/monitoring.md")[2]
+        alerts = diagrams(root / "deployment/stage-6-secrets/procedures/independent-monitoring.md")[2]
         self.assertIn('flowchart RL', alerts)
         self.assertIn('Watch -->|Missing heartbeat alert| Admin', alerts)
         self.assertIn('Log -->|Configured heartbeat| Watch', alerts)

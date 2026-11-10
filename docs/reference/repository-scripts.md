@@ -357,7 +357,7 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 
 | Setup | What it targets | Start with |
 | --- | --- | --- |
-| `foundation` | Tier 0 online issuer, directory and optional independent monitoring VM resources share the original state; select Stage 6 monitor provisioning with `--terraform-only`; root custody stays offline | [Issuer](../deployment/stage-3-trust/procedures/issuer.md), [directory](../deployment/stage-5-identity/procedures/freeipa.md), [monitor](../deployment/stage-6-secrets/monitoring.md#step-1-prepare-the-monitoring-runtime) |
+| `foundation` | Tier 0 online issuer, directory and optional independent monitoring VM resources share the original state; select Stage 6 monitor provisioning with `--terraform-only`; root custody stays offline | [Issuer](../deployment/stage-3-trust/procedures/issuer.md), [directory](../deployment/stage-5-identity/procedures/freeipa.md), [monitor](../deployment/stage-6-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
 | `syslog` | Tier 0 VMs/disks, guarded filesystem/UUID mount and isolated TLS receiver; accepted certificate files are inputs, with HA/WORM outside this installer | [Protected logging](../deployment/stage-2-logging/README.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-7-delivery/procedures/edge-proxy.md) |
 | `cache` | Tier 2 ordinary cache pair or larger set for controlled outbound access | [Software intake](../deployment/stage-1-software-intake/README.md) |

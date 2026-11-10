@@ -18,6 +18,6 @@
       lab-environment: [kubernetes.core]
       workload-telemetry: [kubernetes.core, ansible.utils]
       edge: [community.general, ansible.posix, community.crypto]
-      cache: [community.general, ansible.posix]
+      cache: [community.general, ansible.posix, ansible.utils]
       lab: [community.general, ansible.posix]
       site: [community.general, ansible.posix]

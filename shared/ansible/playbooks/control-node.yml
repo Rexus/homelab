@@ -165,6 +165,9 @@
       ansible.builtin.debug:
         msg: >-
           Check declared version ranges with Galaxy after the OS package attempt.
+          Galaxy inherits this process's proxy environment and bypasses its local API-response cache.
+          Acquisition needs approved Galaxy API and artifact destinations; see
+          docs/reference/control-node-tooling.md#galaxy-through-a-policy-proxy.
           Pre-stage every selected range before using CONTROL_NODE_COLLECTIONS_MODE=check.
           Incompatible shadowing copies must be corrected explicitly.
       when:
@@ -177,6 +180,7 @@
           - ansible-galaxy
           - collection
           - install
+          - --no-cache
           - "{{ item.name ~ (':' ~ item.version if item.version is defined else '') }}"
       loop: "{{ control_node_required_collections }}"
       when:
@@ -212,3 +216,10 @@
           {{ result.accepted }}
       loop: "{{ control_node_required_collections }}"
       when: item.version is defined
+
+    - name: Prepare controller Python for network filters
+      ansible.builtin.include_tasks: tasks/control-node-network-filters.yml
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+        control_node_network_filter_requirement: netaddr>=0.10.1
+      when: "'ansible.utils' in (control_node_required_collections | map(attribute='name') | list)"

@@ -143,9 +143,11 @@ the action or command to perform, then a brief expected result. Use as many step
   link architecture for rationale and reference docs for optional detail.
 - Put a choice where it occurs, such as **2a/2b**. Complete the selected path in order and state
   its rejoin point; never make an alternative look like the next required action.
-- Name a dedicated path or option `step-<number><letter>-<task>.md`, matching its owning README route
-  and `Step <number><letter>` title. Use the same prefix for companion guides belonging to that path.
-  Reusable procedures and references keep descriptive task names; link them from each consuming step.
+- Name dedicated main-step files `step-<number>-<task>.md` and options
+  `step-<number><letter>-<task>.md`, matching the owning README route and `Step` title.
+  Use the same prefix for companion guides belonging to that path. Reusable procedures live under
+  `procedures/`; optional lookup material belongs under `docs/reference/`. Both keep descriptive names
+  and links from their consuming steps, rather than appearing as extra installations.
   When numbering changes, rename affected files and update links and refresh-move targets together.
 - Link every deployment guide/option from the owning README at its numbered decision or required action.
   A guide-to-guide link alone must not hide a selectable path. Keep each selected stage completable before

@@ -1,7 +1,7 @@
 # Independent foundation monitoring
 
-**Stage route:** [Stage 6, Step 2](README.md#step-2-add-operational-tools) prepares the host;
-[Step 4](README.md#step-4-establish-independent-monitoring) installs monitoring and alerts.
+**Stage route:** [Stage 6, Step 2](../README.md#step-2-add-operational-tools) prepares the host;
+[Step 4](../README.md#step-4-establish-independent-monitoring) installs monitoring and alerts.
 **Return:** complete the corresponding stage step after the checks below.
 
 Add critical health history, diagnostics, rule evaluation and alerts to the existing
@@ -9,9 +9,9 @@ protected logging capability. This is the monitoring deployment in Stage 6, not 
 prerequisite for the earlier collector.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Prerequisites:** accepted [protected logging](../stage-2-logging/README.md), approved
+**Prerequisites:** accepted [protected logging](../../stage-2-logging/README.md), approved
 runtime/storage and independent recovery inputs. Tier 1 Observability is not required.
-**Design:** [telemetry composition](../../architecture/operations/telemetry.md).
+**Design:** [telemetry composition](../../../architecture/operations/telemetry.md).
 
 ## Main path
 
@@ -19,7 +19,7 @@ runtime/storage and independent recovery inputs. Tier 1 Observability is not req
 2. [Add critical health and history](#step-2-add-critical-health-and-history)
 3. [Enable and verify independent alerts](#step-3-enable-and-verify-independent-alerts)
 
-The [dedicated recipe](../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml)
+The [dedicated recipe](../../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml)
 installs native Netdata on the managed `mon-1` VM or an accepted existing RedHat-family host, with persistent
 history, local health rules and independent notifications. Redfish jobs and a local Proxmox
 API exporter keep management credentials in Tier 0. Optional metric export is strictly allowlisted.
@@ -31,7 +31,7 @@ Protected `log-1` and optional `log-2` are rejected as monitoring targets by thi
 
 ## Step 1: Prepare the monitoring runtime
 
-Prepare the host now for [NetBox audit collection](procedures/netbox-audit.md).
+Prepare the host now for [NetBox audit collection](netbox-audit.md).
 Netdata installation follows at Stage 6 Step 4; audit collection does not require Netdata yet.
 
 Choose **1a: managed VM** below or **1b: accepted existing host**. Both must stay outside
@@ -102,7 +102,7 @@ Verify its baseline and approved software access, then rejoin below.
 
 ### Prepare the service inputs
 
-For either host path, complete [logging source Steps 1–2](../stage-2-logging/sources.md)
+For either host path, complete [logging source Steps 1–2](../../stage-2-logging/procedures/sources.md)
 for this host's OS/audit streams before NetBox audit collection. Add it to Tier 0's
 `logging_producers`, approve its independent producer identity and verify delivery at protected intake.
 The monitoring installer does not enroll or configure these senders.
@@ -171,10 +171,10 @@ flowchart TB
   class Project replicas
 ```
 
-**IaC:** Tier 0's [foundation inputs](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
+**IaC:** Tier 0's [foundation inputs](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
 optionally provision `mon-1` and its disk in the existing foundation state. Tier 0's
-[role](../../../tier-0/ansible/roles/infrastructure_monitoring),
-[recipe](../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) and local
+[role](../../../../tier-0/ansible/roles/infrastructure_monitoring),
+[recipe](../../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) and local
 inputs own the subsequent service installation on that selected host. The log-host Terraform and cluster
 starters provide context only. An accepted existing host is an alternative to the managed VM.
 
@@ -210,7 +210,7 @@ flowchart RL
   class Project replicas
 ```
 
-**IaC:** the [native configuration templates](../../../tier-0/ansible/roles/infrastructure_monitoring/templates)
+**IaC:** the [native configuration templates](../../../../tier-0/ansible/roles/infrastructure_monitoring/templates)
 configure the parent, dbengine history, source jobs and metric bridge. The three monitoring
 functions share one Netdata service; they are not three extra VMs or backends.
 The existing receiver and cluster recipes do not install these services.
@@ -281,12 +281,12 @@ flowchart RL
   class Project replicas
 ```
 
-**IaC:** the [native heartbeat recipe](../../../tier-0/ansible/roles/infrastructure_monitoring/tasks/heartbeat.yml)
+**IaC:** the [native heartbeat recipe](../../../../tier-0/ansible/roles/infrastructure_monitoring/tasks/heartbeat.yml)
 installs the timer; the role also configures health rules and private `health_alarm_notify.conf`.
 The independent heartbeat runs only while `netdatacli ping`
 succeeds; it detects monitor loss, not the health of every source. Device/source freshness
 rules and delivery tests are required inputs, using the actual observed chart names.
-The existing Tier 0 [archive job](../../../tier-0/ansible/playbooks/deployment/logging-archive.yml)
+The existing Tier 0 [archive job](../../../../tier-0/ansible/playbooks/deployment/logging-archive.yml)
 can call its configured external watchdog; neither recipe installs that external service.
 The protected runtime stays on the right; heartbeat and alert traffic travels left
 through the external service to administrators outside that service boundary.
@@ -333,18 +333,18 @@ it is not a Terraform plan and has no additional confirmation prompt.
 
 | Repository | Path inside that repository | Coverage |
 | --- | --- | --- |
-| Tier 0 | [ansible/roles/infrastructure_monitoring/](../../../tier-0/ansible/roles/infrastructure_monitoring) | Native parent, rules, jobs, external heartbeat and optional approved metric bridge |
-| Tier 0 | [deployment playbook](../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) | Service installation on the selected host; private rendering, explicit apply |
-| Tier 0 | [terraform/deployments/foundation/](../../../tier-0/terraform/deployments/foundation) | Optional `mon-1` VM/disk alongside retained issuer/directory state |
-| Tier 0 | [terraform/deployments/syslog/](../../../tier-0/terraform/deployments/syslog) | Protected logging resources remain separate |
-| Tier 0 | [clusters/tier0/](../../../tier-0/clusters/tier0) | Project cluster manifests; no monitoring installer |
-| Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) | Existing protected log receiver; unchanged by monitoring |
-| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) | Common OS preparation, not inventory, state or alert authority |
+| Tier 0 | [ansible/roles/infrastructure_monitoring/](../../../../tier-0/ansible/roles/infrastructure_monitoring) | Native parent, rules, jobs, external heartbeat and optional approved metric bridge |
+| Tier 0 | [deployment playbook](../../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) | Service installation on the selected host; private rendering, explicit apply |
+| Tier 0 | [terraform/deployments/foundation/](../../../../tier-0/terraform/deployments/foundation) | Optional `mon-1` VM/disk alongside retained issuer/directory state |
+| Tier 0 | [terraform/deployments/syslog/](../../../../tier-0/terraform/deployments/syslog) | Protected logging resources remain separate |
+| Tier 0 | [clusters/tier0/](../../../../tier-0/clusters/tier0) | Project cluster manifests; no monitoring installer |
+| Tier 0 | [ansible/playbooks/deployment/foundation-logging.yml](../../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) | Existing protected log receiver; unchanged by monitoring |
+| Shared | [ansible/roles/baseline/](../../../../shared/ansible/roles/baseline) | Common OS preparation, not inventory, state or alert authority |
 
-Return to [Stage 6 acceptance](README.md#capability-available). Later
-[Tier 1 Observability](../stage-8-observability/README.md) adds shared diagnosis without
+Return to [Stage 6 acceptance](../README.md#capability-available). Later
+[Tier 1 Observability](../../stage-8-observability/README.md) adds shared diagnosis without
 taking ownership of foundation alerts or protected evidence. Its
-[infrastructure-monitoring step](../stage-8-observability/infrastructure-monitoring.md)
+[infrastructure-monitoring step](../../stage-8-observability/step-3-infrastructure-monitoring.md)
 expands Netdata diagnostics and Proxmox/BMC coverage; Tier 0 retains local collection,
 credentials and critical alerts when Tier 1 is unavailable.
 
@@ -364,8 +364,8 @@ credentials and critical alerts when Tier 1 is unavailable.
 Only the metric bridge's CA/client certificate/key are mounted into its container. BMC and
 Proxmox credentials are not bridge inputs. The exporter binds loopback, so Tier 1 cannot
 request arbitrary management targets. Export filtering happens before OTLP transfer.
-See [infrastructure monitoring](../stage-8-observability/infrastructure-monitoring.md) for
-coverage and [private intake](../stage-8-observability/configuration.md#private-cross-cluster-intake)
+See [infrastructure monitoring](../../stage-8-observability/step-3-infrastructure-monitoring.md) for
+coverage and [private intake](../../stage-8-observability/procedures/observability-platform.md#private-cross-cluster-intake)
 for the endpoint/firewall contract. Leave metric export disabled until that Stage 8 step.
 Protected search-copy export is a separate Stage 8 option, not a Stage 6 prerequisite.
 

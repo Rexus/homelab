@@ -1,6 +1,6 @@
 ---
 # Local configuration only; boot-1 is not enrolled in inventory or Terraform.
-# Guide: docs/deployment/stage-1-software-intake/bootstrap-consumer.md
+# Guide: docs/deployment/stage-1-software-intake/step-6-bootstrap-consumer.md
 - name: Check bootstrap intake tooling
   ansible.builtin.import_playbook: ../control-node.yml
   vars:
@@ -74,6 +74,6 @@
           Local intake settings are reconciled. Open a fresh SSH login to load the shell settings.
           In proxy mode, the current Bash terminal can instead run: source /etc/profile.d/shell-proxy.sh
           Ansible cannot change the environment of the terminal that launched it.
-          Verify package and tool access through the selected supply. Existing mirror, pip,
-          Galaxy and Terraform configurations remain separately owned. Confirm direct-WAN
+          Verify package and tool access through the selected supply. Only explicitly selected
+          DNF sources are edited; other mirror, pip, Galaxy and Terraform configurations stay owned locally. Confirm direct-WAN
           denial before retiring temporary bootstrap egress; this recipe changes no firewall rules.

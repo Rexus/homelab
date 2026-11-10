@@ -83,7 +83,7 @@ and partition/LVM resizing need a separate migration plan; replace lost data thr
 | Reporting/discovery failure | Inspect the actual version and `latest.json`; a committed publication can exist even if later reporting failed |
 
 Structured local syslog events use ident `software-intake`, facility `local6`, and sanitized
-source/verdict/reason/policy fields. Commission [protected forwarding](../deployment/stage-2-logging/sources.md)
+source/verdict/reason/policy fields. Commission [protected forwarding](../deployment/stage-2-logging/procedures/sources.md)
 and verify delivery to Tier 0. Nginx's local access records omit request paths/queries.
 Neither a successful job nor a local journal proves independent archive delivery.
 An unchanged content/policy version reuses its immutable first-acceptance receipt; subsequent

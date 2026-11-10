@@ -220,7 +220,7 @@ Continue at Step 5 with the tenant key pairs, not the privileged provisioning pr
 ## 5. Install controller dependencies
 
 Native package downloads honor the existing
-[intake proxy inputs](../../stage-1-software-intake/proxy-cache.md#how-other-paths-use-it);
+[intake proxy inputs](../../../reference/proxy-cache.md#how-other-paths-use-it);
 approve the package host and any redirect destinations before installation.
 
 Use **the prepared deployment virtual environment**, from **`<prefix>-tier-1/`**.

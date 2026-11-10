@@ -1,4 +1,6 @@
-# Connect the bootstrap host to accepted software intake
+# Step 6: Connect the bootstrap host to accepted software intake
+
+<a id="connect-the-bootstrap-host-to-accepted-software-intake"></a>
 
 **Continue from:** [Stage 1, Step 6](README.md#step-6-connect-the-bootstrap-host).
 **Return:** [Step 7](README.md#step-7-connect-proxmox-host-updates) after the selected consumer path passes.
@@ -53,11 +55,46 @@ Select **2a** or **2b**, then continue at **3**. This is not an `init-local-file
 | `bootstrap_software_intake_mode` | `proxy` |
 | `repository_proxy_url` | Accepted internal proxy URL using a hostname or IP, such as `http://10.30.30.22:3128`; no credentials |
 | `shell_proxy_no_proxy_extra` | Internal websites and HTTP/HTTPS endpoints that should bypass the proxy |
+| `repository_proxy_dnf_sources` | EL repositories that must use fixed approved HTTPS sources instead of dynamic mirrors |
 
 Use the accepted VIP or existing endpoint. The recipe sets the DNF/APT proxy and login-shell
-proxy variables. It does not change repository definitions, DNS or `/etc/hosts`.
+proxy variables. Only explicitly selected DNF source sections are edited; other repositories,
+DNS and `/etc/hosts` remain unchanged.
 HTTPS certificate verification remains enabled; HTTPS CONNECT does not cache encrypted content.
 Keep native pip, Galaxy and Terraform source restrictions where required.
+
+For **EL10**, mirror lists can select third-party hosts outside the proxy allowlist. Choose fixed
+approved sources for every enabled repository that would otherwise use such mirrors. On **`boot-1`**,
+find the actual files, section IDs and URLs:
+
+```bash
+grep -nE '^\[|^(metalink|mirrorlist|baseurl)=' /etc/yum.repos.d/*.repo
+```
+
+Edit **Tier 0 `ansible/group_vars/bootstrap.yml`**. This Rocky/EPEL example must match the installed
+filenames and sections; include only selected repositories and add other enabled sources as needed:
+
+```yaml
+repository_proxy_dnf_sources:
+  - file: rocky.repo
+    section: baseos
+    baseurl: 'https://dl.rockylinux.org/pub/rocky/$releasever/BaseOS/$basearch/os/'
+  - file: rocky.repo
+    section: appstream
+    baseurl: 'https://dl.rockylinux.org/pub/rocky/$releasever/AppStream/$basearch/os/'
+  - file: rocky-extras.repo
+    section: extras
+    baseurl: 'https://dl.rockylinux.org/pub/rocky/$releasever/extras/$basearch/os/'
+  - file: epel.repo
+    section: epel
+    baseurl: 'https://dl.fedoraproject.org/pub/epel/$releasever/Everything/$basearch/'
+```
+
+Use the distribution's corresponding official source or an accepted internal mirror for another EL10
+distribution. Keep its existing publisher keys and signature settings. The recipe removes `mirrorlist`
+and `metalink` only from selected sections and retains timestamped file backups. The proxy must allow
+the selected hosts and any actual redirects; allowing the mirror-list service alone is insufficient.
+An unavailable selected source stops refresh; no automatic mirror or direct-WAN fallback is added.
 
 Add internal websites and HTTP/HTTPS endpoints that should be reached directly to
 `shell_proxy_no_proxy_extra`. For example, exclude the Proxmox endpoint in
@@ -82,8 +119,9 @@ bootstrap_software_intake_mode: mirror
 ```
 
 This removes the DNF `[main] proxy` setting and the owned APT/shell proxy files.
-Existing repository definitions, pip configuration, Galaxy configuration and Terraform CLI
-configuration remain intact. It installs no mirror service and does not make a cache an offline mirror.
+Other repository definitions, pip configuration, Galaxy configuration and Terraform CLI
+configuration remain intact. Explicit DNF source selections still apply. It installs no mirror service
+and does not make a cache an offline mirror.
 Retain verified package signatures, TLS trust, provider lockfiles and independent recovery artifacts.
 
 ## 3. Apply the local configuration
@@ -104,7 +142,7 @@ CONTROL_NODE_COLLECTIONS_MODE=check ANSIBLE_CONFIG=ansible/ansible.cfg \
 **Expected:** local package/shell configuration is reconciled; a second run reports no changes.
 The play imports Shared's package-policy and package/shell proxy tasks, leaving baseline timezone/IPv6
 configuration untouched. The package-policy tasks apply native verification/failure defaults;
-existing repository definitions and publisher-key choices remain owned locally. [2][3]
+only explicitly selected DNF source sections are edited; publisher-key choices remain owned locally. [2][3]
 The play uses sudo through `become: true`; no password prompt is needed with authorized
 passwordless sudo. Add `--ask-become-pass` (`-K`) only when sudo requires an account password.
 
@@ -145,11 +183,13 @@ sudo apt-get -o APT::Update::Error-Mode=any update
 
 Repeat the [explicit retrieval and policy checks](README.md#step-5-test-the-selected-intake-path) from the bootstrap network.
 Verify required pip, Galaxy, Terraform and artifact access with their commissioned configurations.
+For Galaxy, use the [API and artifact download check](../../reference/control-node-tooling.md#galaxy-through-a-policy-proxy);
+the cache must allow both destinations even when a collection is already installed.
 A login-shell proxy alone does not configure every tool or CI service.
 HTTPS Git remotes normally use these proxy variables; SSH remotes need their own permitted SSH path. [4]
 
 **Expected:** approved package and tool retrieval succeeds. Stop if any required source fails.
-Review [repository-specific verification settings](proxy-cache.md#consumer-verification-and-failure-behavior)
+Review [repository-specific verification settings](../../reference/proxy-cache.md#consumer-verification-and-failure-behavior)
 before accepting the path; global defaults cannot override a deliberately weakened repository entry.
 
 ## 6. Retire temporary egress
@@ -171,6 +211,8 @@ Stop if dependencies, trust, approved retrieval or bypass-denial checks fail. Ke
 and the existing recovery material. Restore the last accepted `bootstrap.yml` and rerun **3**;
 restore separately owned mirror/tool configurations from their retained copies if changed.
 For a first switch without prior local inputs, restore the affected configurations from the independent backup.
+Removing a DNF source entry stops managing it; it does not restore its previous mirror list.
+Restore selected repository files from their retained backups when reverting that source change.
 Open a fresh session and repeat **4–6**. Do not substitute unrestricted egress or disable TLS/signature checks.
 
 ## References

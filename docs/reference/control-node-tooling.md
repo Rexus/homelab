@@ -13,6 +13,7 @@ start with [local development setup](../development/local-setup.md).
 - [Automation VM example](#automation-vm-example)
 - [Ansible environment](#ansible-environment)
 - [Automatic template runtime](#automatic-template-runtime)
+- [Galaxy through a policy proxy](#galaxy-through-a-policy-proxy)
 - [Local repository files](#local-repository-files)
 - [Read more](#read-more)
 - [References](#references)
@@ -68,8 +69,8 @@ Require these tools there:
 `Packer` is only needed when building templates from the same machine.
 
 Each deployment run starts with a local Ansible precheck on that deployment
-machine. That precheck is setup-aware: it verifies only the Ansible collections
-needed by the selected setup. Default `auto` mode tries missing collections from
+machine. That precheck is setup-aware: it verifies the Ansible collections and network-filter
+Python dependency needed by the selected setup. Default `auto` mode tries missing collections from
 OS packages first, then uses Galaxy to converge declared version ranges; versioned
 requirements can still invoke Galaxy when installed. Set
 `CONTROL_NODE_COLLECTIONS_MODE=check` for a prepared disconnected controller:
@@ -77,8 +78,14 @@ missing/incompatible effective collections fail without installing packages or
 contacting Galaxy for collection installation. This does not disable guest package tasks.
 For example, `foundation` includes directory and issuer requirements:
 `community.general`, `ansible.posix`, `freeipa.ansible_freeipa`, `community.crypto`
-and `ansible.mariadb`, while `cache` needs `community.general` and
-`ansible.posix`.
+and `ansible.mariadb`, while `cache` needs `community.general`,
+`ansible.posix`, `ansible.utils` and controller Python's `netaddr`.
+
+When `ansible.utils` is selected, the precheck validates `netaddr` in `ansible_playbook_python`
+independently of collection presence. `auto` installs `python3-netaddr` for OS-packaged Ansible
+on RedHat/Debian families, or installs the declared requirement inside the active venv.
+`check` rejects a missing/incompatible library without installing anything. It does not change
+guest interpreters or use pip to modify system Python. [14]
 
 Run the tier's `ansible/playbooks/control-node.yml`, which imports shared checks
 with tier-owned requirements. Follow the
@@ -232,7 +239,79 @@ bash scripts/proxmox-templates.sh setup
 This prepares all template tooling without accessing Terraform state or Proxmox.
 It is optional; normal Ansible-based template commands perform the same preparation.
 
+## Galaxy through a policy proxy
+
+Galaxy uses the deployment process's `http_proxy`, `https_proxy` and `no_proxy` environment.
+APT/DNF proxy settings alone do not configure it. The
+[cache example](../../tier-2/ansible/group_vars/cache.yml.example) permits `galaxy.ansible.com` for metadata.
+Public artifact downloads can redirect to CDN/object-storage hosts outside `ansible.com`;
+those destinations can change and are not a stable global hostname contract.
+Select either reviewed artifact destinations in `cache_squid_allowed_domains`, or prepared archives
+from an accepted acquisition host/internal distribution through the
+[offline controller workflow](../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md).
+Do not substitute an unrestricted cloud-provider wildcard for that source choice.
+
+The precheck uses native `ansible-galaxy --no-cache` to avoid reusing incomplete local API-response
+metadata. Installed collections and the Squid cache are preserved; compatible installed versions
+remain usable without downloading. This flag does not bypass the proxy or TLS verification. [10]
+
+| Failure | Meaning / action |
+| --- | --- |
+| `Tunnel connection failed: 403 Forbidden` | The proxy denies CONNECT; check its source/client policy and the exact denied destination |
+| `Unexpected Exception ... 'results'` | A known Galaxy client failure can mask an earlier request error; retry with `--clear-response-cache` to expose the underlying failure [11] |
+| Connection timeout or TLS verification failure | Check the approved proxy route, DNS and CA trust before retrying |
+
+### Recover an existing cache that blocks Galaxy
+
+1. On **`boot-1`**, as the deployment user, load the proxy and install the official release tag
+   through the existing approved GitHub path. This resolves the `ansible.utils` dependency needed
+   to update an older cache policy; it is a one-time repair, not an automatic source fallback. [12]
+
+   ```bash
+   source /etc/profile.d/shell-proxy.sh
+   ansible-galaxy collection install 'git+https://github.com/ansible-collections/ansible.utils.git,v6.0.0'
+   ```
+
+   For OS-packaged Ansible, install its controller library if it was not prepared earlier.
+   On **EL10 boot-1**:
+
+   ```bash
+   sudo dnf install -y python3-netaddr
+   ```
+
+   Debian/Ubuntu uses `sudo apt-get install -y python3-netaddr`. An active venv instead uses
+   its tier-owned Python requirements; an OS package is not installed inside that venv.
+
+2. Edit **`<prefix>-tier-2/ansible/group_vars/cache.yml`**. Keep `galaxy.ansible.com` in
+   `cache_squid_allowed_domains` when selecting public Galaxy. Approve the actual artifact redirect
+   hosts for that route, or retain prepared archives instead. A regional hostname observed for one
+   download is not a universal default. Preserve other required sources.
+
+3. From **`<prefix>-tier-2/`**, reconcile the existing cache pair:
+
+   ```bash
+   bash scripts/deploy.sh cache --ansible-only
+   ```
+
+4. On **`boot-1`**, as the same user, verify API access and the actual artifact download.
+   Merely listing the now-installed collection would not test either route:
+
+   ```bash
+   mkdir -p "$HOME/.cache/homelab/collections"
+   ansible-galaxy collection download --no-cache --download-path "$HOME/.cache/homelab/collections" \
+     'ansible.utils:>=6.0.0,<7.0.0'
+   ```
+
+   **Expected:** the collection archive and local requirements file are saved successfully.
+   Retain them with the [offline controller bundle](../deployment/foundation/bootstrap/step-3e-bootstrap-offline.md).
+   Return to the interrupted deployment. If GitHub is also denied, transfer prepared collection
+   archives through that offline workflow instead of widening general internet access.
+
 ## Local repository files
+
+Ad-hoc `ansible` commands from a tier root need `--playbook-dir ansible` to discover
+`ansible/group_vars/`. The deployment wrapper passes its selected variable files explicitly.
+Environment overrides still need their matching extra-variable files. [13]
 
 Use the generated repository for the owning tier, or enter `tier-0/`,
 `tier-1/`, or `tier-2/` in a private source checkout. Create ignored local
@@ -289,3 +368,9 @@ Sources checked 2026-11-08.
 7. [Enterprise Linux 10 Python](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/installing_and_using_dynamic_programming_languages/installing-and-using-python).
 8. [Enterprise Linux 9 Python](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/installing_and_using_dynamic_programming_languages/assembly_installing-and-using-python_installing-and-using-dynamic-programming-languages).
 9. [Collection runtime metadata and requires_ansible](https://docs.ansible.com/projects/ansible/latest/dev_guide/developing_collections_structure.html#meta-directory).
+10. [Native Galaxy acquisition and cache flags](https://docs.ansible.com/projects/ansible/latest/cli/ansible-galaxy.html#collection-install).
+11. [Upstream Galaxy cached-response failure](https://github.com/ansible/ansible/issues/85918).
+12. [Native Git collection installation](https://docs.ansible.com/projects/ansible/latest/collections_guide/collections_installing.html#installing-a-collection-from-a-git-repository)
+    and [the official 6.0.0 release metadata](https://github.com/ansible-collections/ansible.utils/blob/v6.0.0/galaxy.yml).
+13. [Ad-hoc Ansible playbook directory and variable discovery](https://docs.ansible.com/projects/ansible/latest/cli/ansible.html#cmdoption-ansible-playbook-dir).
+14. [Controller-side IP filter requirements](https://docs.ansible.com/projects/ansible/latest/collections/ansible/utils/ipaddr_filter.html#requirements).

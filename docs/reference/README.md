@@ -10,6 +10,7 @@ Naming and allocation guides are grouped under [Conventions](../conventions/READ
 | --- | --- |
 | CLI flags, defaults and manual equivalents | [Repository scripts](repository-scripts.md) |
 | Deployment-host tools, Ansible runtimes and prechecks | [Control-node tooling](control-node-tooling.md) |
+| Cache input locations, storage/tuning and consumer behavior | [Proxy/cache reference](proxy-cache.md) |
 | Synthetic log manifests and reconciliation reports | [Logging evidence checker](logging-evidence.md) |
 | Tier 0 receiver inputs, files and limits | [Syslog receiver contract](syslog-receiver.md) |
 | Producer trust, forwarding, NAS checkpoints and independent backup | [Logging pipeline](logging-pipeline.md) |

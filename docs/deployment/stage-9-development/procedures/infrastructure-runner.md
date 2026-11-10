@@ -76,7 +76,7 @@ not a sandbox for ordinary builds. [2] No Proxmox credential is embedded in its 
 ## Step 3: Qualify the host
 
 Register OS, authentication and CI events with
-[protected logging](../../stage-2-logging/sources.md). Enforce the approved host
+[protected logging](../../stage-2-logging/procedures/sources.md). Enforce the approved host
 and gateway policies: GitLab/Vault HTTPS, approved software sources and only required
 infrastructure APIs/SSH. Do not expose a public runner listener.
 

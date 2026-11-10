@@ -87,7 +87,7 @@ failure time. Compare the same failed URL through each node's approved proxy end
 response headers and downloaded hashes. Do not open direct Internet access on the consumer.
 
 For retained deployments, review **Tier 2 `ansible/group_vars/cache.yml`** against the
-[cache migration instructions](../../deployment/stage-1-software-intake/proxy-cache.md#update-an-existing-cache).
+[cache migration instructions](../../deployment/stage-1-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
 Local configuration survives refresh; old forced-cache rules may therefore remain until corrected.
 Keep diagnostics and failed bytes before any targeted cleanup. `apt-get clean` clears downloaded
 package archives, not remote Squid objects; deleting all APT lists or the whole proxy cache is not the first step. [4]

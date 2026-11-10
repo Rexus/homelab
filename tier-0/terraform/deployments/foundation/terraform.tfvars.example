@@ -6,7 +6,7 @@
 # Shared root: Stage 3 issuer, Stage 5 directory and optional Stage 6 monitor use the same state.
 # Issuer: docs/deployment/stage-3-trust/procedures/issuer.md
 # Directory: docs/deployment/stage-5-identity/procedures/freeipa.md
-# Monitor: docs/deployment/stage-6-secrets/monitoring.md
+# Monitor: docs/deployment/stage-6-secrets/procedures/independent-monitoring.md
 # VMID allocation: docs/conventions/vmid-convention.md
 # Tier network inputs live in ../../common.tfvars; the shared helper loads platform/image references.
 

@@ -29,10 +29,10 @@ Follow Steps 1–4. Choose one Vault placement; seal and authentication options 
 | 1a | [Kubernetes Vault](#step-1-deploy-the-secret-service): [inputs/install](procedures/control-applications.md), then [ceremony](procedures/vault-kubernetes.md) | Vault access, audit and recovery are accepted; go to Step 2 |
 | 1b | [Dedicated Vault VM](step-1b-vault-vm.md), instead of 1a | Rejoin Step 1 acceptance, then Step 2 |
 | 1c | Optional [seal integration](step-1c-seal-integration.md); decide **before** either placement is initialized | Qualified provider and recovery path; return to selected 1a/1b |
-| 2 | [Operational tools](#step-2-add-operational-tools): prepare the [monitoring host](monitoring.md#step-1-prepare-the-monitoring-runtime), install NetBox, add [change audit](procedures/netbox-audit.md), then Headlamp | Tools, SSO, protected audit and backups work; go to Step 3 |
+| 2 | [Operational tools](#step-2-add-operational-tools): prepare the [monitoring host](procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime), install NetBox, add [change audit](procedures/netbox-audit.md), then Headlamp | Tools, SSO, protected audit and backups work; go to Step 3 |
 | 3a | [Access and independent recovery](#step-3-integrate-access-and-recovery), required for either Vault placement | Allowed/denied access and break-glass recovery pass |
 | 3b | Optional [hardware authentication](step-3b-hardware-authentication.md) after 3a | Return to Step 3 checks before Step 4 |
-| 4 | [Independent monitoring](#step-4-establish-independent-monitoring): complete [installation and alerts](monitoring.md) on the host prepared at Step 2 | Verify cluster-loss detection before Stage 7 |
+| 4 | [Independent monitoring](#step-4-establish-independent-monitoring): complete [installation and alerts](procedures/independent-monitoring.md) on the host prepared at Step 2 | Verify cluster-loss detection before Stage 7 |
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -85,7 +85,7 @@ install the added group after explicit prerequisite gates. The picture shows con
 placement, not a verified live service. Empty Flux application starters are not a
 second reconciliation owner for these Helm releases.
 The [Vault VM alternative](step-1b-vault-vm.md) replaces, rather than duplicates, the cluster Vault instance.
-Independent monitoring is a separate [selected integration](monitoring.md), not an installed workload here.
+Independent monitoring is a separate [selected integration](procedures/independent-monitoring.md), not an installed workload here.
 
 | Existing interface | New consumer |
 | --- | --- |
@@ -154,7 +154,7 @@ Independent monitoring is a separate [selected integration](monitoring.md), not 
 
 ## Step 2: Add operational tools
 
-1. Complete [monitoring Step 1](monitoring.md#step-1-prepare-the-monitoring-runtime):
+1. Complete [monitoring Step 1](procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime):
    choose **1a: provision `mon-1`** through the existing foundation Terraform root, or
    **1b: accept an existing independent host**. Prepare SSH/sudo and protected forwarding.
    NetBox audit collection needs this host now; Netdata installation still follows in Step 4.
@@ -195,7 +195,7 @@ credentials only after independent break-glass access and recovery custody are v
 
 ## Step 4: Establish independent monitoring
 
-Complete [independent monitoring](monitoring.md), Steps 1–3, using the host prepared at Step 2:
+Complete [independent monitoring](procedures/independent-monitoring.md), Steps 1–3, using the host prepared at Step 2:
 edit collector/alert inputs, install and test external alerts. This is part of the main path;
 the service recipe configures that host and cannot use `log-1` or `log-2` as its target.
 

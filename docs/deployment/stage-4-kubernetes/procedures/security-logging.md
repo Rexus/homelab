@@ -32,11 +32,11 @@ require the bootstrapped API/CNI and independently issued node credentials.
 
 - For installation in Steps 4–6: working cluster API/CNI, approved image access, independent DNS/time and an
   execution host outside the cluster; no directory, Vault or hosted delivery dependency.
-- Existing [protected Tier 0 intake](../../stage-2-logging/receiver.md), its trusted
+- Existing [protected Tier 0 intake](../../stage-2-logging/procedures/receiver.md), its trusted
   server identity and network access from each receiver-observed node/NAT address.
 - Before applying collectors: independently issued **client-auth leaf** certificate and matching private key
   per node, plus the public receiver/client CA bundle. Obtain these through the
-  [independent producer authority](../../stage-2-logging/producer-trust.md) or an
+  [independent producer authority](../../stage-2-logging/procedures/producer-trust.md) or an
   accepted equivalent. The role generates no certificates, keys or tokens.
 - Native `kubernetes.core`, `ansible.utils` and `community.crypto` collections;
   Helm, `kubernetes`, `jsonpatch`, PyYAML, `netaddr` and `cryptography` on the execution host.
@@ -223,7 +223,7 @@ collector starts; Talos's first hop is not a durable acknowledged queue. Set
 ## Step 4: Enroll node streams
 
 Merge the rendered `receiver-sources.yml` entries into Tier 0's existing
-catalogue, then use the [receiver procedure](../../stage-2-logging/receiver.md).
+catalogue, then use the [receiver procedure](../../stage-2-logging/procedures/receiver.md).
 **Do not load that partial file as replacement extra-vars for the whole source
 catalogue.** Preserve other producers. Confirm node/NAT origins, CN and exact
 certificate subjects; narrow network rules for these observed addresses.

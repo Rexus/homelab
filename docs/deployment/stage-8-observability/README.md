@@ -24,7 +24,7 @@ The cluster directory remains an empty integration starter, not a second executo
 **Execution context:** `<prefix>-tier-1/`.
 
 Steps below select the inputs, run the installer and connect sources. Full field/Secret contracts
-are in [configuration](configuration.md); live boundaries are in [stage coverage](../../reference/implementation-support.md#stage-coverage).
+are in [configuration](procedures/observability-platform.md); live boundaries are in [stage coverage](../../reference/implementation-support.md#stage-coverage).
 
 ## Main path
 
@@ -32,11 +32,11 @@ Follow Steps 1–4. Choose the runtime and database-backup path before installat
 
 | Step | Path or option | Continue when |
 | --- | --- | --- |
-| 1a | [Existing Tier 1 Kubernetes](#step-1-prepare-the-runtime); complete [configuration actions 1–4](configuration.md#inputs-and-execution) | Inputs, trust, storage and SSO are ready for Step 2 |
+| 1a | [Existing Tier 1 Kubernetes](#step-1-prepare-the-runtime); complete [configuration actions 1–4](procedures/observability-platform.md#inputs-and-execution) | Inputs, trust, storage and SSO are ready for Step 2 |
 | 1b | [Dedicated VMs](step-1b-dedicated-vms.md), instead of 1a; supplied IaC is an OS baseline only | Project-owned product installation must be complete before rejoining Step 3 |
-| 2a | [NAS-file database backups](#step-2-deploy-the-signal-pipelines): prepare database, commission destination, apply full stack | Complete [configuration actions 5–10](configuration.md#install-and-verify), then Step 3 |
-| 2b | Existing object/WAL backup destination instead of 2a's NAS preparation | Join [configuration action 8](configuration.md#8-render-the-complete-platform), then finish Step 2 |
-| 3 | [Infrastructure monitoring](infrastructure-monitoring.md) | Tier 0 collection and approved metric export are accepted; go to Step 4 |
+| 2a | [NAS-file database backups](#step-2-deploy-the-signal-pipelines): prepare database, commission destination, apply full stack | Complete [configuration actions 5–10](procedures/observability-platform.md#install-and-verify), then Step 3 |
+| 2b | Existing object/WAL backup destination instead of 2a's NAS preparation | Join [configuration action 8](procedures/observability-platform.md#8-render-the-complete-platform), then finish Step 2 |
+| 3 | [Infrastructure monitoring](step-3-infrastructure-monitoring.md) | Tier 0 collection and approved metric export are accepted; go to Step 4 |
 | 4a | [Existing application sources and scoped readers](#step-4-publish-and-verify-read-only-views) | Test enrolled sources; Stage 10 adds later applications, not a prerequisite |
 | 4b | Optional [protected-log search copies](step-4b-protected-log-search.md), alongside or instead of application-log sources | Approve/export in Tier 0, then return to Step 4 access/recovery checks |
 
@@ -105,7 +105,7 @@ Edit in **`<prefix>-tier-1/`**.
 - `ansible/group_vars/observability_platform_secrets.yml`: Follow the private-input/encryption steps below
   for secret values.
 
-Complete [configuration actions 1–4](configuration.md#inputs-and-execution): edit the
+Complete [configuration actions 1–4](procedures/observability-platform.md#inputs-and-execution): edit the
 kubeconfig/context, physical domains, block storage, private endpoints, IdP clients and source scopes;
 then prepare certificates/credentials and encrypt the private input file.
 Keep that file even with externally owned Kubernetes Secrets: it also carries the Netdata streaming keys.
@@ -125,7 +125,7 @@ signal/query services have been installed and accepted through that alternative.
 
 ## Step 2: Deploy the signal pipelines
 
-For the **Kubernetes main path**, complete [configuration actions 5–10](configuration.md#install-and-verify)
+For the **Kubernetes main path**, complete [configuration actions 5–10](procedures/observability-platform.md#install-and-verify)
 in order, using their full commands and acceptance gates:
 
 1. For NAS-file backups, render, review and apply the **database-only `prepare` pass**.
@@ -178,7 +178,7 @@ flowchart TB
 ```
 
 **IaC:** the [release specification](../../../tier-1/ansible/roles/observability_platform/templates/releases.yml.j2)
-declares dependency order; [configuration](configuration.md) maps products to native values,
+declares dependency order; [configuration](procedures/observability-platform.md) maps products to native values,
 Secrets, persistence and health gates. The VM baseline remains a separate alternative.
 Scope: the Tier 1 ingestion/backends subset, not the UIs or every existing source.
 Producers already exist; this step installs no workload agents. Security/audit
@@ -261,16 +261,16 @@ metric bridge directly as described in the guide. Native streaming is not OTLP.
 Physical infrastructure is on the right; metric delivery to collectors points left.
 
 1. If not already commissioned, first complete
-   [independent Tier 0 monitoring](../stage-6-secrets/monitoring.md) with export disabled;
+   [independent Tier 0 monitoring](../stage-6-secrets/procedures/independent-monitoring.md) with export disabled;
    it supplies the parent/pollers/critical-alert path that this step extends.
-   Then, in **`<prefix>-tier-0/`**, follow [infrastructure monitoring](infrastructure-monitoring.md) to register sources,
+   Then, in **`<prefix>-tier-0/`**, follow [infrastructure monitoring](step-3-infrastructure-monitoring.md) to register sources,
    select host/API/Redfish/IPMI collectors and prepare read-only Tier 0 identities.
 2. Configure native Netdata streams and the explicit metric bridge. Keep Proxmox/BMC
    credentials and critical alerting in Tier 0; Tier 1 receives approved metrics only.
    These are [separate diagnostic domains](../../architecture/operations/telemetry.md#infrastructure-coverage),
    not duplicate collection of every host or mutual failover parents.
 3. Verify source coverage, stale-data alerts, parent failover and physical-host loss.
-   Power off Tier 1 and prove [independent monitoring](../stage-6-secrets/monitoring.md)
+   Power off Tier 1 and prove [independent monitoring](../stage-6-secrets/procedures/independent-monitoring.md)
    still detects infrastructure failures without its dashboards or normal SSO.
 
 **Result:** platform operators can diagnose infrastructure and applications, without
@@ -317,7 +317,7 @@ separately authorized in Tier 0 before an approved copy reaches OpenSearch.
 1. Select source enrollment: **4a: existing application sources**, **4b: approved Tier 0 evidence copies**,
    or both. For 4b, complete the [approved-copy publisher/exporter](step-4b-protected-log-search.md)
    in **`<prefix>-tier-0/`**. For 4a, enroll approved producers that already exist using the
-   [configured private intake](configuration.md#private-cross-cluster-intake).
+   [configured private intake](procedures/observability-platform.md#private-cross-cluster-intake).
    Stage 10's [application collection path](../stage-10-lab-environments/step-3c-telemetry.md)
    enrolls future applications; it is not required to finish this stage.
    Keep unenrolled source scopes explicitly unverified; do not claim their coverage yet.
@@ -351,7 +351,7 @@ Changing or deleting a search copy does not change the original retained log.
 | Tier 1 | [terraform/deployments/observability/](../../../tier-1/terraform/deployments/observability) | Explicit VM alternative only |
 | Tier 0 | [protected logging](../stage-2-logging/README.md) | Original evidence and approved export boundary |
 | Tier 0 | [logging-export playbook](../../../tier-0/ansible/playbooks/deployment/logging-export.yml) | Scoped native Collector; only approved read-only copies cross into search |
-| Tier 0 | [independent monitoring](../stage-6-secrets/monitoring.md) | Independent Netdata, local pollers/credentials, critical alerts and approved metric export |
+| Tier 0 | [independent monitoring](../stage-6-secrets/procedures/independent-monitoring.md) | Independent Netdata, local pollers/credentials, critical alerts and approved metric export |
 
 ## Capability available
 

@@ -201,7 +201,7 @@ Maintenance notes:
 - Back up `/srv/gitlab` before upgrades.
 - Pin the GitLab image tag before production use.
 - Keep runners on separate hosts when build workloads become noisy.
-- Send OS/security/audit events to [Tier 0 protected logging](../stage-2-logging/sources.md)
+- Send OS/security/audit events to [Tier 0 protected logging](../stage-2-logging/procedures/sources.md)
   from installation; do not wait for Observability. Operational application logs
   and metrics later use [Stage 8](../stage-8-observability/README.md) under approved scopes.
 

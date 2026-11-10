@@ -37,16 +37,16 @@ Bootstrap and host consumers: [Tier 0](../${repo_prefix}-tier-0/README.md).
   - [ ] **Option 2b:** existing cache pair updated — [Update adoption](docs/auto-docs/deployment/stage-1-software-intake/step-2b-adopt-update.md).
   - [ ] **Alternative:** existing approved supply selected — [Path 1b](docs/auto-docs/deployment/stage-1-software-intake/README.md#1b-use-existing-approved-supply--alternative).
   - [ ] **Option 4b:** Linux security profile applied — [Guide](docs/auto-docs/administration/hosts/linux-security.md).
-- [ ] Bootstrap consumer configured — [Guide](docs/auto-docs/deployment/stage-1-software-intake/bootstrap-consumer.md).
+- [ ] Bootstrap consumer configured — [Guide](docs/auto-docs/deployment/stage-1-software-intake/step-6-bootstrap-consumer.md).
 - [ ] Proxmox update access configured — [Guide](docs/auto-docs/administration/hosts/update-access.md).
 
 ## 2. Protected Logging
 
 Run from [Tier 0](../${repo_prefix}-tier-0/README.md).
 
-- [ ] Independent logging authority and identities prepared — [Trust](docs/auto-docs/deployment/stage-2-logging/producer-trust.md).
+- [ ] Independent logging authority and identities prepared — [Trust](docs/auto-docs/deployment/stage-2-logging/procedures/producer-trust.md).
 - [ ] Log host and receiver deployed — [Stage 2 Protected Logging](docs/auto-docs/deployment/stage-2-logging/README.md).
-- [ ] Producers connected — [Sources](docs/auto-docs/deployment/stage-2-logging/sources.md).
+- [ ] Producers connected — [Sources](docs/auto-docs/deployment/stage-2-logging/procedures/sources.md).
 - [ ] NAS checkpoints and independent backup configured — [NAS archive](docs/auto-docs/deployment/stage-2-logging/step-3c-nas-archive.md).
   - [ ] **Alternative:** retention-locked object archive — [Locked storage](docs/auto-docs/deployment/stage-2-logging/step-3d-retention-lock.md).
 - [ ] **Option:** second receiver deployed — [Redundant intake](docs/auto-docs/deployment/stage-2-logging/step-3b-redundant-intake.md).
@@ -92,8 +92,8 @@ Run from [Tier 0](../${repo_prefix}-tier-0/README.md).
   - [ ] **Alternative:** dedicated Vault VMs deployed — [VM path](docs/auto-docs/deployment/stage-6-secrets/step-1b-vault-vm.md).
   - [ ] **Option:** seal provider integrated — [Seal integration](docs/auto-docs/deployment/stage-6-secrets/step-1c-seal-integration.md).
 - [ ] NetBox and control UI deployed — [Control applications](docs/auto-docs/deployment/stage-6-secrets/procedures/control-applications.md).
-- [ ] Independent critical monitoring configured — [Monitoring](docs/auto-docs/deployment/stage-6-secrets/monitoring.md).
-  - [ ] Runtime selected: managed `mon-1` or accepted existing host — [Host preparation](docs/auto-docs/deployment/stage-6-secrets/monitoring.md#step-1-prepare-the-monitoring-runtime).
+- [ ] Independent critical monitoring configured — [Monitoring](docs/auto-docs/deployment/stage-6-secrets/procedures/independent-monitoring.md).
+  - [ ] Runtime selected: managed `mon-1` or accepted existing host — [Host preparation](docs/auto-docs/deployment/stage-6-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime).
 - [ ] **Option:** hardware-backed human authentication — [Hardware authentication](docs/auto-docs/deployment/stage-6-secrets/step-3b-hardware-authentication.md).
 
 ## 7. Delivery
@@ -113,7 +113,7 @@ Platform: [Tier 1](../${repo_prefix}-tier-1/README.md).
 Infrastructure collection and protected log originals: [Tier 0](../${repo_prefix}-tier-0/README.md).
 
 - [ ] Netdata, OpenTelemetry, VictoriaMetrics, OpenSearch and UIs installed — [Stage 8 Observability](docs/auto-docs/deployment/stage-8-observability/README.md).
-- [ ] Proxmox/BMC and host coverage connected — [Infrastructure monitoring](docs/auto-docs/deployment/stage-8-observability/infrastructure-monitoring.md).
+- [ ] Proxmox/BMC and host coverage connected — [Infrastructure monitoring](docs/auto-docs/deployment/stage-8-observability/step-3-infrastructure-monitoring.md).
 - [ ] **Option:** authorized protected-log projections connected — [Scoped search](docs/auto-docs/deployment/stage-8-observability/step-4b-protected-log-search.md).
 - [ ] **Alternative:** dedicated VM baseline prepared; product installation remains separate — [VM option](docs/auto-docs/deployment/stage-8-observability/step-1b-dedicated-vms.md).
 
@@ -137,7 +137,7 @@ Run from [Tier 2](../${repo_prefix}-tier-2/README.md).
 
 - [ ] Selected lab runtime deployed — [Stage 10 Lab Environments](docs/auto-docs/deployment/stage-10-lab-environments/README.md).
   - [ ] Linux VM/LXC labs — [Linux path](docs/auto-docs/deployment/stage-10-lab-environments/README.md#step-2a-linux-vmlxc-labs).
-  - [ ] Isolated Kubernetes environments — [Cluster path](docs/auto-docs/deployment/stage-10-lab-environments/isolated-clusters.md).
+  - [ ] Isolated Kubernetes environments — [Cluster path](docs/auto-docs/deployment/stage-10-lab-environments/procedures/isolated-clusters.md).
 - [ ] Application deployed — [Application](docs/auto-docs/deployment/stage-10-lab-environments/step-3a-application.md).
   - [ ] **Option:** application telemetry connected — [Telemetry](docs/auto-docs/deployment/stage-10-lab-environments/step-3c-telemetry.md).
   - [ ] **Option:** public HTTPS exposed — [Public HTTPS](docs/auto-docs/deployment/stage-10-lab-environments/step-3b-public-https.md).

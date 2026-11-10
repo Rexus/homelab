@@ -18,6 +18,9 @@ repository_proxy_remove_when_disabled: true
 repository_proxy_manage_dnf: "{{ ansible_os_family | default('') == 'RedHat' }}"
 repository_proxy_manage_apt: "{{ ansible_os_family | default('') == 'Debian' }}"
 repository_proxy_dnf_conf_path: /etc/dnf/dnf.conf
+# Explicit existing DNF stanzas whose mirror selection must use an approved fixed source.
+repository_proxy_dnf_repo_dir: /etc/yum.repos.d
+repository_proxy_dnf_sources: []
 repository_proxy_apt_conf_dir: /etc/apt/apt.conf.d
 repository_proxy_apt_conf_path: "{{ repository_proxy_apt_conf_dir }}/80repositoryproxy"
 repository_proxy_effective_https_url: >-

@@ -194,10 +194,11 @@ plans even though a public key is not a private credential.
 ## OS baseline boundary
 
 Shared's [baseline role](../../shared/ansible/roles/baseline/tasks/main.yml) manages
-repository/shell proxy settings, native package-verification defaults, timezone and the selected IPv6 sysctl policy.
+repository/shell proxy settings, explicitly selected existing DNF source URLs,
+native package-verification defaults, timezone and the selected IPv6 sysctl policy.
 It is not a full security, time-synchronization or service-installation role.
 Package policy does not update packages or replace repository definitions/keys; see
-[consumer verification](../deployment/stage-1-software-intake/proxy-cache.md#consumer-verification-and-failure-behavior).
+[consumer verification](proxy-cache.md#consumer-verification-and-failure-behavior).
 
 SSH access policy, NTP/chrony, host-firewall rules and audit collection must be
 prepared and verified through approved templates/OS configuration and the relevant

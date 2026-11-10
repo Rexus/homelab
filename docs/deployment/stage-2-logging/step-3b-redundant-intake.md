@@ -79,7 +79,7 @@ bash scripts/deploy.sh syslog --terraform-only
 
 Add `--plan-only` for an optional preview. Keep existing hosts and state; no
 replacement archive or second Terraform owner is introduced. Select each data
-device and its host-specific UUID/TLS inputs using the [receiver guide](receiver.md);
+device and its host-specific UUID/TLS inputs using the [receiver guide](procedures/receiver.md);
 the receiver recipe prepares guarded filesystems and mounts. Then configure:
 
 Run from **`<prefix>-tier-0/`**.

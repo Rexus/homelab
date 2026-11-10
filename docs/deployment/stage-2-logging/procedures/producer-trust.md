@@ -5,7 +5,7 @@ private keys stay on their owning hosts; Tier 0 signs reviewed public requests.
 This authority is separate from the infrastructure root and requires no cluster or SSO.
 
 **Working repository:** `<prefix>-tier-0`, on the protected signing controller.
-**Prerequisites:** [local Ansible tools](../../development/local-setup.md),
+**Prerequisites:** [local Ansible tools](../../../development/local-setup.md),
 `community.crypto`, Python cryptography, independently authenticated host access,
 protected local storage and separately held encrypted backups/passphrase.
 
@@ -148,7 +148,7 @@ reauthenticated. Native receiver/source reapplication restarts changed instances
 Record scheduled renewal/CRL ownership and external expiry checks in the project runbook.
 This workflow is operator-invoked, not an unattended authority with resident credentials.
 
-The Stage 3 [software PKI policy](../stage-3-trust/procedures/software-pki.md#decisions-and-recovery-kit)
+The Stage 3 [software PKI policy](../../stage-3-trust/procedures/software-pki.md#decisions-and-recovery-kit)
 currently issues TLS-server leaves only. Retain the independent producer authority
 until a client-auth profile, custody and rollover are qualified.
 

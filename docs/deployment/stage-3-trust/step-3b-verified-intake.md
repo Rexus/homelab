@@ -20,7 +20,7 @@ setup registry and inventory; register `intake` / `software_intake` there before
 **Before starting:** complete [Stage 1 intake](../stage-1-software-intake/README.md),
 [Stage 2 logging](../stage-2-logging/README.md) and this stage's issuer acceptance.
 Reserve an address on `delivery_edge` and issue its HTTPS certificate before installation.
-Use the [logging source guide](../stage-2-logging/sources.md) to protect intake decisions.
+Use the [logging source guide](../stage-2-logging/procedures/sources.md) to protect intake decisions.
 No Kubernetes, Vault, Harbor or GitLab service is required.
 
 **Host:** a clone-tested EL10 or Debian-family systemd image. Its approved repositories must supply
@@ -154,7 +154,7 @@ The installer checks the supplied TLS chain/key, publisher fingerprints and scan
 No intake runs yet; keep `software_intake_timer_enabled: false` until Step 6.
 
 Before the first intake in Step 5, enroll **`intake-1`** through
-[logging source preparation, signing and installation](../stage-2-logging/sources.md).
+[logging source preparation, signing and installation](../stage-2-logging/procedures/sources.md).
 Use Tier 1's `ansible/group_vars/intake.yml` as its existing setup map. Verify its journal stream
 at protected Tier 0 intake; add a separate file stream for the actual Nginx access/error logs.
 The intake recipe installs neither forwarding nor receiver enrollment. Return here for Step 4

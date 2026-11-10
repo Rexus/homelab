@@ -9,7 +9,7 @@ it is not a new VM or another syslog receiver.
 
 **Prerequisites:** a healthy NetBox API, protected forwarding for this host,
 retained source history and an external dead-man monitor.
-First complete [monitoring host preparation](../monitoring.md#step-1-prepare-the-monitoring-runtime):
+First complete [monitoring host preparation](independent-monitoring.md#step-1-prepare-the-monitoring-runtime):
 managed `mon-1` or an accepted existing host in `infrastructure_monitoring`, verified SSH/sudo
 and protected forwarding. Managed `mon-1` uses the foundation IP map; an external host uses
 `ansible/host_vars/<monitor-host>.yml`. Netdata need not be installed yet.
@@ -52,7 +52,7 @@ The implementation is the [Tier 0 recipe](../../../../tier-0/ansible/playbooks/d
 
 1. Retain the existing host in `infrastructure_monitoring`. Add a `netbox-changes`
    **security** file stream for `/var/lib/netbox-audit/events/*.jsonl` to its existing
-   [producer settings](../../stage-2-logging/sources.md). Prepare its reviewed client certificate
+   [producer settings](../../stage-2-logging/procedures/sources.md). Prepare its reviewed client certificate
    and register it in the receiver catalogue; never replace the host's OS/audit streams.
 2. From the Tier 0 root, create local inputs:
 

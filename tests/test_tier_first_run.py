@@ -71,7 +71,7 @@ class NativeFirstRun(unittest.TestCase):
             self.assertNotIn('No inventory was parsed', result.stderr)
 
     def test_documented_logging_commands_load_global_setup_and_host_inputs(self):
-        docs = (UPSTREAM / 'docs/deployment/stage-2-logging/sources.md').read_text()
+        docs = (UPSTREAM / 'docs/deployment/stage-2-logging/procedures/sources.md').read_text()
         blocks = re.findall(r'```bash\n(.*?)```', docs, re.S)
         inputs = next(block for block in blocks if 'logging_inputs=' in block)
         commands = [block for block in blocks if 'ansible-playbook "${logging_inputs[@]}"' in block]
@@ -150,6 +150,38 @@ class NativeFirstRun(unittest.TestCase):
             'cache_validation_enabled': True}, 'tasks': [key, cache]})
         self.assertEqual((self.root / 'key').read_bytes(), b'approved-content')
         self.assertEqual(requests, ['http://127.0.0.2:9/key', 'http://127.0.0.2:9/cache'])
+
+    def test_cache_deployment_validation_requires_only_the_vip_from_the_controller(self):
+        requests = []
+
+        class Proxy(BaseHTTPRequestHandler):
+            def do_GET(self):
+                requests.append(self.path)
+                self.send_response(403 if 'denied.invalid' in self.path else 200)
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Proxy)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        port = server.server_address[1]
+        play = deepcopy(load('tier-2/ansible/playbooks/deployment/outbound-cache.yml')[-1])
+        play.update(hosts='localhost', connection='local')
+        play['vars'].update(cache_proxy_vip='127.0.0.1', cache_proxy_port=port,
+                            cache_validation_url='http://approved.invalid/file',
+                            cache_validation_denied_url='http://denied.invalid/file',
+                            cache_proxy_fqdn='', cache_validation_enabled=True,
+                            platform_host_ips={'cache-1': '192.0.2.1', 'cache-2': '192.0.2.2'})
+        self.run_play(play)
+        self.assertEqual(requests, ['http://approved.invalid/file', 'http://denied.invalid/file'])
+
+        server.shutdown()
+        server.server_close()
+        play['vars']['cache_validation_connect_timeout'] = 1
+        self.run_play(play, success=False)
 
     def test_identity_health_obtains_its_own_ticket_and_cleans_up_after_failure(self):
         binaries = self.root / 'bin'

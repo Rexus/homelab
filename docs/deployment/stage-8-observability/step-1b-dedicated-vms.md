@@ -110,14 +110,14 @@ separation through the selected [cluster policy](../foundation/proxmox/step-1b-c
 
 ## Step 3: Integrate and accept the services
 
-Use the [Observability service contracts](configuration.md#storage-and-recovery) to implement
+Use the [Observability service contracts](procedures/observability-platform.md#storage-and-recovery) to implement
 project-owned VM service automation. The supplied `observability_platform` role installs Kubernetes
 resources; it is not the product installer for this alternative.
 
 1. Install independently sized gateways, replicated metrics and the search cluster.
    Configure UI/processing placement without silently co-locating resource-heavy backends.
    Select explicit Netdata parent capacity and tier-local agents using the
-   [infrastructure-monitoring guide](infrastructure-monitoring.md); these seven VM
+   [infrastructure-monitoring guide](step-3-infrastructure-monitoring.md); these seven VM
    definitions do not allocate or install a separate diagnostics runtime.
 2. Verify endpoint failover, metric write replication, search quorum/shard copies,
    source authentication, queues, backups and independent restoration.

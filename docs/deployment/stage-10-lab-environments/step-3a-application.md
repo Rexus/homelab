@@ -118,7 +118,7 @@ Two replicas require capacity; they do not establish storage or physical failove
    [telemetry](step-3c-telemetry.md). Protected evidence remains outside this namespace.
 
 Namespace isolation is not a hard boundary for hostile tenants. Use dedicated
-[cluster isolation](isolated-clusters.md) where required. Keep automatic allocation,
+[cluster isolation](procedures/isolated-clusters.md) where required. Keep automatic allocation,
 expiry and portal integration separate; no such controller is installed by this recipe.
 
 **Return:** [Stage 10, Step 3](README.md#step-3-deploy-and-verify-applications) for collection,

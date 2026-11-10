@@ -19,6 +19,15 @@
       guests and requires a keepalived VIP, allowed CIDRs, non-empty software-source domains, and static
       platform_host_ips for every cache host.
 
+- name: Require an explicit valid IPv4 VIP prefix
+  ansible.builtin.assert:
+    that:
+      - cache_keepalived_vip_cidr is match('^[0-9.]+/[1-9][0-9]?$')
+      - cache_keepalived_vip_cidr | ansible.utils.ipv4('host/prefix') == cache_keepalived_vip_cidr
+    fail_msg: >-
+      Set cache_proxy_vip_cidr/cache_keepalived_vip_cidr to the selected IPv4 VIP and explicit
+      prefix, for example 192.0.2.22/27. A missing or /0 prefix is not accepted.
+
 - name: Require explicit software-source hostnames
   ansible.builtin.assert:
     that:

@@ -257,10 +257,10 @@ reference runtime. Installing Ansible does not require a manual venv in every ca
 **4a: OS-package path.** On `boot-1`, using the approved OS repositories:
 
 ```bash
-sudo dnf install -y ansible-core
+sudo dnf install -y ansible-core python3-netaddr
 ```
 
-On **Debian/Ubuntu**, use `sudo apt-get install -y ansible-core` instead.
+On **Debian/Ubuntu**, use `sudo apt-get install -y ansible-core python3-netaddr` instead.
 
 With compatible collections, this is enough to run the cache recipe without the manual Python
 setup below. `deploy.sh` prepares the selected setup's collections. Confirm the installed core

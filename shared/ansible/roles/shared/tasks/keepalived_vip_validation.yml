@@ -10,6 +10,20 @@
       shared_keepalived_vip, and at least one host in the group.
   when: shared_keepalived_validation_enabled | default(true) | bool
 
+- name: Require all shared keepalived members before VIP validation
+  ansible.builtin.assert:
+    that:
+      - groups[shared_keepalived_group] | difference(ansible_play_hosts) | length == 0
+      - groups[shared_keepalived_group] | difference(ansible_play_batch) | length == 0
+    fail_msg: >-
+      Keepalived VIP validation requires every member of {{ shared_keepalived_group }}
+      to be active in this play and current batch.
+      Missing from active play: {{ groups[shared_keepalived_group] | difference(ansible_play_hosts) | sort }}.
+      Missing from current batch: {{ groups[shared_keepalived_group] | difference(ansible_play_batch) | sort }}.
+      A member failed, is unreachable, or was excluded. Fix provisioning/connectivity
+      and rerun the full group together without a partial limit or serial batch.
+  when: shared_keepalived_validation_enabled | default(true) | bool
+
 - name: Gather shared keepalived network facts
   ansible.builtin.setup:
     gather_subset:

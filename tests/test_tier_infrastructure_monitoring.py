@@ -20,7 +20,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
             self.assertIn("infrastructure-monitoring.md", overview)
             for name in ("Netdata", "Proxmox", "hardware sensors", "critical alerting in Tier 0"):
                 self.assertIn(name, overview)
-            guide = " ".join((stage / "infrastructure-monitoring.md").read_text().split())
+            guide = " ".join((stage / "step-3-infrastructure-monitoring.md").read_text().split())
             for expected in ("Tier 0 owns Proxmox/BMC targets", "read-only", "Redfish", "IPMI",
                              "separate identities, data volumes", "parent synchronization",
                              "node-OS compatibility", "approved metrics", "cannot power-cycle",

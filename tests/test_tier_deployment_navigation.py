@@ -178,24 +178,27 @@ class DeploymentNavigation(TierRepositoryTestCase):
             for root in self.owners(deployment):
                 for guide in root.parent.rglob("*.md"):
                     title = guide.read_text(encoding="utf-8").splitlines()[0]
-                    route = re.match(r"# Step (\d+[a-z]):", title)
+                    route = re.match(r"# Step (\d+[a-z]?):", title)
                     if route:
                         with self.subTest(tree=str(deployment), guide=str(guide.relative_to(deployment))):
                             self.assertTrue(guide.name.startswith(f"step-{route[1]}-"),
                                             "Dedicated path filename must match its title/README route")
                             self.assertTrue(routed_from(root, guide, int(re.match(r"\d+", route[1])[0])))
 
-    def test_option_files_branch_from_numbered_steps_and_return_to_their_owner(self):
+    def test_numbered_files_start_at_their_owner_and_return(self):
         for deployment in self.deployment_roots():
             for root in self.owners(deployment):
                 content = root.read_text(encoding="utf-8")
                 root_anchors = anchors(content)
                 for option in root.parent.rglob("step-*.md"):
                     with self.subTest(tree=str(deployment), option=str(option.relative_to(deployment))):
-                        number = int(re.match(r"step-(\d+)[a-z]-", option.name)[1])
-                        branches = [link for link in field_links(option, "Branch from")
+                        route = re.match(r"step-(\d+)([a-z]?)-", option.name)
+                        self.assertIsNotNone(route, "Numbered files need a step or lettered option prefix")
+                        number = int(route[1])
+                        field = "Branch from" if route[2] else "Continue from"
+                        branches = [link for link in field_links(option, field)
                                     if link.target == root.resolve() and link.fragment in root_anchors]
-                        self.assertTrue(branches, "Branch from must link to a numbered owning README step")
+                        self.assertTrue(branches, f"{field} must link to a numbered owning README step")
                         for link in branches:
                             self.assertEqual(step_at(content, root_anchors[link.fragment]), number,
                                              f"{option.name} branches from the wrong step")
@@ -204,6 +207,21 @@ class DeploymentNavigation(TierRepositoryTestCase):
                         self.assertTrue(returns, "Return must link to an existing owning README anchor")
                         self.assertTrue(routed_from(root, option, number),
                                         "Owner must offer the option under its step or numbered routing table")
+
+    def test_stage_root_files_are_numbered_paths_not_procedures_or_references(self):
+        for deployment in self.deployment_roots():
+            for root in self.owners(deployment):
+                for guide in root.parent.glob("*.md"):
+                    if guide.name == "README.md":
+                        continue
+                    self.assertRegex(guide.name, r"^step-\d+[a-z]?-.+\.md$", str(guide))
+            intake = deployment / "stage-1-software-intake"
+            self.assertTrue((intake / "step-6-bootstrap-consumer.md").is_file())
+            self.assertFalse((intake / "proxy-cache.md").exists())
+            reference = deployment.parent / "reference/proxy-cache.md"
+            self.assertTrue(reference.is_file())
+            self.assertNotIn("```bash", reference.read_text(encoding="utf-8"))
+            self.assertTrue((deployment / "stage-8-observability/step-3-infrastructure-monitoring.md").is_file())
 
     def test_numbered_paths_and_foundation_legacy_anchors_keep_the_reader_order(self):
         for deployment in self.deployment_roots():

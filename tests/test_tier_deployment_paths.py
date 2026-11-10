@@ -50,7 +50,7 @@ class DeploymentPaths(TierRepositoryTestCase):
             self.assertFalse((root / "stage-1-foundation").exists())
             expected_steps = {
                 "stage-2-logging/README.md": ["1", "2", "3"],
-                "stage-6-secrets/monitoring.md": ["1", "2", "3"],
+                "stage-6-secrets/procedures/independent-monitoring.md": ["1", "2", "3"],
                 "stage-8-observability/README.md": ["1", "2", "3", "4"],
                 "stage-10-lab-environments/step-3c-telemetry.md": ["1", "2", "3"],
             }

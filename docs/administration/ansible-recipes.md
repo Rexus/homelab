@@ -113,7 +113,7 @@ explicit kubeconfig. Their default action is offline `render`; `apply` is explic
 | 2 | `deployment/workload-telemetry.yml` | [Scoped application telemetry](../deployment/stage-10-lab-environments/step-3c-telemetry.md) |
 
 Tier 0's `deployment/infrastructure-monitoring.yml` instead targets an explicitly
-prepared host outside observed clusters; use the [independent monitoring guide](../deployment/stage-6-secrets/monitoring.md).
+prepared host outside observed clusters; use the [independent monitoring guide](../deployment/stage-6-secrets/procedures/independent-monitoring.md).
 Tier 0's control-application recipe also owns the guarded
 [Kubernetes API SSO operation](../deployment/stage-5-identity/procedures/kubernetes-sso.md),
 which uses the selected target tier's plan and credentials, not Helm.

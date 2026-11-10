@@ -71,7 +71,7 @@ RSA exchange or weaken checks to repair an integration. Protocol/PQC changes req
    records. The OS marker does **not** verify the product audit-file stream.
 3. Confirm the enrolled native files include actual
    `/var/log/openxpki-server/audit.log` and `workflows.log`, plus OS/service events.
-   Follow [source forwarding](../../deployment/stage-2-logging/sources.md) for explicit
+   Follow [source forwarding](../../deployment/stage-2-logging/procedures/sources.md) for explicit
    file streams; submitted labels cannot authorize access to another evidence scope.
 4. Trigger the independent test notification and a controlled missed-heartbeat test.
    Confirm a responder receives it with portal, normal SSO and Tier 1 unavailable.

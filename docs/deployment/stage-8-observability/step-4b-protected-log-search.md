@@ -11,7 +11,7 @@ Application-only search skips this exporter.
 Original evidence, NAS retention and backup authority remain in Tier 0.
 
 **Prerequisites:** accepted [logging checkpoints](../stage-2-logging/step-3c-nas-archive.md),
-an approved source catalogue, and [projection ingestion](configuration.md#approved-search-projections).
+an approved source catalogue, and [projection ingestion](procedures/observability-platform.md#approved-search-projections).
 
 ## Contents
 
@@ -99,7 +99,7 @@ object for field queries such as `body.record.source`. Investigate
 1. In Tier 1's Observability inputs, define a matching `kind: projection` scope with
    its dedicated client CA, NodePort and authorized `reader_backend_roles`.
 2. Prepare its receiver Secret and render/review/reapply the
-   [Tier 1 configuration](configuration.md#8-render-the-complete-platform). For an existing search
+   [Tier 1 configuration](procedures/observability-platform.md#8-render-the-complete-platform). For an existing search
    cluster, keep `observability_search_bootstrap: false`. Verify the selected private listener,
    source-IP/firewall path and server identity before enabling an exporter.
 3. Prepare a client certificate for this scope and a verified gateway hostname.

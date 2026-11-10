@@ -36,11 +36,11 @@ see [project records](../development/project-documentation.md#start-with-project
 | 3: Cryptographic trust | Offline root and online issuer; optional verified publication after issuance | Tier 0 trust; optional Tier 1 worker | [Trust](stage-3-trust/README.md) |
 | 4: Kubernetes | Independently bootstrapped Tier 0 cluster and basic platform | Tier 0 | [Kubernetes](stage-4-kubernetes/README.md) |
 | 5: Identity | Directory authority and federated OIDC access | Tier 0 | [Identity](stage-5-identity/README.md) |
-| 6: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-6-secrets/README.md), [monitoring](stage-6-secrets/monitoring.md) |
+| 6: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-6-secrets/README.md), [monitoring](stage-6-secrets/procedures/independent-monitoring.md) |
 | 7: Delivery | Tier 1 runtime, Argo CD or Spinnaker, approved artifact supply | Tier 1 platform; optional Tier 2 edge | [Delivery](stage-7-delivery/README.md) |
 | 8: Observability | Netdata diagnostics, infrastructure health, logs, metrics, traces and scoped queries | Tier 1; Tier 0-owned infrastructure collection and approved exports | [Observability](stage-8-observability/README.md) |
 | 9: Development platform | GitLab, SSO, on-demand build pods, Vault CI and infrastructure handover | Tier 1 applications; Tier 0 execution/auth policy | [Development platform](stage-9-development/README.md) |
-| 10: Lab environments | Isolated Tier 2 runtimes, applications and future bounded requests | Tier 2 definitions; Tier 0 execution | [Lab environments](stage-10-lab-environments/README.md), [isolated clusters](stage-10-lab-environments/isolated-clusters.md) |
+| 10: Lab environments | Isolated Tier 2 runtimes, applications and future bounded requests | Tier 2 definitions; Tier 0 execution | [Lab environments](stage-10-lab-environments/README.md), [isolated clusters](stage-10-lab-environments/procedures/isolated-clusters.md) |
 
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -99,7 +99,7 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Tier 0 | `templates` | Foundation: approved source images | [Publication](../administration/virtual-machines/template-lifecycle.md#local-workflow) |
 | Tier 0 | `template-refresh` | Foundation or maintenance: Linux image refresh | [Linux templates](foundation/proxmox/templates.md) |
 | Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1-3](stage-2-logging/README.md) |
-| Tier 0 | `foundation` | Stages 3/5: issuer and directory VM resources | [Trust](stage-3-trust/README.md), [directory deployment](stage-5-identity/procedures/freeipa.md) |
+| Tier 0 | `foundation` | Stages 3/5/6: issuer/directory resources and optional independent monitor | [Trust](stage-3-trust/README.md), [directory deployment](stage-5-identity/procedures/freeipa.md), [monitor provisioning](stage-6-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
 | Tier 0 | `hsm` | Stage 3 option: signing-service host pool | [USB HSM option](stage-3-trust/step-1b-usb-hsm.md) |
 | Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1-3](stage-4-kubernetes/README.md) |
 | Tier 0 | `cluster-endpoint` | Before Stage 4/7/10: private independent API gateways | [API endpoint](stage-4-kubernetes/procedures/api-endpoint.md) |

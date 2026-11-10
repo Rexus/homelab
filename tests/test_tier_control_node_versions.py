@@ -109,8 +109,8 @@ class ControlNodeVersions(unittest.TestCase):
             self.assertIn('changed=0', result.stdout)
         calls = [json.loads(line) for line in log.read_text().splitlines()]
         self.assertEqual(calls, [
-            ['collection', 'install', 'journey_probe.bounds:>=1.5.0,<2.0.0'],
-            ['collection', 'install', 'journey_probe.missing'],
+            ['collection', 'install', '--no-cache', 'journey_probe.bounds:>=1.5.0,<2.0.0'],
+            ['collection', 'install', '--no-cache', 'journey_probe.missing'],
         ] * 2)
 
     def test_native_galaxy_needs_no_network_for_a_compatible_prestaged_range(self):

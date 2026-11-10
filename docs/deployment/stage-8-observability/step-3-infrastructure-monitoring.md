@@ -1,7 +1,9 @@
-# Infrastructure monitoring
+# Step 3: Connect infrastructure monitoring
 
-**Stage route:** [Stage 8, Step 3](README.md#step-3-connect-infrastructure-monitoring), after signal intake is ready.
-**Return:** to Step 3 after proving local diagnostics, independent alerts and approved metric delivery;
+<a id="infrastructure-monitoring"></a>
+
+**Continue from:** [Stage 8, Step 3](README.md#step-3-connect-infrastructure-monitoring), after signal intake is ready.
+**Return:** [Step 3 acceptance](README.md#step-3-connect-infrastructure-monitoring) after proving local diagnostics, independent alerts and approved metric delivery;
 then continue with Step 4 reader access.
 
 Connect IT-system health to [Stage 8, Step 3](README.md#step-3-connect-infrastructure-monitoring):
@@ -13,7 +15,7 @@ This extends earlier Tier 0 monitoring; it does not relocate it into Tier 1.
 local collectors and approved exports. Tier 1 owns shared diagnostics, metric history, rules and UIs.
 Other tiers own their agents and source inventory. Shared may supply reusable roles,
 but never targets, credentials or state.
-**Prerequisites:** [independent monitoring](../stage-6-secrets/monitoring.md),
+**Prerequisites:** [independent monitoring](../stage-6-secrets/procedures/independent-monitoring.md),
 [Stage 8 signal pipelines](README.md#step-2-deploy-the-signal-pipelines), approved
 source inventory, TLS trust, firewall policy and physical failure-domain mapping.
 **Design:** [coverage and ownership](../../architecture/operations/telemetry.md#infrastructure-coverage).
@@ -74,7 +76,7 @@ in that starter installs these products. Use the dedicated playbooks in each tie
 
 Step 2 of the stage already installs these Tier 1 parents and their local bridge. Do not install
 another pair here. If this review changes Tier 1 values, render/review/reapply the existing
-[Observability installation](configuration.md#8-render-the-complete-platform) before enabling its sources.
+[Observability installation](procedures/observability-platform.md#8-render-the-complete-platform) before enabling its sources.
 Keep `observability_search_bootstrap: false` for that established cluster.
 
 The Netdata interface is operator diagnostics, not a multi-tenant application portal.
@@ -95,7 +97,7 @@ To enable the Tier 0 bridge after the Tier 1 metrics receiver is accepted:
    - `ansible/group_vars/infrastructure_monitoring_secrets.yml`: Encrypted private-file map with scoped
      export.crt/export.key and CA trust.
 
-2. Render/review and reapply the [existing monitoring recipe](../stage-6-secrets/monitoring.md#step-3-enable-and-verify-independent-alerts).
+2. Render/review and reapply the [existing monitoring recipe](../stage-6-secrets/procedures/independent-monitoring.md#step-3-enable-and-verify-independent-alerts).
    It retains local diagnostics/alerts and adds the selected bridge; it grants Tier 1 no poller credentials.
 3. Continue the Tier 1 sample/failure checks:
 

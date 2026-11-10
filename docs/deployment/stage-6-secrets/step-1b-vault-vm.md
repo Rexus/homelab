@@ -234,7 +234,7 @@ revoking bootstrap authority. Forward audit records to protected logging before
 storing important secrets; the local audit file alone is not the retained evidence archive.
 
 Before returning to the main stage, enroll `/var/log/vault/audit.log` as a dedicated security file stream
-through [Stage 2 forwarding](../stage-2-logging/sources.md). Test allowed and denied operations at intake,
+through [Stage 2 forwarding](../stage-2-logging/procedures/sources.md). Test allowed and denied operations at intake,
 qualify [human SSO](../stage-5-identity/procedures/service-sso.md), and commission
 [scheduled independent snapshots](../../administration/backups/control-applications.md#configure-and-schedule).
 Complete an [isolated restore](../../administration/recovery/vault.md) before accepting recovery.

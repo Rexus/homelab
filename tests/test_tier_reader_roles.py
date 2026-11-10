@@ -31,7 +31,7 @@ class ReaderRoles(TierRepositoryTestCase):
                 self.assertRegex(opening, r"\*\*Working repositor(?:y|ies):\*\*|## Working repositories", str(document))
                 self.assertIn(f"{prefix}-tier-", opening, str(document))
             for relative, owner in (
-                ("stage-1-software-intake/proxy-cache.md", "tier-2"),
+                ("../reference/proxy-cache.md", "tier-2"),
                 ("stage-3-trust/step-1b-usb-hsm.md", "tier-0"),
                 ("stage-5-identity/procedures/freeipa.md", "tier-0"),
                 ("stage-6-secrets/step-1b-vault-vm.md", "tier-0"),

@@ -1,0 +1,72 @@
+---
+# Filters execute in Ansible's Python, independently of guest/module interpreters.
+- name: Inspect network-filter dependencies in the controller interpreter
+  community.general.python_requirements_info:
+    dependencies: ["{{ control_node_network_filter_requirement }}"]
+  register: control_node_network_filter_python
+
+- name: Require prepared controller Python dependencies in check mode
+  ansible.builtin.assert:
+    that:
+      - control_node_network_filter_python.not_found | length == 0
+      - control_node_network_filter_python.mismatched | length == 0
+    fail_msg: >-
+      {{ ansible_playbook_python }} needs {{ control_node_network_filter_requirement }}.
+      Collection check mode never installs Python dependencies. Prepare python3-netaddr for
+      the OS interpreter, or the declared netaddr requirement inside the active virtual environment.
+      See docs/reference/control-node-tooling.md#ansible-environment.
+  when: control_node_collections_mode == 'check'
+
+- name: Prepare missing controller network-filter dependencies
+  when:
+    - control_node_collections_mode == 'auto'
+    - >-
+      control_node_network_filter_python.not_found | length > 0 or
+      control_node_network_filter_python.mismatched | length > 0
+  block:
+    - name: Read the active controller virtual environment
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - 'import sys; print(sys.prefix if sys.prefix != sys.base_prefix else "")'
+      changed_when: false
+      register: control_node_network_filter_venv
+
+    - name: Require a supported OS package path for the system interpreter
+      ansible.builtin.assert:
+        that: ansible_os_family in ['RedHat', 'Debian']
+        fail_msg: >-
+          No system-package installation is defined for {{ ansible_os_family }}.
+          Prepare {{ control_node_network_filter_requirement }} in the accepted controller
+          interpreter before retrying, or use the documented isolated runtime.
+      when: control_node_network_filter_venv.stdout | trim | length == 0
+
+    - name: Install the network-filter library for OS-packaged Ansible
+      ansible.builtin.package:
+        name: python3-netaddr
+        state: present
+      become: true
+      when: control_node_network_filter_venv.stdout | trim | length == 0
+
+    - name: Install the network-filter library inside the active virtual environment
+      ansible.builtin.pip:
+        name: "{{ control_node_network_filter_requirement }}"
+        virtualenv: "{{ control_node_network_filter_venv.stdout | trim }}"
+      when: control_node_network_filter_venv.stdout | trim | length > 0
+
+- name: Recheck network-filter dependencies in the controller interpreter
+  community.general.python_requirements_info:
+    dependencies: ["{{ control_node_network_filter_requirement }}"]
+  register: control_node_network_filter_python_final
+
+- name: Verify the controller can run the declared network filter
+  ansible.builtin.assert:
+    that:
+      - control_node_network_filter_python_final.not_found | length == 0
+      - control_node_network_filter_python_final.mismatched | length == 0
+      - "'192.0.2.0/24' | ansible.utils.ipaddr('net') == '192.0.2.0/24'"
+    fail_msg: >-
+      {{ ansible_playbook_python }} still cannot use {{ control_node_network_filter_requirement }}.
+      Verify the installed package matches Ansible's interpreter. An older OS package may require
+      the documented isolated runtime; do not install pip packages into the system Python.

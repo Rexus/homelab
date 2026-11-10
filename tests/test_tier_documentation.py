@@ -374,16 +374,21 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             for expected in ("## Main path", "```mermaid", "**Result:**",
                              "## Capability available", "architecture/", "**Prerequisites:**"):
                 self.assertIn(expected, content, stage)
-            for option in stage.parent.glob("step-*.md"):
-                text = option.read_text(encoding="utf-8")
-                step, variant = re.match(r"step-(\d+)([a-z])-", option.name).groups()
-                self.assertIn(step, steps, option)
-                self.assertTrue(text.startswith(f"# Step {step}{variant}:"), option)
-                self.assertRegex(text, rf"\*\*Branch from:\*\* \[Step {step}\]\(README\.md#step-{step}-")
-                self.assertIn("**Change:**", text, option)
-                self.assertIn("Return", text, option)
-                self.assertIn(f"({option.name})", content, option)
-                self.assertIn(f"{stage.parent.name}/{option.name}", project, option)
+            for guide in stage.parent.glob("step-*.md"):
+                text = guide.read_text(encoding="utf-8")
+                route = re.match(r"step-(\d+)([a-z]?)-", guide.name)
+                self.assertIsNotNone(route, guide)
+                step, variant = route.groups()
+                self.assertIn(step, steps, guide)
+                self.assertTrue(text.startswith(f"# Step {step}{variant}:"), guide)
+                if variant:
+                    self.assertRegex(text, rf"\*\*Branch from:\*\* \[Step {step}\]\(README\.md#step-{step}-")
+                    self.assertIn("**Change:**", text, guide)
+                else:
+                    self.assertRegex(text, rf"\*\*Continue from:\*\* \[Stage \d+, Step {step}\]\(README\.md#step-{step}-")
+                self.assertIn("Return", text, guide)
+                self.assertIn(f"({guide.name})", content, guide)
+                self.assertIn(f"{stage.parent.name}/{guide.name}", project, guide)
         intake, logging, trust, cluster, identity, control, delivery, observability, development, workloads = (
             stage.read_text(encoding="utf-8") for stage in stages
         )

@@ -35,7 +35,7 @@ prerequisite for the logging path that records its own bootstrap ceremony.
 verification, ClamAV quarantine and immutable publication are supplied. OCI vulnerability policy
 and automatic patch rollout remain separate integrations.
 **Procedure:** [Stage 1](../docs/deployment/stage-1-software-intake/README.md) and
-[existing-cache migration](../docs/deployment/stage-1-software-intake/proxy-cache.md#update-an-existing-cache).
+[existing-cache migration](../docs/deployment/stage-1-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
 The first five checks cover the basic route; the remaining checks apply to the selected
 [verified extension](../docs/deployment/stage-3-trust/step-3b-verified-intake.md). None qualify patch rollout.
 

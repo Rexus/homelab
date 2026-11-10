@@ -122,7 +122,7 @@ Only the approved metric projection crosses into Tier 1 history/query services.
 That derived copy is intentional; it is not another hardware poller, a raw Tier 0
 diagnostic view or a failover parent for Tier 0. Configure each domain's own recovery.
 
-The [infrastructure monitoring deployment](../../deployment/stage-8-observability/infrastructure-monitoring.md)
+The [infrastructure monitoring deployment](../../deployment/stage-8-observability/step-3-infrastructure-monitoring.md)
 selects host versus API collection, sensor support and acceptance tests. Device
 coverage is explicit: an absent or stale sensor is unknown, not evidence of health.
 
@@ -187,7 +187,7 @@ Test cross-tenant isolation using hostile labels and direct API queries, not onl
 ## Realization
 
 [Security Logging and Audit](../../deployment/stage-2-logging/README.md) comes first.
-[Independent monitoring](../../deployment/stage-8-observability/infrastructure-monitoring.md)
+[Independent monitoring](../../deployment/stage-8-observability/step-3-infrastructure-monitoring.md)
 keeps foundation visibility outside cluster outages.
 [Observability deployment](../../deployment/stage-8-observability/README.md)
 adds Netdata diagnostics, infrastructure coverage, gateways, both backends and UIs;

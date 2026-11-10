@@ -71,8 +71,16 @@ Edit **`<prefix>-tier-2/ansible/group_vars/cache.yml`**. Compare with its refres
 | `cache_squid_refresh_patterns` | Adopt the current example's source-respecting rules; remove old expiry/privacy/reload overrides |
 | `cache_squid_extra_options` | Review retained custom directives for policy/cache changes |
 
-Follow the [existing-cache migration](proxy-cache.md#update-an-existing-cache). Run from
-**`<prefix>-tier-2/`**, without concurrent package jobs:
+Select approved Galaxy API/artifact destinations or prepared archives for controller acquisition.
+If the old policy blocks the collection needed to update it, follow the
+[one-time controller repair](../../reference/control-node-tooling.md#recover-an-existing-cache-that-blocks-galaxy),
+then continue here with cache reconciliation.
+
+Keep only accepted client/source scopes. Review raw `cache_squid_extra_options`, which can alter
+the generated policy. This is the existing-cache reconciliation procedure; the
+[optional settings reference](../../reference/proxy-cache.md) supplies field and behavior details.
+
+Run from **`<prefix>-tier-2/`**, without concurrent package jobs:
 
 ```bash
 bash scripts/deploy.sh cache --ansible-only
@@ -81,7 +89,7 @@ bash scripts/deploy.sh cache --ansible-only
 **Expected:** existing VMs converge; permitted/denied requests and VIP checks pass. Configured
 failover validation may move the VIP temporarily. Do not destroy caches, clear disks or discard state.
 
-Reapply the existing [bootstrap consumer recipe](bootstrap-consumer.md#3-apply-the-local-configuration)
+Reapply the existing [bootstrap consumer recipe](step-6-bootstrap-consumer.md#3-apply-the-local-configuration)
 and [Proxmox host recipe](../../administration/hosts/update-access.md#4-apply-the-proxy-settings)
 from **Tier 0** to adopt the updated package policy. Retain their accepted endpoint and bypass list.
 On **each Proxmox host as root**, require the normal refresh to pass:

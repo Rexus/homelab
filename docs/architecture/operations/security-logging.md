@@ -170,7 +170,7 @@ independent trust, raw messages and portable local JSON records. rsyslog is a va
 alternative under the same contract; the choice does not establish reliability superiority.
 The [receiver contract](../../reference/syslog-receiver.md) and
 [pipeline contract](../../reference/logging-pipeline.md) distinguish local collection,
-asynchronous NAS custody and stronger HA integration. [Monitoring](../../deployment/stage-6-secrets/monitoring.md)
+asynchronous NAS custody and stronger HA integration. [Monitoring](../../deployment/stage-6-secrets/procedures/independent-monitoring.md)
 adds critical health and alerts; [Observability](../../deployment/stage-8-observability/README.md)
 adds approved search copies. [Logging administration](../../administration/security-logging.md)
 owns recurring access, gap, capacity and restore checks. The receiver does not

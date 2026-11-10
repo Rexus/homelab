@@ -72,7 +72,7 @@ The cached delivery/development/lab fixture isolates Helm's configuration/cache/
 directories and trusts only its temporary repository CA. It keeps real chart versions,
 values and rendering; it does not stub the release or disable TLS verification.
 
-See [Observability verification](../deployment/stage-8-observability/configuration.md#verification)
+See [Observability verification](../deployment/stage-8-observability/procedures/observability-platform.md#verification)
 for its cached package contract and [diagram verification](diagrams.md#verification)
 for visual acceptance. Rendering configuration is not testing network reachability.
 

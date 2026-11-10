@@ -202,7 +202,7 @@ Update access alone does not schedule or approve patch installation.
 
 The same HTTP proxy URL can forward HTTPS using CONNECT. It does not decrypt/cache
 HTTPS payloads. A separately approved HTTPS-proxy endpoint can use its own value;
-see [transport limits](../../deployment/stage-1-software-intake/proxy-cache.md#transport-limits).
+see [transport limits](../../reference/proxy-cache.md#transport-limits).
 
 <a id="image-downloads-on-proxmox-hosts"></a>
 <a id="template-preparation-vms"></a>

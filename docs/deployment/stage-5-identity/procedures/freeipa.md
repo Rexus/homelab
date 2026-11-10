@@ -69,7 +69,7 @@ use `--auto-approve`; directory installation and root signing remain separate.
 ### 4. Connect logging before installing the realm
 
 Before the CA/realm installation, register both hosts through
-[Stage 2 source forwarding](../../stage-2-logging/sources.md). Verify their OS
+[Stage 2 source forwarding](../../stage-2-logging/procedures/sources.md). Verify their OS
 security events at Tier 0, then add the actual identity/audit files as they appear.
 The FreeIPA recipe does not install the separate log-forwarding role.
 

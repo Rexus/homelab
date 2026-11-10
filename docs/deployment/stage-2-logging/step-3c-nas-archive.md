@@ -105,7 +105,7 @@ restrictions for that mode. [1]
    | `logging_archive_max_lag_seconds`, `logging_archive_min_free_bytes` | Accepted checkpoint lag and minimum free capacity |
 3. After the source heartbeats are arriving and the storage contract is reviewed,
    select one collector from `foundation_logging`. Reuse its host file from
-   [source setup](sources.md#1-prepare-tier-owned-streams). Explicitly load global
+   [source setup](procedures/sources.md#1-prepare-tier-owned-streams). Explicitly load global
    settings, the collector setup/IP map, archive settings and finally host overrides:
 
    Run from **`<prefix>-tier-0/`**.

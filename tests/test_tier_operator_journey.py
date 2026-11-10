@@ -27,7 +27,7 @@ class OperatorJourney(TierRepositoryTestCase):
             for expected in ("## Step 1: Bring up the network", "switch alone is not", "controller",
                              "native/untagged", "control_cluster"):
                 self.assertIn(expected.lower(), network.lower())
-            for relative in ("README.md", "receiver.md"):
+            for relative in ("README.md", "procedures/receiver.md"):
                 logging = (docs / "deployment/stage-2-logging" / relative).read_text()
                 self.assertIn("software-pki.md#decisions-and-recovery-kit", logging)
                 self.assertIn("client-auth", logging)

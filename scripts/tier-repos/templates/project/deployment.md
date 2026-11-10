@@ -15,7 +15,7 @@ After completing a deployment or option, check its entry in the shared
 | 3: Cryptographic trust | Record root custody and issuer selection | Pending review | [Trust](${docs}/deployment/stage-3-trust/README.md) |
 | 4: Kubernetes | Record the cluster owner, bootstrap, add-ons, audit forwarding and recovery | Pending review | [Kubernetes](${docs}/deployment/stage-4-kubernetes/README.md) |
 | 5: Identity | Record directory, federation and OIDC integration on the accepted cluster | Pending review | [Identity](${docs}/deployment/stage-5-identity/README.md) |
-| 6: Secrets | Record secret storage, auditing, unseal/recovery and supporting control integrations | Pending review | [Secrets](${docs}/deployment/stage-6-secrets/README.md), [monitoring](${docs}/deployment/stage-6-secrets/monitoring.md) |
+| 6: Secrets | Record secret storage, auditing, unseal/recovery and supporting control integrations | Pending review | [Secrets](${docs}/deployment/stage-6-secrets/README.md), [monitoring](${docs}/deployment/stage-6-secrets/procedures/independent-monitoring.md) |
 | 7: Delivery | Record the Tier 1 controller and approved artifact supply | Pending review | [Delivery](${docs}/deployment/stage-7-delivery/README.md) |
 | 8: Observability | Record Netdata, Proxmox/BMC coverage, separate workload budgets, replicated backends and scoped reads | Pending review | [Observability](${docs}/deployment/stage-8-observability/README.md) |
 | 9: Development platform | Record GitLab, SSO, general job pods, direct-CI trust, Vault and original-state handover | Pending review | [Development platform](${docs}/deployment/stage-9-development/README.md) |

@@ -12,7 +12,16 @@ shell_proxy_no_proxy_extra:
   - pve01.example.internal
   - 10.10.10.11
 
+# Optional on EL: pin enabled repositories whose mirror lists select unapproved hosts.
+# Definitions: Shared ansible/roles/baseline/defaults/main.yml; existing files/keys are retained.
+# Inspect /etc/yum.repos.d/ for actual filenames/sections. Example for an enabled EPEL repository:
+# repository_proxy_dnf_sources:
+#   - file: epel.repo
+#     section: epel
+#     baseurl: 'https://dl.fedoraproject.org/pub/epel/$releasever/Everything/$basearch/'
+
 # Mirror path: select mode=mirror only after commissioning the native repository/tool
 # configs and retained artifacts. The recipe removes its DNF/APT and shell proxy settings;
-# it does not replace repo definitions, pip.conf, Galaxy config or Terraform CLI config.
+# Only explicitly selected repository_proxy_dnf_sources are edited. Other repo definitions,
+# pip.conf, Galaxy config and Terraform CLI config remain separately owned.
 # Keep approved signatures/TLS verification, provider locks and recovery artifacts.

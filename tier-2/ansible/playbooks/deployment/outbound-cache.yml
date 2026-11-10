@@ -50,7 +50,6 @@
   hosts: cache
   gather_facts: false
   vars:
-    cache_validation_cache_hosts: "{{ groups.get(cache_keepalived_group | default('cache'), []) }}"
     cache_validation_proxy_port: "{{ cache_proxy_port | default(cache_squid_http_port | default(3128)) }}"
     cache_validation_port_timeout: "{{ cache_validation_connect_timeout | default(5) }}"
 
@@ -64,41 +63,10 @@
         - name: Validate cache test inputs
           ansible.builtin.assert:
             that:
-              - cache_validation_cache_hosts | length > 0
               - cache_validation_url | default('') | length > 0
               - cache_proxy_vip | default('') | length > 0
-              - >-
-                cache_validation_cache_hosts
-                | difference((platform_host_ips | default({})).keys() | list)
-                | length == 0
             fail_msg: >-
-              Cache validation requires cache hosts, cache_validation_url,
-              cache_proxy_vip, and platform_host_ips entries for every cache
-              host.
-
-        - name: Test cache proxy port on each cache node
-          ansible.builtin.wait_for:
-            host: "{{ platform_host_ips[item] }}"
-            port: "{{ cache_validation_proxy_port }}"
-            state: started
-            timeout: "{{ cache_validation_port_timeout }}"
-          loop: "{{ cache_validation_cache_hosts }}"
-          changed_when: false
-
-        - name: Test proxy request through each cache node
-          ansible.builtin.uri:
-            url: "{{ cache_validation_url }}"
-            follow_redirects: all
-            timeout: "{{ cache_validation_timeout | default(20) }}"
-            use_proxy: true
-            use_netrc: false
-          environment:
-            http_proxy: "http://{{ platform_host_ips[item] }}:{{ cache_validation_proxy_port }}"
-            https_proxy: "http://{{ platform_host_ips[item] }}:{{ cache_validation_proxy_port }}"
-            no_proxy: ""
-            NO_PROXY: ""
-          loop: "{{ cache_validation_cache_hosts }}"
-          changed_when: false
+              Cache validation requires cache_validation_url and cache_proxy_vip.
 
         - name: Test cache VIP proxy port
           ansible.builtin.wait_for:

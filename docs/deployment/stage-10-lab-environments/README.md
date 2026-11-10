@@ -33,10 +33,10 @@ Follow Steps 1–3. Select only the runtimes and application options needed for 
 
 | Step | Path or option | Continue when |
 | --- | --- | --- |
-| 1 | [Approve scope](#step-1-define-the-approved-request); for Kubernetes, select [isolation](isolated-clusters.md#step-1-select-the-isolation-profile) | Owner, limits and isolation are approved; go to Step 2 |
+| 1 | [Approve scope](#step-1-define-the-approved-request); for Kubernetes, select [isolation](procedures/isolated-clusters.md#step-1-select-the-isolation-profile) | Owner, limits and isolation are approved; go to Step 2 |
 | 2a | [Linux VM/LXC labs](#step-2a-linux-vmlxc-labs) | OS baseline and isolated attachment accepted; go to Step 3 |
 | 2b | [Kubernetes labs](#step-2b-kubernetes-labs), instead of or alongside 2a | Cluster, add-ons, identity and recovery accepted; go to Step 3 |
-| 2c | Optional [bounded self-service integration](isolated-clusters.md#step-3-introduce-bounded-automation), after an accepted operator deployment | Project-owned dispatcher must be implemented/tested; no portal or allocator is supplied |
+| 2c | Optional [bounded self-service integration](procedures/isolated-clusters.md#step-3-introduce-bounded-automation), after an accepted operator deployment | Project-owned dispatcher must be implemented/tested; no portal or allocator is supplied |
 | 3a | [Private application](step-3a-application.md) for 2b; project-owned application installer for 2a | Application access, update and rollback work |
 | 3b | Optional [public HTTPS](step-3b-public-https.md) for an accepted website; provision the [edge pool](../stage-7-delivery/procedures/edge-proxy.md) first if absent | Return to Step 3 for recovery and operational handoff |
 | 3c | [Scoped collection](step-3c-telemetry.md) for instrumented Kubernetes applications; protected Linux forwarding for 2a | Verify source-to-query delivery, then complete Step 3 recovery checks |
@@ -44,7 +44,7 @@ Follow Steps 1–3. Select only the runtimes and application options needed for 
 ## Step 1: Define the approved request
 
 Begin with an **operator-reviewed deployment**, not a self-service request API.
-For Kubernetes, use only [the isolation-selection step](isolated-clusters.md#step-1-select-the-isolation-profile)
+For Kubernetes, use only [the isolation-selection step](procedures/isolated-clusters.md#step-1-select-the-isolation-profile)
 now, then return here; its later deployment/automation sections are not prerequisites to Step 2.
 The supplied root creates one configured cluster. Virtual clusters, automatic multi-cluster allocation
 and portal integration need separate implementation; example size profiles are not consumed by the script.
@@ -270,7 +270,7 @@ then rejoin below.
 Before either branch rejoins Step 3, verify isolation, readiness, original-state
 locking and independent recovery. No autoscaler or multi-cluster allocator is installed.
 Select **2c: bounded automation** only after that operator deployment works; complete the
-[dispatcher integration contract](isolated-clusters.md#step-3-introduce-bounded-automation)
+[dispatcher integration contract](procedures/isolated-clusters.md#step-3-introduce-bounded-automation)
 and its acceptance tests before handing requests to users. Otherwise continue directly to Step 3.
 
 **Result:** the [compute runtime](../../architecture/hosting/README.md) is ready within
@@ -321,7 +321,7 @@ See [application installation](step-3a-application.md) for commands and acceptan
 2. For a public website, take [3b: public HTTPS](step-3b-public-https.md), then return here.
    Private applications skip that branch.
 3. Complete **3c: [workload collection](step-3c-telemetry.md)** for instrumented Kubernetes applications.
-   Linux security/audit senders use the [protected-source recipe](../stage-2-logging/sources.md);
+   Linux security/audit senders use the [protected-source recipe](../stage-2-logging/procedures/sources.md);
    the supplied application Collector runs in Kubernetes only.
    Its logs/metrics/traces need actual application SDK instrumentation, not just the HTTP reference image.
    Record uninstrumented application signals as deferred; do not claim their collection.

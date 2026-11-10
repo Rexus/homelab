@@ -5,7 +5,7 @@ logger. TLS producers are explicitly registered; legacy UDP is disabled by defau
 Local records are mutable staging, **not an immutable archive or HA acceptance**.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Prerequisites:** [Stage 2, Step 1](README.md#step-1-provision-the-log-host), EL 10
+**Prerequisites:** [Stage 2, Step 1](../README.md#step-1-provision-the-log-host), EL 10
 (AlmaLinux/Rocky/RHEL), approved signed syslog-ng 4.11+ packages and dependencies,
 working time/DNS, firewalld, and independently supplied TLS certificates.
 Prepare repository access or an approved offline mirror before deployment; the role
@@ -75,8 +75,8 @@ Both paths continue at Step 2. For multiple receivers, keep each pin/device over
 
 ### 3. Retain the storage binding
 
-**IaC:** the Tier 0 [receiver role](../../../tier-0/ansible/roles/syslog_ng/tasks/main.yml) invokes
-[Shared's guarded data-volume role](../../../shared/ansible/roles/data_volume/tasks/main.yml)
+**IaC:** the Tier 0 [receiver role](../../../../tier-0/ansible/roles/syslog_ng/tasks/main.yml) invokes
+[Shared's guarded data-volume role](../../../../shared/ansible/roles/data_volume/tasks/main.yml)
 before validating the receiver. Its verified UUID supplies the effective receiver identity when the input
 is empty. `/etc/fstab` retains that UUID for later runs; an explicit input pin remains authoritative.
 Keep both the guest's storage declaration and its recovery records. The service requires the mount;
@@ -142,7 +142,7 @@ export SYSLOG_NG_TLS_CA_FILE SYSLOG_NG_TLS_CERT_FILE SYSLOG_NG_TLS_KEY_FILE SYSL
 
 No generic unauthenticated TCP listener is installed. TLS requires client certificates,
 trusted subjects and matching source IP/CN; TLS versions below 1.2 are disabled. [2]
-The supplied [software PKI policy](../stage-3-trust/procedures/software-pki.md#decisions-and-recovery-kit)
+The supplied [software PKI policy](../../stage-3-trust/procedures/software-pki.md#decisions-and-recovery-kit)
 does not issue client-auth certificates. Its TLS-server profile is not a replacement
 for the independent producer authority; qualify that integration before migrating trust.
 Configure [producer forwarding and durable queues](sources.md) in the owning tier;
@@ -190,11 +190,11 @@ Add the supported Proxmox hosts and appliance exports through that same source g
 
 ### 11. Continue with retained evidence
 
-Return to [Stage 2, Step 3](README.md#step-3-protect-and-verify-retained-evidence).
-Prepare [NAS checkpoints, independent copies and audited reader access](step-3c-nas-archive.md),
-or the selected locked-storage alternative, then run the [fault/restore drill](../../administration/logging-drill.md).
+Return to [Stage 2, Step 3](../README.md#step-3-protect-and-verify-retained-evidence).
+Prepare [NAS checkpoints, independent copies and audited reader access](../step-3c-nas-archive.md),
+or the selected locked-storage alternative, then run the [fault/restore drill](../../../administration/logging-drill.md).
 
-The [receiver reference](../../reference/syslog-receiver.md) defines files, queue sizing,
+The [receiver reference](../../../reference/syslog-receiver.md) defines files, queue sizing,
 runtime safeguards, reconciliation fields and limitations. The maintenance recipe reuses
 the role serially; package upgrades, historical cleanup and archive integration are not automatic.
 Do not remove sources or change queue paths/capacities with an unreviewed backlog.

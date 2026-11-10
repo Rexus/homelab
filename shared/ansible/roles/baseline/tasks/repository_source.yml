@@ -1,0 +1,61 @@
+---
+- name: Validate the selected existing DNF source
+  ansible.builtin.assert:
+    that:
+      - repository_proxy_dnf_source.file is match('^[A-Za-z0-9_-][A-Za-z0-9_.-]*\.repo$')
+      - repository_proxy_dnf_source.section is match('^[A-Za-z0-9_-]+$')
+      - repository_proxy_dnf_source.baseurl is match('^https://[^\s]+$')
+      - repository_proxy_dnf_source.baseurl | urlsplit('hostname') | default('', true) | length > 0
+      - repository_proxy_dnf_source.baseurl | urlsplit('username') is none
+      - repository_proxy_dnf_source.baseurl | urlsplit('password') is none
+    fail_msg: Select a repository filename, existing section and credential-free HTTPS baseurl.
+
+- name: Inspect the existing DNF repository file
+  ansible.builtin.stat:
+    path: "{{ repository_proxy_dnf_repo_dir }}/{{ repository_proxy_dnf_source.file }}"
+  register: repository_proxy_dnf_source_file
+
+- name: Require an existing repository definition with retained trust settings
+  ansible.builtin.assert:
+    that:
+      - repository_proxy_dnf_source_file.stat.isreg | default(false)
+    fail_msg: >-
+      {{ repository_proxy_dnf_repo_dir }}/{{ repository_proxy_dnf_source.file }} must already exist.
+      Select the actual distro-supplied repository file; this task does not create repositories or keys.
+
+- name: Read existing DNF repository sections
+  ansible.builtin.slurp:
+    src: "{{ repository_proxy_dnf_repo_dir }}/{{ repository_proxy_dnf_source.file }}"
+  register: repository_proxy_dnf_source_content
+
+- name: Require the selected DNF section to exist before editing
+  ansible.builtin.assert:
+    that:
+      - >-
+        repository_proxy_dnf_source.section in
+        (repository_proxy_dnf_source_content.content | b64decode | community.general.from_ini)
+    fail_msg: >-
+      Section {{ repository_proxy_dnf_source.section }} is missing from
+      {{ repository_proxy_dnf_source.file }}. Select the existing repository ID.
+
+- name: Set the accepted DNF repository base URL
+  community.general.ini_file:
+    path: "{{ repository_proxy_dnf_repo_dir }}/{{ repository_proxy_dnf_source.file }}"
+    section: "{{ repository_proxy_dnf_source.section }}"
+    option: baseurl
+    value: "{{ repository_proxy_dnf_source.baseurl }}"
+    no_extra_spaces: true
+    create: false
+    backup: true
+    mode: '0644'
+
+- name: Remove dynamic mirror selection from the selected repository
+  community.general.ini_file:
+    path: "{{ repository_proxy_dnf_repo_dir }}/{{ repository_proxy_dnf_source.file }}"
+    section: "{{ repository_proxy_dnf_source.section }}"
+    option: "{{ item }}"
+    state: absent
+    create: false
+    backup: true
+    mode: '0644'
+  loop: [metalink, mirrorlist]

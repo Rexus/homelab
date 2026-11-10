@@ -31,9 +31,9 @@ options branch from the relevant decision and return to the main path.
 | **3: Cryptographic trust** | Offline root and online issuer; optional hardware protection and approved Tier 0 consumers of verified intake | [Trust](../../deployment/stage-3-trust/README.md) |
 | **4: Kubernetes** | Control-cluster lifecycle, basic platform, node/API logging and recovery | [Kubernetes, Steps 1-3](../../deployment/stage-4-kubernetes/README.md) |
 | **5: Identity** | Dedicated FreeIPA pair and Keycloak/OIDC on the accepted cluster | [Identity](../../deployment/stage-5-identity/README.md) |
-| **6: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../deployment/stage-6-secrets/README.md), [monitoring](../../deployment/stage-6-secrets/monitoring.md) |
+| **6: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../deployment/stage-6-secrets/README.md), [monitoring](../../deployment/stage-6-secrets/procedures/independent-monitoring.md) |
 | **7: Delivery** | Retain independent Flux/recovery; Tier 1 selects its application controller | [Delivery](../../deployment/stage-7-delivery/README.md) |
-| **8: Observability** | Own Proxmox/BMC collectors and credentials; export approved metrics/evidence copies to Tier 1 | [Infrastructure monitoring](../../deployment/stage-8-observability/infrastructure-monitoring.md) |
+| **8: Observability** | Own Proxmox/BMC collectors and credentials; export approved metrics/evidence copies to Tier 1 | [Infrastructure monitoring](../../deployment/stage-8-observability/step-3-infrastructure-monitoring.md) |
 | **9: Development platform** | Install the dedicated runner and Vault CI policy; hand over original state with explicit CI trust | [Development platform](../../deployment/stage-9-development/README.md) |
 | **10: Lab environments** | Approve bounded infrastructure requests; an automated allocator is not supplied | [Lab environments](../../deployment/stage-10-lab-environments/README.md) |
 

@@ -75,7 +75,8 @@ Return at **Step 5** after reconciling the cache; this branch does not install v
 ## Step 3: Configure the cache deployment
 
 Complete each required edit below. The network attachment has two alternatives.
-Use the [proxy policy and sizing reference](proxy-cache.md) while setting the client/source allowlists.
+Optional lookup: use the [proxy policy and tuning reference](../../reference/proxy-cache.md)
+when choosing settings. The installation steps remain here in this README.
 
 <a id="shared-references-check-once"></a>
 
@@ -152,9 +153,18 @@ cache_validation_url: https://mirrors.fedoraproject.org/
 Include the actual bootstrap and Proxmox management CIDRs. Narrow `cache_squid_allowed_domains`
 to the selected repositories, required tools and redirect destinations; an empty list is rejected.
 Use exact source hostnames where possible; `.example.com` permits that whole domain and its subdomains.
+Select the bootstrap's collection source: public Galaxy needs its API and approved artifact destinations;
+prepared collection archives are an alternative. Regional download hosts are not fixed defaults;
+see [controller access and existing-cache recovery](../../reference/control-node-tooling.md#galaxy-through-a-policy-proxy).
 Keep `cache_validation_denied_url` outside the allowed sources; the default uses a reserved `.invalid` name.
 Keep `cache_validation_url` within that policy and `repository_proxy_enabled: false` for cache hosts,
 so their initial installation does not depend on their own unfinished VIP.
+
+Keep `cache_squid_data_device` on the dedicated Terraform `scsi1` disk. The reference uses
+`/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1`; Linux `/dev/sda` and `/dev/sdb` order can
+differ between clones. Existing deployments must verify that link before switching. Optional
+`cache_squid_data_uuid` pins a known filesystem. An OS/partitioned device, foreign use or hidden
+files cause the storage guard to stop before Squid is stopped or a filesystem is created.
 
 <a id="step-2-deploy-the-selected-intake-path"></a>
 <a id="2a-create-the-proxycache-pair--main-path"></a>
@@ -163,10 +173,18 @@ so their initial installation does not depend on their own unfinished VIP.
 
 ### 4a: Provision and configure the pair — main path
 
-The selected data device (`/dev/sdb` by default) is formatted for rebuildable cache data.
+The selected, verified blank data disk is formatted for rebuildable cache data; an accepted existing
+filesystem is reused and mounted by UUID.
 Confirm that the target VMs/disks contain no required data.
 Review the separate [Proxmox NIC and guest-filtering controls](../foundation/network/firewall.md#proxmox-guest-interfaces);
 the NIC Firewall flag and the guest's firewalld policy are separate controls.
+
+CIDR validation uses `ansible.utils` and Python `netaddr` on the bootstrap/controller.
+They are declared in Tier 2's [collection](../../../tier-2/ansible/requirements.yml) and
+[Python requirements](../../../tier-2/ansible/requirements.txt). The setup precheck verifies both,
+even when the collection is already installed: OS-packaged Ansible uses `python3-netaddr`;
+an active venv receives its own `netaddr` dependency. Offline `check` mode verifies prepared
+dependencies without installing them.
 
 Run from **`<prefix>-tier-2/`**:
 
@@ -216,7 +234,11 @@ The pair and attached disks are created; clients, upstreams and physical network
 The VIP fails over; it does not replicate cache data or balance both VMs concurrently.
 
 **Expected:** both hosts accept SSH, Squid responds and exactly one host owns the VIP.
-Default validation briefly stops keepalived to test takeover, then restores it.
+VIP validation requires every member to have completed deployment; it must not stop the working
+owner after a peer's configuration failure. A failed takeover is an availability failure, not a pass
+because the owner was restarted by cleanup.
+Default validation briefly stops keepalived to test takeover from the cache hosts, then restores it.
+The deployment host checks the VIP; each node checks its own proxy locally.
 If Terraform fails partway through, retain state and follow [partial-apply recovery](../../reference/repository-scripts.md#partial-terraform-apply).
 Continue through **4b** if selected, then **Step 5**.
 
@@ -256,7 +278,7 @@ works in **Steps 6–7**, then prove direct-WAN bypass is denied.
 
 ## Step 6: Connect the bootstrap host
 
-On **`boot-1`**, follow the required [bootstrap consumer actions](bootstrap-consumer.md) from
+On **`boot-1`**, follow the required [bootstrap consumer actions](step-6-bootstrap-consumer.md) from
 **`<prefix>-tier-0/`**. Select proxy or native mirrors, apply the local configuration, open/load
 the correct shell environment and verify package/tool access before removing temporary egress.
 
@@ -292,7 +314,7 @@ bypass denied. Keep independent recovery artifacts and record the selected endpo
 This does not prove that patches are installed, releases are approved or a cache is an offline mirror.
 Native package policy rejects incomplete APT refreshes and sets DNF signature/TLS/availability defaults;
 repository-specific overrides and publisher keys still need review. See the
-[consumer checks](proxy-cache.md#consumer-verification-and-failure-behavior).
+[consumer checks](../../reference/proxy-cache.md#consumer-verification-and-failure-behavior).
 
 Continue from **`<prefix>-tier-0/`** at [Stage 2: Protected logging](../stage-2-logging/README.md).
 
@@ -316,7 +338,7 @@ The later deployment's [Shared baseline role](../../../shared/ansible/roles/base
 applies these defaults when those guests are created. This section deploys no future hosts.
 Native mirrors need their own commissioned repository configuration instead.
 Kubernetes uses its separate [image-access inputs](../stage-4-kubernetes/procedures/image-access.md).
-See the [policy and sizing reference](proxy-cache.md) when extending the allowed consumers.
+See the [policy and sizing reference](../../reference/proxy-cache.md) when extending the allowed consumers.
 
 ## Extend the capability later
 

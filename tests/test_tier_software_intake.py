@@ -58,7 +58,7 @@ class SoftwareIntake(TierRepositoryTestCase):
                 self.assertIn("software-intake.md", (docs / source).read_text(), source)
             self.assertIn("../stage-1-software-intake/README.md",
                           (docs / "deployment/foundation/README.md").read_text())
-            guide = (docs / "deployment/stage-1-software-intake/proxy-cache.md").read_text()
+            guide = (docs / "reference/proxy-cache.md").read_text()
             for expected in (f"**Working repository:** `{prefix}-tier-2`", "not cached",
                              "no unrestricted", "direct WAN bypass fails", "not a cache hit",
                              "No cache-to-Tier-0 management rule"):

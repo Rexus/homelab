@@ -2,11 +2,11 @@
 
 **Working repositories:** `<prefix>-tier-2` for profiles/definitions/state;
 `<prefix>-tier-0` for privileged execution.
-**Branch from:** [Stage 10, Step 1](README.md#step-1-define-the-approved-request).
+**Branch from:** [Stage 10, Step 1](../README.md#step-1-define-the-approved-request).
 **Return:** after isolation selection, return to Step 1 approval; provision through
-[Step 2b](README.md#step-2b-kubernetes-labs). Optional dispatcher work is selected at Step 2c only
+[Step 2b](../README.md#step-2b-kubernetes-labs). Optional dispatcher work is selected at Step 2c only
 after that operator deployment is accepted.
-**Design:** [workload isolation](../../architecture/hosting/workload-isolation.md).
+**Design:** [workload isolation](../../../architecture/hosting/workload-isolation.md).
 **Scope:** operator-first deployment and the future bounded request contract.
 No multi-cluster allocator, expiry controller or portal is installed by this path.
 
@@ -15,14 +15,14 @@ No multi-cluster allocator, expiry controller or portal is installed by this pat
 Use dedicated VM-backed clusters for unsafe OS, add-on or privileged application
 experiments. Trusted teams may select namespaces; virtual clusters are a separately
 qualified alternative, not equivalent isolation.
-Review [example profiles](../../../tier-2/workloads/cluster-profiles.json.example).
+Review [example profiles](../../../../tier-2/workloads/cluster-profiles.json.example).
 They reference Shared sizing but remain Tier 2 choices, never shared inventory.
 Profiles separate control-plane and worker capacity. The current single-cluster
 command does not consume them. Do not replace existing nodes to match an `xs` profile.
 
 ## Step 2: Deploy the first operator-owned cluster
 
-Follow [Tier 2 Kubernetes](README.md#step-2-provision-the-workload-runtime) with
+Follow [Tier 2 Kubernetes](../README.md#step-2-provision-the-workload-runtime) with
 its inventory, native image access, approved templates, unique allocations,
 private API and original state. Accept the cluster/add-ons before tenant access.
 Grant only the selected workload/cluster role through the existing IdP.
@@ -31,7 +31,7 @@ Verify that another tenant and the new cluster cannot reach Control/other tenant
 returning a DNS name alone establishes neither routing nor authorization.
 
 For the supplied operator-first path, return to
-[Stage 10, Step 3](README.md#step-3-deploy-and-verify-applications) after those checks.
+[Stage 10, Step 3](../README.md#step-3-deploy-and-verify-applications) after those checks.
 The following dispatcher work is an optional extension, not another required installation.
 
 ## Step 3: Introduce bounded automation
@@ -56,5 +56,5 @@ A future external web service can consume this interface without administering i
 No public endpoint or portal implementation is supplied here.
 Measure creation time: seconds require qualified warm capacity or another realization,
 not an assumption about fresh VM bootstrap.
-**Return after dispatcher acceptance:** [Stage 10, Step 3](README.md#step-3-deploy-and-verify-applications).
+**Return after dispatcher acceptance:** [Stage 10, Step 3](../README.md#step-3-deploy-and-verify-applications).
 The existing operator deployment is retained; do not run Step 2 again to create the same cluster.

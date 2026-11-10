@@ -301,6 +301,14 @@ class NativeCachePreflight(PrivateCollection):
         inventory = work / 'hosts.ini'
         inventory.write_text('[cache]\nlocalhost ansible_connection=local\n')
         cases = [
+            ('vip-without-prefix', {'cache_keepalived_vip_cidr': '192.0.2.50'},
+             'A missing or /0 prefix is not accepted'),
+            ('vip-zero-prefix', {'cache_keepalived_vip_cidr': '192.0.2.50/0'},
+             'A missing or /0 prefix is not accepted'),
+            ('vip-placeholder-marker', {'cache_keepalived_vip_cidr': '192.0.2.50/<27'},
+             'A missing or /0 prefix is not accepted'),
+            ('vip-invalid-prefix', {'cache_keepalived_vip_cidr': '192.0.2.50/33'},
+             'A missing or /0 prefix is not accepted'),
             ('dot-domain', {'cache_squid_allowed_domains': ['.']}, 'Use a source hostname or .domain suffix'),
             ('url-domain', {'cache_squid_allowed_domains': ['https://repo.example.test']},
              'Use a source hostname or .domain suffix'),
