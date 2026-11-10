@@ -30,6 +30,9 @@ all:
     podman_runner:
       hosts:
         runner-1: {}
+    software_intake:
+      hosts:
+        intake-1: {}
     identity_providers:
       hosts: {}
     # Kubernetes hosts share this tier's inventory, but never the Linux baseline.
@@ -50,4 +53,5 @@ all:
         development_data: null
         observability: null
         podman_runner: null
+        software_intake: null
         identity_providers: null

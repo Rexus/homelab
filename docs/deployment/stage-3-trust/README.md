@@ -154,3 +154,7 @@ it must not acquire ceremony authority.
 [cryptography design](../../architecture/cryptography/README.md), independently of the
 future cluster. Record recovery evidence and continue with
 [Stage 4: Kubernetes](../stage-4-kubernetes/README.md).
+
+If selected, the [Stage 1 verified-intake extension](../stage-1-software-intake/verified-intake.md)
+can now use this issuer's HTTPS identity and Stage 2's protected decision logging. It remains a
+separate Tier 1 software-supply option, not part of the CA or a Kubernetes prerequisite.

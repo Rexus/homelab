@@ -29,7 +29,7 @@ class ClusterPlacement(TierRepositoryTestCase):
                 else:
                     self.assertEqual(setup, 'cluster-endpoint')
                 count += 1
-        self.assertEqual(count, 15)
+        self.assertEqual(count, 16)
         for tier in ("tier-0", "tier-1", "tier-2"):
             vm = (self.root / f"verify-{tier}/terraform/modules/vm/main.tf").read_text()
             self.assertIn("ignore_changes = [node_name]", vm)

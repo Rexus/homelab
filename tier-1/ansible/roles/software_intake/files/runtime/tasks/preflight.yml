@@ -1,0 +1,57 @@
+---
+- name: Validate bounded service inputs
+  ansible.builtin.assert:
+    that:
+      - intake_data_dir is match('^/[A-Za-z0-9_/-]+$')
+      - intake_data_dir not in ['/', '/srv', '/var', '/home', '/tmp']
+      - intake_sources | length > 0
+      - intake_sources is sequence and intake_sources is not string and intake_sources is not mapping
+      - intake_max_definition_age_days | int >= 1
+      - intake_max_definition_age_days | int <= 7
+      - intake_min_free_bytes | int >= 1073741824
+      - intake_quarantine_days | int >= 1
+      - intake_quarantine_days | int <= 90
+    fail_msg: Require a dedicated data mount, explicit sources and bounded storage/definition policy.
+
+- name: Validate every source name and kind before any per-source recovery handling
+  ansible.builtin.assert:
+    that:
+      - item is mapping
+      - item.name | default('') is string
+      - item.name | default('') is match('^[a-z][a-z0-9-]{1,30}$')
+      - item.name | default('') is not search('[^a-z0-9-]')
+      - item.kind | default('') in ['artifact', 'rpm', 'apt']
+    fail_msg: Every source needs a safe unique name and an artifact, rpm or apt adapter.
+  loop: "{{ intake_sources }}"
+  loop_control:
+    label: "{{ item.name | default('invalid source') }}"
+
+- name: Reject duplicate source namespaces before acquiring any source
+  ansible.builtin.assert:
+    that: intake_sources | map(attribute='name') | unique | length == intake_sources | length
+
+- name: Require the real data mount before creating candidates
+  ansible.builtin.command:
+    argv: [findmnt, --noheadings, --output, TARGET, --target, "{{ intake_data_dir }}"]
+  register: intake_mount
+  changed_when: false
+  failed_when: intake_mount.rc != 0 or intake_mount.stdout | trim != intake_data_dir
+
+- name: Expire unheld incidents before evaluating acquisition headroom
+  ansible.builtin.include_tasks: retention.yml
+
+- name: Read current mount capacity
+  ansible.builtin.setup:
+    gather_subset: ['!all', '!min', mounts]
+
+- name: Require working storage headroom
+  ansible.builtin.assert:
+    that:
+      - >-
+        ansible_mounts | selectattr('mount', 'equalto', intake_data_dir)
+        | map(attribute='size_available') | first | int >= intake_min_free_bytes | int
+    fail_msg: Intake data space is below its reserve; approved content remains unchanged.
+
+- name: Record this policy revision
+  ansible.builtin.set_fact:
+    intake_policy_sha256: "{{ intake_sources | to_json | hash('sha256') }}"

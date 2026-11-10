@@ -16,6 +16,16 @@ class PreservedFile:
     reason: str
 
 
+def needs_operational_review(relative):
+    """Filter review noise without changing file ownership or refresh actions."""
+    path = Path(relative)
+    name = path.name.casefold()
+    return not (
+        name == "readme" or name.startswith("readme.")
+        or path.suffix.casefold() in {".md", ".rst", ".adoc"}
+    )
+
+
 class RefreshReview:
     def __init__(self, root, previous_paths, owned_paths):
         self.root = root
@@ -98,13 +108,15 @@ def print_refresh_review(reviews, collection, *, dry_run=False, color="auto", st
     stream = stream if stream is not None else sys.stdout
     collection = Path(collection).resolve()
     yellow = [(review, item) for review in reviews
-              for _, item in sorted(review.preserved.items())]
-    red = [item for review in reviews for item in review.retired_files()]
+              for _, item in sorted(review.preserved.items()) if needs_operational_review(item.relative)]
+    red = [(path, reason) for review in reviews for path, reason in review.retired_files()
+           if needs_operational_review(path.relative_to(review.root))]
     removed = [(review.root / relative, reason) for review in reviews
                for relative, reason in sorted(review.removed_paths.items())]
     replaced = [(review.root / relative, backup) for review in reviews
                 for relative, backup in sorted(review.replaced_paths.items())]
     print("\nRefresh review", file=stream)
+    print("  Scope: automation and configuration; README/prose documentation is omitted.", file=stream)
     print(f"  YELLOW: {len(yellow)} preserved differences; RED: {len(red)} retired files.", file=stream)
     if not yellow and not red and not removed and not replaced:
         print("  No preserved differences or retired generated files to review.", file=stream)

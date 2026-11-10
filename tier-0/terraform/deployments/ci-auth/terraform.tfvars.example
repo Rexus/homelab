@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/ci-auth/variables.tf
+
 # This root configures Vault, not Proxmox. Run from Tier 0 with independently authorized Vault access.
 accept_trusted_ci = false
 gitlab_issuer    = "https://gitlab.internal.example.com"

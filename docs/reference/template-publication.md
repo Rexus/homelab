@@ -17,6 +17,10 @@ Edit in **`<prefix>-tier-0/`**.
 
 - `templates/proxmox.yml`: common all: values and each approved templates: build
 
+The full build schema is [`images` in the template module's variables.tf](../../tier-0/terraform/modules/proxmox_templates/variables.tf).
+[`templates/main.tf`](../../tier-0/terraform/deployments/templates/main.tf) resolves catalog fields
+such as `storage_class` before passing each build to that schema.
+
 The YAML catalog is an input file, not another IaC implementation. The resources live in
 Tier 0's `terraform/modules/proxmox_templates/`; `terraform/deployments/templates/main.tf`
 merges `all:` into each entry under `templates:`. A build overrides individual fields;

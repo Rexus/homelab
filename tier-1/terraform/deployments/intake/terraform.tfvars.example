@@ -1,0 +1,33 @@
+# Variable definitions (this repository): terraform/deployments/intake/variables.tf
+
+# Copy to: terraform/deployments/intake/terraform.tfvars
+# Guide: docs/deployment/stage-1-software-intake/verified-intake.md
+# Input ownership and precedence: docs/reference/platform-inputs.md
+# VMID allocation: docs/conventions/vmid-convention.md
+# Shared supplies approved Linux template references, storage mappings and sizes.
+# Tier 1 owns this VM, inventory and state; Tier 0 owns template publication.
+# Terraform attaches the data disk; it does not format or mount it.
+
+vm_instances = {
+  "intake-1" = {
+    vm_id            = 1221
+    size             = "small-mem"
+    storage_class    = "local"
+    disk_size_gb     = 40
+    network_zone_key = "delivery_edge"
+    # Match Tier 0's approved UEFI Linux template; no OS/template ID is hardcoded here.
+    firmware = {
+      bios          = "ovmf"
+      machine       = "q35"
+      scsi_hardware = "virtio-scsi-single"
+    }
+    tags             = ["software-intake", "restricted", "always-on", "delivery"]
+    extra_disks = [{
+      interface     = "scsi1"
+      size_gb       = 200
+      storage_class = "local"
+    }]
+  }
+}
+
+lxc_instances = {}

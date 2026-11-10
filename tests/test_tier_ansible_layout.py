@@ -82,7 +82,7 @@ class AnsibleOwnership(TierRepositoryTestCase):
                        "control_applications", "infrastructure_monitoring", "cluster_endpoint",
                        "control_backup", "logging_export", "netbox_audit"},
             "tier-1": {"gitlab_container", "podman_runner", "development_platform", "delivery_platform",
-                       "observability_platform", "development_data"},
+                       "observability_platform", "development_data", "software_intake"},
             "tier-2": {"cache_proxy", "edge_load_balancer", "public_certificates", "public_certificate_schedule",
                        "lab_environment", "workload_telemetry"},
         }

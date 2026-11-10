@@ -1,0 +1,16 @@
+/var/log/software-intake-nginx/*.log {
+    daily
+    rotate 14
+    maxsize 20M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+    sharedscripts
+    postrotate
+        if [ -s /run/software-intake-nginx/nginx.pid ]; then
+            /usr/sbin/nginx -s reopen
+        fi
+    endscript
+}

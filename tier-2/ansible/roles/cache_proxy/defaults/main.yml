@@ -63,13 +63,9 @@ cache_squid_sysctl_settings:
   net.ipv4.tcp_fin_timeout: "15"
   net.ipv4.tcp_tw_reuse: "1"
 cache_squid_extra_options: []
+# Preserve origin freshness/privacy and client revalidation. No forced package/image caching.
 cache_squid_refresh_patterns:
-  - '-i \.(deb|udeb|rpm)$ 4320 90% 43200 override-expire ignore-no-cache ignore-private'
-  - '-i (Release|Packages|Sources|repomd\.xml|primary\.xml\.gz)$ 0 20% 60 reload-into-ims'
-  - '-i \.(cab|msu|psf|esd|wim|iso|img|qcow2|vmdk|ova|ovf)$ 4320 90% 43200 override-expire ignore-no-cache ignore-private'
-  - '-i \.(tar|tgz|gz|xz|bz2|zst)$ 1440 90% 20160'
-  - '^ftp: 1440 20% 10080'
-  - '^gopher: 1440 0% 1440'
+  - '-i /(InRelease|Release(\.gpg)?|Packages[^/]*|Sources[^/]*|repomd\.xml)(\?.*)?$ 0 0% 0'
   - '-i (/cgi-bin/|\?) 0 0% 0'
   - '. 0 20% 4320'
 cache_squid_initialize_cache: true
@@ -81,11 +77,9 @@ cache_squid_data_fstype_package: xfsprogs
 cache_squid_data_mount_opts: defaults,noatime
 cache_validation_enabled: true
 cache_validation_url: ""
+cache_validation_denied_url: http://software-intake-denied.invalid/
 cache_validation_timeout: 20
 cache_validation_connect_timeout: 5
-cache_squid_allowed_cidrs:
-  - 10.0.0.0/8
-  - 172.16.0.0/12
-  - 192.168.0.0/16
+cache_squid_allowed_cidrs: []
 # Explicit software-source policy is required; an empty list never permits remote clients.
 cache_squid_allowed_domains: []

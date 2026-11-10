@@ -1,0 +1,47 @@
+user {{ software_intake_web_user }};
+worker_processes auto;
+pid /run/software-intake-nginx/nginx.pid;
+error_log /var/log/software-intake-nginx/error.log warn;
+events { worker_connections 256; }
+http {
+    default_type application/octet-stream;
+    server_tokens off;
+    log_format intake escape=json '{"event.type":"software_intake.read","timestamp":"$time_iso8601","client.ip":"$remote_addr",'
+        '"http.request.method":"$request_method","http.response.status_code":$status}';
+    access_log /var/log/software-intake-nginx/access.log intake;
+    client_body_temp_path /var/cache/software-intake-nginx/client;
+    proxy_temp_path /var/cache/software-intake-nginx/proxy;
+    fastcgi_temp_path /var/cache/software-intake-nginx/fastcgi;
+    uwsgi_temp_path /var/cache/software-intake-nginx/uwsgi;
+    scgi_temp_path /var/cache/software-intake-nginx/scgi;
+    client_max_body_size 1k;
+    server {
+        listen 443 ssl;
+        server_name {{ software_intake_server_name }};
+        ssl_certificate {{ software_intake_config_dir }}/tls/server.crt;
+        ssl_certificate_key {{ software_intake_config_dir }}/tls/server.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        root {{ software_intake_data_dir }}/public;
+        autoindex off;
+        disable_symlinks on;
+{% for cidr in software_intake_allowed_cidrs %}
+        allow {{ cidr }};
+{% endfor %}
+        deny all;
+        location ~ "^/approved/[a-z][a-z0-9-]{1,30}/latest[.]json$" {
+            limit_except GET HEAD { deny all; }
+            rewrite ^/approved(/.*)$ $1 break;
+            add_header Cache-Control "no-store" always;
+            add_header X-Content-Type-Options nosniff always;
+            try_files $uri =404;
+        }
+        location ~ "^/approved/[a-z][a-z0-9-]{1,30}/[a-f0-9]{64}/(content/.+|receipt[.]json)$" {
+            limit_except GET HEAD { deny all; }
+            rewrite ^/approved(/.*)$ $1 break;
+            add_header Cache-Control "public, max-age=31536000, immutable";
+            add_header X-Content-Type-Options nosniff always;
+            try_files $uri =404;
+        }
+        location / { return 404; }
+    }
+}

@@ -1,0 +1,80 @@
+---
+software_intake_sources: []
+software_intake_config_dir: /etc/software-intake
+software_intake_data_dir: /srv/intake
+software_intake_runtime_dir: /usr/local/share/software-intake/runtime
+software_intake_collections_dir: /usr/local/share/software-intake/collections
+software_intake_fetch_user: intake-fetch
+software_intake_scan_user: intake-scan
+software_intake_web_user: intake-pub
+software_intake_read_group: intake-read
+software_intake_server_name: ""
+software_intake_allowed_cidrs: []
+software_intake_tls_cert_src: ""
+software_intake_tls_key_src: ""
+software_intake_tls_ca_src: ""
+software_intake_environment: {}
+software_intake_max_definition_age_days: 2
+software_intake_max_file_mb: 512
+software_intake_max_scan_mb: 2048
+software_intake_min_free_bytes: 10737418240
+software_intake_quarantine_days: 14
+software_intake_timeout_seconds: 7200
+software_intake_timer_enabled: false
+software_intake_schedule: '*-*-* 03:00:00'
+software_intake_clam_database_dir: /var/lib/clamav
+software_intake_freshclam_enabled: false
+software_intake_clam_mirrors: [database.clamav.net]
+software_intake_ansible_doc_binary: ansible-doc
+# EL10's approved repository path must already supply EPEL's debmirror/ClamAV.
+# This role does not enable an external repository or fetch worker collections.
+software_intake_packages:
+  RedHat:
+    - nginx
+    - logrotate
+    - ansible-core
+    - rsync
+    - sudo
+    - acl
+    - openssl
+    - gnupg2
+    - rpm
+    - dnf-plugins-core
+    - debmirror
+    - python3-createrepo_c
+    - python3-debian
+    - clamav
+    - clamav-freshclam
+    - file
+    - curl
+    - tar
+    - unzip
+    - xz
+    - util-linux
+    - policycoreutils-python-utils
+  Debian:
+    - nginx
+    - logrotate
+    - ansible-core
+    - rsync
+    - sudo
+    - acl
+    - openssl
+    - gnupg
+    - gpgv
+    - rpm
+    - dnf
+    - dnf-plugins-core
+    - debmirror
+    - python3-createrepo-c
+    - python3-debian
+    - clamav
+    - clamav-freshclam
+    - file
+    - curl
+    - tar
+    - unzip
+    - xz-utils
+    - util-linux
+software_intake_clam_users: {RedHat: clamupdate, Debian: clamav}
+software_intake_freshclam_configs: {RedHat: /etc/freshclam.conf, Debian: /etc/clamav/freshclam.conf}

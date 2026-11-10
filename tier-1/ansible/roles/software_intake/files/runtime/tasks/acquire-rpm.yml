@@ -1,0 +1,95 @@
+---
+- name: Validate the selected RPM scope
+  ansible.builtin.assert:
+    that:
+      - intake_source.releasever | string is match('^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$')
+      - intake_source.architectures | length > 0
+      - intake_source.architectures | reject('match', '^[A-Za-z0-9_]+$') | list | length == 0
+      - intake_source.key_fingerprint is match('^[A-Fa-f0-9]{40,64}$')
+      - intake_source.repo_gpgcheck is boolean
+    fail_msg: Require a release, explicit architectures and the approved publisher fingerprint.
+
+- name: Require the supported DNF 4 repository engine
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  ansible.builtin.command:
+    argv: [dnf, --version]
+  register: intake_dnf_version
+  changed_when: false
+  failed_when: intake_dnf_version.rc != 0 or intake_dnf_version.stdout_lines | first is not match('^4\.')
+
+- name: Prepare an isolated DNF workspace
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  ansible.builtin.file:
+    path: "{{ intake_work.path }}/fetch/{{ item }}"
+    state: directory
+    mode: '0700'
+  loop: [rpm-root, rpm-repos, rpm-cache, rpm-state, rpm-log]
+
+- name: Configure only the authorized repository with mandatory package signatures
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/rpm.conf.j2"
+    dest: "{{ intake_work.path }}/fetch/rpm.conf"
+    mode: '0600'
+
+- name: Locate the native RPM database within the private installroot
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  ansible.builtin.command:
+    argv: [rpm, --eval, '%{_dbpath}']
+  register: intake_rpm_dbpath
+  changed_when: false
+  failed_when: >-
+    intake_rpm_dbpath.rc != 0 or
+    intake_rpm_dbpath.stdout | trim is not match('^/[A-Za-z0-9_./-]+$') or
+    intake_rpm_dbpath.stdout is search('(^|/)\.\.(/|$)')
+
+- name: Import the publisher key only into the isolated acquisition database
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  ansible.builtin.command:
+    argv:
+      - rpmkeys
+      - --dbpath
+      - "{{ intake_work.path }}/fetch/rpm-root{{ intake_rpm_dbpath.stdout | trim }}"
+      - --import
+      - "{{ intake_config_dir }}/keys/{{ intake_source.name }}.asc"
+  changed_when: true
+
+- name: Mirror every version for the selected architectures with vendor metadata intact
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  environment: "{{ intake_environment }}"
+  ansible.builtin.command:
+    argv:
+      - dnf
+      - "--config={{ intake_work.path }}/fetch/rpm.conf"
+      - "--installroot={{ intake_work.path }}/fetch/rpm-root"
+      - "--setopt=reposdir={{ intake_work.path }}/fetch/rpm-repos"
+      - "--releasever={{ intake_source.releasever }}"
+      - --assumeyes
+      - --disableplugin=*
+      - --enableplugin=reposync
+      - "--repoid={{ intake_source.name }}"
+      - reposync
+      - --download-metadata
+      - --gpgcheck
+      - --norepopath
+      - "--arch={{ (intake_source.architectures + ['noarch']) | unique | join(',') }}"
+      - "--download-path={{ intake_payload }}"
+  changed_when: true
+
+- name: Retain the vendor metadata signature when the source requires it
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  environment: "{{ intake_environment }}"
+  ansible.builtin.get_url:
+    url: "{{ intake_source.url | regex_replace('/$', '') }}/repodata/repomd.xml.asc"
+    dest: "{{ intake_payload }}/repodata/repomd.xml.asc"
+    mode: '0640'
+    validate_certs: true
+    force: true
+  when: intake_source.repo_gpgcheck | default(false) | bool

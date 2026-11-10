@@ -34,4 +34,5 @@
       development: [community.general, ansible.posix]
       observability: [community.general, ansible.posix]
       podman-runner: [community.general, ansible.posix]
+      intake: [community.general, ansible.posix, community.crypto, ansible.utils]
       site: [community.general, ansible.posix]

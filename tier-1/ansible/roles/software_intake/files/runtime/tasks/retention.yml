@@ -1,0 +1,17 @@
+---
+- name: Find expired incident directories only
+  ansible.builtin.find:
+    paths: "{{ intake_data_dir }}/quarantine"
+    file_type: directory
+    recurse: false
+    follow: false
+    age: "{{ intake_quarantine_days }}d"
+    age_stamp: ctime
+  register: intake_old_incidents
+
+- name: Review each expired incident's marker and hold
+  ansible.builtin.include_tasks: expire.yml
+  loop: "{{ intake_old_incidents.files }}"
+  loop_control:
+    loop_var: intake_incident
+    label: "{{ intake_incident.path | basename }}"

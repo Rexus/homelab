@@ -1,0 +1,39 @@
+[Unit]
+Description=Verify, assess and publish selected software intake
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor={{ software_intake_data_dir }}
+AssertPathIsMountPoint={{ software_intake_data_dir }}
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory={{ software_intake_runtime_dir }}
+Environment=ANSIBLE_CONFIG={{ software_intake_config_dir }}/ansible.cfg
+Environment=HOME={{ software_intake_data_dir }}/private/home
+Environment=XDG_CACHE_HOME={{ software_intake_data_dir }}/private/cache
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/ansible-playbook -i localhost, {{ software_intake_runtime_dir }}/intake.yml -e @{{ software_intake_config_dir }}/policy.yml
+TimeoutStartSec={{ software_intake_timeout_seconds }}
+TimeoutStopSec=60
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE
+ReadWritePaths={{ software_intake_data_dir }}
+ReadOnlyPaths={{ software_intake_clam_database_dir }}
+StandardOutput=journal
+StandardError=journal

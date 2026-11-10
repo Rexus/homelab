@@ -96,6 +96,11 @@ class DeploymentPaths(TierRepositoryTestCase):
                     self.assertTrue((tier / "terraform/deployments" / setup / "main.tf").is_file())
             self.assertEqual(set(entries), expected)
             self.assertEqual(len(entries), len(expected))
+            self.assertRegex(
+                capability_map,
+                r"(?m)^\| Tier 1 \| `intake` \| Stage 1[^\n]+"
+                r"\(stage-1-software-intake/verified-intake\.md\) \|$",
+            )
             self.assertIn("never rename state roots", index)
 
     def test_kubernetes_is_a_complete_reader_path_before_identity_consumers(self):

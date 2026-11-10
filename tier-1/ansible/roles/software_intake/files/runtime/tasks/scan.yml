@@ -1,0 +1,52 @@
+---
+- name: Enter malware assessment
+  ansible.builtin.set_fact:
+    intake_phase: scanning
+
+- name: Require an official daily definition set
+  ansible.builtin.stat:
+    path: "{{ intake_clam_database_dir }}/{{ item }}"
+    follow: false
+  loop: [daily.cvd, daily.cld]
+  register: intake_daily_databases
+
+- name: Fail closed when daily definitions are absent
+  ansible.builtin.assert:
+    that: intake_daily_databases.results | selectattr('stat.isreg', 'defined') | selectattr('stat.isreg') | list | length > 0
+    fail_msg: Install current approved ClamAV daily definitions before assessing candidates.
+
+- name: Record the native engine and database version
+  become: true
+  become_user: "{{ intake_scan_user }}"
+  ansible.builtin.command:
+    argv: ["{{ intake_clamscan_binary }}", --version, "--database={{ intake_clam_database_dir }}"]
+  register: intake_scanner_version
+  changed_when: false
+
+- name: Scan the sealed tree without acquisition or publication write access
+  become: true
+  become_user: "{{ intake_scan_user }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ intake_clamscan_binary }}"
+      - --recursive
+      - --infected
+      - --no-summary
+      - --follow-file-symlinks=0
+      - --follow-dir-symlinks=0
+      - --cross-fs=no
+      - --alert-exceeds-max=yes
+      - --alert-encrypted=yes
+      - --alert-broken=yes
+      - "--fail-if-cvd-older-than={{ intake_max_definition_age_days }}"
+      - "--database={{ intake_clam_database_dir }}"
+      - "--tempdir={{ intake_work.path }}/scan"
+      - "--max-filesize={{ intake_max_file_mb }}M"
+      - "--max-scansize={{ intake_max_scan_mb }}M"
+      - --max-recursion=16
+      - --max-files=100000
+      - "{{ intake_verification_path }}"
+  register: intake_scan_result
+  changed_when: false
+  failed_when: intake_scan_result.rc != 0
+  no_log: true

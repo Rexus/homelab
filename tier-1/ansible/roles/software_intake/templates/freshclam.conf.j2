@@ -1,0 +1,17 @@
+DatabaseDirectory {{ software_intake_clam_database_dir }}
+DatabaseOwner {{ software_intake_clam_users[ansible_os_family] }}
+Foreground yes
+LogSyslog yes
+Checks 12
+ConnectTimeout 15
+ReceiveTimeout 60
+MaxAttempts 3
+TestDatabases yes
+ScriptedUpdates yes
+{% for mirror in software_intake_clam_mirrors %}
+DatabaseMirror {{ mirror }}
+{% endfor %}
+{% if software_intake_environment.get('http_proxy', '') | length > 0 %}
+HTTPProxyServer {{ software_intake_environment.http_proxy | ansible.builtin.urlsplit('hostname') }}
+HTTPProxyPort {{ software_intake_environment.http_proxy | ansible.builtin.urlsplit('port') | default(80, true) }}
+{% endif %}

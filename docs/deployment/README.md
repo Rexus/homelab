@@ -102,6 +102,7 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Tier 0 | `infrastructure-runner` | Stage 9: dedicated trusted infrastructure CI VM | [Runner](stage-9-development/procedures/infrastructure-runner.md) |
 | Tier 0 | `ci-auth` | Stage 9: Vault JWT backend, bounded claims and policies; native Vault root | [Vault CI](stage-9-development/procedures/vault-ci.md) |
 | Tier 1 | `kubernetes` | Stage 7: shared platform cluster | [Platform runtime](stage-7-delivery/procedures/platform-cluster.md) |
+| Tier 1 | `intake` | Stage 1 option: verified repository and artifact intake VM | [Verified intake](stage-1-software-intake/verified-intake.md) |
 | Tier 1 | `development` | Stage 9 option: source-control VM | [Source-control VM](stage-9-development/step-1b-source-control-vm.md) |
 | Tier 1 | `development-data` | Stage 9: dedicated PostgreSQL, Redis and Gitaly VMs | [GitLab data services](stage-9-development/procedures/data-services.md) |
 | Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-9-development/step-2b-podman-runner.md) |

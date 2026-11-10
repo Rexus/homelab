@@ -1,5 +1,12 @@
 ---
 # Implemented scope: docs/reference/platform-inputs.md#os-baseline-boundary
+baseline_manage_package_policy: true
+package_policy_os_family: "{{ ansible_os_family | default('') }}"
+package_policy_dnf_conf_path: "{{ repository_proxy_dnf_conf_path }}"
+package_policy_apt_conf_dir: "{{ repository_proxy_apt_conf_dir }}"
+package_policy_apt_conf_path: "{{ package_policy_apt_conf_dir }}/90package-policy"
+# Manager defaults do not override repository-specific exceptions or CLI options.
+# Review enabled repositories separately; enable repo_gpgcheck only for signed metadata.
 baseline_manage_repository_proxy: true
 repository_proxy_enabled: false
 repository_proxy_url: ""

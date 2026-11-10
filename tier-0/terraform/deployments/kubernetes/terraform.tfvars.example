@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/kubernetes/variables.tf
+
 # Cluster-owned hardware/configuration. This root does not load Linux common.tfvars.
 # VMID allocation: docs/conventions/vmid-convention.md
 # IP reservations are in ansible/group_vars/talos.yml, hosts in ansible/inventory/hosts.yml.

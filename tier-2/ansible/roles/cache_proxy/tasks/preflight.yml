@@ -19,6 +19,34 @@
       guests and requires a keepalived VIP, allowed CIDRs, non-empty software-source domains, and static
       platform_host_ips for every cache host.
 
+- name: Require explicit software-source hostnames
+  ansible.builtin.assert:
+    that:
+      - item | trim | length <= 253
+      - >-
+        item | trim | lower is match(
+          '^\.?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$')
+    fail_msg: Use a source hostname or .domain suffix, without URL, wildcard, path or port.
+  loop: "{{ cache_squid_allowed_domains }}"
+
+- name: Require scoped client networks
+  ansible.builtin.assert:
+    that:
+      - item | ansible.utils.ipaddr('net') != false
+      - item | ansible.utils.ipaddr('prefix') | int > 0
+    fail_msg: Select explicit permitted client CIDRs; an all-address network is not an intake policy.
+  loop: "{{ cache_squid_allowed_cidrs }}"
+
+- name: Preserve HTTP freshness and private responses
+  ansible.builtin.assert:
+    that:
+      - >-
+        cache_squid_refresh_patterns | join(' ') is not search(
+          '(?i)(override-expire|override-lastmod|ignore-no-cache|ignore-no-store|ignore-private|ignore-reload|reload-into-ims)')
+    fail_msg: >-
+      Remove forced-cache refresh options. Preserve source expiry/privacy and client revalidation;
+      review preserved local cache.yml inputs after refresh.
+
 - name: Install cache proxy packages
   ansible.builtin.include_role:
     name: shared

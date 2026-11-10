@@ -1,0 +1,90 @@
+---
+- name: Initialize this source's gate
+  ansible.builtin.set_fact:
+    intake_phase: policy
+    intake_work: {}
+    intake_sealed: {}
+    intake_published: false
+    intake_selection_started: false
+    intake_committed: false
+    intake_manifest: {}
+    intake_version: ''
+    intake_scan_result: {}
+    intake_scanner_version: {}
+    intake_repository_verification: {}
+    intake_policy_sha256: >-
+      {{ {'source': intake_source, 'definition_max_age_days': intake_max_definition_age_days,
+          'max_file_mb': intake_max_file_mb, 'max_scan_mb': intake_max_scan_mb}
+          | to_json | hash('sha256') }}
+
+- name: Acquire, seal, verify, scan and publish one source
+  block:
+    - name: Validate the source identity and transport
+      ansible.builtin.assert:
+        that:
+          - intake_source.name is match('^[a-z][a-z0-9-]{1,30}$')
+          - intake_source.kind in ['artifact', 'rpm', 'apt']
+          - intake_source.url | urlsplit('scheme') == 'https'
+          - intake_source.url | urlsplit('hostname') | default('', true) | length > 0
+          - intake_source.url | urlsplit('username') is none
+          - intake_source.url | urlsplit('password') is none
+          - intake_source.url | urlsplit('query') == ''
+          - intake_source.url | urlsplit('fragment') == ''
+          - intake_source.url is not search('[\r\n]')
+        fail_msg: Select an explicit HTTPS source without credentials, query or fragment.
+
+    - name: Allocate a private job directory
+      ansible.builtin.tempfile:
+        state: directory
+        path: "{{ intake_data_dir }}/staging"
+        prefix: "{{ intake_source.name }}-"
+      register: intake_work
+
+    - name: Prepare the acquisition and assessment areas
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode | default('0750') }}"
+      loop:
+        - {path: "{{ intake_work.path }}", owner: "{{ intake_owner }}", group: "{{ intake_scan_group }}", mode: '0751'}
+        - {path: "{{ intake_work.path }}/content", owner: "{{ intake_fetch_user }}", group: "{{ intake_scan_group }}"}
+        - {path: "{{ intake_work.path }}/fetch", owner: "{{ intake_fetch_user }}", group: "{{ intake_scan_group }}"}
+        - {path: "{{ intake_work.path }}/scan", owner: "{{ intake_scan_user }}", group: "{{ intake_scan_group }}"}
+
+    - name: Select the private payload path
+      ansible.builtin.set_fact:
+        intake_payload: "{{ intake_work.path }}/content"
+        intake_phase: acquisition
+
+    - name: Acquire with the source's native adapter
+      ansible.builtin.include_tasks: "acquire-{{ intake_source.kind }}.yml"
+
+    - name: Seal a publisher-owned copy outside the served tree
+      ansible.builtin.include_tasks: seal.yml
+
+    - name: Enter publisher verification
+      ansible.builtin.set_fact:
+        intake_phase: verification
+        intake_verification_path: "{{ intake_sealed.path }}/content"
+
+    - name: Verify the sealed bytes with the source's native adapter
+      ansible.builtin.include_tasks: "verify-{{ intake_source.kind }}.yml"
+
+    - name: Assess the verified bytes
+      ansible.builtin.include_tasks: scan.yml
+
+    - name: Publish only the assessed copy
+      ansible.builtin.include_tasks: publish.yml
+
+    - name: Remove only this job's disposable acquisition files
+      ansible.builtin.file:
+        path: "{{ intake_work.path }}"
+        state: absent
+      when:
+        - intake_committed | bool
+        - intake_work.path | default('') is match('^' ~ (intake_data_dir | regex_escape) ~ '/staging/')
+  rescue:
+    - name: Retain a rejected source or record an error after discovery selection
+      ansible.builtin.include_tasks: quarantine.yml

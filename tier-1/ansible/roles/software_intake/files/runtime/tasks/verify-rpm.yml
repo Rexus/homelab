@@ -1,0 +1,18 @@
+---
+- name: Verify the complete sealed RPM scope and its pinned signatures
+  become: true
+  become_user: "{{ intake_scan_user }}"
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/python3
+      - "{{ playbook_dir }}/repository_verify.py"
+      - --kind=rpm
+      - "--payload={{ intake_verification_path }}"
+      - "--work={{ intake_work.path }}/scan/rpm"
+      - "--key={{ intake_config_dir }}/keys/{{ intake_source.name }}.asc"
+      - "--keyring={{ intake_config_dir }}/keys/{{ intake_source.name }}.gpg"
+      - "--fingerprint={{ intake_source.key_fingerprint }}"
+      - "--architectures={{ (intake_source.architectures + ['noarch']) | unique | join(',') }}"
+      - "--repo-gpgcheck={{ intake_source.repo_gpgcheck | default(false) | bool | ternary('true', 'false') }}"
+  register: intake_repository_verification
+  changed_when: false

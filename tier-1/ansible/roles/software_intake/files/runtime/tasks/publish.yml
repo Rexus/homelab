@@ -1,0 +1,154 @@
+---
+- name: Enter the final integrity gate
+  ansible.builtin.set_fact:
+    intake_phase: publication
+
+- name: Recheck every assessed file immediately before publication
+  ansible.builtin.include_tasks: manifest.yml
+  vars:
+    intake_inventory_path: "{{ intake_verification_path }}"
+
+- name: Require exactly the assessed content
+  ansible.builtin.assert:
+    that:
+      - intake_inventory_manifest == intake_manifest
+    fail_msg: Assessed content changed; the publication gate remains closed.
+
+- name: Derive the immutable content and policy identity
+  ansible.builtin.set_fact:
+    intake_version: >-
+      {{ {'files': intake_manifest | dict2items | sort(attribute='key') | items2dict,
+          'policy': intake_policy_sha256} | to_json | hash('sha256') }}
+
+- name: Create only the source's publication parent
+  ansible.builtin.file:
+    path: "{{ intake_data_dir }}/public/{{ intake_source.name }}"
+    state: directory
+    owner: "{{ intake_owner }}"
+    group: "{{ intake_read_group }}"
+    mode: "0750"
+
+- name: Inspect the destination and publication filesystem
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - "{{ intake_data_dir }}/public/{{ intake_source.name }}"
+    - "{{ intake_sealed.path }}"
+    - "{{ intake_data_dir }}/public/{{ intake_source.name }}/{{ intake_version }}"
+    - "{{ intake_data_dir }}/public/{{ intake_source.name }}/latest.json"
+  register: intake_publication_paths
+
+- name: Require a same-filesystem atomic publication
+  ansible.builtin.assert:
+    that:
+      - intake_publication_paths.results[0].stat.isdir | default(false)
+      - not intake_publication_paths.results[0].stat.islnk | default(false)
+      - intake_publication_paths.results[0].stat.dev == intake_publication_paths.results[1].stat.dev
+      - not intake_publication_paths.results[2].stat.islnk | default(false)
+      - not intake_publication_paths.results[2].stat.exists or intake_publication_paths.results[2].stat.isdir | default(false)
+      - not intake_publication_paths.results[3].stat.islnk | default(false)
+      - not intake_publication_paths.results[3].stat.exists or intake_publication_paths.results[3].stat.isreg | default(false)
+    fail_msg: Public and private publication paths must be real directories on the same prepared filesystem.
+
+- name: Write the approval receipt beside the private payload
+  ansible.builtin.copy:
+    dest: "{{ intake_sealed.path }}/receipt.json"
+    owner: "{{ intake_owner }}"
+    group: "{{ intake_scan_group }}"
+    mode: "0640"
+    content: >-
+      {{ {'schema': 1, 'source': intake_source.name, 'kind': intake_source.kind,
+          'source_host': intake_source.url | urlsplit('hostname'), 'version': intake_version,
+          'policy_sha256': intake_policy_sha256, 'files': intake_manifest,
+          'publisher_fingerprint': intake_source.key_fingerprint | default(''),
+          'verdict': 'approved', 'scanner': 'ClamAV',
+          'scanner_version': intake_scanner_version.stdout | trim,
+          'definition_max_age_days': intake_max_definition_age_days,
+          'assessed_at': now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')}
+          | combine({'repository_verification': intake_native_repository_evidence}
+              if intake_source.kind in ['rpm', 'apt'] and
+                 intake_repository_verification.stdout | default('') | length > 0 else {})
+          | to_nice_json }}
+  vars:
+    intake_native_repository_evidence: >-
+      {{ intake_repository_verification.stdout | from_json | dict2items
+         | selectattr('key', 'in', ['kind', 'packages_verified', 'metadata_files_verified',
+             'metadata_signature', 'architectures', 'package_records_outside_scope', 'distribution',
+             'components', 'release_valid_until', 'release_expiry_enforced']) | items2dict }}
+
+- name: Set read-only consumer permissions before exposing the version
+  ansible.builtin.file:
+    path: "{{ intake_sealed.path }}"
+    recurse: true
+    owner: "{{ intake_owner }}"
+    group: "{{ intake_read_group }}"
+    mode: u=rX,g=rX,o=
+
+- name: Atomically expose the complete approved version without replacing history
+  ansible.builtin.command:
+    argv:
+      - mv
+      - --no-clobber
+      - --no-target-directory
+      - --
+      - "{{ intake_sealed.path }}"
+      - "{{ intake_data_dir }}/public/{{ intake_source.name }}/{{ intake_version }}"
+    creates: "{{ intake_data_dir }}/public/{{ intake_source.name }}/{{ intake_version }}"
+
+- name: Record that the complete version exists without selecting it yet
+  ansible.builtin.set_fact:
+    intake_published: true
+
+- name: Read the committed receipt, including an already retained version
+  ansible.builtin.slurp:
+    src: "{{ intake_data_dir }}/public/{{ intake_source.name }}/{{ intake_version }}/receipt.json"
+  register: intake_committed_receipt
+
+- name: Require the retained version to have the expected identity
+  ansible.builtin.assert:
+    that:
+      - (intake_committed_receipt.content | b64decode | from_json).version == intake_version
+      - (intake_committed_receipt.content | b64decode | from_json).files == intake_manifest
+      - (intake_committed_receipt.content | b64decode | from_json).policy_sha256 == intake_policy_sha256
+    fail_msg: A retained version disagrees with its identity; do not replace it or select it.
+
+- name: Rehash the published payload instead of trusting its retained receipt alone
+  ansible.builtin.include_tasks: manifest.yml
+  vars:
+    intake_inventory_path: "{{ intake_data_dir }}/public/{{ intake_source.name }}/{{ intake_version }}/content"
+
+- name: Refuse a corrupted retained version without changing its bytes or discovery
+  ansible.builtin.assert:
+    that: intake_inventory_manifest == intake_manifest
+    fail_msg: Retained payload differs from the assessed bytes; do not replace history or select it.
+
+- name: Record the start of discovery selection for failure reconciliation
+  ansible.builtin.set_fact:
+    intake_selection_started: true
+
+- name: Atomically select the approved discovery record
+  ansible.builtin.copy:
+    dest: "{{ intake_data_dir }}/public/{{ intake_source.name }}/latest.json"
+    owner: "{{ intake_owner }}"
+    group: "{{ intake_read_group }}"
+    mode: "0440"
+    content: >-
+      {{ {'schema': 1, 'source': intake_source.name, 'version': intake_version,
+          'content_path': '/approved/' ~ intake_source.name ~ '/' ~ intake_version ~ '/content/',
+          'receipt_path': '/approved/' ~ intake_source.name ~ '/' ~ intake_version ~ '/receipt.json'} | to_nice_json }}
+
+- name: Mark discovery selection committed before reporting or cleanup
+  ansible.builtin.set_fact:
+    intake_committed: true
+
+- name: Record a sanitized approval decision
+  ansible.builtin.include_tasks: event.yml
+  vars:
+    intake_verdict: approved
+
+- name: Remove an unused duplicate private assessment copy
+  ansible.builtin.file:
+    path: "{{ intake_sealed.path }}"
+    state: absent
+  when: intake_sealed.path is match('^' ~ (intake_data_dir | regex_escape) ~ '/publishing/')

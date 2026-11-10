@@ -1,3 +1,7 @@
+# Linux reference schema: consuming tier repository, terraform/modules/environment_guests/variables.tf
+# Kubernetes reference schema: consuming tier repository, terraform/deployments/kubernetes/variables.tf
+# Fields: proxmox_template_catalog and default_linux_vm_template_id (Linux only).
+
 # Project-owned consumer catalog. Upstream refresh never replaces this file.
 # Tier 0 apply refreshes published references here; every tier reads them.
 # Clone-test before selecting a default or per-VM template ID. Apply preserves that selection.

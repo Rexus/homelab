@@ -93,6 +93,7 @@ The signing play is a gated backend renderer, not a service, VIP or HA installer
 | 2 / `cache` | `deployment/outbound-cache.yml` | `maintenance/cache.yml`: cache configuration, no playbook-driven failover exercise |
 | 1 / `development` | `deployment/source-control-vm.yml` | `maintenance/development.yml`: existing source-control role |
 | 1 / `podman-runner` | `deployment/podman-runner.yml` | `maintenance/podman-runner.yml`: runner configuration |
+| 1 / `intake` | `deployment/intake.yml`: install policy/runtime, no acquisition | `maintenance/intake.yml`: run configured verification/scanning/publication through the serialized service |
 | 1 / `observability` | `deployment/telemetry-hosts.yml` | `maintenance/observability.yml`: host baseline only |
 | 2 / `lab` | `deployment/lab-vms.yml` | `maintenance/lab.yml`: host baseline |
 

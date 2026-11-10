@@ -44,13 +44,14 @@ class RefreshReviewTests(TierRepositoryTestCase):
         script = repo / "scripts/check-shared.sh"
         readme = repo / "README.md"
         deleted = repo / "ansible/group_vars/syslog.yml.example"
-        expected = {p.relative_to(repo): p.read_bytes() for p in (script, readme)}
+        expected = {script.relative_to(repo): script.read_bytes()}
         deleted_contents = deleted.read_bytes()
         script.write_text("# Local automation changes\n")
         readme.write_text("# Project-owned README\n")
         deleted.unlink()
         retired = self.retired(repo, "terraform/retired.tf")
         retired_owned = self.retired(repo, "docs/retired-selection.md", owned=True)
+        retired_config = self.retired(repo, "ansible/retired.yml", owned=True)
         private = repo / ".env.local"
         private.write_text("LOCAL_PRIVATE_SENTINEL=retained\n")
         custom = repo / "docs/local-runbook.md"
@@ -61,7 +62,7 @@ class RefreshReviewTests(TierRepositoryTestCase):
 
         result = self.generate("--refresh", "--code-conflicts", "preserve", "--color", "always")
         review = result.stdout.split("\nRefresh review\n")[1]
-        self.assertIn("YELLOW: 2 preserved differences; RED: 2 retired files", review)
+        self.assertIn("YELLOW: 1 preserved differences; RED: 2 retired files", review)
         for relative, data in expected.items():
             candidate = self.root / ".refresh-review" / repo.name / relative
             self.assertEqual(candidate.read_bytes(), data)
@@ -69,17 +70,47 @@ class RefreshReviewTests(TierRepositoryTestCase):
             self.assertIn(f"Rendered template: {candidate}", review)
         self.assertIn("../verify-shared", (self.root / ".refresh-review" / repo.name /
                                            "scripts/check-shared.sh").read_text())
-        self.assertIn(f"Source template: {UPSTREAM / 'scripts/tier-repos/templates/readmes/tier.md'}", review)
-        for path in (retired, retired_owned):
+        self.assertIn(f"Source template: {UPSTREAM / 'tier-0/scripts/check-shared.sh'}", review)
+        for path in (retired, retired_config):
             self.assertIn(f"\033[31mRED {path}", review)
             self.assertTrue(path.exists())
-        for path in (private, custom, state):
+        for path in (private, custom, state, readme, retired_owned):
             self.assertNotIn(str(path), review)
+        self.assertTrue(retired_owned.exists())
+        self.assertFalse((self.root / ".refresh-review" / repo.name / "README.md").exists())
         self.assertEqual(script.read_text(), "# Local automation changes\n")
         self.assertEqual(readme.read_text(), "# Project-owned README\n")
         self.assertEqual(deleted.read_bytes(), deleted_contents)
         self.assertNotIn(f"YELLOW {deleted}", review)
         self.assertIn('"serial": 7', state.read_text())
+
+    def test_documentation_only_differences_are_quiet_but_configuration_remains_actionable(self):
+        repo = self.root / "verify-tier-0"
+        documents = ("README.md", "ansible/README", "terraform/readme.RST", "docs/guide.md", "docs/design.adoc")
+        config = "ansible/runtime-requirements.txt"
+        with contextlib.redirect_stdout(io.StringIO()):
+            writer = RepositoryWriter(repo)
+            for relative in (*documents, config):
+                writer.write(relative, "original\n", owned=True)
+            writer.finish()
+            for relative in documents:
+                (repo / relative).write_text("local project documentation\n")
+            (repo / config).write_text("project requirements\n")
+        progress = io.StringIO()
+        with contextlib.redirect_stdout(progress):
+            writer = RepositoryWriter(repo, refresh=True)
+            for relative in (*documents, config):
+                writer.write(relative, "current starter\n", owned=True)
+            writer.finish()
+        output = io.StringIO()
+        print_refresh_review([writer.review], self.root, stream=output)
+        self.assertIn("YELLOW: 1 preserved differences; RED: 0 retired files", output.getvalue())
+        self.assertIn(f"YELLOW {repo / config}", output.getvalue())
+        self.assertEqual((self.root / ".refresh-review" / repo.name / config).read_text(), "current starter\n")
+        for relative in documents:
+            self.assertEqual((repo / relative).read_text(), "local project documentation\n")
+            self.assertNotIn(str(repo / relative), progress.getvalue() + output.getvalue())
+            self.assertFalse((self.root / ".refresh-review" / repo.name / relative).exists())
 
     def test_dry_run_points_to_sources_without_writing_anything(self):
         self.generate()

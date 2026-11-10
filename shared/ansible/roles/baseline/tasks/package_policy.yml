@@ -1,0 +1,36 @@
+---
+# Reusable without the proxy, shell environment, timezone or host-wide baseline.
+- name: Ensure the APT policy directory exists
+  ansible.builtin.file:
+    path: "{{ package_policy_apt_conf_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: package_policy_os_family == 'Debian'
+
+- name: Configure strict APT verification and refresh failure handling
+  ansible.builtin.template:
+    src: apt-package-policy.conf.j2
+    dest: "{{ package_policy_apt_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: package_policy_os_family == 'Debian'
+
+- name: Configure DNF package verification and required repository availability
+  community.general.ini_file:
+    path: "{{ package_policy_dnf_conf_path }}"
+    section: main
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    no_extra_spaces: true
+    create: false
+    mode: "0644"
+  loop:
+    - {option: gpgcheck, value: 'True'}
+    - {option: localpkg_gpgcheck, value: 'True'}
+    - {option: sslverify, value: 'True'}
+    - {option: proxy_sslverify, value: 'True'}
+    - {option: skip_if_unavailable, value: 'False'}
+  when: package_policy_os_family == 'RedHat'

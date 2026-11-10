@@ -1,0 +1,11 @@
+[Unit]
+Description=Schedule the accepted software intake policy
+
+[Timer]
+OnCalendar={{ software_intake_schedule }}
+Persistent=true
+RandomizedDelaySec=300
+Unit=intake.service
+
+[Install]
+WantedBy=timers.target

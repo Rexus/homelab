@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/cache/variables.tf
+
 # Copy to: terraform/deployments/cache/terraform.tfvars
 # Replace every value before use.
 # Setup guide: docs/deployment/stage-1-software-intake/README.md

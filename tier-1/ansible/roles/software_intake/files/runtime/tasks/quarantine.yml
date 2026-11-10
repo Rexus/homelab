@@ -1,0 +1,111 @@
+---
+# A module can report an error after its atomic rename has already succeeded.
+- name: Reconcile an attempted discovery write before classifying its failure
+  when:
+    - intake_selection_started | default(false) | bool
+    - not intake_committed | bool
+  block:
+    - name: Inspect the actual discovery record without following links
+      ansible.builtin.stat:
+        path: "{{ intake_data_dir }}/public/{{ intake_source.name }}/latest.json"
+        follow: false
+        get_checksum: false
+      register: intake_selection_record
+
+    - name: Read only a real discovery file after the attempted write
+      ansible.builtin.slurp:
+        src: "{{ intake_data_dir }}/public/{{ intake_source.name }}/latest.json"
+      register: intake_selection_content
+      when:
+        - intake_selection_record.stat.isreg | default(false)
+        - not intake_selection_record.stat.islnk | default(false)
+
+    - name: Recognize the selected version even if the write reported an error
+      ansible.builtin.set_fact:
+        intake_committed: >-
+          {{ intake_selection_content.content | b64decode | from_json ==
+             {'schema': 1, 'source': intake_source.name, 'version': intake_version,
+              'content_path': '/approved/' ~ intake_source.name ~ '/' ~ intake_version ~ '/content/',
+              'receipt_path': '/approved/' ~ intake_source.name ~ '/' ~ intake_version ~ '/receipt.json'} }}
+      when:
+        - intake_selection_record.stat.isreg | default(false)
+        - not intake_selection_record.stat.islnk | default(false)
+
+- name: Record the source requiring operator review
+  ansible.builtin.set_fact:
+    intake_failed_sources: "{{ intake_failed_sources + ([intake_source.name] if not intake_committed | bool else []) }}"
+    intake_reporting_errors: "{{ intake_reporting_errors | default([]) + ([intake_source.name] if intake_committed | bool else []) }}"
+    intake_rejection_reason: >-
+      {{ 'detection_or_scan_limit' if intake_phase == 'scanning' and intake_scan_result.rc | default(-1) == 1
+          else 'scanner_error_or_stale_definitions' if intake_phase == 'scanning'
+          else 'publisher_or_integrity_failure' if intake_phase == 'verification'
+          else intake_phase ~ '_failed' }}
+
+- name: Retain unapproved candidates in private quarantine
+  when: not intake_committed | bool
+  block:
+    - name: Allocate an isolated incident directory
+      ansible.builtin.tempfile:
+        state: directory
+        path: "{{ intake_data_dir }}/quarantine"
+        prefix: "{{ intake_source.name }}-"
+      register: intake_quarantine
+
+    - name: Protect the incident from acquisition and consumer accounts
+      ansible.builtin.file:
+        path: "{{ intake_quarantine.path }}"
+        state: directory
+        owner: "{{ intake_owner }}"
+        group: "{{ intake_owner }}"
+        mode: "0700"
+
+    - name: Preserve the disposable acquisition directory
+      ansible.builtin.command:
+        argv: [mv, --no-clobber, --no-target-directory, --, "{{ intake_work.path }}", "{{ intake_quarantine.path }}/acquisition"]
+      when: intake_work.path | default('') is match('^' ~ (intake_data_dir | regex_escape) ~ '/staging/')
+
+    - name: Inspect the private assessment before trying to retain it
+      ansible.builtin.stat:
+        path: "{{ intake_sealed.path }}"
+        follow: false
+        get_checksum: false
+      register: intake_quarantine_assessment
+      when: intake_sealed.path | default('') is match('^' ~ (intake_data_dir | regex_escape) ~ '/publishing/')
+
+    - name: Preserve the sealed assessment if it still exists privately
+      ansible.builtin.command:
+        argv: [mv, --no-clobber, --no-target-directory, --, "{{ intake_sealed.path }}", "{{ intake_quarantine.path }}/assessment"]
+      when:
+        - intake_sealed.path | default('') is match('^' ~ (intake_data_dir | regex_escape) ~ '/publishing/')
+        - intake_quarantine_assessment.stat.exists | default(false)
+
+    - name: Retain a credential-free incident receipt
+      ansible.builtin.copy:
+        dest: "{{ intake_quarantine.path }}/intake-quarantine.json"
+        owner: "{{ intake_owner }}"
+        group: "{{ intake_owner }}"
+        mode: "0600"
+        content: >-
+          {{ {'schema': 1, 'source': intake_source.name, 'kind': intake_source.kind,
+              'source_host': intake_source.url | urlsplit('hostname'), 'stage': intake_phase,
+              'policy_sha256': intake_policy_sha256, 'verdict': 'quarantined',
+              'published': intake_published | default(false) | bool, 'selected': false,
+              'reason': intake_rejection_reason,
+              'detections': intake_scan_result.stdout | default('') | regex_findall('(?m): ([A-Za-z0-9._-]+) FOUND$') | unique | list,
+              'candidate_files': intake_manifest if intake_sealed.path | default('') else {},
+              'recorded_at': now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')} | to_nice_json }}
+
+    - name: Retain raw scanner diagnostics only inside the private incident
+      ansible.builtin.copy:
+        dest: "{{ intake_quarantine.path }}/scanner.log"
+        owner: "{{ intake_owner }}"
+        group: "{{ intake_owner }}"
+        mode: "0600"
+        content: "{{ intake_scan_result.stdout | default('') }}\n{{ intake_scan_result.stderr | default('') }}\n"
+      no_log: true
+      when: intake_phase == 'scanning'
+
+- name: Emit a failed gate or post-publication reporting error
+  ansible.builtin.include_tasks: event.yml
+  vars:
+    intake_verdict: "{{ 'publication_reporting_error' if intake_committed | bool else 'quarantined' }}"

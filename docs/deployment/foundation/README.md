@@ -18,6 +18,7 @@ For an existing environment lost to failure, use [backup recovery](../../adminis
 - [Before starting: hosts and networks](#before-starting-hosts-and-networks)
 - [Step 1: Create the first Linux template manually](#step-1-create-the-first-linux-template-manually)
 - [Step 2: Prepare the bootstrap execution host](#step-2-prepare-the-bootstrap-execution-host)
+- [2a: Connect bootstrap to Proxmox host management](#2a-connect-bootstrap-to-proxmox-host-management)
 - [Step 3: Publish and test VM templates](#step-3-publish-and-test-vm-templates)
 - [Foundation ready](#foundation-ready)
 
@@ -76,6 +77,17 @@ Proxmox cannot be the only means of recovering Proxmox. Keep approved package/ar
 access independent of the cache deployed in Stage 1.
 Test recovery of the original state and credentials on the independent execution path
 before provisioning; guest backup/restore is tested on the first disposable clone in Step 3.
+
+### 2a: Connect bootstrap to Proxmox host management
+
+Once `boot-1` and the generated Tier 0 repository are ready, follow
+[Manage existing Proxmox hosts from bootstrap](../../administration/hosts/management.md).
+Its numbered steps initialize the local files, register `hypervisors`, authorize the execution
+key and verify SSH/Ansible access. The registered hosts already exist; this does not deploy VMs.
+
+Return here for **Step 3**. After Stage 1 establishes the selected software-supply route, use
+[Proxmox update access](../../administration/hosts/update-access.md) to configure and test host
+updates through it. Host-management tasks use SSH; `deploy.sh foundation` provisions CA/directory VMs.
 
 ## Step 3: Publish and test VM templates
 

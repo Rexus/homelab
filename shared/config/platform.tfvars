@@ -1,3 +1,6 @@
+# Variable definitions: consuming tier repository, terraform/deployments/<setup>/variables.tf
+# Network entry schema: consuming tier repository, terraform/modules/environment_guests/variables.tf
+
 # Project-owned references to existing Proxmox infrastructure, not resources.
 # Configure once; every Linux deployment loads this before tier-local overrides.
 # Only references used across tiers belong here; no hosts, resources, credentials, or keys.

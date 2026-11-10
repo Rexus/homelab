@@ -1,0 +1,67 @@
+# Copy to: ansible/group_vars/intake.yml
+# Provisioning: terraform/deployments/intake/terraform.tfvars.example
+# Guide: docs/deployment/stage-1-software-intake/verified-intake.md
+# The extra data disk must be prepared and mounted at /srv/intake before service configuration.
+
+platform_host_ips:
+  intake-1: 10.30.31.40
+
+# Existing trusted HTTPS identity; these public CA/certificate and private-key paths are controller-local.
+software_intake_server_name: intake.services.example.com
+software_intake_tls_cert_src: /absolute/private/intake-fullchain.pem
+software_intake_tls_key_src: /absolute/private/intake.key
+software_intake_tls_ca_src: /absolute/private/platform-ca.pem
+software_intake_allowed_cidrs: [10.10.10.0/24, 10.20.20.0/24, 10.42.20.0/24]
+# Exact mount required; no automatic partitioning, formatting or fallback to the root disk.
+software_intake_data_dir: /srv/intake
+software_intake_min_free_bytes: 10737418240
+software_intake_max_file_mb: 512
+software_intake_max_scan_mb: 2048
+software_intake_max_definition_age_days: 2
+software_intake_quarantine_days: 14
+# Approved outbound cache; credentials, URL queries and fragments are not accepted.
+software_intake_environment:
+  http_proxy: http://cache.internal.example.com:3128
+  https_proxy: http://cache.internal.example.com:3128
+  no_proxy: localhost,127.0.0.1
+# The recipe applies baseline first; its package managers must use this same approved intake path.
+# For preconfigured offline repositories, use an empty environment and explicitly disable this proxy.
+repository_proxy_enabled: "{{ software_intake_environment.get('http_proxy', '') | length > 0 }}"
+repository_proxy_url: "{{ software_intake_environment.get('http_proxy', '') }}"
+repository_proxy_https_url: "{{ software_intake_environment.get('https_proxy', repository_proxy_url) }}"
+# Preposition official daily.cvd/daily.cld offline, or commission the native updater first.
+# Updater configuration uses the explicit proxy above; keep it stopped until that path is qualified.
+software_intake_freshclam_enabled: false
+software_intake_clam_mirrors: [database.clamav.net]
+# First run intake.service manually, review every receipt and test consumers, then enable scheduling.
+software_intake_timer_enabled: false
+software_intake_schedule: '*-*-* 03:00:00'
+
+# Replace [] with selected entries below, indented beneath software_intake_sources.
+# Pin actual HTTPS sources/checksums/fingerprints; never generate signing keys here.
+software_intake_sources: []
+# - name: cli-tool
+#   kind: artifact
+#   url: https://downloads.example.com/tool.tar.gz
+#   filename: tool.tar.gz
+#   sha256: <independently-verified-64-lowercase-hex-sha256>
+#   # Optional detached signature requires BOTH the local public key and its approved fingerprint.
+#   signature_url: https://downloads.example.com/tool.tar.gz.asc
+#   key_file: /absolute/private/vendor-public.asc
+#   key_fingerprint: <approved-full-40-or-64-hex-fingerprint>
+# - name: el-base
+#   kind: rpm
+#   url: https://repo.example.com/el/10/x86_64/baseos/os/
+#   releasever: '10'
+#   architectures: [x86_64, noarch]
+#   repo_gpgcheck: true
+#   key_file: /absolute/private/el-public.asc
+#   key_fingerprint: <approved-full-40-or-64-hex-fingerprint>
+# - name: deb-base
+#   kind: apt
+#   url: https://deb.example.com/debian/
+#   distribution: trixie
+#   components: [main]
+#   architectures: [amd64]
+#   key_file: /absolute/private/debian-public.asc
+#   key_fingerprint: <approved-full-40-or-64-hex-fingerprint>

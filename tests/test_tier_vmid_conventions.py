@@ -15,7 +15,8 @@ class VmidConventions(TierRepositoryTestCase):
         linux_categories = {
             0: {"foundation": 2, "hsm": 2, "vault": 2, "cluster-endpoint": 3,
                 "syslog": 4, "infrastructure-runner": 5},
-            1: {"development": 2, "development-data": 2, "podman-runner": 5, "observability": 4},
+            1: {"development": 2, "development-data": 2, "intake": 2,
+                "podman-runner": 5, "observability": 4},
             2: {"edge": 3, "cache": 3, "lab": 2},
         }
         allocated = {}

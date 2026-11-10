@@ -496,10 +496,15 @@ before use. Actual local inventory, credentials and state require their own back
 
 After all selected repositories finish, refresh prints one final review list:
 
+The yellow/red review covers automation and configuration. README files and prose documentation
+(`.md`, `.rst`, `.adoc`) are omitted, including their routine `preserve` messages. Their ownership
+and contents remain unchanged. Configurations such as `.deployment-setups`, YAML/HCL examples and
+Python requirement files remain visible; obsolete auto-docs cleanup is still reported.
+
 | Label / terminal color | Meaning | Comparison reference |
 | --- | --- | --- |
-| `YELLOW` | A current generation target differs but was preserved: local edit, project-owned starter or unverified existing file | Exact rendered template and its upstream source |
-| `RED` | A formerly generated file/starter outside auto-docs remains outside the current fresh generation | Review its consumers and local ownership before cleanup |
+| `YELLOW` | A current automation/configuration target differs but was preserved: local edit, project-owned configuration or unverified existing file | Exact rendered template and its upstream source |
+| `RED` | Formerly generated automation/configuration outside auto-docs remains outside the current fresh generation | Review its consumers and local ownership before cleanup |
 | `REMOVED` / `WOULD REMOVE` (red) | Obsolete or extra file inside auto-docs, removed during refresh or listed by dry run | Current guide location when a known move exists |
 | `REPLACED` / `WOULD REPLACE` (cyan) | Edited kit automation updated or scheduled for update | Previous local version's backup path |
 

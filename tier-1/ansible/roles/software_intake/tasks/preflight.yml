@@ -1,0 +1,179 @@
+---
+- name: Require a bounded native intake installation
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['RedHat', 'Debian']
+      - ansible_os_family != 'RedHat' or ansible_distribution_major_version == '10'
+      - ansible_service_mgr == 'systemd'
+      - software_intake_config_dir == '/etc/software-intake'
+      - software_intake_data_dir == '/srv/intake'
+      - software_intake_runtime_dir == '/usr/local/share/software-intake/runtime'
+      - software_intake_collections_dir == '/usr/local/share/software-intake/collections'
+      - software_intake_clam_database_dir == '/var/lib/clamav'
+      - software_intake_sources | length > 0
+      - software_intake_sources | map(attribute='name') | unique | length == software_intake_sources | length
+      - software_intake_server_name is match('^[a-z0-9][a-z0-9.-]+$')
+      - software_intake_allowed_cidrs | length > 0
+      - software_intake_fetch_user == 'intake-fetch'
+      - software_intake_scan_user == 'intake-scan'
+      - software_intake_web_user == 'intake-pub'
+      - software_intake_read_group == 'intake-read'
+      - software_intake_max_definition_age_days | int >= 1
+      - software_intake_max_definition_age_days | int <= 7
+      - software_intake_max_file_mb | int > 0
+      - software_intake_max_scan_mb | int >= software_intake_max_file_mb | int
+      - software_intake_min_free_bytes | int >= 1073741824
+      - software_intake_quarantine_days | int >= 1
+      - software_intake_quarantine_days | int <= 90
+      - software_intake_timeout_seconds | int >= 60
+      - software_intake_timer_enabled is boolean
+      - software_intake_freshclam_enabled is boolean
+    fail_msg: Use EL10 or Debian-family systemd, prepared /srv/intake, bounded policy and explicit HTTPS inputs.
+
+- name: Validate each source and its independent trust input
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9-]{1,30}$')
+      - item.kind in ['artifact', 'rpm', 'apt']
+      - item.url | ansible.builtin.urlsplit('scheme') == 'https'
+      - item.url | ansible.builtin.urlsplit('hostname') | length > 0
+      - item.url | ansible.builtin.urlsplit('username') is none
+      - item.url | ansible.builtin.urlsplit('password') is none
+      - item.url | ansible.builtin.urlsplit('query') == ''
+      - item.url | ansible.builtin.urlsplit('fragment') == ''
+      - item.url is not search('[\r\n\s]')
+      - item.kind != 'artifact' or item.sha256 | default('') is match('^[a-f0-9]{64}$')
+      - item.kind != 'artifact' or item.filename | default('') is match('^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$')
+      - item.kind == 'artifact' or item.key_file | default('') is match('^/')
+      - item.kind == 'artifact' or item.architectures | default([]) | length > 0
+      - item.kind != 'rpm' or item.releasever | default('') is match('^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$')
+      - item.kind != 'rpm' or item.repo_gpgcheck | default(true) is boolean
+      - item.kind != 'apt' or item.distribution | default('') is match('^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$')
+      - item.kind != 'apt' or '..' not in item.distribution
+      - item.kind != 'apt' or item.components | default([]) | length > 0
+      - item.signature_url | default('') | length == 0 or item.key_file | default('') is match('^/')
+      - item.key_file | default('') | length == 0 or item.key_fingerprint | default('') is match('^([A-Fa-f0-9]{40}|[A-Fa-f0-9]{64})$')
+    fail_msg: Supply explicit HTTPS sources, artifact SHA256 or pinned repository public keys, and bounded selections.
+  loop: "{{ software_intake_sources }}"
+  loop_control: {label: "{{ item.name | default('invalid source') }}"}
+
+- name: Reject signature URL credentials or unverified transport
+  ansible.builtin.assert:
+    that:
+      - item.signature_url | ansible.builtin.urlsplit('scheme') == 'https'
+      - item.signature_url | ansible.builtin.urlsplit('username') is none
+      - item.signature_url | ansible.builtin.urlsplit('password') is none
+      - item.signature_url | ansible.builtin.urlsplit('query') == ''
+      - item.signature_url | ansible.builtin.urlsplit('fragment') == ''
+      - item.signature_url is not search('[\r\n\s]')
+  loop: "{{ software_intake_sources }}"
+  when: item.signature_url | default('') | length > 0
+
+- name: Validate repository architecture and component arguments
+  ansible.builtin.assert:
+    that: item is match('^[A-Za-z0-9][A-Za-z0-9_+-]{0,63}$')
+  loop: >-
+    {{ (software_intake_sources | map(attribute='architectures', default=[]) | flatten)
+       + (software_intake_sources | map(attribute='components', default=[]) | flatten) }}
+
+- name: Require restricted publisher clients
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - "'/' in item"
+      - item | ansible.utils.ipaddr('net') != false
+      - item | ansible.utils.ipaddr('prefix') | int > 0
+    fail_msg: Select explicit consumer CIDRs; an all-address network is not an intake read policy.
+  loop: "{{ software_intake_allowed_cidrs }}"
+
+- name: Keep the worker environment explicit and free of authentication material
+  ansible.builtin.assert:
+    that:
+      - software_intake_environment.keys() | difference(['http_proxy', 'https_proxy', 'no_proxy']) | length == 0
+      - software_intake_environment.values() | select('search', '[\r\n]') | list | length == 0
+      - not software_intake_freshclam_enabled or software_intake_environment.get('http_proxy', '') | length > 0
+
+- name: Validate explicitly selected HTTP proxy URLs without credentials
+  ansible.builtin.assert:
+    that:
+      - item.value | ansible.builtin.urlsplit('scheme') == 'http'
+      - item.value | ansible.builtin.urlsplit('hostname') | length > 0
+      - item.value | ansible.builtin.urlsplit('username') is none
+      - item.value | ansible.builtin.urlsplit('password') is none
+      - item.value | ansible.builtin.urlsplit('path') in ['', '/']
+      - item.value | ansible.builtin.urlsplit('query') == ''
+      - item.value | ansible.builtin.urlsplit('fragment') == ''
+  loop: "{{ software_intake_environment | dict2items }}"
+  when: item.key in ['http_proxy', 'https_proxy']
+
+- name: Require ordinary approved definition mirror hostnames
+  ansible.builtin.assert:
+    that: item is match('^[A-Za-z0-9][A-Za-z0-9.-]+$')
+  loop: "{{ software_intake_clam_mirrors }}"
+
+- name: Check the actual prepared mount before any installation
+  ansible.builtin.command:
+    argv: [findmnt, --json, --mountpoint, "{{ software_intake_data_dir }}", --output, 'TARGET,OPTIONS,AVAIL']
+  register: software_intake_mount
+  changed_when: false
+
+- name: Reject missing, read-only or exhausted intake storage
+  ansible.builtin.assert:
+    that:
+      - (software_intake_mount.stdout | from_json).filesystems | length == 1
+      - (software_intake_mount.stdout | from_json).filesystems[0].target == software_intake_data_dir
+      - "['rw', 'nodev', 'nosuid', 'noexec'] | difference((software_intake_mount.stdout | from_json).filesystems[0].options.split(',')) | length == 0"
+    fail_msg: Prepare the dedicated rw,nodev,nosuid,noexec data mount; this role never formats or mounts a disk.
+
+- name: Read mount capacity as bytes
+  ansible.builtin.command:
+    argv: [findmnt, --bytes, --noheadings, --mountpoint, "{{ software_intake_data_dir }}", --output, AVAIL]
+  register: software_intake_available
+  changed_when: false
+
+- name: Enforce the configured free-space reserve
+  ansible.builtin.assert:
+    that: software_intake_available.stdout | trim | int >= software_intake_min_free_bytes | int
+
+- name: Discover approved controller module payloads without Galaxy downloads
+  ansible.builtin.command:
+    argv: ["{{ software_intake_ansible_doc_binary }}", --json, --type, module,
+           community.general.syslogger, ansible.posix.synchronize]
+  delegate_to: localhost
+  become: false
+  register: software_intake_collection_docs
+  changed_when: false
+
+- name: Require the expected installed collection locations
+  ansible.builtin.assert:
+    that:
+      - (software_intake_collection_docs.stdout | from_json)[item.module].doc.filename is match('^/.*/ansible_collections/' ~ item.path ~ '/plugins/modules/[^/]+[.]py$')
+  loop:
+    - {module: community.general.syslogger, path: community/general}
+    - {module: ansible.posix.synchronize, path: ansible/posix}
+
+- name: Verify the supplied HTTPS certificate and server identity on the controller
+  ansible.builtin.command:
+    argv: [openssl, verify, -CAfile, "{{ software_intake_tls_ca_src }}", -untrusted,
+           "{{ software_intake_tls_cert_src }}", -purpose, sslserver, -verify_hostname,
+           "{{ software_intake_server_name }}", "{{ software_intake_tls_cert_src }}"]
+  delegate_to: localhost
+  become: false
+  changed_when: false
+
+- name: Read only the public parts of the supplied TLS certificate and private key
+  ansible.builtin.command:
+    argv: "{{ item }}"
+  loop:
+    - [openssl, x509, -in, "{{ software_intake_tls_cert_src }}", -pubkey, -noout]
+    - [openssl, pkey, -in, "{{ software_intake_tls_key_src }}", -pubout]
+  delegate_to: localhost
+  become: false
+  register: software_intake_tls_public_parts
+  changed_when: false
+  no_log: true
+
+- name: Reject a mismatched publisher certificate and key
+  ansible.builtin.assert:
+    that: software_intake_tls_public_parts.results[0].stdout == software_intake_tls_public_parts.results[1].stdout
+  no_log: true

@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/cluster-endpoint/variables.tf
+
 # Copy to: terraform/deployments/cluster-endpoint/terraform.tfvars
 # Guide: docs/deployment/stage-4-kubernetes/procedures/api-endpoint.md
 # VMID allocation: docs/conventions/vmid-convention.md

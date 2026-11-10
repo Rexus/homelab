@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/immutable-template/variables.tf
+
 # Copy to: terraform/deployments/immutable-template/terraform.tfvars
 # Replace every value before use.
 # Setup guide: docs/deployment/stage-9-development/step-2c-image-based-linux.md

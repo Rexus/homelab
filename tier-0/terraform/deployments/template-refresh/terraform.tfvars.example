@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/template-refresh/variables.tf
+
 # Copy to: terraform/deployments/template-refresh/terraform.tfvars
 # Replace every value before use.
 # Setup guide: docs/deployment/foundation/proxmox/templates.md

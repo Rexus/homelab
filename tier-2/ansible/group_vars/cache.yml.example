@@ -87,11 +87,10 @@ cache_squid_data_device: /dev/sdb
 cache_squid_data_fstype: xfs
 cache_squid_data_mount_opts: defaults,noatime,nodiratime,logbufs=8
 
-# Keep this explicit. Add only the networks that may use the cache.
+# Replace with the actual approved client subnets; add later consumers deliberately.
 cache_squid_allowed_cidrs:
-  - 10.0.0.0/8
-  - 172.16.0.0/12
-  - 192.168.0.0/16
+  - 10.10.10.0/24
+  - 10.30.30.0/24
 
 # First use case: controlled repository/update access for restricted systems.
 # Replace with approved repository endpoints. CONNECT forwards HTTPS without caching.
@@ -99,47 +98,19 @@ cache_squid_allowed_cidrs:
 cache_squid_allowed_domains:
   - .almalinux.org
   - .rockylinux.org
-  - .centos.org
   - .fedoraproject.org
   - .epel.cloud
-  - .redhat.com
-  - .ubuntu.com
-  - .debian.org
   - .proxmox.com
+  - .debian.org
   - .ceph.com
-  - .canonical.com
-  - .launchpad.net
   - .hashicorp.com
-  - .terraform.io
-  - .docker.com
-  - .docker.io
-  - .gcr.io
-  - .ghcr.io
-  - .pkg.dev
-  - .quay.io
-  - .k8s.io
   - .github.com
   - .githubusercontent.com
-  - .microsoft.com
-  - .packages.microsoft.com
-  - .windowsupdate.com
-  - .windowsupdate.microsoft.com
-  - .update.microsoft.com
-  - .download.windowsupdate.com
-  - .windows.com
-  - .msftconnecttest.com
-  - .msftncsi.com
-  - .azureedge.net
-  - .mp.microsoft.com
-  - .delivery.mp.microsoft.com
 
+# Add the actual mirror/CDN redirect destinations after reviewing the selected repositories.
+# Do not force caching against source privacy/expiry or client reload instructions.
 cache_squid_refresh_patterns:
-  - '-i \.(deb|udeb|rpm)$ 4320 90% 43200 override-expire ignore-no-cache ignore-private'
-  - '-i (Release|Packages|Sources|repomd\.xml|primary\.xml\.gz)$ 0 20% 60 reload-into-ims'
-  - '-i \.(cab|msu|psf|esd|wim|iso|img|qcow2|vmdk|ova|ovf)$ 4320 90% 43200 override-expire ignore-no-cache ignore-private'
-  - '-i \.(tar|tgz|gz|xz|bz2|zst)$ 1440 90% 20160'
-  - '^ftp: 1440 20% 10080'
-  - '^gopher: 1440 0% 1440'
+  - '-i /(InRelease|Release(\.gpg)?|Packages[^/]*|Sources[^/]*|repomd\.xml)(\?.*)?$ 0 0% 0'
   - '-i (/cgi-bin/|\?) 0 0% 0'
   - '. 0 20% 4320'
 
@@ -157,6 +128,8 @@ cache_squid_refresh_patterns:
 cache_validation_enabled: true
 cache_validation_failover_enabled: true
 cache_validation_url: https://mirrors.fedoraproject.org/
+# Must remain outside the approved sources; a successful negative check returns HTTP 403.
+cache_validation_denied_url: http://software-intake-denied.invalid/
 cache_validation_connect_timeout: 5
 cache_validation_timeout: 20
 cache_validation_failover_settle_seconds: 8

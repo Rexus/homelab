@@ -7,6 +7,7 @@ each tier owns its specific networks, guest selections and overrides.
 ## Table of contents
 
 - [Input ownership](#input-ownership)
+- [Find supported settings](#find-supported-settings)
 - [VM disk storage](#vm-disk-storage)
 - [Initial guest placement](#initial-guest-placement)
 - [Loading and overrides](#loading-and-overrides)
@@ -44,6 +45,22 @@ it does not describe an object-storage API. A datastore may use Ceph RBD or NAS
 storage without supplying application buckets. Record the chosen
 [storage interfaces](../architecture/data/README.md#storage-interfaces) separately;
 object endpoints and scoped credentials belong to the consuming service inputs.
+
+## Find supported settings
+
+Configuration headers identify their variable definitions from the named repository root.
+Read those definitions for supported fields, types, defaults and validation; edit values in the configuration file.
+
+| Configuration | Variable definitions |
+| --- | --- |
+| Tier 0 `templates/proxmox.yml` | [Build fields and defaults](../../tier-0/terraform/modules/proxmox_templates/variables.tf), under `images`; [catalog aliases and resolution](../../tier-0/terraform/deployments/templates/main.tf); [root inputs](../../tier-0/terraform/deployments/templates/variables.tf) |
+| Tier `terraform/deployments/<setup>/terraform.tfvars` | `variables.tf` in that same deployment directory; [Linux example](../../tier-0/terraform/deployments/foundation/variables.tf), [Kubernetes example](../../tier-0/terraform/deployments/kubernetes/variables.tf) |
+| Tier `terraform/common.tfvars` and Shared `config/platform.tfvars` | The consuming deployment's `variables.tf`; [Linux network entry schema](../../tier-0/terraform/modules/environment_guests/variables.tf), under `network_zones` |
+| Shared `templates/proxmox-catalog.tfvars` | [Linux reference schema](../../tier-0/terraform/modules/environment_guests/variables.tf), under `proxmox_template_catalog`; [Kubernetes reference schema](../../tier-0/terraform/deployments/kubernetes/variables.tf) |
+
+Shared has no Terraform root: its files supply values to the consuming tier.
+A module-only option must be exposed by the root before it can be set in `.tfvars`.
+Template YAML builds use the separate catalog mapping linked above.
 
 ## VM disk storage
 
@@ -177,8 +194,10 @@ plans even though a public key is not a private credential.
 ## OS baseline boundary
 
 Shared's [baseline role](../../shared/ansible/roles/baseline/tasks/main.yml) manages
-repository/shell proxy settings, timezone and the selected IPv6 sysctl policy.
+repository/shell proxy settings, native package-verification defaults, timezone and the selected IPv6 sysctl policy.
 It is not a full security, time-synchronization or service-installation role.
+Package policy does not update packages or replace repository definitions/keys; see
+[consumer verification](../deployment/stage-1-software-intake/proxy-cache.md#consumer-verification-and-failure-behavior).
 
 SSH access policy, NTP/chrony, host-firewall rules and audit collection must be
 prepared and verified through approved templates/OS configuration and the relevant

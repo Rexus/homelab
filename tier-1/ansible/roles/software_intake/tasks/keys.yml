@@ -1,0 +1,77 @@
+---
+- name: Select only explicitly supplied public keys
+  ansible.builtin.set_fact:
+    software_intake_key_sources: >-
+      {{ software_intake_sources | selectattr('key_file', 'defined') | rejectattr('key_file', 'equalto', '') | list }}
+
+- name: Verify pinned publisher keys in an isolated controller key home
+  when: software_intake_key_sources | length > 0
+  block:
+    - name: Allocate a private temporary key-inspection directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: intake-public-keys-
+      delegate_to: localhost
+      become: false
+      register: software_intake_key_home
+
+    - name: Inspect public key material with native GnuPG
+      ansible.builtin.command:
+        argv: [gpg, --batch, --no-options, --homedir, "{{ software_intake_key_home.path }}",
+               --with-colons, --show-keys, "{{ item.key_file }}"]
+      delegate_to: localhost
+      become: false
+      register: software_intake_key_inspection
+      changed_when: false
+      loop: "{{ software_intake_key_sources }}"
+
+    - name: Require exactly the pinned public primary key and no secret keys
+      ansible.builtin.assert:
+        that:
+          - item.stdout_lines | select('match', '^pub:') | list | length == 1
+          - item.stdout_lines | select('match', '^sec:') | list | length == 0
+          - (item.stdout_lines | select('match', '^pub:') | first).split(':')[1] not in ['r', 'e', 'd', 'i']
+          - (item.stdout_lines | select('match', '^fpr:') | first).split(':')[9] == item.item.key_fingerprint | upper
+        fail_msg: Supply one usable, unexpired/unrevoked public key matching its approved full fingerprint.
+      loop: "{{ software_intake_key_inspection.results }}"
+  always:
+    - name: Remove the temporary controller key home
+      ansible.builtin.file:
+        path: "{{ software_intake_key_home.path }}"
+        state: absent
+      delegate_to: localhost
+      become: false
+      when: software_intake_key_home.path is defined
+
+- name: Install verified public source keys
+  ansible.builtin.copy:
+    src: "{{ item.key_file }}"
+    dest: "{{ software_intake_config_dir }}/keys/{{ item.name }}.asc"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ software_intake_key_sources }}"
+  register: software_intake_public_keys
+
+- name: Check installed binary keyrings
+  ansible.builtin.stat:
+    path: "{{ software_intake_config_dir }}/keys/{{ item.item.name }}.gpg"
+  loop: "{{ software_intake_public_keys.results }}"
+  register: software_intake_keyrings
+
+- name: Rebuild changed or missing binary keyrings without importing trust or creating keys
+  ansible.builtin.command:
+    argv: [gpg, --batch, --yes, --no-options, --homedir, "{{ software_intake_data_dir }}/private/gnupg",
+           --dearmor, --output, "{{ software_intake_config_dir }}/keys/{{ item.0.item.name }}.gpg",
+           "{{ software_intake_config_dir }}/keys/{{ item.0.item.name }}.asc"]
+  loop: "{{ software_intake_public_keys.results | zip(software_intake_keyrings.results) | list }}"
+  when: item.0.changed or not item.1.stat.exists
+  changed_when: true
+
+- name: Make binary public keyrings readable but never writable by acquisition or scanning users
+  ansible.builtin.file:
+    path: "{{ software_intake_config_dir }}/keys/{{ item.name }}.gpg"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ software_intake_key_sources }}"

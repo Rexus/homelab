@@ -19,6 +19,9 @@ after proxy deployment and validation.
 - [Cache storage](#cache-storage)
 - [Sizing](#sizing-and-throttling)
 - [Consumer behavior](#how-other-paths-use-it)
+- [Consumer verification and failures](#consumer-verification-and-failure-behavior)
+- [Update an existing cache](#update-an-existing-cache)
+- [Security events](#security-events)
 - [Validation](#validation)
 
 Installation is part of the [Stage 1 main path](README.md), including the files to edit,
@@ -68,10 +71,11 @@ active-active load balancing. Add `cache-3` and higher for extra failover
 members, or add separate VIPs/policy groups for true horizontal
 capacity.
 
-The example allow-list is intentionally broad enough to cover common Linux
-repos, Proxmox/Ceph sources, GitHub-hosted projects, HashiCorp tooling,
-container registries, and Windows update endpoints. Treat it as a starting
-policy and remove domains the environment does not need.
+The example selects Linux/Proxmox acquisition sources, not general web access.
+Replace client CIDRs and source domains with the actual site policy. Include approved mirror/CDN
+redirect destinations deliberately; multi-tenant domains such as GitHub are broader than one project.
+Add later registry sources when their capability is commissioned. Prefer exact source hostnames;
+a leading dot allows a domain and all of its subdomains. IP URLs do not gain permission by reverse DNS.
 
 The Ansible role is written for Linux guests with systemd and supports
 Red Hat-family/Fedora and Debian-family package managers. Rocky and Alma are
@@ -120,6 +124,8 @@ Shared's [deploy helper](../../../shared/scripts/deploy.sh) executes it with loc
 
 An empty or whitespace-only domain list is rejected; there is no unrestricted
 client fallback. Keep independent bootstrap software access for the cache hosts.
+Local proxy requests use the same destination policy. Loopback/link-local destinations are denied,
+apart from the local cache-manager interface. Client CIDRs are required; the role has no all-private-network default.
 
 ## Plan and deploy
 
@@ -174,6 +180,8 @@ The example uses the portable Squid `ufs` cache directory type. If the
 installed Squid package supports `aufs`, it can be a better fit for busy local
 SSD/NVMe caches. Change `cache_squid_cache_dir_type` only after testing the
 generated config with the role's `squid -k parse` validation.
+Source privacy, expiry and client reload instructions remain effective. Package/image extensions
+do not force a cache entry. Repository metadata has no heuristic freshness extension. [2]
 
 ## Sizing and throttling
 
@@ -200,8 +208,7 @@ Scale based on symptoms:
 | repeated downloads miss cache | review `cache_squid_allowed_domains` and `cache_squid_refresh_patterns` |
 | one proxy pair is saturated | add another cache VIP/pair, load-balance multiple endpoints, or split policy zones |
 
-Keep `maximum_object_size` large enough for ISO, cloud-image, Windows update,
-and container-layer payloads. Keep `range_offset_limit -1` enabled for
+Keep `maximum_object_size` large enough for the selected HTTP artifacts. Keep `range_offset_limit -1` enabled for
 resumable and ranged downloads.
 
 Expansion usually follows this order:
@@ -215,105 +222,100 @@ Expansion usually follows this order:
 
 ## How other paths use it
 
-Other paths can point restricted systems at the cache when they need approved
-outbound repository/update access. The cache path owns the hosts and base
-service policy; consuming paths should only add their own allow-list or routing
-requirements through documented variables.
-
-Connected Tier 0 hosts can initiate approved update pulls through this endpoint.
-No cache-to-Tier-0 management rule or update push is required. Tier 0 still controls
-installation and retains independent recovery content. A mirror-only Tier 0 policy
-needs named internal mirror destinations and repository configuration; this role
-does not create mirrors or apply different destination lists to different clients.
-The [firewall contract](../../architecture/networking/firewall-policy.md#rule-contracts)
-must also deny direct bypass: package-manager proxy settings alone do not enforce egress.
-
-Unlike identity or the secret platform, the cache does not always need one deployment per
-environment. It is valid to run one shared production cache and let other
-environment deployments use it for repository access, as long as policy allows
-those environments to share the same outbound path.
-
-Deploy a separate cache per environment only for isolated egress
-policy, isolated testing of the cache service itself, or an environment that
-must not depend on production shared services.
-
-This is intentional in the Ansible layout. The cache service settings live in
-`cache.yml`, and consumers enable `repository_proxy_url` in `all.yml` or
-`all.<env>.yml`. That lets any setup use a cache that was deployed somewhere
-else.
-
-The repository proxy is opt-in for consumers. If `repository_proxy_enabled` is
-false or `repository_proxy_url` is unset, the baseline role does not configure
-a proxy. Any setup can opt out of a shared proxy by setting
-`repository_proxy_enabled: false` in that setup's group vars file.
-
-For the cache service itself, set the cache VIP and service endpoint in
-`cache.yml`. Use CIDR form for the VIP because keepalived assigns this address
-to the interface:
-
-```yaml
-cache_proxy_vip_cidr: "<cache_proxy_vip>/<prefix>"
-cache_proxy_name: cache
-cache_proxy_fqdn: "{{ cache_proxy_name }}.{{ platform_domain }}"
-cache_proxy_port: 3128
-```
-
-The role derives the plain VIP IP from `cache_proxy_vip_cidr` for consumers
-that must not include a prefix, such as `/etc/hosts` entries.
-
-For managed Linux guests, enable only the repository proxy consumer values in
-`all.yml` or `all.<env>.yml` before running paths that need controlled
-software-source access:
+The cache setup owns its hosts. Consumers select the accepted endpoint in their own tier's
+`ansible/group_vars/all.yml`, or `all.<env>.yml` for a different environment policy:
 
 ```yaml
 repository_proxy_enabled: true
 repository_proxy_fqdn: "cache.{{ platform_domain }}"
 repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
-repository_proxy_ip: "<cache_proxy_vip>"
 ```
 
-Managed Linux hosts use the `repository_proxy` baseline task when
-`repository_proxy_enabled` is true and `repository_proxy_url` is set. By
-default it writes package-manager proxy configuration for the host OS. Red
-Hat-family hosts use an INI-aware Ansible module for `/etc/dnf/dnf.conf`;
-Debian-family hosts get an owned APT template under `/etc/apt/apt.conf.d/`.
+Set `repository_proxy_ip` only when a temporary hosts entry is needed before independent DNS
+resolves the FQDN. The role derives the VIP IP from `cache_proxy_vip_cidr`; consumer URLs contain
+no subnet prefix. Follow the [bootstrap](bootstrap-consumer.md) and
+[Proxmox host](../../administration/hosts/update-access.md) procedures for existing hosts.
 
-Package tasks then use the host package-manager configuration instead of
-temporary Ansible task environment variables. That keeps repository egress as a
-real host setting, which is easier to inspect and also works after the
-deployment run.
+| Consumer setting / behavior | Contract |
+| --- | --- |
+| `repository_proxy_enabled` and URL | Enable persistent DNF/APT proxy configuration; disabled/unset inputs do not create a route |
+| `baseline_manage_shell_proxy` | Defaults to following repository proxy selection; set false for package-manager-only configuration |
+| Login shell profile | New sessions load `/etc/profile.d/`; existing sessions need the documented activation step |
+| Ansible artifact downloads | Native download tasks use the explicit proxy environment; they do not inherit an interactive shell profile [1] |
+| Tool, registry and cluster clients | Use their selected native settings; a shell proxy is not universal client configuration |
+| Another environment | Reuse accepted supply when policy permits; deploy another cache only for an actual isolation/capacity requirement |
 
-Shell proxy profiles under `/etc/profile.d/` are handled by a separate baseline
-task, but they follow `repository_proxy_enabled` by default. That means admins
-and users who log in get `http_proxy`, `https_proxy`, and `no_proxy` without
-editing individual `.bashrc` files. Set `baseline_manage_shell_proxy: false`
-when a setup should configure package managers only.
+Shared's baseline uses an INI-aware module for DNF and an owned APT proxy template. Its separate
+package-policy tasks also apply without a proxy. No cache-to-Tier-0 management rule or update push
+is required: Tier 0 initiates retrieval and installation. A mirror-only policy needs commissioned
+repository endpoints; this role does not create mirrors or per-tier destination lists.
+The [firewall contract](../../architecture/networking/firewall-policy.md#rule-contracts) must deny
+bypass separately. Proxy configuration alone does not enforce egress.
 
-Ansible downloads do not rely on an interactive login profile. The GitLab
-data-service artifact tasks explicitly use `repository_proxy_url` and optional
-`repository_proxy_https_url` when intake is enabled. [1] This supplements, not replaces,
-the persistent package-manager policy. Approve redirect destinations as well as the
-original artifact host; other automation tools need their own approved environment or mirror.
+Cache hosts are the bootstrap exception: keep `repository_proxy_enabled: false` in `cache.yml`
+while building their own service. If initial acquisition uses another approved proxy, select that
+upstream, never their own VIP. A disconnected site needs retained, reachable internal content;
+an empty cache is insufficient and creates no route across an air gap.
 
-Use `all.yml` when the cache should be shared by default. Use `all.<env>.yml`
-only when an environment should use a different cache or explicitly consume a
-shared cache by FQDN.
+## Consumer verification and failure behavior
 
-The URL should use the FQDN. `repository_proxy_ip` can stay unset when DNS
-resolves `repository_proxy_fqdn`. Set it only when the baseline role must write
-a temporary `/etc/hosts` entry before identity DNS exists.
+| Consumer result | Required action |
+| --- | --- |
+| HTTP/CONNECT policy denial | Stop; review the destination and client scope rather than bypassing the proxy |
+| Proxy or source outage | Stop; no silent direct-WAN retry |
+| APT repository refresh error | Stop before upgrading; strict refresh must succeed for every enabled source |
+| Invalid publisher signature / digest | Reject the content; do not disable verification |
+| DNF unavailable required repository | Fail the refresh; do not treat a partial repository set as accepted |
+| Artifact not published by a staged source | Keep the selected approved release; the proxy does not know a quarantine verdict |
 
-The cache hosts are the bootstrap exception. They do not use the shared
-repository proxy from `all.yml` while Squid is being installed. The cache setup
-sets `repository_proxy_enabled: false` by default so cache hosts do not point
-at their own VIP. If cache hosts must chain through an existing upstream proxy
-while being built, set `repository_proxy_enabled: true` and
-`repository_proxy_url` in `cache.yml` to that upstream proxy, not to the cache
-VIP.
+Shared's [package-policy tasks](../../../shared/ansible/roles/baseline/tasks/package_policy.yml) and the
+[Proxmox host recipe](../../../tier-0/ansible/roles/proxmox_host/tasks/main.yml) configure native verification defaults.
+DNF repository overrides still take precedence; review enabled `.repo` files for `gpgcheck=1`,
+`sslverify=1` and `skip_if_unavailable=False`. Enable `repo_gpgcheck=1` only for sources publishing
+signed metadata. APT sources must retain their approved `Signed-By` key and must not use
+`trusted=yes` or insecure overrides. This is publisher verification, not malware scanning. [3][4]
 
-For disconnected environments, point the cache at internal mirrors or offline
-repository content. In that shape, clients are still isolated from direct
-software sources, but the cache upstream is private instead of internet-facing.
+## Update an existing cache
+
+1. [Refresh the collection](../../development/generated-repositories.md#refresh-and-local-ownership),
+   then edit **`<prefix>-tier-2/ansible/group_vars/cache.yml`**.
+   Local configuration is preserved. Narrow `cache_squid_allowed_cidrs` and `cache_squid_allowed_domains`,
+   and replace the old `cache_squid_refresh_patterns` with the current example's list.
+   Remove expiry/privacy/reload override options; the precheck rejects them. Review raw
+   `cache_squid_extra_options` too, because they can alter the generated policy.
+2. Reconcile the existing VMs from **`<prefix>-tier-2/`**:
+
+   ```bash
+   bash scripts/deploy.sh cache --ansible-only
+   ```
+
+3. Require approved retrieval, denied destination and VIP validation to pass. Repeat the checks
+   below from each consumer network. Do not clear cache disks or recreate VMs for this policy change.
+   Reapply bootstrap/Proxmox consumer recipes to install the updated native package policy.
+
+## Security events
+
+Squid writes JSON lines to `/var/log/squid/access.log`: timestamp, client IP, destination domain,
+method, HTTP status, proxy result and error code. It omits URL paths/queries, headers and user credentials.
+`TCP_DENIED` is an access decision; a tunnel success is not a scan verdict or package approval. [5]
+Keep Squid diagnostics restricted separately; diagnostic files are not a sanitized event interface.
+
+Once Stage 2 exists, follow [logging-source commissioning](../stage-2-logging/sources.md) for
+each cache host. In **that host's Tier 2 `ansible/host_vars/<host>.yml`**, add this stream alongside
+its security journal, with the matching host number:
+
+```yaml
+log_forwarder_streams:
+  - {name: cache-1-os, kind: security, input: journal}
+  - name: cache-1-proxy
+    kind: security
+    input: files
+    files: [/var/log/squid/access.log]
+```
+
+Use the existing per-stream certificate/queue/receiver registration procedure; the cache installer
+does not create logging trust. Retain local records before that commissioning. Later OpenSearch
+uses approved read-only copies; update access and enforcement do not depend on its availability.
 
 ## Validation
 
@@ -377,3 +379,7 @@ environment setting that only exists during one Ansible task.
 
 1. [Ansible native download proxy behavior](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/get_url_module.html)
    and [task environment](https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_environment.html).
+2. [Squid freshness controls](https://www.squid-cache.org/Doc/config/refresh_pattern/), checked 2026-11-10.
+3. [DNF verification and repository defaults](https://dnf.readthedocs.io/en/latest/conf_ref.html), checked 2026-11-10.
+4. [APT repository authentication](https://manpages.debian.org/trixie/apt/apt-secure.8.en.html), checked 2026-11-10.
+5. [Squid structured log fields](https://www.squid-cache.org/Doc/config/logformat/), checked 2026-11-10.

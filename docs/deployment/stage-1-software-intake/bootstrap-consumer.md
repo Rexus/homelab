@@ -99,8 +99,9 @@ CONTROL_NODE_COLLECTIONS_MODE=check ANSIBLE_CONFIG=ansible/ansible.cfg \
 ```
 
 **Expected:** local package/shell configuration is reconciled; a second run reports no changes.
-The play imports only Shared's package and shell proxy tasks, leaving baseline timezone/IPv6
-configuration untouched. Native role imports select those task files explicitly. [2][3]
+The play imports Shared's package-policy and package/shell proxy tasks, leaving baseline timezone/IPv6
+configuration untouched. The package-policy tasks apply native verification/failure defaults;
+existing repository definitions and publisher-key choices remain owned locally. [2][3]
 The play uses sudo through `become: true`; no password prompt is needed with authorized
 passwordless sudo. Add `--ask-become-pass` (`-K`) only when sudo requires an account password.
 
@@ -130,13 +131,13 @@ Existing running services retain their old environment.
 On **`boot-1`**, refresh metadata using the installed OS's command. For EL10:
 
 ```bash
-sudo dnf makecache
+sudo dnf --refresh --setopt='*.skip_if_unavailable=False' makecache
 ```
 
 For Debian/Ubuntu, use this block instead:
 
 ```bash
-sudo apt-get update
+sudo apt-get -o APT::Update::Error-Mode=any update
 ```
 
 Repeat the [explicit retrieval and policy checks](README.md#step-5-test-the-selected-intake-path) from the bootstrap network.
@@ -145,6 +146,8 @@ A login-shell proxy alone does not configure every tool or CI service.
 HTTPS Git remotes normally use these proxy variables; SSH remotes need their own permitted SSH path. [4]
 
 **Expected:** approved package and tool retrieval succeeds. Stop if any required source fails.
+Review [repository-specific verification settings](proxy-cache.md#consumer-verification-and-failure-behavior)
+before accepting the path; global defaults cannot override a deliberately weakened repository entry.
 
 ## 6. Retire temporary egress
 

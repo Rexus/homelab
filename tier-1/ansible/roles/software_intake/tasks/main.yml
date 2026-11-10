@@ -1,0 +1,15 @@
+---
+- name: Validate intake policy and prepared prerequisites
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Install native tools and approved controller collections
+  ansible.builtin.import_tasks: install.yml
+
+- name: Prepare isolated identities and existing data storage
+  ansible.builtin.import_tasks: storage.yml
+
+- name: Verify and install only pinned public publisher keys
+  ansible.builtin.import_tasks: keys.yml
+
+- name: Configure the read-only publisher and serialized worker
+  ansible.builtin.import_tasks: services.yml

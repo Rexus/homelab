@@ -37,6 +37,7 @@ explains copy independence, retention authority, RPO/RTO and compatible recovery
 | How to initialize files and connect bootstrap to existing Proxmox hosts? | [Start host management](hosts/management.md) |
 | How to review or restrict hypervisor access? | [Proxmox hardening](hosts/hardening.md) |
 | How to configure or troubleshoot host update access? | [Repository proxy](hosts/update-access.md) |
+| How to inspect quarantined intake, select a retained version or recover publication? | [Verified software intake](software-intake.md) |
 | How to trust or rotate the Proxmox API certificate? | [Proxmox TLS](hosts/proxmox-tls.md) |
 | How to reconcile host configuration safely? | [Ansible recipes](ansible-recipes.md) |
 | How to update services or replace physical hardware? | [Planned maintenance](maintenance.md) |

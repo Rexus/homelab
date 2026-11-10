@@ -1,4 +1,8 @@
 ---
+- name: Manage package verification and repository failure policy
+  ansible.builtin.include_tasks: package_policy.yml
+  when: baseline_manage_package_policy | bool
+
 - name: Manage host-wide repository proxy settings
   ansible.builtin.include_tasks: repository_proxy.yml
   when: baseline_manage_repository_proxy | bool

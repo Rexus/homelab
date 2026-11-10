@@ -52,6 +52,12 @@
       when: bootstrap_software_intake_mode == 'proxy'
 
   tasks:
+    - name: Reuse package verification policy for proxy and mirror intake
+      ansible.builtin.import_role:
+        name: baseline
+        tasks_from: package_policy
+      when: baseline_manage_package_policy | bool
+
     - name: Reuse only the package-manager proxy tasks
       ansible.builtin.import_role:
         name: baseline

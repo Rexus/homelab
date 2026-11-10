@@ -7,6 +7,8 @@ which artifact is approved.
 [Controlled software intake](software-intake.md) covers repository proxy/cache
 access, retained mirrors and offline supply, including updates consumed by Tier 0.
 An HTTP cache is not an OCI registry or a release-promotion authority.
+[Artifact verification](artifact-verification.md) defines optional pre-publication checks and
+quarantine; registry storage or a successful scan alone does not approve a release.
 
 ## Components and variants
 

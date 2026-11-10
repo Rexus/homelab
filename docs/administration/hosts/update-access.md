@@ -14,6 +14,7 @@ independent console and a known rollback configuration.
 
 - [How are managed hosts configured?](#how-are-managed-hosts-configured)
 - [How are Proxmox updates installed?](#how-are-proxmox-updates-installed)
+- [What if APT reports signature or hash errors?](apt-refresh.md)
 - [How is the GUI download proxy configured manually?](#how-is-the-gui-download-proxy-configured-manually)
 - [How is host APT configured manually?](#how-is-host-apt-configured-manually)
 - [How are image downloads and builder VMs handled?](#how-are-image-downloads-and-builder-vms-handled)
@@ -87,6 +88,8 @@ Add `--ask-become-pass` only if the selected non-root account requires a sudo pa
 **Expected:** the [host playbook](../../../tier-0/ansible/playbooks/proxmox-hosts.yml) and
 [proxy role](../../../tier-0/ansible/roles/proxmox_host) reconcile the cluster-wide Datacenter proxy
 and `/etc/apt/apt.conf.d/76pveproxy` on every selected host. They install no packages and reboot no host.
+The recipe also owns `/etc/apt/apt.conf.d/90package-policy`, separate from Proxmox's generated
+proxy file, for strict refresh and verification defaults.
 Do not also maintain these settings through the manual alternatives below.
 
 ### 5. Verify APT on every host
@@ -95,12 +98,14 @@ Run as **root on each Proxmox host**:
 
 ```bash
 apt-config dump | grep -i 'Acquire::.*Proxy'
-apt update
+apt-get -o APT::Update::Error-Mode=any update
 ```
 
 **Expected:** the effective proxy points to the accepted endpoint and every enabled repository refreshes
 successfully. Check requests in `/var/log/squid/access.log` on the active cache and repeat Stage 1's
 direct-WAN denial check from the host network. Stop on proxy denial, subscription, signature or TLS errors.
+For `Hash Sum mismatch` or an `InRelease` splitting error, follow the
+[APT refresh checks](apt-refresh.md) before installing updates; downloaded byte counts alone do not establish success.
 
 Proxmox GUI/API update refreshes can rewrite `76pveproxy` from the Datacenter setting.
 Recheck after GUI refreshes; APT HTTPS inherits the HTTP setting when no HTTPS override exists. [2][3]
@@ -168,7 +173,8 @@ Update access alone does not schedule or approve patch installation.
    read -r -p "Approved proxy URL (example: http://cache.corp.example.com:3128): " CACHE_PROXY_URL
    read -r -p "Approved small repository metadata URL: " SOURCE_URL
    curl --fail --noproxy '' --proxy "$CACHE_PROXY_URL" --output /dev/null "$SOURCE_URL"
-   apt-get -o Acquire::http::Proxy="$CACHE_PROXY_URL" -o Acquire::https::Proxy="$CACHE_PROXY_URL" update
+   apt-get -o APT::Update::Error-Mode=any -o Acquire::http::Proxy="$CACHE_PROXY_URL" \
+     -o Acquire::https::Proxy="$CACHE_PROXY_URL" update
    ```
 
    Stop if either request fails. Check source policy, DNS and reachability before writing configuration.
@@ -193,7 +199,7 @@ Update access alone does not schedule or approve patch installation.
    Acquire::http::Proxy "$CACHE_PROXY_URL";
    Acquire::https::Proxy "$CACHE_PROXY_URL";
    EOF
-   apt-get update
+   apt-get -o APT::Update::Error-Mode=any update
    ```
 
 3. Require successful repository metadata refresh from the intended sources. APT

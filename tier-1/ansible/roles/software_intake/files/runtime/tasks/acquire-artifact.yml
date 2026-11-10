@@ -1,0 +1,77 @@
+---
+- name: Require curl's native streaming byte bound
+  ansible.builtin.include_tasks: curl.yml
+
+- name: Require an immutable artifact identity
+  ansible.builtin.assert:
+    that:
+      - intake_source.sha256 | default('') is match('^[a-f0-9]{64}$')
+      - intake_source.filename | default('') is match('^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$')
+      - intake_source.filename not in ['.', '..']
+    fail_msg: A selected artifact needs a trusted SHA-256 and a plain filename.
+
+# get_url has no body-size bound; curl enforces the acquisition limit and retains rejected bytes.
+- name: Acquire a bounded candidate over verified TLS
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  ansible.builtin.command:
+    argv:
+      - curl
+      - --fail
+      - --silent
+      - --show-error
+      - --location
+      - --proto
+      - '=https'
+      - --proto-redir
+      - '=https'
+      - --max-time
+      - '3600'
+      - --max-filesize
+      - "{{ (intake_max_file_mb | int * 1048576) | string }}"
+      - --output
+      - "{{ intake_payload }}/{{ intake_source.filename }}"
+      - --
+      - "{{ intake_source.url }}"
+  changed_when: true
+  environment: "{{ intake_environment }}"
+  no_log: true
+
+- name: Require an explicit detached-signature publisher
+  ansible.builtin.assert:
+    that:
+      - intake_source.key_fingerprint | default('') is match('^([A-Fa-f0-9]{40}|[A-Fa-f0-9]{64})$')
+      - intake_source.signature_url | urlsplit('scheme') == 'https'
+      - intake_source.signature_url | urlsplit('username') is none
+      - intake_source.signature_url | urlsplit('password') is none
+      - intake_source.signature_url | urlsplit('query') == ''
+      - intake_source.signature_url | urlsplit('fragment') == ''
+    fail_msg: A detached signature requires a pinned publisher and a credential-free HTTPS URL.
+  when: intake_source.signature_url | default('') | length > 0
+
+- name: Acquire a bounded detached signature separately
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  ansible.builtin.command:
+    argv:
+      - curl
+      - --fail
+      - --silent
+      - --show-error
+      - --location
+      - --proto
+      - '=https'
+      - --proto-redir
+      - '=https'
+      - --max-time
+      - '120'
+      - --max-filesize
+      - '1048576'
+      - --output
+      - "{{ intake_payload }}/{{ intake_source.filename }}.sig"
+      - --
+      - "{{ intake_source.signature_url }}"
+  changed_when: true
+  environment: "{{ intake_environment }}"
+  no_log: true
+  when: intake_source.signature_url | default('') | length > 0

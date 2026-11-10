@@ -37,6 +37,16 @@ This file keeps durable context for AI-assisted work across sessions.
   the bootstrap execution account's outbound deployment key is configured separately.
 - Verify bootstrap sudo independently of SSH-key login. Authorized passwordless sudo needs no
   account password or Ansible --ask-become-pass; keep that flag optional for password-based sudo.
+- Software intake keeps the Tier 2 Squid/Keepalived pair small: explicit client/source policy,
+  preserved HTTP freshness/privacy, sanitized structured decisions and native consumer verification.
+  CONNECT is unscanned. The optional Tier 1 intake-1 realization uses native reposync/debmirror,
+  pinned publisher verification, ClamAV on a sealed copy and immutable read-only HTTPS publication.
+  Prepared /srv/intake, approved feature-compatible packages/definitions and existing TLS are prerequisites;
+  the role never formats storage or creates signing keys. Fetch, scan and web identities cannot write
+  accepted content. OCI/Trivy gates and opaque guest-filesystem scanning remain separate integrations.
+  Keep publisher trust, malware assessment and vulnerability policy distinct;
+  Tier 0 selects/verifies updates and retains independently usable supply. See
+  docs/architecture/software/artifact-verification.md. Do not reject every OS update for any CVE.
 - Create boot-1 as a full clone, never a linked clone. Retain an offline VM backup with
   both OS/workspace disks and a tested restore path outside the failed platform. A full
   clone alone is not disaster recovery; original state, keys and approved tooling must survive.
@@ -325,6 +335,10 @@ This file keeps durable context for AI-assisted work across sessions.
   parted for both existing-partition resizing and new-disk partitioning, with native LVM commands;
   do not add growpart as a prerequisite. The supplied new-disk sequence remains distinct from
   enlarging an existing disk/PV.
+- Configuration examples name their variable definitions near the top, with paths relative to the
+  identified repository root. Terraform `.tfvars` points to its deployment's `variables.tf`;
+  shared profiles identify the consuming tier, and template YAML points to its build schema and
+  catalog mapping. Keep defaults/types in source rather than duplicating a variable catalog.
 - Command examples use `<prefix>` for the generated folder prefix (default homelab),
   separate from hostname/environment prefixes. Put the owning root/machine in bold above each
   command/configuration block; use inline code for exact file paths and variable names.
@@ -464,6 +478,9 @@ This file keeps durable context for AI-assisted work across sessions.
   owns the shared Alma/Rocky/Talos wizard. Mutable Linux refresh belongs in administration.
 - refresh retains existing project records and links them from new starters; unchanged
   moved auto-docs become compatibility pointers only in existing collections
+- Refresh review focuses on automation/configuration: omit README and prose-document differences
+  from yellow/red warnings and routine preserve messages, without changing their ownership.
+  Keep configuration/requirement comparisons, replacement backups and actual auto-doc cleanup visible.
 - Ansible deployment/ and maintenance/ recipes compose existing roles; legacy setup plays import
   deployment recipes, while --recipe maintenance is Ansible-only
 - SSH key files stay outside Git; TF_VAR_ssh_public_key_files supplies local public-key paths

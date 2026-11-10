@@ -1,0 +1,15 @@
+---
+# The installer can reuse this gate after installing native curl packages.
+- name: Read the native curl version before bounded acquisition
+  ansible.builtin.command:
+    argv: [curl, --version]
+  register: intake_curl_version
+  changed_when: false
+
+- name: Require byte limits for unknown-length HTTPS responses
+  ansible.builtin.assert:
+    that:
+      - >-
+        (intake_curl_version.stdout | regex_findall('(?m)^curl ([0-9]+[.][0-9]+[.][0-9]+)(?: |$)')
+         | first | default('0')) is version('8.4.0', '>=')
+    fail_msg: Bounded artifact acquisition requires curl 8.4.0 or newer, including unknown-length responses.

@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/infrastructure-runner/variables.tf
+
 # Tier 0 direct trusted-CI option. Guide: docs/deployment/stage-9-development/procedures/infrastructure-runner.md
 # VMID allocation: docs/conventions/vmid-convention.md
 vm_instances = {

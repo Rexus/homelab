@@ -1,0 +1,15 @@
+---
+- name: Wait for the intake host
+  hosts: software_intake
+  gather_facts: false
+  tasks:
+    - name: Wait for the existing SSH identity
+      ansible.builtin.wait_for_connection:
+        timeout: "{{ platform_wait_for_connection_timeout | default(300) }}"
+
+- name: Install verified intake without acquiring or promoting software
+  hosts: software_intake
+  become: true
+  roles:
+    - baseline
+    - software_intake

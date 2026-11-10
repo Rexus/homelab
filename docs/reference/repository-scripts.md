@@ -354,6 +354,7 @@ their `.deployment-setups`; see [setup ownership](../development/generated-repos
 | `syslog` | Tier 0 VMs/disks, baseline and isolated TLS receiver after mount/certificate preparation; not an HA/WORM installer | [Foundational logging](../deployment/stage-2-logging/README.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../deployment/stage-7-delivery/procedures/edge-proxy.md) |
 | `cache` | shared cache pair or larger set for controlled outbound access | [Software intake](../deployment/stage-1-software-intake/README.md) |
+| `intake` | Tier 1 verified RPM/APT and selected-artifact publication; prepared data mount required | [Verified intake](../deployment/stage-1-software-intake/verified-intake.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../deployment/stage-9-development/step-1b-source-control-vm.md) |
 | `vault` | early Vault foundation host or hosts | [Vault foundation deployment](../deployment/stage-6-secrets/step-1b-vault-vm.md) |
 | `observability` | Optional Tier 1 gateway, metrics and search VMs; OS baseline only, not the Kubernetes product deployment or Tier 0 evidence | [Observability VM alternative](../deployment/stage-8-observability/step-1b-dedicated-vms.md) |

@@ -1,3 +1,7 @@
+# Build fields/defaults: terraform/modules/proxmox_templates/variables.tf (images entries)
+# Catalog aliases and resolution: terraform/deployments/templates/main.tf
+# Root input variables: terraform/deployments/templates/variables.tf
+
 # Copy to templates/proxmox.yml using Tier 0's scripts/proxmox-templates.sh init command.
 # Compute foundation: publish templates locally before creating managed VMs or the control cluster.
 # Reference: docs/administration/virtual-machines/template-lifecycle.md

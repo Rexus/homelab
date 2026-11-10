@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/observability/variables.tf
+
 # Copy to: terraform/deployments/observability/terraform.tfvars
 # Guide: docs/deployment/stage-8-observability/step-1b-dedicated-vms.md
 # VMID allocations: docs/conventions/vmid-convention.md

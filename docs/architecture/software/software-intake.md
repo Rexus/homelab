@@ -10,6 +10,7 @@ artifact or replaces a retained repository mirror.
 - [Connected proxy design](#connected-proxy-design)
 - [Supply choices](#supply-choices)
 - [Transport and integrity](#transport-and-integrity)
+- [Verification and publication](#verification-and-publication)
 - [Authority and recovery](#authority-and-recovery)
 - [Realization](#realization)
 - [References](#references)
@@ -83,8 +84,9 @@ Domain access is not repository-path, package or version approval. [1]
 B is the stronger fit when Tier 0 must consume only retained, approved releases
 without depending on live public repositories. Synchronization and promotion are
 separate operations; downloading into a mirror does not itself approve a release.
-An existing mirror is valid. The repository supplies A, not a generic mirror
-synchronizer, promotion service or offline-content installer.
+An existing mirror is valid. The repository supplies A and an optional
+[verified RPM/APT and artifact publication path](../../deployment/stage-1-software-intake/verified-intake.md)
+for B. C still requires a prepared, independently verified offline supply bundle.
 
 ## Transport and integrity
 
@@ -102,6 +104,22 @@ release verification; do not downgrade downloads merely to obtain cache hits.
 Artifacts without adequate independent verification need protected transport.
 Repository HTTP is not permission to disable TLS for Proxmox APIs, identity,
 secrets or security-log submission.
+
+## Verification and publication
+
+| Control | Current path | Staged alternative |
+| --- | --- | --- |
+| Source access | Squid client/domain/port policy plus independently enforced firewall egress | Same controlled acquisition route |
+| Authenticity | Consumer package signatures, trusted metadata and verified TLS; a downloaded hash needs a trusted origin | Verify publisher identity and content before publication, then verify again at consumption |
+| Malware assessment | Not supplied by the proxy; CONNECT payloads remain encrypted | ClamAV on supported staged content, with explicit scan limits and current definitions |
+| Vulnerability assessment | Separate from source access and authenticity | Trivy for supported images/SBOMs; risk-based promotion rather than rejecting every reported CVE |
+| Retention | Cache objects are disposable; no approval history | Identified approved versions, separate quarantine and independently retained Tier 0 recovery supply |
+
+The [artifact-verification design](artifact-verification.md) defines the optional staging,
+quarantine and promotion boundary. Its native worker is an optional selected realization;
+the Trivy/OCI extension is not installed by that worker.
+The initial path remains the small proxy pair with native consumer verification.
+A clean malware scan cannot establish a publisher's identity or prove the absence of malware. [3]
 
 ## Authority and recovery
 
@@ -125,7 +143,8 @@ authority and distribution, not HTTP cache behavior.
 
 ## References
 
-Sources checked 2026-10-22.
+Sources checked 2026-11-10.
 
 1. [Squid access controls](https://www.squid-cache.org/Doc/config/acl/)
 2. [Squid HTTPS and CONNECT behavior](https://wiki.squid-cache.org/Features/HTTPS)
+3. [ClamAV scanning scope](https://docs.clamav.net/manual/Usage/Scanning.html)

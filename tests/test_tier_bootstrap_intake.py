@@ -1,5 +1,6 @@
 """The manually provisioned bootstrap host consumes intake without becoming a managed guest."""
 
+import configparser
 import os
 from pathlib import Path
 import re
@@ -29,7 +30,8 @@ class BootstrapIntake(TierRepositoryTestCase):
             imports = [task['ansible.builtin.import_role'] for task in plays[1]['tasks']
                        if 'ansible.builtin.import_role' in task]
             self.assertEqual([(item['name'], item['tasks_from']) for item in imports],
-                             [('baseline', 'repository_proxy'), ('baseline', 'shell_proxy')])
+                             [('baseline', 'package_policy'), ('baseline', 'repository_proxy'),
+                              ('baseline', 'shell_proxy')])
             inputs = yaml.safe_load((owner / INPUTS).read_text())
             self.assertNotIn('bootstrap_software_intake_accepted', inputs)
             self.assertEqual(inputs['shell_proxy_no_proxy_extra'],
@@ -76,6 +78,9 @@ class BootstrapIntake(TierRepositoryTestCase):
             'repository_proxy_dnf_conf_path': str(dnf),
             'repository_proxy_apt_conf_dir': str(directory / 'apt'),
             'repository_proxy_apt_conf_path': str(directory / 'apt/80repositoryproxy'),
+            'package_policy_dnf_conf_path': str(dnf),
+            'package_policy_apt_conf_dir': str(directory / 'apt'),
+            'package_policy_apt_conf_path': str(directory / 'apt/90package-policy'),
             'shell_proxy_profile_dir': str(directory / 'profile.d'),
             'shell_proxy_profile_sh_path': str(directory / 'profile.d/shell-proxy.sh'),
             'shell_proxy_profile_csh_path': str(directory / 'profile.d/shell-proxy.csh'),
@@ -127,7 +132,15 @@ class BootstrapIntake(TierRepositoryTestCase):
                     mirrored = self.run_recipe(owner, directory, values)
                     self.assertEqual(mirrored.returncode, 0, mirrored.stdout + mirrored.stderr)
                     self.assertNotIn('proxy=', Path(values['repository_proxy_dnf_conf_path']).read_text())
-                    self.assertIn('gpgcheck=1', Path(values['repository_proxy_dnf_conf_path']).read_text())
+                    dnf_policy = configparser.ConfigParser()
+                    dnf_policy.read(values['package_policy_dnf_conf_path'])
+                    self.assertTrue(dnf_policy.getboolean('main', 'gpgcheck'))
+                    if family == 'RedHat':
+                        self.assertFalse(dnf_policy.getboolean('main', 'skip_if_unavailable'))
+                        self.assertTrue(dnf_policy.getboolean('main', 'sslverify'))
+                    else:
+                        self.assertIn('APT::Update::Error-Mode "any";',
+                                      Path(values['package_policy_apt_conf_path']).read_text())
                     self.assertFalse(Path(values['repository_proxy_apt_conf_path']).exists())
                     self.assertFalse(Path(values['shell_proxy_profile_sh_path']).exists())
                     for path, content in sentinels.items():

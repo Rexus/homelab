@@ -1,0 +1,3 @@
+---
+- name: Install the selected verified software intake
+  ansible.builtin.import_playbook: deployment/intake.yml

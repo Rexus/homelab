@@ -1,0 +1,20 @@
+---
+- name: Verify the sealed APT signature, expiry, indexes and every selected package
+  become: true
+  become_user: "{{ intake_scan_user }}"
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/python3
+      - "{{ playbook_dir }}/repository_verify.py"
+      - --kind=apt
+      - "--payload={{ intake_verification_path }}"
+      - "--work={{ intake_work.path }}/scan/apt"
+      - "--key={{ intake_config_dir }}/keys/{{ intake_source.name }}.asc"
+      - "--keyring={{ intake_config_dir }}/keys/{{ intake_source.name }}.gpg"
+      - "--fingerprint={{ intake_source.key_fingerprint }}"
+      - "--architectures={{ intake_source.architectures | join(',') }}"
+      - "--distribution={{ intake_source.distribution }}"
+      - "--expected-codename={{ intake_source.expected_codename | default(intake_source.distribution) }}"
+      - "--components={{ intake_source.components | join(',') }}"
+  register: intake_repository_verification
+  changed_when: false

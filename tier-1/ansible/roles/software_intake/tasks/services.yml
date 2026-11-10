@@ -1,0 +1,205 @@
+---
+- name: Reset the derived policy before resolving this installation
+  ansible.builtin.set_fact:
+    software_intake_worker_sources: []
+
+- name: Resolve worker-local public key paths without copying controller path references
+  ansible.builtin.set_fact:
+    software_intake_worker_sources: >-
+      {{ (software_intake_worker_sources | default([])) +
+         [item | combine({'key_file': software_intake_config_dir ~ '/keys/' ~ item.name ~ '.asc',
+                          'keyring_file': software_intake_config_dir ~ '/keys/' ~ item.name ~ '.gpg'}
+                         if item.key_file | default('') | length > 0 else {})] }}
+  loop: "{{ software_intake_sources }}"
+
+- name: Install the verified HTTPS leaf chain and private key
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ software_intake_config_dir }}/tls/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+    setype: "{{ 'cert_t' if ansible_selinux.status | default('disabled') == 'enabled' else omit }}"
+  loop:
+    - {src: "{{ software_intake_tls_cert_src }}", name: server.crt, mode: '0644'}
+    - {src: "{{ software_intake_tls_key_src }}", name: server.key, mode: '0600'}
+  no_log: true
+  notify: Reload intake publisher
+
+- name: Install root-owned worker policy and isolated Ansible configuration
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ software_intake_config_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: '0600'
+  loop: [policy.yml, ansible.cfg]
+
+- name: Install native definition updater configuration
+  ansible.builtin.template:
+    src: freshclam.conf.j2
+    dest: "{{ software_intake_freshclam_configs[ansible_os_family] }}"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart enabled intake definition updater
+
+- name: Install and validate the isolated HTTPS publication server
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
+    mode: '0750'
+    setype: "{{ item.setype if ansible_selinux.status | default('disabled') == 'enabled' else omit }}"
+  loop:
+    - {path: /run/software-intake-nginx, owner: root, setype: httpd_var_run_t}
+    - {path: /var/log/software-intake-nginx, owner: root, setype: httpd_log_t}
+    - {path: /var/cache/software-intake-nginx, owner: intake-pub, setype: httpd_cache_t}
+
+- name: Validate and install the isolated HTTPS configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: '0644'
+    validate: /usr/sbin/nginx -t -c %s
+  notify: Reload intake publisher
+
+- name: Validate and install rotation for the publisher's private logs
+  ansible.builtin.template:
+    src: nginx.logrotate.j2
+    dest: /etc/logrotate.d/software-intake-nginx
+    owner: root
+    group: root
+    mode: '0644'
+    validate: /usr/sbin/logrotate --debug %s
+
+- name: Create the publisher service drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/nginx.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Enforce read-only publication storage even for the web service master
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/nginx.service.d/software-intake.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Service]
+      PIDFile=/run/software-intake-nginx/nginx.pid
+      RuntimeDirectory=software-intake-nginx
+      LogsDirectory=software-intake-nginx
+      CacheDirectory=software-intake-nginx
+      ReadOnlyPaths={{ software_intake_data_dir }}
+      ReadWritePaths=/run/software-intake-nginx /var/log/software-intake-nginx /var/cache/software-intake-nginx
+      ProtectSystem=strict
+      ProtectHome=yes
+      NoNewPrivileges=yes
+      CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID CAP_CHOWN CAP_DAC_OVERRIDE
+  notify:
+    - Reload intake service units
+    - Restart intake publisher
+
+- name: Install the serialized intake service and optional timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: [intake.service, intake.timer]
+  notify: Reload intake service units
+
+- name: Validate the native service units and calendar without running intake
+  ansible.builtin.command:
+    argv: "{{ item }}"
+  loop:
+    - [systemd-analyze, verify, /etc/systemd/system/intake.service, /etc/systemd/system/intake.timer]
+    - [systemd-analyze, calendar, "{{ software_intake_schedule }}"]
+  changed_when: false
+
+- name: Load validated unit changes before service operations
+  ansible.builtin.systemd_service:
+    name: clamav-freshclam.service
+    masked: false
+  when: software_intake_environment.get('http_proxy', '') | length > 0
+
+- name: Apply validated handler changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Identify definition schedules provided by this native package
+  ansible.builtin.stat:
+    path: "/usr/lib/systemd/system/{{ item }}"
+  loop: [clamav-freshclam-once.service, clamav-freshclam-once.timer]
+  register: software_intake_definition_schedules
+
+- name: Disable competing native definition-update schedules
+  ansible.builtin.systemd_service:
+    name: "{{ item.item }}"
+    state: stopped
+    enabled: false
+    masked: true
+  loop: "{{ software_intake_definition_schedules.results }}"
+  when: item.stat.exists
+
+- name: Select automatic updates only after explicit proxy configuration
+  ansible.builtin.systemd_service:
+    name: clamav-freshclam.service
+    masked: "{{ software_intake_environment.get('http_proxy', '') | length == 0 }}"
+    enabled: "{{ software_intake_freshclam_enabled }}"
+    state: "{{ 'started' if software_intake_freshclam_enabled else 'stopped' }}"
+
+- name: Require an initial approved publication before enabling unattended intake
+  ansible.builtin.stat:
+    path: "{{ software_intake_data_dir }}/public/{{ item.name }}/latest.json"
+    follow: false
+  loop: "{{ software_intake_sources }}"
+  register: software_intake_initial_publications
+  when: software_intake_timer_enabled
+
+- name: Keep scheduling off until every selected source has an accepted first publication
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - item.stat.uid | default(-1) == 0
+    fail_msg: Run intake.service manually and verify its publications/definitions before enabling the timer.
+  loop: "{{ software_intake_initial_publications.results | default([]) }}"
+  when: software_intake_timer_enabled
+
+- name: Require official definitions before enabling a schedule
+  when: software_intake_timer_enabled
+  block:
+    - name: Read the two official daily database paths
+      ansible.builtin.stat:
+        path: "{{ software_intake_clam_database_dir }}/daily.{{ item }}"
+      loop: [cvd, cld]
+      register: software_intake_daily_definitions
+
+    - name: Reject missing official daily definitions
+      ansible.builtin.assert:
+        that: software_intake_daily_definitions.results | selectattr('stat.isreg', 'defined') | selectattr('stat.isreg') | list | length > 0
+        fail_msg: Preposition official definitions or commission FreshClam before enabling intake.timer.
+
+- name: Enable only the explicitly commissioned timer, without running an intake now
+  ansible.builtin.systemd_service:
+    name: intake.timer
+    enabled: "{{ software_intake_timer_enabled }}"
+    state: "{{ 'started' if software_intake_timer_enabled else 'stopped' }}"
+
+- name: Start the read-only HTTPS publisher
+  ansible.builtin.systemd_service:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Start native log rotation after installing the validated publisher policy
+  ansible.builtin.systemd_service:
+    name: logrotate.timer
+    enabled: true
+    state: started

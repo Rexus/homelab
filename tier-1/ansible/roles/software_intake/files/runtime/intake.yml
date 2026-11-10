@@ -1,0 +1,36 @@
+---
+# Called by the root-owned intake.service with its root-owned policy file.
+- name: Verify and publish selected software
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    intake_failed_sources: []
+    intake_reporting_errors: []
+    intake_owner: root
+    intake_read_group: intake-read
+    intake_scan_group: intake-scan
+    intake_clamscan_binary: /usr/bin/clamscan
+    intake_emit_events: true
+  tasks:
+    - name: Require the prepared storage and bounded policy
+      ansible.builtin.include_tasks: tasks/preflight.yml
+
+    - name: Process independent sources under the same gate
+      ansible.builtin.include_tasks: tasks/source.yml
+      loop: "{{ intake_sources }}"
+      loop_control:
+        loop_var: intake_source
+        label: "{{ intake_source.name }}"
+
+    - name: Report rejection separately from errors after discovery selection
+      ansible.builtin.assert:
+        that:
+          - intake_failed_sources | length == 0
+          - intake_reporting_errors | length == 0
+        fail_msg: >-
+          Rejected before discovery selection: {{ intake_failed_sources | join(', ') }};
+          their previous selections remain unchanged. Reporting or cleanup errors after selection:
+          {{ intake_reporting_errors | join(', ') }}; those new versions remain selected.
+          Review private receipts and journal events; do not publish quarantine.

@@ -1,0 +1,30 @@
+---
+- name: Check the protected receipt and operator hold
+  ansible.builtin.stat:
+    path: "{{ intake_incident.path }}/{{ item }}"
+    follow: false
+  loop: [intake-quarantine.json, .hold]
+  register: intake_incident_markers
+
+- name: Expire only an unheld generated incident
+  when:
+    - intake_incident_markers.results[0].stat.isreg | default(false)
+    - not intake_incident_markers.results[1].stat.exists | default(false)
+  block:
+    - name: Read the generated incident marker
+      ansible.builtin.slurp:
+        src: "{{ intake_incident.path }}/intake-quarantine.json"
+      register: intake_incident_receipt
+
+    - name: Require the expected quarantine identity
+      ansible.builtin.assert:
+        that:
+          - (intake_incident_receipt.content | b64decode | from_json).schema == 1
+          - (intake_incident_receipt.content | b64decode | from_json).verdict == 'quarantined'
+          - intake_incident.path is match('^' ~ (intake_data_dir | regex_escape) ~ '/quarantine/[a-z][a-z0-9-]+-')
+        fail_msg: An unrecognized incident directory needs manual review; do not remove it automatically.
+
+    - name: Remove the expired incident without touching approved versions
+      ansible.builtin.file:
+        path: "{{ intake_incident.path }}"
+        state: absent

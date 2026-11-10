@@ -73,7 +73,8 @@ It preserves local configuration and project records, restores missing generated
 and removes obsolete auto-docs. Use `--code-conflicts ask` to choose per edited automation file,
 or `--code-conflicts preserve` to keep local development changes. See the
 [refresh contract](docs/development/generated-repositories.md#refresh-and-local-ownership).
-A final review summary links preserved differences to current templates and lists retired generated files.
+A final review summary links preserved automation/configuration differences to current templates and lists
+retired generated code. README/prose differences are omitted; project documents stay protected.
 
 <a id="find-your-way"></a>
 

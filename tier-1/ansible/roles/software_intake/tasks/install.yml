@@ -1,0 +1,87 @@
+---
+- name: Install EL10 tools from the already approved native repositories
+  ansible.builtin.dnf:
+    name: "{{ software_intake_packages.RedHat }}"
+    state: present
+    disable_gpg_check: false
+  environment: "{{ software_intake_environment }}"
+  when: ansible_os_family == 'RedHat'
+
+- name: Install Debian-family tools without starting unconfigured package services
+  ansible.builtin.apt:
+    name: "{{ software_intake_packages.Debian }}"
+    state: present
+    policy_rc_d: 101
+  environment: "{{ software_intake_environment }}"
+  when: ansible_os_family == 'Debian'
+
+- name: Require body-size enforcement from the installed native curl
+  ansible.builtin.command:
+    argv: [/usr/bin/curl, --version]
+  register: software_intake_curl_version
+  changed_when: false
+
+- name: Reject curl versions without streaming max-filesize enforcement
+  ansible.builtin.assert:
+    that: software_intake_curl_version.stdout.split()[1] is version('8.4.0', '>=')
+    fail_msg: Supply approved curl >= 8.4.0; an announced Content-Length check alone cannot bound a download.
+
+- name: Verify native repository-verification Python bindings
+  ansible.builtin.command:
+    argv: [/usr/bin/python3, -c, 'import createrepo_c; from debian import deb822']
+  changed_when: false
+
+- name: Require the native scanner's fail-closed feature contract
+  ansible.builtin.command:
+    argv: [/usr/bin/clamscan, --help]
+  register: software_intake_scanner_help
+  changed_when: false
+
+- name: Reject an engine that cannot enforce freshness or unscannable-content alerts
+  ansible.builtin.assert:
+    that: item in software_intake_scanner_help.stdout
+    fail_msg: Supply an approved ClamAV build supporting native database-age and scan-limit/encryption/broken alerts.
+  loop: [--fail-if-cvd-older-than, --alert-exceeds-max, --alert-encrypted, --alert-broken]
+
+- name: Create root-owned worker code and collection namespaces
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ software_intake_runtime_dir }}"
+    - "{{ software_intake_collections_dir }}/ansible_collections/community"
+    - "{{ software_intake_collections_dir }}/ansible_collections/ansible"
+
+- name: Copy the approved controller-installed worker collections
+  ansible.builtin.copy:
+    src: "{{ (software_intake_collection_docs.stdout | from_json)[item.module].doc.filename | dirname | dirname | dirname }}/"
+    dest: "{{ software_intake_collections_dir }}/ansible_collections/{{ item.path }}/"
+    owner: root
+    group: root
+    mode: preserve
+    directory_mode: '0755'
+  loop:
+    - {module: community.general.syslogger, path: community/general}
+    - {module: ansible.posix.synchronize, path: ansible/posix}
+
+- name: Copy the native worker playbook and tasks without executing an intake
+  ansible.builtin.copy:
+    src: runtime/
+    dest: "{{ software_intake_runtime_dir }}/"
+    owner: root
+    group: root
+    mode: preserve
+    directory_mode: '0755'
+
+- name: Remove non-root write access from all installed executable payloads
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 'u=rwX,go=rX'
+    recurse: true
+  loop: ["{{ software_intake_runtime_dir }}", "{{ software_intake_collections_dir }}"]

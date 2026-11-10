@@ -1,0 +1,68 @@
+---
+- name: Validate the selected APT scope
+  ansible.builtin.assert:
+    that:
+      - intake_source.distribution is match('^[a-z0-9][a-z0-9.+-]*$')
+      - intake_source.expected_codename | default(intake_source.distribution) is match('^[a-z0-9][a-z0-9.+-]*$')
+      - intake_source.components | length > 0
+      - intake_source.components | reject('match', '^[a-z0-9][a-z0-9+-]*$') | list | length == 0
+      - intake_source.architectures | length > 0
+      - intake_source.architectures | reject('match', '^[a-z0-9][a-z0-9-]*$') | list | length == 0
+      - intake_source.key_fingerprint is match('^[A-Fa-f0-9]{40,64}$')
+    fail_msg: Require one codename, explicit components/architectures and the approved publisher fingerprint.
+
+- name: Exclude host and account debmirror configuration
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  ansible.builtin.copy:
+    # debmirror loads Perl configuration with require: an empty file is not valid.
+    content: "1;\n"
+    dest: "{{ intake_work.path }}/fetch/debmirror.conf"
+    mode: '0600'
+
+- name: Mirror the selected APT scope without changing vendor Release files
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  environment: >-
+    {{ intake_environment | combine({'GNUPGHOME': intake_work.path ~ '/fetch/no-default-keyring',
+                                     'HOME': intake_work.path ~ '/fetch'}) }}
+  ansible.builtin.command:
+    argv:
+      - debmirror
+      - "--config-file={{ intake_work.path }}/fetch/debmirror.conf"
+      - "--method={{ intake_source.url | urlsplit('scheme') }}"
+      - "--host={{ intake_source.url | urlsplit('netloc') }}"
+      - "--root={{ intake_source.url | urlsplit('path') | default('/', true) }}"
+      - "--dist={{ intake_source.distribution }}"
+      - "--section={{ intake_source.components | join(',') }}"
+      - "--arch={{ intake_source.architectures | join(',') }}"
+      - --nosource
+      - --check-gpg
+      - --checksums
+      - "--keyring={{ intake_config_dir }}/keys/{{ intake_source.name }}.gpg"
+      - --state-cache-days=0
+      - --diff=none
+      - --slow-cpu
+      - --rsync-extra=none
+      - --omit-suite-symlinks
+      - "{{ intake_payload }}"
+  changed_when: true
+
+- name: Keep native debmirror working state outside the candidate before sealing
+  become: true
+  become_user: "{{ intake_fetch_user }}"
+  # Native debmirror retains .temp indexes/cache and creates project/trace/<hostname>
+  # even with --rsync-extra=none. Neither namespace is vendor-authenticated content.
+  # Rename only these exact namespaces before sealing; the final gate rejects all extras.
+  ansible.builtin.command:
+    argv:
+      - mv
+      - --no-target-directory
+      - --
+      - "{{ intake_payload }}/{{ item.source }}"
+      - "{{ intake_work.path }}/fetch/{{ item.destination }}"
+    removes: "{{ intake_payload }}/{{ item.source }}"
+    creates: "{{ intake_work.path }}/fetch/{{ item.destination }}"
+  loop:
+    - {source: .temp, destination: debmirror-state}
+    - {source: project/trace, destination: debmirror-trace}

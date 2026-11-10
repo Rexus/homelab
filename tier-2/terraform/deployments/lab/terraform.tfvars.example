@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/lab/variables.tf
+
 # Copy to: terraform/deployments/lab/terraform.tfvars
 # Replace every value before use.
 # Reference: docs/development/code-layout.md

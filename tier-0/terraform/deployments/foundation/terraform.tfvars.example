@@ -1,3 +1,5 @@
+# Variable definitions (this repository): terraform/deployments/foundation/variables.tf
+
 # Copy to: terraform/deployments/foundation/terraform.tfvars
 # Optionally copy to terraform.<env>.tfvars only for environment overrides.
 # Replace every value before use.

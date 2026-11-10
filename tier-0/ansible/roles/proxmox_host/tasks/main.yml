@@ -92,6 +92,14 @@
     - proxmox_host_manage_apt_proxy | bool
     - not proxmox_host_apt_config_dir.stat.isdir | default(false)
 
+- name: Apply shared APT verification policy independently of the Proxmox GUI proxy file
+  ansible.builtin.include_role:
+    name: baseline
+    tasks_from: package_policy
+  vars:
+    # The hypervisor play deliberately does not gather facts.
+    package_policy_os_family: Debian
+
 - name: Configure Proxmox host APT proxy
   ansible.builtin.template:
     src: 76pveproxy.j2

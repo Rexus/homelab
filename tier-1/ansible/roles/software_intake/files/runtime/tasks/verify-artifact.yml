@@ -1,0 +1,51 @@
+---
+- name: Reject bytes outside the selected artifact and its optional signature
+  ansible.builtin.assert:
+    that:
+      - >-
+        intake_manifest.keys() | list | sort ==
+        ([intake_source.filename] +
+         ([intake_source.filename ~ '.sig'] if intake_source.signature_url | default('') | length > 0 else [])) | sort
+    fail_msg: Only the selected artifact and its declared detached signature may be published.
+
+- name: Verify the sealed artifact identity
+  ansible.builtin.assert:
+    that:
+      - intake_manifest[intake_source.filename] == intake_source.sha256
+    fail_msg: Artifact changed between acquisition and assessment.
+
+- name: Identify the actual artifact format
+  become: true
+  become_user: "{{ intake_scan_user }}"
+  ansible.builtin.command:
+    argv: [file, --brief, --mime-type, --, "{{ intake_verification_path }}/{{ intake_source.filename }}"]
+  register: intake_artifact_type
+  changed_when: false
+
+- name: Hold opaque disk images and unsupported containers
+  ansible.builtin.assert:
+    that:
+      - intake_source.filename | lower is not search('\.(raw|qcow2|vmdk|vhd|vhdx|img|iso)$')
+      - >-
+        intake_artifact_type.stdout | trim is match(
+        '^(text/[a-z0-9.+-]+|application/(gzip|zip|x-tar|x-xz|x-bzip2|zstd|x-rpm|vnd.debian.binary-package|x-debian-package|json|xml|x-executable|x-pie-executable|x-sharedlib))$')
+    fail_msg: This scanner path cannot qualify the contents of an opaque disk image or unsupported format.
+
+- name: Verify the detached signature using only the pinned publisher keyring
+  become: true
+  become_user: "{{ intake_scan_user }}"
+  ansible.builtin.command:
+    argv:
+      - gpgv
+      - --status-fd=1
+      - --keyring
+      - "{{ intake_config_dir }}/keys/{{ intake_source.name }}.gpg"
+      - "{{ intake_verification_path }}/{{ intake_source.filename }}.sig"
+      - "{{ intake_verification_path }}/{{ intake_source.filename }}"
+  register: intake_artifact_signature
+  changed_when: false
+  failed_when: >-
+    intake_artifact_signature.rc != 0 or
+    'VALIDSIG' not in intake_artifact_signature.stdout or
+    intake_artifact_signature.stdout is search('EXPKEYSIG|EXPSIG|REVKEYSIG')
+  when: intake_source.signature_url | default('') | length > 0

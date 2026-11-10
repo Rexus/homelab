@@ -1,0 +1,11 @@
+// Managed by Ansible; separate from repository/proxy ownership.
+// Source-level trusted/allow-insecure settings and later overrides still require review.
+APT::Update::Error-Mode "any";
+APT::Get::AllowUnauthenticated "false";
+Acquire::AllowInsecureRepositories "false";
+Acquire::AllowWeakRepositories "false";
+Acquire::AllowDowngradeToInsecureRepositories "false";
+Acquire::Check-Date "true";
+Acquire::Check-Valid-Until "true";
+Acquire::https::Verify-Peer "true";
+Acquire::https::Verify-Host "true";

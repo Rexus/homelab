@@ -99,15 +99,16 @@ class SoftwareIntake(TierRepositoryTestCase):
             role = owner / "ansible/roles/cache_proxy"
             inputs = yaml.safe_load((role / "defaults/main.yml").read_text())
             inputs.update({"ansible_os_family": "Debian", "cache_keepalived_vip_cidr": "192.0.2.10/24",
-                           "platform_host_ips": {"localhost": "192.0.2.1"}})
-            preflight = yaml.safe_load((role / "tasks/preflight.yml").read_text())[0]
+                           "platform_host_ips": {"localhost": "192.0.2.1"},
+                           "cache_squid_allowed_cidrs": ["192.0.2.0/24"]})
+            preflight = yaml.safe_load((role / "tasks/preflight.yml").read_text())[:-1]
             cases = (("empty", [], False, False), ("blank", [" ", ""], False, False),
                      ("approved", [".example.com", ".repo.example.com"], False, True),
                      ("empty-render", [], True, True))
             for name, domains, render_only, succeeds in cases:
                 with self.subTest(owner=label, policy=name):
                     output = fixture / f"{label}-{name}.conf"
-                    tasks = [] if render_only else [preflight]
+                    tasks = [] if render_only else list(preflight)
                     tasks.append({"ansible.builtin.template": {
                         "src": str(role / "templates/squid.conf.j2"), "dest": str(output), "mode": "0600"}})
                     play = fixture / f"{label}-{name}.yml"
@@ -125,7 +126,7 @@ class SoftwareIntake(TierRepositoryTestCase):
                     self.assertNotIn("http_access allow localnet\n", config)
                     self.assertIn("http_access deny all", config)
                     if domains:
-                        self.assertIn("acl allowed_update_domains dstdomain .example.com\n", config)
+                        self.assertIn("acl allowed_update_domains dstdomain -n .example.com\n", config)
                         self.assertNotIn(".repo.example.com", config)
                         self.assertIn("http_access allow localnet allowed_update_domains", config)
                         self.assertLess(config.index("http_access deny CONNECT !SSL_ports"),

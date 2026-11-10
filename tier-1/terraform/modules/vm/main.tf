@@ -35,9 +35,12 @@ locals {
         ),
         local.resolved_datastore_id,
       )
-      iothread = coalesce(try(disk.iothread, null), true)
-      discard  = coalesce(try(disk.discard, null), "on")
-      ssd      = coalesce(try(disk.ssd, null), true)
+      iothread = coalesce(
+        try(disk.iothread, null),
+        try(var.firmware.scsi_hardware, "virtio-scsi-single") == "virtio-scsi-single",
+      )
+      discard = coalesce(try(disk.discard, null), "on")
+      ssd     = coalesce(try(disk.ssd, null), true)
     }
   ]
 }
@@ -50,11 +53,24 @@ resource "proxmox_virtual_environment_vm" "this" {
   started         = var.template ? false : var.started
   template        = var.template
   stop_on_destroy = var.stop_on_destroy
+  bios            = try(var.firmware.bios, null)
+  machine         = try(var.firmware.machine, null)
+  scsi_hardware   = try(var.firmware.scsi_hardware, null)
+  boot_order      = var.firmware == null ? null : ["scsi0"]
 
   clone {
     vm_id     = var.template_vm_id
     node_name = var.template_node_name
-    full      = true
+    full      = var.full_clone
+  }
+
+  dynamic "efi_disk" {
+    for_each = try(var.firmware.bios, "seabios") == "ovmf" ? [true] : []
+    content {
+      datastore_id      = local.resolved_datastore_id
+      type              = "4m"
+      pre_enrolled_keys = var.firmware.efi_pre_enrolled_keys
+    }
   }
 
   # Placement after creation belongs to Proxmox, including HA failover and maintenance.
@@ -81,7 +97,7 @@ resource "proxmox_virtual_environment_vm" "this" {
     datastore_id = local.resolved_datastore_id
     interface    = "scsi0"
     size         = local.resolved_disk_size_gb
-    iothread     = true
+    iothread     = try(var.firmware.scsi_hardware, "virtio-scsi-single") == "virtio-scsi-single"
     discard      = "on"
     ssd          = true
   }
@@ -103,7 +119,7 @@ resource "proxmox_virtual_environment_vm" "this" {
     bridge   = var.bridge
     model    = "virtio"
     vlan_id  = var.vlan_id
-    firewall = true
+    firewall = var.nic_firewall
   }
 
   initialization {

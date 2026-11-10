@@ -10,6 +10,7 @@ Its rows remain unverified until an authorized operator records real results.
 ## Contents
 
 - [Use this list](#use-this-list)
+- [Software intake](#software-intake)
 - [Secure provider defaults](#1-secure-provider-defaults)
 - [Logging integration](#2-logging-integration)
 - [Initial Trust](#3-initial-trust)
@@ -27,6 +28,44 @@ Its rows remain unverified until an authorized operator records real results.
 
 The order is API trust, early logging, then Initial Trust. PKI must not be used as a
 prerequisite for the logging path that records its own bootstrap ceremony.
+
+## Software intake
+
+**Implementation:** hardened proxy/native consumer policy and optional Tier 1 RPM/APT/artifact
+verification, ClamAV quarantine and immutable publication are supplied. OCI vulnerability policy
+and automatic patch rollout remain separate integrations.
+**Procedure:** [Stage 1](../docs/deployment/stage-1-software-intake/README.md) and
+[existing-cache migration](../docs/deployment/stage-1-software-intake/proxy-cache.md#update-an-existing-cache).
+The first five checks cover the basic route; the remaining checks apply to the selected
+[verified extension](../docs/deployment/stage-1-software-intake/verified-intake.md). None qualify patch rollout.
+
+- [ ] **INTAKE-1: Real network enforcement.** From every selected subnet, approve actual sources and
+  redirects; deny another source, a forbidden client and direct WAN bypass. Check HTTP and CONNECT,
+  both nodes and the VIP. No unrestricted fallback may appear when the proxy is unavailable.
+- [ ] **INTAKE-2: Native consumer failures.** On disposable Debian/Proxmox and EL targets, reject an
+  unavailable required repository, unsigned/invalid content and expired applicable metadata. Prove
+  installation stops; retain valid publisher keys and audit per-repository overrides separately.
+- [ ] **INTAKE-3: Cache semantics and events.** Exercise cacheable, private, no-store and refreshed
+  test content. Confirm only eligible objects hit cache. Use dummy URL credentials/query markers
+  and require sanitized access events without them. CONNECT does not produce a scan verdict.
+- [ ] **INTAKE-4: Availability and recovery.** Fail Squid/its VM and test actual VIP takeover, then
+  rebuild a cache without recovering its disposable data. Qualify host placement and outage limits;
+  boot-1's independent tools/artifacts must remain usable without the pair.
+- [ ] **INTAKE-5: Protected decisions.** After Stage 2 commissioning, retain each cache's security
+  journal/access stream in Tier 0. Verify scoped reads and queued delivery through a logging outage;
+  repeat with OpenSearch unavailable. Do not interpret later search availability as durable custody.
+- [ ] **INTAKE-6: Real repository fixtures.** On the selected EL10/Debian worker, acquire a small
+  vendor-signed RPM and APT subset and a trusted artifact. Verify immutable HTTPS publication and
+  native consumer refresh. Reject changed metadata/packages, wrong keys, expiry and bad hashes.
+- [ ] **INTAKE-7: Gate and isolation.** In a disposable source, reject EICAR, unsupported/encrypted/
+  oversized files and stale/missing/erroring scanners. Fetch/scan/web identities cannot write accepted
+  bytes; denied clients/methods and direct WAN bypass fail. Preserve prior selection on rejection.
+- [ ] **INTAKE-8: Service/storage failure.** Qualify real systemd/SELinux, boot, timer and definition
+  updates; interrupt jobs and lose/fill the data mount. Private remnants never become served content.
+  Check hold/expiry behavior and protected Tier 0 decision delivery independently of the search UI.
+- [ ] **INTAKE-9: Recovery and selection.** Restore OS/data disks and policy/trust to an isolated
+  target, verify retained hashes and current definitions, then select a still-valid previous version
+  in a consumer. Retain usable Tier 0 supply without the worker or proxy.
 
 ## 1. Secure provider defaults
 

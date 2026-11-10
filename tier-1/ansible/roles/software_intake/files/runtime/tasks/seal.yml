@@ -1,0 +1,59 @@
+---
+- name: Enter the private sealing gate
+  ansible.builtin.set_fact:
+    intake_phase: sealing
+
+- name: Reject links, devices and special files in the candidate
+  ansible.builtin.find:
+    paths: "{{ intake_payload }}"
+    recurse: true
+    hidden: true
+    file_type: any
+    follow: false
+  register: intake_candidate_entries
+
+- name: Require a nonempty ordinary-file tree
+  ansible.builtin.assert:
+    that:
+      - intake_candidate_entries.skipped_paths | default({}) | length == 0
+      - intake_candidate_entries.files | selectattr('isreg') | list | length > 0
+      - intake_candidate_entries.files | rejectattr('isreg') | rejectattr('isdir') | list | length == 0
+    fail_msg: Unsupported candidate entries cannot be assessed or published.
+
+- name: Allocate a private publication transaction
+  ansible.builtin.tempfile:
+    state: directory
+    path: "{{ intake_data_dir }}/publishing"
+    prefix: "{{ intake_source.name }}-"
+  register: intake_sealed
+
+- name: Copy ordinary files without preserving untrusted ownership or links
+  ansible.posix.synchronize:
+    src: "{{ intake_payload }}/"
+    dest: "{{ intake_sealed.path }}/content/"
+    archive: false
+    recursive: true
+    links: false
+    owner: false
+    group: false
+    perms: false
+    times: false
+    compress: false
+    rsync_opts: ['--no-specials', '--no-devices', '--safe-links', '--chmod=D750,F640']
+
+- name: Freeze the assessed tree against acquisition writes
+  ansible.builtin.file:
+    path: "{{ intake_sealed.path }}"
+    owner: "{{ intake_owner }}"
+    group: "{{ intake_scan_group }}"
+    mode: u=rwX,g=rX,o=
+    recurse: true
+
+- name: Inventory the sealed files for the final integrity gate
+  ansible.builtin.include_tasks: manifest.yml
+  vars:
+    intake_inventory_path: "{{ intake_sealed.path }}/content"
+
+- name: Record the immutable candidate identity
+  ansible.builtin.set_fact:
+    intake_manifest: "{{ intake_inventory_manifest }}"

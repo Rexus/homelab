@@ -26,6 +26,31 @@ variable "template_node_name" {
   default     = null
 }
 
+variable "full_clone" {
+  description = "Use a full clone by default; linked clones require compatible template storage."
+  type        = bool
+  default     = true
+}
+
+variable "firmware" {
+  description = "Match the approved template; null retains the existing module's implicit firmware settings."
+  type = object({
+    bios                  = optional(string, "seabios")
+    machine               = optional(string)
+    scsi_hardware         = optional(string, "virtio-scsi-single")
+    efi_pre_enrolled_keys = optional(bool, false)
+  })
+  default = null
+
+  validation {
+    condition = var.firmware == null ? true : (
+      contains(["seabios", "ovmf"], var.firmware.bios) &&
+      contains(["virtio-scsi-single", "virtio-scsi-pci"], var.firmware.scsi_hardware)
+    )
+    error_message = "Select seabios/ovmf and virtio-scsi-single/virtio-scsi-pci to match the template."
+  }
+}
+
 variable "storage_class" {
   description = "Logical storage class such as local, shared, or fast."
   type        = string
@@ -61,6 +86,12 @@ variable "vlan_id" {
   type        = number
   default     = null
   nullable    = true
+}
+
+variable "nic_firewall" {
+  description = "Participate in Proxmox NIC firewall policy; this does not install firewall rules."
+  type        = bool
+  default     = true
 }
 
 variable "storage_class_datastores" {

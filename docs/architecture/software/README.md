@@ -159,6 +159,7 @@ locally built applications, without transferring host administration to build us
 ## Detailed views
 
 - [Controlled software intake](software-intake.md): source policy, caches, retained mirrors and offline alternatives.
+- [Artifact verification](artifact-verification.md): optional staged checks, quarantine and publication authority.
 - [Controller patterns](controllers.md): scoped reconciliation and release orchestration.
 - [Development platform](development-platform.md): reviewed code, general jobs and the explicit trusted-CI variant.
 - [Artifact supply](artifact-supply.md): integrated, independent and accelerated distribution choices.

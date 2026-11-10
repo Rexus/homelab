@@ -6,6 +6,7 @@
     owner: root
     group: root
     mode: "0644"
+    validate: "{{ cache_squid_binary }} -k parse -f %s"
   notify: Restart squid
 
 - name: Validate Squid configuration

@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from refresh_review import PreservedFile, RefreshReview, backup_automation, write_candidate
+from refresh_review import PreservedFile, RefreshReview, backup_automation, needs_operational_review, write_candidate
 
 MARKER = "Generated from the upstream homelab deployment kit."
 
@@ -86,7 +86,8 @@ class RepositoryWriter:
                 reason = "locally edited generated file"
         self.review.record(relative, data, source, reason)
         self.counts[action] += 1
-        if action != "unchanged":
+        quiet_document = self.refresh and action == "preserve" and not needs_operational_review(relative)
+        if action != "unchanged" and not quiet_document:
             print(f"{action:9} {path}")
         if action in ("create", "update") and not self.dry_run:
             path.parent.mkdir(parents=True, exist_ok=True)

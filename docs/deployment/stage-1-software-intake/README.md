@@ -8,9 +8,14 @@ bootstrap software access. New cache VMs need an approved initial package source
 **Working repositories:** `<prefix>-tier-2` for cache resources, `<prefix>-tier-0` for existing-host consumers,
 and Shared for common platform references.
 **Automation:** the Squid/keepalived installer and existing-host proxy configuration are supplied.
-Repository management, Harbor and automated patch rollout are not installed by this path.
+The optional [verified intake extension](verified-intake.md) adds RPM/APT repository and selected-file
+verification, scanning/quarantine and versioned publication. Harbor and automated patch rollout
+are not installed by this path.
 See [coverage](../../reference/implementation-support.md#stage-coverage).
 **Design:** [controlled software intake](../../architecture/software/software-intake.md).
+
+Already running the cache pair? Use [Adopt an intake update](adopt-update.md) to refresh the existing
+collection, reconcile retained configuration and register the optional Tier 1 worker.
 
 ## Main path
 
@@ -21,6 +26,8 @@ See [coverage](../../reference/implementation-support.md#stage-coverage).
 5. [Test the selected intake path](#step-5-test-the-selected-intake-path), including existing supply.
 6. [Connect the bootstrap host](#step-6-connect-the-bootstrap-host).
 7. [Connect Proxmox host updates](#step-7-connect-proxmox-host-updates).
+8. Optional: [add verified repository/artifact publication](verified-intake.md), with existing trust/logging
+   or after Stages 2–3 establish them. Either supply route can feed this extension.
 
 **New cache pair:** follow **1a → 2 → 3 → 4 → 5 → 6 → 7**.
 **Existing supply:** follow **1b → 5 → 6 → 7**; create no cache resources.
@@ -139,6 +146,8 @@ cache_validation_url: https://mirrors.fedoraproject.org/
 
 Include the actual bootstrap and Proxmox management CIDRs. Narrow `cache_squid_allowed_domains`
 to the selected repositories, required tools and redirect destinations; an empty list is rejected.
+Use exact source hostnames where possible; `.example.com` permits that whole domain and its subdomains.
+Keep `cache_validation_denied_url` outside the allowed sources; the default uses a reserved `.invalid` name.
 Keep `cache_validation_url` within that policy and `repository_proxy_enabled: false` for cache hosts,
 so their initial installation does not depend on their own unfinished VIP.
 
@@ -220,7 +229,8 @@ curl --fail --noproxy '' --proxy "$PROXY_URL" --output /dev/null "$APPROVED_URL"
 | Check | Expected result |
 | --- | --- |
 | Approved source through proxy | Download succeeds |
-| Unapproved destination or forbidden source network | Proxy request is denied |
+| Unapproved HTTP destination | HTTP 403; deployment validation checks both nodes and the VIP |
+| Unapproved HTTPS CONNECT or forbidden source network | Request is denied; include a real network-boundary check |
 | Selected HTTP cacheable object, when HTTP caching is required | A repeated request produces a Squid cache hit; HTTPS CONNECT is not cached |
 
 For native mirrors, test their actual repository/tool retrieval instead.
@@ -266,6 +276,9 @@ Patch installation is not a prerequisite for completing update-access configurat
 **Result:** the selected supply works, and existing bootstrap/Proxmox consumers use it with direct-WAN
 bypass denied. Keep independent recovery artifacts and record the selected endpoint and checks.
 This does not prove that patches are installed, releases are approved or a cache is an offline mirror.
+Native package policy rejects incomplete APT refreshes and sets DNF signature/TLS/availability defaults;
+repository-specific overrides and publisher keys still need review. See the
+[consumer checks](proxy-cache.md#consumer-verification-and-failure-behavior).
 
 Continue from **`<prefix>-tier-0/`** at [Stage 2: Protected logging](../stage-2-logging/README.md).
 
@@ -295,7 +308,8 @@ See the [policy and sizing reference](proxy-cache.md) when extending the allowed
 
 | Extension | When and ownership | Relation to the early path |
 | --- | --- | --- |
-| Retained RPM/APT repositories | Tier 1 repository manager or verified existing service; product selection/installer remains open | Synchronize through controlled egress, then retain and approve releases for clients |
+| Retained RPM/APT repositories and selected files | [Verified intake installer](verified-intake.md), or an existing qualified Tier 1 service | Native acquisition, verification and scanning before immutable publication; independently retained Tier 0 supply |
+| Wider vulnerability policy | [Design extension](../../architecture/software/artifact-verification.md); OCI/Trivy integration remains separate | Add target-specific gates; ordinary proxy tunnels remain unscanned |
 | OCI registry | [Stage 7 artifact supply](../stage-7-delivery/procedures/registry.md); Tier 1, Harbor is an example | Store/promote container images and compatible OCI artifacts; does not replace RPM/APT repositories |
 | Patch rollout | Tier-owned maintenance automation; not supplied end to end | Use approved content with test/reboot/health gates; content availability alone is not patch compliance |
 

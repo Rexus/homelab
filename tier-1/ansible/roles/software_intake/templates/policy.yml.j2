@@ -1,0 +1,14 @@
+---
+intake_sources:
+{{ software_intake_worker_sources | to_nice_yaml | indent(2, true) }}
+intake_fetch_user: {{ software_intake_fetch_user }}
+intake_scan_user: {{ software_intake_scan_user }}
+intake_config_dir: {{ software_intake_config_dir }}
+intake_data_dir: {{ software_intake_data_dir }}
+intake_environment: {{ software_intake_environment | to_json }}
+intake_clam_database_dir: {{ software_intake_clam_database_dir }}
+intake_max_definition_age_days: {{ software_intake_max_definition_age_days }}
+intake_max_file_mb: {{ software_intake_max_file_mb }}
+intake_max_scan_mb: {{ software_intake_max_scan_mb }}
+intake_min_free_bytes: {{ software_intake_min_free_bytes }}
+intake_quarantine_days: {{ software_intake_quarantine_days }}

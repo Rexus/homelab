@@ -1,0 +1,11 @@
+---
+- name: Run the configured verification and publication policy
+  hosts: software_intake
+  become: true
+  gather_facts: false
+  serial: 1
+  tasks:
+    - name: Run the serialized native intake service
+      ansible.builtin.systemd_service:
+        name: intake.service
+        state: started

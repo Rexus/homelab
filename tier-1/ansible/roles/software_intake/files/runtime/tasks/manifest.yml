@@ -1,0 +1,65 @@
+---
+# Native SHA256 inventory, shared by sealing and both publication integrity checks.
+- name: Inspect the inventory root without following links
+  ansible.builtin.stat:
+    path: "{{ intake_inventory_path }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  register: intake_inventory_root
+
+- name: Require a real payload directory
+  ansible.builtin.assert:
+    that:
+      - intake_inventory_root.stat.isdir | default(false)
+      - not intake_inventory_root.stat.islnk | default(false)
+
+- name: Inventory every payload entry without following links
+  ansible.builtin.find:
+    paths: "{{ intake_inventory_path }}"
+    recurse: true
+    hidden: true
+    follow: false
+    file_type: any
+    get_checksum: false
+  register: intake_inventory_entries
+
+- name: Require a complete ordinary-file inventory
+  ansible.builtin.assert:
+    that:
+      - intake_inventory_entries.skipped_paths | default({}) | length == 0
+      - intake_inventory_entries.files | selectattr('isreg') | list | length > 0
+      - intake_inventory_entries.files | rejectattr('isreg') | rejectattr('isdir') | list | length == 0
+    fail_msg: Payload inventory is incomplete or contains links or special files.
+
+- name: Hash every ordinary file with the compatible native stat module
+  ansible.builtin.stat:
+    path: "{{ intake_inventory_file.path }}"
+    follow: false
+    checksum_algorithm: sha256
+    get_mime: false
+    get_attributes: false
+  loop: "{{ intake_inventory_entries.files | selectattr('isreg') | list }}"
+  loop_control:
+    loop_var: intake_inventory_file
+    label: "{{ intake_inventory_file.path }}"
+  register: intake_inventory_checksums
+
+- name: Refuse a missing or changed file type while collecting hashes
+  ansible.builtin.assert:
+    quiet: true
+    that:
+      - item.stat.isreg | default(false)
+      - not item.stat.islnk | default(false)
+      - item.stat.checksum | default('') is match('^[a-f0-9]{64}$')
+  loop: "{{ intake_inventory_checksums.results }}"
+  loop_control:
+    label: "{{ item.intake_inventory_file.path }}"
+
+- name: Record the payload's relative SHA256 manifest
+  ansible.builtin.set_fact:
+    intake_inventory_manifest: >-
+      {{ dict(intake_inventory_checksums.results | map(attribute='stat.path')
+         | map('regex_replace', '^' ~ ((intake_inventory_path ~ '/') | regex_escape), '')
+         | zip(intake_inventory_checksums.results | map(attribute='stat.checksum'))) }}

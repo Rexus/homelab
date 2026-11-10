@@ -1,0 +1,88 @@
+---
+- name: Recheck the prepared mount immediately before creating data directories
+  ansible.builtin.command:
+    argv: [findmnt, --noheadings, --mountpoint, "{{ software_intake_data_dir }}", --output, 'TARGET,OPTIONS']
+  register: software_intake_storage_mount
+  changed_when: false
+  failed_when: >-
+    software_intake_storage_mount.rc != 0 or
+    software_intake_storage_mount.stdout.split() | length != 2 or
+    software_intake_storage_mount.stdout.split()[0] != software_intake_data_dir or
+    ['rw', 'nodev', 'nosuid', 'noexec'] | difference(software_intake_storage_mount.stdout.split()[1].split(',')) | length > 0
+
+- name: Create independent intake access groups
+  ansible.builtin.group:
+    name: "{{ item }}"
+    system: true
+  loop: [intake-fetch, intake-scan, intake-pub, intake-read]
+
+- name: Create non-login acquisition, assessment and web identities
+  ansible.builtin.user:
+    name: "{{ item }}"
+    group: "{{ item }}"
+    system: true
+    create_home: false
+    home: /nonexistent
+    shell: /usr/sbin/nologin
+    password_lock: true
+  loop: [intake-fetch, intake-scan, intake-pub]
+
+- name: Grant the web identity read access only to approved publications
+  ansible.builtin.user:
+    name: "{{ software_intake_web_user }}"
+    groups: "{{ software_intake_read_group }}"
+    append: true
+
+- name: Keep configuration and private work separate from published content
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "{{ software_intake_config_dir }}", group: root, mode: '0755'}
+    - {path: "{{ software_intake_config_dir }}/keys", group: root, mode: '0755'}
+    - {path: "{{ software_intake_config_dir }}/tls", group: root, mode: '0700'}
+    - {path: "{{ software_intake_data_dir }}", group: root, mode: '0711'}
+    - {path: "{{ software_intake_data_dir }}/staging", group: root, mode: '0711'}
+    - {path: "{{ software_intake_data_dir }}/publishing", group: intake-scan, mode: '0750'}
+    - {path: "{{ software_intake_data_dir }}/public", group: intake-read, mode: '0750'}
+    - {path: "{{ software_intake_data_dir }}/quarantine", group: root, mode: '0700'}
+    - {path: "{{ software_intake_data_dir }}/private", group: root, mode: '0700'}
+    - {path: "{{ software_intake_data_dir }}/private/gnupg", group: root, mode: '0700'}
+    - {path: "{{ software_intake_data_dir }}/private/ansible", group: root, mode: '0700'}
+    - {path: "{{ software_intake_data_dir }}/private/home", group: root, mode: '0700'}
+    - {path: "{{ software_intake_data_dir }}/private/cache", group: root, mode: '0700'}
+    - {path: "{{ software_intake_data_dir }}/runtime-tmp", group: root, mode: '0711'}
+
+- name: Retain native definition updater ownership without granting scanner write access
+  ansible.builtin.file:
+    path: "{{ software_intake_clam_database_dir }}"
+    state: directory
+    owner: "{{ software_intake_clam_users[ansible_os_family] }}"
+    group: "{{ software_intake_clam_users[ansible_os_family] }}"
+    mode: '0755'
+
+- name: Register read-only HTTP contexts for publication and its private construction area
+  community.general.sefcontext:
+    target: "{{ item.path }}(/.*)?"
+    setype: "{{ item.type }}"
+    state: present
+  loop:
+    - {path: "{{ software_intake_data_dir }}/public", type: httpd_sys_content_t}
+    - {path: "{{ software_intake_data_dir }}/publishing", type: httpd_sys_content_t}
+    - {path: "{{ software_intake_config_dir }}/tls", type: cert_t}
+    - {path: /run/software-intake-nginx, type: httpd_var_run_t}
+    - {path: /var/log/software-intake-nginx, type: httpd_log_t}
+    - {path: /var/cache/software-intake-nginx, type: httpd_cache_t}
+  register: software_intake_http_contexts
+  when: ansible_selinux.status | default('disabled') == 'enabled'
+
+- name: Apply native publication directory labels
+  ansible.builtin.command:
+    argv: [restorecon, -R, -v, "{{ software_intake_data_dir }}/public",
+           "{{ software_intake_data_dir }}/publishing", "{{ software_intake_config_dir }}/tls"]
+  register: software_intake_directory_labels
+  changed_when: software_intake_directory_labels.stdout | length > 0
+  when: ansible_selinux.status | default('disabled') == 'enabled'

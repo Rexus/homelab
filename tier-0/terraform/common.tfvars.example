@@ -1,3 +1,6 @@
+# Variable definitions: terraform/deployments/<setup>/variables.tf in this tier repository
+# Network entry schema: terraform/modules/environment_guests/variables.tf (network_zones)
+
 # Copy to: terraform/common.tfvars
 # Tier-specific Linux guest networks and optional overrides.
 # Shared defaults: ../shared/config/platform.tfvars

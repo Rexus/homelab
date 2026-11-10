@@ -207,6 +207,10 @@ There is no second static setup map.
 Native Kubernetes applications use recipes/roles rather than unnecessary Linux roots.
 A genuinely Terraform-only workflow requires its dedicated command/validation contract.
 
+Put the root's `variables.tf` path at the top of each Terraform configuration example.
+For shared inputs, name the consuming repository and schema;
+see [supported settings](../reference/platform-inputs.md#find-supported-settings).
+
 ## Maintain the upstream example
 
 From the **kit root**, review generation without writing a collection:

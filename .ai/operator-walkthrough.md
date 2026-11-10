@@ -66,6 +66,46 @@ qualifies Talos 1.13, not 1.14. Hardware HSM/ACME and tenant allocation retain t
 explicit integration boundaries. Follow [platform acceptance](platform-verification.md)
 and [operational verification](operational-verification.md) before checking live results.
 
+## Software-intake review, 2026-11-10
+
+- [x] Keep the existing Tier 2 cache pair; require explicit clients/sources, preserve HTTP
+  privacy/freshness, reject unsafe retained rules, and test denied requests as well as successful retrieval.
+- [x] Emit sanitized JSON access decisions and document later per-host Tier 0 forwarding.
+- [x] Apply native package verification/failure defaults independently of proxy selection, including
+  bootstrap mirror mode and Proxmox's separate policy file. Repository overrides remain a reviewed boundary.
+- [x] Define staged verification, quarantine and promotion as an optional Tier 1 design, not an installer.
+  Keep malware detection, publisher authentication and vulnerability assessment distinct.
+
+The subsequent verified-intake implementation adds the optional Tier 1 `intake` setup and
+source-mapped [deployment guide](../docs/deployment/stage-1-software-intake/verified-intake.md).
+It supplies native RPM/APT acquisition, copied-content verification, ClamAV gates, private quarantine,
+immutable HTTPS publication and scheduling. The single worker requires prepared storage, approved
+native tools, trust material and current definitions; it is not HA or automatic patch management.
+Live acceptance remains [INTAKE-6–9](operational-verification.md#software-intake).
+
+Verified-extension evidence: the portable regression run completed **493 cases: 287 passed,
+206 explicit native/tool skips**. Separate native fixtures passed 19 RPM/APT adapter cases,
+12 artifact-pipeline cases (one current-definition positive explicitly skipped), nine focused
+runtime gates, source/generated installer checks and Terraform mocks/correspondence. These use
+disposable local HTTPS, GPG, RPM/APT, ClamAV and Nginx fixtures, not a live deployment. Positive
+artifact scans used a disclosed old upstream CVD with fixture-only age relaxation; production
+still enforces its configured 1–7 day bound, and the default two-day stale rejection passed.
+Current official database download returned HTTP 403. Real EL10/RPM6, systemd confinement,
+SELinux, network cutover, independent forwarding and restore remain unverified.
+The final source/generated HTTPS timestamp and private native logrotate checks also passed;
+local rotation does not replace protected forwarding. All 600 guide Bash blocks passed syntax
+checking; YAML/Python/Bash source validation and diff whitespace checks passed. The three new/
+updated figures were inspected in light/dark at normal and narrow widths; hosted parity remains manual.
+
+Evidence: the portable suite passed **468 cases: 286 passed, 182 explicit native/tool skips**.
+The integrated native profile reported **18 passed and four explicit root/parser skips**;
+the separate 12-case package/bootstrap run passed those Ansible 2.16 and root fixtures too.
+Real Squid exercises source/generated ACLs, caching/revalidation and JSON privacy. Native APT exercises
+transient refresh failures, unsigned/expired metadata and the source-level `trusted=yes` exception.
+DNF configuration/idempotence is tested; a native DNF engine and live hosts were not available.
+The new architecture figure was rendered/inspected in four light/dark and reading-width combinations;
+hosted-renderer parity and [INTAKE-1–5](operational-verification.md#software-intake) remain manual.
+
 ## Current journey verdict
 
 The engineer can generate repositories and follow native installation recipes for
@@ -296,12 +336,15 @@ inspected. Every selected path still needs its own live acceptance evidence.
 - [ ] **P2: Cache hardening variants.** Implement client authentication or TLS/mTLS listener
   only for a selected requirement, with support/acceptance documented; keep the HTTP proxy
   reference's limits visible and avoid implying TLS interception is required.
-- [ ] **P2: Software intake and patch management.** Qualify a common multi-distro repository
-  platform and a Windows update path without direct client WAN access. Evaluate on-demand
-  content versus retained approved releases; one cache does not implement mirrors or patching.
+- [ ] **P2: Wider software intake and patch management.** The selected Linux repository/artifact
+  worker is supplied; Windows, OCI vulnerability gates and broader repository-management products
+  remain optional integrations. Qualify retained releases without direct client WAN access.
   Add tier-owned maintenance recipes, test rings, reboot/health gates and patch-status evidence;
   Tier 1 content services must not acquire Tier 0 execution credentials. Product selection and
-  installer work remain open; transparent/TLS-intercepting proxy modes are not supplied.
+  implementation for those additions remain open; transparent/TLS-intercepting proxy modes are not supplied.
+  The [staged verification/quarantine contract](../docs/architecture/software/artifact-verification.md)
+  defines policy, ownership and failure behavior; distinguish its implemented Linux reference from
+  unimplemented target types and from site acceptance.
 - [ ] **P3: Reading density.** Split historic generated-repository upgrade detail away from
   first-use contracts; separate advanced direct-mesh storage and large cache-sizing material
   from the main path. Preserve old anchors and generated-project edits when moving content.
