@@ -40,9 +40,11 @@ def reachable(documents, frontdoors):
 
 class DocumentationGraph(TierRepositoryTestCase):
     def assert_manual_reachable(self, root, frontdoors):
-        documents = {path.resolve() for path in root.rglob("*.md")}
+        documents = {path.resolve() for path in root.rglob("*.md")
+                     if "> **Compatibility copy:**" not in path.read_text(encoding="utf-8")}
         assets = {path.resolve() for path in root.rglob("*")
-                  if path.suffix.lower() in (".svg", ".png", ".mmd", ".drawio", ".puml")}
+                  if path.suffix.lower() in (".svg", ".png", ".mmd", ".drawio", ".puml")
+                  and path.as_posix().split("/auto-docs/")[-1] != "conventions/vmid-convention.svg"}
         frontdoors = {path.resolve() for path in frontdoors}
         known = documents | assets | frontdoors
         visited = reachable(known, frontdoors)

@@ -21,7 +21,7 @@
     fail_msg: >-
       The receiver supports EL 10, a dedicated data volume,
       an explicit IPv4 bind address, client catalogue and independent TLS files.
-      Follow docs/deployment/stage-2-logging/procedures/receiver.md before installation.
+      Follow docs/03-deployment/stage-2-logging/procedures/receiver.md before installation.
 
 - name: Validate server-owned source namespaces
   ansible.builtin.assert:

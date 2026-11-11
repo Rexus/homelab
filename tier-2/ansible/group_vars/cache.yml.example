@@ -1,7 +1,7 @@
 # Copy to: ansible/group_vars/cache.yml
 # Replace every value before use.
-# Guide: docs/deployment/stage-1-software-intake/README.md
-# Settings: docs/reference/proxy-cache.md
+# Guide: docs/03-deployment/stage-1-software-intake/README.md
+# Settings: docs/08-reference/proxy-cache.md
 
 platform_host_ips:
   cache-1: 10.30.30.20
@@ -81,8 +81,7 @@ cache_squid_extra_options: []
 #   - dns_v4_first on
 
 # Terraform attaches a dedicated cache disk as scsi1 in the example.
-# Enterprise Linux normally discovers that as /dev/sdb. Adjust if your
-# template or hypervisor exposes the disk under a different stable path.
+# Verify the selected stable device on each host before applying.
 cache_squid_data_disk_enabled: true
 # SCSI slot identity: Linux sda/sdb ordering can differ even between identical clones.
 cache_squid_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1

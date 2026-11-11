@@ -73,7 +73,7 @@ def report_legacy_deployments(writer):
                for path in directory.glob("*" if directory.name != "environments" else "*/*")):
             print(f"Legacy Terraform deployment preserved: {directory}. "
                   "Migrate local inputs and code before running deployment commands; see "
-                  "docs/development/generated-repositories.md#terraform-layout-upgrade.")
+                  "docs/04-development/generated-repositories.md#terraform-layout-upgrade.")
 
 
 def validate_layout(upstream):
@@ -158,7 +158,7 @@ def report_legacy_shared(writer, upstream):
     retained = sorted(path for path in candidates if (writer.root / path).exists())
     if retained:
         print("Legacy tier-owned automation preserved in shared. Refresh all repos, review local edits "
-              "and owned CI paths before deployment; see docs/development/generated-repositories.md"
+              "and owned CI paths before deployment; see docs/04-development/generated-repositories.md"
               "#automation-ownership-upgrade.")
 
 
@@ -174,4 +174,4 @@ def report_edge_ownership(writer, tier, registered):
         print("Edge ownership upgrade: public edge and ordinary cache belong to Tier 2; "
               "private HSM ingress belongs to Tier 0. Existing inventory, registrations, code and state "
               "are preserved. Do not apply the new roots before deliberate migration; see "
-              "docs/development/generated-repositories.md#edge-ownership-upgrade.")
+              "docs/04-development/generated-repositories.md#edge-ownership-upgrade.")

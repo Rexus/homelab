@@ -1,6 +1,6 @@
 ---
 # Explicit extra-vars for localhost; examples are not automatically loaded.
-# Guide: docs/deployment/stage-4-kubernetes/procedures/basic-platform.md
+# Guide: docs/03-deployment/stage-4-kubernetes/procedures/basic-platform.md
 cluster_platform_action: render
 cluster_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
 cluster_platform_context: ""

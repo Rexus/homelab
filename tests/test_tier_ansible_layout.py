@@ -65,7 +65,10 @@ class AnsibleOwnership(TierRepositoryTestCase):
                           "cluster_platform", "cluster_security_logging", "host_security",
                           "postgresql_file_backup", "data_volume"})
         self.assertEqual({p.name for p in (shared / "ansible/playbooks").iterdir()},
-                         {"control-node.yml", "site.yml", "reset-known-hosts.yml"})
+                         {"control-node.yml", "site.yml", "reset-known-hosts.yml", "tasks"})
+        tasks = shared / "ansible/playbooks/tasks"
+        self.assertEqual({p.name for p in tasks.iterdir()}, {"control-node-network-filters.yml"})
+        self.assertTrue((tasks / "control-node-network-filters.yml").is_file())
         self.assertFalse((shared / "terraform").exists())
         self.assertTrue((shared / "config/guest-sizes.json").is_file())
         for tier in TIERS:
@@ -73,6 +76,8 @@ class AnsibleOwnership(TierRepositoryTestCase):
             self.assertTrue(all((modules / name / "main.tf").is_file()
                                 for name in ("environment_guests", "vm", "lxc")))
         common = yaml.safe_load((shared / "ansible/playbooks/control-node.yml").read_text())[0]
+        self.assertIn("tasks/control-node-network-filters.yml",
+                      {task.get("ansible.builtin.include_tasks") for task in common["tasks"]})
         catalog = common["vars"]["control_node_base_collection_catalog"]
         expected_roles = {
             "tier-0": {"hsm_proxy_ingress", "immutable_template", "proxmox_host", "proxmox_template_replace",

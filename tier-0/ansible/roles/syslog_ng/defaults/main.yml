@@ -1,7 +1,7 @@
 ---
-# Stage 2 receiver contract: docs/reference/syslog-receiver.md
+# Stage 2 receiver contract: docs/08-reference/syslog-receiver.md
 syslog_ng_data_mount: /srv/security-logging
-syslog_ng_data_device: /dev/sdb
+syslog_ng_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
 syslog_ng_data_fstype: xfs
 syslog_ng_data_uuid: ""
 syslog_ng_data_environment: {}

@@ -1,5 +1,5 @@
 # Protected-project starter for direct trusted CI. No raw plans/state/key artifacts.
-# Guide: docs/deployment/stage-9-development/procedures/handover.md
+# Guide: docs/03-deployment/stage-9-development/procedures/handover.md
 stages: [plan, apply]
 workflow:
   rules:

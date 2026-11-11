@@ -14,7 +14,7 @@
       {{ ansible_playbook_python }} needs {{ control_node_network_filter_requirement }}.
       Collection check mode never installs Python dependencies. Prepare python3-netaddr for
       the OS interpreter, or the declared netaddr requirement inside the active virtual environment.
-      See docs/reference/control-node-tooling.md#ansible-environment.
+      See docs/08-reference/control-node-tooling.md#ansible-environment.
   when: control_node_collections_mode == 'check'
 
 - name: Prepare missing controller network-filter dependencies

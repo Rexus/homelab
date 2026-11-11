@@ -21,8 +21,8 @@ def code_blocks(path, language):
 class LateStageGuideExecution(TierRepositoryTestCase):
     def guide_trees(self):
         self.generate()
-        return ((UPSTREAM / "docs/deployment", UPSTREAM),
-                (self.root / "verify-architecture/docs/auto-docs/deployment", self.root))
+        return ((UPSTREAM / "docs/03-deployment", UPSTREAM),
+                (self.root / "verify-architecture/docs/auto-docs/03-deployment", self.root))
 
     @unittest.skipUnless(os.name != "nt" and shutil.which("ansible-playbook"),
                          "Requires native Ansible and Bash")

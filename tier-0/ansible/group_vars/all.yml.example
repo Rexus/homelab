@@ -2,7 +2,7 @@
 # Replace every value before use.
 # This is the production/default settings file. It is used when you run without
 # --env, and it also owns shared derived values used by environment overlays.
-# Reference: docs/development/code-layout.md
+# Reference: docs/04-development/code-layout.md
 
 # SSH user created by cloud-init on the cloned guests.
 ansible_user: automation
@@ -63,7 +63,7 @@ platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 # Baseline defaults applied by Ansible roles.
 baseline_timezone: Europe/Stockholm
 # Time synchronization and SSH policy are verified template/OS prerequisites;
-# the baseline does not configure them. See docs/reference/platform-inputs.md.
+# the baseline does not configure them. See docs/08-reference/platform-inputs.md.
 # IPv6 is disabled by default because this repo currently models IPv4-only
 # guests. Set to false only for environments where IPv6 addressing, DNS,
 # routing, and firewall rules are intentionally managed. External-facing paths

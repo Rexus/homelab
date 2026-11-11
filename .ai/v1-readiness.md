@@ -16,7 +16,7 @@ Foundation hardware, Proxmox, network equipment and independent custody remain c
 The separate [operational verification](operational-verification.md) and
 [platform verification](platform-verification.md) lists remain unchecked until live evidence exists.
 
-The [2026-11-09 source consistency review](operator-walkthrough.md#current-source-consistency-review)
+The [source consistency reviews](operator-walkthrough.md#current-source-consistency-review)
 records current worktree corrections and validation. Earlier qualification records below retain
 their original revision/tool scope.
 

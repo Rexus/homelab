@@ -92,7 +92,7 @@ class GeneratedRepositories(TierRepositoryTestCase):
         for path in deleted:
             path.unlink()
         updates = [(self.root / "verify-tier-2", "ansible/group_vars/edge.yml.example"),
-                   (self.root / "verify-architecture", "docs/auto-docs/architecture/README.md")]
+                   (self.root / "verify-architecture", "docs/auto-docs/01-architecture/README.md")]
         expected = {}
         for repo, relative in updates:
             file = repo / relative

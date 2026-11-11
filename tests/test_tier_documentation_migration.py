@@ -2,16 +2,149 @@
 
 import hashlib
 import json
+from pathlib import Path
 import shutil
 import subprocess
 import unittest
 
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 from documentation_migration import MOVES
+from documentation import MOVED_SOFTWARE_ROUTES, compatibility_paths
 from generated_files import MARKER
+from test_tier_deployment_navigation import anchors, links
 
 
 class DocumentationMigration(TierRepositoryTestCase):
+    def test_alias_targets_preserved_current_headings_after_refresh(self):
+        self.generate()
+        manual = self.root / "verify-architecture/docs/auto-docs"
+        current = manual / "01-architecture/10-hosting/README.md"
+        alias = manual / "architecture/hosting/README.md"
+        current.write_text("# Local hosting design\n\n## Site-specific choices\n", encoding="utf-8")
+        self.generate("--refresh")
+        self.assertEqual(current.read_text(encoding="utf-8"),
+                         "# Local hosting design\n\n## Site-specific choices\n")
+        alias_links = list(links(alias))
+        self.assertTrue(any(link.fragment == "site-specific-choices" for link in alias_links))
+        for link in alias_links:
+            if link.fragment:
+                self.assertIn(link.fragment, anchors(current.read_text(encoding="utf-8")))
+
+    @unittest.skipUnless(shutil.which("git"), "Requires Git")
+    def test_secret_capability_docs_do_not_unignore_private_files(self):
+        self.generate()
+        generated = self.root / "verify-architecture"
+        subprocess.run(["git", "init", "--quiet", str(generated)], check=True, capture_output=True)
+        for repo, doc, private in (
+            (UPSTREAM, "docs/01-architecture/19-secrets/README.md", "docs/01-architecture/19-secrets/private.txt"),
+            (UPSTREAM, "docs/05-operations/secrets/README.md", "docs/05-operations/secrets/private.txt"),
+            (generated, "docs/auto-docs/01-architecture/19-secrets/README.md",
+             "docs/auto-docs/01-architecture/19-secrets/private.txt"),
+            (generated, "docs/auto-docs/05-operations/secrets/README.md",
+             "docs/auto-docs/05-operations/secrets/private.txt"),
+        ):
+            for path, ignored in ((doc, False), (private, True), ("secrets/private.txt", True)):
+                result = subprocess.run(["git", "check-ignore", "--no-index", "--quiet", path],
+                                        cwd=repo, capture_output=True)
+                self.assertEqual(result.returncode, 0 if ignored else 1, f"{repo}: {path}")
+
+    def test_moved_software_routes_preserve_anchors_and_project_records(self):
+        self.generate()
+        repo = self.root / "verify-architecture"
+        manual = repo / "docs/auto-docs"
+        record = repo / "docs/README.md"
+        entries = []
+        manifest_path = repo / ".generated-files.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for area in ("architecture", "01-architecture"):
+            for route in MOVED_SOFTWARE_ROUTES:
+                old = f"{area}/software/{route}"
+                target = MOVES[old]
+                alias = manual / old
+                alias.write_text("# Previous guide\n\n## Site-specific old heading\n", encoding="utf-8")
+                manifest["files"][alias.relative_to(repo).as_posix()] = hashlib.sha256(alias.read_bytes()).hexdigest()
+                entries.append((alias, manual / target))
+        original = "# Site choices\n\n" + "".join(
+            f"[Previous guide](auto-docs/{alias.relative_to(manual).as_posix()}#site-specific-old-heading)\n"
+            for alias, _ in entries
+        )
+        record.write_text(original, encoding="utf-8")
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        self.generate("--refresh", "--dry-run")
+        self.assertEqual(record.read_text(encoding="utf-8"), original)
+        self.generate("--refresh")
+        self.assertEqual(record.read_text(encoding="utf-8"), original)
+        for alias, target in entries:
+            content = alias.read_text(encoding="utf-8")
+            self.assertIn("site-specific-old-heading", anchors(content))
+            self.assertTrue(set(anchors(target.read_text(encoding="utf-8"))) <= set(anchors(content)))
+            self.assertIn(target.resolve(), [link.target for link in links(alias)])
+        self.generate("--refresh")
+        self.assertEqual(record.read_text(encoding="utf-8"), original)
+        for link in links(record):
+            self.assertIn(link.fragment, anchors(link.target.read_text(encoding="utf-8")))
+
+    def test_refresh_preserves_owned_links_and_compatibility_anchors(self):
+        self.generate()
+        repo = self.root / "verify-architecture"
+        manual = repo / "docs/auto-docs"
+        record = repo / "docs/README.md"
+        original = ("# Site choices\n\n"
+                    "[Hosting](auto-docs/architecture/hosting/README.md)\n"
+                    "[Foundation](auto-docs/deployment/foundation/README.md#step-4-publish-and-test-vm-templates)\n"
+                    "[Previous deployment](auto-docs/02-deployment/foundation/README.md#old-section)\n"
+                    "[Previous development](auto-docs/03-development/README.md#old-section)\n"
+                    "[Previous administration](auto-docs/04-administration/README.md#old-section)\n"
+                    "[Conventions](auto-docs/conventions/README.md)\n"
+                    "[Paths](auto-docs/paths/README.md)\n"
+                    "[Decisions](auto-docs/decisions/README.md)\n"
+                    "[Reference](auto-docs/reference/README.md)\n")
+        record.write_text(original, encoding="utf-8")
+        old = manual / "deployment/foundation/README.md"
+        old.write_text("# Old foundation\n\n## Step 4: Publish and test VM templates\n", encoding="utf-8")
+        edited = manual / "architecture/hosting/README.md"
+        edited.write_text("# Local edits\n\n<a id=\"site-section\"></a>\n", encoding="utf-8")
+        manifest_path = repo / ".generated-files.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["files"][old.relative_to(repo).as_posix()] = hashlib.sha256(old.read_bytes()).hexdigest()
+        for relative in ("02-deployment/foundation/README.md", "03-development/README.md",
+                         "04-administration/README.md"):
+            prior = manual / relative
+            prior.write_text("# Previous guide\n\n## Old section\n", encoding="utf-8")
+            manifest["files"][prior.relative_to(repo).as_posix()] = hashlib.sha256(prior.read_bytes()).hexdigest()
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        self.generate("--refresh", "--dry-run")
+        self.assertEqual(record.read_text(encoding="utf-8"), original)
+        self.assertIn("# Old foundation", old.read_text(encoding="utf-8"))
+        self.generate("--refresh")
+        self.assertEqual(record.read_text(encoding="utf-8"), original)
+        self.assertEqual(edited.read_text(encoding="utf-8"), "# Local edits\n\n<a id=\"site-section\"></a>\n")
+        for link in links(record):
+            self.assertTrue(link.target.is_file(), str(link.target))
+            if link.fragment:
+                self.assertIn(link.fragment, anchors(link.target.read_text(encoding="utf-8")))
+        for old, current in (("conventions/vmid-convention.svg", "02-conventions/vmid-convention.svg"),
+                             ("reference/diagrams/palette.json", "08-reference/diagrams/palette.json")):
+            self.assertEqual((manual / old).read_bytes(), (manual / current).read_bytes())
+        for area, numbered in (("architecture", "01-architecture"), ("conventions", "02-conventions"),
+                               ("deployment", "03-deployment"), ("02-deployment", "03-deployment"),
+                               ("development", "04-development"), ("03-development", "04-development"),
+                               ("administration", "05-operations"), ("04-administration", "05-operations"),
+                               ("paths", "06-paths"), ("decisions", "07-decisions"),
+                               ("reference", "08-reference")):
+            for canonical in (manual / numbered).rglob("*.md"):
+                if "> **Compatibility copy:**" in canonical.read_text(encoding="utf-8"):
+                    continue
+                alias = manual / area / canonical.relative_to(manual / numbered)
+                if alias == edited:
+                    continue
+                self.assertTrue(alias.is_file(), str(alias))
+                self.assertTrue(set(anchors(canonical.read_text(encoding="utf-8"))) <=
+                                set(anchors(alias.read_text(encoding="utf-8"))), str(alias))
+                self.assertIn(canonical.resolve(), [link.target for link in links(alias)])
+        self.generate("--refresh")
+        self.assertEqual(record.read_text(encoding="utf-8"), original)
+
     @unittest.skipUnless(shutil.which("git"), "Requires Git")
     def test_source_and_generated_docs_are_not_hidden_by_ignore_rules(self):
         self.generate()
@@ -24,21 +157,25 @@ class DocumentationMigration(TierRepositoryTestCase):
                                     capture_output=True)
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
-    def test_fresh_trees_match_reader_intent_without_legacy_copies(self):
+    def test_fresh_trees_match_reader_intent_with_numbered_compatibility_copies(self):
         self.generate()
         reference = self.root / "verify-architecture/docs/auto-docs"
         for old, new in MOVES.items():
             self.assertFalse((UPSTREAM / "docs" / old).is_file(), old)
-            self.assertFalse((reference / old).exists(), old)
+            alias = Path(old) in compatibility_paths(Path("docs") / new)
+            self.assertEqual((reference / old).exists(), alias, old)
             self.assertTrue((reference / new).is_file(), new)
-        for domain in ("networking", "hosting", "data", "identity", "cryptography", "software", "operations"):
-            self.assertTrue((reference / "architecture" / domain / "README.md").is_file())
+        for domain in ("11-networking", "10-hosting", "12-data", "18-identity", "16-cryptography",
+                       "13-software-intake", "22-development-platform", "24-operations"):
+            self.assertTrue((reference / "01-architecture" / domain / "README.md").is_file())
+        self.assertTrue((reference / "01-architecture/05-software-lifecycle.md").is_file())
+        self.assertTrue((reference / "01-architecture/20-delivery/02-controllers.md").is_file())
         self.assertFalse((reference / "administration/compute").exists())
         for relative in ("hosts/proxmox-tls.md", "virtual-machines/template-lifecycle.md",
                          "backups/virtual-machines.md", "backups/recovery-set.md", "terraform-state.md",
                          "recovery/bootstrap.md", "recovery/virtual-machines.md",
                          "recovery/host.md", "recovery/platform.md"):
-            self.assertTrue((reference / "administration" / relative).is_file(), relative)
+            self.assertTrue((reference / "05-operations" / relative).is_file(), relative)
         for repo in self.root.iterdir():
             self.assertFalse((repo / "docs/owned").exists())
             self.assertFalse((repo / "docs/architecture.md").exists())
@@ -99,7 +236,6 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "deployment/foundation/procedures/unifi-zones.md",
                     "deployment/foundation/procedures/object-storage.md",
                     "architecture/compute/README.md", "architecture/compute/runtime.md",
-                    "architecture/delivery/README.md", "architecture/delivery/controllers.md",
                     "architecture/hosting/vmid-convention.md", "reference/proxmox-conventions.md",
                     "reference/network-plan.md",
                     "administration/compute/backup-restore.md",

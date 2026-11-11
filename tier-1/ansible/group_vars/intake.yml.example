@@ -1,7 +1,7 @@
 # Copy to: ansible/group_vars/intake.yml
 # Provisioning: terraform/deployments/intake/terraform.tfvars.example
 # Service inputs/defaults: ansible/roles/software_intake/defaults/main.yml
-# Guide: docs/deployment/stage-3-trust/step-3b-verified-intake.md
+# Guide: docs/03-deployment/stage-3-trust/step-3b-verified-intake.md
 # Terraform attaches scsi1; Ansible prepares its filesystem and persistent UUID mount.
 
 platform_host_ips:
@@ -14,7 +14,7 @@ software_intake_tls_key_src: /absolute/private/intake.key
 software_intake_tls_ca_src: /absolute/private/platform-ca.pem
 software_intake_allowed_cidrs: [10.10.10.0/24, 10.20.20.0/24, 10.42.20.0/24]
 # A fresh dedicated data disk is formatted once; existing filesystems are never reformatted.
-software_intake_data_device: /dev/sdb
+software_intake_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
 software_intake_data_fstype: xfs
 # Optional UUID pin for adopting/restoring existing storage. Keep any existing value.
 software_intake_data_uuid: ""

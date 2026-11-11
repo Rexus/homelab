@@ -2,9 +2,9 @@
 
 # Copy to: terraform/deployments/development-data/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/deployment/stage-9-development/procedures/data-services.md
+# Setup guide: docs/03-deployment/stage-9-development/procedures/data-services.md
 # Shared values live in ../../common.tfvars.
-# VMID allocations: docs/conventions/vmid-convention.md
+# VMID allocations: docs/02-conventions/vmid-convention.md
 
 # Required image qualification: the native data services use EL9 x86_64.
 # Use an approved EL9 shared default, or select its existing catalogue VMID here.

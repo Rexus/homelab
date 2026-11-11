@@ -32,7 +32,7 @@ This file keeps durable context for AI-assisted work across sessions.
   Dedicated filenames and titles match that route: step-<number>-<task>.md for main steps,
   step-<number><letter>-<task>.md for options. Companion guides share the path prefix;
   reusable guides spanning several steps or lifecycle operations live under procedures/.
-  Optional lookup material belongs in docs/reference/, not beside numbered installation steps.
+  Optional lookup material belongs in docs/08-reference/, not beside numbered installation steps.
   Renumbering updates filenames, links and refresh-move targets together, not just README labels.
   Complete all selected paths before the next stage. Enhancements are scheduled after their real
   prerequisites, even when they extend earlier capabilities; never send a fresh operator to a future
@@ -40,7 +40,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - Foundation now has four numbered actions: hosts/networks, first manual Linux template, bootstrap,
   then managed publication/clone/recovery qualification. Select HA/SDN before guests, complete SDN
   authorization after bootstrap, and qualify guest HA/ProxLB before leaving Foundation. Old anchors remain.
-  Linux host security belongs under administration/hosts/linux-security.md and is first selected at
+  Linux host security belongs under docs/05-operations/hosts/linux-security.md and is first selected at
   Stage 1 option 4b after cache VMs exist, not a pre-guest Foundation deployment.
 - Normal post-bootstrap deployment provisions the complete selected realization through IaC:
   Terraform owns guests, attached disks and state; Ansible owns guest filesystems, persistent mounts
@@ -49,7 +49,7 @@ This file keeps durable context for AI-assisted work across sessions.
   pins and mount declarations are preserved; missing storage requires recovery, not silent replacement.
   NAS-side exports/access/snapshots and offline signing/recovery custody remain explicit prerequisites.
 - Prefer 3–8 character unqualified guest hostnames, including the instance suffix: boot-1,
-  idm-1, log-1. Keep role abbreviations in docs/conventions/proxmox-conventions.md.
+  idm-1, log-1. Keep role abbreviations in docs/02-conventions/proxmox-conventions.md.
   This is a readability preference, not the DNS limit or SDN VNet's hard naming restriction;
   template/build titles and Kubernetes release/object names have separate contracts.
   Starter key/name changes never rename deployed guests, inventory or Terraform state automatically.
@@ -73,7 +73,7 @@ This file keeps durable context for AI-assisted work across sessions.
   Normal deployment uses one deploy.sh intake: Terraform provisions VM/disks and Ansible uses Shared's
   data_volume role to initialize only verified new blank storage, mount by UUID and grow XFS/ext4.
   This is Stage 3 option 3b after issuer/logging acceptance, not an unfinished Stage 1 option.
-  Intake defaults are /dev/sdb, xfs and /srv/intake; software_intake_data_uuid optionally pins existing
+  Intake defaults select the scsi1 by-id link, xfs and /srv/intake; software_intake_data_uuid optionally pins existing
   data. Preserve recognized filesystems; an absent declared volume or conflicting fstab identity fails
   rather than formatting a replacement. Do not add manual mkfs/fstab prerequisites to normal
   post-bootstrap deployments. Approved feature-compatible packages/definitions, publisher keys and
@@ -81,7 +81,7 @@ This file keeps durable context for AI-assisted work across sessions.
   accepted content. OCI/Trivy gates and opaque guest-filesystem scanning remain separate integrations.
   Keep publisher trust, malware assessment and vulnerability policy distinct;
   Tier 0 selects/verifies updates and retains independently usable supply. See
-  docs/architecture/software/artifact-verification.md. Do not reject every OS update for any CVE.
+  docs/01-architecture/13-software-intake/02-verification.md. Do not reject every OS update for any CVE.
 - Create boot-1 as a full clone, never a linked clone. Retain an offline VM backup with
   both OS/workspace disks and a tested restore path outside the failed platform. A full
   clone alone is not disaster recovery; original state, keys and approved tooling must survive.
@@ -133,7 +133,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - public cluster entry points are `terraform/deployments/kubernetes/` and
   `scripts/kubernetes-cluster.sh`; retain existing Talos state, inventory, provider,
   and credential contracts. The old script delegates; old roots require deliberate migration
-- `docs/deployment/stage-4-kubernetes/procedures/kubernetes.md` owns cluster choices and common readiness;
+- `docs/03-deployment/stage-4-kubernetes/procedures/kubernetes.md` owns cluster choices and common readiness;
   its `talos-terraform.md` sibling and stage's `step-1b-manual-cluster.md` own implementation procedures
 - The complete supplied human-SSO rollout qualifies Talos 1.13.x and requires the original
   Terraform-owned plan. Manual cluster credentials survive later guides, but that alternative's
@@ -204,10 +204,10 @@ This file keeps durable context for AI-assisted work across sessions.
 - link VMID and other maintained conventions rather than repeating their allocation rules;
   network tables distinguish SDN VNet ID (2-8 lowercase alphanumeric characters, no hyphens/underscores)
   from the readable network label/Alias and VM/DNS names
-- docs/conventions/ is the shallow front door for maintained VMID, naming/tag and network-allocation guides;
+- docs/02-conventions/ is the shallow front door for maintained VMID, naming/tag and network-allocation guides;
   platform-standards.md is the project-owned selection sheet beside the generated architecture README.
   Preserve older naming-conventions.md records on refresh; link them for manual review.
-- docs/conventions/vmid-convention.md owns the central VMID quick reference and editable SVG.
+- docs/02-conventions/vmid-convention.md owns the central VMID quick reference and editable SVG.
   Starter IDs use T C NN; Tier 0 uses the same category hundreds, with a Kubernetes exception:
   control planes 100-149, workers 150-199, infrastructure 2xx, network 3xx, logging 4xx,
   bootstrap/automation 5xx (manual boot-1 501, runner 511, optional ceremony 521).
@@ -277,14 +277,14 @@ This file keeps durable context for AI-assisted work across sessions.
   administrators, or qualified retention locks when privileged deletion must be prevented.
   One homelab operator may hold all roles with separate credentials; same-person custody
   is explicit, not WORM. Growth/access changes trigger review, not an automatic cloud dependency.
-  docs/architecture/operations/log-retention.md owns this choice; Stage 2 options 3c/3d guide it.
+  docs/01-architecture/24-operations/02-log-retention.md owns this choice; Stage 2 options 3c/3d guide it.
 - Logging implementation: Shared owns stateless `log_forwarder`; tier inventories,
   source keys/cursors and selectors stay local. Tier 0 owns reviewed-CSR signing,
   receiver, create-only NAS checkpoints, audited application filesystem views and
   independent restic jobs on a separate recovery host. NAS accounts/snapshots and
   independent storage are commissioned prerequisites, not collector privileges.
   Native sender release is transport-based; expose the unprotected tail explicitly.
-  This bounded-loss main path is not replicated intake or WORM. See `docs/reference/logging-pipeline.md`.
+  This bounded-loss main path is not replicated intake or WORM. See `docs/08-reference/logging-pipeline.md`.
 - All source Linux, template and Kubernetes Terraform roots verify Proxmox TLS. Provisioning
   entry points reject current/legacy insecure environment flags; bootstrap trusts the Proxmox CA.
 - Linux VM, Kubernetes and LXC NIC resources explicitly enable Proxmox firewall participation;
@@ -330,9 +330,9 @@ This file keeps durable context for AI-assisted work across sessions.
 - Tier 0 operates and recovers without Tier 2; request-source loss pauses new
   requests, not control operations, and must not trigger workload deletion
 - delegated provisioning is a design goal, not an implemented controller or API;
-  its authoritative contract is docs/architecture/hosting/provisioning.md
-- docs/deployment/foundation/ contains unnumbered host/network/access/template prerequisites;
-  docs/deployment/README.md indexes ten numbered capabilities: software intake, protected logging,
+  its authoritative contract is docs/01-architecture/10-hosting/03-provisioning.md
+- docs/03-deployment/foundation/ contains unnumbered host/network/access/template prerequisites;
+  docs/03-deployment/README.md indexes ten numbered capabilities: software intake, protected logging,
   cryptographic trust, Kubernetes, Identity, Secrets, Delivery, Observability, Development platform and Lab environments
 - Stage 4 owns control-cluster bootstrap and common add-on/audit/recovery gates;
   Stage 5 owns dedicated directory VMs and federation on the existing cluster;
@@ -409,13 +409,13 @@ This file keeps durable context for AI-assisted work across sessions.
 - administration uses task/FAQ navigation and short operator runbooks: execution host/repository,
   prerequisites, exact inputs, numbered commands, expected result and stop/rollback paths.
   Preserve recovery/custody gates; link design rationale to architecture. Backup theory lives in
-  docs/architecture/operations/backup-recovery.md; provider field details belong in reference docs.
+  docs/01-architecture/24-operations/04-backup-recovery.md; provider field details belong in reference docs.
 - normal Linux deploy.sh calls Terraform apply once, with its native inline plan/approval;
   --plan-only is optional and --auto-approve uses -input=false for approved CI. Dedicated
   template/Kubernetes saved-plan workflows and manual signing/activation gates remain explicit.
 - deployment guides name the working generated repository and upstream source directory near the top;
   IaC tables distinguish tier-owned inputs/resources from Shared helper implementations;
-  docs/deployment/README.md#repository-locations owns the checkout/path convention
+  docs/03-deployment/README.md#repository-locations owns the checkout/path convention
 - optional step-Nb/step-Nc guides sit beside the main README, identify their branch
   and return point; detailed configuration lives in that stage's procedures/ folder
 - Trust Step 1b hardware protection is optional; the USB hsm setup provides VMs and OS baseline,
@@ -432,12 +432,12 @@ This file keeps durable context for AI-assisted work across sessions.
   DMZ membership never allows peer access or unsolicited WAN publication
 - authoritative mirrors and general Internet-facing build runners remain Tier 1 / DMZ,
   using the separate delivery_edge subnet; they hold no Tier 0 credentials
-- controlled software intake is documented in docs/architecture/software/software-intake.md;
+- controlled software intake is documented in docs/01-architecture/13-software-intake/01-design.md;
   Squid/VIP supplies the existing explicit proxy/cache, not a mirror or patch controller
 - Stage 1 Step 7 explicitly commissions Proxmox host update access using Tier 0's existing
   proxmox-hosts.yml recipe (Datacenter download proxy plus per-host APT), then links controlled
   one-host-at-a-time maintenance. Hosts pull through the proxy; the cache gets no host authority.
-- software intake is a separate early capability at docs/deployment/stage-1-software-intake/,
+- software intake is a separate early capability at docs/03-deployment/stage-1-software-intake/,
   not a foundation option; it is numbered Stage 1 and
   the later Stage 7 Harbor/OCI path extends this capability without becoming a bootstrap dependency
 - connected Tier 0 clients may initiate approved update pulls without granting lower-tier
@@ -488,7 +488,7 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Documentation intent
 
-- docs/architecture/README.md owns the seven foundational capabilities and reference placement map;
+- docs/01-architecture/README.md owns the seven foundational capabilities and reference placement map;
   use named services, tiers vertically (2, 1, 0), and layers horizontally (Edge, Application, Control)
 - domain diagrams expand the same capabilities into components, runtimes and cross-tier consumers;
   product names belong in reference realizations, not the top-level capability map
@@ -502,7 +502,7 @@ This file keeps durable context for AI-assisted work across sessions.
   hosting/kubernetes.md owns the three-tier topology; data/ owns storage interfaces and persistence;
   software/ owns software lifecycle, intake, source/build/artifact/release functions;
   networking/ owns service reachability and publication, distinct from software delivery
-- software/controllers.md owns the independent Flux, Argo CD and Spinnaker boundaries
+- delivery/controllers.md owns the independent Flux, Argo CD and Spinnaker boundaries
 - variants.md records stable consumer contracts and different guarantees; detailed alternatives stay
   inside their owning domain; project architecture records one compatible selected composition
 - upstream reference views follow overview, relationships, domains and detailed variants;
@@ -510,7 +510,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - hosting/, networking/, data/, identity/, cryptography/, software/ and operations/ own capability designs;
   zero-trust access, scaling, failure domains and recovery constrain all seven rather than form stages
 - architecture is the static intended design: context, components, interfaces, variants and constraints
-- docs/deployment/readiness.md owns acceptance criteria; generated deployments.md owns site completion
+- docs/03-deployment/readiness.md owns acceptance criteria; generated deployments.md owns site completion
   tracking and selected options; the deployment index owns stages
 - use direct IT-domain directories, not intermediate system-design/subsystem-design indexes
 - design records contain required guarantees, never stage-based states or current readiness
@@ -520,7 +520,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - cryptography supports software, single USB, replicated USB and network-HSM designs;
   service seals are separate choices; do not imply every option has an installer
 - deployment/, development/, and administration/ separate installation, code and operations;
-  paths/ contains only short repository checklists; reference/ contains exact contracts
+  06-paths/ contains only short repository checklists; 08-reference/ contains exact contracts
 - development/ opens with a visual repository map and fast edit routes; code-layout.md maps real
   entry points, tier inputs and Shared calls, while adding-service.md and debugging.md give short recipes
 - developer examples name the working repository, distinguish private live inputs from upstream examples,
@@ -550,7 +550,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - prefer diagrams, lists, and tables over long prose
 - make example-to-live-file patterns explicit
 - keep instructions fast to scan and easy to maintain
-- follow [diagram conventions](../docs/development/diagrams.md): Tier 2/1/0 top-down,
+- follow [diagram conventions](../docs/04-development/diagrams.md): Tier 2/1/0 top-down,
   Edge/Services/Control left-to-right; use block grids for placement and nested flowcharts
   for interfaces; validate the shared palette and render both light and dark themes
 - make it easy to do right: avoid encoding tier, zone, VLAN, and IP into names

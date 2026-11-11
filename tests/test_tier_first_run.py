@@ -71,7 +71,7 @@ class NativeFirstRun(unittest.TestCase):
             self.assertNotIn('No inventory was parsed', result.stderr)
 
     def test_documented_logging_commands_load_global_setup_and_host_inputs(self):
-        docs = (UPSTREAM / 'docs/deployment/stage-2-logging/procedures/sources.md').read_text()
+        docs = (UPSTREAM / 'docs/03-deployment/stage-2-logging/procedures/sources.md').read_text()
         blocks = re.findall(r'```bash\n(.*?)```', docs, re.S)
         inputs = next(block for block in blocks if 'logging_inputs=' in block)
         commands = [block for block in blocks if 'ansible-playbook "${logging_inputs[@]}"' in block]
@@ -105,7 +105,7 @@ class NativeFirstRun(unittest.TestCase):
         cases = [(inputs + command, f'{host}\nansible/group_vars/{setup}.yml\n{self.root}/public\n',
                   'ansible/playbooks/deployment/logging-producers.yml')
                  for host, setup in (('log-1', 'syslog'), ('ca-1', 'foundation')) for command in commands]
-        archive = (UPSTREAM / 'docs/deployment/stage-2-logging/step-3c-nas-archive.md').read_text()
+        archive = (UPSTREAM / 'docs/03-deployment/stage-2-logging/step-3c-nas-archive.md').read_text()
         for variable, host, recipe in (('LOGGING_COLLECTOR', 'log-1', 'logging-archive'),
                                        ('LOGGING_RECOVERY_HOST', 'recovery', 'logging-backup')):
             block = next(block for block in re.findall(r'```bash\n(.*?)```', archive, re.S)

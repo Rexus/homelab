@@ -1,5 +1,5 @@
 ---
-# Guide: docs/deployment/stage-8-observability/step-4b-protected-log-search.md
+# Guide: docs/03-deployment/stage-8-observability/step-4b-protected-log-search.md
 logging_export_allow_egress_accepted: false
 logging_export_scopes:
   - name: operations

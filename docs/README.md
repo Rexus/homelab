@@ -3,18 +3,21 @@
 Architecture describes the completed intended platform from overview to detail:
 its foundational capabilities, integrated component placement, runtime relationships
 and local alternatives. Deployment builds that design in stages;
-development and administration maintain it.
+development changes the implementation and operations maintains the system.
+The same capability names connect these views: for example, Software Intake is
+designed in architecture, built in Stage 1 and maintained in operations.
+Software Lifecycle is the wider domain that also includes builds and delivery.
 
 | Intent | Start here | Contains |
 | --- | --- | --- |
-| Understand the design | [Architecture](architecture/README.md) | Foundational capabilities, reference placement, interfaces and design variants |
-| Choose names, IDs and network allocations | [Conventions](conventions/README.md) | Names, tags, VMID ranges and zone/VNet examples |
-| Build the platform | [Deployment](deployment/README.md) | Foundation prerequisites and numbered capability stages, including software intake and Kubernetes |
-| Change the code | [Development](development/README.md) | Visual repository/code maps, extension examples, debugging and focused checks |
-| Operate the platform | [Administration](administration/README.md) | Maintenance, backups, recovery and secret handling |
-| Work from one repository | [Repository paths](paths/README.md) | Short Tier 0, Tier 1, Tier 2 and shared checklists |
-| Look up an input or command | [Reference](reference/README.md) | Naming, catalogs, input contracts and CLI options |
-| Understand a decision | [Decision log](decisions/README.md) | Rationale, consequences and review triggers |
+| Understand the design | [Architecture](01-architecture/README.md) | Foundational capabilities, reference placement, interfaces and design variants |
+| Choose names, IDs and network allocations | [Conventions](02-conventions/README.md) | Names, tags, VMID ranges and zone/VNet examples |
+| Build the platform | [Deployment](03-deployment/README.md) | Foundation prerequisites and numbered capability stages, including software intake and Kubernetes |
+| Change the code | [Development](04-development/README.md) | Visual repository/code maps, extension examples, debugging and focused checks |
+| Operate the platform | [Operations](05-operations/README.md) | Maintenance, backups, recovery and secret handling |
+| Work from one repository | [Repository paths](06-paths/README.md) | Short Tier 0, Tier 1, Tier 2 and shared checklists |
+| Understand a decision | [Decision log](07-decisions/README.md) | Rationale, consequences and review triggers |
+| Look up an input or command | [Reference](08-reference/README.md) | Naming, catalogs, input contracts and CLI options |
 
 ## Read command examples
 
@@ -31,28 +34,32 @@ command blocks contain the commands to copy. Fences name the actual language: `b
 `hcl` or `dotenv`; `text` is for plain output and file trees.
 Keep comments only when they explain the code itself. Separate logical comment/command groups
 with blank lines, and indent wrapped comment text consistently.
-See the [repository map](deployment/README.md#repository-locations) for ownership.
+See the [repository map](03-deployment/README.md#repository-locations) for ownership.
 
 ## Start here
 
-For installation, start with [foundation prerequisites](deployment/foundation/README.md), then follow
-the [numbered capability stages](deployment/README.md#deployment-stages). Each guide links its design
+Find the same capability across design, installation and operations in the
+[capability index](06-paths/capabilities.md).
+
+For installation, start with [foundation prerequisites](03-deployment/foundation/README.md), then follow
+the [numbered capability stages](03-deployment/README.md#deployment-stages). Each guide links its design
 and reference details at the point they are needed.
 
 For a design review, follow this reading order:
 
-1. Read the [platform overview](architecture/README.md) and its connected functions.
-2. Expand the [integrated reference](architecture/reference-platform.md) and
-   [runtime relationships](architecture/runtime-flows.md).
-3. Drill into [foundational capabilities](architecture/README.md#foundational-capabilities) and
-   [select compatible variants](architecture/variants.md).
+1. Read the [platform overview](01-architecture/README.md) and its connected functions.
+2. Expand the [integrated reference](01-architecture/06-reference-platform.md) and
+   [runtime relationships](01-architecture/07-runtime-flows.md).
+3. Drill into the [capability views](01-architecture/README.md#capabilities),
+   supporting [foundation domains](01-architecture/README.md#foundational-capabilities) and
+   [compatible variants](01-architecture/08-variants.md).
 4. Record selected design in the generated architecture repository's `docs/README.md`;
    complete `platform-standards.md` for local standards and use `deployments.md` for completion checks.
-5. Follow the [deployment stages](deployment/README.md), using verified
+5. Follow the [deployment stages](03-deployment/README.md), using verified
    existing services wherever they satisfy the prerequisites.
 
 Deployment guides name the working repository; the
-[repository map](deployment/README.md#repository-locations) connects Tier 0/1/2
+[repository map](03-deployment/README.md#repository-locations) connects Tier 0/1/2
 and Shared to generated checkouts and source directories.
 
 The architecture repository's `docs/auto-docs/` is the complete maintained manual.
@@ -63,8 +70,8 @@ keep acceptance evidence separate. Tier/Shared repositories retain their code-sp
 extra site design/runbooks are added only when needed.
 
 Architecture defines the result and its boundaries. Deployment realizes it;
-development changes its implementation; administration maintains its guarantees.
-All views follow the [diagram conventions](development/diagrams.md#abstraction-and-implementation):
+development changes its implementation; operations maintains its guarantees.
+All views follow the [diagram conventions](04-development/diagrams.md#abstraction-and-implementation):
 architecture names capabilities; deployment names the selected instances and links their IaC.
 
 <a id="recommended-path"></a>

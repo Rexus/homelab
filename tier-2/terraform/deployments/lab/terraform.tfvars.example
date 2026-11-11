@@ -2,8 +2,8 @@
 
 # Copy to: terraform/deployments/lab/terraform.tfvars
 # Replace every value before use.
-# Reference: docs/development/code-layout.md
-# VMID allocations: docs/conventions/vmid-convention.md
+# Reference: docs/04-development/code-layout.md
+# VMID allocations: docs/02-conventions/vmid-convention.md
 # The 3xxx lab allocation group remains Tier 2-owned; it is not another security tier.
 # Shared values live in ../../common.tfvars.
 

@@ -1,6 +1,6 @@
 ---
 # Workloads: Stage 9, lab VM baseline.
-# Recipe mapping: docs/administration/ansible-recipes.md
+# Recipe mapping: docs/05-operations/ansible-recipes.md
 - name: Apply lab host baseline
   hosts: lab
   become: true

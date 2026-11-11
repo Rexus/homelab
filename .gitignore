@@ -41,6 +41,18 @@ packer_cache/
 
 # Secrets and local overlays
 secrets/
+# Capability documentation only; all other files in these folders stay ignored.
+!/docs/01-architecture/19-secrets/
+/docs/01-architecture/19-secrets/*
+!/docs/01-architecture/19-secrets/README.md
+!/docs/05-operations/secrets/
+/docs/05-operations/secrets/*
+!/docs/05-operations/secrets/README.md
+!/docs/auto-docs/*/secrets/
+/docs/auto-docs/*/secrets/*
+!/docs/auto-docs/*/secrets/README.md
+/docs/auto-docs/*/19-secrets/*
+!/docs/auto-docs/*/19-secrets/README.md
 *.bak.*
 *.local
 .env

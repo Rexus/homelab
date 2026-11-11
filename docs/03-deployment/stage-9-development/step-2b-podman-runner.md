@@ -1,0 +1,359 @@
+# Step 2b: Podman build runner
+
+**Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
+Run repository scripts from this root; paths below are repository-relative.
+
+The reference runner belongs to Tier 1 on the `delivery_edge` DMZ subnet,
+separate from Tier 2 clients and public ingress. Only approved source, registry
+and software-supply listeners are reachable; no Tier 0 credentials belong here.
+Existing installations retain their network values until an explicit migration.
+
+<a id="podman-image-runner-guide"></a>
+
+**Branch from:** [Step 2](README.md#step-2-add-on-demand-build-execution), when choosing general build execution.
+**Change:** Use a Podman-based general runner, not the protected Tier 0 runner.
+**Return:** [Step 2](README.md#step-2-add-on-demand-build-execution) for bounded-job acceptance and
+the optional image-lifecycle choice, then Step 3 Vault authorization.
+
+**Design:** [build and execution boundaries](../../01-architecture/05-software-lifecycle.md).
+
+## Table of contents
+
+- [Purpose](#purpose)
+- [What this deploys](#what-this-deploys)
+- [Prerequisites](#prerequisites)
+- [Terraform configuration](#terraform-configuration)
+- [Ansible configuration](#ansible-configuration)
+- [GitLab runner setup](#gitlab-runner-setup)
+- [Bootc image project](#bootc-image-project)
+- [GitLab CI example](#gitlab-ci-example)
+- [Promotion path](#promotion-path)
+- [Read more](#read-more)
+- [References](#references)
+
+## Purpose
+
+Use this guide to add a dedicated internal runner to an existing GitLab service
+for building bootc images for server templates and hosts.
+
+The runner builds with Podman independently of Kubernetes or Dragonfly. The CI example uses
+the accepted Stage 7 registry, such as Harbor. A separately commissioned GitLab registry is also valid;
+the supplied Kubernetes GitLab chart does not enable one.
+
+## What this deploys
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph T1["Tier 1 / general build execution"]
+    direction LR
+    subgraph PVE["Existing Proxmox / delivery_edge DMZ"]
+      Runner["runner-1<br/>Podman / GitLab Runner"]
+    end
+    Existing["Existing source control / OCI registry"]
+    Runner -->|Scoped jobs / artifact publication| Existing
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class T1,PVE boundary
+  class Runner edge
+  class Existing services
+```
+
+**IaC:** Tier 1 [runner inputs](../../../tier-1/terraform/deployments/podman-runner/terraform.tfvars.example)
+and [runner recipe](../../../tier-1/ansible/playbooks/deployment/podman-runner.yml).
+Registration requires explicit local credentials; this runner has no Tier 0 authority.
+
+This path has dedicated IaC:
+
+| Repository / system | Path or setting | Responsibility |
+| --- | --- | --- |
+| Tier 1 | [terraform/deployments/podman-runner/](../../../tier-1/terraform/deployments/podman-runner); local `terraform.tfvars` | Deploys runner VMs |
+| Tier 1 | `ansible/inventory/hosts.yml` | Stable `podman_runner` host group |
+| Tier 1 | `ansible/group_vars/podman_runner.yml` | Packages, runner description/executor and optional registration |
+| Tier 1 | [ansible/roles/podman_runner/](../../../tier-1/ansible/roles/podman_runner) | Installs Podman, Buildah, Skopeo, Git and GitLab Runner |
+| Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) | Common host preparation |
+| Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) | Execution helper called from Tier 1's root |
+| GitLab | Runner authentication token and project settings | Runs the bootc image pipeline; credentials stay outside Git |
+| Accepted Stage 7 registry | Scoped project and robot credentials | Stores candidate bootc images |
+
+Default to one runner VM. Add more runners when build time, project isolation,
+or trust boundaries require it.
+
+## Prerequisites
+
+Before starting, have:
+
+| Requirement | Notes |
+| --- | --- |
+| GitLab | Accepted Kubernetes or [VM](step-1b-source-control-vm.md) realization from Stage 9, Step 1 |
+| OCI registry | Accepted Stage 7 registry, such as Harbor, or a separately commissioned GitLab registry; scoped push/pull access |
+| Linux template | Approved RedHat-family cloud-init image; the `podman_runner` role rejects other distro families |
+| runner network access | Approved GitLab, selected OCI registry, software intake and base-image endpoints |
+| package path | runner can install `gitlab-runner` through configured repos or cache |
+| registry credentials | Red Hat credentials only when building from RHEL bootc images |
+
+GitLab recommends installing runners on a server separate from the GitLab
+server, and runner registration links that runner to the GitLab instance.[1]
+
+The supplied Kubernetes GitLab values disable the bundled registry. Installing that chart alone
+does not create an artifact destination. Set the accepted endpoint and scoped credentials in the
+image project's `REGISTRY_*` variables below.
+Neither runner installation nor `CI_REGISTRY` variables create a registry endpoint.
+
+## Terraform configuration
+
+The runner is deployed like any other application-platform VM.
+
+Edit:
+
+Edit in **`<prefix>-tier-1/`**.
+
+- `terraform/deployments/podman-runner/terraform.tfvars`: runner count, size, storage, network zone, and
+  tags
+- `ansible/inventory/hosts.yml`: `podman_runner` hosts when adding or removing runners
+- `ansible/group_vars/podman_runner.yml`: `platform_host_ips` for each runner
+- `ansible/group_vars/podman_runner.<env>.yml`: environment-specific runner IPs when --env is used
+
+Default Terraform shape:
+
+| Setting | Default example | Notes |
+| --- | --- | --- |
+| inventory key | `runner-1` | keep the numeric suffix even for one runner |
+| VM name | generated from environment naming | for example `runner-test-1` or `runner-1` |
+| role tag | `runner` | generic role |
+| service tag | `gitlab-runner`, `podman` | exact implementation tags |
+| network zone | `delivery_edge` / DMZ | approved GitLab, registry and intake endpoints only |
+| size | small or medium | increase disk when builds cache many layers |
+| template | normal Linux template | bootc is built by the runner, not required on the runner OS |
+
+Initialize local inputs from Tier 1:
+
+Run from **`<prefix>-tier-1/`**.
+
+```bash
+bash scripts/init-local-files.sh --setup podman-runner
+```
+
+Edit the files above and complete the Ansible/GitLab settings below before deployment.
+For a separate test environment, use the [environment-isolation contract](../../08-reference/repository-scripts.md#environment-isolation)
+with `--env test` on both initialization and deployment; allocate distinct VMIDs/IPs.
+
+## Ansible configuration
+
+Ansible configures the VM into a Podman-capable build runner.
+
+Edit:
+
+Edit in **`<prefix>-tier-1/`**.
+
+- `ansible/group_vars/podman_runner.yml`: GitLab URL, registration mode, description/executor and package behavior
+- `ansible/group_vars/podman_runner.<env>.yml`: environment-specific runner settings when `--env` is used.
+- Encrypted extra vars or the secret platform: real runner authentication tokens and registry credentials.
+
+The role handles:
+
+| Task | Purpose |
+| --- | --- |
+| install packages | `podman`, `buildah`, `skopeo`, `git`, `gitlab-runner` |
+| trust private CA | allow runner to reach GitLab and registry over private TLS |
+| configure runner user | keep builds isolated from normal admin users |
+| register GitLab runner | use a project or group runner authentication token |
+| use GitLab runner policy | tags such as `bootc`/`podman`, protection and untagged-job policy are configured in GitLab before token registration |
+| protect secrets | keep registry credentials in CI/CD variables or the secret platform |
+
+Use the Shell executor first. It keeps the build simple because Podman runs
+directly on the runner VM. GitLab documents that the Shell executor runs jobs
+locally on the runner machine.[2]
+
+Set `podman_runner_register: true` only after obtaining a project or group
+runner authentication token. Store the real token in an encrypted vars file,
+runner secret, or external secret system.
+
+## GitLab runner setup
+
+1. In GitLab, create a project runner (or a deliberately shared group runner) using
+   the modern authentication-token flow. Set allowed projects, `bootc`/`podman` tags,
+   untagged-job behavior and protection **in GitLab**; token registration does not
+   establish those server-side policies. [1]
+2. In `ansible/group_vars/podman_runner.yml`, set `podman_runner_gitlab_url`,
+   `podman_runner_register: true` and the approved CA path. Supply
+   `podman_runner_authentication_token` through encrypted private extra-vars.
+3. Ensure the signed Runner package repository is available to the VM, then provision:
+
+   Run from **`<prefix>-tier-1/`**.
+
+   ```bash
+   bash scripts/deploy.sh podman-runner --terraform-only
+   ```
+
+   Review Terraform's plan and enter `yes`. Keep encrypted secret-only inputs out of
+   the Terraform inventory resolver; they are supplied to Ansible in the next command.
+4. Configure and register the runner using the private token file:
+
+   Run from **`<prefix>-tier-1/`**.
+
+   ```bash
+   bash scripts/deploy.sh podman-runner --ansible-only --ansible-vars /absolute/private/podman-runner-secrets.yml
+   ```
+
+   For an Ansible-Vault-encrypted file, provide the accepted Ansible Vault password
+   source on the controller, for example `ANSIBLE_VAULT_PASSWORD_FILE`, before running.
+   The wrapper forwards this private file; it does not create a password prompt flag.
+   The role installs build packages and GitLab Runner, configures rootless IDs and registers only an unconfigured runner.
+   It uses the native CLI to inspect actual runner entries: a package-created empty `config.toml`
+   no longer suppresses registration. An unreadable configuration stops the run; existing entries are preserved.
+   The authentication-token command does not send legacy `--tag-list`, `--run-untagged` or `--locked` flags;
+   those policies remain owned by GitLab. If selecting a custom `podman_runner_config_file`, independently
+   configure the installed Runner service to read that same file.
+   Do not also run `gitlab-runner register` manually against the same host config.
+5. Run a bounded test job and verify registration, approved images, isolation and cleanup.
+   A Shell executor runs trusted jobs on its host; it is not an untrusted-code sandbox.
+
+Add `--plan-only` for preview or `--auto-approve` for an approved unattended job.
+Return to [Stage 9 Step 2](README.md#step-2-add-on-demand-build-execution) for runner acceptance
+and the 2c image-lifecycle decision. If selecting 2c, the image-build example below prepares its source.
+
+## Bootc image project
+
+Create a GitLab project that owns the server OS image definition.
+
+Recommended repository shape:
+
+```text
+Containerfile
+.gitlab-ci.yml
+etc/
+  systemd/
+    system/
+```
+
+Start with one image project per OS family or server baseline. Keep normal
+application code out of the base server image unless the host is intentionally
+an appliance.
+
+Minimal Fedora/CentOS-style `Containerfile`:
+
+```Dockerfile
+FROM quay.io/fedora/fedora-bootc:42
+
+RUN dnf -y install cloud-init qemu-guest-agent && dnf clean all
+RUN systemctl enable qemu-guest-agent.service
+RUN bootc container lint
+```
+
+Minimal RHEL `Containerfile`:
+
+```Dockerfile
+FROM registry.redhat.io/rhel10/rhel-bootc:10.0
+
+RUN dnf -y install cloud-init qemu-guest-agent && dnf clean all
+RUN systemctl enable qemu-guest-agent.service
+RUN bootc container lint
+```
+
+Red Hat's image mode workflow uses `Containerfile`, standard container tools,
+and bootc images as operating system artifacts.[4][5]
+
+## GitLab CI example
+
+In **GitLab > the image project > CI/CD variables**, configure the accepted registry:
+
+| Variable | Value |
+| --- | --- |
+| `REGISTRY_HOST` | Accepted registry hostname, without `https://` |
+| `REGISTRY_PROJECT` | Existing project/path that accepts candidate images |
+| `REGISTRY_USER`, `REGISTRY_PASSWORD` | Scoped push identity and masked secret; protect them when builds are restricted to protected refs |
+
+Trust that registry's CA on the runner and qualify push/pull before starting the build.
+The Kubernetes GitLab main path disables its integrated registry, so its `CI_REGISTRY*`
+variables are not prerequisites. For a separately enabled GitLab registry, set the same
+four inputs to that service's hostname, project path and scoped credentials. [6]
+
+If the image is based on RHEL, add protected and masked GitLab CI/CD variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `RH_REGISTRY_USER` | username for `registry.redhat.io` |
+| `RH_REGISTRY_PASSWORD` | password or token for `registry.redhat.io` |
+
+Example `.gitlab-ci.yml`:
+
+```yaml
+stages:
+  - build
+
+variables:
+  BOOTC_IMAGE: "$REGISTRY_HOST/$REGISTRY_PROJECT/server-base"
+
+build_bootc_image:
+  stage: build
+  tags:
+    - bootc
+  script:
+    - set -euo pipefail
+    - |
+      printf '%s' "$REGISTRY_PASSWORD" |
+        podman login "$REGISTRY_HOST" -u "$REGISTRY_USER" --password-stdin
+    - |
+      if [ -n "${RH_REGISTRY_USER:-}" ]; then
+        printf '%s' "$RH_REGISTRY_PASSWORD" |
+          podman login registry.redhat.io -u "$RH_REGISTRY_USER" --password-stdin
+      fi
+    - podman build --pull=always -t "$BOOTC_IMAGE:$CI_COMMIT_SHORT_SHA" .
+    - podman push "$BOOTC_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        podman tag "$BOOTC_IMAGE:$CI_COMMIT_SHORT_SHA" "$BOOTC_IMAGE:stable"
+        podman push "$BOOTC_IMAGE:stable"
+      fi
+```
+
+Use the short SHA tag for traceability. Use the `stable` tag only from a
+protected branch or protected tag after the image has passed review.
+Keep shell tracing disabled around registry authentication; do not expose credentials in job logs.
+
+RHEL bootc images are subject to Red Hat subscription and redistribution rules,
+so do not publish derived RHEL OS images to a public registry.[7]
+
+## Promotion path
+
+The main path publishes directly to the accepted Stage 7 registry:
+
+```text
+GitLab project -> Podman runner -> Harbor -> accepted bootc image
+```
+
+For the separately commissioned GitLab-registry alternative:
+
+```text
+GitLab project -> Podman runner -> GitLab registry -> bootc template or host
+```
+
+If promoting those candidates into the accepted Stage 7 Harbor service:
+
+```text
+GitLab project -> Podman runner -> GitLab registry -> Harbor -> bootc hosts
+```
+
+These are optional distribution shapes, not stages to install in order. Harbor already exists
+when selected in Stage 7; it can receive builds directly without a GitLab-registry intermediate.
+
+## Read more
+
+- [Development platform path](step-1b-source-control-vm.md)
+- [Container registry path](../stage-7-delivery/procedures/registry.md)
+- [Image-based Linux path](step-2c-image-based-linux.md)
+- [Enterprise Linux template](../foundation/proxmox/templates.md)
+
+## References
+
+1. [GitLab runner registration](https://docs.gitlab.com/runner/register/)
+2. [GitLab Shell executor](https://docs.gitlab.com/runner/executors/shell/)
+3. [Install GitLab Runner from Linux repositories](https://docs.gitlab.com/runner/install/linux-repository/)
+4. [Red Hat image mode pipeline with GitLab](https://developers.redhat.com/articles/2026/02/12/how-build-image-mode-pipeline-gitlab)
+5. [Red Hat image mode for RHEL](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_image_mode_for_rhel_to_build_deploy_and_manage_operating_systems/introducing-image-mode-for-rhel)
+6. [GitLab predefined CI/CD variables](https://docs.gitlab.com/ci/variables/predefined_variables/)
+7. [RHEL bootc base image](https://catalog.redhat.com/en/software/containers/rhel9/rhel-bootc/6605573d4dbfe41c3d839c69)

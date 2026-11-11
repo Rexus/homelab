@@ -1,6 +1,7 @@
 """Stage entry points distinguish supplied automation from intended end states."""
 
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -12,6 +13,21 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 class StageContracts(TierRepositoryTestCase):
+    def test_readiness_capabilities_match_numbered_stage_index(self):
+        self.generate()
+        for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            deployment = docs / "03-deployment"
+            index = (deployment / "README.md").read_text(encoding="utf-8")
+            stages = re.findall(r"(?m)^\| (\d+): ([^|]+) \|", index)
+            self.assertEqual([int(number) for number, _ in stages], list(range(1, 11)))
+            readiness = (deployment / "readiness.md").read_text(encoding="utf-8")
+            table = readiness.split("## Capability evidence", 1)[1].split("## Project records", 1)[0]
+            rows = re.findall(r"(?m)^\| ([^|]+) \| ([^|]+) \|", table)[2:]
+            self.assertEqual([name.strip() for name, _ in rows],
+                             ["Foundation", *(name.strip() for _, name in stages)])
+            for (number, _), (_, integration) in zip(stages, rows[1:]):
+                self.assertRegex(integration.strip(), rf"^Stage {number}\b")
+
     def test_os_baseline_does_not_advertise_unimplemented_security_controls(self):
         self.generate()
         unused = {"baseline_manage_packages", "baseline_manage_ssh", "baseline_disable_password_auth",
@@ -23,10 +39,10 @@ class StageContracts(TierRepositoryTestCase):
                 path = collection / f"{prefix}tier-{tier}/ansible/group_vars/all.yml.example"
                 self.assertFalse(unused.intersection(yaml.safe_load(path.read_text())))
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            boundary = (docs / "reference/platform-inputs.md").read_text()
+            boundary = (docs / "08-reference/platform-inputs.md").read_text()
             self.assertIn("## OS baseline boundary", boundary)
             self.assertIn("not a full security", boundary)
-            cluster = (docs / "deployment/stage-4-kubernetes/procedures/kubernetes.md").read_text()
+            cluster = (docs / "03-deployment/stage-4-kubernetes/procedures/kubernetes.md").read_text()
             self.assertIn("7. Security events", cluster)
             self.assertIn("security-logging.md", cluster)
             self.assertIn("unique node certificates", cluster)
@@ -53,35 +69,35 @@ class StageContracts(TierRepositoryTestCase):
     def test_all_stages_disclose_automation_before_the_numbered_path(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            stages = sorted((docs / "deployment").glob("stage-*/README.md"))
+            stages = sorted((docs / "03-deployment").glob("stage-*/README.md"))
             self.assertEqual(len(stages), 10)
             for stage in stages:
                 content = stage.read_text()
                 opening = content.split("## Main path", 1)[0]
                 self.assertIn("**Automation:**", opening, str(stage))
                 self.assertIn("implementation-support.md#stage-coverage", opening, str(stage))
-            support = (docs / "reference/implementation-support.md").read_text()
+            support = (docs / "08-reference/implementation-support.md").read_text()
             summary = support.split("## Stage coverage", 1)[1].split("## Detailed coverage", 1)[0]
             self.assertIn("not a zero-touch appliance", summary)
             self.assertIn("Independent private API endpoint", summary)
             self.assertNotIn("first missing main-path", summary)
             for stage in stages:
-                self.assertIn(f"deployment/{stage.parent.name}/README.md", summary)
+                self.assertIn(f"03-deployment/{stage.parent.name}/README.md", summary)
             self.assertIn("empty manifests do not meet a stage gate", " ".join(summary.split()))
 
     def test_software_issuer_path_hands_off_later_work_without_backwards_dependencies(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            software = (docs / "deployment/stage-3-trust/procedures/software-pki.md").read_text()
+            software = (docs / "03-deployment/stage-3-trust/procedures/software-pki.md").read_text()
             self.assertIn('id="complete-identity-and-acceptance"', software)
             self.assertIn("## Step 5: Accept the issuer and continue", software)
             self.assertIn("In Stage 5", software)
             self.assertIn("not a Stage 3 acceptance dependency", software)
-            migration = docs / "administration/cryptography/hardware-migration.md"
+            migration = docs / "05-operations/cryptography/hardware-migration.md"
             self.assertTrue(migration.is_file())
-            self.assertFalse((docs / "architecture/cryptography/hardware-migration.md").exists())
+            self.assertFalse((docs / "01-architecture/cryptography/hardware-migration.md").exists())
             self.assertIn('id="qualify-and-roll-over"', migration.read_text())
-            alternative = (docs / "deployment/stage-8-observability/step-1b-dedicated-vms.md").read_text()
+            alternative = (docs / "03-deployment/stage-8-observability/step-1b-dedicated-vms.md").read_text()
             self.assertIn("README.md#step-3-connect-infrastructure-monitoring", alternative)
             self.assertIn("Do not run Step 2's Kubernetes installer on these VMs", alternative)
             self.assertIn("do not allocate or install a separate diagnostics runtime", alternative)

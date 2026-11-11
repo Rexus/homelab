@@ -42,7 +42,7 @@ class BootstrapIntake(TierRepositoryTestCase):
         generated = self.root / 'verify-tier-0'
         self.assertIn('../../verify-shared/ansible/roles',
                       (generated / 'ansible/ansible.cfg').read_text())
-        guide = (self.root / 'verify-architecture/docs/auto-docs/deployment/'
+        guide = (self.root / 'verify-architecture/docs/auto-docs/03-deployment/'
                  'stage-1-software-intake/step-6-bootstrap-consumer.md').read_text()
         self.assertIn('Run from **`verify-tier-0/`**.', guide)
         self.assertIn('bootstrap-software-intake.yml', guide)

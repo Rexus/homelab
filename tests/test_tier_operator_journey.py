@@ -15,20 +15,20 @@ class OperatorJourney(TierRepositoryTestCase):
     def test_first_host_handoff_does_not_skip_logging_or_network_commissioning(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            foundation = (docs / "deployment/foundation/README.md").read_text()
+            foundation = (docs / "03-deployment/foundation/README.md").read_text()
             self.assertIn("network/unifi.md#bring-up-the-network", foundation)
-            host = (docs / "deployment/foundation/proxmox/README.md").read_text()
+            host = (docs / "03-deployment/foundation/proxmox/README.md").read_text()
             handoff = host.split("### Step 4:", 1)[1].split("## Platform guides", 1)[0]
             self.assertIn("../README.md", handoff)
             self.assertIn("stage-1-software-intake/README.md", foundation)
             self.assertIn("stage-2-logging/README.md", foundation)
             self.assertNotIn("freeipa.md", handoff)
-            network = (docs / "deployment/foundation/network/unifi.md").read_text()
+            network = (docs / "03-deployment/foundation/network/unifi.md").read_text()
             for expected in ("## Step 1: Bring up the network", "switch alone is not", "controller",
                              "native/untagged", "control_cluster"):
                 self.assertIn(expected.lower(), network.lower())
             for relative in ("README.md", "procedures/receiver.md"):
-                logging = (docs / "deployment/stage-2-logging" / relative).read_text()
+                logging = (docs / "03-deployment/stage-2-logging" / relative).read_text()
                 self.assertIn("software-pki.md#decisions-and-recovery-kit", logging)
                 self.assertIn("client-auth", logging)
                 self.assertIn("independent producer authority", logging)
@@ -46,7 +46,7 @@ class OperatorJourney(TierRepositoryTestCase):
         )
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup, environment in guides:
-                content = (docs / "deployment" / relative).read_text()
+                content = (docs / "03-deployment" / relative).read_text()
                 lines = [line.strip() for line in content.splitlines()]
                 init = f"bash scripts/init-local-files.sh --setup {setup}{environment}"
                 apply = f"bash scripts/deploy.sh {setup}{environment}"
@@ -57,24 +57,24 @@ class OperatorJourney(TierRepositoryTestCase):
                 self.assertTrue(any(term in content.lower() for term in ("edit", "replace", "set ")), relative)
                 for block in re.findall(r"```bash\n(.*?)```", content, re.DOTALL):
                     self.assertFalse(apply + " --plan-only" in block and apply + "\n" in block, relative)
-            vault = (docs / "deployment/stage-6-secrets/step-1b-vault-vm.md").read_text()
+            vault = (docs / "03-deployment/stage-6-secrets/step-1b-vault-vm.md").read_text()
             self.assertLess(vault.index("export VAULT_ADDR VAULT_CACERT"), vault.index("vault status"))
             self.assertLess(vault.index("vault login"), vault.index("vault audit enable"))
-            identity = (docs / "deployment/stage-5-identity/procedures/freeipa.md").read_text()
+            identity = (docs / "03-deployment/stage-5-identity/procedures/freeipa.md").read_text()
             self.assertIn("same context/state used for the issuer", identity)
 
     def test_hidden_follow_up_covers_every_branch_without_entering_generated_docs(self):
         self.generate()
         checklist = (UPSTREAM / ".ai/operator-walkthrough.md").read_text()
-        for option in (UPSTREAM / "docs/deployment").rglob("step-*.md"):
+        for option in (UPSTREAM / "docs/03-deployment").rglob("step-*.md"):
             self.assertIn(option.relative_to(UPSTREAM).as_posix(), checklist)
         for expected in ("P1: Logging integration", "P1: Recovery procedures", "P2: Household/team procedures",
                          "## Repeat cadence", "no live gateway"):
             self.assertIn(expected, checklist)
-        access = (UPSTREAM / "docs/administration/access-lifecycle.md").read_text()
+        access = (UPSTREAM / "docs/05-operations/access-lifecycle.md").read_text()
         for anchor in ("household-devices", "team-roles", "join-and-leave"):
             self.assertIn(f'id="{anchor}"', access)
-        self.assertIn("../docs/administration/access-lifecycle.md", checklist)
+        self.assertIn("../docs/05-operations/access-lifecycle.md", checklist)
         for repo in self.root.iterdir():
             self.assertFalse((repo / ".ai/operator-walkthrough.md").exists())
             self.assertIn(".venv/", (repo / ".gitignore").read_text())
@@ -91,7 +91,7 @@ class OperatorJourney(TierRepositoryTestCase):
         test = yaml.safe_load((variables / "edge.test.yml").read_text())
         self.assertEqual(base["platform_host_ips"], test["platform_host_ips"])
         self.assertFalse((tier / "terraform/deployments/edge/terraform.test.tfvars").exists())
-        guide = (UPSTREAM / "docs/reference/repository-scripts.md").read_text()
+        guide = (UPSTREAM / "docs/08-reference/repository-scripts.md").read_text()
         for expected in ("## Environment isolation", "does not allocate independent resources",
                          "Never apply a second state", "VIPs, VRRP IDs, MACs"):
             self.assertIn(expected, guide)
@@ -107,12 +107,12 @@ class OperatorJourney(TierRepositoryTestCase):
     def test_first_guest_restore_follows_template_publication_and_allows_existing_backup_services(self):
         self.generate("--repo", "architecture")
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            foundation = (docs / "deployment/foundation/README.md").read_text()
+            foundation = (docs / "03-deployment/foundation/README.md").read_text()
             bootstrap, publication = foundation.split("## Step 3:", 1)[1].split("## Step 4:", 1)
             self.assertIn("before provisioning", bootstrap)
             self.assertIn("first disposable clone in Step 4", bootstrap)
             self.assertIn("Back up and restore a disposable clone", publication)
-            backup = (docs / "administration/backups/virtual-machines.md").read_text()
+            backup = (docs / "05-operations/backups/virtual-machines.md").read_text()
             self.assertIn("An existing qualified target is valid", backup)
             criteria = backup.split('id="done-criteria"', 1)[1].split('id="read-more"', 1)[0]
             self.assertNotIn("PBS is reachable", criteria)
@@ -125,7 +125,7 @@ class OperatorJourney(TierRepositoryTestCase):
                   ("step-2c-image-based-linux.md", "immutable-template"))
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup in guides:
-                content = (docs / "deployment/stage-9-development" / relative).read_text()
+                content = (docs / "03-deployment/stage-9-development" / relative).read_text()
                 initialized = re.search(rf"bash scripts/init-local-files.sh --setup {setup}(?: --env test)?\n",
                                         content)
                 deployed = re.search(rf"bash scripts/deploy.sh {setup}(?: --env test)?(?: --terraform-only)?\n",
@@ -155,7 +155,7 @@ class OperatorJourney(TierRepositoryTestCase):
                 self.assertIn("--plan-only", quick)
 
     def test_tls_exceptions_are_visible_before_linux_api_use(self):
-        guide = (UPSTREAM / "docs/deployment/foundation/proxmox/api-access.md").read_text()
+        guide = (UPSTREAM / "docs/03-deployment/foundation/proxmox/api-access.md").read_text()
         if any(re.search(r"insecure\s*=\s*true", source.read_text())
                for tier in range(3)
                for source in (UPSTREAM / f"tier-{tier}/terraform/deployments").glob("*/providers.tf")):
@@ -166,7 +166,7 @@ class OperatorJourney(TierRepositoryTestCase):
 
     def test_bootstrap_tls_and_pki_cutover_are_reachable_in_generated_guides(self):
         self.generate()
-        relative = "administration/hosts/proxmox-tls.md"
+        relative = "05-operations/hosts/proxmox-tls.md"
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             guide = (docs / relative).read_text()
             for heading in ("## Step 1: Trust the bootstrap CA", "## Step 2: Adopt the platform PKI",
@@ -177,7 +177,7 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("SHA-256 fingerprint", guide)
             self.assertIn("untrusted CA and a wrong hostname are rejected", guide)
             self.assertIn("state as before", guide)
-            entry = (docs / "deployment/foundation/proxmox/api-access.md").read_text()
+            entry = (docs / "03-deployment/foundation/proxmox/api-access.md").read_text()
             self.assertIn(relative, entry)
-            trust = (docs / "deployment/stage-3-trust/README.md").read_text()
+            trust = (docs / "03-deployment/stage-3-trust/README.md").read_text()
             self.assertIn(relative + "#step-2-adopt-the-platform-pki", trust)

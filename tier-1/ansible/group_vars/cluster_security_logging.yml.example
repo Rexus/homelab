@@ -1,6 +1,6 @@
 ---
 # Tier 1 owns these inputs; Shared owns stateless collector execution only.
-# Guide: docs/deployment/stage-4-kubernetes/procedures/security-logging.md
+# Guide: docs/03-deployment/stage-4-kubernetes/procedures/security-logging.md
 cluster_security_logging_action: render
 cluster_security_logging_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
 cluster_security_logging_context: ""

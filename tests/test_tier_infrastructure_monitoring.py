@@ -13,7 +13,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
     def test_source_and_generated_guides_cover_netdata_and_hardware(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            stage = docs / "deployment/stage-8-observability"
+            stage = docs / "03-deployment/stage-8-observability"
             overview = (stage / "README.md").read_text()
             self.assertEqual(re.findall(r"(?m)^## Step (\d+):", overview), ["1", "2", "3", "4"])
             self.assertIn('id="step-3-publish-and-verify-read-only-views"', overview)
@@ -28,7 +28,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
                 self.assertIn(expected.lower(), guide.lower())
             for step in range(1, 4):
                 self.assertIn(f"## Step {step}:", guide)
-            design = (docs / "architecture/operations/telemetry.md").read_text()
+            design = (docs / "01-architecture/24-operations/03-telemetry.md").read_text()
             for expected in ("## Infrastructure coverage", "Netdata remains part of Observability",
                              "No Tier 1 access", "raw Tier 0 Netdata views or Functions",
                              "unknown, not evidence of health", "two diagnostic domains",
@@ -53,7 +53,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
                           ipaddress.ip_network(networks["management"]["cidr_ipv4"].strip('"')))
             self.assertEqual(monitor["infrastructure_monitoring_export_endpoint"], "")
             self.assertFalse((collection / f"{prefix}shared/ansible/inventory").exists())
-            overview = (docs / "deployment/stage-8-observability/README.md").read_text()
+            overview = (docs / "03-deployment/stage-8-observability/README.md").read_text()
             code = re.findall(r"```mermaid\n(.*?)```", overview, re.DOTALL)[2]
             for expected in ('subgraph T1[', 'subgraph T0[', "Existing platform Kubernetes",
                              "native releases", "Existing / manually inventoried",

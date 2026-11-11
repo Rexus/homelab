@@ -1,6 +1,6 @@
 ---
 # Copy to development_data.yml; keep secrets in encrypted private extra vars.
-# Guide: docs/deployment/stage-9-development/procedures/data-services.md
+# Guide: docs/03-deployment/stage-9-development/procedures/data-services.md
 platform_host_ips:
   db-1: 10.20.20.36
   kv-1: 10.20.20.37

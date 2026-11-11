@@ -103,7 +103,7 @@ class ReleasePayload(TierRepositoryTestCase):
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative in ("README.md", "procedures/platform-cluster.md"):
                 with self.subTest(docs=str(docs), relative=relative):
-                    content = (docs / "deployment/stage-7-delivery" / relative).read_text()
+                    content = (docs / "03-deployment/stage-7-delivery" / relative).read_text()
                     destination = ("step-2b-spinnaker.md" if relative == "README.md" else
                                    "../README.md#step-2-select-and-qualify-delivery")
                     self.assertIn(destination, content)

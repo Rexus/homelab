@@ -12,7 +12,7 @@ class BootstrapGuide(TierRepositoryTestCase):
     def test_foundation_prepares_hosts_and_templates_before_bootstrap_and_iac(self):
         self.generate()
         for docs in (UPSTREAM / 'docs', self.root / 'verify-architecture/docs/auto-docs'):
-            foundation = (docs / 'deployment/foundation/README.md').read_text()
+            foundation = (docs / '03-deployment/foundation/README.md').read_text()
             steps = ('## Step 1: Prepare hosts and networks',
                      '## Step 2: Create the first Linux template manually',
                      '## Step 3: Prepare the bootstrap execution host',
@@ -23,9 +23,9 @@ class BootstrapGuide(TierRepositoryTestCase):
             self.assertIn('bootstrap/README.md', foundation)
             self.assertIn('Adoption leaves the bootstrap VM outside Terraform', foundation)
             self.assertIn('step-2-protect-provisioning-access-and-state', foundation)
-            path = (docs / 'paths/tier-0/README.md').read_text()
+            path = (docs / '06-paths/tier-0/README.md').read_text()
             self.assertIn('bootstrap execution host', path)
-            handover = (docs / 'deployment/stage-9-development/procedures/handover.md').read_text()
+            handover = (docs / '03-deployment/stage-9-development/procedures/handover.md').read_text()
             self.assertIn('foundation/bootstrap/README.md', handover)
             self.assertIn('`boot-1`', handover)
             self.assertIn('`iac-1`', handover)
@@ -33,7 +33,7 @@ class BootstrapGuide(TierRepositoryTestCase):
         self.assertLess(readme.index('bootstrap execution host'), readme.index('bash scripts/proxmox-templates.sh init'))
 
     def test_manual_profile_is_not_an_invented_terraform_or_inventory_resource(self):
-        guide = (UPSTREAM / 'docs/deployment/foundation/bootstrap/README.md').read_text()
+        guide = (UPSTREAM / 'docs/03-deployment/foundation/bootstrap/README.md').read_text()
         for term in ('**Manual:**', '`boot-1`', 'management', 'example VLAN 10',
                      'Corosync or Ceph', 'not an IaC', 'outside', 'not a CI runner',
                      'one writer per root', 'independent recovery', 'not another name'):
@@ -52,7 +52,7 @@ class BootstrapGuide(TierRepositoryTestCase):
                 self.assertNotIn('boot-1', path.read_text(), str(path))
 
     def test_tools_artifacts_caller_trust_and_original_state_are_not_skipped(self):
-        guide = (UPSTREAM / 'docs/deployment/foundation/bootstrap/README.md').read_text()
+        guide = (UPSTREAM / 'docs/03-deployment/foundation/bootstrap/README.md').read_text()
         for term in ('control-node-tooling.md#automation-vm-example', 'bash scripts/init-tier-repos.sh',
                      '/srv/tier0/artifacts', 'unpacked', 'original state',
                      'proxmox-tls.md#step-1-trust-the-bootstrap-ca',
@@ -68,7 +68,7 @@ class BootstrapGuide(TierRepositoryTestCase):
             self.assertIn(package, guide)
 
     def test_manual_keys_and_attached_workspace_remain_explicit(self):
-        guide = (UPSTREAM / 'docs/deployment/foundation/bootstrap/README.md').read_text()
+        guide = (UPSTREAM / 'docs/03-deployment/foundation/bootstrap/README.md').read_text()
         for term in ('one OpenSSH key per line', 'one or several approved public keys',
                      'workstation retains its own private key', 'before first boot',
                      'not automatic access from it to later guests', 'findmnt -T /srv/tier0',
@@ -85,10 +85,10 @@ class BootstrapGuide(TierRepositoryTestCase):
 
     @unittest.skipUnless(shutil.which('bash'), 'Requires Bash')
     def test_manual_command_blocks_parse_without_executing_them(self):
-        for relative in ('deployment/foundation/bootstrap/README.md',
-                         'deployment/foundation/bootstrap/step-3c-bootstrap-home.md',
-                         'deployment/foundation/bootstrap/step-3b-bootstrap-lvm.md',
-                         'deployment/foundation/bootstrap/step-3e-bootstrap-offline.md', 'development/local-setup.md'):
+        for relative in ('03-deployment/foundation/bootstrap/README.md',
+                         '03-deployment/foundation/bootstrap/step-3c-bootstrap-home.md',
+                         '03-deployment/foundation/bootstrap/step-3b-bootstrap-lvm.md',
+                         '03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md', '04-development/local-setup.md'):
             text = (UPSTREAM / 'docs' / relative).read_text()
             for block in re.findall(r'```bash\n(.*?)```', text, re.DOTALL):
                 result = subprocess.run(['bash', '-n'], input=block, capture_output=True, text=True)

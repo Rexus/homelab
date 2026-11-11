@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Guide: docs/development/secret-scanning.md. Run from the owning Git repository.
+# Guide: docs/04-development/secret-scanning.md. Run from the owning Git repository.
 set -euo pipefail
 mode=${1:-history}
 command -v gitleaks >/dev/null || { printf 'Install the approved Gitleaks CLI first.\n' >&2; exit 2; }

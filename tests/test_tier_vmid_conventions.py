@@ -108,8 +108,8 @@ class VmidConventions(TierRepositoryTestCase):
         self.generate()
         repo = self.root / "verify-architecture"
         manual = repo / "docs/auto-docs"
-        relative = "conventions/vmid-convention.md"
-        image = "conventions/vmid-convention.svg"
+        relative = "02-conventions/vmid-convention.md"
+        image = "02-conventions/vmid-convention.svg"
         reference = (manual / relative).read_text(encoding="utf-8")
         self.assertIn("AUTO-DOCS - DO NOT EDIT", reference)
         self.assertIn("**`2103` = Tier 2, Kubernetes worker, instance 03**", reference)
@@ -138,7 +138,7 @@ class VmidConventions(TierRepositoryTestCase):
         self.assertIn("Keep the existing local VMIDs", worksheet.read_text())
 
     def test_visual_reference_has_the_same_categories_and_readable_format(self):
-        path = UPSTREAM / "docs/conventions/vmid-convention.svg"
+        path = UPSTREAM / "docs/02-conventions/vmid-convention.svg"
         diagram = ET.fromstring(path.read_text(encoding="utf-8"))
         self.assertAlmostEqual(float(diagram.attrib["width"]) / float(diagram.attrib["height"]), 4 / 3)
         text = " ".join(diagram.itertext())

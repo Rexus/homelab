@@ -8,8 +8,8 @@
 # Build inputs, checksums, credentials, and publication state stay in Tier 0.
 # Loaded by shared/scripts/deploy.sh before tier-local Terraform inputs.
 # Resolved by each tier's Terraform; shared owns no Terraform resources or host inventory.
-# Reference: docs/reference/template-catalog.md
-# VMID allocation: docs/conventions/vmid-convention.md
+# Reference: docs/08-reference/template-catalog.md
+# VMID allocation: docs/02-conventions/vmid-convention.md
 
 # Set this to an approved Linux entry below. Null deliberately selects no image.
 default_linux_vm_template_id = null

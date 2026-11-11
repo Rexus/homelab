@@ -38,7 +38,7 @@ class Observability(TierRepositoryTestCase):
     def test_kubernetes_first_design_and_native_installer_are_explicit(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            design = (docs / "architecture/operations/telemetry.md").read_text()
+            design = (docs / "01-architecture/24-operations/03-telemetry.md").read_text()
             for expected in ("logs, metrics and distributed traces", "Security Logging and Audit",
                              "do **not** have equal resource needs", "existing Tier 1 Kubernetes cluster",
                              "included initially",
@@ -46,7 +46,7 @@ class Observability(TierRepositoryTestCase):
                 self.assertIn(expected, design)
             self.assertIn("readers must have no ingest, update, delete, delete-by-query or "
                           "index-management permissions", " ".join(design.split()))
-            deployment = (docs / "deployment/stage-8-observability/README.md").read_text()
+            deployment = (docs / "03-deployment/stage-8-observability/README.md").read_text()
             for expected in ("OpenSearch is included initially", "observability-platform.yml",
                              "writes to both", "replica shards", "test worker/physical-host loss",
                              "no archive mount or write path is granted", "not Tier 0 mutation rights"):
@@ -106,22 +106,22 @@ class Observability(TierRepositoryTestCase):
     def test_design_and_stages_preserve_evidence_and_access_boundaries(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            logging = (docs / "architecture/operations/security-logging.md").read_text()
+            logging = (docs / "01-architecture/24-operations/01-security-logging.md").read_text()
             for expected in ("no loss of accepted records within a declared failure envelope",
                              "not the HA acceptance state", "Dashboards",
                              "Producers cannot read, edit or delete", "Application owner / developer"):
                 self.assertIn(expected, logging)
             self.assertIn("[Search read boundaries](telemetry.md#read-boundaries)", logging)
             self.assertIn("log-retention.md#choose-the-protection-boundary", logging)
-            telemetry = (docs / "architecture/operations/telemetry.md").read_text()
+            telemetry = (docs / "01-architecture/24-operations/03-telemetry.md").read_text()
             for expected in ("Data Prepper", "vmalert", "Alertmanager", "Tier 2 normally retains collection",
                              "not independent querying or alerts", "separate SigNoZ/ClickHouse"):
                 self.assertIn(expected, telemetry)
-            foundation = (docs / "deployment/foundation/README.md").read_text()
+            foundation = (docs / "03-deployment/foundation/README.md").read_text()
             self.assertIn("Stage 2: Protected logging", foundation)
-            later = (docs / "deployment/stage-8-observability/README.md").read_text()
+            later = (docs / "03-deployment/stage-8-observability/README.md").read_text()
             self.assertIn("An app owner receives an application-log view", later)
-            logging_stage = (docs / "deployment/stage-2-logging/README.md").read_text()
+            logging_stage = (docs / "03-deployment/stage-2-logging/README.md").read_text()
             self.assertIn("declared durability limits", logging_stage)
             self.assertIn("independent encrypted backups", logging_stage)
             self.assertIn("lossless HA", logging_stage)
@@ -129,28 +129,28 @@ class Observability(TierRepositoryTestCase):
     def test_early_collection_and_offline_recovery_contracts_are_published(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            foundation = (docs / "deployment/foundation/README.md").read_text()
+            foundation = (docs / "03-deployment/foundation/README.md").read_text()
             self.assertIn("persistent local host logs from first boot", foundation)
-            logging = (docs / "architecture/operations/security-logging.md").read_text()
+            logging = (docs / "01-architecture/24-operations/01-security-logging.md").read_text()
             for expected in ("## Offline-readable evidence", "UTF-8 JSON Lines",
                              "independently held recovery kit"):
                 self.assertIn(expected, logging)
-            read_boundaries = (docs / "architecture/operations/telemetry.md").read_text()
+            read_boundaries = (docs / "01-architecture/24-operations/03-telemetry.md").read_text()
             self.assertIn("no retention or backup authority", read_boundaries)
-            procedure = (docs / "deployment/stage-2-logging/README.md").read_text()
+            procedure = (docs / "03-deployment/stage-2-logging/README.md").read_text()
             self.assertIn("before PKI and FreeIPA", procedure)
             self.assertIn("Only the log-data volume and offline kit survive", procedure)
-            operations = (docs / "administration/security-logging.md").read_text()
+            operations = (docs / "05-operations/security-logging.md").read_text()
             self.assertIn("no-journal-replay", operations)
             self.assertIn("never let reindexing modify originals", operations)
-            backup = (docs / "administration/backups/virtual-machines.md").read_text()
-            self.assertIn("architecture/operations/backup-recovery.md", backup)
-            design = (docs / "architecture/operations/backup-recovery.md").read_text()
+            backup = (docs / "05-operations/backups/virtual-machines.md").read_text()
+            self.assertIn("01-architecture/24-operations/04-backup-recovery.md", backup)
+            design = (docs / "01-architecture/24-operations/04-backup-recovery.md").read_text()
             for expected in ("**3-2-1**", "including the primary", "two media types"):
                 self.assertIn(expected, design)
             for expected in ("DatastoreBackup", "Datastore.Prune", "RPO", "RTO"):
                 self.assertIn(expected, backup)
-            recovery = (docs / "administration/recovery.md").read_text()
+            recovery = (docs / "05-operations/recovery.md").read_text()
             intake = recovery.index("| 3 | Restore approved software supply and Tier 0 protected evidence storage")
             self.assertLess(recovery.index("| 1 | Isolate"), intake)
             self.assertLess(intake, recovery.index("| 4 | Restore Tier 0 trust"))
@@ -161,13 +161,13 @@ class Observability(TierRepositoryTestCase):
     def test_archive_choices_preserve_nas_limits_and_stronger_retention_as_an_option(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            design = (docs / "architecture/operations/log-retention.md").read_text()
+            design = (docs / "01-architecture/24-operations/02-log-retention.md").read_text()
             self.assertIn("A: NAS snapshots and independent backups", design)
             self.assertIn("B: Storage-enforced retention locks", design)
             self.assertIn("One person holding several roles is acceptable", design)
             self.assertIn("not evidence of WORM enforcement", design)
             self.assertIn("## Review triggers", design)
-            stage = docs / "deployment/stage-2-logging"
+            stage = docs / "03-deployment/stage-2-logging"
             overview = (stage / "README.md").read_text()
             for option in ("step-3c-nas-archive.md", "step-3d-retention-lock.md"):
                 self.assertIn(option, overview)
@@ -176,7 +176,7 @@ class Observability(TierRepositoryTestCase):
                 self.assertIn("**Automation boundary:**", content)
                 for step in range(1, 4):
                     self.assertIn(f"## Step {step}:", content)
-            drill = (docs / "administration/logging-drill.md").read_text()
+            drill = (docs / "05-operations/logging-drill.md").read_text()
             self.assertIn("not a passed prevention test", drill)
         record = (self.root / "verify-tier-0/docs/administration/logging-evidence.md").read_text()
         self.assertIn("Archive choice: A NAS-backed, B retention-locked, or combined", record)

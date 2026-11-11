@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/lab.yml
 # Replace every value before use.
-# Guide: docs/deployment/readiness.md
+# Guide: docs/03-deployment/readiness.md
 
 platform_host_ips:
   lab-1: 10.20.20.10

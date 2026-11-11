@@ -25,14 +25,16 @@ def guest_names(groups):
 class DeploymentViews(unittest.TestCase):
     def test_architecture_diagrams_use_roles_not_site_guest_keys(self):
         names = set().union(*(guest_names(inventory_groups(f"tier-{tier}")) for tier in range(3)))
-        for document in (DOCS / "architecture").rglob("*.md"):
+        documents = list((DOCS / "01-architecture").rglob("*.md"))
+        self.assertTrue(documents, "Architecture correspondence check discovered no documents")
+        for document in documents:
             for code in FENCES.findall(document.read_text()):
                 for name in names:
                     self.assertNotRegex(code, rf"(?<![\w-]){re.escape(name)}(?![\w-])", str(document))
 
     def test_every_deployment_diagram_declares_scope_and_traceable_links(self):
         checked = 0
-        for document in (DOCS / "deployment").rglob("*.md"):
+        for document in (DOCS / "03-deployment").rglob("*.md"):
             content = document.read_text()
             for fence in FENCES.finditer(content):
                 caption = content[fence.end():].lstrip().split("\n\n", 1)[0]
@@ -76,7 +78,7 @@ class DeploymentViews(unittest.TestCase):
         selections = {}
         for relative, index, tier, setup, selected in cases:
             with self.subTest(document=relative, setup=setup):
-                code = FENCES.findall((DOCS / "deployment" / relative).read_text())[index]
+                code = FENCES.findall((DOCS / "03-deployment" / relative).read_text())[index]
                 groups = inventory_groups(tier)
                 hosts = guest_names({name: groups[name] for name in selected})
                 selections.setdefault((relative, index), set()).update(hosts)
@@ -90,7 +92,7 @@ class DeploymentViews(unittest.TestCase):
                 self.assertIn(f"Tier {tier[-1]}", code)
         all_hosts = set().union(*(guest_names(inventory_groups(f"tier-{tier}")) for tier in range(3)))
         for (relative, index), selected in selections.items():
-            code = FENCES.findall((DOCS / "deployment" / relative).read_text())[index]
+            code = FENCES.findall((DOCS / "03-deployment" / relative).read_text())[index]
             drawn = {name for name in all_hosts if re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", code)}
             self.assertEqual(drawn, selected, relative)
 
@@ -105,7 +107,7 @@ class DeploymentViews(unittest.TestCase):
             ("stage-10-lab-environments", "tier-2", "lab-environment", ""),
         ]
         for stage, tier, recipe, relative in cases:
-            stage_docs = "\n".join(path.read_text() for path in (DOCS / "deployment" / stage).rglob('*.md'))
+            stage_docs = "\n".join(path.read_text() for path in (DOCS / "03-deployment" / stage).rglob('*.md'))
             self.assertIn(f"ansible/playbooks/deployment/{recipe}.yml", stage_docs, stage)
             self.assertTrue((UPSTREAM / tier / f"ansible/playbooks/deployment/{recipe}.yml").is_file())
             starter = UPSTREAM / tier / f"clusters/tier{tier[-1]}" / relative
@@ -114,7 +116,7 @@ class DeploymentViews(unittest.TestCase):
 
     def test_cluster_logging_picture_matches_tier_owned_node_streams(self):
         inputs = yaml.safe_load((UPSTREAM / "tier-0/ansible/group_vars/cluster_security_logging.yml.example").read_text())
-        document = (DOCS / "deployment/stage-4-kubernetes/README.md").read_text()
+        document = (DOCS / "03-deployment/stage-4-kubernetes/README.md").read_text()
         picture = FENCES.findall(document)[2]
         nodes = inputs["cluster_security_logging_nodes"]
         self.assertEqual({node["name"] for node in nodes},
@@ -128,7 +130,7 @@ class DeploymentViews(unittest.TestCase):
         from test_tier_observability_platform import ROLE, platform_inputs, render_template
         inputs = platform_inputs()
         releases = yaml.safe_load(render_template(ROLE, 'releases.yml.j2', inputs))
-        document = (DOCS / 'deployment/stage-8-observability/README.md').read_text()
+        document = (DOCS / '03-deployment/stage-8-observability/README.md').read_text()
         pictures = FENCES.findall(document)
         for release in releases:
             self.assertIn(release['name'], pictures[0], release['name'])

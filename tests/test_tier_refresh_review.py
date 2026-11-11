@@ -144,13 +144,14 @@ class RefreshReviewTests(TierRepositoryTestCase):
     def test_retired_auto_docs_are_removed_but_project_license_is_untouched(self):
         self.generate()
         repo = self.root / "verify-architecture"
+        # Keep the historical source path; only the destination follows the current manual layout.
         old = self.retired(repo, "docs/auto-docs/administration/compute/backup-restore.md")
         license_path = repo / "LICENSE"
         license_path.write_text("Project-selected licensing\n")
         result = self.generate("--refresh")
         review = result.stdout.split("\nRefresh review\n")[1]
         self.assertIn(f"REMOVED {old}", review)
-        self.assertIn("current guide: docs/auto-docs/administration/backups/virtual-machines.md", review)
+        self.assertIn("current guide: docs/auto-docs/05-operations/backups/virtual-machines.md", review)
         self.assertFalse(old.exists())
         self.assertFalse(old.parent.exists())
         self.assertNotIn(str(license_path), review)

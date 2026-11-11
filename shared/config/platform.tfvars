@@ -4,7 +4,7 @@
 # Project-owned references to existing Proxmox infrastructure, not resources.
 # Configure once; every Linux deployment loads this before tier-local overrides.
 # Only references used across tiers belong here; no hosts, resources, credentials, or keys.
-# Guide: docs/reference/platform-inputs.md
+# Guide: docs/08-reference/platform-inputs.md
 
 platform = "proxmox"
 
@@ -16,7 +16,7 @@ default_platform_node_name = null
 # Existing network shared by multiple tiers. Selection and guest IPs stay tier-local.
 # Tier network_zones entries override this map by network name, not by individual field.
 # Optional SDN lookup: keep bridge, set sdn_lookup = true, and omit VLAN/CIDR/gateway fields.
-# Contract: docs/reference/network-inputs.md#sdn-subnet-lookup
+# Contract: docs/08-reference/network-inputs.md#sdn-subnet-lookup
 shared_network_zones = {
   application = {
     bridge       = "app"

@@ -34,10 +34,10 @@ prerequisite for the logging path that records its own bootstrap ceremony.
 **Implementation:** hardened proxy/native consumer policy and optional Tier 1 RPM/APT/artifact
 verification, ClamAV quarantine and immutable publication are supplied. OCI vulnerability policy
 and automatic patch rollout remain separate integrations.
-**Procedure:** [Stage 1](../docs/deployment/stage-1-software-intake/README.md) and
-[existing-cache migration](../docs/deployment/stage-1-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
+**Procedure:** [Stage 1](../docs/03-deployment/stage-1-software-intake/README.md) and
+[existing-cache migration](../docs/03-deployment/stage-1-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
 The first five checks cover the basic route; the remaining checks apply to the selected
-[verified extension](../docs/deployment/stage-3-trust/step-3b-verified-intake.md). None qualify patch rollout.
+[verified extension](../docs/03-deployment/stage-3-trust/step-3b-verified-intake.md). None qualify patch rollout.
 
 - [ ] **INTAKE-1: Real network enforcement.** From every selected subnet, approve actual sources and
   redirects; deny another source, a forbidden client and direct WAN bypass. Check HTTP and CONNECT,
@@ -72,7 +72,7 @@ The first five checks cover the basic route; the remaining checks apply to the s
 **Implementation:** supplied. Fresh source/generated roots use verified TLS; the wrappers
 reject current and legacy insecure environment flags. Refresh preserves project inputs;
 review local overrides and the refresh report before accepting existing TLS configuration.
-**Procedure:** [Proxmox bootstrap trust and PKI transition](../docs/administration/hosts/proxmox-tls.md).
+**Procedure:** [Proxmox bootstrap trust and PKI transition](../docs/05-operations/hosts/proxmox-tls.md).
 
 - [ ] **TLS-1: Verified bootstrap.** Independently verify the Proxmox CA fingerprint, install
   its public trust on every execution host/container and use a name covered by the certificate.
@@ -90,15 +90,15 @@ review local overrides and the refresh report before accepting existing TLS conf
 ## 2. Logging integration
 
 **Implementation:** selected Linux/NAS recipes are supplied; follow the
-[pipeline contract](../docs/reference/logging-pipeline.md). Commission actual NAS
+[pipeline contract](../docs/08-reference/logging-pipeline.md). Commission actual NAS
 snapshots/accounts/audit, independent backup storage and external dead-man alerts
 before these checks. Device-native and Kubernetes collector variants require their
 selected integrations. Do not pass this section with only the local receiver.
-Select [A: NAS-backed or B: retention-locked](../docs/architecture/operations/log-retention.md)
+Select [A: NAS-backed or B: retention-locked](../docs/01-architecture/24-operations/02-log-retention.md)
 and record trusted administrators. One homelab operator may hold all roles under A
 using separate credentials; this does not claim protection against that administrator.
-**Procedure:** [fault/restore drill](../docs/administration/logging-drill.md).
-**Record:** the Tier 0 project's `docs/administration/logging-evidence.md`.
+**Procedure:** [fault/restore drill](../docs/05-operations/logging-drill.md).
+**Record:** the Tier 0 project's `docs/05-operations/logging-evidence.md`.
 
 - [ ] **LOG-1: Real source delivery.** Emit numbered records from Proxmox, supported network
   devices, collector OS and the CA host; extend to every tier as it exists. Pass when retained
@@ -136,8 +136,8 @@ envelope, accepted-event boundary, queue limits and any source-side gaps explici
 **Implementation:** the selected software-first path is supplied; package/runtime and
 security behavior still need live qualification. Hardware custody, internal automated
 ACME and public edge HTTPS are separate selections, not hidden bootstrap requirements.
-**Procedures:** [software PKI](../docs/deployment/stage-3-trust/procedures/software-pki.md),
-[CA operations](../docs/administration/cryptography/certificate-authority.md).
+**Procedures:** [software PKI](../docs/03-deployment/stage-3-trust/procedures/software-pki.md),
+[CA operations](../docs/05-operations/cryptography/certificate-authority.md).
 **Coverage and variants:** [CA implementation checklist](ca-implementation.md).
 
 - [ ] **TRUST-1: Qualified runtime.** Deploy the pinned package/configuration/schema set on
@@ -169,7 +169,7 @@ ACME and public edge HTTPS are separate selections, not hidden bootstrap require
 
 ## 4. Development platform and CI handover
 
-**Procedure:** [Stage 9](../docs/deployment/stage-9-development/README.md).
+**Procedure:** [Stage 9](../docs/03-deployment/stage-9-development/README.md).
 The supplied charts, runner role, Vault policy and saved-plan helpers have no live acceptance yet.
 
 - [ ] **CI-1: Application and recovery.** Verify external PostgreSQL/Redis/Gitaly/object
@@ -204,7 +204,7 @@ gates pass, continue the broader operator journey:
   initialization and a non-mutating API plan. After intake acceptance, verify bootstrap
   updates through the approved proxy/mirrors and rejected direct WAN bypass.
 - [ ] Boot a disposable clone; verify SSH, DNS, time, network denials and backup restore.
-- [ ] If [SDN subnet lookup](../docs/reference/network-inputs.md#sdn-subnet-lookup) is selected,
+- [ ] If [SDN subnet lookup](../docs/08-reference/network-inputs.md#sdn-subnet-lookup) is selected,
   verify a disposable Linux/container and Kubernetes plan against applied Proxmox metadata.
   Pass when inventory IPs retain the expected prefix/gateway, the token needs only scoped
   read/attachment permissions, and missing permissions or ambiguous subnets fail the plan.

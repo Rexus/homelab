@@ -2,7 +2,7 @@
 # - TF_VAR_proxmox_api_url
 # - TF_VAR_proxmox_api_token_id
 # - TF_VAR_proxmox_api_token_secret
-# Reference: docs/reference/environment-variables.md
+# Reference: docs/08-reference/environment-variables.md
 provider "proxmox" {
   endpoint  = var.proxmox_api_url
   api_token = "${var.proxmox_api_token_id}=${var.proxmox_api_token_secret}"

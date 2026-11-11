@@ -1,7 +1,7 @@
 # Selected Talos 1.13 v1alpha1 schema, applied AFTER identity acceptance.
 # Append this document to machine_config_patches; retain CNI/proxy/audit patches.
 # Replace the public PEM placeholder. Never include a private key or Vault lookup.
-# Procedure: docs/deployment/stage-5-identity/procedures/kubernetes-sso.md
+# Procedure: docs/03-deployment/stage-5-identity/procedures/kubernetes-sso.md
 machine:
   files:
     - path: /var/kubernetes-oidc/issuer-ca.crt

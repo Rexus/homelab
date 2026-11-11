@@ -3,7 +3,7 @@
 
 The provider's native subnet data source requires a CIDR selector. This narrow
 GET fills that discovery gap without putting API credentials in Terraform data.
-Reference: docs/reference/network-inputs.md#sdn-subnet-lookup
+Reference: docs/08-reference/network-inputs.md#sdn-subnet-lookup
 """
 
 import ipaddress

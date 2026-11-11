@@ -1,8 +1,8 @@
 # Variable definitions (this repository): terraform/deployments/syslog/variables.tf
 
 # Copy to: terraform/deployments/syslog/terraform.tfvars
-# Guide: docs/deployment/stage-2-logging/README.md
-# VMID allocation: docs/conventions/vmid-convention.md
+# Guide: docs/03-deployment/stage-2-logging/README.md
+# VMID allocation: docs/02-conventions/vmid-convention.md
 # Tier 0 owns protected log intake; shared supplies only sizes and platform/image references.
 # Terraform owns VMs/disks; Tier 0 Ansible prepares guarded storage and installs the receiver with supplied TLS.
 # Neither installs archive replication or protected retention.

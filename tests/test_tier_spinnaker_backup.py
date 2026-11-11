@@ -28,7 +28,7 @@ class RepositoryStorageInputs(unittest.TestCase):
         example = yaml.safe_load((UPSTREAM / "tier-1/ansible/group_vars/delivery_platform.yml.example").read_text())
         self.assertEqual(defaults["delivery_platform_spinnaker_backup_backend"], "s3")
         self.assertEqual(example["delivery_platform_spinnaker_backup_backend"], "filesystem")
-        guide = (UPSTREAM / "docs/deployment/stage-7-delivery/step-2b-spinnaker.md").read_text()
+        guide = (UPSTREAM / "docs/03-deployment/stage-7-delivery/step-2b-spinnaker.md").read_text()
         diagram = guide.split("```mermaid", 1)[1].split("```", 1)[0]
         self.assertIn(example["delivery_platform_spinnaker_backup_filesystem_claim"], diagram)
         self.assertIn("Existing NAS / backup file area", diagram)

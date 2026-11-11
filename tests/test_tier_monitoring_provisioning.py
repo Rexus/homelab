@@ -122,7 +122,7 @@ run "stage_six_enabled" {
     def test_documented_shared_baseline_selects_only_the_monitor(self):
         repo = self.prepare()
         activate_monitor(repo)
-        guide = self.root / "verify-architecture/docs/auto-docs/deployment/stage-6-secrets/procedures/independent-monitoring.md"
+        guide = self.root / "verify-architecture/docs/auto-docs/03-deployment/stage-6-secrets/procedures/independent-monitoring.md"
         command = next(block for block in re.findall(r"(?ms)^```bash\n(.*?)^```", guide.read_text())
                        if "-shared/ansible/playbooks/site.yml" in block)
         result = subprocess.run(["bash", "-c", command.rstrip() + " --list-hosts"], cwd=repo,
@@ -137,7 +137,7 @@ run "stage_six_enabled" {
     def test_documented_monitor_and_audit_inputs_resolve_managed_and_external_hosts(self):
         repo = self.prepare()
         activate_monitor(repo)
-        docs = self.root / "verify-architecture/docs/auto-docs/deployment/stage-6-secrets"
+        docs = self.root / "verify-architecture/docs/auto-docs/03-deployment/stage-6-secrets"
         for relative, host_variable in (("procedures/independent-monitoring.md", "MONITOR_HOST"),
                                         ("procedures/netbox-audit.md", "AUDIT_HOST")):
             blocks = re.findall(r"(?ms)^```bash\n(.*?)^```", (docs / relative).read_text())

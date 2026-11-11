@@ -1,0 +1,34 @@
+# Shared automation
+
+This repository deploys no services by itself. It provides stateless size data,
+baseline Ansible roles, and local execution helpers. Every deployment
+still belongs to a tier and uses that tier's inventory, credentials, and state.
+
+## Getting started
+
+1. Keep the generated shared repo beside the three tier repos.
+2. Prepare [local tooling](../../04-development/local-setup.md) and retain a
+   reviewed shared revision plus its dependencies for recovery.
+3. Work from the owning tier's root and follow its deployment guide:
+   [Tier 0](../tier-0/README.md), [Tier 1](../tier-1/README.md), or [Tier 2](../tier-2/README.md).
+4. Test shared changes against every consuming tier before adopting them.
+
+Never place inventory, Terraform resources, guest assignments, credentials, or state in shared.
+Set common storage, initial placement and network references once in the project-owned
+[platform profile](../../08-reference/platform-inputs.md); tiers retain overrides.
+Run its commands from the owning tier root, not the shared root.
+Tier 0 owns template creation and updates; shared code does not publish images.
+It exposes [one consumer catalog](../../08-reference/template-catalog.md) for
+approved IDs, titles, source nodes, and image tags. That project-owned file is
+maintained through Tier 0 review, not overwritten by upstream refresh.
+
+<a id="find-your-way"></a>
+
+## Navigation
+
+| Need | Guide |
+| --- | --- |
+| Commands, inputs, and side effects | [Repository scripts](../../08-reference/repository-scripts.md) |
+| Module and role locations | [Automation layout](../../04-development/code-layout.md) |
+| Upstream changes without replacing local work | [Refresh contract](../../04-development/generated-repositories.md#refresh-and-local-ownership) |
+| Project choices and recovery | [Project documentation](../../04-development/project-documentation.md) |

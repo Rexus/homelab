@@ -28,7 +28,7 @@ class PkiBundle(TierRepositoryTestCase):
             (self.root, 'verify-', self.root / 'verify-architecture/docs/auto-docs'),
         ):
             for tier, guide, playbook in guides:
-                content = (docs / 'deployment' / guide).read_text()
+                content = (docs / '03-deployment' / guide).read_text()
                 commands = [
                     shlex.split(line)
                     for block in re.findall(r'```bash\n(.*?)```', content, re.DOTALL)
@@ -59,8 +59,8 @@ class PkiBundle(TierRepositoryTestCase):
         for name in ('openxpki-bundle.yml', 'openxpki-key.yml'):
             self.assertTrue((self.root / 'verify-tier-0/ansible/playbooks/deployment' / name).is_file())
         self.assertTrue((self.root / 'verify-tier-2/ansible/playbooks/maintenance/public-certificates.yml').is_file())
-        self.assertTrue((self.root / 'verify-architecture/docs/auto-docs/architecture/cryptography/'
-                         'algorithm-selection.md').is_file())
+        self.assertTrue((self.root / 'verify-architecture/docs/auto-docs/01-architecture/16-cryptography/'
+                         '02-algorithm-selection.md').is_file())
 
     @unittest.skipUnless(shutil.which('ansible-playbook') and os.environ.get('PKI_CONFIG_REPOSITORY'),
                          'Requires Linux Ansible and a pinned upstream configuration fixture')

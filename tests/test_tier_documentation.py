@@ -24,27 +24,27 @@ class RepositoryDocumentation(TierRepositoryTestCase):
     def test_generated_storage_design_distinguishes_capability_api_and_hosting(self):
         self.generate()
         docs = self.root / "verify-architecture/docs/auto-docs"
-        design = (docs / "architecture/data/README.md").read_text(encoding="utf-8")
+        design = (docs / "01-architecture/12-data/README.md").read_text(encoding="utf-8")
         for term in ("**Object storage**", "**S3-compatible API**", "CephFS",
                      "Object Gateway (RGW)", "backups **to**", "independent recovery"):
             self.assertIn(term, design)
         self.assertIn("does not establish that RGW exists", design)
         self.assertIn("Proxmox/Ceph-backed block storage. NAS file areas receive backup copies", design)
-        hosting = (docs / "architecture/hosting/runtime.md").read_text(encoding="utf-8")
-        self.assertIn("../data/README.md", hosting)
+        hosting = (docs / "01-architecture/10-hosting/01-runtime.md").read_text(encoding="utf-8")
+        self.assertIn("../12-data/README.md", hosting)
         self.assertNotIn("## Reference realization", hosting)
-        foundation = (docs / "deployment/foundation/README.md").read_text(encoding="utf-8")
+        foundation = (docs / "03-deployment/foundation/README.md").read_text(encoding="utf-8")
         self.assertIn("storage/README.md", foundation)
-        guide = (docs / "deployment/foundation/storage/README.md").read_text(encoding="utf-8")
-        self.assertIn("data/README.md#storage-interfaces", guide)
+        guide = (docs / "03-deployment/foundation/storage/README.md").read_text(encoding="utf-8")
+        self.assertIn("12-data/README.md#storage-interfaces", guide)
         self.assertIn("## Step 2a: Prepare NAS file storage", guide)
         self.assertIn("## Step 2b: Qualify an object endpoint", guide)
         self.assertIn("does not deploy a storage gateway", guide)
-        backups = (docs / "administration/backups/virtual-machines.md").read_text()
+        backups = (docs / "05-operations/backups/virtual-machines.md").read_text()
         self.assertIn('id="nas-file-target"', backups)
         self.assertIn("Datacenter > Storage > Add > NFS", backups)
         self.assertIn("neither path requires an object-storage API", backups)
-        database_backups = (docs / "administration/backups/postgresql.md").read_text()
+        database_backups = (docs / "05-operations/backups/postgresql.md").read_text()
         inputs = yaml.safe_load((UPSTREAM / "tier-0/ansible/group_vars/control_applications.yml.example").read_text())
         defaults = yaml.safe_load((UPSTREAM / "tier-0/ansible/roles/control_applications/defaults/main.yml").read_text())
         self.assertIn(inputs["control_applications_backup_files"]["keycloak"]["claim"], database_backups)
@@ -56,7 +56,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                      "ansible/playbooks/deployment/object-storage.yml",
                      "ansible/group_vars/object_storage.yml.example"):
             self.assertFalse((tier0 / path).exists(), path)
-        data = (docs / "deployment/stage-9-development/procedures/data-services.md").read_text()
+        data = (docs / "03-deployment/stage-9-development/procedures/data-services.md").read_text()
         self.assertIn("Existing Ceph endpoints can also use `preprovisioned`", data)
 
     def test_frontdoors_and_project_templates_are_owned(self):
@@ -69,7 +69,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             content = readme.read_text(encoding="utf-8")
             self.assertTrue(content.startswith("# verify "), name)
             self.assertIn("## Getting started", content)
-            self.assertIn("conventions/README.md", content)
+            self.assertIn("02-conventions/README.md", content)
             self.assertNotIn(MARKER, content)
             self.assertNotIn("${", content)
             links = re.findall(r"\[[^\]]*\]\(([^)]+)\)", content)
@@ -85,7 +85,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                     self.assertNotIn(relative, manifest["files"])
                     self.assertNotIn("${", (repo / relative).read_text())
                 guides = (repo / "docs/README.md").read_text()
-                for intent in ("Deployment", "Development", "Administration"):
+                for intent in ("Deployment", "Development", "Operations"):
                     self.assertIn(f"| {intent} |", guides)
         manifest = json.loads((architecture / ".generated-files.json").read_text())
         for relative in PROJECT_DOCS:
@@ -110,7 +110,12 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("[deployments.md](../deployments.md)", record)
         self.assertNotIn("| Deployed | Verified |", record)
         checklist = (repo / "deployments.md").read_text()
-        self.assertIn("- [ ] Cache servers deployed", checklist)
+        intake = checklist.split("## 1. Software Intake", 1)[1].split("## 2.", 1)[0]
+        self.assertRegex(intake, r"(?m)^- \[ \] Selected software-intake path accepted")
+        self.assertRegex(intake, r"(?m)^  - \[ \] \*\*Path 1a:\*\* cache servers deployed")
+        self.assertRegex(intake, r"(?m)^  - \[ \] \*\*Alternative 1b:\*\* existing approved supply")
+        for option in ("2b", "3b", "4b"):
+            self.assertRegex(intake, rf"(?m)^    - \[ \] \*\*Option {option}:\*\*")
         self.assertIn("  - [ ] Consumers switched", checklist)
         self.assertIn("`- [x]`", checklist)
         self.assertIn("~~text~~", checklist)
@@ -120,7 +125,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         for tier in range(3):
             self.assertIn(f"../verify-tier-{tier}/README.md", checklist)
         self.assertIn("generation proves no operational result", record)
-        self.assertIn("auto-docs/architecture/README.md", record)
+        self.assertIn("auto-docs/01-architecture/README.md", record)
         for name in REPOSITORIES:
             self.assertTrue((self.root / f"verify-{name}/README.md").exists())
 
@@ -139,7 +144,8 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertTrue(checklist.is_file())
         self.assertEqual((architecture / "docs/README.md").read_text(), old_record)
         self.assertEqual((architecture / "README.md").read_text(), previous_frontdoor)
-        progress = checklist.read_text().replace("- [ ] Cache servers deployed", "- [x] Cache servers deployed")
+        progress = checklist.read_text().replace("- [ ] Selected software-intake path accepted",
+                                                 "- [x] Selected software-intake path accepted")
         progress = progress.replace("- [ ] Argo CD", "- [ ] ~~Argo CD~~")
         progress += "\nDeployment evidence: private change record 42.\n"
         checklist.write_text(progress)
@@ -159,7 +165,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         legacy = repo / previous_path
         manual = "docs/auto-docs" if legacy.parent == repo else "auto-docs"
         original = ("# Local deployment standards\n\nInternal domain: corp.site.invalid\n\n"
-                    f"[VMID rules]({manual}/conventions/vmid-convention.md)\n")
+                    f"[VMID rules]({manual}/02-conventions/vmid-convention.md)\n")
         legacy.write_text(original)
         root_naming.unlink()
         manifest_path = repo / ".generated-files.json"
@@ -237,13 +243,13 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         setup = "bash scripts/init-local-files.sh"
         self.assertIn("Templates before VMs", tier0)
         self.assertIn("capability deployment checklist", tier0)
-        self.assertIn("deployment/foundation/README.md", tier0)
-        self.assertIn("deployment/stage-2-logging/README.md", tier0)
-        self.assertIn("deployment/stage-3-trust/README.md", tier0)
+        self.assertIn("03-deployment/foundation/README.md", tier0)
+        self.assertIn("03-deployment/stage-2-logging/README.md", tier0)
+        self.assertIn("03-deployment/stage-3-trust/README.md", tier0)
         self.assertIn("FreeIPA runs on two dedicated VMs", tier0)
         self.assertIn("Keycloak is a later service in this cluster", tier0)
-        self.assertIn("deployment/stage-4-kubernetes/procedures/talos-terraform.md", tier0)
-        self.assertIn("deployment/stage-4-kubernetes/README.md", tier0)
+        self.assertIn("03-deployment/stage-4-kubernetes/procedures/talos-terraform.md", tier0)
+        self.assertIn("03-deployment/stage-4-kubernetes/README.md", tier0)
         self.assertIn("Kubernetes control cluster", tier0)
         self.assertIn("current [Talos implementation]", tier0)
         self.assertLess(tier0.index(publisher), tier0.index("bash scripts/kubernetes-cluster.sh init"))
@@ -255,7 +261,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             readme = (self.root / f"verify-{tier}/README.md").read_text(encoding="utf-8")
             self.assertNotIn(publisher, readme)
             self.assertIn("operator-run workflows", readme)
-            self.assertIn("hosting/provisioning.md", readme)
+            self.assertIn("10-hosting/03-provisioning.md", readme)
             self.assertNotIn("${", readme)
 
     def test_naming_worksheet_records_conventions_and_zone_network_plan(self):
@@ -278,7 +284,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertNotIn("## VMID ranges", content)
         self.assertNotIn("T C NN", content)
         self.assertNotIn("9000-9999", content)
-        self.assertIn("[VMID convention](docs/auto-docs/conventions/vmid-convention.md)", content)
+        self.assertIn("[VMID convention](docs/auto-docs/02-conventions/vmid-convention.md)", content)
         rows = content.splitlines()
         headers = [rows[index - 1] for index, row in enumerate(rows) if row.startswith("| ---")]
         for header in headers:
@@ -305,7 +311,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         for vnet in re.findall(r"^\| `\d+` \| `([^`]+)` \|", content, re.MULTILINE):
             if vnet != "—":
                 self.assertRegex(vnet, r"^[a-z][a-z0-9]{1,7}$")
-        self.assertIn("docs/auto-docs/conventions/network-plan.md", content)
+        self.assertIn("docs/auto-docs/02-conventions/network-plan.md", content)
         for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", content):
             relative = target.split("#")[0]
             self.assertTrue((naming.parent / relative if relative else naming).is_file(), target)
@@ -328,40 +334,40 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         architecture = self.root / "verify-architecture/docs/auto-docs"
         for tier in ("tier-0", "tier-1", "tier-2", "shared"):
             readme = (self.root / f"verify-{tier}/README.md").read_text()
-            self.assertIn(f"/paths/{tier}/README.md", readme)
-            self.assertTrue((architecture / f"paths/{tier}/README.md").is_file())
+            self.assertIn(f"/06-paths/{tier}/README.md", readme)
+            self.assertTrue((architecture / f"06-paths/{tier}/README.md").is_file())
         for tier in ("tier-0", "tier-1"):
-            path = (architecture / f"paths/{tier}/README.md").read_text()
-            self.assertIn("../../deployment/stage-4-kubernetes/procedures/kubernetes.md", path)
-        tier0 = (architecture / "paths/tier-0/README.md").read_text()
+            path = (architecture / f"06-paths/{tier}/README.md").read_text()
+            self.assertIn("../../03-deployment/stage-4-kubernetes/procedures/kubernetes.md", path)
+        tier0 = (architecture / "06-paths/tier-0/README.md").read_text()
         self.assertLess(tier0.index("cluster-ha.md"), tier0.index("template-lifecycle.md"))
         self.assertLess(tier0.index("step-1c-sdn.md"), tier0.index("template-lifecycle.md"))
         quickstart = tier0.split("## Getting started", 1)[1].split("## Navigation", 1)[0]
         self.assertLess(quickstart.index("template-lifecycle.md"), quickstart.index("kubernetes-cluster.sh init"))
-        self.assertIn("operator-run bootstrap", (architecture / "deployment/stage-4-kubernetes/step-1b-manual-cluster.md").read_text())
+        self.assertIn("operator-run bootstrap", (architecture / "03-deployment/stage-4-kubernetes/step-1b-manual-cluster.md").read_text())
         for step in range(1, 11):
             self.assertIn(f"**{step}:", tier0)
-        bootstrap = (architecture / "deployment/README.md").read_text()
+        bootstrap = (architecture / "03-deployment/README.md").read_text()
         self.assertIn("foundation/README.md", bootstrap)
         self.assertIn("stage-2-logging/README.md", bootstrap)
         self.assertIn("Terraform / OpenTofu", bootstrap)
         self.assertIn("Current wrappers call `terraform`", bootstrap)
-        foundation = (architecture / "deployment/stage-4-kubernetes/procedures/kubernetes.md").read_text()
+        foundation = (architecture / "03-deployment/stage-4-kubernetes/procedures/kubernetes.md").read_text()
         for component in ("CNI", "Flux", "SOPS", "Storage", "cert-manager", "ingress", "CloudNativePG"):
             self.assertIn(component, foundation)
         self.assertIn("Immutable AlmaLinux or another node OS", foundation)
         self.assertIn("not a multi-OS installer", foundation)
-        application = (architecture / "deployment/stage-7-delivery/procedures/platform-cluster.md").read_text()
+        application = (architecture / "03-deployment/stage-7-delivery/procedures/platform-cluster.md").read_text()
         self.assertIn("kubernetes.md#cluster-foundation", application)
         self.assertNotIn("| 1. Networking |", application)
 
     def test_ten_capabilities_have_numbered_main_paths_and_adjacent_options(self):
         self.generate("--repo", "architecture")
         docs = self.root / "verify-architecture/docs/auto-docs"
-        stages = sorted((docs / "deployment").glob("stage-*/README.md"),
+        stages = sorted((docs / "03-deployment").glob("stage-*/README.md"),
                         key=lambda path: int(path.parent.name.split("-")[1]))
         self.assertEqual(len(stages), 10)
-        index = (docs / "deployment/README.md").read_text()
+        index = (docs / "03-deployment/README.md").read_text()
         project = (self.root / "verify-architecture/deployments.md").read_text()
         for number, stage in enumerate(stages, 1):
             content = stage.read_text(encoding="utf-8")
@@ -392,9 +398,9 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         intake, logging, trust, cluster, identity, control, delivery, observability, development, workloads = (
             stage.read_text(encoding="utf-8") for stage in stages
         )
-        foundation = (docs / "deployment/foundation/README.md").read_text()
+        foundation = (docs / "03-deployment/foundation/README.md").read_text()
         self.assertIn("bootstrap/README.md", foundation)
-        bootstrap = (docs / "deployment/foundation/bootstrap/README.md").read_text()
+        bootstrap = (docs / "03-deployment/foundation/bootstrap/README.md").read_text()
         self.assertIn("not itself a reachable Flux source", " ".join(bootstrap.split()))
         self.assertIn("## Step 1: Provision the log host", logging)
         self.assertIn("Hardware protection", trust)
@@ -421,7 +427,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertEqual(hardware.count("```mermaid"), 1)
         self.assertIn("step-1b-usb-hsm.md", project)
         self.assertIn("Direct-CI trust, Vault and original-state handover", project)
-        design = (docs / "architecture/reference-platform.md").read_text()
+        design = (docs / "01-architecture/06-reference-platform.md").read_text()
         self.assertIn("not a claim that every service is automated", design)
         self.assertIn("no network route", design)
         self.assertIn("independent recovery/unseal material", design)
@@ -452,7 +458,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         overview = (generated / "README.md").read_text()
         self.assertIn("`<prefix>` means the generated repository folder prefix", overview)
         self.assertIn("the default is `homelab`", overview)
-        deployment = (generated / "deployment/README.md").read_text()
+        deployment = (generated / "03-deployment/README.md").read_text()
         self.assertIn("Run from **`verify-tier-2/`**.\n\n```bash\n", deployment)
         self.assertIn("Edit in **`verify-shared/`**.", deployment)
         self.assertNotIn("<prefix>-tier-", deployment)
@@ -477,9 +483,9 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.generate()
         readme = self.root / "verify-tier-0/README.md"
         documents = {
-            "paths/README.md": "choose-your-repository",
-            "deployment/stage-5-identity/procedures/freeipa.md": "what-you-configure",
-            "deployment/README.md": "day-2-service-sequence",
+            "06-paths/README.md": "choose-your-repository",
+            "03-deployment/stage-5-identity/procedures/freeipa.md": "what-you-configure",
+            "03-deployment/README.md": "day-2-service-sequence",
         }
         content = "# Project deployment guide\n" + "\n".join(
             f"[Guide](../verify-architecture/docs/auto-docs/{path}#{anchor})"
@@ -505,7 +511,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertIn("bash scripts/init-tier-repos.sh --refresh", content)
             link = re.search(r"\[project documentation\]\(([^)]+)\)", content)[1]
             self.assertEqual((document.parent / link).resolve(), architecture / "docs/README.md")
-            if source.is_relative_to(UPSTREAM / "docs/deployment"):
+            if source.is_relative_to(UPSTREAM / "docs/03-deployment"):
                 checklist = re.search(r"\[deployment checklist\]\(([^)]+)\)", content)[1]
                 self.assertEqual((document.parent / checklist).resolve(), architecture / "deployments.md")
             self.assertIn(relative, manifest["files"])
@@ -538,10 +544,10 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                    for name in REPOSITORIES if name != "architecture"
                    for relative in ("docs/architecture/README.md", "docs/README.md")]
         edited += [architecture / relative for relative in PROJECT_DOCS]
-        edited += [architecture / "docs/auto-docs/architecture/README.md"]
+        edited += [architecture / "docs/auto-docs/01-architecture/README.md"]
         deleted = [edited.pop(0), edited.pop(0), architecture / "platform-standards.md",
                    self.root / "verify-tier-2/docs/architecture/README.md",
-                   architecture / "docs/auto-docs/administration/secret-handling/strategy.md"]
+                   architecture / "docs/auto-docs/05-operations/secret-handling/strategy.md"]
         expected = {path: path.read_bytes() for path in deleted}
         for path in edited:
             path.write_text("# Project-owned changes\n", encoding="utf-8")

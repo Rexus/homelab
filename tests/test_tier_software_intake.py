@@ -27,7 +27,7 @@ class SoftwareIntake(TierRepositoryTestCase):
         self.assertFalse((tier0 / ".env.local").exists())
         self.assertFalse((tier0 / "ansible/inventory/hosts.yml").exists())
 
-        guide = (self.root / "verify-architecture/docs/auto-docs/deployment/"
+        guide = (self.root / "verify-architecture/docs/auto-docs/03-deployment/"
                  "stage-1-software-intake/README.md").read_text()
         commands = re.search(r"```bash\n(.*?)```", guide, re.DOTALL).group(1)
         self.assertRegex(guide, r"Run from \*\*`verify-tier-2/`\*\*[^\n]*\n\n```bash\n"
@@ -46,19 +46,19 @@ class SoftwareIntake(TierRepositoryTestCase):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             prefix = "<prefix>" if docs == UPSTREAM / "docs" else "verify"
-            design = (docs / "architecture/software/software-intake.md").read_text()
+            design = (docs / "01-architecture/13-software-intake/01-design.md").read_text()
             for expected in ("## Connected proxy design", "## Supply choices", "## Transport and integrity",
-                             "client-initiated requests", "one common policy", "not supplied",
+                             "pull through the policy proxy", "one common policy", "not supplied",
                              "Tier 0 authorizes and executes its updates", "Internal HTTP mirror",
                              "Tier 1 owns authoritative shared mirrors", "independent of the cache"):
                 self.assertIn(expected, design)
             self.assertNotIn("```bash", design)
-            for source in ("architecture/software/README.md", "architecture/software/artifact-supply.md",
-                           "administration/hosts/update-access.md"):
-                self.assertIn("software-intake.md", (docs / source).read_text(), source)
+            for source in ("01-architecture/05-software-lifecycle.md", "01-architecture/20-delivery/01-artifact-supply.md",
+                           "05-operations/hosts/update-access.md"):
+                self.assertIn("software-intake/", (docs / source).read_text(), source)
             self.assertIn("../stage-1-software-intake/README.md",
-                          (docs / "deployment/foundation/README.md").read_text())
-            guide = (docs / "reference/proxy-cache.md").read_text()
+                          (docs / "03-deployment/foundation/README.md").read_text())
+            guide = (docs / "08-reference/proxy-cache.md").read_text()
             for expected in (f"**Working repository:** `{prefix}-tier-2`", "not cached",
                              "no unrestricted", "direct WAN bypass fails", "not a cache hit",
                              "No cache-to-Tier-0 management rule"):
@@ -67,7 +67,7 @@ class SoftwareIntake(TierRepositoryTestCase):
     def test_capability_is_outside_foundation_and_grows_into_later_oci_supply(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            deployment = docs / "deployment"
+            deployment = docs / "03-deployment"
             self.assertFalse((deployment / "foundation/step-3b-outbound-cache.md").exists())
             capability = (deployment / "stage-1-software-intake/README.md").read_text()
             for step in range(1, 4):

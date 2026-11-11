@@ -10,10 +10,10 @@ alternatives; deployment records establish which results have been verified.
 ${scope}
 
 Start with the [platform selections](../../../${repo_prefix}-architecture/docs/README.md#selected-design)
-and [reference domains](${docs}/architecture/README.md#foundational-capabilities),
+and [reference domains](${docs}/01-architecture/README.md#foundational-capabilities),
 then use this record to inspect the owned components. Project-wide conventions
 and topology belong in that architecture repository. The
-[upstream platform reference](${docs}/architecture/README.md) explains reusable
+[upstream platform reference](${docs}/01-architecture/README.md) explains reusable
 patterns rather than the site's selected composition.
 
 ## Resulting owned design
@@ -25,7 +25,7 @@ connection. Shared records describe the automation and reference-data contract;
 they do not claim deployed resources.
 Use stable capability and role labels in architecture. Put exact guest names and
 deployment progress in the linked deployment views, following the
-[diagram conventions](${docs}/development/diagrams.md#abstraction-and-implementation).
+[diagram conventions](${docs}/04-development/diagrams.md#abstraction-and-implementation).
 
 | Platform function / domain | Owned component or contract | Supplied interface | Consumed dependency and owner |
 | --- | --- | --- | --- |
@@ -40,7 +40,7 @@ ${selections}
 Expand complex selections in focused design records under `architecture/`.
 Each record identifies its parent domain, the resulting topology, selected
 variant, alternatives, and required guarantees. Follow the
-[variant contract](${docs}/architecture/variants.md); a changed consumer interface
+[variant contract](${docs}/01-architecture/08-variants.md); a changed consumer interface
 or trust boundary also requires an update to the affected parent views.
 
 ## Boundaries

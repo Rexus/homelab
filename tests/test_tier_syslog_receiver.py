@@ -32,7 +32,8 @@ class ReceiverContract(TierRepositoryTestCase):
         self.assertEqual(defaults["syslog_ng_sources"], [])
         self.assertEqual(defaults["syslog_ng_legacy_sources"], [])
         self.assertEqual(defaults["syslog_ng_data_uuid"], "")
-        self.assertEqual(defaults["syslog_ng_data_device"], "/dev/sdb")
+        self.assertEqual(defaults["syslog_ng_data_device"],
+                         "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1")
         self.assertEqual(defaults["syslog_ng_data_fstype"], "xfs")
         shared = self.root / "verify-shared/ansible/roles/data_volume/tasks/main.yml"
         self.assertTrue(shared.is_file())

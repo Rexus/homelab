@@ -4,8 +4,8 @@
 
 # Copy to templates/proxmox.yml using Tier 0's scripts/proxmox-templates.sh init command.
 # Compute foundation: publish templates locally before creating managed VMs or the control cluster.
-# Reference: docs/administration/virtual-machines/template-lifecycle.md
-# VMID allocation: docs/conventions/vmid-convention.md (templates use 9xxx).
+# Reference: docs/05-operations/virtual-machines/template-lifecycle.md
+# VMID allocation: docs/02-conventions/vmid-convention.md (templates use 9xxx).
 # Set site-specific values. Keep only the images being managed by this state.
 # Each build overrides individual all fields; lists (including tags) are replaced, not merged.
 # Release track (for example el10), distribution, CPU profile and CloudInit tags are automatic.
@@ -22,7 +22,7 @@ all:
   image_datastore_id: local
   # SDN alternative: use the existing VNet ID as bridge and set vlan_id: null.
   # The VNet owns VLAN tagging; zones/VNets are prepared separately.
-  # Reference: docs/deployment/foundation/proxmox/step-1c-sdn.md
+  # Reference: docs/03-deployment/foundation/proxmox/step-1c-sdn.md
   bridge: vmbr0
   # Select the prepared bootstrap/control VLAN once here; use null for untagged.
   vlan_id: 10

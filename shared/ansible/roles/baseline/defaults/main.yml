@@ -1,5 +1,5 @@
 ---
-# Implemented scope: docs/reference/platform-inputs.md#os-baseline-boundary
+# Implemented scope: docs/08-reference/platform-inputs.md#os-baseline-boundary
 baseline_manage_package_policy: true
 package_policy_os_family: "{{ ansible_os_family | default('') }}"
 package_policy_dnf_conf_path: "{{ repository_proxy_dnf_conf_path }}"

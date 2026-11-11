@@ -127,7 +127,7 @@
         fail_msg: >-
           Missing collections: {{ control_node_missing_collections | map(attribute='name') | join(', ') }}.
           Install the prepared local Galaxy requirements before retrying; check mode never downloads dependencies.
-          See docs/deployment/foundation/bootstrap/step-3e-bootstrap-offline.md.
+          See docs/03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md.
       when: control_node_collections_mode == 'check'
 
     - name: Install missing Ansible collections from OS packages first
@@ -167,7 +167,7 @@
           Check declared version ranges with Galaxy after the OS package attempt.
           Galaxy inherits this process's proxy environment and bypasses its local API-response cache.
           Acquisition needs approved Galaxy API and artifact destinations; see
-          docs/reference/control-node-tooling.md#galaxy-through-a-policy-proxy.
+          docs/08-reference/control-node-tooling.md#galaxy-through-a-policy-proxy.
           Pre-stage every selected range before using CONTROL_NODE_COLLECTIONS_MODE=check.
           Incompatible shadowing copies must be corrected explicitly.
       when:

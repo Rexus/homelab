@@ -23,7 +23,7 @@ delivery_platform_argocd_repositories: []
 delivery_platform_argocd_repository_certificates: {}
 delivery_platform_argocd_destinations: []
 # Native Spinnaker supplies the pinned upstream base and provisions its dependencies.
-# Installation contract: docs/deployment/stage-7-delivery/step-2b-spinnaker.md.
+# Installation contract: docs/03-deployment/stage-7-delivery/step-2b-spinnaker.md.
 delivery_platform_spinnaker_host: spinnaker.internal.example.com
 delivery_platform_spinnaker_mode: native
 delivery_platform_spinnaker_certificate_mode: preissued

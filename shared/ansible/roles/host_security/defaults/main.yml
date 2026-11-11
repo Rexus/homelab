@@ -1,5 +1,5 @@
 ---
-# Opt-in leaf-host profile; docs/administration/hosts/linux-security.md.
+# Opt-in leaf-host profile; docs/05-operations/hosts/linux-security.md.
 host_security_enabled: false
 host_security_profile: ""
 host_security_action: apply

@@ -2,8 +2,8 @@
 
 # Copy to: terraform/deployments/template-refresh/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/deployment/foundation/proxmox/templates.md
-# VMID allocation: docs/conventions/vmid-convention.md
+# Setup guide: docs/03-deployment/foundation/proxmox/templates.md
+# VMID allocation: docs/02-conventions/vmid-convention.md
 # Shared values live in ../../common.tfvars.
 
 vm_instances = {

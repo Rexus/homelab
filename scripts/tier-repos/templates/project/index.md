@@ -13,25 +13,25 @@ Exact hosts, addresses and resources remain in the owning tier's inputs.
 
 ## Selected design
 
-The [reference architecture](auto-docs/architecture/README.md) is the baseline:
+The [reference architecture](auto-docs/01-architecture/README.md) is the baseline:
 Tier 2, Tier 1, Tier 0 from top to bottom; Edge, Application, Control left to right.
 Record only selected alternatives or local differences, not another copy of that design.
-The [foundational capability map](auto-docs/architecture/README.md#foundational-capabilities)
+The [foundational capability map](auto-docs/01-architecture/README.md#foundational-capabilities)
 connects these implementation choices to the overall system design.
 
 | Area | Selected path / local exception | Reference |
 | --- | --- | --- |
 | Standards | Record local names, domains, tags and the zone/VNet network plan | [Platform standards](../platform-standards.md) |
-| VMID allocation | Follow the convention; keep individual assignments in tier-local Terraform | [VMID quick reference](auto-docs/conventions/vmid-convention.md) |
-| Hosting | Reference: Proxmox VE 9.2+, three hosts, native HA and dynamic rebalancing | [HA and failover](auto-docs/deployment/foundation/proxmox/step-1b-cluster-ha.md) |
-| Networks | Reference: VLAN-aware bridges; record SDN selection if used | [Network design](auto-docs/architecture/networking/README.md) |
-| Storage | Reference: Proxmox/Ceph live volumes, separate NAS backups | [Storage interfaces](auto-docs/architecture/data/README.md#storage-interfaces) |
-| Trust | Reference: software custody; record USB/network HSM selection if used | [Cryptography variants](auto-docs/architecture/cryptography/README.md) |
-| Kubernetes | Reference: Talos; retain exact image/schematic in Tier 0 inputs | [Cluster design](auto-docs/architecture/hosting/kubernetes.md) |
-| Delivery | Select Argo CD or Spinnaker in Tier 1; Flux in Tier 0 | [Controller choices](auto-docs/architecture/software/controllers.md) |
+| VMID allocation | Follow the convention; keep individual assignments in tier-local Terraform | [VMID quick reference](auto-docs/02-conventions/vmid-convention.md) |
+| Hosting | Reference: Proxmox VE 9.2+, three hosts, native HA and dynamic rebalancing | [HA and failover](auto-docs/03-deployment/foundation/proxmox/step-1b-cluster-ha.md) |
+| Networks | Reference: VLAN-aware bridges; record SDN selection if used | [Network design](auto-docs/01-architecture/11-networking/README.md) |
+| Storage | Reference: Proxmox/Ceph live volumes, separate NAS backups | [Storage interfaces](auto-docs/01-architecture/12-data/README.md#storage-interfaces) |
+| Trust | Reference: software custody; record USB/network HSM selection if used | [Cryptography variants](auto-docs/01-architecture/16-cryptography/README.md) |
+| Kubernetes | Reference: Talos; retain exact image/schematic in Tier 0 inputs | [Cluster design](auto-docs/01-architecture/10-hosting/04-kubernetes.md) |
+| Delivery | Select Argo CD or Spinnaker in Tier 1; Flux in Tier 0 | [Controller choices](auto-docs/01-architecture/20-delivery/02-controllers.md) |
 
-Check compatibility in the [variant contracts](auto-docs/architecture/variants.md).
-The [runtime relationships](auto-docs/architecture/runtime-flows.md) explain cross-tier flows.
+Check compatibility in the [variant contracts](auto-docs/01-architecture/08-variants.md).
+The [runtime relationships](auto-docs/01-architecture/07-runtime-flows.md) explain cross-tier flows.
 
 ## Deployment checklist
 
@@ -52,10 +52,10 @@ generation proves no operational result. Existing accepted services can satisfy 
 
 | Need | Reference | Local record |
 | --- | --- | --- |
-| Find a command or input | [Repository scripts](auto-docs/reference/repository-scripts.md) | Tier-owned configuration |
-| Back up and recover | [Recovery guides](auto-docs/administration/recovery.md) | Record offline reader/key kit, RPO/RTO and pruning custodian, restore-test dates and evidence links; no secrets |
-| Maintain services | [Administration](auto-docs/administration/README.md) | Maintenance owner and schedule |
-| Adopt upstream changes | [Refresh contract](auto-docs/development/generated-repositories.md#refresh-and-local-ownership) | Tested revision and exceptions |
+| Find a command or input | [Repository scripts](auto-docs/08-reference/repository-scripts.md) | Tier-owned configuration |
+| Back up and recover | [Recovery guides](auto-docs/05-operations/recovery.md) | Record offline reader/key kit, RPO/RTO and pruning custodian, restore-test dates and evidence links; no secrets |
+| Maintain services | [Operations](auto-docs/05-operations/README.md) | Maintenance owner and schedule |
+| Adopt upstream changes | [Refresh contract](auto-docs/04-development/generated-repositories.md#refresh-and-local-ownership) | Tested revision and exceptions |
 
 `auto-docs/` is the maintained manual. This record and platform standards are seeded
 once and never overwritten by refresh. Add a focused local document only when an

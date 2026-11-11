@@ -13,7 +13,7 @@ resources, guest assignments, credentials, or state.
 ## Getting started
 
 This repository deploys no services by itself. Follow the
-[shared automation checklist](${docs}/paths/shared/README.md) to prepare it.
+[shared automation checklist](${docs}/06-paths/shared/README.md) to prepare it.
 
 Review the project's [platform standards](../${repo_prefix}-architecture/platform-standards.md),
 then start from the owning deployment repository:
@@ -43,12 +43,12 @@ Edit in **`${repo_prefix}-shared/`**.
 - [Selected architecture](docs/architecture/README.md)
 - [Local development and administration guides](docs/README.md)
 - [Project documentation](../${repo_prefix}-architecture/docs/README.md)
-- [Conventions: names, tags, VMIDs and networks](${docs}/conventions/README.md)
-- [Automation layout](${docs}/development/code-layout.md)
-- [Find and fix a bug](${docs}/development/debugging.md)
-- [Template references and promotion](${docs}/reference/template-catalog.md)
-- [Script reference](${docs}/reference/repository-scripts.md)
-- [Upstream refresh contract](${docs}/development/generated-repositories.md#refresh-and-local-ownership)
+- [Conventions: names, tags, VMIDs and networks](${docs}/02-conventions/README.md)
+- [Automation layout](${docs}/04-development/code-layout.md)
+- [Find and fix a bug](${docs}/04-development/debugging.md)
+- [Template references and promotion](${docs}/08-reference/template-catalog.md)
+- [Script reference](${docs}/08-reference/repository-scripts.md)
+- [Upstream refresh contract](${docs}/04-development/generated-repositories.md#refresh-and-local-ownership)
 
 ## Licensing
 

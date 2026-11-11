@@ -1,4 +1,4 @@
-# Guide: docs/deployment/stage-4-kubernetes/procedures/api-endpoint.md
+# Guide: docs/03-deployment/stage-4-kubernetes/procedures/api-endpoint.md
 # Tier 0 owns the independent gateway pair; Shared supplies only approved references.
 module "environment" {
   source = "../../modules/environment_guests"

@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # Project-owned manifests; select Argo CD or Spinnaker separately, not Tier 0 Flux.
-# Reference: docs/architecture/software/controllers.md
+# Reference: docs/01-architecture/20-delivery/02-controllers.md
 resources:
 - infrastructure
 - platform

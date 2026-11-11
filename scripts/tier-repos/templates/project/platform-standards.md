@@ -2,7 +2,7 @@
 
 Local deployment standards. Values below are editable reference placeholders;
 replace them with the selected project values.
-[Platform record](docs/README.md) · [Conventions](docs/auto-docs/conventions/README.md)
+[Platform record](docs/README.md) · [Conventions](docs/auto-docs/02-conventions/README.md)
 
 ## Contents
 
@@ -28,7 +28,7 @@ replace them with the selected project values.
 The hostname length is a preference; DNS labels allow 63 octets. SDN IDs below have
 a separate hard restriction. Template titles and Kubernetes object/release names
 keep their own conventions. Existing host keys require a deliberate
-[state and identity migration](docs/auto-docs/conventions/proxmox-conventions.md#existing-installations),
+[state and identity migration](docs/auto-docs/02-conventions/proxmox-conventions.md#existing-installations),
 not an automatic rename during refresh.
 
 ## Role abbreviations
@@ -120,8 +120,8 @@ not an automatic rename during refresh.
 
 ## References
 
-- [VMID convention](docs/auto-docs/conventions/vmid-convention.md)
-- [VM/DNS patterns](docs/auto-docs/conventions/proxmox-conventions.md#vm-names)
-- [Tag conventions](docs/auto-docs/conventions/proxmox-conventions.md#vm-tags)
-- [Network allocations and deployment mapping](docs/auto-docs/conventions/network-plan.md)
-- [SDN fields and setup](docs/auto-docs/deployment/foundation/proxmox/step-1c-sdn.md)
+- [VMID convention](docs/auto-docs/02-conventions/vmid-convention.md)
+- [VM/DNS patterns](docs/auto-docs/02-conventions/proxmox-conventions.md#vm-names)
+- [Tag conventions](docs/auto-docs/02-conventions/proxmox-conventions.md#vm-tags)
+- [Network allocations and deployment mapping](docs/auto-docs/02-conventions/network-plan.md)
+- [SDN fields and setup](docs/auto-docs/03-deployment/foundation/proxmox/step-1c-sdn.md)

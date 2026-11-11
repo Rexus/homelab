@@ -9,7 +9,7 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
     def test_design_and_generated_reference_preserve_separate_ca_functions(self):
         self.generate()
         for docs in (UPSTREAM / 'docs', self.root / 'verify-architecture/docs/auto-docs'):
-            design = (docs / 'architecture/cryptography/certificate-authority.md').read_text()
+            design = (docs / '01-architecture/16-cryptography/01-certificate-authority.md').read_text()
             for expected in ('OpenXPKI Community', 'permanent infrastructure issuer',
                              'Enterprise-only', 'acme2certifier', 'DataVault', 'missing signing identity'):
                 self.assertIn(expected, design)
@@ -18,12 +18,12 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
             self.assertIn('block:T0', design)
             self.assertIn('Authorized subordinate signing; no network route', design)
             self.assertIn('Vault remains a secret service', design)
-            reference = (docs / 'architecture/reference-platform.md').read_text()
+            reference = (docs / '01-architecture/06-reference-platform.md').read_text()
             self.assertIn('OpenXPKI Community', reference)
-            self.assertIn('cryptography/README.md#completed-design', reference)
-            self.assertIn('cryptography/certificate-authority.md#enrollment-and-publication', reference)
+            self.assertIn('16-cryptography/README.md#completed-design', reference)
+            self.assertIn('16-cryptography/01-certificate-authority.md#enrollment-and-publication', reference)
             self.assertIn('FreeIPA retains its own identity CA', design)
-            overview = (docs / 'architecture/cryptography/README.md').read_text()
+            overview = (docs / '01-architecture/16-cryptography/README.md').read_text()
             self.assertIn('Optional application CA', overview)
             self.assertIn('Optional lab CA', overview)
             self.assertIn('do not automatically chain to', overview)
@@ -32,20 +32,20 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
         self.generate()
         for docs in (UPSTREAM / 'docs', self.root / 'verify-architecture/docs/auto-docs'):
             prefix = '<prefix>' if docs == UPSTREAM / 'docs' else 'verify'
-            issuer = (docs / 'deployment/stage-3-trust/procedures/issuer.md').read_text()
+            issuer = (docs / '03-deployment/stage-3-trust/procedures/issuer.md').read_text()
             for expected in (f'{prefix}-tier-0', 'deployment/openxpki.yml', 'template_vm_id',
                              '--plan-only', 'foundation --terraform-only',
                              'extra_disks', 'Debian 12', '2028-06-30', 'openxpki_required_state_paths'):
                 self.assertIn(expected, issuer)
             self.assertNotIn('bash scripts/deploy.sh openxpki', issuer)
-            identity = (docs / 'deployment/stage-5-identity/procedures/freeipa.md').read_text()
+            identity = (docs / '03-deployment/stage-5-identity/procedures/freeipa.md').read_text()
             for expected in ('## External CA integration gate', 'two-phase install',
                              'ipareplica_setup_ca: true', 'ipaserver_external_ca'):
                 self.assertIn(expected, identity)
-            offline = (docs / 'deployment/stage-3-trust/procedures/offline-root.md').read_text()
+            offline = (docs / '03-deployment/stage-3-trust/procedures/offline-root.md').read_text()
             self.assertIn('Keep `root_ca` empty', offline)
             self.assertIn('clca does not support concurrent writers', offline)
-            operations = (docs / 'administration/cryptography/certificate-authority.md').read_text()
+            operations = (docs / '05-operations/cryptography/certificate-authority.md').read_text()
             self.assertIn('--playbook maintenance/openxpki.yml', operations)
             self.assertIn('crl_issuance', operations)
             self.assertIn('revoked serial rejected', operations)

@@ -1,0 +1,87 @@
+# Repository testing
+
+Run from the upstream kit root, not a generated tier repository. Tests cover
+source/generated ownership, preserved local edits, deployment links, native
+configuration and selected product refusal gates. No test suite accepts live
+deployment, physical failover, protected retention or disaster recovery.
+
+## Contents
+
+- [Basic suite](#basic-suite)
+- [Native checks](#native-checks)
+- [Evidence boundary](#evidence-boundary)
+
+## Basic suite
+
+Prepare the [developer environment](local-setup.md#step-1-prepare-the-developer-environment).
+That step installs `tests/requirements.txt`; keep the same virtual environment active.
+
+Run from **upstream kit root**.
+
+```bash
+python3 -B -m unittest discover -s tests -p 'test_tier*.py' -v
+```
+
+The generator needs PyYAML. Native checks need Linux/WSL, the common and selected
+tier's collection/Python requirements, and the named product tools. Windows or
+missing tools cause explicit skips; inspect the final skip list before reporting
+coverage. Tests create disposable files and local test services, not remote resources.
+
+## Native checks
+
+For the standalone Tier 0 template module, run from the upstream kit root:
+
+Run from **upstream kit root**.
+
+```bash
+terraform -chdir=tier-0/terraform/modules/proxmox_templates init -backend=false
+terraform -chdir=tier-0/terraform/modules/proxmox_templates test
+```
+
+These native mock tests do not contact Proxmox or establish real image/clone acceptance.
+Operator verification remains in the [template runbook](../05-operations/virtual-machines/template-lifecycle.md).
+
+Approve exact packages, checksums and tools before enabling native tests. Keep
+them outside tracked source. Some tests fetch pinned charts/CRD schemas over
+HTTPS; cached-only product validators use the following explicit paths.
+
+| Check | Environment or tool contract |
+| --- | --- |
+| Terraform configuration | `terraform` on `PATH`; roots use pinned lock files, mocked resources and no remote backend |
+| Platform/control charts | `HOMELAB_NATIVE_CHART_TESTS=1`, native Ansible/Helm and approved repository access |
+| Delivery alternatives | Native `kustomize` on `PATH`, in addition to Ansible/Helm |
+| Cached delivery/development/lab charts | Optional `NATIVE_CHART_CACHE` containing exact approved `.tgz` packages; native Ansible/Helm uses a temporary verified HTTPS repository instead of external DNS |
+| Observability charts | `HELM_BINARY`, `OBSERVABILITY_CHART_CACHE` containing the exact `.tgz` packages |
+| Collector configuration | `OTELCOL_BINARY`, matching the selected native Collector distribution/version |
+| Data Prepper models | `DATA_PREPPER_HOME`, the extracted distribution including its native JDK |
+| Database/backup schemas | `CNPG_CRD_CACHE`, pinned CNPG/Barman CRDs for Observability; control-application checks fetch their pinned schemas |
+| Cluster security collection | `HOMELAB_NATIVE_SECURITY_LOGGING_TESTS=1`, Ansible/Helm and approved repository access |
+| Fluent Bit config, local mTLS and replay | `FLUENT_BIT_TEST_BINARY` with its native library search path where required |
+| Native logging patches | `TALOSCTL_TEST_BINARY` (1.13), optional `TALOSCTL14_TEST_BINARY` (1.14) |
+| Kubernetes SSO/config preservation | `HOMELAB_TALOSCTL`, the selected Talos 1.13 CLI |
+| Guest filesystem lifecycle | `HOMELAB_DATA_VOLUME_MOUNT_TESTS=1`, native Ansible collections, root in a private mount namespace, a private `/etc/fstab`, disposable loopback disks and ext4 tools; `DATA_VOLUME_TEST_FSTYPE=xfs` selects XFS tools instead |
+
+The test modules document additional optional native tools for PKI, receiver,
+backup and evidence checks. No real credentials belong in test fixtures. Local
+test certificates are disposable and must never become deployment trust anchors.
+The data-volume lifecycle fixture verifies its private fstab sentinel before creating storage;
+never enable it against a live host's mount namespace or storage. It tests UUID persistence,
+rerun/growth preservation, declared subdirectory binds and refusal of a missing volume's replacement.
+
+The cached delivery/development/lab fixture isolates Helm's configuration/cache/data
+directories and trusts only its temporary repository CA. It keeps real chart versions,
+values and rendering; it does not stub the release or disable TLS verification.
+
+See [Observability verification](../03-deployment/stage-8-observability/procedures/observability-platform.md#verification)
+for its cached package contract and [diagram verification](diagrams.md#verification)
+for visual acceptance. Rendering configuration is not testing network reachability.
+
+## Evidence boundary
+
+Report the revision, command, test count, failures and skips. Distinguish a native
+parser/chart/schema test from an actual process/TLS/replay test; neither proves
+the site deployment or a complete physical failure envelope.
+
+Live checks belong in the project's deployment/administration records. Accept
+each stage's source identities, denied access, storage/queue failures and
+clean-target restoration before relying on the resulting capability.

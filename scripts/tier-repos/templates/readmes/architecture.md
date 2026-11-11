@@ -14,11 +14,11 @@ local records contain only project choices and exceptions.
 
 - [Deployment checklist](deployments.md)
 - [Project choices and operating records](docs/README.md)
-- [Conventions: names, tags, VMIDs and networks](docs/auto-docs/conventions/README.md)
-- [Reference design](docs/auto-docs/architecture/README.md)
-- [Installation guides](docs/auto-docs/deployment/README.md)
-- [Administration and recovery](docs/auto-docs/administration/README.md)
-- [Development and updates](docs/auto-docs/development/README.md)
+- [Conventions: names, tags, VMIDs and networks](docs/auto-docs/02-conventions/README.md)
+- [Reference design](docs/auto-docs/01-architecture/README.md)
+- [Installation guides](docs/auto-docs/03-deployment/README.md)
+- [Administration and recovery](docs/auto-docs/05-operations/README.md)
+- [Development and updates](docs/auto-docs/04-development/README.md)
 
 This repository deploys nothing. `README.md`, `deployments.md`, `docs/README.md` and platform standards
 are project-owned; refresh updates auto-docs without rewriting these records.

@@ -1,5 +1,5 @@
 # Direct trusted-CI variant only. Human SSO is a separate identity integration.
-# Guide: docs/deployment/stage-9-development/procedures/vault-ci.md
+# Guide: docs/03-deployment/stage-9-development/procedures/vault-ci.md
 resource "vault_jwt_auth_backend" "gitlab" {
   path                  = "gitlab-ci"
   type                  = "jwt"

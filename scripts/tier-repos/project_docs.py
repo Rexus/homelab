@@ -24,15 +24,15 @@ def workflow_guides(writer, repo, docs, prefix):
     workflows = {
         "development": (
             "Change, review and validation procedures for this repository.",
-            [("Change IaC or documentation", "Record ownership, review and test commands", "development/code-layout.md"),
-             ("Add a guest or service", "Record the selected owner, inputs and recipe", "development/adding-service.md"),
-             ("Trace a failure", "Record the first error and focused regression check", "development/debugging.md"),
-             ("Adopt upstream changes", "Record refresh and compatibility checks", "development/generated-repositories.md")],
+            [("Change IaC or documentation", "Record ownership, review and test commands", "04-development/code-layout.md"),
+             ("Add a guest or service", "Record the selected owner, inputs and recipe", "04-development/adding-service.md"),
+             ("Trace a failure", "Record the first error and focused regression check", "04-development/debugging.md"),
+             ("Adopt upstream changes", "Record refresh and compatibility checks", "04-development/generated-repositories.md")],
         ),
         "administration": (
             "Supported maintenance and recovery procedures for the deployed services.",
-            [("Maintain services", "Record supported operations, scheduling and rollback", "administration/README.md"),
-             ("Recover and verify", "Record backup custodians and restore evidence", "administration/recovery.md")],
+            [("Maintain services", "Record supported operations, scheduling and rollback", "05-operations/README.md"),
+             ("Recover and verify", "Record backup custodians and restore evidence", "05-operations/recovery.md")],
         ),
     }
     for area, (purpose, tasks) in workflows.items():
@@ -40,7 +40,7 @@ def workflow_guides(writer, repo, docs, prefix):
                          for task, procedure, reference in tasks)
         if repo == "tier-0" and area == "administration":
             rows += ("\n| Test security logging | [Project evidence record](logging-evidence.md) | "
-                     f"[Fault/restore drill]({docs}/administration/logging-drill.md) |")
+                     f"[Fault/restore drill]({docs}/05-operations/logging-drill.md) |")
         owned_template(writer, "project/workflow.md", f"docs/{area}/README.md",
                        title=title, area_title=area,
                        purpose=purpose, rows=rows)
@@ -54,7 +54,8 @@ def repository_guides(writer, repo, prefix, scope):
             "| Cryptography | Draft: OpenXPKI infrastructure CA, separate offline clca root and sibling FreeIPA CA; select custody variant | Tier 0 runtime installer and two-phase identity recipe; qualify production policy, custody, enrollment and recovery |"
         ),
         "tier-1": (
-            "| Software supply | Select authoritative mirrors and DMZ build access | Tier-local delivery_edge network and runner recipe; mirror service integration remains project work |\n"
+            "| Software supply | Select verified RPM/APT repositories, artifacts and DMZ build access | "
+            "`intake` root and native installer; qualify source trust, scan policy and published content |\n"
             "| Hosting | Draft: independent three-control-plane cluster; optional worker pools | Kubernetes root and tier-local inventory |\n"
             "| Delivery | Unselected: Argo CD application GitOps or Spinnaker release pipelines | Select sources, targets, RBAC, secrets and recovery before installation |"
         ),

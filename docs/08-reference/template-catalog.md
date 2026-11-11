@@ -1,0 +1,134 @@
+# Shared template references
+
+**Tier 0 creates and maintains Proxmox templates. Shared stores their published consumer
+references; every tier reads the same catalog.** A tag on a workload VM describes
+its source image or service, not ownership of the template lifecycle.
+
+## Table of contents
+
+- [Where to edit](#where-to-edit)
+- [Publish references and select a default](#publish-references-and-select-a-default)
+- [How consumers use it](#how-consumers-use-it)
+- [Existing collections](#existing-collections)
+- [References](#references)
+
+## Where to edit
+
+| Location | Responsibility |
+| --- | --- |
+| Tier 0 `templates/proxmox.yml` | Build/publication details: source images, checksums, releases, schematic, node, storage, network, VMID |
+| Tier 0 template module, Packer, scripts, CI, and state | Create, test, update, and recover template artifacts |
+| Shared `templates/proxmox-catalog.tfvars` | Published VMIDs, titles, source nodes, family and tags; project-selected default |
+| Each tier's Terraform inputs | Select an approved template ID; define guest hardware and workload tags |
+| Each tier's `terraform/modules/environment_guests/` | Resolve that tier's template selections, inventory, placement, and combined guest tags |
+| Each tier's `terraform/modules/vm/` | Create Linux clones; tolerate subsequent Proxmox-managed node moves |
+| Tier 0 `terraform/deployments/kubernetes/` | Create Talos clones and configure the control cluster through its API |
+
+The [shared catalog starter](../../shared/templates/proxmox-catalog.tfvars)
+contains no images initially. It is project-owned from generation,
+versionable, and never overwritten by upstream refresh. Successful Tier 0 template
+apply updates its references; it contains no credentials, hashes, image paths, build
+settings, host inventory, or Terraform state.
+
+<a id="approve-a-reference"></a>
+
+## Publish references and select a default
+
+1. Use the Tier 0 [publication workflow](../05-operations/virtual-machines/template-lifecycle.md#local-workflow).
+   After Terraform apply, template-policy checks and state refresh succeed, the script
+   updates the sibling Shared catalog from the applied `template_candidates` output.
+   VMID becomes the map key; name becomes `title`; node, family and image tags follow the template.
+2. Test disposable clones on the destination cluster and network. Publication
+   and catalog synchronization do not prove guest acceptance.
+3. Review the updated Shared file. Existing VMIDs are refreshed, older entries and
+   extra entry fields are retained, and `default_linux_vm_template_id` is preserved.
+   No-change synchronization leaves the file untouched. The reference map's formatting
+   is regenerated; settings and comments outside it remain. The
+   [tag convention](../02-conventions/proxmox-conventions.md#template-tags) applies to the synchronized image tags.
+4. Set `default_linux_vm_template_id` in Shared to the tested Linux ID when ready for
+   consumers to adopt it. Talos references are listed too, but cannot be used by
+   the Linux VM module; use the [Talos Kubernetes implementation](../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md) or the
+   [manual procedure](../03-deployment/stage-4-kubernetes/step-1b-manual-cluster.md).
+5. Review and version the shared change, then review plans in consuming tiers.
+   Changing the selected source template may replace VMs; pin existing guests
+   with `template_vm_id` when they must stay on their current revision.
+
+The script edits the local Shared checkout; it never commits or pushes it. When Shared
+is absent, standalone Tier 0 publication still works and reports skipped synchronization.
+Restore the Shared checkout and rerun plan/apply to populate it; no template changes are
+required. A failed catalog update retains applied state and the existing Shared file.
+Correct the file/tooling and rerun plan/apply. Catalog updates do not run on `plan`,
+`import`, `verify`, disk replacement, or failed publication.
+
+CI can select another existing catalog with the exported absolute path
+`TEMPLATE_SHARED_CATALOG_FILE`. An explicitly selected missing file blocks apply.
+No Shared repository or catalog is created implicitly. For independently built or transferred
+images, add the same reference fields manually after testing; consumer selection is unchanged.
+
+Use OS-family terms consistently: `redhat` for AlmaLinux/Rocky/Fedora, `debian`
+for Debian-derived images, and `talos` for Talos. Tier 0's publication catalog
+separately records `distribution`; consumer titles/tags retain that specificity.
+Existing consumer entries using `family: alma` or `rocky` remain accepted; changing
+metadata does not approve a different image or change its VMID.
+
+Retain old entries while guests or recovery procedures use them. Prefer a new
+VMID for each approved revision. The optional Tier 0 same-ID refresh workflow
+has its own explicit replacement gate and does not change this ownership model.
+
+VMIDs belong to a Proxmox cluster. If an image is transferred from custody or
+another cluster, record the **destination** ID and source node accessible to the
+consumer. A reference is neither permission to administer Proxmox nor a network
+route to custody. Keep independent catalogs/collections for different clusters.
+
+## How consumers use it
+
+Run the shared deployment helper from the owning tier root as usual. No catalog
+copy into the tier is needed. The helper prints the shared path and loads:
+
+1. Shared `config/platform.tfvars` for common platform references.
+2. Shared `templates/proxmox-catalog.tfvars`.
+3. Tier `terraform/common.tfvars`, then its optional environment overlay.
+4. Setup `terraform.tfvars`, then its optional environment overlay.
+5. Explicit inventory and ordered group-var paths.
+
+Terraform's later `-var-file` arguments take precedence. Maps are replaced, not
+deep-merged; select an ID locally instead of maintaining another full catalog. [1]
+For manual Terraform commands, include both shared files before tier overrides; see the
+[manual equivalent](repository-scripts.md#manual-equivalent).
+
+The Linux tier roots pass catalog data to their tier-local typed resolver. The resolver
+uses the actual clone ID for title and source-node selection, and adds image
+tags to that guest's workload tags. Tier 0 builders may use `template_catalog_id`
+for output-image tags; that never changes the clone's source node.
+
+Tier 0's separate Talos command reads the same catalog but uses its own root
+and inputs, without Linux common variables or Ansible configuration.
+
+No consumer reads Tier 0 state or its private publication configuration.
+The publisher remains independently recoverable, while consumers need only
+their own checkout/inputs and a reviewed shared revision. Protect shared code
+and catalog changes at the privilege level of their consumers.
+
+## Existing collections
+
+Refresh shared and all affected tiers together. New collections use only the
+shared catalog; refresh preserves existing shared catalogs, root READMEs and local tier inputs.
+Deleting a generated catalog or README resets it to its current starter on refresh;
+private tier inputs and state are not generated or recovered by that command.
+
+Move common entries from tier-local `linux_vm_template_catalog` maps into shared
+`proxmox_template_catalog`, changing `description` to `title` and recording
+`family`. Keep existing IDs and image tags during migration. Then remove the
+duplicated maps deliberately, leaving only intentional per-tier ID selections.
+
+The legacy variable still works and overrides shared metadata for matching IDs.
+An old entry can therefore hide a shared source-node setting until migrated.
+If no shared catalog exists, the helper warns and uses the legacy inputs.
+An empty starter does not select an image automatically. Review a no-change
+plan before deployment; adding clone-source metadata can affect existing
+resources, so do not apply unexpected replacements. State paths do not move.
+
+## References
+
+1. [Terraform variable precedence](https://developer.hashicorp.com/terraform/language/values/variables),
+   checked 2026-09-22.

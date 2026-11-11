@@ -1,0 +1,380 @@
+# Proxmox host networking
+
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+
+**Design:** [network boundaries](../../../01-architecture/11-networking/README.md).
+
+## Table of contents
+
+- [Step 1: Prepare the guest trunk](#step-1-prepare-the-guest-trunk)
+- [Step 2: Select optional network branches](#step-2-select-optional-network-branches)
+- [Purpose](#purpose)
+- [Shared network reference](#shared-network-reference)
+- [What to implement on Proxmox](#what-to-implement-on-proxmox)
+- [Recommended host pattern](#recommended-host-pattern)
+- [Bonds and bridges](#bonds-and-bridges)
+- [Storage fabric OVS/RSTP](#storage-fabric-ovsrstp)
+- [Optional SDN for guest networks](#optional-sdn-for-guest-networks)
+- [Host-side VLANs](#host-side-vlans)
+- [VLAN strategy](#vlan-strategy)
+- [MTU planning](#mtu-planning)
+- [Single-trunk fallback](#single-trunk-fallback)
+- [Host-side notes](#host-side-notes)
+- [Validation checklist](#validation-checklist)
+
+## Step 1: Prepare the guest trunk
+
+**Run in:** the Proxmox GUI, with a tested independent host console open.
+Use the existing switch/gateway VLANs from the [network plan](../../../02-conventions/network-plan.md).
+The initial path needs one VLAN-aware bridge, not every optional fabric below.
+
+1. Open **Node > System > Network**. Identify the current management bridge and
+   its physical uplink; inspect rather than replace the installer-created `vmbr0`.
+2. Edit that bridge, or create the planned **Linux Bridge** if absent:
+
+   | Field | Set to |
+   | --- | --- |
+   | Name | `vmbr0`, consistently on every eligible host |
+   | Bridge ports | Actual prepared uplink NIC or previously configured bond; no guessed NIC names |
+   | VLAN aware | Enabled for the selected tagged guest networks |
+   | VLAN IDs | Only approved VLANs carried by the upstream trunk |
+   | IPv4/CIDR and gateway | Preserve the verified host-management placement; guest VLAN gateways stay on the router |
+   | MTU | `1500` for the initial path, matching the prepared underlay |
+
+3. Confirm the switch port's tagged/native behavior matches the host configuration.
+   A management VLAN change needs a reviewed cutover; do not remove the only working route.
+4. Review pending network changes, then **Apply Configuration**. Verify GUI/console access
+   and a disposable guest's intended VLAN path before proceeding or repeating on other hosts.
+
+Host IPs belong on the selected bridge/VLAN interface, not its slave NIC. Do not
+attach offline custody to connected trunks. Use the [validation checklist](#validation-checklist)
+before declaring the path ready.
+
+## Step 2: Select optional network branches
+
+| Selection | Continue with | Return after |
+| --- | --- | --- |
+| Direct guest bridge/VLAN | Keep `bridge = "vmbr0"` and the actual `vlan_id` in guest inputs | [Foundation Step 2](../README.md#step-2-create-the-first-linux-template-manually) |
+| SDN VNet attachments | [1c: SDN setup and activation](step-1c-sdn.md) | Activated VNets and matching switch trunks are checked |
+| Clustered hosts | [1b: Cluster/HA preparation](step-1b-cluster-ha.md) | Every eligible host has the same guest attachment |
+| Additional NIC capacity/resilience | [Bonds and bridges](#bonds-and-bridges) | Switch-side aggregation and host path are verified |
+| Direct full-mesh Ceph fabric | [OVS/RSTP alternative](#storage-fabric-ovsrstp) | Separate storage path, MTU and loop recovery are qualified |
+
+The remaining sections explain these choices and their constraints. They are not
+additional steps required for the single-bridge starting path.
+
+## Purpose
+
+Use this guide to decide how the chosen network design is implemented on
+Proxmox hosts.
+
+It focuses on host uplinks, bonds, bridges, VLAN-aware bridges, and the
+host-side paths often needed for `management`, `corosync`, and Ceph.
+
+This guide does not redefine the global network model. It assumes the external
+switching, routing, and firewalling already exist.
+
+In this Proxmox guide, `management` means the host-management network used to
+reach the Proxmox web UI, API, and SSH.
+
+## Shared network reference
+
+Use [Network placement](../../../01-architecture/11-networking/README.md)
+as the source of truth for:
+
+- logical network names such as `management`, `access`, `identity`, `application`,
+  `cryptography`, `external_edge`, and `ceremony`
+- the deployable guest `network_zones` keys used in Terraform
+- the locally configured SDN VNet ID or non-SDN bridge, optional VLAN tag, and
+  subnet values
+
+This page explains how those networks are presented on hosts. Proxmox SDN
+zones and Terraform `network_zones` are not gateway firewall zones. Use the
+[network input reference](../../../08-reference/network-inputs.md) for guest fields
+and the [firewall policy](../../../01-architecture/11-networking/01-firewall-policy.md) for access rules.
+
+## What to implement on Proxmox
+
+On the Proxmox side, decide and document:
+
+- which NICs are used for the primary uplinks
+- whether those uplinks are bonded
+- which bridge carries the normal fabric traffic
+- which bridge carries storage traffic when separating storage
+- whether the bridges are VLAN-aware
+- whether guest/workload networks consume Proxmox SDN VNets or non-SDN
+  bridge-and-VLAN tagging
+- whether any trunks allow native or untagged VLANs at all
+- whether `corosync`, `ceph_public`, or `ceph_cluster` use shared or dedicated
+  uplinks
+- where the Proxmox host-management, `corosync`, and Ceph IPs live
+- which MTU is used on each bond, bridge, and VLAN-backed path
+
+## Recommended host pattern
+
+For the first deployment, a switched VLAN-aware `vmbr0` at MTU 1500 is sufficient
+when capacity and availability requirements permit it. Keep management reachable;
+introduce bonds, separate storage and jumbo frames only after that path is verified.
+The diagram below is an expanded option, not a minimum hardware requirement.
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Switches["Managed switches or upstream fabric"]
+  subgraph Fabric["Fabric path"]
+    direction TB
+    FabricBond["bond0<br/>fabric bond<br/>MTU 1500"]
+    FabricBridge["vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500"]
+    Management["Host-management IPs<br/>Proxmox UI, API, SSH"]
+    QuorumPrimary["corosync 1"]
+    Guests["access, identity, application,<br/>external_edge, cryptography guests"]
+    FabricBond --> FabricBridge
+    FabricBridge --> Management
+    FabricBridge --> QuorumPrimary
+    FabricBridge --> Guests
+  end
+  subgraph Storage["Storage path"]
+    direction TB
+    StorageBond["bond1<br/>storage bond<br/>MTU 9000"]
+    StorageBridge["vmbr1<br/>storage bridge<br/>VLAN-aware<br/>MTU 9000"]
+    QuorumSecondary["corosync 2<br/>often MTU 1500"]
+    CephPublic["ceph_public"]
+    CephCluster["ceph_cluster"]
+    StorageBond --> StorageBridge
+    StorageBridge --> QuorumSecondary
+    StorageBridge --> CephPublic
+    StorageBridge --> CephCluster
+  end
+  Switches --> FabricBond
+  Switches --> StorageBond
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Fabric boundary
+  class Switches,FabricBond,FabricBridge,StorageBond,StorageBridge,Management,QuorumPrimary,QuorumSecondary control
+  class Storage,CephPublic,CephCluster data
+```
+
+**Manual:** this host attachment example is configured on the existing Tier 0 Proxmox hosts.
+The [shared platform profile](../../../../shared/config/platform.tfvars) and
+[Tier 0 network inputs](../../../../tier-0/terraform/common.tfvars.example)
+reference prepared bridges; guest Terraform does not create these bonds or host fabrics.
+
+Figure: one strong clustered Proxmox pattern is to keep normal platform VLANs
+on a fabric bond and bridge, and keep Ceph plus a second Corosync path on a
+separate storage bond and bridge.
+
+This is a connected-host pattern, including protected Tier 0 control systems.
+Offline `ceremony` and custody assets require separate isolated hosts/fabric;
+do not attach those assets to these connected trunks.
+
+## Bonds and bridges
+
+Use stable host-side components such as these:
+
+| Component | Typical use | MTU | Notes |
+| --- | --- | --- | --- |
+| `bond0` | fabric bond | `1500` | use for the main host-management, guest, access, identity, and application trunk |
+| `vmbr0` | fabric bridge | `1500` | keep it VLAN-aware; document any intentional native management VLAN on both switch and host, and prevent accidental untagged guest access |
+| `bond1` | storage bond | `9000` | use for storage-heavy traffic when Ceph benefits from jumbo frames |
+| `vmbr1` | storage bridge | `9000` | use OVS with RSTP for direct/full-mesh storage fabric; otherwise keep it VLAN-aware and limited to storage VLANs plus the second Corosync VLAN |
+| extra copper ports | optional dedicated Corosync paths | `1500` | prefer using them for `corosync 1` and `corosync 2` for extra cluster stability and separation instead of sharing those paths on `vmbr0` and `vmbr1` |
+
+Bonding and bridge notes:
+
+- when using `802.3ad` for `bond0` or `bond1`, configure the switch side for
+  LACP too
+- in UniFi this is exposed through port aggregation. [1]
+- terminate ordinary LACP on one logical switch. Spanning two independent switches
+  requires a supported and configured MC-LAG/stacking design; two purchased switches
+  do not provide that automatically. [1][2]
+- on other switch platforms, the same setup is often presented more explicitly
+  as dynamic `LACP` on the member ports or a port-channel
+- keep `vmbr1` VLAN-aware and allow only the needed storage VLANs and the
+  second Corosync VLAN on it, for example `20-22`
+- keep `vmbr0` VLAN-aware and carry the remaining allowed VLAN IDs there, for
+  example `10-12 120 220 320`
+
+## Storage fabric OVS/RSTP
+
+For a three-node direct/full-mesh storage fabric, use Open vSwitch with RSTP on
+the storage bridge. This follows the
+[Proxmox full-mesh Ceph pattern](https://pve.proxmox.com/wiki/Full_Mesh_Network_for_Ceph_Server)
+and gives the storage fabric a faster loop-recovery mechanism than classic
+Linux bridge STP.
+
+Use this for the storage side only:
+
+- install `openvswitch-switch` on every Proxmox node before switching the
+  storage fabric to OVS
+- keep the fabric side, host-management, and guest SDN underlay separate from
+  this storage bridge unless the design intentionally collapses them
+- do not mix Linux bridge or Linux bond members inside the same OVS path
+- adapt NIC names, IP addresses, MTU, and path costs per node
+- prefer a switched storage fabric when the cluster will grow beyond three
+  nodes
+
+Minimal storage-fabric shape:
+
+```text
+node-1 ens18 ----- ens19 node-2
+node-2 ens18 ----- ens19 node-3
+node-3 ens18 ----- ens19 node-1
+```
+
+Example `/etc/network/interfaces` pattern for `vmbr1`:
+
+```ini
+auto ens18
+iface ens18 inet manual
+    ovs_type OVSPort
+    ovs_bridge vmbr1
+    ovs_mtu 9000
+    ovs_options other_config:rstp-enable=true other_config:rstp-path-cost=150 other_config:rstp-port-admin-edge=false other_config:rstp-port-auto-edge=false other_config:rstp-port-mcheck=true vlan_mode=native-untagged
+
+auto ens19
+iface ens19 inet manual
+    ovs_type OVSPort
+    ovs_bridge vmbr1
+    ovs_mtu 9000
+    ovs_options other_config:rstp-enable=true other_config:rstp-path-cost=150 other_config:rstp-port-admin-edge=false other_config:rstp-port-auto-edge=false other_config:rstp-port-mcheck=true vlan_mode=native-untagged
+
+auto vmbr1
+iface vmbr1 inet static
+    address 10.15.15.50/24
+    ovs_type OVSBridge
+    ovs_ports ens18 ens19
+    ovs_mtu 9000
+    up ovs-vsctl set Bridge ${IFACE} rstp_enable=true other_config:rstp-priority=32768 other_config:rstp-forward-delay=4 other_config:rstp-max-age=6
+    post-up sleep 10
+```
+
+Verify RSTP after applying the host network change:
+
+Run on **the selected Proxmox host as an authorized root operator**.
+
+```bash
+ovs-appctl rstp/show
+```
+
+## Optional SDN for guest networks
+
+Follow [Step 1c: SDN guest networks](step-1c-sdn.md) before attaching guests.
+The procedure owns VNet setup and Terraform attachment examples; the host underlay
+and validation checklist remain in this guide.
+
+## Host-side VLANs
+
+In this Proxmox pattern, focus the host-side VLAN plan on the VLANs that the
+hosts themselves use.
+
+| VLAN or path | Recommended bridge or port | MTU | Notes |
+| --- | --- | --- | --- |
+| `management` | `vmbr0` | `1500` | keep the web UI, API, and SSH reachable before automation starts; do not move this into SDN |
+| `corosync 1` | dedicated `eth` port if possible, else `vmbr0` | `1500` | keep the first Corosync path on the fabric side |
+| `corosync 2` | dedicated `eth` port if possible, else `vmbr1` | `1500` | keep the second Corosync path away from the first one |
+| `ceph_public` | `vmbr1` | `9000` | separate from guest traffic when possible; do not move this into SDN |
+| `ceph_cluster` | `vmbr1` | `9000` | keep distinct from `ceph_public` for Ceph replication and recovery; do not move this into SDN |
+
+Guest networks such as `access`, `identity`, `application`, `external_edge`,
+and `cryptography` can be consumed either through Proxmox SDN VNets
+or through non-SDN bridge-and-VLAN tagging on `vmbr0`.
+
+## VLAN strategy
+
+This is not Proxmox-specific, but it makes the Proxmox bridge configuration
+easier to keep readable. Read more in
+[Network architecture](../../../01-architecture/11-networking/README.md#vlan-id-strategy).
+
+Recommended practice:
+
+- record deployable guest network attachments in Terraform `network_zones` so
+  automation matches the host implementation
+- for SDN, record the VNet ID as `bridge` and omit `vlan_id`
+- for non-SDN networking, record the Linux bridge as `bridge` and set
+  `vlan_id` to tag the VM NIC
+- keep host-only platform VLANs in the Proxmox host/network documentation
+- decide the reserved VLAN ID ranges early because later changes are harder
+  across bridges, guests, switches, and firewalls
+- group related VLAN IDs so bridge expressions stay easier to read, for
+  example `10-12 120 220 320` on `vmbr0` instead of one long ad hoc list
+
+## MTU planning
+
+Keep MTU explicit in the host design.
+
+Recommended practice:
+
+- keep the fabric side on `1500` MTU unless a documented requirement calls for a higher value
+- keep the storage side on `9000` MTU since Ceph traffic benefits from jumbo
+  frames
+- ensure the switch is configured for jumbo frames when using MTU above
+  `1500`
+- set MTU explicitly on the bonds, bridges, and VLAN-backed paths that need it
+- if a bridge carries any `9000` MTU VLANs, the bridge itself cannot stay below
+  that requirement
+- a second Corosync VLAN can still stay at `1500` even when the storage bridge
+  itself is `9000`
+- keep VM MTU decisions aligned with the Proxmox-side network design; this
+  repository does not carry MTU in the tier-local Terraform guest network inputs
+
+## Single-trunk fallback
+
+If the environment cannot justify or support a separate storage bond, collapse
+the design onto one main bonded trunk.
+
+Use this fallback when:
+
+- the host does not have enough ports
+- the storage uplinks are not fast enough to justify separation
+- Ceph traffic is not heavy enough to deserve its own bond
+
+Practical Ceph threshold examples:
+
+- treat `25+ Gbit` as a more natural floor for NVMe-backed Ceph separation
+- treat `10+ Gbit` as a more natural floor for HDD-backed Ceph separation
+
+When using the single-trunk fallback:
+
+- set the bridge MTU high enough for the Ceph networks if they need `9000`
+- keep explicit MTU settings on the Proxmox host paths
+
+## Host-side notes
+
+- put host IPs on bridges or VLAN subinterfaces, not on the physical slave NICs
+- use descriptions on each bond, bridge, and VLAN so it is obvious what they
+  carry, for example `fabric bridge`, `management port`, or `ceph cluster port`
+- start with a simple host network layout before adding more complex bond
+  separation, and add the fabric or storage split later if it is not needed
+  on day one
+- this repository does not configure the physical switch, router, or firewall
+
+## Validation checklist
+
+Before running automation, confirm:
+
+- every node has the expected bond and bridge layout
+- host-management access is working on every node
+- VLAN tags exist end-to-end on the underlay where needed
+- guest bridge names or SDN VNet IDs line up with the local `network_zones`
+  values
+- SDN VNets exist before Terraform attaches VMs to them
+- SDN VNets are only used for guest/workload networks, not host-management,
+  Corosync, or Ceph transport networks
+- any intentional native/untagged management path matches both ends; no bridge or trunk accidentally exposes another network
+- no host IPs are left on bond slaves or physical NICs by mistake
+- both Corosync networks are present and placed on the intended paths if
+  clustering is in use
+- `ceph_public` and `ceph_cluster` are separated when Ceph is in use
+- the storage bridge and Ceph paths use the expected `9000` MTU when that is
+  part of the design
+- MTU, routes, and host-side naming are consistent across the nodes that should
+  be interchangeable
+
+## References
+
+Switch aggregation guidance checked 2026-10-16. Verify support for the actual hardware.
+
+1. [Ubiquiti: Port aggregation and MC-LAG distinction](https://help.ui.com/hc/en-us/articles/360007279753-Port-Aggregation-FAQs)
+2. [Ubiquiti: MC-LAG commissioning and supported devices](https://help.ui.com/hc/en-us/articles/19133507506711-Configuring-MC-LAG-in-UniFi-Network)

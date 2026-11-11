@@ -10,7 +10,7 @@ live in `${repo_prefix}-architecture`.
 Review the project's [platform standards](../${repo_prefix}-architecture/platform-standards.md)
 before creating resources. Keep the sibling shared and architecture repositories
 available locally.
-Use the [Proxmox VMID quick reference](${docs}/conventions/vmid-convention.md)
+Use the [Proxmox VMID quick reference](${docs}/02-conventions/vmid-convention.md)
 when assigning or maintaining guest IDs; existing installations retain their local allocations.
 
 Approved image IDs and titles come from the sibling shared repository's
@@ -23,7 +23,7 @@ and a project-owned [platform profile](../${repo_prefix}-shared/config/platform.
 Set workload tags here, not template recipes. Only Tier 0 publishes templates
 and approves catalog changes.
 
-Follow the [deployment checklist](${docs}/paths/${tier}/README.md) for what to
+Follow the [deployment checklist](${docs}/06-paths/${tier}/README.md) for what to
 deploy, in what order, and the checks before continuing. It links each step to
 its detailed guide.
 
@@ -42,7 +42,7 @@ bash scripts/init-local-files.sh --setup ${example}
 Use `--setup` to select an entry in `.deployment-setups`. These commands use the
 base production context, matching the main deployment path. For a disposable context,
 add the same `--env test` to initialization and deployment, and complete
-[environment isolation](${docs}/reference/repository-scripts.md#environment-isolation)
+[environment isolation](${docs}/08-reference/repository-scripts.md#environment-isolation)
 first; the flag does not allocate separate VMIDs or addresses.
 
 Edit in **`${repo_prefix}-${tier}/`**.
@@ -61,8 +61,8 @@ Edit in **`${repo_prefix}-shared/`**.
 
 Keep SSH keys outside the
 repositories and set only public-key file paths in `.env.local`, as described
-in [platform inputs](${docs}/reference/platform-inputs.md). Follow the
-[setup guide](${docs}/reference/repository-scripts.md#available-setups), completing its
+in [platform inputs](${docs}/08-reference/platform-inputs.md). Follow the
+[setup guide](${docs}/08-reference/repository-scripts.md#available-setups), completing its
 storage and TLS preparation before host configuration. Then deploy:
 
 Run from **`${repo_prefix}-${tier}/`**.
@@ -93,14 +93,14 @@ Start with a deployment's `main.tf`, then follow its module calls into
 `terraform/modules/`. For guest deployments, edit local values beside
 `terraform.tfvars.example`; host names, groups, and IPs come from this tier's
 `ansible/` inputs.
-See the [Terraform design map](${docs}/development/code-layout.md#terraform-structure)
+See the [Terraform design map](${docs}/04-development/code-layout.md#terraform-structure)
 for file responsibilities and the inventory-to-resource flow.
-Use [Add a service](${docs}/development/adding-service.md) for an extension, or
-[Find and fix a bug](${docs}/development/debugging.md) to trace a failure.
+Use [Add a service](${docs}/04-development/adding-service.md) for an extension, or
+[Find and fix a bug](${docs}/04-development/debugging.md) to trace a failure.
 
 All entry points below belong to `${repo_prefix}-${tier}`. Reusable execution code
 in `${repo_prefix}-shared` does not own these deployments or their inventory and state.
-Upstream guides name their owners using the [repository map](${docs}/deployment/README.md#repository-locations).
+Upstream guides name their owners using the [repository map](${docs}/03-deployment/README.md#repository-locations).
 
 | Deployment | Terraform entry point | Host configuration or images |
 | --- | --- | --- |
@@ -111,13 +111,13 @@ ${deployments}
 - [Selected architecture](docs/architecture/README.md)
 - [Local deployment, development and administration guides](docs/README.md)
 - [Project documentation](../${repo_prefix}-architecture/docs/README.md)
-- [Conventions: names, tags, VMIDs and networks](${docs}/conventions/README.md)
-- [Deployment order](${docs}/paths/${tier}/README.md)
-- [Recovery guides](${docs}/administration/recovery.md)
-- [Architecture and tier boundaries](${docs}/architecture/tier-ownership.md)
-- [Infrastructure control and delegated requests](${docs}/architecture/hosting/provisioning.md)
-- [Deployment commands](${docs}/reference/repository-scripts.md)
-- [Tier 0 template lifecycle](${docs}/administration/virtual-machines/template-lifecycle.md)
+- [Conventions: names, tags, VMIDs and networks](${docs}/02-conventions/README.md)
+- [Deployment order](${docs}/06-paths/${tier}/README.md)
+- [Recovery guides](${docs}/05-operations/recovery.md)
+- [Architecture and tier boundaries](${docs}/01-architecture/03-tier-ownership.md)
+- [Infrastructure control and delegated requests](${docs}/01-architecture/10-hosting/03-provisioning.md)
+- [Deployment commands](${docs}/08-reference/repository-scripts.md)
+- [Tier 0 template lifecycle](${docs}/05-operations/virtual-machines/template-lifecycle.md)
 
 ## Licensing
 

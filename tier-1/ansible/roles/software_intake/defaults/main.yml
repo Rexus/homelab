@@ -2,7 +2,7 @@
 software_intake_sources: []
 software_intake_config_dir: /etc/software-intake
 software_intake_data_dir: /srv/intake
-software_intake_data_device: /dev/sdb
+software_intake_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
 software_intake_data_fstype: xfs
 software_intake_data_uuid: ""
 software_intake_runtime_dir: /usr/local/share/software-intake/runtime

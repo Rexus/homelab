@@ -7,13 +7,13 @@ umask 077
 
 if [[ $# == 1 && "$1" == --help ]]; then
   echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials|export-plan}"
-  echo "Current implementation: Talos. Reference: docs/deployment/stage-4-kubernetes/procedures/kubernetes.md"
+  echo "Current implementation: Talos. Reference: docs/03-deployment/stage-4-kubernetes/procedures/kubernetes.md"
   exit 0
 fi
 
 if [[ $# != 1 || ! "$1" =~ ^(init|plan|apply|credentials|export-plan)$ ]]; then
   echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials|export-plan}" >&2
-  echo "Current implementation: Talos. Reference: docs/deployment/stage-4-kubernetes/procedures/kubernetes.md" >&2
+  echo "Current implementation: Talos. Reference: docs/03-deployment/stage-4-kubernetes/procedures/kubernetes.md" >&2
   exit 1
 fi
 action="$1"
@@ -42,7 +42,7 @@ if [[ "$action" == plan || "$action" == apply ]]; then
       ''|0|f|F|false|False|FALSE) ;;
       *)
         echo "Refusing Proxmox TLS bypass: unset $tls_option and install approved API trust." >&2
-        echo "See docs/administration/hosts/proxmox-tls.md." >&2
+        echo "See docs/05-operations/hosts/proxmox-tls.md." >&2
         exit 1
         ;;
     esac
@@ -55,7 +55,7 @@ for legacy in terraform/talos terraform/deployments/talos; do
     [[ -f "$file" ]] || continue
     echo "Legacy Terraform deployment found: $legacy" >&2
     echo "Migrate to terraform/deployments/kubernetes before continuing." >&2
-    echo "See docs/development/generated-repositories.md#terraform-layout-upgrade." >&2
+    echo "See docs/04-development/generated-repositories.md#terraform-layout-upgrade." >&2
     exit 1
   done
 done

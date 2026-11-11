@@ -1,5 +1,5 @@
 ---
-# Guide: docs/deployment/stage-10-lab-environments/step-3c-telemetry.md
+# Guide: docs/03-deployment/stage-10-lab-environments/step-3c-telemetry.md
 workload_telemetry_action: render
 workload_telemetry_kubeconfig: ""
 workload_telemetry_namespace: lab-demo

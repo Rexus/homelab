@@ -1,6 +1,6 @@
 ---
 # Run before any consuming cluster. The private gateway pair stays outside Kubernetes.
-# Guide: docs/deployment/stage-4-kubernetes/procedures/api-endpoint.md
+# Guide: docs/03-deployment/stage-4-kubernetes/procedures/api-endpoint.md
 - name: Validate the private API endpoint contract on both gateways
   hosts: cluster_endpoint
   gather_facts: false

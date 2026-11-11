@@ -1,6 +1,6 @@
 """Refresh Shared's consumer references from successfully applied Tier 0 outputs.
 
-Reference: docs/reference/template-catalog.md
+Reference: docs/08-reference/template-catalog.md
 """
 
 import argparse

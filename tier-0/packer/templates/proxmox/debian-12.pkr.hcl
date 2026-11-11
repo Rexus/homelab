@@ -10,7 +10,7 @@ packer {
 # Minimal placeholder template.
 # Prefer environment variables for sensitive runtime values such as API
 # endpoints, token IDs, and token secrets.
-# See: docs/reference/environment-variables.md
+# See: docs/08-reference/environment-variables.md
 source "proxmox-iso" "debian12" {
   # Intentionally left minimal for initial scaffolding.
   # Typical sensitive inputs are better injected at runtime than stored here.

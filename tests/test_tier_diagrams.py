@@ -10,7 +10,7 @@ import yaml
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
-PALETTE = "reference/diagrams/palette.json"
+PALETTE = "08-reference/diagrams/palette.json"
 
 
 def diagrams(document):
@@ -113,13 +113,13 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertEqual(target.read_bytes(), original)
 
     def test_placement_grids_keep_tiers_ordered_without_traffic_arrows(self):
-        root = UPSTREAM / "docs/architecture"
+        root = UPSTREAM / "docs/01-architecture"
         overview = diagrams(root / "README.md")
         layers = overview[1]
         self.assertIn("block-beta\n  columns 3", layers)
         for code in (overview[0], overview[2],
-                     diagrams(root / "hosting/kubernetes.md")[0],
-                     diagrams(root / "hosting/runtime.md")[0]):
+                     diagrams(root / "10-hosting/04-kubernetes.md")[0],
+                     diagrams(root / "10-hosting/01-runtime.md")[0]):
             self.assertIn("block-beta", code)
             order = [code.index(f'T{tier}["') for tier in (2, 1, 0)]
             self.assertEqual(order, sorted(order))
@@ -127,7 +127,7 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertNotIn("---", code)
         self.assertLess(layers.index('Edge["'), layers.index('Application["'))
         self.assertLess(layers.index('Application["'), layers.index('Control["'))
-        identity = diagrams(root / "identity/README.md")[0]
+        identity = diagrams(root / "18-identity/README.md")[0]
         self.assertIn('T0Title["Tier 0 / Control layer"]', identity)
         self.assertIn("T2 ~~~ T1", identity)
         self.assertIn("T1 -->|OIDC to the IdP| T0", identity)
@@ -136,40 +136,40 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn("Cluster -->|Protected LDAP federation| Directory", identity)
 
     def test_domain_views_group_authority_and_separate_offline_custody(self):
-        root = UPSTREAM / "docs/architecture"
-        for name in ("cryptography/README.md", "software/README.md"):
+        root = UPSTREAM / "docs/01-architecture"
+        for name in ("16-cryptography/README.md", "05-software-lifecycle.md"):
             code = diagrams(root / name)[0]
             boundary = "block:T" if "block-beta" in code else "subgraph T"
             order = [code.index(f"{boundary}{tier}") for tier in (2, 1, 0)]
             self.assertEqual(order, sorted(order), name)
             self.assertEqual(code.count(f"{boundary}0"), 1, name)
-        crypto = diagrams(root / "cryptography/README.md")[0]
+        crypto = diagrams(root / "16-cryptography/README.md")[0]
         self.assertLess(crypto.index("block:T0"), crypto.index('Root["'))
         self.assertGreater(crypto.index('Root["'), crypto.index('Identity["'))
         self.assertIn("Root -.-> Issuer", crypto)
         self.assertIn("Root -.-> Identity", crypto)
-        controllers = diagrams(root / "software/controllers.md")[0]
+        controllers = diagrams(root / "20-delivery/02-controllers.md")[0]
         self.assertIn("T2 ~~~ T1 ~~~ T0", controllers)
         self.assertEqual(controllers.count('subgraph T0["'), 1)
-        for name in ("cryptography/hsm-selection.md", "cryptography/network-hsm.md",
-                     "cryptography/vault-seal.md"):
+        for name in ("16-cryptography/03-hsm-selection.md", "16-cryptography/05-network-hsm.md",
+                     "16-cryptography/06-vault-seal.md"):
             for code in diagrams(root / name):
                 self.assertIn("block:T0", code, name)
                 self.assertRegex(code, r'(?i)offline (?:recovery|backup) custody', name)
-        telemetry = diagrams(root / "operations/telemetry.md")[0]
+        telemetry = diagrams(root / "24-operations/03-telemetry.md")[0]
         for tier in (2, 1):
             self.assertIn(f"T{tier} -->|Security / audit submissions| T0", telemetry)
         self.assertIn('subgraph T0["Tier 0 / Security Logging and Audit"]', telemetry)
         self.assertIn('Critical["Independent health / alerts"]', telemetry)
         self.assertIn('subgraph Cluster["Platform Kubernetes / separate workloads"]', telemetry)
-        retention = diagrams(root / "operations/log-retention.md")[0]
+        retention = diagrams(root / "24-operations/02-log-retention.md")[0]
         self.assertIn('subgraph T0["', retention)
         self.assertIn("Intake -->|Verified checkpoints| Protection", retention)
         self.assertIn("Storage -->|Backup| Recovery", retention)
 
     def test_charts_and_sequence_keep_theme_aware_text(self):
-        root = UPSTREAM / "docs/architecture"
-        charts = [code for code in diagrams(root / "private-cloud.md") if "xychart-beta" in code]
+        root = UPSTREAM / "docs/01-architecture"
+        charts = [code for code in diagrams(root / "02-private-cloud.md") if "xychart-beta" in code]
         self.assertEqual(len(charts), 2)
         palette = json.loads((UPSTREAM / "docs" / PALETTE).read_text())
         for chart in charts:
@@ -178,13 +178,13 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertNotIn("theme", config)
             colours = config["themeVariables"]["xyChart"]["plotColorPalette"].split(",")
             self.assertEqual(colours, palette["charts"]["series"])
-        sequence = diagrams(root / "runtime-flows.md")[0]
+        sequence = diagrams(root / "07-runtime-flows.md")[0]
         self.assertIn("sequenceDiagram", sequence)
         self.assertNotIn("theme", sequence)
         self.assertIn("rect rgba(", sequence)
 
     def test_logging_steps_keep_deployment_boundaries_and_inventory_names(self):
-        root = UPSTREAM / "docs/deployment/stage-2-logging"
+        root = UPSTREAM / "docs/03-deployment/stage-2-logging"
         tier = UPSTREAM / "tier-0"
         inventory = yaml.safe_load((tier / "ansible/inventory/hosts.yml.example").read_text())
         hosts = inventory["all"]["children"]["foundation_logging"]["hosts"]
@@ -230,28 +230,28 @@ class DiagramConventions(TierRepositoryTestCase):
 
     def test_directory_peers_stack_and_issuers_remain_foundational(self):
         root = UPSTREAM / "docs"
-        identity = diagrams(root / "architecture/identity/README.md")[0]
+        identity = diagrams(root / "01-architecture/18-identity/README.md")[0]
         self.assertIn('subgraph Directory["Directory authority / identity network"]\n        direction TB', identity)
         self.assertIn('Primary["Directory primary"] <--> Replica["Directory replica"]', identity)
-        trust = diagrams(root / "deployment/stage-3-trust/README.md")[0]
+        trust = diagrams(root / "03-deployment/stage-3-trust/README.md")[0]
         self.assertLess(trust.index('subgraph Identity['), trust.index('subgraph Crypto['))
         self.assertIn('Identity ~~~ Crypto', trust)
-        directory = diagrams(root / "deployment/stage-5-identity/README.md")[0]
+        directory = diagrams(root / "03-deployment/stage-5-identity/README.md")[0]
         self.assertIn('subgraph PVE["Existing Proxmox hosts"]\n      direction LR', directory)
         self.assertIn('Identity ~~~ ExistingCA', directory)
-        control = diagrams(root / "deployment/stage-6-secrets/README.md")[0]
+        control = diagrams(root / "03-deployment/stage-6-secrets/README.md")[0]
         self.assertIn('Identity ~~~ Log ~~~ Issuer', control)
         self.assertIn('idm-1 / idm-2<br/>FreeIPA pair', control)
-        federation = diagrams(root / "deployment/stage-5-identity/README.md")[1]
+        federation = diagrams(root / "03-deployment/stage-5-identity/README.md")[1]
         self.assertIn('Primary <-->|Replication| Replica', federation)
 
     def test_queries_enter_from_readers_and_alerts_retain_real_flow(self):
         root = UPSTREAM / "docs"
-        access = diagrams(root / "deployment/stage-8-observability/README.md")[3]
+        access = diagrams(root / "03-deployment/stage-8-observability/README.md")[3]
         self.assertIn('flowchart LR', access)
         self.assertIn('Reader -->|Read-only queries| T1', access)
         self.assertNotIn('Read-only results| Reader', access)
-        alerts = diagrams(root / "deployment/stage-6-secrets/procedures/independent-monitoring.md")[2]
+        alerts = diagrams(root / "03-deployment/stage-6-secrets/procedures/independent-monitoring.md")[2]
         self.assertIn('flowchart RL', alerts)
         self.assertIn('Watch -->|Missing heartbeat alert| Admin', alerts)
         self.assertIn('Log -->|Configured heartbeat| Watch', alerts)
@@ -259,7 +259,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertNotIn('Admin[', external)
 
     def test_logging_diagrams_link_to_the_owning_iac_at_each_step(self):
-        root = UPSTREAM / "docs/deployment/stage-2-logging"
+        root = UPSTREAM / "docs/03-deployment/stage-2-logging"
         recipes = "../../../tier-0/ansible/playbooks/deployment/"
         expected = {
             "README.md": [

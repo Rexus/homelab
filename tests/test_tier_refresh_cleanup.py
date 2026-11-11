@@ -17,6 +17,19 @@ class RefreshCleanup(TierRepositoryTestCase):
         return {path.relative_to(self.root): path.read_bytes() if path.is_file() else None
                 for path in self.root.rglob("*")}
 
+    @unittest.skipIf(os.name == "nt", "Requires unprivileged symlinks")
+    def test_writer_rejects_symlinked_parent_inside_repository(self):
+        repo = self.root / "verify-architecture"
+        target = repo / "docs/auto-docs/01-architecture"
+        target.mkdir(parents=True)
+        sentinel = target / "README.md"
+        sentinel.write_text("# Preserved document\n", encoding="utf-8")
+        (target.parent / "architecture").symlink_to(target, target_is_directory=True)
+        writer = RepositoryWriter(repo, refresh=True)
+        with self.assertRaisesRegex(ValueError, "symlink"):
+            writer.write("docs/auto-docs/architecture/README.md", "# Compatibility guide\n")
+        self.assertEqual(sentinel.read_text(encoding="utf-8"), "# Preserved document\n")
+
     def test_refresh_restores_missing_scripts_owned_starters_and_the_complete_manual(self):
         self.generate()
         targets = [
@@ -63,7 +76,7 @@ class RefreshCleanup(TierRepositoryTestCase):
         untracked = manual / "extra.bin"
         untracked.write_bytes(b"untracked auto-doc asset")
         manifest_path.write_text(json.dumps(manifest))
-        current = manual / "architecture/README.md"
+        current = manual / "01-architecture/README.md"
         current.write_text("# Local edits to a current reference\n")
         protected = [repo / "README.md", repo / "docs/local.md", repo / ".env.local",
                      repo / ".terraform/state/original.tfstate"]

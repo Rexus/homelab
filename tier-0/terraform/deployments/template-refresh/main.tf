@@ -7,7 +7,7 @@ locals {
 
 # Tier-local modules own inventory and resources; shared supplies platform/image references.
 # The deploy helper loads shared/config/platform.tfvars; local network entries replace shared ones.
-# Input ownership and precedence: docs/reference/platform-inputs.md
+# Input ownership and precedence: docs/08-reference/platform-inputs.md
 module "environment" {
   source = "../../modules/environment_guests"
 

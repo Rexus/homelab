@@ -6,8 +6,8 @@ Operational tests are in the separate [manual verification list](operational-ver
 This file tracks code coverage and optional integrations, not deployed-system acceptance.
 
 Parent: [operator walkthrough](operator-walkthrough.md).
-Design: [certificate authority](../docs/architecture/cryptography/certificate-authority.md).
-Deployment: [software-first PKI](../docs/deployment/stage-3-trust/procedures/software-pki.md).
+Design: [certificate authority](../docs/01-architecture/16-cryptography/01-certificate-authority.md).
+Deployment: [software-first PKI](../docs/03-deployment/stage-3-trust/procedures/software-pki.md).
 
 ## Selected boundaries
 
@@ -45,7 +45,7 @@ and is not implied installed by the supplied issuer runtime.
   Existing domains are preserved; renewal/rechaining requires a separate migration procedure.
 - [x] Public HTTP-01, production chain/name checks, verified origins and serialized renewal
   scheduling are supplied for the later selected HTTPS path.
-- [x] [Algorithm/PQC and custody guidance](../docs/administration/cryptography/security-controls.md),
+- [x] [Algorithm/PQC and custody guidance](../docs/05-operations/cryptography/security-controls.md),
   vendor HSM timing references and a documented new-key HSM migration path.
 - [x] Native local regression checks cover policy construction, ceremony constraints, inputs
   and execution boundaries. They are not live package, custody or recovery qualification.

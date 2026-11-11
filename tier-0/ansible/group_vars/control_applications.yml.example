@@ -1,5 +1,5 @@
 ---
-# Run from Tier 0; procedure: docs/deployment/stage-6-secrets/procedures/control-applications.md
+# Run from Tier 0; procedure: docs/03-deployment/stage-6-secrets/procedures/control-applications.md
 control_applications_action: render
 control_applications_components: [keycloak]
 control_applications_kubeconfig: ""
@@ -36,7 +36,7 @@ control_applications_backup_destinations:
   netbox: s3://control-backups/netbox
 control_applications_backup_schedule: "0 0 2 * * *"
 control_applications_backup_retention: 30d
-# PostgreSQL backups to NAS: docs/administration/backups/postgresql.md.
+# PostgreSQL backups to NAS: docs/05-operations/backups/postgresql.md.
 # Existing/absent mode retains Barman plus continuous object WAL. Files mode has periodic full copies only.
 control_applications_backup_mode: files
 # With Keycloak/NetBox selected: prepare the DB, commission NAS, then select backup.

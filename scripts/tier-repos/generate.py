@@ -11,7 +11,7 @@ try:
     import yaml
 except ImportError:
     sys.exit("PyYAML is required. Activate a Python environment with PyYAML; "
-             "see docs/development/generated-repositories.md#purpose-and-prerequisites.")
+             "see docs/04-development/generated-repositories.md#purpose-and-prerequisites.")
 
 from generated_files import MARKER, RepositoryWriter
 from documentation import copy_documentation, shared_readme, tier_readme
@@ -33,7 +33,7 @@ def check_directory_case(path):
             raise ValueError(f"Existing mixed-case path: {conflicts[0]}. "
                              f"Rename it to {path.name} before generation or refresh; "
                              "no automatic directory/state migration is performed. "
-                             "See docs/development/generated-repositories.md#prefix-casing.")
+                             "See docs/04-development/generated-repositories.md#prefix-casing.")
 
 
 def tier_repo(writer, tier, prefix):

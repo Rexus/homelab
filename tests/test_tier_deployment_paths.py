@@ -12,7 +12,7 @@ class DeploymentPaths(TierRepositoryTestCase):
                     "stage-5-identity", "stage-6-secrets",
                     "stage-7-delivery", "stage-8-observability", "stage-9-development", "stage-10-lab-environments"]
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            root = docs / "deployment"
+            root = docs / "03-deployment"
             directories = sorted((path.name for path in root.glob("stage-*") if path.is_dir()),
                                  key=lambda name: int(name.split("-")[1]))
             self.assertEqual(directories, expected)
@@ -39,7 +39,7 @@ class DeploymentPaths(TierRepositoryTestCase):
     def test_foundation_is_unnumbered_and_intake_precedes_logging(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            root = docs / "deployment"
+            root = docs / "03-deployment"
             foundation = (root / "foundation/README.md").read_text()
             self.assertTrue(foundation.startswith("# Foundation and prerequisites"))
             self.assertIn("not a numbered capability stage", foundation)
@@ -82,7 +82,7 @@ class DeploymentPaths(TierRepositoryTestCase):
             (UPSTREAM / "docs", UPSTREAM, ""),
             (self.root / "verify-architecture/docs/auto-docs", self.root, "verify-"),
         ):
-            index = (docs / "deployment/README.md").read_text()
+            index = (docs / "03-deployment/README.md").read_text()
             capability_map = index.split("## IaC capability map\n", 1)[1].split("## Repository locations\n", 1)[0]
             entries = re.findall(r"(?m)^\| Tier ([012]) \| `([^`]+)` \|", capability_map)
             expected = set()
@@ -102,7 +102,7 @@ class DeploymentPaths(TierRepositoryTestCase):
                 r"\(stage-3-trust/step-3b-verified-intake\.md\) \|$",
             )
             self.assertIn("never rename state roots", index)
-            support = (docs / "reference/implementation-support.md").read_text()
+            support = (docs / "08-reference/implementation-support.md").read_text()
             detailed = support.split("## Detailed coverage", 1)[1]
             row = next(line for line in detailed.splitlines() if "| Verified repository/artifact supply |" in line)
             self.assertRegex(row, r"^\| 3\b", "Reference coverage must place verified intake after trust/logging")
@@ -110,7 +110,7 @@ class DeploymentPaths(TierRepositoryTestCase):
     def test_kubernetes_is_a_complete_reader_path_before_identity_consumers(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            deployment = docs / "deployment"
+            deployment = docs / "03-deployment"
             cluster = (deployment / "stage-4-kubernetes/README.md").read_text()
             identity = (deployment / "stage-5-identity/README.md").read_text()
             self.assertEqual(re.findall(r"(?m)^## Step (\d+):", cluster), ["1", "2", "3"])

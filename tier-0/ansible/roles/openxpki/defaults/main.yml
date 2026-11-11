@@ -1,7 +1,7 @@
 ---
-# Tier 0 runtime contract: docs/reference/openxpki.md
+# Tier 0 runtime contract: docs/08-reference/openxpki.md
 openxpki_data_mount: /srv/openxpki
-openxpki_data_device: /dev/sdb
+openxpki_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
 openxpki_data_fstype: xfs
 openxpki_data_label: openxpki
 # Optional identity pin; ordinary installation persists the detected UUID in fstab.

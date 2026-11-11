@@ -1,6 +1,6 @@
 ---
 # Access: optional outbound cache.
-# Recipe mapping: docs/administration/ansible-recipes.md
+# Recipe mapping: docs/05-operations/ansible-recipes.md
 - name: Wait for cache hosts to accept Ansible connections
   hosts: cache
   gather_facts: false

@@ -1,6 +1,6 @@
 ---
 # Local Tier 1 application inputs; not a Terraform setup or shared inventory.
-# Guide: docs/deployment/stage-9-development/README.md
+# Guide: docs/03-deployment/stage-9-development/README.md
 development_platform_action: render
 development_platform_components: [gitlab]
 development_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"

@@ -118,8 +118,8 @@ def field_links(document, label):
 class DeploymentNavigation(TierRepositoryTestCase):
     def deployment_roots(self):
         self.generate()
-        return (UPSTREAM / "docs/deployment",
-                self.root / "verify-architecture/docs/auto-docs/deployment")
+        return (UPSTREAM / "docs/03-deployment",
+                self.root / "verify-architecture/docs/auto-docs/03-deployment")
 
     def owners(self, deployment):
         stages = sorted(deployment.glob("stage-*/README.md"),
@@ -218,7 +218,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
             intake = deployment / "stage-1-software-intake"
             self.assertTrue((intake / "step-6-bootstrap-consumer.md").is_file())
             self.assertFalse((intake / "proxy-cache.md").exists())
-            reference = deployment.parent / "reference/proxy-cache.md"
+            reference = deployment.parent / "08-reference/proxy-cache.md"
             self.assertTrue(reference.is_file())
             self.assertNotIn("```bash", reference.read_text(encoding="utf-8"))
             self.assertTrue((deployment / "stage-8-observability/step-3-infrastructure-monitoring.md").is_file())
@@ -261,7 +261,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
 
     def test_hardening_is_selected_at_first_service_deployment_not_hidden_in_foundation(self):
         for deployment in self.deployment_roots():
-            security = deployment.parent / "administration/hosts/linux-security.md"
+            security = deployment.parent / "05-operations/hosts/linux-security.md"
             root = deployment / "stage-1-software-intake/README.md"
             content = root.read_text(encoding="utf-8")
             self.assertTrue(security.is_file())

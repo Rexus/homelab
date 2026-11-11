@@ -6,7 +6,7 @@
 # Shared defaults: ../shared/config/platform.tfvars
 # Approved images: ../shared/templates/proxmox-catalog.tfvars
 # shared/scripts/deploy.sh loads both before this file.
-# Guide: docs/reference/platform-inputs.md
+# Guide: docs/08-reference/platform-inputs.md
 
 # Shared application attachment: shared_network_zones in the platform profile.
 # Keep only tier-specific networks here, or a complete entry to override a shared network.
@@ -14,7 +14,7 @@
 # SDN: use the VNet ID as bridge, without a second VLAN tag.
 # Non-SDN: use a VLAN-aware bridge plus vlan_id. Review every reference value.
 # Optional SDN lookup: keep bridge, set sdn_lookup = true, and omit VLAN/CIDR/gateway fields.
-# Contract: docs/reference/network-inputs.md#sdn-subnet-lookup
+# Contract: docs/08-reference/network-inputs.md#sdn-subnet-lookup
 network_zones = {
   external_edge = {
     bridge       = "vmbr0"

@@ -34,7 +34,7 @@ locals {
 
 # Stateless discovery only; Shared owns no inventory, network resources or state.
 # The native subnet data source requires the CIDR that this lookup discovers.
-# Reference: docs/reference/network-inputs.md#sdn-subnet-lookup
+# Reference: docs/08-reference/network-inputs.md#sdn-subnet-lookup
 data "external" "sdn_network" {
   for_each = {
     for key, network in var.network_zones : key => network

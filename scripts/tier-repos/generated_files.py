@@ -47,7 +47,7 @@ class RepositoryWriter:
 
     def write(self, relative, content, executable=False, owned=False, source=None, automation=False):
         path = self.root / relative
-        if path.is_symlink() or not path.resolve().is_relative_to(self.root):
+        if path.is_symlink() or path.resolve() != path or not path.resolve().is_relative_to(self.root):
             raise ValueError(f"Refusing generated output through symlink: {path}")
         example = path.name.endswith(".example")
         if example:

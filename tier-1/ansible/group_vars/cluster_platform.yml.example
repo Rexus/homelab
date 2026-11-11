@@ -1,5 +1,5 @@
 ---
-# Guide: docs/deployment/stage-4-kubernetes/procedures/basic-platform.md
+# Guide: docs/03-deployment/stage-4-kubernetes/procedures/basic-platform.md
 # Shared role = execution; this tier owns these values and the actual cluster.
 cluster_platform_action: render
 cluster_platform_kubeconfig: ""

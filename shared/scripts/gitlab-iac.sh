@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 # Opt-in trusted CI, not the bounded Tier 2 request API.
-# Guide: docs/deployment/stage-9-development/procedures/handover.md
+# Guide: docs/03-deployment/stage-9-development/procedures/handover.md
 if [[ $# != 1 || ! "$1" =~ ^(plan|apply)$ ]]; then
   echo "Usage: bash ../<prefix>-shared/scripts/gitlab-iac.sh {plan|apply}" >&2
   exit 1

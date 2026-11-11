@@ -1,6 +1,6 @@
 ---
 # Identity and access: Stage 5, dedicated FreeIPA VM pair.
-# Recipe mapping: docs/administration/ansible-recipes.md
+# Recipe mapping: docs/05-operations/ansible-recipes.md
 - name: Validate foundation identity inputs
   hosts: identity
   gather_facts: false

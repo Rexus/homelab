@@ -1,6 +1,6 @@
 ---
 # Compute: template refresh and explicitly enabled replacement.
-# Recipe mapping: docs/administration/ansible-recipes.md
+# Recipe mapping: docs/05-operations/ansible-recipes.md
 - name: Prepare staged Enterprise Linux templates
   hosts: template_refresh_builders
   gather_facts: false

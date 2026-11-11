@@ -1,5 +1,5 @@
 ---
-# Guide: docs/deployment/stage-6-secrets/procedures/netbox-audit.md
+# Guide: docs/03-deployment/stage-6-secrets/procedures/netbox-audit.md
 netbox_audit_endpoint: https://netbox.lab.example.com/api/core/object-changes/
 netbox_audit_instance: netbox-primary
 netbox_audit_auth_scheme: Bearer

@@ -20,7 +20,7 @@ if [[ $# == 1 && ( "$1" == --help || "$1" == -h ) ]]; then
 fi
 if [[ $# == 0 || ! "$1" =~ ^(init|setup|plan|import|apply|verify|replace-disk)$ ]]; then
   usage >&2
-  echo "Run from Tier 0. Reference: docs/administration/virtual-machines/template-lifecycle.md" >&2
+  echo "Run from Tier 0. Reference: docs/05-operations/virtual-machines/template-lifecycle.md" >&2
   exit 1
 fi
 action="$1"
@@ -105,7 +105,7 @@ for file in "$repo_root/terraform/templates/"*.tf "$repo_root/terraform/template
   [[ -f "$file" ]] || continue
   echo "Legacy Terraform deployment found: terraform/templates" >&2
   echo "Migrate to terraform/deployments/templates before continuing." >&2
-  echo "See docs/development/generated-repositories.md#terraform-layout-upgrade." >&2
+  echo "See docs/04-development/generated-repositories.md#terraform-layout-upgrade." >&2
   exit 1
 done
 
@@ -171,7 +171,7 @@ for tls_option in PROXMOX_VE_INSECURE PM_VE_INSECURE; do
     ''|0|f|F|false|False|FALSE) ;;
     *)
       echo "Refusing Proxmox TLS bypass: unset $tls_option and install approved API trust." >&2
-      echo "See docs/administration/hosts/proxmox-tls.md." >&2
+      echo "See docs/05-operations/hosts/proxmox-tls.md." >&2
       exit 1
       ;;
   esac
@@ -246,7 +246,7 @@ if [[ "$action" == setup || "$action" == replace-disk || "$action" == apply || "
   fi
   for tool in "${template_tools[@]}"; do
     command -v "$tool" >/dev/null || {
-      echo "Template apply/verification/maintenance requires $tool. See docs/administration/virtual-machines/template-lifecycle.md#prerequisites." >&2
+      echo "Template apply/verification/maintenance requires $tool. See docs/05-operations/virtual-machines/template-lifecycle.md#prerequisites." >&2
       if [[ "$tool" == qemu-img ]]; then
         echo "Install on the execution host: sudo dnf install -y /usr/bin/qemu-img (Alma/Rocky/RHEL)" >&2
         echo "or sudo apt-get install -y qemu-utils (Debian/Ubuntu). This is an OS package, not a pip package." >&2
@@ -268,9 +268,9 @@ if missing:
 ' "${template_modules[@]}"; then
     echo "Use ansible-core >=2.17 and community.proxmox >=2.1.0,<3.0.0 in the same accepted environment." >&2
     echo "Automatic setup uses the tier-local .venv runtime. With TEMPLATE_RUNTIME_MODE=check, provision compatible tools in the runner first." >&2
-    echo "Runtime setup: docs/development/local-setup.md#ansible-environment." >&2
+    echo "Runtime setup: docs/04-development/local-setup.md#ansible-environment." >&2
     echo "Run: ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force" >&2
-    echo "Python dependencies: ansible/requirements.txt. Guide: docs/administration/virtual-machines/template-disk.md#prerequisites." >&2
+    echo "Python dependencies: ansible/requirements.txt. Guide: docs/05-operations/virtual-machines/template-disk.md#prerequisites." >&2
     exit 1
   fi
 fi
@@ -359,7 +359,7 @@ else
   if [[ "$apply_status" != 0 ]]; then
     echo "Template apply failed; the saved plan was discarded. Keep the existing state." >&2
     echo "Resolve the reported error, rerun import --env-file .env.local (or plan), and review before apply." >&2
-    echo "Reference: docs/administration/virtual-machines/template-lifecycle.md#interrupted-publication" >&2
+    echo "Reference: docs/05-operations/virtual-machines/template-lifecycle.md#interrupted-publication" >&2
     exit "$apply_status"
   fi
   policy_inputs="$repo_root/.terraform/plans/template-policy-inputs.json"

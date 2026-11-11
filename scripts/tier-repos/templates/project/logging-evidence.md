@@ -2,7 +2,7 @@
 
 Status: **Not tested**. Populate this project-owned record from an authorized drill;
 never infer service acceptance from provisioning, fixture tests or matching record counts alone.
-Procedure: [logging fault and restore drill](${docs}/administration/logging-drill.md).
+Procedure: [logging fault and restore drill](${docs}/05-operations/logging-drill.md).
 
 ## Scope and prerequisites
 

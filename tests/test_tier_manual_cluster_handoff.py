@@ -19,7 +19,7 @@ GUIDES = (
 @unittest.skipUnless(shutil.which("bash"), "Requires Bash to exercise the documented exports")
 class ManualClusterHandoff(unittest.TestCase):
     def exports(self, guide):
-        text = (UPSTREAM / "docs/deployment" / guide).read_text(encoding="utf-8")
+        text = (UPSTREAM / "docs/03-deployment" / guide).read_text(encoding="utf-8")
         blocks = re.findall(r"(?ms)^```bash\n(.*?)^```", text)
         lines = [line for block in blocks for line in block.splitlines()
                  if line.startswith("export KUBECONFIG=")]

@@ -3,8 +3,41 @@
 import json
 import os
 from pathlib import Path
+import re
+import unicodedata
+from html import escape
+from urllib.parse import quote
 
 MOVES = json.loads((Path(__file__).with_name("documentation-moves.json")).read_text(encoding="utf-8"))
+
+
+def section_anchors(content):
+    """Collect explicit and GitHub-style heading anchors, excluding fenced examples."""
+    content = re.sub(r"(?ms)^\s*(`{3,}|~{3,})[^\n]*\n.*?^\s*\1\s*$", "", content)
+    result = set(re.findall(r'<a\s+(?:id|name)=[\'"]([^\'"]+)[\'"][^>]*>', content))
+    counts = {}
+    for match in re.finditer(r"(?m)^#{1,6}\s+(.+?)\s*#*\s*$", content):
+        title = re.sub(r"<[^>]*>", "", match[1]).strip().lower()
+        base = "".join(char for char in title if char in " -_" or
+                       unicodedata.category(char)[0] in "LN").replace(" ", "-")
+        count = counts.get(base, 0)
+        counts[base] = count + 1
+        result.add(base if count == 0 else f"{base}-{count}")
+    return result
+
+
+def compatibility_stub(canonical, content, previous=""):
+    current = section_anchors(content)
+    previous_anchors = section_anchors(previous)
+    lines = ["# Compatibility guide", "", "> **Compatibility copy:** "
+             f"[Current guide]({canonical}). This page preserves older section links.", ""]
+    for anchor in sorted(current | previous_anchors):
+        if anchor == "compatibility-guide":
+            continue
+        target = canonical + ("#" + quote(anchor) if anchor in current else "")
+        lines.append(f'<a id="{escape(anchor, quote=True)}"></a> [Continue to guide]({target})')
+        lines.append("")
+    return "\n".join(lines)
 
 
 def prune_auto_docs(writer, current_paths):

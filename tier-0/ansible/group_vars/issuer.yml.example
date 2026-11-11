@@ -1,8 +1,9 @@
 # Copy to ansible/group_vars/issuer.yml; pass with --ansible-vars.
-# Input contract and production bundle: docs/reference/openxpki.md
+# Input contract and production bundle: docs/08-reference/openxpki.md
 openxpki_deployment_id: infrastructure-ca-1
 openxpki_data_mount: /srv/openxpki
-openxpki_data_device: /dev/sdb  # dedicated extra disk from the ca-1 Terraform inputs
+# Stable identity of the dedicated scsi1 disk in the ca-1 Terraform inputs.
+openxpki_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
 openxpki_data_fstype: xfs      # set ext4 only when reusing an approved ext4 volume
 openxpki_data_uuid: ""         # optional existing UUID pin; never substitute a missing volume
 openxpki_configuration_src: /REPLACE_WITH_ABSOLUTE_PATH/secrets/openxpki/configuration.tar.gz

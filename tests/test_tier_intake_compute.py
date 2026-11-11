@@ -230,7 +230,7 @@ run "explicit_overrides" {
             self.check_starter_diagram(vm)
 
     def check_starter_diagram(self, vm):
-        guide = UPSTREAM / "docs/deployment/stage-3-trust/step-3b-verified-intake.md"
+        guide = UPSTREAM / "docs/03-deployment/stage-3-trust/step-3b-verified-intake.md"
         diagrams = re.findall(r"```mermaid\n(.*?)\n```", guide.read_text(), re.DOTALL)
         identity = f'VM["{vm["name"]}<br/>'
         drawings = [diagram for diagram in diagrams if identity in diagram and "scsi0" in diagram]
