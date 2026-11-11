@@ -20,9 +20,9 @@ output "vm_instances" {
   precondition {
     condition = alltrue([
       for id in values(local.resolved_vm_template_ids) :
-      try(var.proxmox_template_catalog[tostring(id)].family, "linux") != "talos"
+      !contains(["talos", "windows", "other"], try(var.proxmox_template_catalog[tostring(id)].family, "linux"))
     ])
-    error_message = "Talos templates need Talos machine configuration, not the Linux cloud-init VM module."
+    error_message = "Select a Linux cloud-init image for this module. Talos, Windows and other guests require their own provisioning path."
   }
 }
 

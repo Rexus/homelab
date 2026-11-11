@@ -3,6 +3,7 @@ variable "images" {
   type = map(object({
     family                  = string
     distribution            = optional(string)
+    os_type                 = optional(string)
     release                 = string
     schematic_id            = optional(string)
     vm_id                   = number
@@ -26,17 +27,21 @@ variable "images" {
     cloud_init_drive        = optional(bool, false)
     cloud_init_datastore_id = optional(string)
     # Omitted values retain existing BIOS publications; select UEFI for new image revisions.
-    bios          = optional(string, "seabios")
-    machine       = optional(string)
-    scsi_hardware = optional(string)
+    bios                  = optional(string, "seabios")
+    machine               = optional(string)
+    scsi_hardware         = optional(string)
+    efi_pre_enrolled_keys = optional(bool, false)
+    tpm_version           = optional(string)
   }))
 
   validation {
     condition = alltrue([
       for image in var.images : contains(["seabios", "ovmf"], image.bios) &&
-      (image.scsi_hardware == null ? true : contains(["virtio-scsi-single", "virtio-scsi-pci"], image.scsi_hardware))
+      (image.scsi_hardware == null ? true : contains([
+        "virtio-scsi-single", "virtio-scsi-pci", "lsi", "lsi53c810", "megasas", "pvscsi"
+      ], image.scsi_hardware))
     ])
-    error_message = "Select seabios/ovmf and virtio-scsi-single/virtio-scsi-pci for the approved image."
+    error_message = "Select seabios/ovmf and a Proxmox SCSI controller: virtio-scsi-single, virtio-scsi-pci, lsi, lsi53c810, megasas or pvscsi."
   }
 
   validation {
@@ -46,9 +51,43 @@ variable "images" {
 
   validation {
     condition = alltrue([
-      for image in var.images : contains(["redhat", "debian", "talos", "alma", "rocky"], image.family)
+      for image in var.images : contains([
+        "redhat", "rhel", "debian", "suse", "archlinux", "alpine", "gentoo",
+        "slackware", "nixos", "void", "linux", "talos", "windows", "other",
+        "alma", "rocky"
+      ], image.family)
     ])
-    error_message = "Use redhat, debian or talos as OS family; alma/rocky remain accepted for older catalogs."
+    error_message = "Use redhat/rhel, debian, suse, archlinux, alpine, gentoo, slackware, nixos, void, linux, talos, windows or other; alma/rocky remain accepted for older catalogs. Use linux for another Linux family, or other for a non-Linux guest."
+  }
+
+  validation {
+    condition = alltrue([
+      for image in var.images : image.distribution == null ? true :
+      can(regex("(?i)^[a-z0-9][a-z0-9._-]*$", image.distribution))
+    ])
+    error_message = "distribution is an open-ended identifier, such as rocky, ubuntu, opensuse, windows-server or other; use letters, digits, dots, underscores and hyphens. Tags normalize it to lowercase."
+  }
+
+  validation {
+    condition = alltrue([
+      for image in var.images : image.os_type == null ? true : contains([
+        "l24", "l26", "other", "solaris", "w2k", "w2k3", "w2k8",
+        "win7", "win8", "win10", "win11", "wvista", "wxp"
+        ], image.os_type) && (image.family == "other" || (
+        image.family == "windows" ? can(regex("^w", image.os_type)) :
+        contains(["l24", "l26"], image.os_type)
+      ))
+    ])
+    error_message = "os_type must be a supported Proxmox guest type matching the family: l24/l26 for Linux, a Windows type such as win10/win11 for windows, or an explicit guest type for other."
+  }
+
+  validation {
+    condition = alltrue([
+      for image in var.images : (image.tpm_version == null ? true :
+      contains(["v1.2", "v2.0"], image.tpm_version)) &&
+      (!image.efi_pre_enrolled_keys || image.bios == "ovmf")
+    ])
+    error_message = "tpm_version must be v1.2 or v2.0 when selected; efi_pre_enrolled_keys requires bios: ovmf."
   }
 
   validation {
@@ -63,9 +102,10 @@ variable "images" {
     condition = alltrue([
       for image in var.images : can(regex("^[a-f0-9]{64}$", image.sha256)) &&
       startswith(image.image_path, "/") &&
-      endswith(image.image_path, image.family == "talos" ? ".raw" : ".qcow2")
+      can(regex("[.](raw|qcow2)$", image.image_path)) &&
+      (image.family != "talos" || endswith(image.image_path, ".raw"))
     ])
-    error_message = "Use an absolute local path to an unpacked raw (Talos) or qcow2 image and its SHA256."
+    error_message = "Use an absolute local path to an unpacked raw or qcow2 image and its SHA256; Talos requires raw."
   }
 
   validation {
@@ -108,7 +148,7 @@ variable "images" {
   validation {
     condition = length(distinct([for image in var.images : jsonencode([
       image.node_name, image.image_datastore_id,
-      coalesce(image.image_file_name, "${image.vm_id}-${image.sha256}.${image.family == "talos" ? "raw" : "qcow2"}")
+      coalesce(image.image_file_name, "${image.vm_id}-${image.sha256}.${endswith(image.image_path, ".raw") ? "raw" : "qcow2"}")
     ])])) == length(var.images)
     error_message = "Each uploaded file must have one resource owner; do not reuse the same node/datastore/image_file_name."
   }

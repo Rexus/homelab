@@ -19,6 +19,17 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Template OS classification, 2026-11-11
+
+- [x] Expand Linux-family choices with generic Linux, Windows and other guests;
+  keep distribution identifiers open-ended and legacy Alma/Rocky inputs valid.
+- [x] Match uploaded raw/qcow2 filenames, guest OS types, optional EFI keys/TPM and
+  Shared catalog synchronization; reject non-Linux images in the Linux guest resolver.
+- [x] Pass 13 focused regression checks, including 28 locked-provider template mock plans,
+  native discovery/adoption fixtures, consumer placement guards and generated documentation links.
+- [ ] Clone-test each selected new OS image on the target platform. Windows guest preparation
+  and OS-specific consumers remain separate from publishing an approved disk image.
+
 ### Final repository correspondence review, 2026-11-11
 
 - [x] Restore the deployment-picture checks to the numbered source directories and

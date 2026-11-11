@@ -31,7 +31,7 @@ Record these actual values before copying commands. Examples must match the sele
 | --- | --- | --- |
 | Target node | `pve01` | Node-read ACL and initial guest placement |
 | Live-disk datastore | `local-zfs` | VM and CloudInit disks |
-| Import datastore | `local` | Tier 0 uploaded images, not live VM disks |
+| Import datastore | `local` or `cephfs` with Import content | Tier 0 uploaded images, not live VM disks |
 | Guest attachment | `vmbr0` plus VLAN, or `dmz/edge` VNet | Scoped network ACL |
 | Automation identity | `automation@pve!provision` | Token ID without its secret |
 
@@ -75,6 +75,14 @@ pveum role add PlatformAutomationNode --privs "Sys.Audit"
 pveum role add PlatformAutomationNetwork --privs "SDN.Use SDN.Audit"
 ```
 
+For **Tier 0 template publishers**, also create this role once:
+
+Run on **the selected Proxmox host as an authorized root operator**.
+
+```bash
+pveum role add PlatformTemplateUpload --privs "Datastore.AllocateTemplate"
+```
+
 <a id="2-create-the-automation-group"></a>
 
 Run on **the selected Proxmox host as an authorized root operator**.
@@ -86,7 +94,8 @@ pveum group add platform-automation --comment "Platform automation"
 | Role | Permitted work |
 | --- | --- |
 | `PlatformAutomationVM` | Clone/create/configure/start/stop/remove authorized guests |
-| `PlatformAutomationStorage` | Inspect storage and allocate guest disks |
+| `PlatformAutomationStorage` | `Datastore.Audit` and `Datastore.AllocateSpace`: inspect storage and allocate guest disks |
+| `PlatformTemplateUpload` | `Datastore.AllocateTemplate`: upload source images; template publishers only |
 | `PlatformAutomationNode` | Inspect authorized nodes; no host power/configuration |
 | `PlatformAutomationNetwork` | Attach NICs (`SDN.Use`) and read subnet metadata (`SDN.Audit`); no network modification |
 
@@ -128,25 +137,21 @@ read -r -p "Live VM datastore ID (for example local-zfs): " VM_DATASTORE
 pveum acl modify "/storage/$VM_DATASTORE" --groups platform-automation --roles PlatformAutomationStorage
 ```
 
-**Tier 0 images:** also grant storage visibility/allocation on the Import datastore.
-For the example `local` datastore:
+**Tier 0 images:** enter the actual Import datastore selected by
+`all.image_datastore_id` in Tier 0's `templates/proxmox.yml`, such as `local` or `cephfs`.
+Grant both storage roles there to publishing automation. [6][7]
 
 Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
-pveum acl modify /storage/local --groups platform-automation --roles PlatformAutomationStorage
+read -r -p "Import datastore ID (for example local or cephfs): " IMAGE_DATASTORE
+pveum acl modify "/storage/$IMAGE_DATASTORE" --groups platform-automation --roles PlatformAutomationStorage,PlatformTemplateUpload
 ```
 
-**Tier 0 upload permission:** create this role once and assign it only to publishing
-automation on its actual Import datastore. Keep it out of ordinary consuming-tier access. [6][7]
-
-Run on **the selected Proxmox host as an authorized root operator**.
-
-```bash
-pveum role add PlatformTemplateUpload --privs "Datastore.AllocateTemplate"
-pveum acl modify /storage/local --groups platform-automation --roles PlatformTemplateUpload
-```
-
+Roles contain privileges, not other roles. The ACL above assigns both roles at
+the same storage path, giving the publishing identity **three effective privileges**.
+`PlatformAutomationStorage` itself still contains only two.
+Keep upload rights out of ordinary consuming-tier access.
 A separate publisher uses its own group/token grants. Importing existing files does
 not upload them, but an adoption plan can include creation of missing files.
 
@@ -227,7 +232,7 @@ The commands contain no token secret:
 Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
-pveum user permissions 'automation@pve!provision' --path /storage/local
+pveum user permissions 'automation@pve!provision' --path "/storage/$IMAGE_DATASTORE"
 pveum user permissions 'automation@pve!provision' --path "/storage/$VM_DATASTORE"
 pveum user permissions 'automation@pve!provision' --path "/nodes/$PVE_NODE"
 ```
@@ -310,7 +315,7 @@ For example, the Tier 0 Import datastore and an allowed VNet:
 Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
-pveum acl modify /storage/local --tokens 'automation@pve!provision' --roles PlatformAutomationStorage,PlatformTemplateUpload
+pveum acl modify "/storage/$IMAGE_DATASTORE" --tokens 'automation@pve!provision' --roles PlatformAutomationStorage,PlatformTemplateUpload
 pveum acl modify /sdn/zones/dmz/edge --tokens 'automation@pve!provision' --roles PlatformAutomationNetwork
 ```
 

@@ -127,7 +127,7 @@ Suggested tag categories:
 | `cpu` | Configured Proxmox CPU model | `x86-64-v3`, `host` |
 | `release_track` | Shared family/major where applicable; otherwise distribution/major | `el10`, `debian12`, `talos1`, `fedora42` |
 | `distribution` | Selected OS distribution | `alma`, `rocky`, `rhel`, `debian`, `talos` |
-| `capability` | Configured image capability | `cloud-init` when NoCloud media is enabled |
+| `capability` | Configured image capability | `cloud-init` when initialization media is enabled (NoCloud or ConfigDrive2) |
 | `variant` | Optional additional image property | `test`, `hardened`, `immutable`, `bootc` |
 
 For example, a Rocky 10 template with the default CPU and CloudInit drive receives:

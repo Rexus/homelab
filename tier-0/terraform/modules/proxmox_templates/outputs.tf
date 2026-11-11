@@ -7,6 +7,7 @@ output "catalog" {
       node_name     = image.node_name
       family        = image.family
       distribution  = local.distributions[key]
+      os_type       = local.os_types[key]
       release       = image.release
       sha256        = image.sha256
       schematic_id  = image.schematic_id

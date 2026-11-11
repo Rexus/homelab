@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import subprocess
 import sys
@@ -33,8 +34,9 @@ def published_references(candidates):
         if any(not isinstance(entry[field], str) or not entry[field].strip()
                for field in ("title", "node_name", "family")):
             raise ValueError(f"Missing consumer metadata for {key}; Shared was not changed.")
-        if entry["family"] not in ("redhat", "debian", "talos", "alma", "rocky"):
-            raise ValueError(f"Unsupported template family for {key}; Shared was not changed.")
+        # Terraform validates supported families; do not maintain a second OS allowlist here.
+        if not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", entry["family"]):
+            raise ValueError(f"Invalid template family for {key}; Shared was not changed.")
         if not isinstance(entry["tags"], list) or any(not isinstance(tag, str) for tag in entry["tags"]):
             raise ValueError(f"Invalid image tags for {key}; Shared was not changed.")
         references[str(vm_id)] = entry

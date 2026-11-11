@@ -97,6 +97,17 @@ proxmox_template_catalog = {
             sync.update_catalog(self.catalog, self.candidates)
         self.assertEqual(self.catalog.read_bytes(), before)
 
+    @unittest.skipUnless(shutil.which("terraform"), "Requires native Terraform formatting")
+    def test_new_template_families_sync_without_changing_the_linux_default(self):
+        for index, family in enumerate(("suse", "archlinux", "alpine", "linux", "windows", "other")):
+            self.candidates[family] = dict(vm_id=9130 + index, title=f"{family}-tmpl", node_name="pve01",
+                                          family=family, tags=[family])
+        self.assertEqual(sync.update_catalog(self.catalog, self.candidates), (True, 110))
+        values = self.values()
+        self.assertEqual(values["default_linux_vm_template_id"], 110)
+        for index, family in enumerate(("suse", "archlinux", "alpine", "linux", "windows", "other")):
+            self.assertEqual(values["proxmox_template_catalog"][str(9130 + index)]["family"], family)
+
     def test_intervening_edit_is_not_overwritten(self):
         def edited_while_formatting(*args, **kwargs):
             self.catalog.write_text(self.original + "# Concurrent project edit.\n")

@@ -8,6 +8,7 @@ Image approval and promotion follow the [software-supply design](../01-architect
 ## Contents
 
 - [Inputs and defaults](#inputs-and-defaults)
+- [OS families and Windows](#os-families-and-windows)
 - [State and execution](#state-and-execution)
 - [References](#references)
 
@@ -35,15 +36,17 @@ only when the selected image or site needs a different value.
 | `bridge` | Template NIC bridge; defaults to `vmbr0`, with a per-build override where needed |
 | `vlan_id` | Common template VLAN in `all:`; starter uses example VLAN 10; set the site's value or `null` for untagged |
 | `nic_firewall` / `nic_mtu` | Optional overrides; omitted values enable the NIC firewall and select MTU 1500 |
-| `scsi_hardware` | Optional override; normally omitted so OS family selects Single for Alma/Rocky/Debian or non-Single for Talos |
+| `scsi_hardware` | Optional Proxmox SCSI-controller override; defaults to Single, or non-Single for Talos; match drivers in the prepared image |
+| `os_type` | Optional Proxmox guest type; defaults to `l26` for Linux, `win11` for Windows and `other` for other guests |
+| `efi_pre_enrolled_keys` / `tpm_version` | Optional EFI key enrollment / TPM (`v1.2` or `v2.0`); defaults are `false` / no TPM; TPM uses the live-disk datastore |
 | `qemu_agent` / `cpu_type` | Optional overrides; defaults are `true` / `x86-64-v3` |
 | `memory_mb` | Fixed template RAM; defaults to 2048 MiB with ballooning disabled for every OS; actual service sizing is applied to clones |
 | `disk_size_gb` | Template capacity; defaults to 10 GiB, never below the source image's virtual size; cloned service disks are sized separately |
 | `storage_class` | Class in Shared `config/platform.tfvars`, selecting its `vm_disk` datastore |
 | `datastore_id` | Explicit live disk/EFI storage override; wins over `storage_class` |
 | `image_datastore_id` | Tier 0 staging datastore with Import content; independent of live storage |
-| `cloud_init_drive` / `cloud_init_datastore_id` | NoCloud media at `ide2` with IPv4 DHCP / override of class `cloud_init_drive` or live disk storage |
-| `family` / `distribution` | OS family (`redhat`, `debian`, `talos`) / selected distribution (`alma`, `rocky`, etc.); Fedora uses the `redhat` family |
+| `cloud_init_drive` / `cloud_init_datastore_id` | Initialization media at `ide2` with IPv4 DHCP / override of class `cloud_init_drive` or live disk storage; Linux uses NoCloud, Windows uses ConfigDrive2 |
+| `family` / `distribution` | Broad OS group / open-ended distribution identifier; see [family choices](#os-families-and-windows) |
 | `tags` | Extra image/variant tags, such as `[test]`; standard [image tags](../02-conventions/proxmox-conventions.md#template-tags) are generated automatically |
 | `image_path` / `sha256` | Absolute local unpacked artifact path / approved hash of those bytes |
 | `image_file_name` | Optional existing Import basename; defaults to `<vm_id>-<sha256>.raw` or `.qcow2` |
@@ -102,6 +105,71 @@ Guest-side TRIM still needs to run. The socket-backed serial
 port remains available for console diagnostics; visible output depends on the image's
 serial-console configuration. The graphical display is retained. [10][11]
 
+## OS families and Windows
+
+Set these fields on each build in **Tier 0 `templates/proxmox.yml`**.
+Family classifies the image; it does not qualify the guest OS for every Ansible role.
+
+| `family` | Example `distribution` values |
+| --- | --- |
+| `redhat` (or `rhel`) | `rhel`, `alma`, `rocky`, `centos-stream`, `oraclelinux`, `fedora` |
+| `debian` | `debian`, `ubuntu`, `linuxmint`, `kali` |
+| `suse` | `sles`, `opensuse-leap`, `opensuse-tumbleweed` |
+| `archlinux` | `archlinux`, `manjaro`, `endeavouros` |
+| `alpine`, `gentoo`, `slackware`, `nixos`, `void` | The selected distribution or derivative |
+| `linux` | Another Linux family or a custom Linux distribution |
+| `talos` | `talos`; an unpacked raw image and Factory schematic remain required |
+| `windows` | `windows-server`, `windows` |
+| `other` | `other`, `freebsd`, or another OS outside the Linux/Windows groups |
+
+Distribution is **not an allowlist**: use a lowercase identifier made of letters,
+digits, dots, underscores or hyphens, including `other` when needed. Omit it to
+inherit the family. Legacy `family: alma` and `family: rocky` remain accepted.
+For rolling distributions, record the exact dated image build in `release`.
+All families accept unpacked `.raw` or `.qcow2` disk images; Talos requires `.raw`.
+The generated upload filename follows the source format.
+
+### Publish a prepared Windows image
+
+Add this optional build under `templates:` in **Tier 0 `templates/proxmox.yml`**.
+It inherits `all:` placement and networking. Replace the release, path, hash and
+VMID with the approved image and allocation; size its disk at least as large as the source.
+
+```yaml
+  windows-build-1:
+    family: windows
+    distribution: windows-server
+    release: 2025-build-1
+    vm_id: 9130
+    name: win-2025-tmpl
+    image_path: /srv/tier0/artifacts/windows-server-2025.qcow2
+    sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
+    os_type: win11
+    bios: ovmf
+    machine: q35
+    memory_mb: 4096
+    disk_size_gb: 80
+    efi_pre_enrolled_keys: true
+    tpm_version: v2.0
+    cloud_init_drive: true
+    tags: []
+```
+
+Proxmox's `win11` type covers Windows 11 and Server 2022/2025; `win10` covers
+Windows 10 and Server 2016/2019. All guest types accepted by the pinned provider
+are available through `os_type`. Match the firmware, keys and optional TPM to the image. [18]
+
+Use an already prepared, generalized Windows disk with VirtIO storage/network
+drivers and the QEMU guest agent. When `cloud_init_drive: true`, install and configure
+Cloudbase-Init for ConfigDrive2 in that image; otherwise set it to `false`.
+The publisher imports the approved disk; it does not install Windows, drivers or
+Cloudbase-Init, run Sysprep, or configure Windows consumers. [19]
+
+Publish and clone-test through the same [template lifecycle](../05-operations/virtual-machines/template-lifecycle.md).
+Shared synchronization accepts these families but preserves the selected Linux default.
+The ordinary Linux deployment module rejects Talos, Windows and `other` images;
+their guest configuration needs an appropriate OS-specific deployment path.
+
 ## State and execution
 
 | Contract | Value / behavior |
@@ -132,3 +200,5 @@ Direct `terraform apply` omits the compatibility phase; the operator workflow us
 11. [Proxmox CloudInit networking and serial consoles](https://github.com/proxmox/pve-docs/blob/master/qm-cloud-init.adoc), checked 2026-11-06.
 16. [Proxmox enables ballooning unless explicitly disabled](https://github.com/proxmox/qemu-server/blob/master/src/PVE/QemuServer.pm#L3325), checked 2026-11-07.
 17. [Native Proxmox VM updates and selective setting deletion](https://docs.ansible.com/projects/ansible/latest/collections/community/proxmox/proxmox_kvm_module.html), checked 2026-11-07.
+18. [Proxmox guest OS types](https://github.com/proxmox/qemu-server/blob/master/src/PVE/QemuServer.pm), checked 2026-11-11.
+19. [Proxmox Windows Cloudbase-Init and Sysprep](https://github.com/proxmox/pve-docs/blob/master/qm-cloud-init.adoc#cloud-init-on-windows), checked 2026-11-11.

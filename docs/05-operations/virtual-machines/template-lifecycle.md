@@ -42,6 +42,8 @@ and no concurrent publisher or clone-maintenance operation.
 
 For the manual GUI path and Talos image preparation, use the
 [common template guide](../../03-deployment/foundation/proxmox/templates.md).
+For other Linux families or prepared Windows images, follow the
+[family selections and Windows image requirements](../../08-reference/template-publication.md#os-families-and-windows).
 Talos uses fresh approved raw images; Linux package-refresh recipes do not apply to it. [9]
 
 <a id="local-workflow"></a>

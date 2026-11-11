@@ -1,6 +1,7 @@
 # Build fields/defaults: terraform/modules/proxmox_templates/variables.tf (images entries)
 # Catalog aliases and resolution: terraform/deployments/templates/main.tf
 # Root input variables: terraform/deployments/templates/variables.tf
+# Family/distribution choices and Windows example: docs/08-reference/template-publication.md#os-families-and-windows
 
 # Copy to templates/proxmox.yml using Tier 0's scripts/proxmox-templates.sh init command.
 # Compute foundation: publish templates locally before creating managed VMs or the control cluster.
@@ -34,7 +35,8 @@ all:
   memory_mb: 2048
   # Template baseline; use at least the source image's virtual size. Size service clones separately.
   disk_size_gb: 10
-  # NoCloud drive at ide2 with IPv4 DHCP; static addresses and accounts belong to clones.
+  # Initialization drive at ide2 with IPv4 DHCP (NoCloud for Linux, ConfigDrive2 for Windows).
+  # Disable per build when the image has no initialization agent; accounts belong to clones.
   cloud_init_drive: true
 
 templates:

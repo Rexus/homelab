@@ -14,7 +14,7 @@ locals {
     ), null)
     image_file_name = try(coalesce(
       try(image.image_file_name, null),
-      "${image.vm_id}-${image.sha256}.${image.family == "talos" ? "raw" : "qcow2"}"
+      "${image.vm_id}-${image.sha256}.${endswith(image.image_path, ".raw") ? "raw" : "qcow2"}"
     ), null)
   }) }
 }

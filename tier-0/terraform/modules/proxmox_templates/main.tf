@@ -10,9 +10,16 @@ terraform {
 locals {
   distributions  = { for key, image in var.images : key => lower(coalesce(image.distribution, image.family)) }
   major_versions = { for key, image in var.images : key => try(regex("^v?([0-9]+)", image.release)[0], "") }
+  os_types = { for key, image in var.images : key => coalesce(
+    image.os_type, image.family == "windows" ? "win11" : (image.family == "other" ? "other" : "l26")
+  ) }
+  image_file_names = { for key, image in var.images : key => coalesce(
+    image.image_file_name,
+    "${image.vm_id}-${image.sha256}.${endswith(image.image_path, ".raw") ? "raw" : "qcow2"}"
+  ) }
   # Enterprise Linux shares a major track; Fedora/Ubuntu keep their independent release numbers.
   release_tracks = { for key, image in var.images : key => format("%s%s",
-    contains(["redhat", "alma", "rocky"], image.family) &&
+    contains(["redhat", "rhel", "alma", "rocky"], image.family) &&
     contains(["alma", "almalinux", "rocky", "rhel", "centos", "centos-stream", "oraclelinux"], local.distributions[key])
     ? "el" : local.distributions[key], local.major_versions[key]
   ) }
@@ -22,7 +29,7 @@ locals {
     image.cloud_init_drive ? "cloud-init" : null,
   ]), image.tags))) }
 
-  # Talos uses the non-Single controller; other Linux images use the standard Single profile.
+  # Talos uses the non-Single controller; other images default to Single unless overridden.
   scsi_hardware = { for key, image in var.images : key => coalesce(
     image.scsi_hardware, image.family == "talos" ? "virtio-scsi-pci" : "virtio-scsi-single"
   ) }
@@ -36,12 +43,9 @@ resource "proxmox_virtual_environment_file" "image" {
   overwrite    = false
 
   source_file {
-    path     = each.value.image_path
-    checksum = each.value.sha256
-    file_name = coalesce(
-      each.value.image_file_name,
-      "${each.value.vm_id}-${each.value.sha256}.${each.value.family == "talos" ? "raw" : "qcow2"}"
-    )
+    path      = each.value.image_path
+    checksum  = each.value.sha256
+    file_name = local.image_file_names[each.key]
   }
 
   lifecycle {
@@ -54,8 +58,7 @@ resource "proxmox_virtual_environment_file" "image" {
       error_message = "The approved local image is missing or its SHA256 does not match the catalog."
     }
     postcondition {
-      condition = self.file_name == coalesce(each.value.image_file_name,
-      "${each.value.vm_id}-${each.value.sha256}.${each.value.family == "talos" ? "raw" : "qcow2"}")
+      condition     = self.file_name == local.image_file_names[each.key]
       error_message = "The existing image filename differs from the catalog. Preserve its exact name or publish a new revision."
     }
   }
@@ -92,7 +95,15 @@ resource "proxmox_virtual_environment_vm" "template" {
     content {
       datastore_id      = each.value.datastore_id
       type              = "4m"
-      pre_enrolled_keys = false
+      pre_enrolled_keys = each.value.efi_pre_enrolled_keys
+    }
+  }
+
+  dynamic "tpm_state" {
+    for_each = each.value.tpm_version == null ? [] : [each.value.tpm_version]
+    content {
+      datastore_id = each.value.datastore_id
+      version      = tpm_state.value
     }
   }
 
@@ -122,8 +133,8 @@ resource "proxmox_virtual_environment_vm" "template" {
     content {
       datastore_id = coalesce(each.value.cloud_init_datastore_id, each.value.datastore_id)
       interface    = "ide2"
-      # Linux defaults to NoCloud. Leave the provider's computed type intact when
-      # adopting GUI templates; setting an implicit type explicitly forces replacement.
+      # Proxmox defaults to NoCloud for Linux and ConfigDrive2 for Windows.
+      # Preserve the computed format: making an implicit type explicit forces replacement.
       ip_config {
         ipv4 {
           address = "dhcp"
@@ -133,7 +144,7 @@ resource "proxmox_virtual_environment_vm" "template" {
   }
 
   operating_system {
-    type = "l26"
+    type = local.os_types[each.key]
   }
 
   serial_device {}

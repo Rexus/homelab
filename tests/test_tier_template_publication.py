@@ -16,6 +16,19 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 class TemplatePublication(TierRepositoryTestCase):
+    @unittest.skipUnless(shutil.which('terraform') and os.name != 'nt', 'Requires native Terraform under Linux/WSL')
+    def test_native_template_profiles_use_the_locked_provider_schema(self):
+        module = self.parent / 'proxmox_templates'
+        shutil.copytree(UPSTREAM / 'tier-0/terraform/modules/proxmox_templates', module)
+        shutil.copyfile(UPSTREAM / 'tier-0/terraform/deployments/templates/.terraform.lock.hcl',
+                        module / '.terraform.lock.hcl')
+        env = dict(os.environ, TF_IN_AUTOMATION='1')
+        env.pop('TF_DATA_DIR', None)
+        for args in (['init', '-backend=false', '-input=false', '-lockfile=readonly'], ['test']):
+            result = subprocess.run(['terraform', f'-chdir={module}', *args, '-no-color'],
+                                    env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_catalog_common_fields_and_implementation_are_not_duplicated(self):
         catalog = yaml.safe_load((UPSTREAM / 'tier-0/templates/proxmox.yml.example').read_text())
         self.assertEqual(catalog['all']['storage_class'], 'shared')
@@ -71,6 +84,8 @@ output "test_memory_floating" {
         tests.mkdir()
         fixture = module / 'tests/fixtures/template-image.qcow2'
         digest = hashlib.sha256(fixture.read_bytes()).hexdigest()
+        raw_fixture = module / 'tests/fixtures/template-image.raw'
+        raw_digest = hashlib.sha256(raw_fixture.read_bytes()).hexdigest()
         catalog = {
             'all': dict(node_name='pve01', storage_class='shared', image_datastore_id='local',
                         bridge='control', vlan_id=10, family='redhat', bios='ovmf',
@@ -81,6 +96,9 @@ output "test_memory_floating" {
                 'rocky': dict(distribution='rocky', release='10.0', vm_id=9101, name='rocky-template',
                               image_path=str(fixture), sha256=digest, datastore_id='override',
                               qemu_agent=False, vlan_id=20),
+                'windows': dict(family='windows', distribution='windows-server', release='2025.1',
+                                vm_id=9130, name='windows-template', image_path=str(raw_fixture),
+                                sha256=raw_digest, disk_size_gb=80),
             },
         }
         path = tests / 'catalog.yml'
@@ -179,6 +197,10 @@ run "resolve_common_and_build_overrides" {
   assert {
     condition = module.templates.catalog.alma.distribution == "alma" && length(local.vm_imports) == 0
     error_message = "Normal plans must not discover/adopt resources."
+  }
+  assert {
+    condition = endswith(local.images.windows.image_file_name, ".raw") && module.templates.catalog.windows.os_type == "win11"
+    error_message = "The root must preserve Windows raw-image format and forward its family to the guest profile."
   }
 }
 run "discover_matching_template_and_file" {

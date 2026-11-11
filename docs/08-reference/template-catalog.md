@@ -65,9 +65,9 @@ CI can select another existing catalog with the exported absolute path
 No Shared repository or catalog is created implicitly. For independently built or transferred
 images, add the same reference fields manually after testing; consumer selection is unchanged.
 
-Use OS-family terms consistently: `redhat` for AlmaLinux/Rocky/Fedora, `debian`
-for Debian-derived images, and `talos` for Talos. Tier 0's publication catalog
-separately records `distribution`; consumer titles/tags retain that specificity.
+Use the [publisher's OS-family choices](template-publication.md#os-families-and-windows)
+consistently. Tier 0's publication catalog separately records `distribution`;
+consumer titles/tags retain that specificity.
 Existing consumer entries using `family: alma` or `rocky` remain accepted; changing
 metadata does not approve a different image or change its VMID.
 
@@ -95,6 +95,8 @@ Terraform's later `-var-file` arguments take precedence. Maps are replaced, not
 deep-merged; select an ID locally instead of maintaining another full catalog. [1]
 For manual Terraform commands, include both shared files before tier overrides; see the
 [manual equivalent](repository-scripts.md#manual-equivalent).
+
+Keep `default_linux_vm_template_id` on a clone-tested Linux cloud-init image.
 
 The Linux tier roots pass catalog data to their tier-local typed resolver. The resolver
 uses the actual clone ID for title and source-node selection, and adds image

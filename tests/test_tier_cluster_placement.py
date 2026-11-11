@@ -60,6 +60,8 @@ class ClusterPlacement(TierRepositoryTestCase):
                 "9103": {"title": "Debian issuer", "family": "debian", "node_name": "pve01"},
                 "9100": {"title": "Builder output", "family": "alma", "node_name": "output-node", "tags": ["output"]},
                 "9102": {"title": "Talos candidate", "family": "talos"},
+                "9130": {"title": "Windows candidate", "family": "windows"},
+                "9140": {"title": "Other OS candidate", "family": "other"},
             },
         }
         # Builder tags describe the future image, never the source clone's node.
@@ -105,7 +107,9 @@ class ClusterPlacement(TierRepositoryTestCase):
         self.assertEqual(resolved["tags"], ["legacy"])
 
         for template_id, message in ((None, "Select an approved Linux template ID"),
-                                     (9102, "Talos templates need Talos machine configuration")):
+                                     (9102, "Select a Linux cloud-init image"),
+                                     (9130, "Select a Linux cloud-init image"),
+                                     (9140, "Select a Linux cloud-init image")):
             module["default_vm_template_id"] = template_id
             (fixture / "main.tf.json").write_text(json.dumps(config))
             result = subprocess.run(["terraform", f"-chdir={fixture}", "plan", "-input=false", "-no-color"],
