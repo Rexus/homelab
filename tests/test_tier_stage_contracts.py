@@ -93,11 +93,15 @@ class StageContracts(TierRepositoryTestCase):
             self.assertIn("## Step 5: Accept the issuer and continue", software)
             self.assertIn("In Stage 5", software)
             self.assertIn("not a Stage 3 acceptance dependency", software)
-            migration = docs / "05-operations/cryptography/hardware-migration.md"
+            migration = docs / "05-operations/03-cryptography/hardware-migration.md"
             self.assertTrue(migration.is_file())
             self.assertFalse((docs / "01-architecture/cryptography/hardware-migration.md").exists())
             self.assertIn('id="qualify-and-roll-over"', migration.read_text())
             alternative = (docs / "03-deployment/stage-8-observability/step-1b-dedicated-vms.md").read_text()
             self.assertIn("README.md#step-3-connect-infrastructure-monitoring", alternative)
             self.assertIn("Do not run Step 2's Kubernetes installer on these VMs", alternative)
-            self.assertIn("do not allocate or install a separate diagnostics runtime", alternative)
+            self.assertIn("tasks/netdata.yml", alternative)
+            self.assertRegex(alternative, r"(?m)^\| Diagnostic parents \| `otel-1`, `otel-2` \|")
+            self.assertRegex(alternative, r"(?m)^\| Diagnostic children \| `metric-1/2`, `search-1/2/3` \|")
+            self.assertIn("observability_vm_netdata_admin_allow_from", alternative)
+            self.assertNotIn("do not allocate or install a separate diagnostics runtime", alternative)

@@ -1,0 +1,13 @@
+[Unit]
+Description=GitLab native archive and independent encrypted recovery set
+Wants=network-online.target
+After=network-online.target gitlab-container.service
+RequiresMountsFor={{ gitlab_home }}{% if gitlab_backup_transport == 'filesystem' %} {{ gitlab_backup_filesystem.mount }}{% endif %}
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/bash /etc/gitlab-vm-backup/backup.sh
+TimeoutStartSec={{ gitlab_backup_timeout_seconds | int + 120 }}
+TimeoutStopSec=90
+KillMode=control-group

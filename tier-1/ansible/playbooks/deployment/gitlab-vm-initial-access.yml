@@ -1,0 +1,14 @@
+---
+- name: Wait for the GitLab guest from the controller
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: development_platform
+
+- name: Retrieve temporary GitLab administrator credentials into private controller custody
+  hosts: development_platform
+  become: true
+  tasks:
+    - name: Retrieve the original credential with native file modules
+      ansible.builtin.include_role:
+        name: gitlab_container
+        tasks_from: initial-access

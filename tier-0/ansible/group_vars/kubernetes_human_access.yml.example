@@ -1,0 +1,14 @@
+---
+# Schema: roles/control_applications/defaults/sso-human.yml
+# Guide: docs/03-deployment/stage-5-identity/procedures/kubernetes-cli-access.md
+sso_human_keycloak_url: https://sso.lab.example.com
+sso_human_realm: platform
+sso_human_group: oidc:platform-viewers
+sso_human_namespaces: []  # Existing namespaces, selected before apply; no namespace creation.
+sso_human_api_server: https://REPLACE_WITH_ACCEPTED_API_ENDPOINT:6443
+sso_human_api_ca_pem: ""
+sso_human_oidc_ca_pem: ""
+sso_human_admin_kubeconfig: /absolute/private/recovery.kubeconfig
+sso_human_admin_context: REPLACE_WITH_X509_CONTEXT
+sso_human_kubelogin: /absolute/approved/bin/kubelogin
+# Supply sso_human_keycloak_auth through an encrypted/private override for apply.

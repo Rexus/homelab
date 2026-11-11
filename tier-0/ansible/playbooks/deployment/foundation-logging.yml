@@ -1,4 +1,9 @@
 ---
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: foundation_logging
+
 # Stage 2: docs/03-deployment/stage-2-logging/README.md
 # Prepares guarded local storage and the receiver; independent TLS/custody remain explicit.
 - name: Deploy independent Tier 0 log receivers

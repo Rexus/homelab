@@ -1,0 +1,29 @@
+---
+- name: Manage native package verification
+  ansible.builtin.import_tasks: package_policy.yml
+
+- name: Install selected public trust anchors
+  ansible.builtin.include_tasks: trust_anchors.yml
+  when: baseline_trust_anchors | length > 0
+
+- name: Select only declared existing DNF repositories
+  ansible.builtin.include_tasks: repository_source.yml
+  loop: "{{ repository_proxy_dnf_sources }}"
+  loop_control:
+    loop_var: repository_proxy_dnf_source
+  when: repository_proxy_manage_dnf | bool
+
+- name: Configure selected native APT repositories
+  ansible.builtin.include_tasks: apt_sources.yml
+  when: baseline_apt_repositories | length > 0
+
+- name: Verify strict DNF metadata refresh without installing updates
+  ansible.builtin.command:
+    argv: [dnf, --refresh, '--setopt=*.skip_if_unavailable=False', makecache]
+  changed_when: false
+  when: ansible_os_family == 'RedHat'
+
+- name: Verify strict APT metadata refresh without installing updates
+  ansible.builtin.apt:
+    update_cache: true
+  when: ansible_os_family == 'Debian'

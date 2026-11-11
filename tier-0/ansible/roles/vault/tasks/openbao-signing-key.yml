@@ -1,0 +1,94 @@
+---
+- name: Inspect the immutable external key mapping
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/sys/external-keys/configs/{{ openbao_signing_domain }}/keys/{{ openbao_key.name }}"
+    status_code: [200, 400]
+  register: openbao_existing_key
+
+- name: Accept only the native missing-key response before registration
+  ansible.builtin.assert:
+    that:
+      - openbao_existing_key.json.errors | length == 1
+      - openbao_existing_key.json.errors[0] is match('^key .* not found.*$')
+      - openbao_key.name in openbao_existing_key.json.errors[0]
+  when: openbao_existing_key.status == 400
+
+- name: Refuse silently repointing an existing HSM key
+  ansible.builtin.assert:
+    that:
+      - openbao_existing_key.json.data.id == openbao_key.id
+      - openbao_existing_key.json.data.label == openbao_key.label
+      - openbao_existing_key.json.data.mechanism == openbao_key.mechanism
+  when: openbao_existing_key.status == 200
+
+- name: Register an existing HSM object with native verification
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/sys/external-keys/configs/{{ openbao_signing_domain }}/keys/{{ openbao_key.name }}"
+    method: POST
+    body:
+      id: "{{ openbao_key.id }}"
+      label: "{{ openbao_key.label }}"
+      mechanism: "{{ openbao_key.mechanism }}"
+      verify: true
+  when: openbao_existing_key.status == 400
+  changed_when: true
+
+- name: Inspect grants before adding the single selected mount
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/sys/external-keys/configs/{{ openbao_signing_domain }}/keys/{{ openbao_key.name }}/grants"
+    method: LIST
+    status_code: [200, 404]
+  register: openbao_grants
+
+- name: Require an empty native list response when no grants exist
+  ansible.builtin.assert:
+    that: openbao_grants.json.errors == []
+  when: openbao_grants.status == 404
+
+- name: Normalize the native empty grant list
+  ansible.builtin.set_fact:
+    openbao_grant_paths: "{{ openbao_grants.json.get('data', {}).get('keys', []) | default([], true) }}"
+
+- name: Refuse unexpected grants on this dedicated key mapping
+  ansible.builtin.assert:
+    that: openbao_grant_paths | difference([openbao_signing_mount ~ '/']) | length == 0
+
+- name: Grant only the dedicated signing mount access to this external key
+  ansible.builtin.uri:
+    url: >-
+      {{ openbao_signing_address }}/v1/sys/external-keys/configs/{{ openbao_signing_domain }}/keys/{{ openbao_key.name }}/grants/{{ openbao_signing_mount }}
+    method: POST
+  when: (openbao_signing_mount ~ '/') not in openbao_grant_paths
+  changed_when: true
+
+- name: Inspect any existing Transit name before creation
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/{{ openbao_signing_mount }}/keys/{{ openbao_key.name }}"
+    status_code: [200, 404]
+  register: openbao_transit_key
+
+- name: Refuse software keys or rotated versions under the selected Transit name
+  ansible.builtin.assert:
+    that:
+      - openbao_transit_key.json.data.type == 'external-key'
+      - openbao_transit_key.json.data.latest_version == 1
+      - openbao_transit_key.json.data['keys']['1'] == openbao_signing_domain ~ ':' ~ openbao_key.name
+      - not openbao_transit_key.json.data.exportable
+      - not openbao_transit_key.json.data.allow_plaintext_backup
+  when: openbao_transit_key.status == 200
+
+- name: Create only a native external-key reference without importing private material
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/{{ openbao_signing_mount }}/keys/{{ openbao_key.name }}"
+    method: POST
+    body:
+      type: external-key
+      external_key_ref: "{{ openbao_signing_domain }}:{{ openbao_key.name }}"
+      exportable: false
+      allow_plaintext_backup: false
+      auto_rotate_period: 0
+  when: openbao_transit_key.status == 404
+  changed_when: true
+
+- name: Qualify delegated signing against the pinned original public key
+  ansible.builtin.include_tasks: openbao-signing-verify.yml

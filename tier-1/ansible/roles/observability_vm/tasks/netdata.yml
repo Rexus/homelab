@@ -1,0 +1,71 @@
+---
+- name: Prepare private native Netdata configuration
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: "{{ observability_vm_netdata_gid }}"
+    mode: '0750'
+  loop:
+    - "{{ observability_vm_config_path }}/netdata"
+    - "{{ observability_vm_config_path }}/netdata/private"
+
+- name: Prepare separate persistent Netdata history and identity
+  ansible.builtin.file:
+    path: "{{ observability_vm_data_path }}/netdata/{{ item }}"
+    state: directory
+    owner: "{{ observability_vm_netdata_uid }}"
+    group: "{{ observability_vm_netdata_gid }}"
+    mode: '0750'
+  loop: [cache, lib]
+
+- name: Copy this guest's TLS identity for the native Netdata account
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ observability_vm_config_path }}/netdata/private/{{ item.name }}"
+    owner: root
+    group: "{{ observability_vm_netdata_gid }}"
+    mode: '0640'
+  loop:
+    - {name: tls.crt, src: "{{ observability_vm_tls[inventory_hostname].cert_src }}"}
+    - {name: tls.key, src: "{{ observability_vm_tls[inventory_hostname].key_src }}"}
+    - {name: ca.crt, src: "{{ observability_vm_ca_src }}"}
+  register: observability_vm_netdata_tls
+  no_log: true
+
+- name: Render native Netdata daemon and streaming configuration
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ observability_vm_config_path }}/netdata/{{ item.dest }}"
+    owner: root
+    group: "{{ observability_vm_netdata_gid }}"
+    mode: '0640'
+  loop:
+    - {src: netdata.conf.j2, dest: netdata.conf}
+    - {src: netdata-stream.conf.j2, dest: stream.conf}
+    - {src: netdata-cloud.conf.j2, dest: cloud.conf}
+  register: observability_vm_netdata_configuration
+  no_log: true
+
+- name: Disable anonymous telemetry without an installation or claiming script
+  ansible.builtin.copy:
+    content: ""
+    dest: "{{ observability_vm_config_path }}/netdata/.opt-out-from-anonymous-statistics"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Render the native Netdata Quadlet
+  ansible.builtin.template:
+    src: netdata.container.j2
+    dest: /etc/containers/systemd/obs-netdata.container
+    owner: root
+    group: root
+    mode: '0644'
+  register: observability_vm_netdata_quadlet
+
+- name: Remember Netdata changes for the ordered start phase
+  ansible.builtin.set_fact:
+    observability_vm_netdata_restart: >-
+      {{ observability_vm_netdata_tls.changed or observability_vm_netdata_configuration.changed or
+         observability_vm_netdata_quadlet.changed }}

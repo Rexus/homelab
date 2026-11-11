@@ -79,7 +79,7 @@ adopting the new worksheet. Existing project-owned READMEs remain unchanged.
 Architecture remains the stable design; stage diagrams show the selected IaC
 realization. A project exception that changes trust boundaries or interfaces needs
 a focused local design record, not silent divergence. Reuse the upstream
-[variant contracts](../01-architecture/08-variants.md) and [diagram language](diagrams.md).
+[variant contracts](../01-architecture/02-organization/README.md#selected-design) and [diagram language](diagrams.md).
 Do not copy complete guide bodies into project records.
 
 <a id="ownership-and-refresh"></a>
@@ -102,6 +102,7 @@ refresh does not migrate project-authored content.
 | --- | --- |
 | Local architecture/domain/workflow documents | Preserved, even unchanged; transfer real 07-decisions/evidence into the compact record or retain useful detail |
 | Existing `docs/README.md` and root README | Not rewritten; adopt current starter navigation manually after comparing local edits |
+| Existing `deployments.md` | Preserve completed checks and evidence; compare the upstream kit's `scripts/tier-repos/templates/project/deployments.md` and add newly selected paths/options as unchecked entries |
 | Missing current starter or guide | Recreated from its current template; review restored project defaults before use |
 | Obsolete or extra file in `docs/auto-docs/` | Removed automatically; known moves report the current guide |
 | Unused starters and site skeleton outside auto-docs | Remove manually only after reviewing local content and references |

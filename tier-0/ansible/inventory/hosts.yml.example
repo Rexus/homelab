@@ -24,6 +24,10 @@ all:
         log-1: {}
         # Required redundancy before accepting the HA security-logging contract.
         # log-2: {}
+    logging_recovery:
+      hosts: {}
+      # hosts:
+      #   rec-1: {}
     foundation:
       children:
         identity: null
@@ -88,6 +92,7 @@ all:
     guests:
       children:
         foundation_logging: null
+        logging_recovery: null
         foundation: null
         vault: null
         hsm_gateways: null

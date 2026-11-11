@@ -1,0 +1,41 @@
+---
+- name: Require explicit trusted RPM sources on a supported family
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - item.name is match('^[A-Za-z0-9_-]+$')
+      - item.baseurl is match('^https://[^\s]+$')
+      - item.gpgkey is match('^https://[^\s]+$')
+      - item.fingerprint is match('^([A-Fa-f0-9]{40}|[A-Fa-f0-9]{64})$')
+    fail_msg: Select an approved HTTPS RPM source, HTTPS public key and independently verified key fingerprint.
+  loop: "{{ baseline_rpm_repositories }}"
+  loop_control:
+    label: "{{ item.name | default('missing repository name') }}"
+
+- name: Install only the pinned publisher public keys
+  ansible.builtin.rpm_key:
+    key: "{{ item.gpgkey }}"
+    fingerprint: "{{ item.fingerprint }}"
+    validate_certs: true
+    state: present
+  loop: "{{ baseline_rpm_repositories }}"
+  loop_control:
+    label: "{{ item.name }}"
+  environment: "{{ baseline_package_sources_environment }}"
+
+- name: Configure the selected signed package sources
+  ansible.builtin.yum_repository:
+    name: "{{ item.name }}"
+    file: "homelab-{{ item.name }}"
+    description: "{{ item.description | default(item.name) }}"
+    baseurl: "{{ item.baseurl }}"
+    gpgkey: "{{ item.gpgkey }}"
+    gpgcheck: true
+    repo_gpgcheck: "{{ item.repo_gpgcheck | default(false) }}"
+    sslverify: true
+    skip_if_unavailable: false
+    enabled: true
+    state: present
+  loop: "{{ baseline_rpm_repositories }}"
+  loop_control:
+    label: "{{ item.name }}"

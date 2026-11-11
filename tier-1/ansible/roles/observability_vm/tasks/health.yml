@@ -1,0 +1,101 @@
+---
+- name: Check the installed Tier 1 diagnostics and selected metric bridge
+  ansible.builtin.import_tasks: netdata-health.yml
+
+- name: Check the local Collector health endpoint
+  ansible.builtin.uri:
+    url: http://127.0.0.1:13133
+  register: observability_vm_collector_health
+  until: observability_vm_collector_health.status | default(0) == 200
+  retries: 30
+  delay: 5
+  when: inventory_hostname in observability_vm_gateway_hosts
+
+- name: Verify authenticated metrics reads on each query router
+  ansible.builtin.uri:
+    url: "https://{{ observability_vm_endpoints[inventory_hostname] }}:8427/api/v1/query?query=1"
+    url_username: "{{ observability_vm_reader_auth.username }}"
+    url_password: "{{ observability_vm_reader_auth.password }}"
+    force_basic_auth: true
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+  register: observability_vm_query_health
+  until: observability_vm_query_health.status | default(0) == 200
+  retries: 30
+  delay: 5
+  when: inventory_hostname in observability_vm_gateway_hosts
+  no_log: true
+
+- name: Verify query credentials cannot submit metrics
+  ansible.builtin.uri:
+    url: "https://{{ observability_vm_endpoints[inventory_hostname] }}:8427/api/v1/import/prometheus"
+    method: POST
+    url_username: "{{ observability_vm_reader_auth.username }}"
+    url_password: "{{ observability_vm_reader_auth.password }}"
+    force_basic_auth: true
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+    status_code: [400, 403]
+  when: inventory_hostname in observability_vm_gateway_hosts
+  no_log: true
+
+- name: Verify backend metrics reads reject anonymous requests
+  ansible.builtin.uri:
+    url: "https://{{ observability_vm_endpoints[inventory_hostname] }}:8428/api/v1/query?query=1"
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+    status_code: 401
+  when: inventory_hostname in observability_vm_metrics_hosts
+
+- name: Verify the Data Prepper control API uses the commissioned credentials
+  ansible.builtin.uri:
+    url: "https://{{ observability_vm_endpoints[inventory_hostname] }}:4900/list"
+    url_username: "{{ observability_vm_prepper_core_auth.username }}"
+    url_password: "{{ observability_vm_prepper_core_auth.password }}"
+    force_basic_auth: true
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+  register: observability_vm_prepper_health
+  until: observability_vm_prepper_health.status | default(0) == 200
+  retries: 30
+  delay: 5
+  when: inventory_hostname in observability_vm_gateway_hosts
+  no_log: true
+
+- name: Verify search service passwords match the installed bcrypt identities
+  ansible.builtin.uri:
+    url: "https://{{ observability_vm_endpoints[inventory_hostname] }}:9200/_cluster/health"
+    url_username: "{{ item.username }}"
+    url_password: "{{ item.password }}"
+    force_basic_auth: true
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+  loop:
+    - {username: data-prepper, password: "{{ observability_vm_prepper_search_password }}"}
+    - {username: dashboards-server, password: "{{ observability_vm_dashboards_search_password }}"}
+  when: inventory_hostname in observability_vm_search_hosts
+  no_log: true
+
+- name: Check the Grafana database and server endpoint
+  ansible.builtin.uri:
+    url: "https://{{ observability_vm_endpoints[inventory_hostname] }}:3000/api/health"
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+  register: observability_vm_grafana_health
+  until: observability_vm_grafana_health.status | default(0) == 200
+  retries: 30
+  delay: 5
+  when: inventory_hostname == observability_vm_grafana_host
+
+- name: Check the Dashboards HTTPS and SSO entry point
+  ansible.builtin.uri:
+    url: "https://{{ observability_vm_endpoints[inventory_hostname] }}:5601/api/status"
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+    follow_redirects: none
+    status_code: [200, 302]
+  register: observability_vm_dashboards_health
+  until: observability_vm_dashboards_health.status | default(0) in [200, 302]
+  retries: 30
+  delay: 5
+  when: inventory_hostname in observability_vm_gateway_hosts

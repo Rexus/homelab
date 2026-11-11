@@ -1,255 +1,199 @@
 # Step 1b: Replicated USB HSM services
 
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-Run repository scripts from this root; Shared contributes only the named reusable primitives.
+**Working repository:** `<prefix>-tier-0` on the protected controller (source: `tier-0/`).
 
 <a id="usb-hsm-active-active-deployment-guide"></a>
 
-**Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before creating production issuer keys.
-**Change:** Use a capacity-sized Tier 0 service pool, one local HSM per host, with co-hosted endpoint functions.
-**Return:** [Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody) to install the issuer runtime
-and prepare its provider-backed key/CSR before Step 2 signing.
+**Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before production keys.
+**Change:** prepare independently managed USB provider hosts for a selected signing application.
+**Return:** [Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody) for the issuer runtime
+and original hardware-key CSR, then Step 2 signing.
+**Design:** [USB services and endpoint variants](../../01-architecture/08-cryptography/04-usb-hsm.md).
 
-**Design:** [replicated USB services and endpoint variants](../../01-architecture/16-cryptography/04-usb-hsm.md).
+## Contents
 
-## Table of contents
-
-- [Purpose](#purpose)
-- [Prerequisite](#prerequisite)
-- [Default deployment](#default-deployment)
-- [Configuration](#configuration)
-- [IaC used for this](#iac-used-for-this)
-- [How to shape the deployment](#how-to-shape-the-deployment)
-- [Acceptance](#acceptance)
-- [How to maintain it](#how-to-maintain-it)
+- [Supplied automation and prerequisites](#supplied-automation-and-prerequisites)
+- [1. Prepare the service hosts](#1-prepare-the-service-hosts)
+- [2. Integrate the application and endpoint](#2-integrate-the-application-and-endpoint)
+- [3. Verify the complete service](#3-verify-the-complete-service)
+- [Maintenance](#maintenance)
 - [References](#references)
 
-## Purpose
-
-Deploy custody option C without making Tier 0 depend on public Tier 2 ingress
-or Tier 1 Kubernetes. The private endpoint is a function on `hsm-1` through `hsm-N`,
-not a separate load-balancer pair. Offline root custody remains disconnected.
-
-The shipped `hsm` setup provisions VMs and applies the OS baseline only.
-The selected application, USB/device integration, key replication, VIP/proxy
-runtime and service acceptance are operator work, not installed capabilities.
-
-## Prerequisite
-
-| Required decision | Evidence before production use |
-| --- | --- |
-| Signing/issuer application | Supported local provider and HA model; state, authorization and session behavior defined |
-| Endpoint E1/E2/E3 | Select [client failover, private VIP, or co-hosted VIP/proxies](../../01-architecture/16-cryptography/04-usb-hsm.md#endpoint-variants); E3 requires supported concurrent replicas |
-| Hosts and devices | Approved templates, selected failure domains, stable USB identity and private cryptography addresses for every replica |
-| Capacity | Size the pool for [measured demand and failure headroom](../../01-architecture/16-cryptography/04-usb-hsm.md#capacity-and-replica-count), including frontend capacity |
-| Recovery | Independent key/application backups, wrapping material and startup credentials; no sealed-service dependency cycle |
-| Tooling | Protected Tier 0 execution environment with the [deployment tooling](../../04-development/local-setup.md) |
-
-Neither the public `edge` setup nor a Tier 1 cluster is a prerequisite.
-Tier 1/2 clients can consume explicitly authorized APIs after acceptance.
-
-An existing [single-device deployment](step-1d-single-usb.md) is a valid starting
-point. Add service hosts/devices and the co-hosted endpoint when consumer traffic
-and availability require them. Two enabled hosts are the starter, not a limit.
-Review permitted key transfer,
-application state and backup recovery before changing the existing key/provider path.
-
-## Default deployment
+## Supplied automation and prerequisites
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph T0["Tier 0 / Control / cryptography network"]
+  subgraph T0["Tier 0 / Control / USB provider hosts"]
     direction TB
-    subgraph Hosts["Existing Proxmox hosts"]
+    subgraph PVE["Existing Proxmox / cryptography network"]
       direction LR
-      subgraph HostA["Existing Proxmox host pve01"]
+      subgraph A["pve01 / physical device affinity"]
         direction TB
-        A["hsm-1<br/>VM / OS baseline only"]
-        USB1["USB HSM<br/>Manual passthrough"]
-        A -. Selected device integration .-> USB1
+        VM1["hsm-1<br/>Native middleware and provider"]
+        Token1["Existing local USB HSM"]
+        VM1 -->|Native passthrough| Token1
       end
-      subgraph HostB["Existing Proxmox host pve02"]
+      subgraph B["pve02 / physical device affinity"]
         direction TB
-        B["hsm-2<br/>VM / OS baseline only"]
-        USB2["USB HSM<br/>Manual passthrough"]
-        B -. Selected device integration .-> USB2
+        VM2["hsm-2<br/>Native middleware and provider"]
+        Token2["Existing local USB HSM"]
+        VM2 -->|Native passthrough| Token2
       end
-      HostA ~~~ HostB
+      A ~~~ B
     end
-    subgraph Added[" "]
-      direction LR
-      subgraph Service["Project integration / not installed"]
-        Endpoint["Signing runtime / key policy<br/>Selected co-hosted endpoint"]
-      end
-      Recovery["Separate offline backup custody"]
-      Service -. Authorized backup / restore .-> Recovery
-    end
-    Hosts -. Selected service integration .-> Added
+    Custody["Offline recovery custody<br/>Original keys and device-specific backups"]
+    PVE ~~~ Custody
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  class T0,A,B control
-  class HostA,HostB boundary
-  class Added,Hosts controlHeading
-  class Service replicas
-  class USB1,USB2,Recovery custody
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class T0,VM1,VM2 control
+  class PVE,A,B boundary
+  class Token1,Token2,Custody custody
 ```
 
-**IaC:** Tier 0 [HSM starter inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example),
-[inventory](../../../tier-0/ansible/inventory/hosts.yml.example) and
-[baseline recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml).
-Exactly two VMs are active in the example; add further replicas deliberately.
-Devices, the dashed application group and backup custody are separate integration work.
+**IaC:** [HSM VM inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) and
+[deployment recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml) own the two-host
+starter, USB attachment and provider installation. Hardware and key custody already exist.
+This view adds no signing application, key replication or VIP; shared transport is selected at action 2.
 
-Only the first step is supplied as a VM/baseline workflow. The completed design
-requires the remaining integration and acceptance work. An issuer replica may
-use its local HSM directly when that removes an unnecessary generic gateway.
-These are independently managed replicas, not a native HSM cluster.
+Terraform provisions the selected VMs and attaches approved USB devices through native bpg
+`usb` blocks. Ansible installs the selected packages and native configuration, starts local
+YubiHSM or OpenSC transport when selected, and lists present tokens without login. [1][2][3]
 
-<a id="what-you-configure"></a>
-
-## Configuration
-
-<a id="network-zones"></a>
-<a id="firewall-openings"></a>
-<a id="vm-layout"></a>
-<a id="hsm-mode"></a>
-
-| Input | Configuration |
-| --- | --- |
-| `terraform/common.tfvars` | Approved `cryptography` attachment; optional separate `ceremony` only when needed |
-| `terraform/deployments/hsm/terraform.tfvars` | One `vm_instances` entry per selected host, with unique VMID, size, storage and initial `proxmox_node_name` |
-| `ansible/inventory/hosts.yml` | Every service host in `hsm_gateways`; no separate frontend group or duplicate host records |
-| `ansible/group_vars/all.yml` and environment overlay | Hostname/domain, local connection and baseline settings |
-| `ansible/group_vars/hsm.yml` and environment overlay | Complete host IP map and selected service integration inputs |
-| Optional `ingress.yml` scaffold | Explicit opt-in, validated application HA, readiness configuration and co-hosted backend addresses |
-
-Keep USB affinity explicit. The VM code does not configure device passthrough,
-host pinning or Proxmox HA restrictions. Initial placement alone is not a runtime
-affinity guarantee; review [cluster mobility](../foundation/proxmox/step-1b-cluster-ha.md#terraform-against-the-cluster)
-before permitting a device-facing VM to move. A single-host rehearsal is not host HA.
-
-Scope firewall rules to hosts and actual listeners, following the
-[network contracts](../../01-architecture/11-networking/01-firewall-policy.md).
-
-| Source | Destination | Required transport / boundary |
+| Selection | Automated host capability | Required external input |
 | --- | --- | --- |
-| Approved consumers | Private service DNS/VIP or E1 host addresses | Selected authenticated, policy-scoped API; no custody administration |
-| Co-hosted proxies, for E3 | Approved private backends in the pool | Selected backend listener; reference port `8443/TCP` |
-| Selected VIP agents, for E2/E3 | Required peers on the private network | Selected VRRP transport and address-advertisement support, not general peer access [1] |
-| Tier 0 administration | Named service hosts | Approved SSH/management listener; reference SSH `22/TCP` |
-| Custody-local operator | Offline ceremony environment | Local approved operations only; no connected route |
+| `yubihsm2`, `usb` | Packaged connector bound to loopback and device serial; native PKCS#11 configuration | Approved SDK packages/source, library path, device and reported token serials |
+| `picohsm`, `usb` | OpenSC `sc-hsm`, native PC/SC transport and scoped headless authorization | Supported device/firmware, exact reader name, library path and reported token serial |
+| `pkcs11`, `client` | Explicit vendor client packages and supplied native configuration files | Selected product/release, entitlement and completed authenticated enrollment |
 
-Separate the VIP/frontend listener from backend listeners to avoid proxy loops
-or bind conflicts. Protect health listeners and do not expose raw USB or generic
-PKCS#11/device connectors as a public signing API.
+Physical installation, device initialization, key generation/import/backup ceremonies and custody
+remain separately authorized operations. Prepare approved package sources through baseline inputs;
+do not log into a new guest to install middleware. The role accepts Debian and RedHat systemd hosts;
+the selected SDK still needs qualification on the exact OS/CPU. The issuer retains its Debian contract.
 
-## IaC used for this
-
-| Repository | Source inside that repository | Responsibility |
-| --- | --- | --- |
-| Tier 0 | [HSM VM inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) | Capacity-sized service pool; two enabled hosts and a third-host example; offline helper is separate |
-| Tier 0 | [Inventory](../../../tier-0/ansible/inventory/hosts.yml.example) and [HSM vars](../../../tier-0/ansible/group_vars/hsm.yml.example) | One host/IP source consumed by Terraform and Ansible |
-| Tier 0 | [HSM deployment recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml) | OS baseline only |
-| Tier 0 | [Private backend scaffold](../../../tier-0/ansible/playbooks/ingress.yml) | Opt-in snippet on those same hosts; no package, frontend, VIP, reload or readiness installer |
-| Shared | [Keepalived primitive](../../../shared/ansible/roles/shared/tasks/keepalived.yml) | Reusable configuration building block for reviewed endpoint integration, not an HSM HA recipe |
-
-The scaffold is skipped unless `hsm_proxy_ingress_enabled` is explicitly enabled.
-It then requires `hsm_proxy_ingress_application_ha_validated`,
-`hsm_proxy_ingress_readiness_validated`, TCP mode, at least two static inventoried backends
-and nonempty application-specific backend configuration. Acknowledgements record
-operator prerequisites; they do not prove runtime health or validate HAProxy syntax.
-Basic `check` options alone prove only TCP reachability. [2]
-
-## How to shape the deployment
+The optional [native PKCS#11 remoting extension](procedures/pkcs11-remoting.md) supplies restricted
+SSH endpoints, client configuration and original-key sign/verify probes. It requires two same-family
+devices holding the same approved original key. Independent tokens do not synchronize keys or
+establish application HA. For separate YubiHSM and PicoHSM devices, start with
+[one local issuer device](step-1d-single-usb.md); the other family can serve an independent key domain.
+Tier 1 and Tier 2 consumers, public edge and Kubernetes are not prerequisites for these Tier 0 hosts.
 
 ### 1. Prepare the service hosts
 
-From the Tier 0 repository root, initialize local inputs:
-
-Run from **`<prefix>-tier-0/`**.
+Initialize local files from **`<prefix>-tier-0/`**:
 
 ```bash
 bash scripts/init-local-files.sh --setup hsm
 ```
 
-Choose the replica count before planning. For each additional host, add matching
-entries to `vm_instances`, `hsm_gateways` and the complete `platform_host_ips` map.
-The source examples include commented `hsm-3` entries; larger pools use the same
-mechanism. No replica count flag, automatic key replication or autoscaler is implied.
+Edit these inputs before applying:
 
-Edit the files above, then run the host deployment. Review the displayed plan and
-enter `yes` to provision the selected guests and apply their OS baseline:
+| File | Required edits |
+| --- | --- |
+| `terraform/common.tfvars` | Approved templates, storage and `cryptography` network attachment |
+| `terraform/deployments/hsm/terraform.tfvars` | Selected `vm_instances` with explicit `proxmox_node_name` and per-VM `usb_devices` |
+| `ansible/inventory/hosts.yml` | Selected hosts under `hsm_gateways`; remove unselected examples |
+| `ansible/group_vars/all.yml` | Connection, hostname, baseline and approved package-source inputs |
+| `ansible/group_vars/hsm.yml` | Complete IP map, `hsm_provider`, mode, packages, library and any native client configuration |
+| `ansible/host_vars/<host>.yml` or inventory host fields | `hsm_provider_expected_serial`; also `hsm_yubihsm_serial` for each local YubiHSM |
 
-Run from **`<prefix>-tier-0/`**.
+The [example](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) selects two VMs
+on different Proxmox nodes. Size the pool for measured demand and failure headroom. Additional
+hosts need matching Terraform, inventory, IP and per-device inputs.
+
+Each VM's `usb_devices` accepts one `host` bus-port/vendor:product selector or an existing `mapping`
+per attachment, with optional `usb3`. Prefer an approved port or resource mapping when identical
+devices share a host. The physical token and selected Proxmox mapping are existing prerequisites;
+attachment to the VM is automated. Raw host passthrough can require stronger API privileges. [1]
+
+Keep each mapping restricted to its reviewed physical device/node. Initial placement and a resource
+mapping do not guarantee runtime affinity or copy keys. Complete the selected
+[cluster mobility policy](../foundation/proxmox/step-1b-cluster-ha.md#terraform-against-the-cluster)
+before allowing device-facing guests to move. Do not add alternative nodes with unrelated tokens.
+
+Plan from **`<prefix>-tier-0/`**:
+
+```bash
+bash scripts/deploy.sh hsm --plan-only
+```
+
+Review USB selectors, VM/node identity and any replacement before applying from **`<prefix>-tier-0/`**:
 
 ```bash
 bash scripts/deploy.sh hsm
 ```
 
-Add `--plan-only` for an optional preview; approved unattended host provisioning
-can use `--auto-approve`. These flags grant no device/key initialization authority.
-Attach the intended local USB device to each VM, or initialize a software token
-for rehearsal. Validate the expected token identity and supported provider on each host.
+For approved unattended execution, use `--auto-approve` on the same command. Expected result:
+Terraform attaches the selected devices; Ansible waits for guests, applies baseline, installs the
+provider and lists the expected serial on every selected host. Missing middleware, permissions,
+enrollment or an absent/wrong token stops deployment. Listing uses no PIN and changes no key. [3]
+
+**IaC:** [HSM Terraform](../../../tier-0/terraform/deployments/hsm/main.tf),
+[native USB input](../../../tier-0/terraform/deployments/hsm/usb.tf),
+[deployment recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml),
+[provider role](../../../tier-0/ansible/roles/hsm_provider/tasks/main.yml) and
+[input examples](../../../tier-0/ansible/group_vars/hsm.yml.example).
 
 ### 2. Integrate the application and endpoint
 
-1. Install the selected signing/issuer application and its supported provider.
-   Configure compatible keys, application state, consumer identities and operation policy.
-2. Perform authorized key initialization/replication and offline backup using the
-   selected device's supported process. Duplicate keys do not replicate CA records. [3][4]
-3. Implement E1, E2 or E3 on the existing hosts. For E3, integrate TLS passthrough,
-   separate frontend/backend listeners and application/device/key readiness.
-   Configure safe reconnection/retry behavior; a device session is not a stateless API. [5]
-4. If using the optional snippet renderer, supply the same inventory and ordered
-   vars as the [direct Ansible workflow](../../08-reference/repository-scripts.md).
-   Integrate and validate the full configuration before reloading either host.
+For shared remote PKCS#11 access, complete the numbered
+[native p11-kit/SSH procedure](procedures/pkcs11-remoting.md) after provider deployment above.
+It installs dedicated forced-command listeners, per-client/source authorization, pinned host keys,
+native client modules and canonical SPKI checks for every physical token. Each endpoint exposes
+one dedicated token containing the original signing key. There is no object-level RPC policy,
+session migration, VIP or automatic replay. Clients explicitly select endpoints and reestablish sessions.
+
+For an application signing API, use the separately selected
+[OpenBao external-key option](../stage-6-secrets/step-1d-openbao.md) after its prerequisites.
+Its API policy and persistent state are separate from PKCS#11 transport. Existing independent
+tokens are not a replicated key domain, and the transport does not make an application highly available.
+Record that later option and finish Stage 3's selected provider/remoting checks here;
+the signing API is not a Stage 3 completion dependency.
+
+For a supported provider on the infrastructure issuer, follow the
+[single-device issuer binding](step-1d-single-usb.md#3-bind-the-inactive-issuer-to-its-original-key).
+It validates the approved OpenXPKI PKCS#11 signer configuration and uses an existing key for a CSR.
+It does not turn independent issuer/provider hosts into application replicas.
 
 ### 3. Verify the complete service
 
-Run the acceptance cases below with authorized operators and retained recovery
-material. Do not declare HA from VM count, slot discovery or a listening TCP port.
+Repeat non-destructive provider inspection from **`<prefix>-tier-0/`**:
 
-## Acceptance
+```bash
+bash scripts/deploy.sh hsm --ansible-only --playbook deployment/hsm-inspect.yml
+```
 
-| Test | Required result |
+| Case | Required evidence for the selected consumer |
 | --- | --- |
-| Authorized and denied operations | Permitted identities/keys succeed; unauthorized requests and administration fail |
-| Tier 1 and Tier 2 services unavailable | Tier 0 signing and recovery continue without their clusters, edge or proxies |
-| Consumer/secret service unavailable | Provider starts and recovers without credentials held only by the service it unlocks |
-| One service VM or physical host lost | Surviving capacity serves the allowed operations within the selected failover contract |
-| Peak load with the selected failures/maintenance drain | Surviving devices, application and frontend meet the accepted throughput, latency and error targets |
-| USB device lost while VM and port remain up | That replica becomes unready and leaves routing; surviving service remains usable |
-| VIP owner lost / peer partition, for E2/E3 | Measured ownership and split-brain behavior match policy; clients reconnect as designed [1] |
-| Application/session state during failover | No unsupported session sharing, duplicate issuance or unsafe replay/retry behavior |
-| Independent restore | Approved keys, application state, policy and startup credentials restore without online replicas |
+| Authorized request / denied operation | Correct key identity, supported mechanisms and enforced application policy |
+| USB device lost while VM and port remain up | Native key/sign probe fails; the consumer rejects this backend |
+| Host or endpoint lost | Measured interruption and explicit reconnect/endpoint selection; no unsafe replay |
+| Independent restore | Original key, application state, policy and startup credentials recover without active replicas |
 
-Record evidence in project-owned deployment records. Re-run relevant cases after
-key rotation, application upgrades or network/placement changes.
+Token listing proves visibility only. Record live sign/verify, denied-operation, endpoint and independent
+recovery results in project-owned deployment records before continuing with production acceptance.
 
-## How to maintain it
+## Maintenance
 
-<a id="health-checks"></a>
-<a id="device-identity"></a>
-<a id="replica-updates"></a>
-<a id="routine-checks"></a>
+Reconcile reviewed package/configuration changes from **`<prefix>-tier-0/`**:
 
-Use [USB HSM maintenance](../../05-operations/cryptography/usb-hsm.md) for recurring
-health, device identity, rotation and restoration checks. Key ceremonies remain
-separately authorized operations, not routine CI jobs.
+```bash
+bash scripts/deploy.sh hsm --ansible-only --playbook maintenance/hsm.yml
+```
+
+Maintenance reuses provider installation and inspection, with one provider host at a time.
+If remoting is selected, also rerun its server/client deployment commands in the
+[remoting maintenance procedure](procedures/pkcs11-remoting.md#maintenance-and-recovery).
+Use [USB maintenance](../../05-operations/03-cryptography/usb-hsm.md) for custody and recovery procedures.
 
 ## References
 
-Sources checked 2026-10-14.
+Sources checked 2026-11-11.
 
-1. [Keepalived configuration](https://www.keepalived.org/documentation/keepalived-conf/)
-2. [HAProxy health checks](https://www.haproxy.com/documentation/haproxy-configuration-tutorials/reliability/health-checks/)
-3. [Pico HSM backup and restore](https://docs.picokeys.com/picohsm/backup-restore/)
-4. [YubiHSM PKCS#11 module](https://developers.yubico.com/yubihsm-shell/yubihsm-pkcs11.html)
-5. [YubiHSM quick start and authenticated sessions](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-quick-start.html)
+1. [bpg VM native USB attachment](https://github.com/bpg/terraform-provider-proxmox/blob/main/docs/resources/virtual_environment_vm.md)
+   and [API privilege requirements](https://github.com/bpg/terraform-provider-proxmox/blob/main/docs/index.md)
+2. [YubiHSM connector configuration and USB permissions](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-tools-connector.html)
+3. [OpenSC token inspection options](https://manpages.debian.org/bookworm/opensc/pkcs11-tool.1.en.html)

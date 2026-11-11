@@ -1,0 +1,34 @@
+---
+- name: Prepare native Vault API tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: vault-configure
+    control_node_require_terraform: false
+
+- name: Configure the accepted VM secret service from the controller
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    control_applications_vault_address: "{{ vault_api_addr }}"
+    control_applications_vault_ca_path: "{{ vault_tls_ca_src }}"
+    control_applications_vault_replicas: "{{ groups['vault'] | length }}"
+    control_applications_vault_audit_destinations:
+      - name: file
+        destination: "{{ vault_log_dir | default('/var/log/openbao' if vault_product | default('vault') == 'openbao' else '/var/log/vault') }}/audit.log"
+      - {name: stdout, destination: stdout}
+  tasks:
+    - name: Register the explicitly selected VM client on the existing IdP
+      ansible.builtin.include_role:
+        name: control_applications
+        tasks_from: clients
+      vars:
+        control_applications_components: [vault]
+      when: control_applications_register_clients | default(false) | bool
+
+    - name: Use the common bounded audit and SSO API workflow
+      ansible.builtin.include_role:
+        name: control_applications
+        tasks_from: vault-api

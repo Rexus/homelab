@@ -44,7 +44,17 @@ class TierTemplateLifecycle(TierRepositoryTestCase):
         entry = tier0 / "ansible/playbooks/template-refresh.yml"
         recipe = yaml.safe_load(entry.read_text())[0]["ansible.builtin.import_playbook"]
         refresh = yaml.safe_load((entry.parent / recipe).read_text())
-        replacement = refresh[1]["roles"][0]
+        ready = next(index for index, play in enumerate(refresh)
+                     if play.get("ansible.builtin.import_playbook", "").endswith("/guest-ready.yml"))
+        builder = next(index for index, play in enumerate(refresh)
+                       if play.get("hosts") == "template_refresh_builders")
+        replace = next(index for index, play in enumerate(refresh)
+                       if play.get("hosts") == "hypervisors")
+        self.assertLess(ready, builder)
+        self.assertLess(builder, replace)
+        self.assertEqual(refresh[ready]["vars"]["guest_ready_group"], "template_refresh_builders")
+        self.assertTrue(refresh[replace]["run_once"])
+        replacement = refresh[replace]["roles"][0]
         self.assertEqual(replacement["role"], "proxmox_template_replace")
         self.assertEqual(replacement["when"], "template_refresh_replace_enabled | default(false) | bool")
         groups = yaml.safe_load((tier0 / "ansible/inventory/hosts.yml.example").read_text())["all"]["children"]

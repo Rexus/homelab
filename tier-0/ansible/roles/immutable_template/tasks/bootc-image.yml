@@ -1,0 +1,22 @@
+---
+- name: Define the bounded build workspace and reproducibility contract
+  ansible.builtin.set_fact:
+    immutable_template_image_workdir: "/var/lib/bootc-image-builder/{{ immutable_template_image_revision }}"
+    immutable_template_image_controller_dir: >-
+      {{ immutable_template_image_artifact_dir }}/{{ inventory_hostname }}/{{ immutable_template_image_revision }}
+    immutable_template_image_request:
+      owner: homelab-immutable-template-v1
+      source: "{{ immutable_template_bootc_image }}"
+      builder: "{{ immutable_template_image_builder_image }}"
+      rootfs: "{{ immutable_template_image_rootfs }}"
+      config: "{{ immutable_template_image_config }}"
+  no_log: true
+
+- name: Validate and reserve owned build output
+  ansible.builtin.import_tasks: bootc-image-workspace.yml
+
+- name: Create and verify the separate qcow2 artifact
+  ansible.builtin.import_tasks: bootc-image-build.yml
+
+- name: Fetch the verified artifact and prepare the existing publisher handoff
+  ansible.builtin.import_tasks: bootc-image-fetch.yml

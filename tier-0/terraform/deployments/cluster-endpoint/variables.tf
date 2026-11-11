@@ -116,28 +116,57 @@ variable "default_vm_network_zone_key" {
 }
 
 variable "vm_instances" {
-  description = "Exactly two Linux gateway VMs keyed by this tier's cluster_endpoint inventory hosts."
+  description = "VM hardware definitions keyed by logical Ansible inventory hostname."
   type = map(object({
-    proxmox_node_name   = string
-    vm_id               = optional(number)
-    template_vm_id      = optional(number)
+    proxmox_node_name = optional(string)
+    vm_id             = optional(number)
+    template_vm_id    = optional(number)
+    full_clone        = optional(bool, true)
+    firmware = optional(object({
+      bios                  = optional(string, "seabios")
+      machine               = optional(string)
+      scsi_hardware         = optional(string, "virtio-scsi-single")
+      efi_pre_enrolled_keys = optional(bool, false)
+    }))
+    initialization_datastore_id = optional(string)
+    nic_firewall                = optional(bool, true)
+    # Uses catalog tags from another template ID, useful while building templates.
     template_catalog_id = optional(number)
-    template_tags       = optional(list(string))
-    size                = optional(string)
-    cores               = optional(number)
-    memory              = optional(number)
-    storage_class       = optional(string)
-    disk_size_gb        = number
-    network_zone_key    = optional(string)
-    tags                = optional(list(string))
+    # Overrides catalog tags when a VM uses a source image not in the catalog.
+    template_tags = optional(list(string))
+    size          = optional(string)
+    cores         = optional(number)
+    memory        = optional(number)
+    storage_class = optional(string)
+    disk_size_gb  = number
+    usb_devices = optional(list(object({
+      host    = optional(string)
+      mapping = optional(string)
+      usb3    = optional(bool, false)
+    })), [])
+    extra_disks = optional(list(object({
+      interface     = string
+      size_gb       = number
+      storage_class = optional(string)
+      datastore_id  = optional(string)
+      iothread      = optional(bool)
+      discard       = optional(string)
+      ssd           = optional(bool)
+    })))
+    network_zone_key = optional(string)
+    started          = optional(bool)
+    template         = optional(bool)
+    stop_on_destroy  = optional(bool)
+    tags             = optional(list(string))
   }))
+  default = {}
 
   validation {
-    condition = length(var.vm_instances) == 2 && length(toset([
+    condition = try(length(var.vm_instances) == 2 && length(toset([
       for vm in values(var.vm_instances) : trimspace(vm.proxmox_node_name)
       ])) == 2 && alltrue([
       for vm in values(var.vm_instances) : trimspace(vm.proxmox_node_name) != ""
-    ])
+    ]), false)
     error_message = "Select exactly two gateway VMs on distinct, explicitly named initial Proxmox hosts."
   }
 }

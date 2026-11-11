@@ -12,8 +12,8 @@
 
 ## Prerequisites
 
-Use the [network plan](../01-architecture/11-networking/README.md) to create the required
-segments and [firewall policy](../01-architecture/11-networking/01-firewall-policy.md) first.
+Use the [network plan](../01-architecture/05-networking/README.md) to create the required
+segments and [firewall policy](../01-architecture/05-networking/01-firewall-policy.md) first.
 The [allocation and deployment map](../02-conventions/network-plan.md) connects each zone/VNet to
 the current source inputs and identifies optional network splits.
 Terraform combines `shared_network_zones` and tier-local `network_zones` to map logical guest-network keys to existing
@@ -27,7 +27,7 @@ to it, such as a deliberately scoped administration guest.
 
 The common `application` attachment is defined once in shared `config/platform.tfvars`.
 Example Tier 2 override in `terraform/common.tfvars` for the `lab` network
-from the [example plan](../01-architecture/11-networking/README.md#example-network-plan):
+from the [example plan](../01-architecture/05-networking/README.md#example-network-plan):
 
 ```hcl
 network_zones = {

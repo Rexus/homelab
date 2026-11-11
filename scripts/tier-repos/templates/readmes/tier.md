@@ -113,11 +113,11 @@ ${deployments}
 - [Project documentation](../${repo_prefix}-architecture/docs/README.md)
 - [Conventions: names, tags, VMIDs and networks](${docs}/02-conventions/README.md)
 - [Deployment order](${docs}/06-paths/${tier}/README.md)
-- [Recovery guides](${docs}/05-operations/recovery.md)
-- [Architecture and tier boundaries](${docs}/01-architecture/03-tier-ownership.md)
-- [Infrastructure control and delegated requests](${docs}/01-architecture/10-hosting/03-provisioning.md)
+- [Recovery guides](${docs}/05-operations/06-resilience/README.md)
+- [Architecture and tier boundaries](${docs}/01-architecture/02-organization/01-tier-ownership.md)
+- [Infrastructure control and delegated requests](${docs}/01-architecture/04-hosting/02-provisioning.md)
 - [Deployment commands](${docs}/08-reference/repository-scripts.md)
-- [Tier 0 template lifecycle](${docs}/05-operations/virtual-machines/template-lifecycle.md)
+- [Tier 0 template lifecycle](${docs}/05-operations/01-hosting/templates/template-lifecycle.md)
 
 ## Licensing
 

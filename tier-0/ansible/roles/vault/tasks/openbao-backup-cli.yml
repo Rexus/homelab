@@ -1,0 +1,37 @@
+---
+- name: Require exact accepted snapshot executable input
+  ansible.builtin.assert:
+    that:
+      - openbao_version == '2.7.2'
+      - openbao_binary_src is match('^/')
+      - openbao_binary_sha256 is match('^[a-f0-9]{64}$')
+      - openbao_binary_dest == '/usr/local/bin/bao'
+
+- name: Verify the independent recovery executable before installation
+  ansible.builtin.stat:
+    path: "{{ openbao_binary_src }}"
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: openbao_backup_executable
+
+- name: Reject any different recovery executable bytes
+  ansible.builtin.assert:
+    that:
+      - openbao_backup_executable.stat.isreg | default(false)
+      - openbao_backup_executable.stat.checksum | default('') == openbao_binary_sha256
+
+- name: Install the accepted matching native snapshot executable
+  ansible.builtin.copy:
+    src: "{{ openbao_binary_src }}"
+    dest: "{{ openbao_binary_dest }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Verify native recovery tooling
+  ansible.builtin.command:
+    argv: ["{{ openbao_binary_dest }}", version]
+  register: openbao_backup_version
+  changed_when: false
+  failed_when: "('OpenBao v' ~ openbao_version ~ ' ') not in openbao_backup_version.stdout"

@@ -1,0 +1,32 @@
+---
+- name: Require supported native trust stores and distinct certificate files
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['RedHat', 'Debian']
+      - baseline_trust_anchors | map('basename') | unique | length == baseline_trust_anchors | length
+
+- name: Install the native public-certificate tools
+  ansible.builtin.package:
+    name: [ca-certificates, openssl]
+    state: present
+
+- name: Install only the approved controller-supplied public anchors
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ anchor_directory }}/homelab-{{ item | basename }}.crt"
+    owner: root
+    group: root
+    mode: '0644'
+    validate: /usr/bin/openssl x509 -in %s -noout
+  vars:
+    anchor_directory: >-
+      {{ '/etc/pki/ca-trust/source/anchors' if ansible_os_family == 'RedHat'
+         else '/usr/local/share/ca-certificates' }}
+  loop: "{{ baseline_trust_anchors }}"
+  register: baseline_installed_anchors
+
+- name: Update the native trust store after accepted certificate changes
+  ansible.builtin.command:
+    argv: "{{ ['update-ca-trust', 'extract'] if ansible_os_family == 'RedHat' else ['update-ca-certificates'] }}"
+  when: baseline_installed_anchors is changed
+  changed_when: true

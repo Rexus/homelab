@@ -1,0 +1,44 @@
+---
+# Input contract: docs/03-deployment/stage-3-trust/procedures/pkcs11-remoting.md
+hsm_remote_enabled: false
+hsm_remote_action: server
+hsm_remote_pool_id: signing
+hsm_remote_family: ""
+hsm_remote_expected_spki_sha256: ""
+hsm_remote_key_id: ""
+hsm_remote_backends: {}
+hsm_remote_clients: {}
+hsm_remote_account: hsmrpc
+hsm_remote_port: 2222
+hsm_remote_listen_address: "{{ ansible_host }}"
+hsm_remote_firewall: auto  # auto: reconcile firewalld only if already running; firewalld: explicitly enable it
+hsm_remote_firewalld_zone: ""  # Empty uses the host's selected default zone.
+hsm_remote_p11kit_binary: /usr/bin/p11-kit
+hsm_remote_p11tool_binary: /usr/bin/p11tool
+hsm_remote_sshd_binary: /usr/sbin/sshd
+hsm_remote_ssh_binary: /usr/bin/ssh
+hsm_remote_p11kit_version: ""
+hsm_remote_host_key_files: [/etc/ssh/ssh_host_ed25519_key]
+hsm_remote_environment: "{{ hsm_provider_environment | default({}) }}"
+hsm_remote_config_dir: "/etc/hsm-remote/{{ hsm_remote_pool_id }}"
+hsm_remote_probe_config_dir: "{{ hsm_remote_config_dir }}/probes"
+hsm_remote_client_user: ""
+hsm_remote_client_group: "{{ hsm_remote_client_user }}"
+hsm_remote_client_id: ""
+hsm_remote_client_private_key_src: ""
+hsm_remote_proxy_library: >-
+  {{ '/usr/lib64/p11-kit-proxy.so' if ansible_os_family == 'RedHat'
+     else '/usr/lib/x86_64-linux-gnu/p11-kit-proxy.so' }}
+hsm_remote_module_dir: /etc/pkcs11/modules
+hsm_remote_single_key_custody_confirmed: false
+hsm_remote_probe_login: true
+hsm_remote_probe_sign: true
+hsm_remote_probe_pin: "{{ lookup('ansible.builtin.env', 'HSM_REMOTE_PIN') }}"
+hsm_remote_os_packages:
+  Debian:
+    server: [p11-kit, p11-kit-modules, openssh-server, gnutls-bin, python3-cryptography]
+    client: [p11-kit, p11-kit-modules, openssh-client, gnutls-bin, python3-cryptography]
+  RedHat:
+    server: [p11-kit, p11-kit-server, openssh-server, gnutls-utils, python3-cryptography,
+             policycoreutils-python-utils, python3-libsemanage, python3-libselinux]
+    client: [p11-kit, p11-kit-server, openssh-clients, gnutls-utils, python3-cryptography]

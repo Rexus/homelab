@@ -2,8 +2,8 @@
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 This reference owns catalog fields and pinned-provider behavior. For operator tasks,
-use [template lifecycle](../05-operations/virtual-machines/template-lifecycle.md).
-Image approval and promotion follow the [software-supply design](../01-architecture/20-delivery/01-artifact-supply.md).
+use [template lifecycle](../05-operations/01-hosting/templates/template-lifecycle.md).
+Image approval and promotion follow the [software-supply design](../01-architecture/10-delivery/01-artifact-supply.md).
 
 ## Contents
 
@@ -165,7 +165,7 @@ Cloudbase-Init for ConfigDrive2 in that image; otherwise set it to `false`.
 The publisher imports the approved disk; it does not install Windows, drivers or
 Cloudbase-Init, run Sysprep, or configure Windows consumers. [19]
 
-Publish and clone-test through the same [template lifecycle](../05-operations/virtual-machines/template-lifecycle.md).
+Publish and clone-test through the same [template lifecycle](../05-operations/01-hosting/templates/template-lifecycle.md).
 Shared synchronization accepts these families but preserves the selected Linux default.
 The ordinary Linux deployment module rejects Talos, Windows and `other` images;
 their guest configuration needs an appropriate OS-specific deployment path.

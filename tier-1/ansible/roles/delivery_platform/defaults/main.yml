@@ -66,10 +66,11 @@ delivery_platform_spinnaker_secret_revision: '1'
 delivery_platform_spinnaker_backup_schedule: '0 2 * * *'
 delivery_platform_spinnaker_backup_keep_days: 7
 delivery_platform_spinnaker_backup_backend: s3
-# Preprovisioned NAS file volume; the role never creates this claim or repository.
+# Preprovisioned NAS file volume; initialization owns only a new child repository.
 delivery_platform_spinnaker_backup_filesystem_claim: ""
 delivery_platform_spinnaker_backup_filesystem_repository: spinnaker
 delivery_platform_spinnaker_backup_filesystem_marker: ""
+delivery_platform_spinnaker_backup_filesystem_initialize: false
 delivery_platform_spinnaker_backup_s3_endpoint: ""
 delivery_platform_spinnaker_backup_s3_bucket: spinnaker-backups
 delivery_platform_spinnaker_backup_s3_region: us-east-1

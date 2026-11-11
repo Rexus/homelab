@@ -1,0 +1,24 @@
+server.host: 0.0.0.0
+server.port: 5601
+server.ssl.enabled: true
+server.ssl.certificate: /tls/tls.crt
+server.ssl.key: /tls/tls.key
+opensearch.hosts:
+{% for member in observability_vm_search_hosts %}
+  - https://{{ observability_vm_endpoints[member] }}:9200
+{% endfor %}
+opensearch.ssl.verificationMode: full
+opensearch.ssl.certificateAuthorities: [/tls/ca.crt]
+opensearch.username: dashboards-server
+opensearch.password: ${SEARCH_PASSWORD}
+opensearch.requestHeadersAllowlist: [authorization, securitytenant]
+opensearch_security.cookie.secure: true
+opensearch_security.readonly_mode.roles: [kibana_user]
+opensearch_security.auth.type: openid
+opensearch_security.openid.connect_url: {{ (observability_vm_oidc_issuer ~ '/.well-known/openid-configuration') | to_json }}
+opensearch_security.openid.client_id: {{ observability_vm_oidc_dashboards_client_id | to_json }}
+opensearch_security.openid.client_secret: ${OPENID_CLIENT_SECRET}
+opensearch_security.openid.scope: openid profile email groups
+opensearch_security.openid.base_redirect_url: {{ observability_vm_dashboards_url | to_json }}
+opensearch_security.openid.root_ca: /tls/oidc-ca.crt
+opensearch_security.openid.verify_hostnames: true

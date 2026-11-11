@@ -1,0 +1,56 @@
+[server]
+protocol = https
+http_port = 3000
+cert_file = /tls/tls.crt
+cert_key = /tls/tls.key
+root_url = {{ observability_vm_grafana_url }}
+
+[database]
+type = sqlite3
+path = /data/grafana.db
+
+[users]
+allow_sign_up = false
+auto_assign_org_role = Viewer
+viewers_can_edit = false
+
+[auth.anonymous]
+enabled = false
+
+[auth.basic]
+enabled = false
+
+[auth]
+disable_login_form = true
+
+[auth.generic_oauth]
+enabled = true
+name = Platform SSO
+client_id = {{ observability_vm_oidc_grafana_client_id }}
+allow_sign_up = true
+scopes = openid profile email groups
+auth_url = {{ observability_vm_oidc_issuer }}/protocol/openid-connect/auth
+token_url = {{ observability_vm_oidc_issuer }}/protocol/openid-connect/token
+api_url = {{ observability_vm_oidc_issuer }}/protocol/openid-connect/userinfo
+jwk_set_url = {{ observability_vm_oidc_issuer }}/protocol/openid-connect/certs
+validate_id_token = true
+use_pkce = true
+tls_client_ca = /tls/oidc-ca.crt
+tls_skip_verify_insecure = false
+groups_attribute_path = groups
+allowed_groups = {{ observability_vm_oidc_operator_group }}
+role_attribute_path = contains(groups[*], '{{ observability_vm_oidc_operator_group }}') && 'Viewer' || 'None'
+role_attribute_strict = true
+allow_assign_grafana_admin = false
+skip_org_role_sync = false
+
+[security]
+cookie_secure = true
+cookie_samesite = lax
+
+[unified_alerting]
+enabled = false
+
+[analytics]
+reporting_enabled = false
+check_for_updates = false

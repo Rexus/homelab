@@ -1,0 +1,4 @@
+// Managed by Ansible; only explicitly selected publication hosts bypass the proxy.
+{% for host in baseline_apt_direct_hosts %}
+Acquire::https::Proxy::{{ host }} "DIRECT";
+{% endfor %}

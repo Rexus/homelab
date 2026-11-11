@@ -1,0 +1,52 @@
+---
+- name: Validate bounded service paths and container arguments
+  ansible.builtin.assert:
+    that:
+      - gitlab_home is match('^/srv/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$')
+      - gitlab_container_name is match('^[A-Za-z0-9][A-Za-z0-9_-]*$')
+      - gitlab_hostname is match('^[a-zA-Z0-9][a-zA-Z0-9.-]+$')
+      - gitlab_external_url == 'https://' ~ gitlab_hostname
+      - gitlab_container_shm_size is match('^[0-9]+[mg]$')
+      - gitlab_http_host_port | int > 0 and gitlab_http_host_port | int <= 65535
+      - gitlab_https_host_port | int > 0 and gitlab_https_host_port | int <= 65535
+      - gitlab_ssh_host_port | int > 0 and gitlab_ssh_host_port | int <= 65535
+      - gitlab_ssh_container_port | int == 22
+      - "[gitlab_http_host_port | int, gitlab_https_host_port | int, gitlab_ssh_host_port | int] | unique | length == 3"
+      - gitlab_trusted_ca_sources | map('basename') | unique | length == gitlab_trusted_ca_sources | length
+    fail_msg: Use a canonical /srv service root, HTTPS service DNS and distinct valid listener ports.
+
+- name: Resolve the live service root before creating directories or mounting storage
+  ansible.builtin.command:
+    argv: [realpath, -m, --, "{{ gitlab_home }}"]
+  register: gitlab_home_resolved
+  changed_when: false
+
+- name: Refuse service-root aliases before storage changes
+  ansible.builtin.assert:
+    that: gitlab_home_resolved.stdout == gitlab_home
+    fail_msg: Select the canonical service root; symlink-based storage migrations are not automatic.
+
+- name: Validate the existing accepted OIDC client interface
+  ansible.builtin.assert:
+    that:
+      - gitlab_oidc_client_accepted | bool
+      - gitlab_oidc_issuer is match('^https://[A-Za-z0-9.-]+(?::[0-9]+)?/[^\s?#]+$')
+      - not gitlab_oidc_issuer.endswith('/')
+      - gitlab_oidc_client_id | length > 0
+      - gitlab_oidc_client_secret | length >= 16
+    fail_msg: Supply the accepted HTTPS issuer, confidential client ID and secret through private inputs.
+  when: gitlab_oidc_enabled | bool
+  no_log: true
+
+- name: Preserve ownership of managed federation and backup settings
+  ansible.builtin.assert:
+    that:
+      - not (gitlab_oidc_enabled | bool and item is search('omniauth|initial_default_settings'))
+      - not (gitlab_backup_enabled | bool and item is search('backup_|object_store|registry\[|pages\['))
+    fail_msg: Use native role inputs for managed settings; external storage needs a separately qualified recovery design.
+  loop: "{{ gitlab_omnibus_extra_config }}"
+  no_log: true
+
+- name: Validate independent backup custody
+  ansible.builtin.include_tasks: backup-inputs.yml
+  when: gitlab_backup_enabled | bool

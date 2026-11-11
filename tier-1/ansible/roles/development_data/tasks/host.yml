@@ -1,4 +1,8 @@
 ---
+- name: Wait for the data guest before gathering facts
+  ansible.builtin.wait_for_connection:
+    timeout: "{{ platform_wait_for_connection_timeout | default(300) }}"
+
 - name: Gather the target operating system facts
   ansible.builtin.setup:
 

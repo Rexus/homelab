@@ -1,0 +1,93 @@
+# Copy to an untracked private input file; pass with -e @... to each selected play.
+# Defaults/schema: ansible/roles/vault/defaults/main.yml
+# Guide: docs/03-deployment/stage-6-secrets/step-1d-openbao.md
+# This independent signing service never changes the existing HashiCorp Vault authority.
+vault_product: openbao
+vault_seal_type: shamir
+vault_api_addr: "{{ 'https://signing.example.internal:8200' if inventory_hostname == 'localhost' else 'https://' ~ inventory_hostname ~ '.signing.example.internal:8200' }}"
+vault_cluster_addr: "https://{{ inventory_hostname }}.signing.example.internal:8201"
+vault_tls_cert_src: "/private/signing/tls/{{ inventory_hostname }}-fullchain.pem"
+vault_tls_key_src: "/private/signing/tls/{{ inventory_hostname }}.key"
+vault_tls_ca_src: /private/signing/tls/ca.pem
+vault_raft_retry_join:
+  - leader_api_addr: https://bao-1.signing.example.internal:8200
+    leader_tls_servername: bao-1.signing.example.internal
+
+# Accepted, extracted Linux amd64 executable paths and their SHA256, not archive hashes.
+# Exact supported versions live in the role defaults; upgrading requires qualification.
+openbao_binary_src: /private/accepted/openbao/bao
+openbao_binary_sha256: REPLACE_WITH_ACCEPTED_EXECUTABLE_SHA256
+openbao_pkcs11_enabled: true
+openbao_plugin_src: /private/accepted/openbao/openbao-plugin-kms-pkcs11
+openbao_plugin_sha256: REPLACE_WITH_ACCEPTED_EXECUTABLE_SHA256
+
+# Native provider/client installation is owned by the selected HSM automation.
+# The same absolute library alias and accepted key domain must work on every Raft member.
+# Select the YubiHSM SDK module OR PicoHSM OpenSC module, never interchangeable key copies.
+openbao_hsm_client_mode: remote
+openbao_pkcs11_library: /usr/lib64/p11-kit-proxy.so
+openbao_pkcs11_packages: []
+openbao_pkcs11_environment: {}
+# Supply the complete accepted hsm_remote_* contract from the native remoting example:
+# hsm_remote_enabled, family, pool/key/SPKI pins, backends, clients, RPC version and per-host SSH key.
+# For direct provider use, select mode provider and supply the hsm_provider_* contract.
+# Direct Pico: /usr/lib64/pkcs11/opensc-pkcs11.so; direct Yubi: actual SDK libyubihsm_pkcs11.so path.
+# Environment/config credentials must be private inputs, readable by the openbao account only.
+
+# OS disk by default. For an IaC attached scsi1 local disk, select its actual stable device:
+# openbao_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
+# openbao_data_expected_uuid: ""  # Pin the existing UUID after first commissioning.
+
+# Consumer-only API operation also accepts an existing independently managed OpenBao service.
+openbao_signing_address: https://signing.example.internal:8200
+openbao_signing_ca_src: /private/signing/tls/ca.pem
+openbao_signing_token: "{{ lookup('ansible.builtin.env', 'BAO_TOKEN') }}"
+openbao_signing_node_ids: [bao-1, bao-2, bao-3]
+openbao_signing_learning_single: false
+openbao_signing_domain: yubihsm-artifacts
+openbao_signing_hardware_profile: yubihsm2
+openbao_signing_provider_accepted: false
+openbao_signing_token_serial: ""
+openbao_signing_token_label: REPLACE_WITH_QUALIFIED_TOKEN_LABEL
+# Shared-key pool: serial empty and a qualified common label; remoting pins each physical serial/SPKI.
+# Fixed serial selects that device only. Aggregate discovery does not guarantee automatic device failover.
+openbao_signing_pin: "{{ lookup('ansible.builtin.env', 'OPENBAO_HSM_PIN') }}"
+openbao_signing_mount: hardware-signing
+openbao_signing_cert_mount: hardware-signing-cert
+openbao_signing_keys:
+  - name: artifacts
+    id: '0x0001'
+    label: artifacts
+    algorithm: rsa-pss-sha256
+    mechanism: CKM_RSA_PKCS_PSS
+    public_key_src: /private/signing/public/artifacts.pem
+    public_key_sha256: REPLACE_WITH_ORIGINAL_DER_SPKI_SHA256
+# ECDSA option: algorithm ecdsa-p256-sha256 with mechanism CKM_ECDSA and original P-256 public key.
+# Pico profile uses a distinct domain, profile picohsm-opensc and its independently qualified keys.
+openbao_signing_clients:
+  - name: release-worker
+    certificate_src: /private/signing/clients/release-worker.pem
+    keys: [artifacts]
+    bound_cidrs: [192.0.2.40/32]
+
+# Existing vault-configure API/audit/OIDC workflow, after the independent human ceremony.
+control_applications_vault_address: "{{ openbao_signing_address }}"
+control_applications_vault_ca_path: "{{ openbao_signing_ca_src }}"
+control_applications_vault_replicas: "{{ openbao_signing_node_ids | length }}"
+control_applications_vault_token: "{{ lookup('ansible.builtin.env', 'BAO_TOKEN') }}"
+control_applications_vault_phase: configure
+control_applications_register_clients: false
+control_applications_oidc_issuer: https://sso.example.internal/realms/platform
+control_applications_oidc_client_secrets: {}
+control_applications_vault_policies: {}
+control_applications_vault_oidc_roles: []
+control_applications_backup_restore_accepted: false
+control_applications_vault_audit_forwarding_accepted: false
+
+# Existing independent recovery host and control_backup schedule; no new storage service.
+openbao_signing_prepare_backup_cli: false
+# When selected, assign control_recovery and set the existing control_backup inputs:
+# control_backup_vault_package: ""
+# control_backup_vault_binary: /usr/local/bin/bao
+# control_backup_vault_address: "{{ openbao_signing_address }}"
+# Include signing inputs/configuration, original public pins and TLS in its protected input export.

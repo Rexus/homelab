@@ -1,0 +1,38 @@
+---
+- name: Validate the selected native remoting contract before changing state
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Install the native remoting tools for the selected host responsibility
+  ansible.builtin.package:
+    name: "{{ hsm_remote_os_packages[ansible_os_family]['server' if hsm_remote_action == 'server' else 'client'] }}"
+    state: present
+  when: hsm_remote_action != 'check'
+
+- name: Inspect the installed p11-kit package version
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Require the qualified p11-kit RPC version on each server and client
+  ansible.builtin.assert:
+    that:
+      - "'p11-kit' in ansible_facts.packages"
+      - >-
+        ansible_facts.packages['p11-kit'][0].version is match(
+          '^' ~ (hsm_remote_p11kit_version | regex_escape) ~ '([+~.-]|$)')
+    fail_msg: Install the approved compatible p11-kit build; qualify server/client RPC versions together.
+
+- name: Configure the native SSH export on a provider host
+  ansible.builtin.import_tasks: server.yml
+  when: hsm_remote_action == 'server'
+
+- name: Configure the native PKCS11 client without changing its application
+  ansible.builtin.import_tasks: client.yml
+  when: hsm_remote_action == 'client'
+
+- name: Verify each backend against the original approved public key
+  ansible.builtin.include_tasks: probe.yml
+  loop: "{{ hsm_remote_backends | dict2items }}"
+  loop_control:
+    loop_var: hsm_remote_backend
+    label: "{{ hsm_remote_backend.key }}"
+  when: hsm_remote_action in ['client', 'check']

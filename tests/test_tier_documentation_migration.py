@@ -15,10 +15,52 @@ from test_tier_deployment_navigation import anchors, links
 
 
 class DocumentationMigration(TierRepositoryTestCase):
+    def test_retired_numbered_chapters_are_kept_only_for_owned_project_links(self):
+        self.assert_project_alias(
+            "01-architecture/17-kubernetes/README.md", "01-architecture/04-hosting/03-kubernetes.md",
+            "architecture/17-kubernetes/README.md")
+
+    def test_retired_operations_routes_preserve_owned_records_without_cluttering_fresh_trees(self):
+        self.assert_project_alias(
+            "05-operations/cache.md", "05-operations/02-software-intake/README.md",
+            "administration/cache.md")
+
+    def assert_project_alias(self, old, new, legacy):
+        self.generate()
+        repo = self.root / "verify-architecture"
+        manual = repo / "docs/auto-docs"
+        retired = manual / old
+        current = manual / new
+        self.assertFalse(retired.exists())
+        self.assertTrue(current.is_file())
+        self.assertTrue((manual / legacy).is_file())
+        record = self.root / "verify-tier-0/docs/architecture/README.md"
+        original = record.read_text() + ("\n[Existing guide]"
+            f"(../../../verify-architecture/docs/auto-docs/{old}#site-section)\n")
+        record.write_text(original)
+        retired.parent.mkdir(parents=True, exist_ok=True)
+        retired.write_text('# Previous cluster design\n\n## Site section\n')
+        manifest_path = repo / ".generated-files.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["files"][retired.relative_to(repo).as_posix()] = hashlib.sha256(retired.read_bytes()).hexdigest()
+        manifest_path.write_text(json.dumps(manifest))
+        self.generate("--refresh", "--dry-run")
+        self.assertIn("Previous cluster design", retired.read_text())
+        self.generate("--refresh")
+        self.assertEqual(record.read_text(), original)
+        self.assertIn("Compatibility copy", retired.read_text())
+        self.assertIn("site-section", anchors(retired.read_text()))
+        self.assertIn(current.resolve(), [link.target for link in links(retired)])
+        self.assertFalse((manual / "01-architecture/21-observability/README.md").exists())
+        record.write_text('# Project design\n')
+        self.generate("--refresh")
+        self.assertFalse(retired.exists())
+        self.assertTrue(current.is_file())
+
     def test_alias_targets_preserved_current_headings_after_refresh(self):
         self.generate()
         manual = self.root / "verify-architecture/docs/auto-docs"
-        current = manual / "01-architecture/10-hosting/README.md"
+        current = manual / "01-architecture/04-hosting/README.md"
         alias = manual / "architecture/hosting/README.md"
         current.write_text("# Local hosting design\n\n## Site-specific choices\n", encoding="utf-8")
         self.generate("--refresh")
@@ -36,11 +78,11 @@ class DocumentationMigration(TierRepositoryTestCase):
         generated = self.root / "verify-architecture"
         subprocess.run(["git", "init", "--quiet", str(generated)], check=True, capture_output=True)
         for repo, doc, private in (
-            (UPSTREAM, "docs/01-architecture/19-secrets/README.md", "docs/01-architecture/19-secrets/private.txt"),
-            (UPSTREAM, "docs/05-operations/secrets/README.md", "docs/05-operations/secrets/private.txt"),
-            (generated, "docs/auto-docs/01-architecture/19-secrets/README.md",
+            (UPSTREAM, "docs/01-architecture/08-cryptography/08-secrets.md", "docs/01-architecture/19-secrets/private.txt"),
+            (UPSTREAM, "docs/05-operations/03-cryptography/README.md", "docs/05-operations/secrets/private.txt"),
+            (generated, "docs/auto-docs/01-architecture/08-cryptography/08-secrets.md",
              "docs/auto-docs/01-architecture/19-secrets/private.txt"),
-            (generated, "docs/auto-docs/05-operations/secrets/README.md",
+            (generated, "docs/auto-docs/05-operations/03-cryptography/README.md",
              "docs/auto-docs/05-operations/secrets/private.txt"),
         ):
             for path, ignored in ((doc, False), (private, True), ("secrets/private.txt", True)):
@@ -61,6 +103,7 @@ class DocumentationMigration(TierRepositoryTestCase):
                 old = f"{area}/software/{route}"
                 target = MOVES[old]
                 alias = manual / old
+                alias.parent.mkdir(parents=True, exist_ok=True)
                 alias.write_text("# Previous guide\n\n## Site-specific old heading\n", encoding="utf-8")
                 manifest["files"][alias.relative_to(repo).as_posix()] = hashlib.sha256(alias.read_bytes()).hexdigest()
                 entries.append((alias, manual / target))
@@ -162,19 +205,21 @@ class DocumentationMigration(TierRepositoryTestCase):
         reference = self.root / "verify-architecture/docs/auto-docs"
         for old, new in MOVES.items():
             self.assertFalse((UPSTREAM / "docs" / old).is_file(), old)
-            alias = Path(old) in compatibility_paths(Path("docs") / new)
+            alias = (Path(old) in compatibility_paths(Path("docs") / new)
+                     and not old.startswith(("01-architecture/", "03-deployment/", "05-operations/")))
             self.assertEqual((reference / old).exists(), alias, old)
             self.assertTrue((reference / new).is_file(), new)
-        for domain in ("11-networking", "10-hosting", "12-data", "18-identity", "16-cryptography",
-                       "13-software-intake", "22-development-platform", "24-operations"):
+        for domain in ("05-networking", "04-hosting", "06-data", "09-identity", "08-cryptography",
+                       "07-software-intake", "10-delivery", "11-operations"):
             self.assertTrue((reference / "01-architecture" / domain / "README.md").is_file())
-        self.assertTrue((reference / "01-architecture/05-software-lifecycle.md").is_file())
-        self.assertTrue((reference / "01-architecture/20-delivery/02-controllers.md").is_file())
+        self.assertTrue((reference / "01-architecture/10-delivery/README.md").is_file())
+        self.assertTrue((reference / "01-architecture/10-delivery/02-controllers.md").is_file())
         self.assertFalse((reference / "administration/compute").exists())
-        for relative in ("hosts/proxmox-tls.md", "virtual-machines/template-lifecycle.md",
-                         "backups/virtual-machines.md", "backups/recovery-set.md", "terraform-state.md",
-                         "recovery/bootstrap.md", "recovery/virtual-machines.md",
-                         "recovery/host.md", "recovery/platform.md"):
+        for relative in ("01-hosting/proxmox-tls.md", "01-hosting/templates/template-lifecycle.md",
+                         "06-resilience/backups/virtual-machines.md", "06-resilience/backups/recovery-set.md",
+                         "01-hosting/terraform-state.md", "06-resilience/recovery/bootstrap.md",
+                         "06-resilience/recovery/virtual-machines.md",
+                         "06-resilience/recovery/host.md", "06-resilience/recovery/platform.md"):
             self.assertTrue((reference / "05-operations" / relative).is_file(), relative)
         for repo in self.root.iterdir():
             self.assertFalse((repo / "docs/owned").exists())

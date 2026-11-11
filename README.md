@@ -88,12 +88,12 @@ README/prose differences are omitted; project documents stay protected.
 | Documentation map | [Documentation](docs/README.md) |
 | Names, tags, VMIDs and network allocations | [Conventions](docs/02-conventions/README.md) |
 | Platform design | [Architecture overview](docs/01-architecture/README.md) |
-| Networks and VLANs | [Network map](docs/01-architecture/11-networking/README.md) |
+| Networks and VLANs | [Network map](docs/01-architecture/05-networking/README.md) |
 | Choose a deployment | [Reader paths](docs/06-paths/README.md) |
 | Run, plan, or destroy | [Repository scripts](docs/08-reference/repository-scripts.md) |
 | Back up or recover a VM, host or platform | [Operations and recovery](docs/05-operations/README.md) |
 | Find implementation files | [Automation layout](docs/04-development/code-layout.md) |
-| Handle secrets | [Secret strategy](docs/05-operations/secret-handling/strategy.md) |
+| Handle secrets | [Secret strategy](docs/05-operations/03-cryptography/secret-handling.md) |
 | Deploy private PKI and public HTTPS | [Software-backed PKI](docs/03-deployment/stage-3-trust/procedures/software-pki.md) |
 
 ## Repository Structure

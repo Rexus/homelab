@@ -1,0 +1,62 @@
+---
+- name: Require a supported VM seal and protected credentials
+  ansible.builtin.assert:
+    that:
+      - vault_seal_type in ['shamir', 'transit', 'pkcs11']
+      - vault_seal_environment is mapping
+      - vault_seal_environment.keys() | difference(['VAULT_TRANSIT_SEAL_TOKEN', 'VAULT_HSM_PIN']) | length == 0
+      - vault_seal_type != 'transit' or vault_seal_hcl | trim | length == 0
+      - vault_seal_type != 'pkcs11' or vault_provider_accepted | bool
+      - vault_seal_type != 'pkcs11' or vault_seal_hcl is search('seal\s+"pkcs11"')
+      - vault_seal_type != 'pkcs11' or vault_seal_environment.get('VAULT_HSM_PIN', '') | length > 0
+      - vault_seal_hcl is not search('(?im)^\s*(pin|token|tls_skip_verify)\s*=')
+    fail_msg: Select a supported seal; keep provider credentials in the private environment mapping, outside HCL.
+  no_log: true
+
+- name: Require an independent TLS-verified Transit provider
+  ansible.builtin.assert:
+    that:
+      - vault_provider_accepted | bool
+      - vault_transit.get('address', '') is match('^https://[^/ ]+(:[0-9]+)?$')
+      - vault_transit.address != vault_api_addr
+      - vault_transit.get('key_name', '') is match('^[a-zA-Z0-9_-]+$')
+      - vault_transit.get('mount_path', 'transit/') is match('^[a-zA-Z0-9_/-]+/$')
+      - vault_transit.get('tls_server_name', '') is match('^[a-zA-Z0-9][a-zA-Z0-9.-]+$')
+      - vault_seal_environment.get('VAULT_TRANSIT_SEAL_TOKEN', '') | length > 0
+    fail_msg: Supply the independent Transit address/key, scoped token, server name and controller CA file.
+  no_log: true
+  when: vault_seal_type == 'transit'
+
+- name: Install explicitly selected provider packages from accepted sources
+  ansible.builtin.dnf:
+    name: "{{ vault_provider_packages }}"
+    state: present
+  when: vault_provider_packages | length > 0
+
+- name: Create the root-owned seal environment directory
+  ansible.builtin.file:
+    path: /etc/vault-seal
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Converge the protected provider environment without disclosing it
+  ansible.builtin.template:
+    src: seal-environment.j2
+    dest: /etc/vault-seal/environment
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+  notify: Restart vault
+
+- name: Transfer the selected Transit trust anchor from the controller
+  ansible.builtin.copy:
+    src: "{{ vault_transit.ca_src }}"
+    dest: /etc/vault-seal/transit-ca.pem
+    owner: root
+    group: vault
+    mode: '0640'
+  when: vault_seal_type == 'transit'
+  notify: Restart vault

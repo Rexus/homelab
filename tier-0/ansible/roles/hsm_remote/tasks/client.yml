@@ -1,0 +1,85 @@
+---
+- name: Require the selected application identity and supplied private SSH credential
+  ansible.builtin.assert:
+    that:
+      - hsm_remote_client_user is match('^[a-z_][a-z0-9_-]{0,30}$')
+      - hsm_remote_client_id in hsm_remote_clients
+      - hsm_remote_client_private_key_src | length > 0
+    fail_msg: Supply the existing application account and its approved SSH key from protected controller inputs.
+
+- name: Create root-controlled client configuration and module directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: "{{ hsm_remote_client_group }}"
+    mode: "0755"
+  loop:
+    - "{{ hsm_remote_config_dir }}"
+    - "{{ hsm_remote_module_dir }}"
+
+- name: Install the client's existing private SSH credential without generating a key
+  ansible.builtin.copy:
+    src: "{{ hsm_remote_client_private_key_src }}"
+    dest: "{{ hsm_remote_config_dir }}/client.key"
+    owner: "{{ hsm_remote_client_user }}"
+    group: "{{ hsm_remote_client_group }}"
+    mode: "0600"
+  no_log: true
+
+- name: Read the public component of the installed SSH credential
+  ansible.builtin.command:
+    argv: [ssh-keygen, -y, -P, "", -f, "{{ hsm_remote_config_dir }}/client.key"]
+    stdin: ""
+  become: true
+  become_user: "{{ hsm_remote_client_user }}"
+  changed_when: false
+  register: hsm_remote_client_public_key
+  no_log: true
+
+- name: Require the same SSH identity that the provider hosts authorize
+  ansible.builtin.assert:
+    that: >-
+      hsm_remote_client_public_key.stdout.split()[0:2] ==
+      hsm_remote_clients[hsm_remote_client_id].public_key.split()[0:2]
+  no_log: true
+
+- name: Install all independently accepted backend host-key pins
+  ansible.builtin.template:
+    src: known_hosts.j2
+    dest: "{{ hsm_remote_config_dir }}/known_hosts"
+    owner: root
+    group: "{{ hsm_remote_client_group }}"
+    mode: "0644"
+
+- name: Install noninteractive SSH aliases for each explicit backend
+  ansible.builtin.template:
+    src: ssh_config.j2
+    dest: "{{ hsm_remote_config_dir }}/ssh_config"
+    owner: root
+    group: "{{ hsm_remote_client_group }}"
+    mode: "0644"
+
+- name: Install one native p11-kit remote module per backend
+  ansible.builtin.template:
+    src: remote.module.j2
+    dest: "{{ hsm_remote_module_dir }}/hsm-{{ hsm_remote_pool_id }}-{{ item.key }}.module"
+    owner: root
+    group: "{{ hsm_remote_client_group }}"
+    mode: "0644"
+  loop: "{{ hsm_remote_backends | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Require the installed native aggregate PKCS11 library
+  ansible.builtin.stat:
+    path: "{{ hsm_remote_proxy_library }}"
+  register: hsm_remote_proxy_state
+
+- name: Fail when the configured library does not match the selected OS and CPU
+  ansible.builtin.assert:
+    that: hsm_remote_proxy_state.stat.isreg | default(false)
+
+- name: Install isolated native readiness configurations for each endpoint
+  ansible.builtin.include_tasks: client-probe.yml
+  loop: "{{ hsm_remote_backends | dict2items }}"

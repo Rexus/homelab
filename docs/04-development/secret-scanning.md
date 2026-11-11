@@ -17,6 +17,8 @@ bash '../<prefix>-shared/scripts/check-secrets.sh' staged
 Keep the working directory in the repository being scanned. `history` scans all locally available Git history;
 `artifacts /absolute/path` scans the selected directory without uploading results.
 The helper fails if the tool is missing and always redacts findings from output.
+The upstream `.gitleaksignore` records six exact historical false-positive fingerprints from tests
+listing public stage names. It excludes no path or rule; review each new finding independently.
 
 Use an existing hook manager without replacing another hook. For a native `pre-commit`
 installation, add the official pinned `gitleaks-system` hook to the project's configuration:

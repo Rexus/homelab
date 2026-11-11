@@ -3,7 +3,7 @@
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for network policy.
 Configuration is applied in the network controller, not by a supplied IaC installer.
 
-**Design:** [firewall contracts](../../../01-architecture/11-networking/01-firewall-policy.md).
+**Design:** [firewall contracts](../../../01-architecture/05-networking/01-firewall-policy.md).
 
 ## Table of contents
 
@@ -18,7 +18,7 @@ Configuration is applied in the network controller, not by a supplied IaC instal
 
 Use a gateway/release supporting zone-based firewalling; check the current
 official requirements. [1] Keep a local recovery path, configuration backup,
-and approved [network plan](../../../01-architecture/11-networking/README.md#example-network-plan).
+and approved [network plan](../../../01-architecture/05-networking/README.md#example-network-plan).
 
 This is a manual translation, not gateway automation. No zone is created just
 because a tier repository exists.
@@ -136,7 +136,7 @@ Example: `apps-to-dns` selects `Services` to `Control`, the approved app
 subnet, the DNS server addresses, and TCP/UDP `53`. It does not allow the
 whole Services zone to every Control endpoint.
 
-Use the [firewall contracts](../../../01-architecture/11-networking/01-firewall-policy.md#rule-contracts)
+Use the [firewall contracts](../../../01-architecture/05-networking/01-firewall-policy.md#rule-contracts)
 for other flows. Preserve necessary gateway DHCP/DNS while restricting its
 admin interfaces. [1] Apply equivalent intent to IPv6 and review NAT/VPN paths.
 
@@ -144,7 +144,7 @@ admin interfaces. [1] Apply equivalent intent to IPv6 and review NAT/VPN paths.
 
 ## Step 4: Verify and return
 
-Run the [policy tests](../../../01-architecture/11-networking/01-firewall-policy.md#rollout-and-validation),
+Run the [policy tests](../../../01-architecture/05-networking/01-firewall-policy.md#rollout-and-validation),
 including same-zone pairs and admin-denial checks. Gateway rules do not replace
 local switch/client isolation. [2] Confirm rules and counters, then export the
 reviewed configuration into project-owned documentation.

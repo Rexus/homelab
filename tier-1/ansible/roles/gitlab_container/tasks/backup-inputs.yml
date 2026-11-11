@@ -1,0 +1,51 @@
+---
+- name: Require independent encrypted backup custody and bounded runtime
+  ansible.builtin.assert:
+    that:
+      - gitlab_backup_transport in ['filesystem', 'sftp']
+      - gitlab_backup_custody_accepted | bool
+      - gitlab_backup_password_src is match('^/')
+      - gitlab_backup_timeout_seconds | int >= 60
+      - gitlab_backup_min_free_bytes | int > 0
+      - gitlab_backup_calendar | length > 0
+      - "'\n' not in gitlab_backup_calendar"
+    fail_msg: Supply independent recovery custody, a controller password file and an explicit backup destination.
+
+- name: Require preinitialized SFTP storage and pinned SSH identity
+  ansible.builtin.assert:
+    that:
+      - gitlab_backup_repository is match('^sftp:[a-z0-9_-]+@[a-z0-9.-]+:/[a-zA-Z0-9/_-]+$')
+      - "'..' not in gitlab_backup_repository.split('/')"
+      - gitlab_backup_ssh_key_src is match('^/')
+      - gitlab_backup_known_hosts_src is match('^/')
+      - not gitlab_backup_initialize | bool
+    fail_msg: The SFTP custodian initializes the dedicated repository; supply a private key and pinned known_hosts.
+  when: gitlab_backup_transport == 'sftp'
+
+- name: Validate the commissioned NAS client contract
+  ansible.builtin.assert:
+    that:
+      - fs.mount is match('^/(mnt|srv)/[A-Za-z0-9_/-]+$')
+      - "'' not in fs.mount.split('/')[1:]"
+      - fs.fstype in ['nfs', 'nfs4', 'cifs']
+      - >-
+        (fs.fstype in ['nfs', 'nfs4'] and fs.source is match('^[a-zA-Z0-9.-]+:/[a-zA-Z0-9_./-]+$')) or
+        (fs.fstype == 'cifs' and fs.source is match('^//[a-zA-Z0-9.-]+/[a-zA-Z0-9_-]+$'))
+      - fs.marker is match('^[A-Za-z0-9_-]{32,128}$')
+      - fs.uid is integer and fs.uid >= 0
+      - fs.gid is integer and fs.gid >= 0
+      - fs.manage_mount | default(true) is boolean
+      - fs.credentials_src | default('') == '' or fs.credentials_src is match('^/')
+      - gitlab_backup_repository is match('^/[A-Za-z0-9_/-]+$')
+      - gitlab_backup_repository.startswith(fs.mount + '/')
+      - "'' not in gitlab_backup_repository.split('/')[1:]"
+      - not gitlab_home.startswith(fs.mount + '/')
+      - not fs.mount.startswith(gitlab_home + '/')
+      - fs.mount != gitlab_home
+      - fs.options | default([]) | length == 0
+    fail_msg: >-
+      Supply the independent share identity, marker, private repository and effective UID/GID.
+      This consumer uses the existing safe NAS mount defaults without option overrides.
+  vars:
+    fs: "{{ gitlab_backup_filesystem }}"
+  when: gitlab_backup_transport == 'filesystem'

@@ -1,4 +1,10 @@
 ---
+- name: Prepare selected deployment tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: development-data
+    control_node_require_terraform: false
+
 - name: Render or provision GitLab dependency interfaces
   hosts: localhost
   connection: local
@@ -24,8 +30,10 @@
       ansible.builtin.command:
         argv: ["{{ ansible_playbook_python }}", -c, "import boto3, botocore, netaddr"]
       changed_when: false
-  roles:
-    - development_data
+  tasks:
+    - name: Run the selected deployment after tooling preparation
+      ansible.builtin.include_role:
+        name: development_data
   post_tasks:
     - name: Authorize host configuration only after all controller checks succeed
       ansible.builtin.set_fact:

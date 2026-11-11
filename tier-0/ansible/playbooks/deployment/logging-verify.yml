@@ -1,0 +1,38 @@
+---
+- name: Verify receiver storage and service from the deployment controller
+  hosts: foundation_logging
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read the actual receiver mount without changing it
+      ansible.builtin.command:
+        argv: [findmnt, --json, --mountpoint, "{{ syslog_ng_data_mount | default('/srv/security-logging') }}",
+               --output, 'TARGET,SOURCE,UUID,FSTYPE,OPTIONS']
+      register: receiver_mount
+      changed_when: false
+
+    - name: Require the configured dedicated filesystem and retained identity
+      ansible.builtin.assert:
+        that:
+          - mounts | length == 1
+          - mounts[0].target == syslog_ng_data_mount | default('/srv/security-logging')
+          - mounts[0].fstype == syslog_ng_data_fstype | default('xfs')
+          - mounts[0].uuid | default('') | length > 0
+          - "'rw' in mounts[0].options.split(',')"
+          - syslog_ng_data_uuid | default('') == '' or mounts[0].uuid == syslog_ng_data_uuid
+        fail_msg: The expected writable receiver data filesystem is missing or has changed identity.
+      vars:
+        mounts: "{{ (receiver_mount.stdout | from_json).filesystems }}"
+
+    - name: Read receiver service state
+      ansible.builtin.service_facts:
+
+    - name: Require the isolated receiver to be active and enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services.get('syslog-ng-receiver.service', {}).get('state') == 'running'
+          - ansible_facts.services.get('syslog-ng-receiver.service', {}).get('status') == 'enabled'
+
+    - name: Show the verified receiver storage identity
+      ansible.builtin.debug:
+        var: receiver_mount.stdout

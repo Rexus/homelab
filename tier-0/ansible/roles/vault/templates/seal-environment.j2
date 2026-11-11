@@ -1,0 +1,3 @@
+{% for name, value in vault_seal_environment.items() %}
+{{ name }}={{ value | to_json }}
+{% endfor %}

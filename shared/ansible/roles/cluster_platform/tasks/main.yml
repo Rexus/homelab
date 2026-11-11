@@ -13,11 +13,17 @@
     loop_var: cluster_platform_component
   when:
     - cluster_platform_component in cluster_platform_components
-    - cluster_platform_component != 'storage' or cluster_platform_storage_provider == 'nfs'
+    - cluster_platform_component != 'storage' or cluster_platform_storage_provider != 'existing'
 
 - name: Reject incompatible Cilium overrides before any installation
   ansible.builtin.import_tasks: cilium-preflight.yml
   when: "'cilium' in cluster_platform_components"
+
+- name: Reject incompatible Ceph RBD overrides before any installation
+  ansible.builtin.import_tasks: ceph-rbd-values.yml
+  when:
+    - "'storage' in cluster_platform_components"
+    - cluster_platform_storage_provider == 'ceph_rbd'
 
 - name: Accept an independently managed storage class
   ansible.builtin.include_tasks: storage.yml

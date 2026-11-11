@@ -144,7 +144,7 @@ policy does require an explicit boundary. Keep the following distinctions visibl
 - Same-VLAN peer restrictions need local/VNet or switch enforcement; gateway
   inter-zone rules alone do not cover that traffic. [3]
 
-Use the [firewall contracts](../01-architecture/11-networking/01-firewall-policy.md) for
+Use the [firewall contracts](../01-architecture/05-networking/01-firewall-policy.md) for
 permitted listeners and denials, the [UniFi guide](../03-deployment/foundation/network/unifi.md)
 for gateway policy, and the [SDN guide](../03-deployment/foundation/proxmox/step-1c-sdn.md)
 for VNet/subnet preparation. These are manual network prerequisites.

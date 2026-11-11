@@ -39,7 +39,7 @@ terraform -chdir=tier-0/terraform/modules/proxmox_templates test
 ```
 
 These native mock tests do not contact Proxmox or establish real image/clone acceptance.
-Operator verification remains in the [template runbook](../05-operations/virtual-machines/template-lifecycle.md).
+Operator verification remains in the [template runbook](../05-operations/01-hosting/templates/template-lifecycle.md).
 
 Approve exact packages, checksums and tools before enabling native tests. Keep
 them outside tracked source. Some tests fetch pinned charts/CRD schemas over
@@ -60,10 +60,16 @@ HTTPS; cached-only product validators use the following explicit paths.
 | Native logging patches | `TALOSCTL_TEST_BINARY` (1.13), optional `TALOSCTL14_TEST_BINARY` (1.14) |
 | Kubernetes SSO/config preservation | `HOMELAB_TALOSCTL`, the selected Talos 1.13 CLI |
 | Guest filesystem lifecycle | `HOMELAB_DATA_VOLUME_MOUNT_TESTS=1`, native Ansible collections, root in a private mount namespace, a private `/etc/fstab`, disposable loopback disks and ext4 tools; `DATA_VOLUME_TEST_FSTYPE=xfs` selects XFS tools instead |
+| Native PKCS#11 remoting | `HSM_REMOTE_NATIVE_ROOT` with approved extracted p11-kit/OpenSSH/GnuTLS/SoftHSM tools and libraries; isolated Linux root fixture with an existing OS `sshd` privilege-separation account |
+| External-key signing API | `OPENBAO_TEST_BINARY`, `OPENBAO_TEST_PLUGIN`, `OPENBAO_TEST_SOFTHSM_UTIL`, `OPENBAO_TEST_SOFTHSM_LIBRARY`; accepted versions from the signing input contract |
+| Netdata parser | Optional `NETDATA_BINARY`, matching the approved native distribution |
 
 The test modules document additional optional native tools for PKI, receiver,
 backup and evidence checks. No real credentials belong in test fixtures. Local
 test certificates are disposable and must never become deployment trust anchors.
+Privileged remoting fixtures belong in a disposable Linux VM/container. They create only uniquely
+named test accounts; they never create or remove the operating system's `sshd` account. SoftHSM
+fixtures exercise the real protocols and denial paths, not physical YubiHSM/PicoHSM protection.
 The data-volume lifecycle fixture verifies its private fstab sentinel before creating storage;
 never enable it against a live host's mount namespace or storage. It tests UUID persistence,
 rerun/growth preservation, declared subdirectory binds and refusal of a missing volume's replacement.

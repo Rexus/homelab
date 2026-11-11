@@ -33,6 +33,19 @@ vm_instances = {
   #   tags              = ["syslog", "audit", "restricted", "always-on", "control"]
   #   extra_disks = [{ interface = "scsi1", size_gb = 100, storage_class = "local" }]
   # }
+  # Stage 2 NAS-retention option: enable the independent backup guest here before
+  # running deployment/logging-backup.yml. Add rec-1 to logging_recovery and syslog.yml's IP map.
+  # Select a different physical host and recovery storage failure domain from the collector/NAS.
+  # "rec-1" = {
+  #   vm_id             = 403
+  #   proxmox_node_name = "pve02"
+  #   size              = "small"
+  #   storage_class     = "local"
+  #   disk_size_gb      = 30
+  #   network_zone_key  = "management"
+  #   tags              = ["backup", "audit", "restricted", "control"]
+  #   extra_disks = [{ interface = "scsi1", size_gb = 200, storage_class = "local" }]
+  # }
 }
 
 lxc_instances = {}

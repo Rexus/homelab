@@ -59,7 +59,7 @@ class PkiBundle(TierRepositoryTestCase):
         for name in ('openxpki-bundle.yml', 'openxpki-key.yml'):
             self.assertTrue((self.root / 'verify-tier-0/ansible/playbooks/deployment' / name).is_file())
         self.assertTrue((self.root / 'verify-tier-2/ansible/playbooks/maintenance/public-certificates.yml').is_file())
-        self.assertTrue((self.root / 'verify-architecture/docs/auto-docs/01-architecture/16-cryptography/'
+        self.assertTrue((self.root / 'verify-architecture/docs/auto-docs/01-architecture/08-cryptography/'
                          '02-algorithm-selection.md').is_file())
 
     @unittest.skipUnless(shutil.which('ansible-playbook') and os.environ.get('PKI_CONFIG_REPOSITORY'),

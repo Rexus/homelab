@@ -1,6 +1,6 @@
 ---
 # Tier-owned inputs. Copy OUTSIDE Git and pass with -e @/absolute/path/host-security.yml.
-# Guide: docs/05-operations/hosts/linux-security.md.
+# Guide: docs/05-operations/01-hosting/linux-security.md.
 host_security_enabled: false
 host_security_profile: linux-host-v1
 host_security_action: apply

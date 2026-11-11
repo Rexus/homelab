@@ -1,0 +1,105 @@
+---
+- name: Prepare isolated service configuration and persistent data
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: '1000'
+    mode: '0750'
+  loop:
+    - {path: "{{ observability_vm_config_path }}/{{ observability_vm_service }}", owner: root}
+    - {path: "{{ observability_vm_data_path }}/{{ observability_vm_service }}", owner: '1000'}
+
+- name: Render the native product configuration
+  ansible.builtin.template:
+    src: "{{ observability_vm_service }}.{{ 'ini' if observability_vm_service == 'grafana' else 'yml' }}.j2"
+    dest: >-
+      {{ observability_vm_config_path }}/{{ observability_vm_service }}/config.{{
+         'ini' if observability_vm_service == 'grafana' else 'yml' }}
+    owner: root
+    group: '1000'
+    mode: '0640'
+  register: observability_vm_product_config
+  no_log: true
+
+- name: Configure the authenticated TLS Data Prepper control API
+  when: observability_vm_service == 'prepper'
+  block:
+    - name: Export the server identity to the native control API keystore
+      community.crypto.openssl_pkcs12:
+        action: export
+        path: "{{ observability_vm_config_path }}/prepper/keystore.p12"
+        privatekey_path: "{{ observability_vm_config_path }}/tls/tls.key"
+        certificate_path: "{{ observability_vm_config_path }}/tls/tls.crt"
+        other_certificates: ["{{ observability_vm_config_path }}/tls/ca.crt"]
+        other_certificates_parse_all: true
+        friendly_name: data-prepper
+        passphrase: "{{ observability_vm_prepper_core_auth.password }}"
+        owner: root
+        group: '1000'
+        mode: '0640'
+      register: observability_vm_prepper_keystore
+      no_log: true
+
+    - name: Render the Data Prepper server configuration
+      ansible.builtin.template:
+        src: prepper-core.yml.j2
+        dest: "{{ observability_vm_config_path }}/prepper/core.yml"
+        owner: root
+        group: '1000'
+        mode: '0640'
+      register: observability_vm_prepper_core_config
+      no_log: true
+
+- name: Render protected native environment inputs
+  ansible.builtin.template:
+    src: service.env.j2
+    dest: "{{ observability_vm_config_path }}/{{ observability_vm_service }}/service.env"
+    owner: root
+    group: root
+    mode: '0600'
+  register: observability_vm_product_environment
+  no_log: true
+
+- name: Provision Grafana's read-only metrics data source
+  when: observability_vm_service == 'grafana'
+  block:
+    - name: Prepare the native datasource provisioning directory
+      ansible.builtin.file:
+        path: "{{ observability_vm_config_path }}/grafana/provisioning/datasources"
+        state: directory
+        owner: root
+        group: '1000'
+        mode: '0750'
+
+    - name: Render the Grafana datasource
+      ansible.builtin.template:
+        src: datasource.yml.j2
+        dest: "{{ observability_vm_config_path }}/grafana/provisioning/datasources/metrics.yml"
+        owner: root
+        group: '1000'
+        mode: '0640'
+      register: observability_vm_datasource_config
+      no_log: true
+
+- name: Render the native Podman Quadlet
+  ansible.builtin.template:
+    src: service.container.j2
+    dest: "/etc/containers/systemd/obs-{{ observability_vm_service }}.container"
+    owner: root
+    group: root
+    mode: '0644'
+  register: observability_vm_quadlet
+
+- name: Remember changed services for the ordered start phase
+  ansible.builtin.set_fact:
+    observability_vm_restart_services: >-
+      {{ observability_vm_restart_services | default([]) + [observability_vm_service] }}
+  when: >-
+    observability_vm_product_config.changed or observability_vm_product_environment.changed or
+    observability_vm_quadlet.changed or observability_vm_tls_copy.changed or
+    observability_vm_tls_key_convert.changed | default(false) or
+    observability_vm_scope_ca_copy.changed | default(false) or
+    (observability_vm_service == 'prepper' and (observability_vm_prepper_core_config.changed | default(false) or
+     observability_vm_prepper_keystore.changed | default(false))) or
+    (observability_vm_service == 'grafana' and observability_vm_datasource_config.changed | default(false))

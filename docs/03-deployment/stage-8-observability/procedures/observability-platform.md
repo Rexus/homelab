@@ -75,7 +75,7 @@ Do not run this recipe and a delivery controller as concurrent owners of the sam
 | `observability_log_scopes` | Per-source name, application/projection kind, listener, NodePort and explicit reader backend roles |
 | `observability_telemetry_cidrs`, `observability_egress` | Observed source networks after routing/SNAT and exact IdP/API/kubelet destinations; replace the IdP ingress placeholder |
 | Database backup method | Scheduled verified full copies to a separate NAS file PVC, or the existing object/WAL option; [storage prerequisites](../../foundation/storage/README.md) install no gateway |
-| `observability_backup_mode`, `observability_backup_files_phase` | Fresh examples use `files` / `prepare`; [commission the NAS destination](../../../05-operations/backups/postgresql.md), then select `backup` to enable copies and continue installation |
+| `observability_backup_mode`, `observability_backup_files_phase` | Fresh examples use `files` / `prepare`; [commission the NAS destination](../../../05-operations/06-resilience/backups/postgresql.md), then select `backup` to enable copies and continue installation |
 | `observability_database_storage_class` | Explicit live Proxmox/Ceph-backed block class, independent of the NAS backup claim |
 | `observability_backup_destination`, `observability_backup_endpoint` | Object/WAL option only: Grafana database backup prefix and HTTPS S3-compatible endpoint, with scoped tenant keys and independent custody |
 | `observability_manage_secrets` | False by default; an existing secret owner supplies native Kubernetes Secrets |
@@ -241,7 +241,7 @@ instead of `--ask-vault-pass`.
 
 ## 7. Commission the NAS backup destination
 
-Complete [PostgreSQL NAS backup commissioning](../../../05-operations/backups/postgresql.md),
+Complete [PostgreSQL NAS backup commissioning](../../../05-operations/06-resilience/backups/postgresql.md),
 using `grafana-db` in the selected Tier 1 namespace. Return here after verifying the retained
 backup PVC, actual NAS backing, database system identifier, repository marker and access.
 
@@ -371,7 +371,7 @@ The object/WAL option additionally uses Barman Cloud, `ObjectStore` and
 The role gates the selected resources, database readiness and a completed backup.
 A completed backup is not a tested restore. Retain database/password/encryption
 secrets independently and qualify the actual recovery point and elapsed restore time.
-Use [NAS-file recovery](../../../05-operations/recovery/cnpg-files.md) for scheduled file
+Use [NAS-file recovery](../../../05-operations/06-resilience/recovery/cnpg-files.md) for scheduled file
 sets; the Barman recovery procedure applies only to the object/WAL variant.
 
 The initial Grafana/vmauth metrics view is for platform operators. It is one approved
@@ -385,7 +385,7 @@ PVCs do not replace independently retained backups.
 
 Only Grafana's database backups are scheduled by this installer. Commission native metrics backups,
 search snapshots and any retained Netdata history through the selected
-[Tier 1 product recovery contracts](../../../05-operations/recovery/tier-1-products.md#select-the-authoritative-product-procedure)
+[Tier 1 product recovery contracts](../../../05-operations/06-resilience/recovery/tier-1-products.md#select-the-authoritative-product-procedure)
 before accepting Stage 8 recovery. Record a deliberate history-loss/rebuild policy where selected;
 an approved Tier 0 projection can be rebuilt only over its retained, authorized source range.
 

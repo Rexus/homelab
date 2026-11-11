@@ -1,6 +1,11 @@
 ---
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: podman_runner
+
 # Delivery: general Podman runner.
-# Recipe mapping: docs/05-operations/ansible-recipes.md
+# Recipe mapping: docs/05-operations/01-hosting/ansible-recipes.md
 - name: Configure Podman image runners
   hosts: podman_runner
   become: true

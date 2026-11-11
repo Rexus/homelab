@@ -5,4 +5,9 @@ infrastructure_runner_version: ""
 infrastructure_runner_token: ""
 infrastructure_runner_ca_src: ""
 infrastructure_runner_workspace: /srv/iac
-infrastructure_runner_tool_packages: [git, bash, python3, ansible-core]
+infrastructure_runner_tool_packages: [git, bash, python3, ansible-core, rsync, terraform, vault]
+infrastructure_runner_handover_source: ""
+infrastructure_runner_handover_writers_stopped: false
+infrastructure_runner_public_key_files: []
+infrastructure_runner_environment_src: ""
+infrastructure_runner_known_hosts_src: ""

@@ -54,12 +54,12 @@ Run from **`<prefix>-tier-0/`**.
 bash scripts/proxmox-templates.sh init
 ```
 
-Follow the [local template workflow](../../05-operations/virtual-machines/template-lifecycle.md#local-workflow)
+Follow the [local template workflow](../../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow)
 to configure, plan, publish, and test images. Tier 0 approves references in the
 [shared catalog](../../08-reference/template-catalog.md); other tiers consume them.
 Verified existing templates are valid. No hosted CI or cluster is required.
 For manual templates, select the
-[import path](../../05-operations/virtual-machines/template-lifecycle.md#adopt-existing-templates).
+[import path](../../05-operations/01-hosting/templates/template-lifecycle.md#adopt-existing-templates).
 [Foundation Step 4](../../03-deployment/foundation/README.md#step-4-publish-and-test-vm-templates)
 lists import/new-publication commands and the apply step; complete it before Stage 1.
 
@@ -90,10 +90,10 @@ Replace `homelab` in paths if another prefix was selected.
 | Need | Guide |
 | --- | --- |
 | Dependencies, readiness checks, recovery | [Deployment stages](../../03-deployment/README.md) |
-| Target placement and certificate trust | [Control platform design](../../01-architecture/06-reference-platform.md) |
-| Network/VLAN choices and policy | [Network map](../../01-architecture/11-networking/README.md) |
+| Target placement and certificate trust | [Control platform design](../../01-architecture/03-reference-platform.md) |
+| Network/VLAN choices and policy | [Network map](../../01-architecture/05-networking/README.md) |
 | File locations and commands | [Code map](../../04-development/code-layout.md), [scripts](../../08-reference/repository-scripts.md) |
-| Ownership and future workload requests | [Infrastructure control](../../01-architecture/10-hosting/03-provisioning.md) |
+| Ownership and future workload requests | [Infrastructure control](../../01-architecture/04-hosting/02-provisioning.md) |
 
 ## Repository structure
 

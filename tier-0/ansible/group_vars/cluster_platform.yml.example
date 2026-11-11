@@ -20,7 +20,7 @@ cluster_platform_versions:
 cluster_platform_approved_repositories: []
 cluster_platform_repositories:
   cilium: https://helm.cilium.io
-  storage: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+  # Storage defaults to the selected provider's official repository; override only for a qualified mirror.
   cert_manager: https://charts.jetstack.io
   ingress: https://traefik.github.io/charts
   cloudnative_pg: https://cloudnative-pg.github.io/charts
@@ -31,7 +31,8 @@ cluster_platform_repositories:
 cluster_platform_talos_cilium_ready: false
 cluster_platform_expected_nodes: [k8ctl-1, k8ctl-2, k8ctl-3]
 
-# Live database/application disks use existing qualified Proxmox/Ceph-backed block CSI.
+# Choose ceph_rbd to INSTALL block CSI against the existing Proxmox/Ceph pool;
+# existing accepts a driver already owned elsewhere. No new Ceph cluster is installed.
 # NFS CSI is a separate selected-component run for backup/shared-file claims only;
 # it connects an existing NAS export, never installs a NAS or moves database data.
 cluster_platform_storage_provider: existing
@@ -41,6 +42,39 @@ cluster_platform_nfs_prerequisites_accepted: false
 cluster_platform_nfs_server: REPLACE_WITH_NAS_ADDRESS
 cluster_platform_nfs_share: /REPLACE_WITH_EXISTING_EXPORT
 cluster_platform_nfs_mount_options: [nfsvers=4.1, hard]
+
+# ceph_rbd only: exact storage chart pin and approve https://ceph.github.io/csi-charts above.
+# Prepare the Talos kernel/mount patch in the guide before accepting these prerequisites.
+cluster_platform_ceph_rbd_prerequisites_accepted: false
+cluster_platform_talos_ceph_rbd_ready: false
+cluster_platform_ceph_rbd_fsid: REPLACE_WITH_EXISTING_CEPH_FSID
+cluster_platform_ceph_rbd_monitors: [REPLACE_WITH_MONITOR_HOST_AND_PORT]
+cluster_platform_ceph_rbd_pool: REPLACE_WITH_EXISTING_RBD_POOL
+# userID without client.; storage owner grants mon profile rbd and pool-scoped osd/mgr profile rbd.
+cluster_platform_ceph_rbd_user_id: REPLACE_WITH_SCOPED_USER_ID
+cluster_platform_ceph_rbd_secret: csi-rbd-secret
+cluster_platform_ceph_rbd_image_features: [layering]
+# Supply ceph-csi-rbd/csi-rbd-secret: {userID, userKey} through the existing private
+# cluster_platform_secrets contract, or keep manage_secrets false for an existing Secret owner.
+cluster_platform_ceph_rbd_images_approved: false
+# Fill all six native image pins; defaults are never accepted for ceph_rbd.
+cluster_platform_values:
+  storage:
+    nodeplugin:
+      plugin:
+        image: {repository: quay.io/cephcsi/cephcsi, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+      registrar:
+        image: {repository: registry.k8s.io/sig-storage/csi-node-driver-registrar, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+    provisioner:
+      provisioner:
+        image: {repository: registry.k8s.io/sig-storage/csi-provisioner, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+      attacher:
+        image: {repository: registry.k8s.io/sig-storage/csi-attacher, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+      resizer:
+        image: {repository: registry.k8s.io/sig-storage/csi-resizer, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+      snapshotter:
+        image: {repository: registry.k8s.io/sig-storage/csi-snapshotter, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+# Remove storage overrides above when selecting nfs; NFS has different native image values.
 cluster_platform_ingress_class: traefik
 cluster_platform_ingress_http_port: 30080
 cluster_platform_ingress_https_port: 30443

@@ -195,7 +195,7 @@ before accepting the path; global defaults cannot override a deliberately weaken
 ## 6. Retire temporary egress
 
 Remove the temporary bootstrap WAN allowance using the approved
-[firewall rules](../../01-architecture/11-networking/01-firewall-policy.md#rule-contracts).
+[firewall rules](../../01-architecture/05-networking/01-firewall-policy.md#rule-contracts).
 Repeat **5**'s retrieval checks and the direct-WAN denial check from Stage 1.
 This play changes no firewall rules.
 

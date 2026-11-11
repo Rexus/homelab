@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+exec 9>/run/gitlab-vm-backup.lock
+flock -n 9
+mode=${1:---backup}
+case "$mode" in --backup|--probe|--initialize|--snapshots|--restore-stage) ;; *) exit 2 ;; esac
+export RESTIC_REPOSITORY='{{ gitlab_backup_repository }}'
+export RESTIC_PASSWORD_FILE=/etc/gitlab-vm-backup/password
+restic_args=()
+{% if gitlab_backup_transport == 'sftp' %}
+sftp_args='-i /etc/gitlab-vm-backup/key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/gitlab-vm-backup/known_hosts -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3'
+restic_args=(-o "sftp.args=$sftp_args")
+[[ "$mode" != --initialize ]] || exit 2
+{% else %}
+source /etc/gitlab-vm-backup/filesystem.sh
+require_filesystem_repository
+{% endif %}
+status=0
+restic "${restic_args[@]}" cat config >/dev/null || status=$?
+if (( status != 0 )); then
+{% if gitlab_backup_transport == 'filesystem' %}
+  [[ "$mode" == --initialize && "$status" == 10 ]] || exit "$status"
+  entries=$(find . -mindepth 1 -maxdepth 1 -print -quit)
+  [[ -z "$entries" ]] || {
+    echo 'Refusing to initialize a nonempty repository' >&2; exit 1;
+  }
+  probe_filesystem_writes
+  require_filesystem_repository
+  restic "${restic_args[@]}" init
+  echo 'Initialized encrypted repository'
+{% else %}
+  exit "$status"
+{% endif %}
+fi
+{% if gitlab_backup_transport == 'filesystem' %}
+probe_filesystem_writes
+require_filesystem_repository
+{% endif %}
+home='{{ gitlab_home }}'
+if [[ "$mode" == --snapshots ]]; then
+  restic "${restic_args[@]}" snapshots --tag gitlab-vm --json
+  exit 0
+fi
+if [[ "$mode" == --restore-stage ]]; then
+  [[ "${2:-}" =~ ^[a-f0-9]{64}$ && "${3:-}" == "$home/gitlab-vm-restore."* ]] || exit 2
+  [[ "$(realpath -e -- "$3")" == "$3" ]] || exit 2
+  entries=$(find "$3" -mindepth 1 -print -quit)
+  [[ -z "$entries" ]] || exit 2
+  restic "${restic_args[@]}" restore "$2" --target "$3"
+  exit 0
+fi
+[[ "$mode" == --backup ]] || exit 0
+[[ "$(realpath -e -- "$home")" == "$home" ]] || exit 1
+free_bytes=$(df --block-size=1 --output=avail "$home/data")
+free_bytes=${free_bytes##*$'\n'}
+free_bytes=${free_bytes// /}
+(( free_bytes >= {{ gitlab_data_min_free_bytes | int }} )) || {
+  echo 'Local export reserve exhausted; preserve failed sets and increase capacity' >&2; exit 1;
+}
+set_path=$(mktemp -d "$home/gitlab-vm-set.XXXXXXXX")
+backup_id=${set_path##*/}
+trap 'status=$?; echo "Incomplete local set retained: $set_path" >&2; exit "$status"' EXIT
+printf '%s\n' '{{ gitlab_container_image }}' > "$set_path/image-reference"
+printf '%s\n' "$backup_id" > "$set_path/backup-id"
+podman exec '{{ gitlab_container_name }}' cat /opt/gitlab/version-manifest.txt > "$set_path/version-manifest.txt"
+podman inspect --format '{% raw %}{{.Image}}{% endraw %}' '{{ gitlab_container_name }}' > "$set_path/image-id"
+# The timeout also runs inside the container so killing podman cannot leave an unbounded export.
+podman exec '{{ gitlab_container_name }}' timeout --signal=TERM --kill-after=60 \
+  '{{ gitlab_backup_timeout_seconds | int }}' gitlab-backup create "BACKUP=$backup_id" STRATEGY=copy
+archive="$home/data/backups/${backup_id}_gitlab_backup.tar"
+[[ -s "$archive" && ! -L "$archive" ]] || exit 1
+[[ -s "$home/config/gitlab-secrets.json" && -s "$home/config/gitlab.rb" ]] || exit 1
+mv -- "$archive" "$set_path/"
+cp -a -- "$home/config" "$set_path/config"
+{% if gitlab_backup_transport == 'filesystem' %}
+require_filesystem_repository
+{% endif %}
+restic "${restic_args[@]}" backup --tag gitlab-vm --tag "$backup_id" "$set_path"
+restic "${restic_args[@]}" check
+# Only the exact successful local set is removed; failed exports and remote history survive.
+rm -r -- "$set_path"
+trap - EXIT
+echo "Completed encrypted GitLab set: $backup_id"

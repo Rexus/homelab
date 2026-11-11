@@ -24,6 +24,17 @@ def area(root, name):
 
 
 class CapabilityNavigation(TierRepositoryTestCase):
+    def test_operations_has_one_compact_route_per_operating_domain(self):
+        self.generate()
+        for root in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            operations = root / "05-operations"
+            chapters = sorted(path for path in operations.iterdir() if path.name != "README.md")
+            self.assertEqual([int(path.name[:2]) for path in chapters], list(range(1, 7)))
+            destinations = {link.target for link in links(operations / "README.md")}
+            for chapter in chapters:
+                entry = chapter / "README.md" if chapter.is_dir() else chapter
+                self.assertIn(entry.resolve(), destinations)
+
     def test_main_documentation_folders_follow_reading_order(self):
         expected = ["01-architecture", "02-conventions", "03-deployment", "04-development",
                     "05-operations", "06-paths", "07-decisions", "08-reference"]

@@ -72,6 +72,7 @@
     - {name: prepare-trust.sh, content: "{{ lookup('ansible.builtin.file', 'spinnaker/prepare-trust.sh') }}\n"}
     - {name: initialize-databases.sh, content: "{{ lookup('ansible.builtin.file', 'spinnaker/initialize-databases.sh') }}\n"}
     - {name: backup-restic.sh, content: "{{ lookup('ansible.builtin.file', 'spinnaker/backup-restic.sh') }}\n"}
+    - {name: filesystem-repository.sh, content: "{{ lookup('ansible.builtin.file', 'spinnaker/filesystem-repository.sh') }}\n"}
     - {name: mysql.cnf, content: "{{ lookup('ansible.builtin.file', 'spinnaker/mysql.cnf') }}\n"}
     - {name: redis.conf, content: "{{ lookup('ansible.builtin.file', 'spinnaker/redis.conf') }}\n"}
     - name: settings.js

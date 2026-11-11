@@ -4,14 +4,14 @@ Prepare the hosts and the execution machine, then import or publish tested VM te
 Complete this path before **Stage 1: Software intake**. Foundation is a prerequisite,
 not a numbered capability stage.
 
-For planned teardown and a new installation, use [resource retirement](../../05-operations/provisioning.md).
-For an existing environment lost to failure, use [backup recovery](../../05-operations/recovery.md) with its original state.
+For planned teardown and a new installation, use [resource retirement](../../05-operations/01-hosting/provisioning.md).
+For an existing environment lost to failure, use [backup recovery](../../05-operations/06-resilience/README.md) with its original state.
 
 **Start on:** an independent privileged workstation with physical/console recovery access.
 **Working repository:** `<prefix>-tier-0` after generation (source: `tier-0/`).
 **Continue on:** `boot-1`, then the generated `<prefix>-tier-0` repository.
-**Design:** [hosting](../../01-architecture/10-hosting/README.md) and
-[network boundaries](../../01-architecture/11-networking/README.md).
+**Design:** [hosting](../../01-architecture/04-hosting/README.md) and
+[network boundaries](../../01-architecture/05-networking/README.md).
 
 ## Contents
 
@@ -83,7 +83,7 @@ can use the same tooling/trust path without creating another VM.
 | 3c: home on data disk, optional after 3a | [Bind-mount home](bootstrap/step-3c-bootstrap-home.md) | Bootstrap Step 2, before repositories/keys are created |
 | 3d: connected tools, main | [Install approved tools and generate repositories](bootstrap/README.md#2a-install-git-terraform-and-ansible) | Bootstrap Step 3 |
 | 3e: offline tools instead | [Prepare, transfer and install the bundle](bootstrap/step-3e-bootstrap-offline.md) | Bootstrap Step 3 |
-| 3f: manage hosts | [Initialize host management](../../05-operations/hosts/management.md), then [API trust and credentials](proxmox/api-access.md) | SDN Step 4 if 1c was selected; then Foundation Step 4 |
+| 3f: manage hosts | [Initialize host management](../../05-operations/01-hosting/README.md), then [API trust and credentials](proxmox/api-access.md) | SDN Step 4 if 1c was selected; then Foundation Step 4 |
 
 | Location | Configure before continuing |
 | --- | --- |
@@ -104,13 +104,13 @@ before provisioning; guest backup/restore is tested on the first disposable clon
 ### 3f: Connect bootstrap to Proxmox host management
 
 Once `boot-1` and the generated Tier 0 repository are ready, follow
-[Manage existing Proxmox hosts from bootstrap](../../05-operations/hosts/management.md).
+[Manage existing Proxmox hosts from bootstrap](../../05-operations/01-hosting/README.md).
 Its numbered steps initialize the local files, register `hypervisors`, authorize the execution
 key and verify SSH/Ansible access. The registered hosts already exist; this does not deploy VMs.
 
 If **1c** was selected, finish [SDN Step 4](proxmox/step-1c-sdn.md#step-4-authorize-and-connect-iac) now.
 Return here for **Step 4**. After Stage 1 establishes the selected software-supply route, use
-[Proxmox update access](../../05-operations/hosts/update-access.md) to configure and test host
+[Proxmox update access](../../05-operations/02-software-intake/host-updates.md) to configure and test host
 updates through it. Host-management tasks use SSH; `deploy.sh foundation` provisions CA/directory VMs.
 
 <a id="step-3-publish-and-test-vm-templates"></a>
@@ -152,7 +152,7 @@ name; the YAML candidate names need not match the earlier manual naming examples
 For adoption, match existing hardware and firmware before reviewing changes. Existing
 uploads are matched by filename; verify their provenance or remote checksum independently.
 Import does not establish that the stored bytes match a checksum embedded in the filename.
-The [field reference](../../05-operations/virtual-machines/template-lifecycle.md#catalog-fields-and-defaults)
+The [field reference](../../05-operations/01-hosting/templates/template-lifecycle.md#catalog-fields-and-defaults)
 contains optional settings; fixed RAM, 1500-MTU NICs, NIC firewall and OS-specific
 controller defaults do not need repeating for every build.
 
@@ -221,7 +221,7 @@ After either **4a** or **4b**, complete all actions below.
 4. [Boot and qualify disposable clones](proxmox/templates.md#clone-and-guest-control-checks).
    Check disks, network, guest control and operator access. Qualify the
    selected template firmware, CloudInit and guest-agent settings.
-5. [Back up and restore a disposable clone](../../05-operations/backups/virtual-machines.md#quick-steps),
+5. [Back up and restore a disposable clone](../../05-operations/06-resilience/backups/virtual-machines.md#quick-steps),
    including required data disks. Record the result before relying on that backup path.
 6. Successful apply updates **Shared's `templates/proxmox-catalog.tfvars`**. After clone
    acceptance, edit its `default_linux_vm_template_id` to the tested Linux VMID:
@@ -238,7 +238,7 @@ After either **4a** or **4b**, complete all actions below.
 [resources/state](../../../tier-0/terraform/deployments/templates/main.tf).
 Shared holds [consumer references](../../../shared/templates/proxmox-catalog.tfvars).
 Adoption leaves the bootstrap VM outside Terraform and retains existing boot disks;
-intentional image replacement uses [boot-disk maintenance](../../05-operations/virtual-machines/template-disk.md).
+intentional image replacement uses [boot-disk maintenance](../../05-operations/01-hosting/templates/template-disk.md).
 
 ### 4c: Finish selected HA and balancing options
 
@@ -249,7 +249,7 @@ For **1a**, skip this option; no automatic host failover is claimed.
 
 ### 4d: Refresh a Linux image before publishing — optional
 
-For a mutable Linux candidate, follow [template refresh](../../05-operations/virtual-machines/template-refresh.md),
+For a mutable Linux candidate, follow [template refresh](../../05-operations/01-hosting/templates/template-refresh.md),
 then repeat **4a/4b** and clone qualification above. Direct verified image publication remains valid;
 this does not apply to Talos. Return to the readiness checks below.
 
@@ -269,4 +269,4 @@ return to Tier 0 for **[Stage 2: Protected logging](../stage-2-logging/README.md
 Neither capability waits for FreeIPA or Kubernetes.
 
 This completes the compute portion of the
-[reference platform](../../01-architecture/06-reference-platform.md#service-placement).
+[reference platform](../../01-architecture/03-reference-platform.md#service-placement).

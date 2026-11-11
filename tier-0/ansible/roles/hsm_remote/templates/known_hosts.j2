@@ -1,0 +1,5 @@
+{% for name, backend in hsm_remote_backends | dictsort %}
+{% for key in backend.host_public_keys %}
+hsm-{{ hsm_remote_pool_id }}-{{ name }} {{ key }}
+{% endfor %}
+{% endfor %}

@@ -118,7 +118,8 @@ class ReceiverPreflight(TierRepositoryTestCase):
             ('pinned ext4', actual_uuid, 'ext4', False),
             ('wrong pin', wrong_uuid, 'xfs', True),
         ):
-            variables = dict(defaults, fixture_uuid=actual_uuid, expected_pin=pin, expected_fstype=fstype,
+            variables = dict(defaults, syslog_ng_data_device='/dev/sdb',
+                             fixture_uuid=actual_uuid, expected_pin=pin, expected_fstype=fstype,
                              syslog_ng_data_uuid=pin, syslog_ng_data_fstype=fstype,
                              syslog_ng_data_environment={'https_proxy': 'http://approved.invalid:3128'})
             tasks = [

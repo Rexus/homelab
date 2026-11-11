@@ -4,7 +4,7 @@ Install the permanent OpenXPKI Community runtime on `ca-1`, then activate the
 separately signed issuer. An existing qualified issuer is also a valid prerequisite.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Design:** [certificate authority](../../../01-architecture/16-cryptography/01-certificate-authority.md).
+**Design:** [certificate authority](../../../01-architecture/08-cryptography/01-certificate-authority.md).
 **Prerequisites:** accepted logging, independent SSH/DNS, approved Debian template,
 an attached dedicated data disk, production configuration bundle and authorized custodians.
 
@@ -21,7 +21,7 @@ an attached dedicated data disk, production configuration bundle and authorized 
 ### 1. Select the issuer image
 
 Publish an approved Debian image using the Tier 0
-[template lifecycle](../../../05-operations/virtual-machines/template-lifecycle.md).
+[template lifecycle](../../../05-operations/01-hosting/templates/template-lifecycle.md).
 Record its approved ID/title in **`<prefix>-shared/templates/proxmox-catalog.tfvars`**.
 The catalogue's Debian example needs a locally supplied image and checksum.
 
@@ -153,8 +153,17 @@ Complete the authorized [offline root ceremony](offline-root.md), then return he
 
 ### 10. Start the prepared backend
 
-On **`ca-1`**, place the public issuer certificate at `/srv/openxpki/identity/issuer.pem`.
-Record its SHA-256 fingerprint independently.
+In **Tier 0 `ansible/group_vars/issuer.yml`**, set `openxpki_issuer_certificate_src`,
+`openxpki_root_certificate_src` to the public ceremony outputs on the controller and set
+their independently recorded `openxpki_issuer_fingerprint` and `openxpki_root_fingerprint`.
+From **`<prefix>-tier-0/`**, install those public files through IaC:
+
+```bash
+bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki-certificates.yml --ansible-vars ansible/group_vars/issuer.yml
+```
+
+The recipe verifies the fingerprints and chain, refuses a different existing identity,
+and copies no private signing keys.
 
 Edit **`<prefix>-tier-0/ansible/group_vars/issuer.yml`**: populate `openxpki_required_state_paths`
 with the actual signing-provider and DataVault recovery paths, then set `openxpki_activate_runtime: true`.
@@ -165,14 +174,14 @@ Starting the backend does not activate its CA token.
 
 ### 11. Activate the token and accept issuance
 
-For the supplied software-key bundle, on **`ca-1`**, complete
+For the supplied software-key bundle, from the **Tier 0 controller**, complete
 [native certificate/token activation](issuer-token.md) for the selected revision. [3]
 Hardware-backed keys need their qualified provider/token procedure; the filesystem-key commands do not bind an HSM.
 Chain import and key binding are controlled operations, never automatic playbook side effects.
 
 Verify a permitted request, denied request, renewal, revocation and fresh CRL at the configured `/download/` URL.
 Test portal TLS from an **administrative workstation** and publication from a **consumer network**.
-Complete [CA recovery acceptance](../../../05-operations/cryptography/certificate-authority.md)
+Complete [CA recovery acceptance](../../../05-operations/03-cryptography/certificate-authority.md)
 before relying on issuance. Configuration/API checks alone are insufficient.
 
 The production bundle supplies workflows, approval roles, leaf profiles, provider

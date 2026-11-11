@@ -5,11 +5,32 @@
 
 - name: Manage host-wide repository proxy settings
   ansible.builtin.include_tasks: repository_proxy.yml
+  vars:
+    repository_proxy_configure_sources: false
   when: baseline_manage_repository_proxy | bool
 
 - name: Manage optional shell proxy environment
   ansible.builtin.include_tasks: shell_proxy.yml
   when: baseline_manage_shell_proxy | bool
+
+- name: Install explicitly selected public trust anchors
+  ansible.builtin.include_tasks: trust_anchors.yml
+  when: baseline_trust_anchors | length > 0
+
+- name: Configure explicitly selected approved package sources
+  ansible.builtin.include_tasks: package_sources.yml
+  when: baseline_rpm_repositories | length > 0
+
+- name: Select existing DNF sources after installing public trust
+  ansible.builtin.include_tasks: repository_source.yml
+  loop: "{{ repository_proxy_dnf_sources }}"
+  loop_control:
+    loop_var: repository_proxy_dnf_source
+  when: repository_proxy_manage_dnf | bool
+
+- name: Configure selected native APT sources
+  ansible.builtin.include_tasks: apt_sources.yml
+  when: baseline_apt_repositories | length > 0
 
 - name: Ensure timezone is configured when enabled
   community.general.timezone:

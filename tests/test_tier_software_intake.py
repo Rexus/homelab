@@ -46,15 +46,15 @@ class SoftwareIntake(TierRepositoryTestCase):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             prefix = "<prefix>" if docs == UPSTREAM / "docs" else "verify"
-            design = (docs / "01-architecture/13-software-intake/01-design.md").read_text()
+            design = (docs / "01-architecture/07-software-intake/README.md").read_text()
             for expected in ("## Connected proxy design", "## Supply choices", "## Transport and integrity",
                              "pull through the policy proxy", "one common policy", "not supplied",
                              "Tier 0 authorizes and executes its updates", "Internal HTTP mirror",
                              "Tier 1 owns authoritative shared mirrors", "independent of the cache"):
                 self.assertIn(expected, design)
             self.assertNotIn("```bash", design)
-            for source in ("01-architecture/05-software-lifecycle.md", "01-architecture/20-delivery/01-artifact-supply.md",
-                           "05-operations/hosts/update-access.md"):
+            for source in ("01-architecture/10-delivery/README.md", "01-architecture/10-delivery/01-artifact-supply.md",
+                           "05-operations/02-software-intake/host-updates.md"):
                 self.assertIn("software-intake/", (docs / source).read_text(), source)
             self.assertIn("../stage-1-software-intake/README.md",
                           (docs / "03-deployment/foundation/README.md").read_text())

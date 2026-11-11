@@ -15,7 +15,7 @@ prepare and use the bootstrap VM before any hosted runner exists.
 **Prerequisites:** approved software access and independent console/recovery access.
 The reference VM path also needs prepared hosts/network/storage and one tested
 [manual Linux template](../proxmox/templates.md).
-**Design:** [protected execution](../../../01-architecture/10-hosting/03-provisioning.md#execution-contexts).
+**Design:** [protected execution](../../../01-architecture/04-hosting/02-provisioning.md#execution-contexts).
 
 ## Contents
 
@@ -412,7 +412,7 @@ public key; Ansible uses its matching private key through SSH. See the
 
 ## Step 4: Configure trust, credentials and platform inputs
 
-1. Complete [Proxmox CA trust: Step 1](../../../05-operations/hosts/proxmox-tls.md#step-1-trust-the-bootstrap-ca)
+1. Complete [Proxmox CA trust: Step 1](../../../05-operations/01-hosting/proxmox-tls.md#step-1-trust-the-bootstrap-ca)
    and its caller-verification gate **on the bootstrap VM**. Obtain the public CA through
    console/verified SSH, compare fingerprints, install it in the OS trust store and verify
    the endpoint name. Browser trust on another workstation is insufficient.
@@ -466,10 +466,10 @@ public key; Ansible uses its matching private key through SSH. See the
    On a local-storage pilot, select the configured `local` class in each consuming
    setup, including Tier 0's template `all.storage_class`; the starter's `shared`
    selection is valid only after that shared datastore exists.
-6. Back up every required bootstrap disk and the selected [recovery set](../../../05-operations/backups/recovery-set.md)
+6. Back up every required bootstrap disk and the selected [recovery set](../../../05-operations/06-resilience/backups/recovery-set.md)
    independently of this host/storage, including ignored inputs, inventories, `.env.local`, original state
-   and required recovery material. Follow [backup planning](../../../05-operations/backups/virtual-machines.md)
-   and test [bootstrap recovery](../../../05-operations/recovery/bootstrap.md) before relying on this host.
+   and required recovery material. Follow [backup planning](../../../05-operations/06-resilience/backups/virtual-machines.md)
+   and test [bootstrap recovery](../../../05-operations/06-resilience/recovery/bootstrap.md) before relying on this host.
    Keep protecting newer state after later operations; Git ignore rules are not access control or backup.
 
 **Ready:** operator SSH/console, usable outbound SSH key/agent, tools, artifacts,
@@ -483,7 +483,8 @@ Do not boot the reusable template or capture this credential-bearing VM back int
 ## Continue deployment and hand over later
 
 Keep using this collection for Stages 1-8 and the initial Stage 9 installation.
-Complete [Stage 1's bootstrap consumer setup](../../stage-1-software-intake/README.md#step-6-connect-the-bootstrap-host)
+Connect to the approved proxy/internal mirrors through
+[Stage 1's bootstrap consumer setup](../../stage-1-software-intake/README.md#step-6-connect-the-bootstrap-host)
 when that stage's selected supply passes its checks. Remove temporary
 acquisition access only after package and tool downloads work through that policy;
 retain the offline bundle independently for recovery before the cache/mirrors exist.

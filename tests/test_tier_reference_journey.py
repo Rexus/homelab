@@ -20,9 +20,25 @@ class ReferenceApplicationJourney(unittest.TestCase):
         ]
         for entrypoint in entrypoints:
             with self.subTest(entrypoint=entrypoint):
-                play = yaml.safe_load((ROOT / entrypoint).read_text())[0]
+                plays = yaml.safe_load((ROOT / entrypoint).read_text())
+                prechecks = [(index, play) for index, play in enumerate(plays)
+                             if play.get('ansible.builtin.import_playbook') == '../control-node.yml']
+                applications = [(index, play) for index, play in enumerate(plays)
+                                if play.get('hosts') == 'localhost']
+                self.assertEqual(len(prechecks), 1, 'Require the tier-owned controller precheck.')
+                self.assertEqual(len(applications), 1, 'Require one explicit localhost application play.')
+                precheck_index, precheck = prechecks[0]
+                application_index, play = applications[0]
+                self.assertLess(precheck_index, application_index,
+                                'Prepare controller dependencies before the application play.')
+                self.assertEqual(precheck['vars']['control_node_setup'], Path(entrypoint).stem)
+                self.assertIs(precheck['vars']['control_node_require_terraform'], False)
                 self.assertEqual(play['hosts'], 'localhost')
                 self.assertEqual(play['connection'], 'local')
+                self.assertTrue(any(
+                    task.get('ansible.builtin.include_role', {}).get('name') ==
+                    Path(entrypoint).stem.replace('-', '_') for task in play.get('tasks', [])
+                ), 'Validate the actual owning application role, rather than a separate controller play.')
                 self.assertEqual(
                     play.get('vars', {}).get('ansible_python_interpreter'),
                     '{{ ansible_playbook_python }}',

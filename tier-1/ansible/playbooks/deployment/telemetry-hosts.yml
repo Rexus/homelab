@@ -1,9 +1,95 @@
 ---
-# Operations: telemetry host baseline only.
-# Recipe mapping: docs/05-operations/ansible-recipes.md
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: telemetry_gateways:security_telemetry:observability:archive
+
+# Legacy selectors keep their previous baseline behavior; new services use observability.
+# Recipe mapping: docs/05-operations/01-hosting/ansible-recipes.md
 # Legacy groups remain selectable for existing local inventories, not new syslog services.
-- name: Apply observability host baseline
-  hosts: telemetry_gateways:security_telemetry:observability:archive
+- name: Preserve baseline configuration for legacy telemetry hosts
+  hosts: telemetry_gateways:security_telemetry:archive:!observability
   become: true
   roles:
     - baseline
+
+- name: Configure the complete dedicated observability runtime
+  hosts: observability
+  become: true
+  any_errors_fatal: true
+  roles:
+    - observability_vm
+
+- name: Start the two independent Tier 1 diagnostic parents
+  hosts: observability
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  serial: 1
+  tasks:
+    - name: Start this gateway's Netdata parent
+      ansible.builtin.import_role:
+        name: observability_vm
+        tasks_from: netdata-start.yml
+      when: inventory_hostname in observability_vm_gateway_hosts
+
+- name: Start the five Tier 1 diagnostic children after both parents
+  hosts: observability
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Start this guest's Netdata child
+      ansible.builtin.import_role:
+        name: observability_vm
+        tasks_from: netdata-start.yml
+      when: inventory_hostname not in observability_vm_gateway_hosts
+
+- name: Start persistent backends before gateways
+  hosts: observability
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  serial: 1
+  tasks:
+    - name: Start this backend with ordered health checks
+      ansible.builtin.import_role:
+        name: observability_vm
+        tasks_from: start.yml
+      when: inventory_hostname not in observability_vm_gateway_hosts
+
+- name: Apply scoped search security before starting ingestion
+  hosts: observability
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Reconcile the complete search security policy once
+      ansible.builtin.import_role:
+        name: observability_vm
+        tasks_from: search-security.yml
+      when: inventory_hostname == observability_vm_search_hosts[0]
+
+- name: Start gateways and query interfaces after the backends
+  hosts: observability
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  serial: 1
+  tasks:
+    - name: Start this gateway's selected products
+      ansible.builtin.import_role:
+        name: observability_vm
+        tasks_from: start.yml
+      when: inventory_hostname in observability_vm_gateway_hosts
+
+- name: Verify installed service endpoints and credential boundaries
+  hosts: observability
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Check the selected services without claiming workload or recovery acceptance
+      ansible.builtin.import_role:
+        name: observability_vm
+        tasks_from: health.yml

@@ -11,7 +11,7 @@
 
 This document defines the preferred environment variable patterns for bootstrap
 secrets and runtime-sensitive values. Use it together with the
-[secret strategy](../05-operations/secret-handling/strategy.md).
+[secret strategy](../05-operations/03-cryptography/secret-handling.md).
 
 ## When to use environment variables
 
@@ -27,7 +27,7 @@ web/API root, such as `https://pve.example.com:8006/`. Do not append
 `/api2/json`; that full path is used by the HashiCorp Packer Proxmox plugin
 through its own `PROXMOX_URL` variable.
 
-The separate [template publisher](../05-operations/virtual-machines/template-lifecycle.md#local-workflow)
+The separate [template publisher](../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow)
 loads local assignments only with **`--env-file .env.local`**. It maps the same three
 `PROXMOX_API_*` aliases to `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`, or accepts
 exported native variables directly. It rejects conflicting native/alias inputs.
@@ -60,4 +60,4 @@ Use the selected command's contract rather than inventing another variable name:
 
 - [Environment file example](environment-file-example.md)
 - [Platform inputs and local SSH access](platform-inputs.md#local-ssh-access)
-- [Ansible Vault bootstrap](../05-operations/secret-handling/ansible-vault.md)
+- [Ansible Vault bootstrap](../05-operations/03-cryptography/ansible-vault.md)

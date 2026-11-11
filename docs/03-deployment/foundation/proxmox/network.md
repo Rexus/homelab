@@ -2,7 +2,7 @@
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 
-**Design:** [network boundaries](../../../01-architecture/11-networking/README.md).
+**Design:** [network boundaries](../../../01-architecture/05-networking/README.md).
 
 ## Table of contents
 
@@ -79,7 +79,7 @@ reach the Proxmox web UI, API, and SSH.
 
 ## Shared network reference
 
-Use [Network placement](../../../01-architecture/11-networking/README.md)
+Use [Network placement](../../../01-architecture/05-networking/README.md)
 as the source of truth for:
 
 - logical network names such as `management`, `access`, `identity`, `application`,
@@ -91,7 +91,7 @@ as the source of truth for:
 This page explains how those networks are presented on hosts. Proxmox SDN
 zones and Terraform `network_zones` are not gateway firewall zones. Use the
 [network input reference](../../../08-reference/network-inputs.md) for guest fields
-and the [firewall policy](../../../01-architecture/11-networking/01-firewall-policy.md) for access rules.
+and the [firewall policy](../../../01-architecture/05-networking/01-firewall-policy.md) for access rules.
 
 ## What to implement on Proxmox
 
@@ -285,7 +285,7 @@ or through non-SDN bridge-and-VLAN tagging on `vmbr0`.
 
 This is not Proxmox-specific, but it makes the Proxmox bridge configuration
 easier to keep readable. Read more in
-[Network architecture](../../../01-architecture/11-networking/README.md#vlan-id-strategy).
+[Network architecture](../../../01-architecture/05-networking/README.md#vlan-id-strategy).
 
 Recommended practice:
 

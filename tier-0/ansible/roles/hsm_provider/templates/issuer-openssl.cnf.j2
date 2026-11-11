@@ -1,0 +1,10 @@
+openssl_conf = openssl_init
+[openssl_init]
+engines = engines
+[engines]
+pkcs11 = pkcs11_engine
+[pkcs11_engine]
+engine_id = pkcs11
+dynamic_path = {{ hsm_issuer_engine_library }}
+MODULE_PATH = {{ hsm_provider_library }}
+init = 0

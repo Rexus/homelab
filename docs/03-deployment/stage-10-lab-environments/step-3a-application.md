@@ -124,8 +124,8 @@ expiry and portal integration separate; no such controller is installed by this 
 The reference application has only disposable `/tmp` storage; it installs no data volume or backup job.
 Retain its reviewed inputs, image digest and independently recoverable TLS Secret to recreate it.
 An adapted stateful application needs its own data backup and clean-target restore procedure before
-acceptance. Runtime recovery follows the selected [lab operations path](../../05-operations/lab-environments/README.md)
-and [original cluster state/etcd procedure](../../05-operations/recovery/original-state-etcd.md).
+acceptance. Runtime recovery follows the selected [lab operations path](../../05-operations/01-hosting/kubernetes-and-labs.md)
+and [original cluster state/etcd procedure](../../05-operations/06-resilience/recovery/original-state-etcd.md).
 
 **Return:** [Stage 10, Step 3](README.md#step-3-deploy-and-verify-applications) for collection,
 optional public HTTPS and the final update/rollback/recovery checks.

@@ -1,6 +1,6 @@
 # Stage 8: Observability
 
-**Related:** [Architecture](../../01-architecture/21-observability/README.md) · [Operations](../../05-operations/observability/README.md)
+**Related:** [Architecture](../../01-architecture/11-operations/03-observability.md) · [Operations](../../05-operations/06-resilience/observability.md)
 
 Deploy operational visibility for **logs, metrics and distributed traces** in the
 existing Tier 1 Kubernetes cluster. OpenSearch is included initially, alongside
@@ -19,7 +19,7 @@ Tier 0 retains those credentials and original evidence.
 [secrets and recovery access](../stage-6-secrets/README.md),
 backend worker capacity, persistent storage/backups and source identities.
 Equivalent verified existing services can satisfy these contracts.
-**Design:** [signals, placement, independent scaling and availability](../../01-architecture/24-operations/03-telemetry.md).
+**Design:** [signals, placement, independent scaling and availability](../../01-architecture/11-operations/03-observability.md).
 **Automation:** the dedicated [Ansible deployment](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml)
 renders or applies the [native chart values](../../../tier-1/ansible/roles/observability_platform).
 The cluster directory remains an empty integration starter, not a second executor.
@@ -35,7 +35,7 @@ Follow Steps 1–4. Choose the runtime and database-backup path before installat
 | Step | Path or option | Continue when |
 | --- | --- | --- |
 | 1a | [Existing Tier 1 Kubernetes](#step-1-prepare-the-runtime); complete [configuration actions 1–4](procedures/observability-platform.md#inputs-and-execution) | Inputs, trust, storage and SSO are ready for Step 2 |
-| 1b | [Dedicated VMs](step-1b-dedicated-vms.md), instead of 1a; supplied IaC is an OS baseline only | Project-owned product installation must be complete before rejoining Step 3 |
+| 1b | [Dedicated VMs](step-1b-dedicated-vms.md), instead of 1a; native product installation and guarded data disks | Complete its service and recovery checks before rejoining Step 3 |
 | 2a | [NAS-file database backups](#step-2-deploy-the-signal-pipelines): prepare database, commission destination, apply full stack | Complete [configuration actions 5–10](procedures/observability-platform.md#install-and-verify), then Step 3 |
 | 2b | Existing object/WAL backup destination instead of 2a's NAS preparation | Join [configuration action 8](procedures/observability-platform.md#8-render-the-complete-platform), then finish Step 2 |
 | 3 | [Infrastructure monitoring](step-3-infrastructure-monitoring.md) | Tier 0 collection and approved metric export are accepted; go to Step 4 |
@@ -80,7 +80,7 @@ flowchart TB
 The [cluster inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.tfvars.example)
 supply the existing runtime. Scope: service runtimes; backup jobs/destinations have
 their own selected configuration. This topology is not evidence of live deployment.
-The [database backup realization](../../05-operations/backups/postgresql.md) separates
+The [database backup realization](../../05-operations/06-resilience/backups/postgresql.md) separates
 Grafana's live block volumes from its scheduled NAS copies.
 
 1. Reuse the accepted [platform cluster](../stage-7-delivery/procedures/platform-cluster.md).
@@ -119,7 +119,7 @@ Stage 4 must supply a compatible PostgreSQL operator. Qualify Netdata host acces
 the node OS and Pod Security policy. A pod in a guest does not monitor the Proxmox host.
 Its two parents use separate namespaces because the chart has fixed configuration names. [4]
 
-The dedicated-VM alternative requires project-owned product installers. Its OS baseline is not
+The dedicated-VM alternative uses its native Podman/systemd product installer and guarded data disks. It is not
 another required installation alongside Kubernetes. Return to Step 3 only after equivalent
 signal/query services have been installed and accepted through that alternative.
 
@@ -270,7 +270,7 @@ Physical infrastructure is on the right; metric delivery to collectors points le
    select host/API/Redfish/IPMI collectors and prepare read-only Tier 0 identities.
 2. Configure native Netdata streams and the explicit metric bridge. Keep Proxmox/BMC
    credentials and critical alerting in Tier 0; Tier 1 receives approved metrics only.
-   These are [separate diagnostic domains](../../01-architecture/24-operations/03-telemetry.md#infrastructure-coverage),
+   These are [separate diagnostic domains](../../01-architecture/11-operations/03-observability.md#infrastructure-coverage),
    not duplicate collection of every host or mutual failover parents.
 3. Verify source coverage, stale-data alerts, parent failover and physical-host loss.
    Power off Tier 1 and prove [independent monitoring](../stage-6-secrets/procedures/independent-monitoring.md)
@@ -362,7 +362,7 @@ Changing or deleting a search copy does not change the original retained log.
 
 ## Capability available
 
-**Result:** the [Observability design](../../01-architecture/24-operations/03-telemetry.md)
+**Result:** the [Observability design](../../01-architecture/11-operations/03-observability.md)
 provides operational logs, metrics, distributed traces and scoped read-only views,
 plus Netdata diagnostics and infrastructure health, with the selected redundancy,
 recovery and loss limits demonstrated.

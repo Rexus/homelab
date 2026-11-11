@@ -1,0 +1,12 @@
+users:
+  - username: {{ observability_vm_reader_auth.username | to_json }}
+    password: {{ observability_vm_reader_auth.password | to_json }}
+    headers: ['Authorization: Basic {{ (observability_vm_metrics_auth.username ~ ':' ~ observability_vm_metrics_auth.password) | b64encode }}']
+    url_map:
+      - src_paths: ['/api/v1/query', '/api/v1/query_range', '/api/v1/series', '/api/v1/labels', '/api/v1/label/[^/]+/values', '/api/v1/metadata']
+        url_prefix:
+{% for member in observability_vm_metrics_read_members %}
+          - https://{{ observability_vm_endpoints[member] }}:8428
+{% endfor %}
+        load_balancing_policy: first_available
+        retry_status_codes: [500, 502, 503, 504]

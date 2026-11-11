@@ -65,9 +65,11 @@ class AnsibleOwnership(TierRepositoryTestCase):
                           "cluster_platform", "cluster_security_logging", "host_security",
                           "postgresql_file_backup", "data_volume"})
         self.assertEqual({p.name for p in (shared / "ansible/playbooks").iterdir()},
-                         {"control-node.yml", "site.yml", "reset-known-hosts.yml", "tasks"})
+                         {"control-node.yml", "site.yml", "reset-known-hosts.yml", "guest-ready.yml",
+                          "software-consumer.yml", "tasks"})
         tasks = shared / "ansible/playbooks/tasks"
-        self.assertEqual({p.name for p in tasks.iterdir()}, {"control-node-network-filters.yml"})
+        self.assertEqual({p.name for p in tasks.iterdir()},
+                         {"control-node-network-filters.yml", "control-node-python.yml"})
         self.assertTrue((tasks / "control-node-network-filters.yml").is_file())
         self.assertFalse((shared / "terraform").exists())
         self.assertTrue((shared / "config/guest-sizes.json").is_file())
@@ -85,9 +87,9 @@ class AnsibleOwnership(TierRepositoryTestCase):
                        "template_refresh", "vault", "syslog_ng", "openxpki", "openxpki_bundle",
                        "logging_authority", "logging_archive", "logging_backup", "infrastructure_runner",
                        "control_applications", "infrastructure_monitoring", "cluster_endpoint",
-                       "control_backup", "logging_export", "netbox_audit"},
+                       "control_backup", "logging_export", "netbox_audit", "hsm_provider", "hsm_remote"},
             "tier-1": {"gitlab_container", "podman_runner", "development_platform", "delivery_platform",
-                       "observability_platform", "development_data", "software_intake"},
+                       "observability_platform", "development_data", "software_intake", "observability_vm"},
             "tier-2": {"cache_proxy", "edge_load_balancer", "public_certificates", "public_certificate_schedule",
                        "lab_environment", "workload_telemetry"},
         }

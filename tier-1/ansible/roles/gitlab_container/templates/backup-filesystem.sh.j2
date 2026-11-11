@@ -1,0 +1,47 @@
+{% if gitlab_backup_transport == 'filesystem' %}
+{% set fs = gitlab_backup_filesystem %}
+# Adapted from development_data's runtime guard for this container's host paths.
+require_filesystem_repository() {
+  local mount='{{ fs.mount }}' repository='{{ gitlab_backup_repository }}'
+  local expected='{{ fs.mount }} {{ fs.source }} {{ fs.fstype }}'
+  local marker="$mount/.development-data-backup-target" entry free_bytes source_path
+  [[ "$mount" != / && "$repository" == "$mount/"* ]] || return 1
+  [[ "$(realpath -e -- "$mount")" == "$mount" ]] || return 1
+  [[ "$(realpath -e -- "$repository")" == "$repository" ]] || return 1
+  source_path=$(realpath -m -- '{{ gitlab_home }}')
+  [[ "$source_path" == '{{ gitlab_home }}' && "$source_path" != "$mount" &&
+     "$source_path" != "$mount/"* && "$mount" != "$source_path/"* ]] || {
+    echo 'NAS destination overlaps or aliases live GitLab storage' >&2; return 1;
+  }
+  [[ "$(findmnt -rn -M "$mount" -o TARGET,SOURCE,FSTYPE)" == "$expected" ]] || return 1
+  [[ -f "$marker" && ! -L "$marker" && "$(cat -- "$marker")" == '{{ fs.marker }}' ]] || return 1
+  # Pin relative restic writes to this filesystem even after a lazy detach.
+  cd -- "$repository"
+  [[ "$(findmnt -rn -T . -o TARGET,SOURCE,FSTYPE)" == "$expected" ]] || return 1
+  for entry in config data index keys locks snapshots; do
+    [[ ! -L "$entry" ]] || return 1
+  done
+  free_bytes=$(df --block-size=1 --output=avail .)
+  free_bytes=${free_bytes##*$'\n'}
+  free_bytes=${free_bytes// /}
+  [[ "$free_bytes" =~ ^[0-9]+$ ]] && (( free_bytes >= {{ gitlab_backup_min_free_bytes | int }} )) || return 1
+  export RESTIC_REPOSITORY=.
+{% if fs.fstype == 'cifs' %}
+  export GODEBUG=asyncpreemptoff=1
+{% endif %}
+}
+
+probe_filesystem_writes() {
+  local probe
+  probe=$(mktemp -d .gitlab-vm-write-check.XXXXXX)
+  [[ "$(stat -c '%u:%g' -- "$probe")" == '{{ fs.uid }}:{{ fs.gid }}' ]] || {
+    rmdir -- "$probe"; echo 'NAS write UID/GID differs from accepted mapping' >&2; return 1;
+  }
+  printf '%s\n' gitlab-vm-write-check > "$probe/write"
+  sync -f "$probe/write"
+  [[ "$(cat "$probe/write")" == gitlab-vm-write-check ]]
+  mv -- "$probe/write" "$probe/renamed"
+  rm -- "$probe/renamed"
+  rmdir -- "$probe"
+}
+{% endif %}

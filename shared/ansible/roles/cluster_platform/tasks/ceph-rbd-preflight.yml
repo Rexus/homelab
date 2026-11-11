@@ -1,0 +1,82 @@
+---
+- name: Require an accepted existing RBD pool and prepared Talos consumers
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_ceph_rbd_prerequisites_accepted | bool
+      - cluster_platform_talos_ceph_rbd_ready | bool
+      - cluster_platform_ceph_rbd_images_approved | bool
+      - cluster_platform_expected_nodes | length > 0
+      - cluster_platform_expected_nodes | unique | length == cluster_platform_expected_nodes | length
+      - cluster_platform_ceph_rbd_fsid is match('^[a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}$')
+      - cluster_platform_ceph_rbd_pool is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+      - "'REPLACE' not in cluster_platform_ceph_rbd_pool"
+      - cluster_platform_ceph_rbd_user_id is match('^[a-zA-Z0-9][a-zA-Z0-9_-]*$')
+      - cluster_platform_ceph_rbd_user_id | lower not in ['admin', 'bootstrap-rbd', 'bootstrap-osd']
+      - "'REPLACE' not in cluster_platform_ceph_rbd_user_id"
+      - cluster_platform_ceph_rbd_secret is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+      - cluster_platform_ceph_rbd_monitors is sequence and cluster_platform_ceph_rbd_monitors is not string
+      - cluster_platform_ceph_rbd_monitors | length > 0
+      - cluster_platform_ceph_rbd_image_features is sequence and cluster_platform_ceph_rbd_image_features is not string
+      - cluster_platform_ceph_rbd_image_features | length > 0
+      - >-
+        cluster_platform_ceph_rbd_image_features
+        | difference(['layering', 'exclusive-lock', 'object-map', 'fast-diff', 'deep-flatten']) | length == 0
+      - "'object-map' not in cluster_platform_ceph_rbd_image_features or 'exclusive-lock' in cluster_platform_ceph_rbd_image_features"
+      - "'fast-diff' not in cluster_platform_ceph_rbd_image_features or 'object-map' in cluster_platform_ceph_rbd_image_features"
+    fail_msg: >-
+      Accept an initialized existing Ceph RBD pool, pool-scoped non-admin user, FSID and monitor endpoints.
+      Prepare Talos rbd kernel support, kubelet mounts and compatible image features through its node IaC owner.
+      Approve the driver/sidecar image digests and list every intended CSI consumer node.
+
+- name: Require explicit Ceph monitor host and port endpoints
+  ansible.builtin.assert:
+    that:
+      - item is match('^([a-zA-Z0-9][a-zA-Z0-9.-]*|\[[a-fA-F0-9:]+\]):[0-9]{1,5}$')
+      - item.rsplit(':', 1)[1] | int > 0
+      - item.rsplit(':', 1)[1] | int <= 65535
+      - "'REPLACE' not in item"
+      - "'.example.com:' not in item"
+    fail_msg: Supply reachable Ceph monitor endpoints as host:port or [IPv6]:port, without protocol prefixes.
+  loop: "{{ cluster_platform_ceph_rbd_monitors }}"
+
+- name: Validate explicitly owned Ceph credentials without rendering them
+  ansible.builtin.assert:
+    that:
+      - credential.get('userID', '') == cluster_platform_ceph_rbd_user_id
+      - credential.get('userKey', '') | length > 0
+      - "'REPLACE' not in credential.get('userKey', '')"
+    fail_msg: Supply the pool-scoped userID and userKey through the private managed Secret contract.
+  vars:
+    credential: "{{ cluster_platform_secrets.get('ceph-csi-rbd/' ~ cluster_platform_ceph_rbd_secret, {}) }}"
+  when: cluster_platform_manage_secrets | bool
+  no_log: true
+
+- name: Read independently owned Ceph credentials before any installation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_platform_kubeconfig }}"
+    context: "{{ cluster_platform_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: ceph-csi-rbd
+    name: "{{ cluster_platform_ceph_rbd_secret }}"
+  register: cluster_platform_ceph_rbd_credentials
+  when:
+    - cluster_platform_action == 'apply'
+    - not cluster_platform_manage_secrets | bool
+  no_log: true
+
+- name: Require the accepted scoped identity in the existing Ceph Secret
+  ansible.builtin.assert:
+    that:
+      - cluster_platform_ceph_rbd_credentials.resources | length == 1
+      - credential.get('userID', '') | b64decode == cluster_platform_ceph_rbd_user_id
+      - credential.get('userKey', '') | b64decode | length > 0
+      - "'REPLACE' not in (credential.get('userKey', '') | b64decode)"
+    fail_msg: The existing Ceph Secret must contain the accepted scoped userID and a nonempty userKey.
+  vars:
+    credential: "{{ (cluster_platform_ceph_rbd_credentials.resources | first | default({})).get('data', {}) }}"
+  when:
+    - cluster_platform_action == 'apply'
+    - not cluster_platform_manage_secrets | bool
+  no_log: true

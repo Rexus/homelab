@@ -1,0 +1,20 @@
+---
+- name: Start or reconcile the native Netdata parent or child
+  ansible.builtin.systemd_service:
+    name: obs-netdata.service
+    daemon_reload: true
+    state: "{{ 'restarted' if observability_vm_netdata_restart | bool else 'started' }}"
+
+- name: Verify the diagnostic HTTPS API on this guest
+  ansible.builtin.uri:
+    url: >-
+      https://{{ observability_vm_endpoints[inventory_hostname] }}:{{ observability_vm_netdata_diagnostics_port }}/api/v1/info
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+    return_content: true
+  register: observability_vm_netdata_health
+  until: >-
+    observability_vm_netdata_health.status | default(0) == 200 and
+    inventory_hostname in observability_vm_netdata_health.json.mirrored_hosts | default([])
+  retries: 30
+  delay: 5

@@ -1,0 +1,12 @@
+---
+# Called by the owning tier before facts, packages or service configuration on cloned guests.
+- name: Wait for the selected managed guests
+  hosts: "{{ guest_ready_group }}"
+  gather_facts: false
+  tasks:
+    - name: Wait for CloudInit SSH and remote Python to become usable
+      ansible.builtin.wait_for_connection:
+        delay: "{{ platform_wait_for_connection_delay | default(0) }}"
+        sleep: "{{ platform_wait_for_connection_sleep | default(5) }}"
+        connect_timeout: "{{ platform_wait_for_connection_connect_timeout | default(5) }}"
+        timeout: "{{ platform_wait_for_connection_timeout | default(300) }}"

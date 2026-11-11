@@ -19,6 +19,159 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Final handover review, 2026-11-11
+
+Scope: the complete pending change set, all ten stage routes, generated repositories,
+capability-to-source correspondence and maintenance/recovery handoffs. No live deployment was run.
+
+- Align the optional hardware-provider/remoting and independent signing-API routes with their actual
+  stages, separate state and recovery ownership; retain PKI/HashiCorp Vault as the initial path.
+- Complete the project deployment checklist's CSI, human SSO, registry and hosting options without
+  resetting existing completion records. Correct final architecture/operations and source links.
+- Pass the selected ordered configuration overlays into controller prechecks as well as deployment;
+  reject an unselected software-consumer group before contacting any guest.
+- Preserve the saved template plan's context artifact in protected CI and reuse the tier-owned
+  dependency catalog for immutable builds.
+- Resolve extra-disk classes lazily: explicit datastores work with an empty class map, omitted classes
+  inherit the VM datastore and unknown selected classes fail before resource changes.
+- Refuse template replacement of ordinary VMs. Refuse backup initialization over partial repositories,
+  linked configurations or recovered filesystem data; retain original files on rejection.
+- Scan history with redacted Gitleaks output. Six exact historical public-stage-name test assertions
+  are documented false positives; only those fingerprints are excluded, not their files or rules.
+- Complete seal/signing option metadata and record the independent log-backup VM's reservation in
+  the central VMID reference. Update assertions for readiness/prechecks and native product installers
+  while retaining baseline ordering, controller-interpreter, evidence and ownership guarantees.
+
+Validation is combined evidence, not one clean all-native suite:
+
+- Broad portable run: 725 methods, 322 tool-dependent skips. Twelve failed methods exposed guide
+  metadata/wording gaps and stale contract assumptions; all passed in the final ten-method and
+  four-method reruns. The latter also rechecks every VMID allocation/category and collision guard.
+- All 230 source/generated playbook syntax invocations and two baseline host-list checks passed.
+- All 27 native Terraform VM mock cases passed across the three tiers. Four focused safety tests
+  passed, including preservation of ordinary VM disks, partial repositories and recovered data.
+- Native Ceph chart rendering passed for all three tiers, and the NFS contract passed, using the
+  accepted Core 2.16.16/setuptools 81 environment. The newer fixture's incompatible setuptools
+  stopped at precheck before rendering; no dependency guard was weakened.
+- Controller execution/input-overlay, signing, bootstrap and source/generated navigation checks
+  passed in their scoped runs. Redacted scans passed for 129 commits and staged source changes;
+  whitespace checks passed. No runtime/private artifacts were selected for the index.
+
+This handover prepares the index for the owner's signed commit. It does not commit or push.
+Physical HSM qualification, live SSO/failover and clean-target recovery remain separate acceptance.
+
+### Deployment automation audit, 2026-11-11
+
+Scope: Foundation and every numbered deployment/option, source inputs through native resources and
+generated repositories. No real infrastructure, key authority or remote state was changed.
+
+- [x] Remove post-bootstrap guest SSH setup; retain explicit physical/offline custody interfaces.
+- [x] Align all 16 Linux VM root contracts with native firmware, clone, NIC, media, disk and lifecycle
+  settings. Preserve the private gateway's distinct-host guard. All 21 roots validate; 97 native
+  provider-mocked VM/LXC/template/cluster/gateway cases passed across the final scoped runs.
+- [x] Supply native Ceph RBD CSI alongside retained existing/NFS interfaces, with scoped credentials,
+  Talos preparation and selected storage before consumers.
+- [x] Supply seven-host native observability installation, protected persistence and scoped UIs.
+- [x] Supply GitLab VM OIDC, scheduled encrypted exports, sensitive controller access and isolated recovery.
+- [x] Supply Vault VM audit/OIDC API reconciliation and configurable VM/Kubernetes seal interfaces;
+  refuse implicit seal changes. Independent recovery can mount a configured native NAS export.
+- [x] Supply pre-Headlamp public PKCE/RBAC workflow and Kubernetes-native backup-repository commissioning.
+- [x] Correct integrated controller-runtime fixtures and native Spinnaker commissioning rendering;
+  preserve behavioral assertions and source/generated correspondence.
+- [x] Supply initial bootc image build, shared PKCS#11 remoting and independent OpenBao external-key
+  signing selected during this review. Keep PKI/HashiCorp Vault first and advanced options distinct.
+- [x] Bound collection versions for the OS Ansible baseline, reject unsupported Proxmox runtimes before
+  acquisition, align manifests/catalogs and include the OpenBao host client's cryptographic dependency.
+- [x] Guard ordinary OpenXPKI PKCS#11 activation as well as direct key operations; reject unaccepted
+  custody and factory credentials without preventing inactive installation.
+- [ ] Complete physical HSM, live SSO/failover, NAS and clean-target recovery acceptance independently.
+
+Native Collector and Data Prepper parsers accepted the dedicated VM inputs. Isolated native backup,
+key-identity, seal-migration and original-state guards passed. Completed final scoped checks include:
+
+- 18 controller/VM-contract/data-binding/Vault/bootc checks; 21 reader/navigation/source-view checks.
+- 312 source/generated playbook and task syntax checks, plus 54 updated HSM task checks.
+- 17 compatibility checks with 11 installed collection versions supporting Core 2.16; Proxmox refuses
+  that runtime and requires its separately prepared newer environment.
+- 15 final activation/Vault/OpenBao checks on the declared compatible runtime: 12 passed, three
+  artifact-dependent repeats skipped. The separate native OpenBao run passed all nine tests using
+  OpenBao 2.7.2, PKCS11 plugin 0.2.1 and SoftHSM 2.6.1, including real RSA-PSS/P-256 signing,
+  certificate authorization, idempotence and the artifact-only route.
+- Provider suite: eight passed; direct issuer guards: three passed including 12 rejection cases.
+  Native remoting: four passed, one Node-dependent test skipped and passed separately on Windows.
+  Native p11-kit/OpenSSH/SoftHSM tests cover SPKI identity, denial, extra-key refusal and reconnection.
+- Eleven changed figures rendered in both light/normal and dark/narrow views; source/generated
+  palette, allocation, link and diagram/input checks passed. Netdata CLI checking remains skipped
+  without its matching executable; fourteen focused VM service tests and Collector validation passed.
+- Native PKCS1-to-PKCS8 conversion also passed on the bounded crypto collection, preserving public
+  identity through rerun and key rotation.
+
+Physical YubiHSM/PicoHSM, live PC/SC, enforcing EL10 policy, application/HSM failover, SSO and disaster
+recovery remain target acceptance. Automatic review blocked fixture cleanup of WSL's generic `sshd`
+account because ownership was not uniquely established. It was left untouched; the fixture now
+requires that OS account to exist and never creates/removes it.
+
+### Controller-owned guest setup, 2026-11-11
+
+- [x] Cross-check every active Terraform extra-disk reference against its service's stable
+  by-id selector in source and generated repositories: cache, receiver, issuer and verified intake,
+  plus the independent backup starter. Correct stale disk-letter references; preserve local UUID pins.
+- [x] Replace Stage 2 action 1.4's interactive SSH with the storage-only Ansible recipe.
+  Terraform allocates the guest/scsi1 disk; Shared prepares and verifies its filesystem/UUID mount
+  before receiver TLS enrollment. Receiver verification and diagnostics run from the controller.
+- [x] Wait for managed guests before facts/configuration, including issuer, logging, runner,
+  VM delivery, lab and diagnostic paths. GitLab data-host waiting follows its controller checks.
+  Prepare the receiver firewall and retained deployment SSH port through native modules.
+- [x] Supply guarded public issuer-certificate transfer and separately selected native token
+  operations from the controller. Offline signing/custody approval remains outside guest setup.
+- [x] Supply native RPM/APT consumer source/trust configuration and strict refresh through
+  tier-owned entry points using Shared execution code. Retain vendor keyrings and backup replaced APT files.
+- [x] Supply runner collection handover, state digest validation, public keys, known-host trust
+  and non-secret CI environment deployment. Preserve executability, exclude bootstrap environment
+  and provider/plan caches, distinguish authoritative state from disposable backend metadata,
+  refuse different destination state and retain the stopped-writer boundary.
+- [x] Add the optional managed recovery VM/disk definition to syslog inputs; use the stable
+  scsi1 device instead of Linux letter ordering. Existing independent hosts remain adoption interfaces.
+  Replace manual Kubernetes clone/bootstrap instructions with accepted existing-cluster adoption.
+- [x] Pass final targeted controller/guard/syntax and reader-route checks with Ansible Core 2.16,
+  generated-source link checks and native rsync copy verification. Exercise real filesystem creation,
+  persistent UUID mount, rerun, growth and replacement-disk refusal on disposable XFS and ext4 loops
+  in private mount namespaces. Render and inspect the compact syslog provisioning view.
+
+These are source/offline checks; no live Proxmox, issuer, runner or service deployment was performed.
+
+### Numbering and operations follow-through, 2026-11-11
+
+- [x] Renumber architecture chapters 01–11 and close gaps in the nested Hosting and
+  Software Intake files. Keep installation order with the ten deployment stages.
+- [x] Consolidate Operations into six domain entries matching the designs, with local
+  configuration, executable tasks and recovery links before deeper reference material.
+  Replace thin per-stage landing folders with the actual runbook or shared task home.
+- [x] Update incoming links, source-side guide references, generated templates and migration
+  destinations. Keep retired numbered aliases only while project-owned records reference
+  them; retain legacy routes separately and preserve original section anchors.
+- [x] Pass focused documentation, graph/reachability, refresh, reader-journey, diagram and
+  ten-stage correspondence checks across the final runs. Correct the new migration test's
+  existing-parent fixture and rerun it successfully with the final links and review checks.
+- [x] Validate all 21 Terraform roots and pass 94 native mock cases in isolation.
+  Render 47 architecture figures; inspect the updated HTTP/HTTPS sequence on light/normal
+  and dark/narrow pages. No live deployment or hosted-renderer acceptance was performed.
+
+### Architecture reading and consolidation, 2026-11-11
+
+- [x] Group architecture by substantive domain rather than duplicating deployment-stage
+  landing pages: Hosting owns Kubernetes/labs, Cryptography owns trust/secrets,
+  Delivery owns development, and Operations owns logging/observability.
+- [x] Separate background from organizational authority; place communication sequences
+  beside their capability and explain which decision each chapter supports.
+- [x] Reduce 46 pages/15 chapter folders to 37 pages/10 folders, update current links and
+  migration targets, and retain needed numbered aliases for project-owned Markdown links.
+- [x] Check the 81 documentation, navigation, migration, refresh and correspondence cases
+  across focused runs after fixes. Render all 47 architecture figures locally; inspect
+  changed views at normal/narrow widths on light/dark pages. Hosted-renderer parity is unverified.
+
+No infrastructure definitions or live resources were changed by this documentation work.
+
 ### Template OS classification, 2026-11-11
 
 - [x] Expand Linux-family choices with generic Linux, Windows and other guests;
@@ -74,9 +227,9 @@ growth still need the isolated native storage fixture or target acceptance.
   Windows client acceptance without treating a design or local check as a live result.
 - [ ] Qualify the selected paths on the target infrastructure, including recovery and failover.
 
-The dedicated observability VM path still needs project-owned services; HSM variants and
-GitLab VM OIDC need integration. Lab self-service allocation and its portal are not supplied.
-Foundation hosts, networking and storage are commissioned prerequisites.
+The follow-up automation audit above supersedes this pass's observability, HSM-provider and
+GitLab VM OIDC implementation gaps. Lab self-service allocation and its portal are not supplied.
+Foundation hosts, networking and storage remain commissioned prerequisites.
 
 Verification: focused WSL runs passed 27 navigation/migration/ownership checks and
 32 capability, generated-documentation and deployment-path checks (the runs overlap).
@@ -312,9 +465,9 @@ Live acceptance remains [INTAKE-6–9](operational-verification.md#software-inta
 Proposal-completeness review, 2026-11-10: the core staged-intake installer is supplied;
 the following implementation/integration work remains before the entire proposal is covered:
 
-- [ ] Replace [manual consumer repository edits](../docs/03-deployment/stage-3-trust/step-3b-verified-consumers.md)
-  with tier-owned RPM/APT configuration inputs and recipes. Preserve vendor keys, metadata policy,
-  pinned versions and strict refresh failures; qualify independent network bypass denial.
+- [x] Supply [tier-owned native consumer recipes](../docs/03-deployment/stage-3-trust/step-3b-verified-consumers.md)
+  for RPM/APT selections, publisher keyrings, public trust and strict metadata refresh.
+  Independent network bypass denial remains a live acceptance check, not an Ansible assertion.
 - [ ] Add intake-specific health metrics and severity-based alerts: definition age, scanner/job
   failure, last successful intake and quarantine/storage capacity. Generic Netdata/OpenSearch
   installation and local error-priority syslog events do not supply these rules.
@@ -566,7 +719,7 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Foundation | [Preparation](../docs/03-deployment/foundation/README.md) | Network, access, templates and recovery precede capability deployment; live commissioning required |
 | Software intake | [Stage 1](../docs/03-deployment/stage-1-software-intake/README.md) | Early Squid/VIP path; independent bootstrap supply and later repository/Harbor extensions; no complete patch controller |
 | Logging | [Stage 2](../docs/03-deployment/stage-2-logging/README.md) | Linux/NAS recipes supplied; actual NAS custody, devices, bounded-loss fault and restore acceptance outstanding |
-| Trust | [Stage 3](../docs/03-deployment/stage-3-trust/README.md) | Software PKI and file/journal forwarding supplied; qualify packages, actual CA audit scope, ceremonies and live acceptance; hardware remains integration |
+| Trust | [Stage 3](../docs/03-deployment/stage-3-trust/README.md) | Software PKI, native YubiHSM/PicoHSM provider and original-key issuer operations supplied; qualify physical mechanisms, CA audit, ceremonies and live recovery |
 | Kubernetes | [Stage 4](../docs/03-deployment/stage-4-kubernetes/README.md) | Native node/platform/audit recipes; independent endpoint, storage, enrollment and live acceptance required |
 | Identity | [Stage 5](../docs/03-deployment/stage-5-identity/README.md) | Dedicated directory, Keycloak/LDAP and staged Kubernetes SSO; ceremony, accounts and live denial/recovery acceptance required |
 | Secrets | [Stage 6](../docs/03-deployment/stage-6-secrets/README.md) | Native cluster Vault/NetBox/Headlamp and independent monitoring; initialization and qualified recovery custody required |
@@ -579,13 +732,14 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Redundant logging | [Logging 3b](../docs/03-deployment/stage-2-logging/step-3b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
 | NAS-backed evidence | [Logging 3c](../docs/03-deployment/stage-2-logging/step-3c-nas-archive.md) | Checkpoint/backup/audit-view recipes supplied; NAS-owned snapshots/accounts and live failure/access proof remain commissioning |
 | Retention-locked evidence | [Logging 3d](../docs/03-deployment/stage-2-logging/step-3d-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |
-| Replicated USB HSM | [Trust 1b](../docs/03-deployment/stage-3-trust/step-1b-usb-hsm.md) | Host pool and optional snippet only; provider/application/key readiness and endpoint require implementation |
+| Shared USB HSM | [Trust 1b](../docs/03-deployment/stage-3-trust/step-1b-usb-hsm.md) | Native host/provider/remoting installation and original-key checks; physical key copies, application sessions and actual failure recovery remain acceptance |
 | Network HSM | [Trust 1c](../docs/03-deployment/stage-3-trust/step-1c-network-hsm.md) | Vendor commissioning/client/HA procedure required |
 | Single USB device | [Trust 1d](../docs/03-deployment/stage-3-trust/step-1d-single-usb.md) | Custody/backup procedure required; availability is not inferred from a token |
-| Manual cluster | [Kubernetes 1b](../docs/03-deployment/stage-4-kubernetes/step-1b-manual-cluster.md) | Valid alternative lifecycle owner; adoption/restore distinct from fresh bootstrap |
+| Existing managed cluster | [Kubernetes 1b](../docs/03-deployment/stage-4-kubernetes/step-1b-existing-cluster.md) | Existing IaC lifecycle owner; adoption/restore distinct from fresh bootstrap |
 | Vault VM | [Secrets 1b](../docs/03-deployment/stage-6-secrets/step-1b-vault-vm.md) | Supplied host/service recipe; initialization, authorization, audit forwarding and restore remain explicit |
 | Seal choice | [Secrets 1c](../docs/03-deployment/stage-6-secrets/step-1c-seal-integration.md) | Shamir/Transit/PKCS#11 capability and edition checks; no automatic migration |
-| Observability VMs | [Observability 1b](../docs/03-deployment/stage-8-observability/step-1b-dedicated-vms.md) | Separate-role fallback to Tier 1 Kubernetes; baseline only, not Tier 0 monitoring |
+| Observability VMs | [Observability 1b](../docs/03-deployment/stage-8-observability/step-1b-dedicated-vms.md) | Native seven-host products, data mounts and two-parent/five-child Netdata; live service/recovery checks remain separate from Tier 0 monitoring |
+| Independent signing API | [Secrets 1d](../docs/03-deployment/stage-6-secrets/step-1d-openbao.md) | Native OpenBao/plugin and original external-key mappings, scoped certificate clients and audit; native software-token integration passed, actual Yubi/Pico/HA/recovery proof remains |
 | Operator hardware authentication | [Secrets 3b](../docs/03-deployment/stage-6-secrets/step-3b-hardware-authentication.md) | Enrollment and lost-token recovery are manual; retain break-glass access |
 | Argo CD | [Delivery 2a](../docs/03-deployment/stage-7-delivery/step-2a-argocd.md) | Native installation guide; restricted projects, SSO, destination and rollback acceptance required |
 | Spinnaker | [Delivery 2b](../docs/03-deployment/stage-7-delivery/step-2b-spinnaker.md) | Native installation guide; storage, service identities and pipeline commissioning required |
@@ -598,14 +752,14 @@ inspected. Every selected path still needs its own live acceptance evidence.
 - [ ] **P2: First useful private app.** Provide one small, complete service example from
   owner/allocation through deployment, authentication, TLS, scoped logs and restoration;
   avoid requiring every optional platform service merely to validate an application.
-- [x] **P2: Household/team procedures.** [Access lifecycle](../docs/05-operations/access-lifecycle.md)
+- [x] **P2: Household/team procedures.** [Access lifecycle](../docs/05-operations/04-identity.md)
   covers client/guest/IoT networks, outage behavior, role scopes and join/leave duties.
   Actual per-product mappings, session/token withdrawal and denied access remain live checks;
   no automatic cross-product role synchronizer is claimed.
 - [ ] **P2: Remote entry and publication.** Public HTTP-01, origin verification and renewal
   now have a concrete guide/recipes. A chosen VPN/admin-entry path, complete private-app path
   and live DNS/NAT/IPv6, expiry-alert and failover checks are still needed.
-- [x] **P2: Upgrade and hardware procedures.** [Maintenance](../docs/05-operations/maintenance.md)
+- [x] **P2: Upgrade and hardware procedures.** [Maintenance](../docs/05-operations/01-hosting/maintenance.md)
   defines compatibility, recovery, canary/serial health gates and host replacement.
   No universal automatic patch or rolling-upgrade controller is supplied.
 - [ ] **P2: State and local inputs.** Test OS file permissions, encrypted off-host copies,
@@ -626,7 +780,7 @@ inspected. Every selected path still needs its own live acceptance evidence.
   Add tier-owned maintenance recipes, test rings, reboot/health gates and patch-status evidence;
   Tier 1 content services must not acquire Tier 0 execution credentials. Product selection and
   implementation for those additions remain open; transparent/TLS-intercepting proxy modes are not supplied.
-  The [staged verification/quarantine contract](../docs/01-architecture/13-software-intake/02-verification.md)
+  The [staged verification/quarantine contract](../docs/01-architecture/07-software-intake/01-verification.md)
   defines policy, ownership and failure behavior; distinguish its implemented Linux reference from
   unimplemented target types and from site acceptance.
 - [ ] **P3: Reading density.** Split historic generated-repository upgrade detail away from

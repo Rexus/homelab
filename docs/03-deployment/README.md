@@ -1,5 +1,11 @@
 # Deployment
 
+The first manual template and bootstrap establish the execution host. Subsequent new guests,
+attached disks, filesystems, mounts, packages and service configuration are deployed through IaC
+from that controller. The guides use Ansible or the product API for remote checks; normal installation
+does not require an interactive guest login. Existing accepted services, physical equipment,
+external storage custody and offline signing approvals retain their stated owners.
+
 Verify the unnumbered [foundation prerequisites](foundation/README.md), then choose
 the capability to deploy and follow its main README from Step 1 onward.
 Start with [Software intake](stage-1-software-intake/README.md), using verified
@@ -99,14 +105,15 @@ use their dedicated scripts. Every command runs from the named repository root.
 
 | Repository | Entry point | Capability / when | Walkthrough |
 | --- | --- | --- | --- |
-| Tier 0 | `templates` | Foundation: approved source images | [Publication](../05-operations/virtual-machines/template-lifecycle.md#local-workflow) |
+| Tier 0 | `templates` | Foundation: approved source images | [Publication](../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow) |
 | Tier 0 | `template-refresh` | Foundation or maintenance: Linux image refresh | [Linux templates](foundation/proxmox/templates.md) |
 | Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1-3](stage-2-logging/README.md) |
 | Tier 0 | `foundation` | Stages 3/5/6: issuer/directory resources and optional independent monitor | [Trust](stage-3-trust/README.md), [directory deployment](stage-5-identity/procedures/freeipa.md), [monitor provisioning](stage-6-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
-| Tier 0 | `hsm` | Stage 3 option: signing-service host pool | [USB HSM option](stage-3-trust/step-1b-usb-hsm.md) |
+| Tier 0 | `hsm` | Stage 3 option: native USB/provider hosts; issuer binding and PKCS#11 remoting use their explicit recipes | [USB HSM option](stage-3-trust/step-1b-usb-hsm.md), [remoting](stage-3-trust/procedures/pkcs11-remoting.md) |
 | Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1-3](stage-4-kubernetes/README.md) |
 | Tier 0 | `cluster-endpoint` | Before Stage 4/7/10: private independent API gateways | [API endpoint](stage-4-kubernetes/procedures/api-endpoint.md) |
 | Tier 0 | `vault` | Stage 6 option: dedicated secrets VM | [Vault VM option](stage-6-secrets/step-1b-vault-vm.md) |
+| Tier 0 | `vault` with separate `signing` inputs/environment, then `deployment/openbao-signing.yml` | Stage 6 option 1d: independent OpenBao guests/state and signing API; retains existing HashiCorp Vault | [Independent signing API](stage-6-secrets/step-1d-openbao.md) |
 | Tier 0 | `immutable-template` | Stage 9 option: image-based Linux builds | [Image-based Linux](stage-9-development/step-2c-image-based-linux.md) |
 | Tier 0 | `infrastructure-runner` | Stage 9: dedicated trusted infrastructure CI VM | [Runner](stage-9-development/procedures/infrastructure-runner.md) |
 | Tier 0 | `ci-auth` | Stage 9: Vault JWT backend, bounded claims and policies; native Vault root | [Vault CI](stage-9-development/procedures/vault-ci.md) |
@@ -115,7 +122,7 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Tier 1 | `development` | Stage 9 option: source-control VM | [Source-control VM](stage-9-development/step-1b-source-control-vm.md) |
 | Tier 1 | `development-data` | Stage 9: dedicated PostgreSQL, Redis and Gitaly VMs | [GitLab data services](stage-9-development/procedures/data-services.md) |
 | Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-9-development/step-2b-podman-runner.md) |
-| Tier 1 | `observability` | Stage 8 alternative: dedicated VM foundations; baseline only | [Observability](stage-8-observability/README.md), [VM recipe](stage-8-observability/step-1b-dedicated-vms.md) |
+| Tier 1 | `observability` | Stage 8 alternative: native dedicated VM products and guarded data disks | [Observability](stage-8-observability/README.md), [VM recipe](stage-8-observability/step-1b-dedicated-vms.md) |
 | Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 4](stage-1-software-intake/README.md#step-4-deploy-the-cache-pair) |
 | Tier 2 | `edge` | Stages 7/10: public service entry | [Edge deployment](stage-7-delivery/procedures/edge-proxy.md) |
 | Tier 2 | `kubernetes` | Stage 10: workload cluster | [Workload runtime](stage-10-lab-environments/README.md#step-2-provision-the-workload-runtime) |
@@ -125,6 +132,9 @@ Entry points are not one-to-one with stages: the Tier 0 `foundation` root plans 
 selected issuer/directory guests together; service configuration follows its stage.
 Stages never rename state roots or authorize removal of earlier resources. Product
 integration is distinguished from supplied automation in the [support map](../08-reference/implementation-support.md).
+The HSM provider/remoting path does not install an application signing API. Stage 6 option 1d
+adds that independent service only when selected; its guide supplies the separate inventory,
+environment inputs, ceremony and API configuration commands.
 
 GitLab and Kubernetes job runners use the separate Tier 1
 [application recipe](stage-9-development/procedures/gitlab.md), not a Terraform VM setup.
@@ -200,7 +210,7 @@ or a required acceptance gate. Maintenance that changes a system through another
 tool can also require a separate Terraform state-reconciliation phase; those steps
 remain distinct from the initial installation plan.
 
-The [reference platform](../01-architecture/06-reference-platform.md) owns the complete
+The [reference platform](../01-architecture/03-reference-platform.md) owns the complete
 design. Stages realize parts of it; [readiness](readiness.md) records what is verified.
 
 ## Implementation scope
@@ -214,7 +224,7 @@ design choice, not a claim of a validated OpenTofu drop-in workflow.
 
 Continue with [operations](../05-operations/README.md) for recurring operation
 and [development](../04-development/README.md) for implementation changes.
-Retain [recovery inputs](../05-operations/recovery.md) independently of hosted
+Retain [recovery inputs](../05-operations/06-resilience/README.md) independently of hosted
 services. Tier 0 recovery and root ceremonies never depend on normal Tier 1 CI.
 
 Refresh updates references without moving infrastructure or replacing project

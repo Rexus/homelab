@@ -1,0 +1,70 @@
+---
+- name: Inspect the fixed workspace boundary without following symlinks
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - /var/lib/bootc-image-builder
+    - "{{ immutable_template_image_workdir }}"
+    - "{{ immutable_template_image_workdir }}/request.json"
+    - "{{ immutable_template_image_workdir }}/output"
+    - "{{ immutable_template_image_workdir }}/output/qcow2"
+    - "{{ immutable_template_image_workdir }}/output/qcow2/disk.qcow2"
+    - "{{ immutable_template_image_workdir }}/result.json"
+  register: immutable_template_image_paths
+
+- name: Refuse symlinks and paths outside root-owned build custody
+  ansible.builtin.assert:
+    that:
+      - not item.stat.exists or not item.stat.islnk
+      - not item.stat.exists or item.stat.uid == 0
+    fail_msg: Build paths must be real root-owned paths; this role never adopts symlinked or foreign output.
+  loop: "{{ immutable_template_image_paths.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Reject an existing revision without its ownership record
+  ansible.builtin.assert:
+    that:
+      - not immutable_template_image_paths.results[1].stat.exists or immutable_template_image_paths.results[2].stat.exists
+      - not immutable_template_image_paths.results[5].stat.exists or immutable_template_image_paths.results[6].stat.exists
+    fail_msg: >-
+      Revision output is unowned or incomplete. Select a new revision; inspect interrupted output separately.
+      Existing artifacts are never overwritten or recursively removed.
+
+- name: Read the existing build request without exposing configuration
+  ansible.builtin.slurp:
+    src: "{{ immutable_template_image_workdir }}/request.json"
+  register: immutable_template_image_previous_request
+  when: immutable_template_image_paths.results[2].stat.exists
+  no_log: true
+
+- name: Refuse changed inputs under the same revision
+  ansible.builtin.assert:
+    that:
+      - immutable_template_image_previous_request.content | b64decode | from_json == immutable_template_image_request
+    fail_msg: Changed OS/product digests, filesystem or configuration require a new image revision.
+  when: immutable_template_image_paths.results[2].stat.exists
+  no_log: true
+
+- name: Prepare the dedicated revision directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - /var/lib/bootc-image-builder
+    - "{{ immutable_template_image_workdir }}"
+    - "{{ immutable_template_image_workdir }}/output"
+
+- name: Record the immutable build request
+  ansible.builtin.copy:
+    content: "{{ immutable_template_image_request | to_nice_json }}"
+    dest: "{{ immutable_template_image_workdir }}/request.json"
+    owner: root
+    group: root
+    mode: "0600"
+    force: false
+  no_log: true

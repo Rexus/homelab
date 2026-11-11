@@ -1,0 +1,34 @@
+# Optional extension after local provider/issuer acceptance; never required for PKI.
+# Schema: roles/hsm_remote/defaults/main.yml
+# Guide: docs/03-deployment/stage-3-trust/procedures/pkcs11-remoting.md
+hsm_remote_enabled: true
+hsm_remote_pool_id: signing
+hsm_remote_family: yubihsm2  # Alternative: picohsm, on BOTH backends; never mix wrapped backups.
+hsm_remote_single_key_custody_confirmed: false  # Set true after verifying one private key per token.
+hsm_provider_custody_ready: false  # Set true only after changing factory credentials and testing recovery.
+hsm_remote_p11kit_version: REPLACE_WITH_QUALIFIED_COMMON_UPSTREAM_VERSION
+hsm_remote_key_id: "01"
+hsm_remote_expected_spki_sha256: REPLACE_WITH_64_LOWERCASE_HEX_ORIGINAL_SPKI_SHA256
+hsm_remote_backends:
+  hsm-1:
+    host: 10.20.21.20
+    serial: REPLACE_WITH_FIRST_PKCS11_SERIAL
+    host_public_keys: ["ssh-ed25519 REPLACE_WITH_ACCEPTED_FIRST_HOST_PUBLIC_KEY"]
+  hsm-2:
+    host: 10.20.21.21
+    serial: REPLACE_WITH_SECOND_PKCS11_SERIAL
+    host_public_keys: ["ssh-ed25519 REPLACE_WITH_ACCEPTED_SECOND_HOST_PUBLIC_KEY"]
+hsm_remote_clients:
+  signing-app:
+    public_key: "ssh-ed25519 REPLACE_WITH_DEDICATED_APPLICATION_PUBLIC_KEY"
+    sources: [10.20.22.30/32]
+# For client playbooks, target an existing application group and account:
+# hsm_remote_client_hosts: vault
+# hsm_remote_client_id: signing-app
+# hsm_remote_client_user: openbao
+# hsm_remote_client_private_key_src: /PROTECTED/CONTROLLER/INPUTS/signing-app.key
+# HSM_REMOTE_PIN supplies the nonfactory PIN through the controller environment.
+# probe_sign defaults true: a native sign/verify test consumes an operation, but creates no key.
+# PicoHSM hosts also need hsm_provider_pcsc_readers with their exact accepted PCSC reader names.
+# hsm_remote_firewall: auto  # Reconcile active firewalld; select firewalld to enable it explicitly.
+# hsm_remote_firewalld_zone: public  # Otherwise uses the host's configured default zone.

@@ -1,5 +1,11 @@
 ---
 # Existing independent Tier 0 monitoring host; no cluster or archive credentials.
+- name: Prepare selected deployment tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: netbox-audit
+    control_node_require_terraform: false
+
 - name: Require one selected independent audit collector
   hosts: localhost
   connection: local

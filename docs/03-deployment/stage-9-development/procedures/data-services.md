@@ -73,7 +73,7 @@ per-host contract; no manual guest mount is required for the normal route.
 Restrict each identity to its own backup area. Set
 `development_data_backup_custody_accepted=true` only after independent copies and
 retention are configured: a data host's writable repository alone is not protected
-retention. The [storage-interface choice](../../../01-architecture/12-data/README.md#storage-interfaces)
+retention. The [storage-interface choice](../../../01-architecture/06-data/README.md#storage-interfaces)
 adds no storage service. An existing object endpoint is a prerequisite for the chart;
 file-backed application variants do not change the chart's requirements.
 
@@ -117,7 +117,7 @@ choose its exact release/build, verified image and checksum, approve the clone,
 and retain its existing approved catalog reference. No new public template slot
 or catalog-ID reassignment is required. An Alma/Rocky family label alone does not
 establish the major version; the data role validates the actual guest as EL9
-before package installation. See [template lifecycle](../../../05-operations/virtual-machines/template-lifecycle.md).
+before package installation. See [template lifecycle](../../../05-operations/01-hosting/templates/template-lifecycle.md).
 
 ## 3. Provision only the VMs
 
@@ -358,7 +358,7 @@ Complete this section after [GitLab installation](gitlab.md#render-and-install),
 The data-service installation alone does not deploy the toolbox.
 
 Each VM receives a root-only restic job and `development-data-backup.timer`.
-Select [direct NAS file storage or existing SFTP](../../../05-operations/backups/gitlab-data.md)
+Select [direct NAS file storage or existing SFTP](../../../05-operations/06-resilience/backups/gitlab-data.md)
 and qualify the mount, independent credentials, schedule and failure budget.
 Live PostgreSQL/Redis/Gitaly data stays on Proxmox/Ceph-backed VM disks.
 The job's cold component copy causes a maintenance outage, not an atomic GitLab-wide
@@ -382,11 +382,13 @@ Secrets; export the release's Secrets/configuration into the independent recover
 kit. Copy object versions and toolbox backups under independent storage credentials; versioning
 on the same object-storage deployment alone is not an independent backup. [5][8]
 
-For first acceptance, run on **each data VM** (`db-1`, `kv-1`, `repo-1`) during the accepted maintenance window:
+For first acceptance, trigger each data VM's existing backup through Ansible during the
+accepted maintenance window. Run from **`<prefix>-tier-1/`**:
 
 ```bash
-sudo systemctl start development-data-backup.service
-sudo systemctl status development-data-backup.service development-data-backup.timer --no-pager
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible development_data --playbook-dir ansible \
+  -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/development_data.yml \
+  --become -m ansible.builtin.systemd_service -a 'name=development-data-backup.service state=started'
 ```
 
 Require successful jobs and inspect restic snapshots. Then perform a

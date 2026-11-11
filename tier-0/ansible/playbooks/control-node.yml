@@ -6,6 +6,7 @@
       community.proxmox:
         name: community.proxmox
         version: '>=2.1.0,<3.0.0'
+        min_ansible_core: '2.17.0'
         os_packages: {RedHat: [qemu-img], Debian: [qemu-utils]}
       containers.podman:
         name: containers.podman
@@ -21,23 +22,43 @@
         os_packages: {RedHat: [python3-netaddr], Debian: [python3-netaddr]}
       community.hashi_vault:
         name: community.hashi_vault
-        version: '>=7.0.0,<8.0.0'
+        version: '>=6.2.0,<7.0.0'
         os_packages: {RedHat: [], Debian: []}
       ansible.mariadb:
         name: ansible.mariadb
+        version: '>=6.0.0,<7.0.0'
         os_packages:
           RedHat: []
           Debian: []
       freeipa.ansible_freeipa:
         name: freeipa.ansible_freeipa
+        version: '>=1.14.0,<2.0.0'
         os_packages:
           RedHat: [ansible-freeipa]
           Debian: [ansible-freeipa]
+    control_node_setup_tool_commands:
+      cluster-platform: [[helm, version, --short]]
+      cluster-security-logging: [[helm, version, --short]]
+      openbao-signing: [[openssl, version]]
+      control-applications: >-
+        {{ ([[control_applications_sso_talosctl | default('talosctl'), 'version', '--client', '--short']]
+            + ([[control_applications_sso_kubectl | default('kubectl'), 'version', '--client']]
+               if control_applications_action | default('render') == 'apply' else []))
+           if control_applications_operation | default('applications') == 'kubernetes_sso'
+           else [['helm', 'version', '--short']] }}
     control_node_setup_collection_names:
       bootstrap-software-intake: [community.general]
+      software-consumer: [community.general]
+      kubernetes-human-access: [kubernetes.core, community.general, community.crypto]
       cluster-platform: [kubernetes.core]
       cluster-security-logging: [kubernetes.core, ansible.utils, community.crypto]
       control-applications: [kubernetes.core, ansible.utils, community.general, community.hashi_vault, community.crypto]
+      vault-configure: [community.hashi_vault, community.general]
+      vault-seal: [community.hashi_vault, community.general]
+      logging-authority: [community.crypto]
+      logging-receiver-request: [community.crypto]
+      openxpki-bundle: [community.crypto]
+      openbao-signing: [community.crypto, community.general]
       infrastructure-monitoring: [community.general, ansible.posix, containers.podman]
       logging-export: [containers.podman]
       netbox-audit: []
@@ -46,11 +67,11 @@
       host-security: [community.general, ansible.posix, ansible.utils]
       foundation: [community.general, ansible.posix, freeipa.ansible_freeipa, ansible.mariadb, community.crypto]
       syslog: [community.general, ansible.posix, community.crypto]
-      vault: [community.general, ansible.posix]
+      vault: [community.general, ansible.posix, community.crypto]
       infrastructure-runner: [community.general, ansible.posix]
-      hsm: [community.general, ansible.posix]
+      hsm: [community.general, ansible.posix, community.crypto]
       ingress: []
-      immutable-template: [community.general, ansible.posix]
+      immutable-template: [community.general, ansible.posix, containers.podman]
       template-refresh: []
       template-disk: [community.proxmox]
       template-policy: [community.proxmox]

@@ -42,6 +42,11 @@ class ControlNodeVersions(unittest.TestCase):
             'collection_info': dict(namespace='journey_probe', name='bounds', version=version, dependencies={})}))
 
     def run_tasks(self, tasks, variables):
+        tasks = deepcopy(tasks)
+        for task in tasks:
+            include = task.get('ansible.builtin.include_tasks')
+            if isinstance(include, str) and include.startswith('tasks/control-node-'):
+                task['ansible.builtin.include_tasks'] = str(UPSTREAM / 'shared/ansible/playbooks' / include)
         path = self.root / 'check.yml'
         path.write_text(yaml.safe_dump([dict(hosts='localhost', connection='local', gather_facts=False,
                                              vars=variables, tasks=tasks)], sort_keys=False))
@@ -60,12 +65,37 @@ class ControlNodeVersions(unittest.TestCase):
     def test_native_lookup_enforces_lower_upper_exact_excluded_and_unknown_versions(self):
         minimum = PLAY['vars']['control_node_base_collection_catalog']['community.general']['version']
         cases = [(minimum, '10.0.0', False), (minimum, '10.2.0', True),
+                 (minimum, '10.7.6', True), (minimum, '11.0.0', False), (minimum, '13.5.0', False),
                  ('>=1.5.0,<2.0.0', '1.5.0', True), ('>=1.5.0,<2.0.0', '1.4.9', False),
                  ('>=1.5.0,<2.0.0', '2.0.0', False), ('==1.5.0', '1.5.0', True),
                  ('>=1.5.0,!=1.6.0', '1.6.0', False), ('>=1.5.0', '*', False)]
         for requirement, version, accepted in cases:
             with self.subTest(requirement=requirement, version=version):
                 self.verify(requirement, version, accepted)
+
+    def test_bootstrap_bounds_reject_newer_shadowing_copies(self):
+        catalog = PLAY['vars']['control_node_base_collection_catalog']
+        for name, accepted, incompatible in (
+                ('community.general', '10.7.6', '13.5.0'),
+                ('community.crypto', '2.26.0', '3.0.0')):
+            with self.subTest(collection=name):
+                self.collection(accepted, self.shadowed)
+                self.verify(catalog[name]['version'], incompatible, False)
+                self.verify(catalog[name]['version'], accepted, True)
+
+    def test_proxmox_engine_requirement_is_checked_before_acquisition(self):
+        profile = yaml.safe_load((UPSTREAM / 'tier-0/ansible/playbooks/control-node.yml').read_text())[0]['vars']
+        item = profile['control_node_collection_catalog']['community.proxmox']
+        task = task_named('Require the declared engine for collections outside the bootstrap baseline')
+        result = self.run_tasks([task], dict(control_node_selected_setup='template-disk',
+                                           control_node_required_collections=[item]))
+        version = subprocess.run(['ansible-playbook', '--version'], capture_output=True, text=True, check=True)
+        if '[core 2.16.' in version.stdout:
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('requires ansible-core >= 2.17.0', result.stdout + result.stderr)
+            self.assertIn('scripts/proxmox-templates.sh', result.stdout + result.stderr)
+        else:
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_compatible_shadowed_copy_does_not_hide_incompatible_effective_copy(self):
         self.collection('1.9.0', self.shadowed)

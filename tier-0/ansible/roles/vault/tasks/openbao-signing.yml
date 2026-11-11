@@ -1,0 +1,79 @@
+---
+- name: Validate selected service, hardware domain and original public keys
+  ansible.builtin.import_tasks: openbao-signing-inputs.yml
+
+- name: Reconcile sensitive native OpenBao APIs over verified TLS
+  module_defaults:
+    ansible.builtin.uri:
+      headers:
+        X-Vault-Token: "{{ openbao_signing_token }}"
+      ca_path: "{{ openbao_signing_ca_src }}"
+      validate_certs: true
+      use_proxy: false
+      follow_redirects: none
+      unredirected_headers: [X-Vault-Token]
+      return_content: true
+      body_format: json
+      status_code: [200, 204]
+  no_log: true
+  block:
+    - name: Check initialized unsealed native health and the accepted stable version
+      ansible.builtin.uri:
+        url: "{{ openbao_signing_address }}/v1/sys/health?standbyok=true"
+      register: openbao_health
+
+    - name: Require stable external-key support after the independent unseal ceremony
+      ansible.builtin.assert:
+        that:
+          - openbao_health.json.initialized and not openbao_health.json.sealed
+          - openbao_health.json.version == openbao_version
+
+    - name: Inspect actual native Raft voters
+      ansible.builtin.uri:
+        url: "{{ openbao_signing_address }}/v1/sys/storage/raft/configuration"
+      register: openbao_raft
+
+    - name: Inspect native Raft Autopilot health
+      ansible.builtin.uri:
+        url: "{{ openbao_signing_address }}/v1/sys/storage/raft/autopilot/state"
+      register: openbao_autopilot
+
+    - name: Require every declared voter and real failure tolerance for HA
+      ansible.builtin.assert:
+        that:
+          - openbao_raft.json.data.config.servers | map(attribute='node_id') | sort == openbao_signing_node_ids | sort
+          - openbao_raft.json.data.config.servers | selectattr('voter', 'equalto', true) | list | length ==
+            openbao_signing_node_ids | length
+          - openbao_raft.json.data.config.servers | selectattr('leader', 'equalto', true) | list | length == 1
+          - openbao_autopilot.json.data.healthy | bool
+          - openbao_signing_learning_single | bool or openbao_autopilot.json.data.failure_tolerance | int >= 1
+
+    - name: Require existing native audit before enabling signing
+      ansible.builtin.uri:
+        url: "{{ openbao_signing_address }}/v1/sys/audit"
+      register: openbao_audit
+
+    - name: Require an audit destination configured through vault-configure
+      ansible.builtin.assert:
+        that:
+          - openbao_audit.json.data['file/'].type == 'file'
+          - openbao_audit.json.data['file/'].options.file_path == vault_log_dir ~ '/audit.log'
+          - openbao_audit.json.data['stdout/'].type == 'file'
+          - openbao_audit.json.data['stdout/'].options.file_path == 'stdout'
+
+    - name: Register the bounded hardware configuration and native mounts
+      ansible.builtin.include_tasks: openbao-signing-config.yml
+
+    - name: Register and qualify each original key before workload permissions
+      ansible.builtin.include_tasks: openbao-signing-key.yml
+      loop: "{{ openbao_signing_keys }}"
+      loop_control:
+        loop_var: openbao_key
+        label: "{{ openbao_key.name }}"
+
+    - name: Reconcile certificate workload access after every key passes qualification
+      ansible.builtin.include_tasks: openbao-signing-client.yml
+      loop: "{{ openbao_signing_clients }}"
+      loop_control:
+        loop_var: openbao_client
+        label: "{{ openbao_client.name }}"

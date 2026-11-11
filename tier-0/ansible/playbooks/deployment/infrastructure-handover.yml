@@ -1,0 +1,16 @@
+---
+- name: Wait for the managed infrastructure runner
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: infrastructure_runner
+
+- name: Transfer the original stopped collection from bootstrap
+  hosts: infrastructure_runner
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Transfer and verify the accepted original workspace
+      ansible.builtin.include_role:
+        name: infrastructure_runner
+        tasks_from: handover

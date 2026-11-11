@@ -37,7 +37,7 @@ kubectl get nodes -o wide
 ```
 
 **Expected:** the intended Tier 0 nodes are listed. Stop if the kubeconfig selects another cluster.
-Retain the export from Stage 4. For a manual cluster in a new shell, set `KUBECONFIG` to its existing
+Retain the export from Stage 4. For an existing externally managed cluster in a new shell, set `KUBECONFIG` to its existing
 `secrets/<cluster-name>/kubeconfig` first; do not switch it to the Terraform workflow's fallback path.
 
 ### 2. Edit the identity-provider settings
@@ -152,7 +152,7 @@ installed yet.** Live database PVCs remain on the selected block storage.
 
 #### 7. Commission the NAS backup destination
 
-Complete [NAS commissioning](../../../05-operations/backups/postgresql.md#commission-the-nas).
+Complete [NAS commissioning](../../../05-operations/06-resilience/backups/postgresql.md#commission-the-nas).
 Create the independent backup-only claim and marker, then set
 `control_applications_backup_files.keycloak` (`claim`, `volume_handle`,
 `system_identifier`, `marker`, `schedule`) in the local application file.

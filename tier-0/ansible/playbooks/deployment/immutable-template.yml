@@ -1,9 +1,26 @@
 ---
+- name: Prepare selected native template tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: immutable-template
+    control_node_require_terraform: false
+
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: immutable_template_builders
+
 # Compute: optional image-based Linux builder.
-# Recipe mapping: docs/05-operations/ansible-recipes.md
+# Recipe mapping: docs/05-operations/01-hosting/ansible-recipes.md
 - name: Prepare image-based Linux template builders
   hosts: immutable_template_builders
   become: true
+  pre_tasks:
+    - name: Validate selected mode before baseline changes
+      ansible.builtin.import_role:
+        name: immutable_template
+        tasks_from: preflight
   roles:
-    - baseline
+    - role: baseline
+      when: immutable_template_mode == 'image' or immutable_template_manage_packages | bool
     - immutable_template

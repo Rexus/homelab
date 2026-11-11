@@ -23,7 +23,7 @@ owning generated repository. Existing authorities need migration, not this proce
 
 ## Step 1: Approve policy and custody
 
-Approve names, trust scope and [algorithms](../../../01-architecture/16-cryptography/02-algorithm-selection.md)
+Approve names, trust scope and [algorithms](../../../01-architecture/08-cryptography/02-algorithm-selection.md)
 before generating keys. The supplied policy has one TLS-server leaf profile,
 client-held keys, explicit DNS suffixes, a 30-day default lifetime and a separate
 requester/approver. It has no internal ACME, OCSP, client-auth or code-signing endpoint.
@@ -40,7 +40,7 @@ Manual renewal uses a new CSR through the same approval workflow.
 
 Software encryption does not prevent a compromised running CA host from signing.
 Restrict host administration and qualify the
-[hardware migration path](../../../05-operations/cryptography/hardware-migration.md).
+[hardware migration path](../../../05-operations/03-cryptography/hardware-migration.md).
 
 <a id="build-the-private-policy-bundle"></a>
 
@@ -177,8 +177,8 @@ an approved portal certificate before normal operations.
 ## Step 5: Accept the issuer and continue
 
 Before accepting Stage 3, pass the selected
-[CA acceptance tests](../../../05-operations/cryptography/certificate-authority.md#acceptance-evidence),
-including [independent restoration](../../../05-operations/cryptography/issuer-recovery.md).
+[CA acceptance tests](../../../05-operations/03-cryptography/certificate-authority.md#acceptance-evidence),
+including [independent restoration](../../../05-operations/03-cryptography/issuer-recovery.md).
 Record the issuer's readiness, then return to
 [Stage 3, Step 3](../README.md#step-3-enable-and-verify-routine-issuance).
 Complete any selected API-certificate transition or verified-intake option there before Stage 4.
@@ -191,7 +191,7 @@ issuer, not a leaf issued through the TLS-server portal.
 Public edge deployment is separate later work, not a Stage 3 acceptance dependency.
 When publishing public services, follow the
 [HTTPS deployment](../../stage-10-lab-environments/step-3b-public-https.md) for origin trust, renewal
-and failover, and retain [independent security alerts](../../../05-operations/cryptography/security-controls.md).
+and failover, and retain [independent security alerts](../../../05-operations/03-cryptography/security-controls.md).
 
 ## References
 

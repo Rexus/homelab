@@ -1,0 +1,98 @@
+---
+- name: Transfer this host's externally issued TLS material
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ observability_vm_config_path }}/tls/{{ item.name }}"
+    owner: root
+    group: '1000'
+    mode: '0640'
+  loop:
+    - {name: tls.crt, src: "{{ observability_vm_tls[inventory_hostname].cert_src }}"}
+    - {name: tls.key, src: "{{ observability_vm_tls[inventory_hostname].key_src }}"}
+    - {name: ca.crt, src: "{{ observability_vm_ca_src }}"}
+    - {name: oidc-ca.crt, src: "{{ observability_vm_oidc_ca_src }}"}
+    - {name: metrics-clients.crt, src: "{{ observability_vm_metrics_client_ca_src }}"}
+  when: item.name != 'tls.key' or inventory_hostname not in observability_vm_search_hosts
+  register: observability_vm_tls_copy
+  no_log: true
+
+- name: Install the supplied search node key in native PKCS8 format
+  community.crypto.openssl_privatekey_convert:
+    src_content: "{{ lookup('ansible.builtin.file', observability_vm_tls[inventory_hostname].key_src) }}"
+    dest_path: "{{ observability_vm_config_path }}/tls/tls.key"
+    format: pkcs8
+    owner: root
+    group: '1000'
+    mode: '0640'
+  when: inventory_hostname in observability_vm_search_hosts
+  register: observability_vm_tls_key_convert
+  no_log: true
+
+- name: Inspect the supplied server certificate and expiry
+  community.crypto.x509_certificate_info:
+    path: "{{ observability_vm_config_path }}/tls/tls.crt"
+    valid_at: {now: '+0s'}
+  register: observability_vm_certificate
+
+- name: Inspect the supplied private key without returning private material
+  community.crypto.openssl_privatekey_info:
+    path: "{{ observability_vm_config_path }}/tls/tls.key"
+  register: observability_vm_private_key
+  no_log: true
+
+- name: Require a matching valid server identity
+  ansible.builtin.assert:
+    that:
+      - observability_vm_certificate.valid_at.now
+      - observability_vm_certificate.public_key == observability_vm_private_key.public_key
+      - "'DNS:' ~ observability_vm_endpoints[inventory_hostname] in observability_vm_certificate.subject_alt_name"
+  no_log: true
+
+- name: Verify the server chain and hostname against the selected CA
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - verify
+      - -CAfile
+      - "{{ observability_vm_config_path }}/tls/ca.crt"
+      - -purpose
+      - sslserver
+      - -verify_hostname
+      - "{{ observability_vm_endpoints[inventory_hostname] }}"
+      - "{{ observability_vm_config_path }}/tls/tls.crt"
+  changed_when: false
+
+- name: Verify search node certificates can authenticate transport peers
+  ansible.builtin.command:
+    argv: [openssl, verify, -CAfile, "{{ observability_vm_config_path }}/tls/ca.crt",
+           -purpose, sslclient, "{{ observability_vm_config_path }}/tls/tls.crt"]
+  changed_when: false
+  when: inventory_hostname in observability_vm_search_hosts
+
+- name: Install independent source-scope trust anchors on gateways
+  ansible.builtin.copy:
+    src: "{{ item.client_ca_src }}"
+    dest: "{{ observability_vm_config_path }}/tls/{{ item.name }}-clients.crt"
+    owner: root
+    group: '1000'
+    mode: '0640'
+  loop: "{{ observability_vm_log_scopes }}"
+  register: observability_vm_scope_ca_copy
+  when: inventory_hostname in observability_vm_gateway_hosts
+
+- name: Read the search transport certificate distinguished name
+  ansible.builtin.command:
+    argv: [openssl, x509, -in, "{{ observability_vm_config_path }}/tls/tls.crt",
+           -noout, -subject, -nameopt, RFC2253]
+  register: observability_vm_node_subject
+  changed_when: false
+  when: inventory_hostname in observability_vm_search_hosts
+
+- name: Require the configured search transport identity
+  ansible.builtin.assert:
+    that:
+      - >-
+        (observability_vm_node_subject.stdout | regex_replace('^subject= *', ''))
+        in observability_vm_search_node_dns
+      - observability_vm_search_node_dns | intersect(observability_vm_search_admin_dns) | length == 0
+  when: inventory_hostname in observability_vm_search_hosts

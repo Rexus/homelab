@@ -1,0 +1,105 @@
+---
+- name: Validate original-key custody and credentials before CSR operations
+  ansible.builtin.import_tasks: issuer-credentials.yml
+
+- name: Require explicit ceremony inputs for the original key
+  ansible.builtin.assert:
+    that:
+      - hsm_issuer_common_name is match('^[a-zA-Z0-9 ._-]{3,80}$')
+      - hsm_issuer_csr_path == openxpki_data_mount ~ '/identity/issuer.csr'
+  no_log: true
+
+- name: Inspect any existing public CSR without following links
+  ansible.builtin.stat:
+    path: "{{ hsm_issuer_csr_path }}"
+    follow: false
+  register: hsm_issuer_csr_state
+
+- name: Refuse linked or non-file CSR state
+  ansible.builtin.assert:
+    that:
+      - not hsm_issuer_csr_state.stat.islnk | default(false)
+      - not hsm_issuer_csr_state.stat.exists or hsm_issuer_csr_state.stat.isreg | default(false)
+
+- name: Read the original hardware key public component
+  ansible.builtin.import_tasks: issuer-public-key.yml
+
+- name: Prepare a new public CSR without replacing an existing request
+  when: not hsm_issuer_csr_state.stat.exists
+  block:
+    - name: Allocate protected temporary CSR storage on the original mounted filesystem
+      ansible.builtin.tempfile:
+        state: directory
+        path: "{{ openxpki_data_mount }}/identity"
+        prefix: issuer-csr-
+      register: hsm_issuer_pending_csr
+
+    - name: Keep the temporary CSR directory under root ownership
+      ansible.builtin.file:
+        path: "{{ hsm_issuer_pending_csr.path }}"
+        owner: root
+        group: openxpki
+        mode: "0750"
+
+    - name: Permit the issuer account to write only the temporary CSR
+      ansible.builtin.file:
+        path: "{{ hsm_issuer_pending_csr.path }}/issuer.csr"
+        state: touch
+        owner: openxpki
+        group: openxpki
+        mode: "0600"
+
+    - name: Sign the subordinate public CSR with the existing hardware key exactly once
+      ansible.builtin.command:
+        argv: [openssl, req, -new, -engine, pkcs11, -keyform, ENGINE,
+               -key, "{{ hsm_issuer_key }}", -passin, 'env:HSM_ISSUER_PIN',
+               -subj, "/CN={{ hsm_issuer_common_name }}", -sha384,
+               -addext, 'basicConstraints=critical,CA:TRUE,pathlen:0',
+               -addext, 'keyUsage=critical,keyCertSign,cRLSign', -out, "{{ hsm_issuer_pending_csr.path }}/issuer.csr"]
+        creates: "{{ hsm_issuer_csr_path }}"
+      environment: >-
+        {{ hsm_provider_environment | combine({
+          'OPENSSL_CONF': '/etc/hsm-provider/issuer-openssl.cnf',
+          'HSM_ISSUER_PIN': hsm_issuer_pin},
+          {'YUBIHSM_PKCS11_CONF': '/etc/hsm-provider/yubihsm_pkcs11.conf'}
+          if hsm_provider_driver == 'yubihsm' else {}) }}
+      become: true
+      become_user: openxpki
+      no_log: true
+
+    - name: Install only the public CSR into the root-owned identity directory
+      ansible.builtin.copy:
+        src: "{{ hsm_issuer_pending_csr.path }}/issuer.csr"
+        dest: "{{ hsm_issuer_csr_path }}"
+        remote_src: true
+        force: false
+        owner: root
+        group: openxpki
+        mode: "0640"
+  always:
+    - name: Remove the temporary public CSR on success or failure
+      ansible.builtin.file:
+        path: "{{ hsm_issuer_pending_csr.path }}"
+        state: absent
+      when: hsm_issuer_pending_csr.path is defined
+
+- name: Inspect the resulting CSR and verify its signature
+  community.crypto.openssl_csr_info:
+    path: "{{ hsm_issuer_csr_path }}"
+  register: hsm_issuer_csr
+
+- name: Require the original hardware public key and reviewed CA request
+  ansible.builtin.assert:
+    that:
+      - hsm_issuer_csr.signature_valid
+      - hsm_issuer_csr.public_key | trim == hsm_issuer_public_key.stdout | trim
+      - hsm_issuer_csr.subject.commonName == hsm_issuer_common_name
+      - "'CA:TRUE' in hsm_issuer_csr.basic_constraints"
+      - "'pathlen:0' in hsm_issuer_csr.basic_constraints"
+    fail_msg: Existing CSR differs from the selected hardware identity; recover the original key rather than replace it.
+
+- name: Fetch only the public CSR to the protected controller
+  ansible.builtin.fetch:
+    src: "{{ hsm_issuer_csr_path }}"
+    dest: "{{ hsm_issuer_csr_dest }}"
+    flat: true

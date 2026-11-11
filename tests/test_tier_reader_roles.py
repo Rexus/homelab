@@ -73,36 +73,38 @@ class ReaderRoles(TierRepositoryTestCase):
                             checked += 1
             self.assertGreater(checked, 30)
 
-    def test_architecture_views_connect_overview_domains_and_variants(self):
+    def test_architecture_routes_decisions_to_the_owning_capability(self):
         root = UPSTREAM / "docs/01-architecture"
         overview = (root / "README.md").read_text()
-        for target in ("06-reference-platform.md", "07-runtime-flows.md", "08-variants.md",
-                       "10-hosting/01-runtime.md", "10-hosting/04-kubernetes.md", "12-data/README.md", "20-delivery/README.md"):
+        for target in ("03-reference-platform.md", "01-background/README.md", "02-organization/README.md",
+                       "04-hosting/03-kubernetes.md", "06-data/README.md", "10-delivery/README.md"):
             self.assertIn(f"({target})", overview)
-        capabilities = overview.split("## Foundation and related domains\n", 1)[1].split(
+        capabilities = overview.split("## Capabilities\n", 1)[1].split(
             "## How the platform works together\n", 1)[0]
-        for capability in ("Hosting and orchestration", "Networking and connectivity", "Data and storage",
-                           "Identity and access", "Cryptography and secrets", "Software lifecycle",
-                           "Operations and resilience"):
+        for capability in ("Hosting and orchestration", "Connectivity and firewall policy", "Storage contracts",
+                           "Identity and access", "Cryptography", "Delivery lifecycle", "Operations and resilience"):
             self.assertIn(f"[{capability}]", capabilities)
-        for principle in ("Zero trust", "scalability", "Managed services"):
+        for principle in ("Zero trust", "scalability"):
             self.assertIn(principle, capabilities)
-        layers = overview.split("## Layered model\n", 1)[1].split("## Tiered model\n", 1)[0]
-        tiers = overview.split("## Tiered model\n", 1)[1].split("## Tier and zone view\n", 1)[0]
-        self.assertIn("block-beta\n  columns 3", layers)
-        self.assertLess(layers.index('Edge["'), layers.index('Application["'))
-        self.assertLess(layers.index('Application["'), layers.index('Control["'))
-        self.assertIn("block-beta\n  columns 1", tiers)
-        self.assertLess(tiers.index('T2["'), tiers.index('T1["'))
-        self.assertLess(tiers.index('T1["'), tiers.index('T0["'))
-        for document in ("11-networking/README.md", "10-hosting/README.md", "12-data/README.md", "18-identity/README.md",
-                         "16-cryptography/README.md", "05-software-lifecycle.md", "24-operations/README.md"):
+        self.assertIn("Read to make a decision", overview)
+        self.assertEqual({path.name for path in root.iterdir() if path.is_dir()}, {
+            "01-background", "02-organization", "04-hosting", "05-networking", "06-data",
+            "07-software-intake", "08-cryptography", "09-identity", "10-delivery", "11-operations",
+        })
+        for document in ("05-networking/README.md", "04-hosting/README.md", "06-data/README.md", "09-identity/README.md",
+                         "08-cryptography/README.md", "10-delivery/README.md", "11-operations/README.md"):
             content = (root / document).read_text()
             self.assertIn("```mermaid", content, document)
-            self.assertIn("07-runtime-flows.md", content, document)
-        for document in ("07-runtime-flows.md", "06-reference-platform.md", "08-variants.md"):
-            self.assertIn("20-delivery/02-controllers.md", (root / document).read_text(), document)
-        self.assertIn("kubernetes.md", (root / "10-hosting/01-runtime.md").read_text())
+        interactions = {
+            "09-identity/README.md": "## Service access",
+            "10-delivery/README.md": "## Application delivery",
+            "07-software-intake/README.md": "## Cache request and response",
+        }
+        for document, heading in interactions.items():
+            content = (root / document).read_text()
+            self.assertIn(heading, content)
+            self.assertIn("sequenceDiagram", content)
+        self.assertIn("kubernetes.md", (root / "04-hosting/01-runtime.md").read_text())
 
     def test_capability_placement_and_identity_detail_use_the_same_roles(self):
         root = UPSTREAM / "docs/01-architecture"
@@ -120,14 +122,15 @@ class ReaderRoles(TierRepositoryTestCase):
                            'PKI["Certificate', 'Secrets["Secrets'):
             self.assertIn(capability, control)
         self.assertIn("Outside connected layers", capability_map)
-        identity = (root / "18-identity/README.md").read_text()
+        identity = (root / "09-identity/README.md").read_text()
         for expected in ("## Terminology", "Identity and access management (IAM)",
                          "LDAP user federation", "Identity brokering", "Tier 0 / Control layer",
                          "Directory primary", "Directory replica", "control_cluster network",
                          "T2 -->|OIDC to the IdP| T0", "T1 -->|OIDC to the IdP| T0"):
             self.assertIn(expected, identity)
         self.assertNotRegex(identity, r"\bIAP\b")
-        self.assertNotIn("identity broker", (root / "07-runtime-flows.md").read_text().lower())
+        sequence = identity.split("## Service access\n", 1)[1].split("## Components and interfaces\n", 1)[0]
+        self.assertNotIn("identity broker", sequence.lower())
 
     def test_architecture_has_no_installation_sequences_or_shell_examples(self):
         root = UPSTREAM / "docs/01-architecture"
@@ -143,22 +146,22 @@ class ReaderRoles(TierRepositoryTestCase):
 
     def test_domains_define_function_choices_and_constraints(self):
         root = UPSTREAM / "docs/01-architecture"
-        for document in ("10-hosting/README.md", "18-identity/README.md", "16-cryptography/README.md",
-                         "05-software-lifecycle.md", "24-operations/README.md"):
+        for document in ("04-hosting/README.md", "09-identity/README.md", "08-cryptography/README.md",
+                         "10-delivery/README.md", "11-operations/README.md"):
             content = (root / document).read_text()
             for heading in ("Components and interfaces", "Design constraints"):
                 self.assertIn(f"## {heading}", content, document)
             self.assertRegex(content, r"(?m)^## (?:Reference realization|Realization)$", document)
-        data = (root / "12-data/README.md").read_text()
+        data = (root / "06-data/README.md").read_text()
         for heading in ("Storage interfaces", "Administration and consumption", "Reference realization"):
             self.assertIn(f"## {heading}", data)
-        custody = (root / "16-cryptography/03-hsm-selection.md").read_text()
+        custody = (root / "08-cryptography/03-hsm-selection.md").read_text()
         for option in ("A: Software", "B: Single USB", "C: Replicated USB gateways", "D: Network HSM"):
             self.assertIn(option, custody)
-        seal = (root / "16-cryptography/06-vault-seal.md").read_text()
+        seal = (root / "08-cryptography/06-vault-seal.md").read_text()
         for choice in ("S1: Shamir", "S2: Transit", "S3: Native PKCS#11", "OpenBao", "Enterprise"):
             self.assertIn(choice, seal)
-        delivery = (root / "20-delivery/01-artifact-supply.md").read_text()
+        delivery = (root / "10-delivery/01-artifact-supply.md").read_text()
         for choice in ("GitLab", "Harbor", "Dragonfly"):
             self.assertIn(choice, delivery)
 
@@ -198,13 +201,19 @@ class ReaderRoles(TierRepositoryTestCase):
         for old in ("system", "subsystems", "system-design", "subsystem-design"):
             self.assertFalse((architecture / old).exists())
             self.assertFalse((reference.parent / "architecture" / old).exists())
-        self.assertTrue((reference.parent / "01-architecture/06-reference-platform.md").is_file())
-        for document in ("07-runtime-flows.md", "08-variants.md", "10-hosting/01-runtime.md",
-                         "10-hosting/04-kubernetes.md", "20-delivery/02-controllers.md"):
+        self.assertTrue((reference.parent / "01-architecture/03-reference-platform.md").is_file())
+        for document in ("README.md", "02-organization/README.md", "04-hosting/01-runtime.md",
+                         "04-hosting/03-kubernetes.md", "10-delivery/02-controllers.md"):
             self.assertTrue((reference.parent / "architecture" / document).is_file(), document)
+        for retired in ("06-reference-platform.md", "07-runtime-flows.md", "08-variants.md",
+                        "17-kubernetes/README.md", "13-software-intake/01-design.md"):
+            self.assertFalse((reference.parent / "01-architecture" / retired).exists(), retired)
+            alias = reference.parent / "architecture" / retired
+            self.assertTrue(alias.is_file(), retired)
+            self.assertIn("Compatibility copy", alias.read_text())
         platform = (architecture.parent / "README.md").read_text()
-        self.assertIn("auto-docs/01-architecture/07-runtime-flows.md", platform)
-        self.assertIn("auto-docs/01-architecture/08-variants.md", platform)
+        self.assertIn("auto-docs/01-architecture/README.md", platform)
+        self.assertIn("auto-docs/01-architecture/02-organization/README.md", platform)
         self.assertIn("Tier 2, Tier 1, Tier 0", platform)
         self.assertIn("Edge, Application, Control", platform)
         self.assertIn("[deployments.md](../deployments.md)", platform)

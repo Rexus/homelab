@@ -5,6 +5,39 @@
 platform_host_ips:
   rhel-10-immu-tmpl: 10.20.20.40
 
+# image: generate an initial disk on this dedicated mutable builder (route 3a).
+# host: prepare/switch/finalize an already bootc-native VM (route 3b).
+immutable_template_mode: image
+immutable_template_image_builder_accepted: false
+immutable_template_image_sources_approved: false
+# Approve the product and source digests for this x86_64 host, distro and selected rootfs.
+immutable_template_image_builder_image: registry.redhat.io/rhel10/bootc-image-builder@sha256:REPLACE_WITH_APPROVED_DIGEST
+immutable_template_image_revision: REPLACE_WITH_NEW_REVISION_ID
+immutable_template_image_rootfs: xfs
+# Native JSON customizations, not a Containerfile. Source OS authoring is a separate accepted artifact.
+# The source must supply cloud-init, qemu-guest-agent, bootc and enabled first-boot/agent services.
+immutable_template_image_config: {}
+# Default controller custody: secrets/bootc-images/<inventory-host>/<revision>/.
+# Override with a private absolute POSIX path only; no symlinks or parent traversal.
+# immutable_template_image_artifact_dir: /srv/tier0/artifacts/bootc
+immutable_template_image_publication_key: REPLACE_WITH_NEW_CATALOG_ENTRY_KEY
+# Existing templates/proxmox.yml schema: see terraform/modules/proxmox_templates/variables.tf.
+# Keep this target VMID distinct from the still-running builder and previous revisions.
+# image_path and sha256 are generated after a verified controller fetch.
+immutable_template_image_publication:
+  family: redhat
+  distribution: rhel
+  release: REPLACE_WITH_EXACT_OS_RELEASE_AND_BUILD
+  vm_id: REPLACE_WITH_NEW_TEMPLATE_VMID
+  name: REPLACE_WITH_VERSIONED_TEMPLATE_NAME
+  storage_class: shared
+  image_datastore_id: local
+  disk_size_gb: 40
+  bios: ovmf
+  machine: q35
+  cloud_init_drive: true
+  qemu_agent: true
+
 # Set this when the bootc image registry uses your private CA and the builder
 # VM does not already trust it.
 # immutable_template_trust_ca_src: secrets/ca/platform-ca.crt
@@ -15,9 +48,13 @@ platform_host_ips:
 
 # Keep false until the target image has been built and published.
 immutable_template_apply_bootc: false
-immutable_template_bootc_image: "registry.corp.example.com/platform/rhel-10-immu:stable"
+immutable_template_bootc_image: registry.corp.example.com/platform/rhel-10-immu@sha256:REPLACE_WITH_APPROVED_DIGEST
 immutable_template_bootc_transport: registry
 immutable_template_bootc_retain: true
+immutable_template_reboot_after_switch: false
+# host mode only: false skips baseline/package changes on an immutable native OS.
+# Such images must already include the tooling required by their native lifecycle.
+immutable_template_manage_packages: true
 
 # Enable this only after you have verified the staged bootc system and are
 # ready to convert the VM into a reusable Proxmox template.

@@ -4,6 +4,7 @@
 platform_host_ips:
   log-1: 10.10.10.30
   # log-2: 10.10.10.31
+  # rec-1: 10.10.10.32  # enable with the independent backup VM in Terraform/inventory
 
 # Terraform's scsi1 data disk; the shared role guards creation and persists a UUID-based mount.
 syslog_ng_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
@@ -12,8 +13,16 @@ syslog_ng_data_fstype: xfs
 # With multiple receivers, put each explicit UUID/device override in its own inventory host variables.
 syslog_ng_data_uuid: ""
 syslog_ng_data_mount: /srv/security-logging
-# Firewalld must already run; use the actual zone containing the intake interface.
+# IaC installs/starts firewalld when managed; use the actual intake-interface zone.
 syslog_ng_firewall_zone: public
+# Optional new RPM source, configured by Shared rather than by logging into the guest.
+# baseline_rpm_repositories:
+#   - name: approved-syslog
+#     baseurl: https://mirror.internal.example.com/syslog-ng/el10/x86_64
+#     gpgkey: https://mirror.internal.example.com/keys/syslog-ng.asc
+#     fingerprint: REPLACE_WITH_VERIFIED_KEY_FINGERPRINT_WITHOUT_SPACES
+#     repo_gpgcheck: false  # set true when this source signs RPM metadata too
+# baseline_trust_anchors: [/absolute/controller/path/internal-root.pem]
 # Bind client certificates to a server-owned source name, tier and observed IPv4 address.
 # Certificate CN must equal name; tls_dn is the exact subject, without wildcard matching.
 syslog_ng_sources: []

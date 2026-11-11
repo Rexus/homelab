@@ -277,7 +277,7 @@ df -h / /home /srv/tier0
 ```
 
 Keep the existing root mount; no new `/etc/fstab` entry or `/home` bind mount is needed.
-Back up all disks containing the root VG in the [bootstrap recovery set](../../../05-operations/backups/recovery-set.md).
+Back up all disks containing the root VG in the [bootstrap recovery set](../../../05-operations/06-resilience/backups/recovery-set.md).
 Rollback uses the pre-change VM backup; shrinking root or unplugging a PV is not an undo step.
 
 **Continue:** [Bootstrap 2a](README.md#2a-install-through-approved-sources), or

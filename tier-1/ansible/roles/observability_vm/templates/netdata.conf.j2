@@ -1,0 +1,41 @@
+{# Native daemon grammar mirrors observability_platform/templates/netdata-values.yml.j2. #}
+[global]
+  hostname = {{ inventory_hostname }}
+[directories]
+  cache = /var/cache/netdata
+  lib = /var/lib/netdata
+[db]
+  mode = dbengine
+  storage tiers = 1
+  dbengine tier 0 retention size = {{ observability_vm_netdata_parent_history_mib if inventory_hostname in observability_vm_gateway_hosts else observability_vm_netdata_child_history_mib }}MiB
+  dbengine tier 0 retention time = {{ '7d' if inventory_hostname in observability_vm_gateway_hosts else '1d' }}
+[web]
+  bind to = {{ platform_host_ips[inventory_hostname] }}:{{ observability_vm_netdata_diagnostics_port }}=dashboard^SSL=force{% if inventory_hostname in observability_vm_gateway_hosts %} {{ platform_host_ips[inventory_hostname] }}:19999=streaming^SSL=force{% endif %}
+
+  ssl certificate = /etc/netdata/private/tls.crt
+  ssl key = /etc/netdata/private/tls.key
+  allow connections from = localhost {{ observability_vm_netdata_admin_allow_from | join(' ') }} {{ (observability_vm_gateway_hosts + observability_vm_metrics_hosts + observability_vm_search_hosts) | map('extract', platform_host_ips) | join(' ') }}
+  allow dashboard from = localhost {{ platform_host_ips[inventory_hostname] }} {{ observability_vm_netdata_admin_allow_from | join(' ') }}
+  allow badges from = localhost
+  allow streaming from = {{ (observability_vm_gateway_hosts + observability_vm_metrics_hosts + observability_vm_search_hosts) | map('extract', platform_host_ips) | join(' ') if inventory_hostname in observability_vm_gateway_hosts else 'localhost' }}
+  allow mcp from = localhost
+  allow management from = localhost
+  allow netdata.conf from = localhost
+  allow connections by dns = no
+  allow dashboard by dns = no
+  allow streaming by dns = no
+[health]
+  enabled = no
+[plugins]
+  enable running new plugins = no
+  proc = yes
+  cgroups = yes
+  diskspace = yes
+  apps = no
+  go.d = no
+  python.d = no
+  journal-view = no
+  systemd-journal = no
+  network-viewer = no
+[statsd]
+  enabled = no

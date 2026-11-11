@@ -56,3 +56,40 @@ run "retain_current_placement_but_manage_hardware" {
     error_message = "RAM overrides must stay managed and retain disabled ballooning."
   }
 }
+
+run "explicit_firmware_and_interface_inputs_reach_the_vm" {
+  command = plan
+
+  variables {
+    firmware = {
+      bios                  = "ovmf"
+      machine               = "q35"
+      scsi_hardware         = "virtio-scsi-pci"
+      efi_pre_enrolled_keys = false
+    }
+    initialization_datastore_id = "vm-storage"
+    nic_firewall                = false
+    full_clone                  = false
+  }
+
+  assert {
+    condition = (
+      proxmox_virtual_environment_vm.this.bios == "ovmf" &&
+      proxmox_virtual_environment_vm.this.machine == "q35" &&
+      proxmox_virtual_environment_vm.this.scsi_hardware == "virtio-scsi-pci" &&
+      length(proxmox_virtual_environment_vm.this.efi_disk) == 1 &&
+      !proxmox_virtual_environment_vm.this.efi_disk[0].pre_enrolled_keys
+    )
+    error_message = "An explicitly matched UEFI template must retain its firmware contract."
+  }
+
+  assert {
+    condition = (
+      !proxmox_virtual_environment_vm.this.clone[0].full &&
+      !proxmox_virtual_environment_vm.this.network_device[0].firewall &&
+      proxmox_virtual_environment_vm.this.initialization[0].datastore_id == "vm-storage" &&
+      !proxmox_virtual_environment_vm.this.disk[0].iothread
+    )
+    error_message = "Explicit clone/NIC/media inputs must reach the resource; PCI SCSI does not support IOThread."
+  }
+}

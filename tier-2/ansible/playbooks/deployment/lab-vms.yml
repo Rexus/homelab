@@ -1,6 +1,11 @@
 ---
-# Workloads: Stage 9, lab VM baseline.
-# Recipe mapping: docs/05-operations/ansible-recipes.md
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: lab
+
+# Workloads: Stage 10, lab VM baseline.
+# Recipe mapping: docs/05-operations/01-hosting/ansible-recipes.md
 - name: Apply lab host baseline
   hosts: lab
   become: true

@@ -1,0 +1,60 @@
+---
+- name: Prepare the optional attached data disk with the shared guarded role
+  ansible.builtin.include_role:
+    name: data_volume
+  vars:
+    data_volume_device: "{{ gitlab_data_device }}"
+    data_volume_path: "{{ gitlab_home }}"
+    data_volume_label: gitlab-data
+    data_volume_expected_uuid: "{{ gitlab_data_expected_uuid }}"
+    data_volume_min_free_bytes: "{{ gitlab_data_min_free_bytes }}"
+  when: gitlab_data_device | length > 0
+
+- name: Inspect persistent paths before creating or relabelling service directories
+  ansible.builtin.stat:
+    path: "{{ gitlab_home }}/{{ item }}"
+    follow: false
+    get_checksum: false
+  loop: [config, data, logs]
+  register: gitlab_storage_paths
+
+- name: Refuse linked or nondirectory persistent paths
+  ansible.builtin.assert:
+    that:
+      - not item.stat.exists or item.stat.isdir | default(false)
+      - not item.stat.islnk | default(false)
+    fail_msg: Retain existing data and select ordinary local directories; storage migration is explicit.
+  loop: "{{ gitlab_storage_paths.results }}"
+
+- name: Ensure GitLab persistent directories exist
+  ansible.builtin.file:
+    path: "{{ gitlab_home }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - config
+    - config/ssl
+    - config/trusted-certs
+    - logs
+    - data
+
+- name: Inspect the actual filesystems holding live GitLab data and configuration
+  ansible.builtin.command:
+    argv: [findmnt, -rn, -T, "{{ gitlab_home }}/{{ item }}", -o, FSTYPE]
+  loop: [data, config]
+  register: gitlab_storage_filesystems
+  changed_when: false
+
+- name: Keep live GitLab state on local guest block filesystems
+  ansible.builtin.assert:
+    that: item.stdout in ['xfs', 'ext4', 'btrfs']
+    fail_msg: Live databases and repositories require Proxmox-backed local guest disks; NAS is for backup copies.
+  loop: "{{ gitlab_storage_filesystems.results }}"
+
+- name: Keep secret-bearing GitLab configuration private
+  ansible.builtin.file:
+    path: "{{ gitlab_home }}/config"
+    state: directory
+    mode: "0700"

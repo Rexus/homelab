@@ -1,0 +1,27 @@
+cluster.name: opensearch
+node.name: {{ inventory_hostname }}
+node.roles: [cluster_manager, data, ingest]
+network.host: 0.0.0.0
+network.publish_host: {{ observability_vm_endpoints[inventory_hostname] }}
+path.data: /data
+discovery.seed_hosts:
+{% for member in observability_vm_search_hosts %}
+  - {{ observability_vm_endpoints[member] }}
+{% endfor %}
+{% if observability_vm_search_bootstrap %}
+cluster.initial_cluster_manager_nodes: {{ observability_vm_search_hosts | to_json }}
+{% endif %}
+plugins.security.ssl.transport.pemcert_filepath: tls/tls.crt
+plugins.security.ssl.transport.pemkey_filepath: tls/tls.key
+plugins.security.ssl.transport.pemtrustedcas_filepath: tls/ca.crt
+plugins.security.ssl.transport.enforce_hostname_verification: true
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: tls/tls.crt
+plugins.security.ssl.http.pemkey_filepath: tls/tls.key
+plugins.security.ssl.http.pemtrustedcas_filepath: tls/ca.crt
+plugins.security.ssl.http.clientauth_mode: OPTIONAL
+plugins.security.allow_unsafe_democertificates: false
+plugins.security.allow_default_init_securityindex: false
+plugins.security.nodes_dn: {{ observability_vm_search_node_dns | to_json }}
+plugins.security.authcz.admin_dn: {{ observability_vm_search_admin_dns | to_json }}
+plugins.security.audit.type: internal_opensearch

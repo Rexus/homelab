@@ -1,0 +1,34 @@
+# Dedicated remoting listener; the management SSH configuration is owned elsewhere.
+Port {{ hsm_remote_port }}
+ListenAddress {{ hsm_remote_listen_address }}
+PidFile /run/hsm-remote-{{ hsm_remote_pool_id }}/sshd.pid
+{% for path in hsm_remote_host_key_files %}
+HostKey {{ path }}
+{% endfor %}
+UsePAM no
+PermitRootLogin no
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+StrictModes yes
+AuthorizedKeysFile {{ hsm_remote_config_dir }}/authorized_keys
+AllowUsers {{ hsm_remote_account }}
+DisableForwarding yes
+PermitTTY no
+PermitUserRC no
+PermitUserEnvironment no
+PermitTunnel no
+HostbasedAuthentication no
+IgnoreRhosts yes
+LoginGraceTime 20
+MaxAuthTries 3
+MaxSessions 8
+ClientAliveInterval 30
+ClientAliveCountMax 2
+LogLevel VERBOSE
+ForceCommand {{ hsm_remote_p11kit_binary }} remote --provider {{ hsm_provider_library }} pkcs11:serial={{ hsm_provider_expected_serial }}
+{% if hsm_remote_environment or hsm_provider_driver == 'yubihsm' %}
+SetEnv{% for key, value in hsm_remote_environment | dictsort %} {{ key }}={{ value }}{% endfor %}{% if hsm_provider_driver == 'yubihsm' %} YUBIHSM_PKCS11_CONF={{ hsm_remote_config_dir }}/yubihsm_pkcs11.conf{% endif %}
+{% endif %}

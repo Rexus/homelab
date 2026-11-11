@@ -1,0 +1,40 @@
+---
+- name: Require the accepted controller executable and an explicit absolute destination
+  ansible.builtin.assert:
+    that:
+      - openbao_version == '2.7.2'
+      - openbao_binary_src is match('^/')
+      - openbao_binary_sha256 is match('^[a-f0-9]{64}$')
+      - openbao_controller_binary_dest is match('^/[A-Za-z0-9_./+-]+/bao$')
+      - "'..' not in openbao_controller_binary_dest.split('/')"
+
+- name: Verify accepted controller executable bytes
+  ansible.builtin.stat:
+    path: "{{ openbao_binary_src }}"
+    checksum_algorithm: sha256
+  register: openbao_controller_executable
+
+- name: Reject any different controller executable bytes
+  ansible.builtin.assert:
+    that:
+      - openbao_controller_executable.stat.isreg | default(false)
+      - openbao_controller_executable.stat.checksum | default('') == openbao_binary_sha256
+
+- name: Prepare the explicit controller executable directory
+  ansible.builtin.file:
+    path: "{{ openbao_controller_binary_dest | dirname }}"
+    state: directory
+    mode: "0700"
+
+- name: Install the accepted CLI on the controller
+  ansible.builtin.copy:
+    src: "{{ openbao_binary_src }}"
+    dest: "{{ openbao_controller_binary_dest }}"
+    mode: "0700"
+
+- name: Verify the selected native controller CLI
+  ansible.builtin.command:
+    argv: ["{{ openbao_controller_binary_dest }}", version]
+  register: openbao_controller_version
+  changed_when: false
+  failed_when: "('OpenBao v' ~ openbao_version ~ ' ') not in openbao_controller_version.stdout"

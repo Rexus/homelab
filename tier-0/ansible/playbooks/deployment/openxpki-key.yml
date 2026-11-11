@@ -1,4 +1,9 @@
 ---
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: issuing_ca
+
 # Explicit fresh-issuer ceremony step; never imported by deployment/openxpki.yml.
 - name: Prepare the fresh software issuer key and public CSR
   hosts: issuing_ca

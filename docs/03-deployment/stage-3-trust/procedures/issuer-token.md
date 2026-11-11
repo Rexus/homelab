@@ -1,14 +1,13 @@
 # Activate the software issuer token
 
-Bind the separately signed public certificate to the already prepared private key.
-This is a custodian operation after [software PKI installation](software-pki.md);
-routine reconciliation never creates or imports a CA token.
+Bind the separately signed public certificate to the existing software key through
+controller-run Ansible. This is an explicit custodian operation, separate from routine reconciliation.
+Hardware custody retains its qualified provider/token procedure.
 
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) supplies the
-approved configuration; commands here run on its independently managed issuer.
-**Prerequisites:** prepared active backend, approved issuer/root certificates,
-independently recorded fingerprints and the same recoverable signer/DataVault secrets.
-Commands below run on the issuer with authorized local privilege.
+**Working repository:** `<prefix>-tier-0/` on the protected controller.
+**Prerequisites:** active backend, pinned public root/issuer certificates, recoverable
+signer/DataVault secrets and the approved native CLI authentication key on the issuer.
+Complete [certificate installation](issuer.md#10-start-the-prepared-backend) first.
 
 ## Contents
 
@@ -19,79 +18,51 @@ Commands below run on the issuer with authorized local privilege.
 
 ## Verify identity
 
-Run on **ca-1 with authorized issuer privilege**.
-
-```bash
-openssl verify -CAfile /srv/openxpki/identity/root.pem /srv/openxpki/identity/issuer.pem
-openssl x509 -in /srv/openxpki/identity/issuer.pem -noout -text -fingerprint -sha256
-openssl x509 -in /srv/openxpki/identity/issuer.pem -pubkey -noout |
-  openssl pkey -pubin -outform DER | openssl dgst -sha256
-openssl pkey -in /srv/openxpki/keys/issuer.pem -pubout -outform DER |
-  openssl dgst -sha256
-```
-
-The two public-key hashes must match. Enter the key passphrase interactively;
-do not export or print the private key. Check approved subject, validity,
-CA:true/pathlen:0, signing usages and publication URLs. Any mismatch stops activation.
+The [custodian playbook](../../../../tier-0/ansible/playbooks/deployment/openxpki-token.yml)
+checks the original runtime/storage binding, pinned issuer fingerprint, certificate chain
+and the encrypted key's public-key match before executing a selected operation.
+Private keys stay on the issuer; the existing `OPENXPKI_SIGNER_PASSWORD` is passed through
+the protected input workflow and never placed in command arguments or output.
 
 ## Import and check the token
 
-The supplied bundle registers a native CLI public key and installs its protected
-private counterpart at `/srv/openxpki/keys/cli.pem`. It is a privileged
-administrative credential, not a requester login. Limit it to the CA service/root,
-include it in encrypted recovery and audit its use. Current OpenXPKI uses this
-authentication for protected and out-of-realm commands. [1]
-
-Inspect `oxi --help` and `oxi token add --help` for the approved package
-revision. With the default realm and paths:
-
-Run on **ca-1 with authorized issuer privilege**.
+Use the operations below in order. Run from **`<prefix>-tier-0/`** with the accepted issuer inputs:
 
 ```bash
-sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem certificate add \
-  --cert /srv/openxpki/identity/root.pem
-sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem token add \
-  --realm infrastructure --type certsign --cert /srv/openxpki/identity/issuer.pem
-sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem token list --realm infrastructure
+read -r -p 'Operation (inspect, import-root, import-issuer, check, publish-crl, publish-ca): ' ISSUER_OPERATION
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/issuer.yml \
+  -e "openxpki_token_operation=$ISSUER_OPERATION" \
+  ansible/playbooks/deployment/openxpki-token.yml
 ```
 
-The crypto configuration references the existing filesystem key. Do not add
-`--key` to import another copy into the database, or create a second root realm
-with online root-key access. If an alias already exists, inspect it; this is not
-a repeatable import script. Preserve the token alias/identifier in recovery records.
+| Order | Operation | Expected result |
+| --- | --- | --- |
+| 1 | `inspect` | Existing token inventory; inspect aliases before importing |
+| 2 | `import-root` | Add the already approved public root certificate once |
+| 3 | `import-issuer` | Bind the public issuer certificate to its configured filesystem key; no `--key` import |
+| 4 | `check` | Set `openxpki_token_alias` in `issuer.yml` to the returned alias; inspect native signer readiness |
 
-Use the returned alias with the product's `get_token_info` API to verify signer
-readiness. The symmetric DataVault comes from the separately protected 32-byte
-master secret; it needs no fabricated self-signed DataVault certificate. [1]
+Imports are explicit one-time CLI operations, not repeated reconciliation. If an alias already
+exists or an import fails, inspect the native result and retained identifiers before another write.
+The symmetric DataVault uses the separately protected master secret; no fabricated certificate is needed. [1]
 
 ## Publish and test
 
-Run on **ca-1 with authorized issuer privilege**.
-
-```bash
-sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem workflow create \
-  --realm infrastructure --type crl_issuance
-sudo -u openxpki oxi --auth-key /srv/openxpki/keys/cli.pem workflow create \
-  --realm infrastructure --type ca_publish
-systemctl status openxpki-crl.timer
-```
-
-Inspect both workflows through completion; enqueueing is not successful publication.
-The native CA publisher writes PEM/DER `issuer.crt`/`issuer.cer`.
-Copy only the signed offline root objects as `root.cer`/`root.crl` beneath
-`/srv/openxpki/public/`. The native CRL publisher writes DER `issuer.crl`.
+Run the same controller command with `publish-crl`, then `publish-ca`.
+Inspect the returned workflow identifiers through completion; enqueueing alone is not publication. [1]
+For signed offline root objects, set `openxpki_public_root_files` in `issuer.yml`, mapping
+`root.cer` and `root.crl` to their absolute controller paths, then rerun the public-certificate recipe.
 Confirm HTTP downloads, signatures, freshness and independent stale-CRL alerts.
 
-Log in as the requester, upload an allowed host CSR and obtain a second person's
-approval. Reject self-approval, out-of-scope SANs, wildcard names, CA profiles and
-unapproved keys. Inspect the issued certificate, then revoke it, publish a new CRL
-and prove rejection at an enforcing client. Renew with another approved CSR.
-Replace bootstrap portal TLS and complete
-[recovery acceptance](../../../05-operations/cryptography/issuer-recovery.md)
-before production. A ready token alone is not acceptance.
+Log in to the portal as the requester and require a second person's approval of an allowed CSR.
+Reject self-approval, out-of-scope SANs, wildcards and CA profiles. Test renewal, revocation,
+fresh CRL publication and rejection at an enforcing client before
+[recovery acceptance](../../../05-operations/03-cryptography/issuer-recovery.md).
+A ready token alone is not production acceptance.
 
 ## References
 
-Source checked 2026-10-18.
+Source checked 2026-11-11.
 
-1. [OpenXPKI CLI authentication, token import, DataVault and CRL workflow](https://github.com/openxpki/openxpki-config/blob/community/QUICKSTART.md)
+1. [OpenXPKI CLI authentication, token import, DataVault and publication workflows](https://github.com/openxpki/openxpki-config/blob/community/QUICKSTART.md)

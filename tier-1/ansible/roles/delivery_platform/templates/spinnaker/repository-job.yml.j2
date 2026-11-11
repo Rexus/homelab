@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spinnaker-repository-commission
+  annotations: {delivery.homelab/phase: repository}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata: {labels: {app.kubernetes.io/name: spinnaker-backup}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 999, runAsGroup: 999, runAsNonRoot: true, fsGroup: 999}
+      containers:
+        - name: repository
+          image: {{ delivery_platform_software.restic_image | to_json }}
+          command: [sh, /bootstrap/filesystem-repository.sh, commission]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {memory: 1Gi}}
+          env:
+            - name: RESTIC_PASSWORD
+              valueFrom: {secretKeyRef: {name: spinnaker-backup, key: RESTIC_PASSWORD}}
+            - {name: RESTIC_CACHE_DIR, value: /cache}
+            - {name: TMPDIR, value: /cache}
+            - {name: BACKUP_FILESYSTEM_MOUNT, value: /repository}
+            - name: BACKUP_FILESYSTEM_MARKER
+              value: {{ delivery_platform_spinnaker_backup_filesystem_marker | to_json }}
+            - name: BACKUP_FILESYSTEM_INITIALIZE
+              value: {{ delivery_platform_spinnaker_backup_filesystem_initialize | bool | ternary('true', 'false') | to_json }}
+            - name: RESTIC_REPOSITORY
+              value: {{ ('/repository/' ~ delivery_platform_spinnaker_backup_filesystem_repository) | to_json }}
+          volumeMounts:
+            - {name: repository, mountPath: /repository}
+            - {name: scripts, mountPath: /bootstrap, readOnly: true}
+            - {name: cache, mountPath: /cache}
+      volumes:
+        - name: repository
+          persistentVolumeClaim:
+            claimName: {{ delivery_platform_spinnaker_backup_filesystem_claim | to_json }}
+        - {name: scripts, configMap: {name: spinnaker-scripts, defaultMode: 0550}}
+        - {name: cache, emptyDir: {}}

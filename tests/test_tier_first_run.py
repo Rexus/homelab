@@ -37,7 +37,13 @@ class FirstRunContracts(unittest.TestCase):
         self.assertIn("== 'complete'", check['when'])
 
     def test_issuer_prepares_package_proxy_before_installation(self):
-        recipe = load('tier-0/ansible/playbooks/deployment/openxpki.yml')[0]
+        plays = load('tier-0/ansible/playbooks/deployment/openxpki.yml')
+        wait = next(index for index, play in enumerate(plays)
+                    if play.get('ansible.builtin.import_playbook', '').endswith('/guest-ready.yml'))
+        issuer = next(index for index, play in enumerate(plays) if play.get('hosts') == 'issuing_ca')
+        self.assertLess(wait, issuer)
+        self.assertEqual(plays[wait]['vars']['guest_ready_group'], 'issuing_ca')
+        recipe = plays[issuer]
         self.assertEqual(recipe['roles'], ['baseline', 'openxpki'])
 
 

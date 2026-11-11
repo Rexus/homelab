@@ -125,7 +125,9 @@ class ControlApplicationContracts(unittest.TestCase):
     def test_vault_enables_both_persistent_and_stdout_native_audit_devices(self):
         tasks = yaml.safe_load((ROLE / "tasks/vault.yml").read_text())[1]["block"]
         audit = next(task for task in tasks if "loop" in task and "community.hashi_vault.vault_write" in task)
-        self.assertEqual(audit["loop"], [
+        defaults = yaml.safe_load((ROLE / "defaults/main.yml").read_text())
+        self.assertEqual(audit["loop"], "{{ control_applications_vault_audit_destinations }}")
+        self.assertEqual(defaults["control_applications_vault_audit_destinations"], [
             {"name": "file", "destination": "/vault/audit/audit.json"},
             {"name": "stdout", "destination": "stdout"},
         ])

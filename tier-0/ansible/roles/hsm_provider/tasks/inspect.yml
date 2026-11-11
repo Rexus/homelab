@@ -1,0 +1,55 @@
+---
+- name: Require an explicit library and token identity even for inspection-only calls
+  ansible.builtin.assert:
+    that:
+      - hsm_provider in ['yubihsm2', 'picohsm', 'yubihsm', 'opensc', 'pkcs11']
+      - hsm_provider_library is match('^/[a-zA-Z0-9_./+-]+$')
+      - hsm_provider_expected_serial | string | length > 0
+    fail_msg: Select an installed provider library and the independently recorded token serial before listing.
+
+- name: Require the installed middleware library
+  ansible.builtin.stat:
+    path: "{{ hsm_provider_library }}"
+  register: hsm_provider_library_state
+
+- name: Reject a missing provider library
+  ansible.builtin.assert:
+    that: hsm_provider_library_state.stat.isreg | default(false)
+    fail_msg: The approved middleware packages must supply hsm_provider_library on this OS and CPU architecture.
+
+- name: List present tokens using the selected application identity without login
+  ansible.builtin.command:
+    argv: ["{{ hsm_provider_tool }}", --module, "{{ hsm_provider_library }}", --list-token-slots]
+  become: true
+  become_user: "{{ hsm_provider_user }}"
+  environment: >-
+    {{ hsm_provider_environment | combine(
+      {'YUBIHSM_PKCS11_CONF': '/etc/hsm-provider/yubihsm_pkcs11.conf'}
+      if hsm_provider_driver == 'yubihsm' else {}) }}
+  changed_when: false
+  check_mode: false
+  register: hsm_provider_tokens
+
+- name: List PCSC reader names through the controller without authenticating to a token
+  ansible.builtin.command:
+    argv: [opensc-tool, --list-readers]
+  changed_when: false
+  check_mode: false
+  when: hsm_provider_driver == 'opensc' and hsm_provider == 'picohsm'
+  register: hsm_provider_readers
+
+- name: Show public PCSC reader names for scoped authorization inputs
+  ansible.builtin.debug:
+    var: hsm_provider_readers.stdout_lines
+  when: hsm_provider_driver == 'opensc' and hsm_provider == 'picohsm'
+
+- name: Require the independently selected token serial to be present
+  ansible.builtin.assert:
+    that: >-
+      (hsm_provider_tokens.stdout ~ hsm_provider_tokens.stderr) is search(
+        '(?im)^\s*serial num\s*:\s*' ~ (hsm_provider_expected_serial | string | regex_escape) ~ '\s*$')
+    fail_msg: Expected token not visible; check USB mapping, permissions, native client enrollment and network policy.
+
+- name: Show nonsecret provider inventory for controller review
+  ansible.builtin.debug:
+    var: hsm_provider_tokens.stdout_lines

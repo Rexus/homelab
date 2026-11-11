@@ -1,7 +1,7 @@
 # Stage 1: Software intake
 
-**Related:** [Architecture](../../01-architecture/13-software-intake/README.md) ·
-[Operations](../../05-operations/software-intake/README.md)
+**Related:** [Architecture](../../01-architecture/07-software-intake/README.md) ·
+[Operations](../../05-operations/02-software-intake/README.md)
 
 Establish approved update access, then connect the existing bootstrap and Proxmox hosts.
 The main path creates a Tier 2 policy proxy/cache; an existing approved proxy or native mirror is also valid.
@@ -15,7 +15,7 @@ This stage is complete without PKI or a hosted registry. Verified publication is
 [Stage 3, option 3b](../stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional),
 after its trust/logging prerequisites exist. Harbor belongs to Stage 7.
 See [coverage](../../08-reference/implementation-support.md#stage-coverage).
-**Design:** [controlled software intake](../../01-architecture/13-software-intake/01-design.md).
+**Design:** [controlled software intake](../../01-architecture/07-software-intake/README.md).
 
 ## Main path
 
@@ -40,6 +40,7 @@ Before deploying or updating a cache, select the Windows Update scope:
 
 - **3a:** Linux/bootstrap supply only; no Windows Update additions.
 - **3b:** [prepare Windows Update access](step-3b-windows-update.md#1-prepare-the-route).
+  Requires an existing Windows management owner for device policy; the repository owns only cache policy.
   For an existing pair, prepare its policy edits before **2b** reconciles it.
 
 For existing approved supply, coordinate the same consumer and security checks with its owner;
@@ -268,7 +269,7 @@ Continue through **4b** if selected, then **Step 5**.
 ### 4b: Apply the Linux security profile — optional
 
 With SSH and approved package access working on both cache VMs, apply the
-[Linux service-VM profile](../../05-operations/hosts/linux-security.md).
+[Linux service-VM profile](../../05-operations/01-hosting/linux-security.md).
 Include the approved client ports, operator sources and VRRP peers before activating its firewall.
 Return here for **Step 5** to retest the cache and takeover under the selected policy.
 
@@ -314,7 +315,7 @@ Return here and continue at **Step 7**.
 
 ## Step 7: Connect Proxmox host updates
 
-From **`<prefix>-tier-0/`**, complete the required [Proxmox host actions](../../05-operations/hosts/update-access.md#how-are-managed-hosts-configured):
+From **`<prefix>-tier-0/`**, complete the required [Proxmox host actions](../../05-operations/02-software-intake/host-updates.md#how-are-managed-hosts-configured):
 register existing hosts, verify SSH access and apply the Datacenter/APT proxy settings.
 For native mirrors instead, verify the equivalent APT configuration without enabling the proxy recipe.
 
@@ -323,7 +324,7 @@ temporary update egress and prove direct-WAN bypass is denied.
 The hosts pull content; the Tier 2 cache receives no host credentials or management access.
 
 **Expected:** all selected hosts can retrieve their approved updates through the accepted path.
-[Install updates](../../05-operations/hosts/update-access.md#how-are-proxmox-updates-installed)
+[Install updates](../../05-operations/02-software-intake/host-updates.md#how-are-proxmox-updates-installed)
 in a separate maintenance window, one cluster host at a time with the proxy kept available.
 Patch installation is not a prerequisite for completing update-access configuration.
 
@@ -369,7 +370,7 @@ See the [policy and sizing reference](../../08-reference/proxy-cache.md) when ex
 | Extension | When and ownership | Relation to the early path |
 | --- | --- | --- |
 | Retained RPM/APT repositories and selected files | [Stage 3, option 3b](../stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional) | Install after trust/logging, then accept consumer cutover before leaving Stage 3 |
-| Wider vulnerability policy | [Design extension](../../01-architecture/13-software-intake/02-verification.md); OCI/Trivy integration remains separate | Add target-specific gates; ordinary proxy tunnels remain unscanned |
+| Wider vulnerability policy | [Design extension](../../01-architecture/07-software-intake/01-verification.md); OCI/Trivy integration remains separate | Add target-specific gates; ordinary proxy tunnels remain unscanned |
 | OCI registry | [Stage 7 artifact supply](../stage-7-delivery/procedures/registry.md); Tier 1, Harbor is an example | Store/promote container images and compatible OCI artifacts; does not replace RPM/APT repositories |
 | Patch rollout | Tier-owned maintenance automation; not supplied end to end | Use approved content with test/reboot/health gates; content availability alone is not patch compliance |
 

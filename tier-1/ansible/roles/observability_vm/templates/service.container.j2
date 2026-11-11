@@ -1,0 +1,49 @@
+[Unit]
+Description=Dedicated observability / {{ observability_vm_service }}
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor={{ observability_vm_data_path }}
+
+[Container]
+Image={{ observability_vm_images[observability_vm_service] }}
+ContainerName=obs-{{ observability_vm_service }}
+Network=host
+User=1000:1000
+DropCapability=all
+NoNewPrivileges=true
+Pull=missing
+EnvironmentFile={{ observability_vm_config_path }}/{{ observability_vm_service }}/service.env
+{% if observability_vm_registry_auth_src %}
+PodmanArgs=--authfile={{ observability_vm_config_path }}/registry-auth.json
+{% endif %}
+Volume={{ observability_vm_config_path }}/tls:/tls:ro,z
+Volume={{ observability_vm_config_path }}/{{ observability_vm_service }}:/config:ro,Z
+Volume={{ observability_vm_data_path }}/{{ observability_vm_service }}:/data:Z
+{% if observability_vm_service == 'collector' %}
+Exec=--config=/config/config.yml
+{% elif observability_vm_service == 'metrics' %}
+Exec=-storageDataPath=/data -retentionPeriod={{ observability_vm_metrics_retention }} -httpListenAddr=:8428 -tls -tlsCertFile=/tls/tls.crt -tlsKeyFile=/tls/tls.key -envflag.enable -envflag.prefix=VM_
+{% elif observability_vm_service == 'query' %}
+Exec=-auth.config=/config/config.yml -httpListenAddr=:8427 -tls -tlsCertFile=/tls/tls.crt -tlsKeyFile=/tls/tls.key -backend.TLSCAFile=/tls/ca.crt
+{% elif observability_vm_service == 'search' %}
+Volume={{ observability_vm_config_path }}/search/config.yml:/usr/share/opensearch/config/opensearch.yml:ro,Z
+Volume={{ observability_vm_config_path }}/tls:/usr/share/opensearch/config/tls:ro,z
+Volume={{ observability_vm_config_path }}/tls/oidc-ca.crt:/usr/share/opensearch/config/oidc/ca.crt:ro,z
+Ulimit=nofile=65536:65536
+{% elif observability_vm_service == 'prepper' %}
+Volume={{ observability_vm_config_path }}/prepper/config.yml:/usr/share/data-prepper/pipelines/pipelines.yaml:ro,Z
+Volume={{ observability_vm_config_path }}/prepper/core.yml:/usr/share/data-prepper/config/data-prepper-config.yaml:ro,Z
+{% elif observability_vm_service == 'dashboards' %}
+Volume={{ observability_vm_config_path }}/dashboards/config.yml:/usr/share/opensearch-dashboards/config/opensearch_dashboards.yml:ro,Z
+{% endif %}
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=900
+TimeoutStopSec=120
+MemoryMax={{ observability_vm_limits[observability_vm_service].memory }}
+CPUQuota={{ observability_vm_limits[observability_vm_service].cpu }}
+
+[Install]
+WantedBy=multi-user.target

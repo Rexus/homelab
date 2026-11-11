@@ -1,0 +1,195 @@
+---
+- name: Validate OpenBao inputs and accepted intake
+  ansible.builtin.import_tasks: openbao-inputs.yml
+
+- name: Inspect original HashiCorp authority markers before any installation
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: [/etc/vault.d/vault.hcl, /opt/vault/data/raft/raft.db]
+  register: openbao_other_authority
+
+- name: Refuse conversion or cohosting of the original Vault authority
+  ansible.builtin.assert:
+    that: not item.stat.exists
+    fail_msg: Use distinct guests and original state/environment; this installer cannot replace an existing Vault.
+  loop: "{{ openbao_other_authority.results }}"
+
+- name: Prepare the dedicated unprivileged OpenBao service identity
+  ansible.builtin.user:
+    name: "{{ openbao_service_user }}"
+    system: true
+    create_home: false
+    shell: /sbin/nologin
+
+- name: Install declared OpenBao runtime and provider packages from accepted repositories
+  ansible.builtin.dnf:
+    name: "{{ ['glibc', 'openssl', 'ca-certificates'] + openbao_pkcs11_packages }}"
+    state: present
+    disable_gpg_check: false
+
+- name: Configure the explicitly selected local native provider after creating its consumer identity
+  ansible.builtin.include_role:
+    name: hsm_provider
+  vars:
+    hsm_provider_user: "{{ openbao_service_user }}"
+    hsm_provider_group: "{{ openbao_service_user }}"
+  when: openbao_pkcs11_enabled | bool and openbao_hsm_client_mode == 'provider'
+
+- name: Configure and qualify native remoting after creating its consumer identity
+  ansible.builtin.include_role:
+    name: hsm_remote
+  vars:
+    hsm_remote_action: client
+    hsm_remote_client_user: "{{ openbao_service_user }}"
+    hsm_remote_client_group: "{{ openbao_service_user }}"
+  when: openbao_pkcs11_enabled | bool and openbao_hsm_client_mode == 'remote'
+
+- name: Prepare the optionally selected Proxmox data disk through the existing guard
+  ansible.builtin.include_role:
+    name: data_volume
+  vars:
+    data_volume_device: "{{ openbao_data_device }}"
+    data_volume_path: "{{ vault_data_dir }}"
+    data_volume_label: openbao-data
+    data_volume_expected_uuid: "{{ openbao_data_expected_uuid }}"
+  when: openbao_data_device | length > 0
+
+- name: Create bounded OpenBao configuration and persistent directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ openbao_service_user }}"
+    mode: "0750"
+  loop:
+    - {path: "{{ vault_config_dir }}", owner: root}
+    - {path: "{{ vault_data_dir }}", owner: "{{ openbao_service_user }}"}
+    - {path: "{{ vault_tls_dir }}", owner: root}
+    - {path: "{{ vault_log_dir }}", owner: "{{ openbao_service_user }}"}
+    - {path: "{{ openbao_plugin_directory }}", owner: root}
+
+- name: Inspect the actual live Raft filesystem
+  ansible.builtin.command:
+    argv: [findmnt, --noheadings, --output, FSTYPE, --target, "{{ vault_data_dir }}"]
+  register: openbao_data_filesystem
+  changed_when: false
+
+- name: Require local Proxmox-backed storage for live Raft data
+  ansible.builtin.assert:
+    that: openbao_data_filesystem.stdout | trim in ['xfs', 'ext4', 'btrfs']
+    fail_msg: Live Raft data requires a local guest filesystem on Proxmox storage; NAS is backup custody only.
+
+- name: Install the approved OpenBao executable without a vendor repository change
+  ansible.builtin.copy:
+    src: "{{ openbao_binary_src }}"
+    dest: "{{ openbao_binary_dest }}"
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart vault
+
+- name: Verify the installed native OpenBao release
+  ansible.builtin.command:
+    argv: ["{{ openbao_binary_dest }}", version]
+  register: openbao_installed_version
+  changed_when: false
+  failed_when: "('OpenBao v' ~ openbao_version ~ ' ') not in openbao_installed_version.stdout"
+
+- name: Install the approved PKCS11 KMS executable
+  ansible.builtin.copy:
+    src: "{{ openbao_plugin_src }}"
+    dest: "{{ openbao_plugin_directory }}/openbao-plugin-kms-pkcs11"
+    owner: root
+    group: "{{ openbao_service_user }}"
+    mode: "0750"
+  when: openbao_pkcs11_enabled | bool
+  notify: Restart vault
+
+- name: Require the selected native library to be readable by the service identity
+  ansible.builtin.stat:
+    path: "{{ openbao_pkcs11_library }}"
+    follow: true
+  become_user: "{{ openbao_service_user }}"
+  register: openbao_client_library
+  when: openbao_pkcs11_enabled | bool
+
+- name: Require HSM client installation before starting the consumer
+  ansible.builtin.assert:
+    that: openbao_client_library.stat.isreg | default(false) and openbao_client_library.stat.readable
+    fail_msg: Apply the selected native HSM client configuration on these guests, readable by openbao, then rerun.
+  when: openbao_pkcs11_enabled | bool
+
+- name: Install preissued OpenBao TLS and client trust
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: "{{ openbao_service_user }}"
+    mode: "0640"
+  loop:
+    - {src: "{{ vault_tls_cert_src }}", dest: "{{ vault_tls_cert_dest }}"}
+    - {src: "{{ vault_tls_key_src }}", dest: "{{ vault_tls_key_dest }}"}
+    - {src: "{{ vault_tls_ca_src }}", dest: "{{ vault_tls_ca_dest }}"}
+  no_log: true
+  diff: false
+  notify: Restart vault
+
+- name: Render the original Raft/TLS configuration with the optional native KMS declaration
+  ansible.builtin.template:
+    src: vault.hcl.j2
+    dest: "{{ vault_config_dir }}/openbao.hcl"
+    owner: root
+    group: "{{ openbao_service_user }}"
+    mode: "0640"
+  no_log: true
+  diff: false
+  notify: Restart vault
+
+- name: Render protected HSM client environment without exposing provider credentials
+  ansible.builtin.template:
+    src: openbao-environment.j2
+    dest: "{{ vault_config_dir }}/environment"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+  notify: Restart vault
+
+- name: Install the native OpenBao systemd service
+  ansible.builtin.template:
+    src: openbao.service.j2
+    dest: /etc/systemd/system/openbao.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: [Reload systemd, Restart vault]
+
+- name: Validate native server configuration before restarting a service
+  ansible.builtin.command:
+    argv: ["{{ openbao_binary_dest }}", operator, validate-config, "-config={{ vault_config_dir }}/openbao.hcl"]
+  changed_when: false
+
+- name: Load the selected service configuration
+  ansible.builtin.meta: flush_handlers
+
+- name: Start OpenBao without initializing or unsealing it
+  ansible.builtin.systemd_service:
+    name: openbao
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: vault_manage_service
+
+- name: Check native TLS health including the expected first-use sealed state
+  ansible.builtin.uri:
+    url: "{{ vault_api_addr }}/v1/sys/health?standbyok=true"
+    ca_path: "{{ vault_tls_ca_dest }}"
+    validate_certs: true
+    use_proxy: false
+    status_code: [200, 501, 503]
+  register: openbao_install_health
+  until: openbao_install_health.status in [200, 501, 503]
+  retries: 12
+  delay: 5
+  when: vault_manage_service

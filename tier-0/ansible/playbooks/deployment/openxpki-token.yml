@@ -1,0 +1,12 @@
+---
+# Explicit custodian CLI operation, never part of ordinary runtime reconciliation.
+- name: Operate the approved issuer token from the protected controller
+  hosts: issuing_ca
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Execute only the selected native custodian operation
+      ansible.builtin.include_role:
+        name: openxpki
+        tasks_from: token

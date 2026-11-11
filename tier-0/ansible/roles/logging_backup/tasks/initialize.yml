@@ -1,0 +1,71 @@
+---
+- name: Inspect the existing encrypted repository configuration without following links
+  ansible.builtin.stat:
+    path: "{{ logging_backup_repository }}/config"
+    follow: false
+    get_checksum: false
+  register: logging_backup_repository_config
+
+- name: Refuse linked or non-file repository configurations
+  ansible.builtin.assert:
+    that:
+      - not logging_backup_repository_config.stat.exists or logging_backup_repository_config.stat.isreg | default(false)
+      - not logging_backup_repository_config.stat.islnk | default(false)
+    fail_msg: Restore the original repository configuration; links and non-file replacements cannot authorize initialization.
+
+- name: Inspect a prospective repository before creating a new encryption identity
+  when:
+    - logging_backup_initialize | bool
+    - not logging_backup_repository_config.stat.exists
+  block:
+    - name: Read every existing entry including hidden and partial repository files
+      ansible.builtin.find:
+        paths: "{{ logging_backup_repository }}"
+        recurse: false
+        hidden: true
+        file_type: any
+        follow: false
+      register: logging_backup_repository_entries
+
+    - name: Refuse a missing config in a populated recovery volume
+      ansible.builtin.assert:
+        that:
+          - logging_backup_repository_entries.skipped_paths | default({}) | length == 0
+          - >-
+            logging_backup_repository_entries.files | rejectattr('path', 'equalto',
+              logging_backup_repository ~ '/lost+found') | list | length == 0
+        fail_msg: >-
+          A populated repository without config needs recovery, never reinitialization.
+          Restore its original config or select a new empty recovery volume.
+
+    - name: Inspect the filesystem-created recovery directory when present
+      ansible.builtin.stat:
+        path: "{{ logging_backup_repository }}/lost+found"
+        follow: false
+        get_checksum: false
+      register: logging_backup_lost_found
+
+    - name: Require a real filesystem recovery directory
+      ansible.builtin.assert:
+        that:
+          - not logging_backup_lost_found.stat.islnk | default(false)
+          - logging_backup_lost_found.stat.isdir | default(false)
+      when: logging_backup_lost_found.stat.exists
+
+    - name: Inspect filesystem recovery contents before treating the volume as empty
+      ansible.builtin.find:
+        paths: "{{ logging_backup_repository }}/lost+found"
+        recurse: false
+        hidden: true
+        file_type: any
+        follow: false
+      register: logging_backup_recovered_entries
+      when: logging_backup_lost_found.stat.exists
+
+    - name: Refuse a volume containing recovered filesystem data
+      ansible.builtin.assert:
+        that:
+          - logging_backup_recovered_entries.matched == 0
+          - logging_backup_recovered_entries.skipped_paths | default({}) | length == 0
+        fail_msg: Inspect and recover lost+found before commissioning a new encrypted repository.
+      when: logging_backup_lost_found.stat.exists

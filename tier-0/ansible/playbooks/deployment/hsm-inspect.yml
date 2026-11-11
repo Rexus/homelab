@@ -1,0 +1,29 @@
+---
+- name: Check controller tooling for direct provider inspection
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: hsm
+    control_node_require_terraform: false
+
+- name: Require selected provider hosts before inspection
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Refuse an empty provider inspection
+      ansible.builtin.assert:
+        that: groups.get(hsm_inspect_group | default('hsm_gateways'), []) | length > 0
+
+- name: Wait for selected provider hosts before read-only inspection
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: "{{ hsm_inspect_group | default('hsm_gateways') }}"
+
+- name: Inspect the selected provider without installing packages or changing tokens
+  hosts: "{{ hsm_inspect_group | default('hsm_gateways') }}"
+  become: true
+  tasks:
+    - name: Run only the non-destructive provider inspection
+      ansible.builtin.include_role:
+        name: hsm_provider
+        tasks_from: inspect

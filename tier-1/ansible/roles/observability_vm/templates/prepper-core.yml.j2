@@ -1,0 +1,11 @@
+ssl: true
+serverPort: 4900
+keyStoreFilePath: /config/keystore.p12
+keyStorePassword: {{ observability_vm_prepper_core_auth.password | to_json }}
+privateKeyPassword: {{ observability_vm_prepper_core_auth.password | to_json }}
+authentication:
+  http_basic:
+    username: {{ observability_vm_prepper_core_auth.username | to_json }}
+    password: {{ observability_vm_prepper_core_auth.password | to_json }}
+processorShutdownTimeout: 30s
+sinkShutdownTimeout: 60s

@@ -1,0 +1,21 @@
+---
+- name: Wait for the new receiver guest
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: foundation_logging
+
+- name: Prepare the receiver data disk before certificate enrollment
+  hosts: foundation_logging
+  become: true
+  serial: 1
+  roles:
+    - baseline
+  tasks:
+    - name: Prepare only the guarded receiver filesystem and UUID mount
+      ansible.builtin.include_role:
+        name: syslog_ng
+        tasks_from: storage
+
+    - name: Show the verified storage binding for the recovery record
+      ansible.builtin.debug:
+        var: data_volume_result

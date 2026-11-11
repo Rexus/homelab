@@ -128,7 +128,7 @@ flowchart TB
 [`deployment/lab-vms.yml`](../../tier-2/ansible/playbooks/deployment/lab-vms.yml).
 The recipe runs Shared's [baseline](../../shared/ansible/roles/baseline/tasks/main.yml);
 it does not install an application. [Role search paths](../../tier-2/ansible/ansible.cfg)
-prefer tier-local roles. The [recipe map](../05-operations/ansible-recipes.md) identifies supported maintenance.
+prefer tier-local roles. The [recipe map](../05-operations/01-hosting/ansible-recipes.md) identifies supported maintenance.
 
 <a id="environment-data-split"></a>
 

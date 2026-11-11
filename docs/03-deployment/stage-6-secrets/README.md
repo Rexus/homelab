@@ -1,6 +1,6 @@
 # Stage 6: Secrets
 
-**Related:** [Architecture](../../01-architecture/19-secrets/README.md) · [Operations](../../05-operations/secrets/README.md)
+**Related:** [Architecture](../../01-architecture/08-cryptography/08-secrets.md) · [Operations](../../05-operations/03-cryptography/README.md)
 
 Establish the Tier 0 secret service, its audit trail and independent recovery custody.
 Then add the inventory and administration tools that support platform operation.
@@ -13,8 +13,8 @@ service storage/backups and independent recovery inputs.
 
 **Automation:** native installation supplies Vault, NetBox and Headlamp. Initialization/unseal and
 recovery acceptance remain operator tasks; see [coverage](../../08-reference/implementation-support.md#stage-coverage).
-**Design:** [identity](../../01-architecture/18-identity/README.md),
-[secrets](../../01-architecture/16-cryptography/README.md) and [operations](../../01-architecture/24-operations/README.md).
+**Design:** [identity](../../01-architecture/09-identity/README.md),
+[secrets](../../01-architecture/08-cryptography/README.md) and [operations](../../01-architecture/11-operations/README.md).
 
 <a id="step-1-deploy-identity-federation"></a>
 
@@ -24,13 +24,15 @@ This stage integrates secret-service and operator access with that provider.
 
 ## Main path
 
-Follow Steps 1–4. Choose one Vault placement; seal and authentication options are additions, not extra instances.
+Follow Steps 1–4. Choose one Vault placement. Seal/authentication choices refine that service;
+the advanced signing option adds a separate, independently owned service.
 
 | Step | Path or option | Continue when |
 | --- | --- | --- |
 | 1a | [Kubernetes Vault](#step-1-deploy-the-secret-service): [inputs/install](procedures/control-applications.md), then [ceremony](procedures/vault-kubernetes.md) | Vault access, audit and recovery are accepted; go to Step 2 |
 | 1b | [Dedicated Vault VM](step-1b-vault-vm.md), instead of 1a | Rejoin Step 1 acceptance, then Step 2 |
 | 1c | Optional [seal integration](step-1c-seal-integration.md); decide **before** either placement is initialized | Qualified provider and recovery path; return to selected 1a/1b |
+| 1d | Optional [independent hardware signing API](step-1d-openbao.md), after the selected Vault path is accepted | Qualify original HSM keys, scoped clients and independent recovery; rejoin Step 2 |
 | 2 | [Operational tools](#step-2-add-operational-tools): prepare the [monitoring host](procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime), install NetBox, add [change audit](procedures/netbox-audit.md), then Headlamp | Tools, SSO, protected audit and backups work; go to Step 3 |
 | 3a | [Access and independent recovery](#step-3-integrate-access-and-recovery), required for either Vault placement | Allowed/denied access and break-glass recovery pass |
 | 3b | Optional [hardware authentication](step-3b-hardware-authentication.md) after 3a | Return to Step 3 checks before Step 4 |
@@ -104,6 +106,9 @@ Independent monitoring is a separate [selected integration](procedures/independe
    [1b: dedicated Vault VM](step-1b-vault-vm.md). Install only one realization.
    [1c: seal integration](step-1c-seal-integration.md) is a separate choice made before initialization;
    qualify its provider/recovery dependency first. It is not an automatic post-install migration.
+   Applications needing an open-source hardware signing API can additionally select
+   [1d: independent OpenBao](step-1d-openbao.md) after this Vault acceptance. It uses separate
+   guests, state, keys and access policy; it does not replace HashiCorp Vault.
 2. For 1a, create the local application inputs without overwriting Stage 5 settings:
 
    Run from **`<prefix>-tier-0/`**.
@@ -149,7 +154,7 @@ Independent monitoring is a separate [selected integration](procedures/independe
    `-e @secrets/control-applications.yml --ask-vault-pass` to both, as described in the input procedure.
 5. Complete [Vault ceremony and acceptance](procedures/vault-kubernetes.md#operator-ceremony).
    The first install leaves Vault sealed. Keep recovery shares outside Vault and Git.
-   Commission [scheduled independent recovery copies](../../05-operations/backups/control-applications.md#configure-and-schedule)
+   Commission [scheduled independent recovery copies](../../05-operations/06-resilience/backups/control-applications.md#configure-and-schedule)
    after API access is configured and before recording backup/restore acceptance.
 
 **Continue only after:** verified TLS, scoped access, protected audit delivery and a clean-target restore.
@@ -211,7 +216,7 @@ Apply the [service SSO gate](../stage-5-identity/procedures/service-sso.md) to h
 access; preserve tested independent recovery before retiring bootstrap logins.
 
 **Result:** after service installation and acceptance, the secret service in the
-[reference platform](../../01-architecture/06-reference-platform.md#service-placement)
+[reference platform](../../01-architecture/03-reference-platform.md#service-placement)
 provides scoped secret access, auditing and independent unseal/recovery.
 Supporting inventory, administration and monitoring integrations are recorded separately.
 Record access, backup/restore and external failure-detection evidence.

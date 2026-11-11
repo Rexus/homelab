@@ -1,0 +1,85 @@
+---
+- name: Check the already installed runtime and original storage
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Require independently recorded public certificate identities
+  ansible.builtin.assert:
+    that:
+      - openxpki_issuer_certificate_src is match('^/')
+      - openxpki_root_certificate_src is match('^/')
+      - openxpki_issuer_fingerprint is match('^([A-Fa-f0-9]{2}:){31}[A-Fa-f0-9]{2}$')
+      - openxpki_root_fingerprint is match('^([A-Fa-f0-9]{2}:){31}[A-Fa-f0-9]{2}$')
+      - openxpki_public_root_files.keys() | list | difference(['root.cer', 'root.crl']) | length == 0
+
+- name: Inspect the public certificates on the controller before transfer
+  community.crypto.x509_certificate_info:
+    path: "{{ item }}"
+    valid_at: {now: '+0s'}
+  loop: ["{{ openxpki_root_certificate_src }}", "{{ openxpki_issuer_certificate_src }}"]
+  delegate_to: localhost
+  become: false
+  register: issuer_public_certificates
+
+- name: Require the approved unexpired root and issuing CA certificates
+  ansible.builtin.assert:
+    that:
+      - issuer_public_certificates.results[0].valid_at.now
+      - issuer_public_certificates.results[1].valid_at.now
+      - "'CA:TRUE' in issuer_public_certificates.results[0].basic_constraints"
+      - "'CA:TRUE' in issuer_public_certificates.results[1].basic_constraints"
+      - issuer_public_certificates.results[0].fingerprints.sha256 | lower == openxpki_root_fingerprint | lower
+      - issuer_public_certificates.results[1].fingerprints.sha256 | lower == openxpki_issuer_fingerprint | lower
+
+- name: Inspect existing public identity targets without following links
+  ansible.builtin.stat:
+    path: "{{ openxpki_data_mount }}/identity/{{ item }}.pem"
+    follow: false
+  loop: [root, issuer]
+  register: issuer_public_targets
+
+- name: Refuse linked or non-file certificate destinations
+  ansible.builtin.assert:
+    that:
+      - not item.stat.islnk | default(false)
+      - not item.stat.exists or item.stat.isreg | default(false)
+  loop: "{{ issuer_public_targets.results }}"
+
+- name: Copy public certificates without replacing an existing identity
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ openxpki_data_mount }}/identity/{{ item.name }}.pem"
+    force: false
+    owner: root
+    group: openxpki
+    mode: '0640'
+  loop:
+    - {name: root, src: "{{ openxpki_root_certificate_src }}"}
+    - {name: issuer, src: "{{ openxpki_issuer_certificate_src }}"}
+
+- name: Read the installed public identities
+  community.crypto.x509_certificate_info:
+    path: "{{ openxpki_data_mount }}/identity/{{ item }}.pem"
+  loop: [root, issuer]
+  register: issuer_installed_certificates
+
+- name: Refuse replacement or adoption of a different installed CA
+  ansible.builtin.assert:
+    that:
+      - issuer_installed_certificates.results[0].fingerprints.sha256 | lower == openxpki_root_fingerprint | lower
+      - issuer_installed_certificates.results[1].fingerprints.sha256 | lower == openxpki_issuer_fingerprint | lower
+
+- name: Verify the installed certificate chain without importing a token
+  ansible.builtin.command:
+    argv: [openssl, verify, -CAfile, "{{ openxpki_data_mount }}/identity/root.pem",
+           "{{ openxpki_data_mount }}/identity/issuer.pem"]
+  changed_when: false
+
+- name: Copy explicitly supplied public root publication objects
+  ansible.builtin.copy:
+    src: "{{ item.value }}"
+    dest: "{{ openxpki_data_mount }}/public/{{ item.key }}"
+    owner: openxpki
+    group: openxpki
+    mode: '0644'
+  loop: "{{ openxpki_public_root_files | dict2items }}"
+  when: item.key in ['root.cer', 'root.crl']

@@ -1,4 +1,4 @@
 ---
 # Compatibility entry point; compose the deployment recipe without duplicating tasks.
-- name: "Cryptography: Trust Step 1b, gateway host baseline only"
+- name: "Cryptography: Trust Step 1b, HSM provider hosts"
   ansible.builtin.import_playbook: deployment/hsm-gateways.yml

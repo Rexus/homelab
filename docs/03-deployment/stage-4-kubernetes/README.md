@@ -1,6 +1,6 @@
 # Stage 4: Kubernetes
 
-**Related:** [Architecture](../../01-architecture/17-kubernetes/README.md) · [Operations](../../05-operations/kubernetes/README.md)
+**Related:** [Architecture](../../01-architecture/04-hosting/03-kubernetes.md) · [Operations](../../05-operations/01-hosting/kubernetes-and-labs.md)
 
 Create the Tier 0 control cluster, then establish the basic platform before
 deploying identity federation, secrets or other control applications. Kubernetes
@@ -16,7 +16,7 @@ Prepare the [private endpoint](procedures/api-endpoint.md) before cluster bootst
 a qualified existing endpoint is also valid. Tier-local Ansible inputs select reusable
 platform and protected cluster-source collection roles in Shared.
 See [coverage](../../08-reference/implementation-support.md#stage-coverage).
-**Design:** [Kubernetes runtime](../../01-architecture/10-hosting/04-kubernetes.md).
+**Design:** [Kubernetes runtime](../../01-architecture/04-hosting/03-kubernetes.md).
 
 **Version decision before provisioning:** retain the approved **Talos 1.13.x** image, installer
 schematic/release and matching CLI selected in
@@ -30,8 +30,11 @@ does not qualify the complete platform or SSO path; do not upgrade/downgrade exi
 | --- | --- | --- |
 | 1: endpoint before nodes | [Private API endpoint](procedures/api-endpoint.md); [node image access](procedures/image-access.md) | Choose 1a or 1b before provisioning |
 | 1a: Terraform, main | [Talos cluster](procedures/talos-terraform.md), Steps 1–3 | Step 2; do not run another cluster lifecycle |
-| 1b: manual alternative | [Manual cluster](step-1b-manual-cluster.md); Stage 5 SSO needs a separately qualified manual integration | Step 2 after client export |
+| 1b: existing cluster | [Accepted existing Talos cluster](step-1b-existing-cluster.md), retaining its original IaC owner | Step 2 after client/ownership checks |
 | 2: platform and source collection | [Base add-ons](procedures/basic-platform.md), [cluster logging](procedures/security-logging.md), [Flux/SOPS](procedures/flux-sops.md) | Follow the interleaved order in Step 2 below |
+| 2a: install block CSI | [Native Ceph RBD CSI](procedures/basic-platform.md#8a-install-ceph-rbd-csi-against-existing-proxmoxceph-storage), after Cilium/logging | Step 2 action 5 after persistence checks |
+| 2b: adopt block CSI | [Existing CSI owner](procedures/basic-platform.md#8b-accept-an-existing-csi-owner), instead of 2a | Same rejoin; do not install a second owner |
+| 2c: add file CSI | Optional [NFS claims](procedures/basic-platform.md#8c-install-nfs-csi-for-backupshared-file-claims) after 2a/2b | Restore the block-class selection, then action 5 |
 | 3: acceptance | [Common cluster contract](procedures/kubernetes.md), then verification below | Stage 5 after recovery checks |
 
 1. [Create the Kubernetes cluster](#step-1-create-the-kubernetes-cluster)
@@ -76,7 +79,7 @@ Choose the lifecycle **before provisioning nodes**:
 | Route | Run only this cluster lifecycle | Stop/rejoin |
 | --- | --- | --- |
 | 1a: main path | [Terraform cluster Steps 1-3](procedures/talos-terraform.md#configure), including native patch preparation, saved plan/apply and credential export | Stop before its Step 4; return here for Step 2 |
-| 1b | [Manual bootstrap](step-1b-manual-cluster.md), with the same native node settings | Stop after bootstrap/client export; return here for Step 2 without Terraform ownership |
+| 1b | [Existing cluster](step-1b-existing-cluster.md), with the same native node settings | Retain its existing client files and node/state owner; return for Step 2 |
 
 1. **Prepare the independent endpoint first.** Complete
    [API endpoint Steps 1-3](procedures/api-endpoint.md#configure-local-inputs): initialize
@@ -155,7 +158,7 @@ backups are separate selections, not installed by this pictured main path.
 | Capability | Supplied installation | Explicit prerequisite or remaining acceptance |
 | --- | --- | --- |
 | Networking | Talos-compatible Cilium | CNI/proxy preparation before bootstrap; cross-node traffic and DNS tests |
-| Persistence | Accepted existing Proxmox/Ceph-backed block CSI; optional separate NFS CSI for file claims | Qualified live disk and backup destinations; persistence and restore tests |
+| Persistence | Native Ceph RBD CSI against existing storage, or accepted existing block CSI; optional separate NFS CSI for file claims | Qualified native pool/export and scoped credentials; persistence and restore tests |
 | Certificates | cert-manager, optional ClusterIssuer and issuance probe | Qualified existing issuer, trust and enrollment credentials |
 | Ingress | Traefik with explicit NodePorts and ingress class | Private DNS, routing/firewall and end-to-end TLS tests |
 | PostgreSQL | CloudNativePG operator and optional probe database; Barman Cloud only for the object/WAL option | Qualified block CSI/image; application connection, selected backup and restore tests |
@@ -169,8 +172,10 @@ backups are separate selections, not installed by this pictured main path.
 3. Complete [cluster logging Steps 4–6](procedures/security-logging.md#enroll-node-streams): enroll
    node leaves at Tier 0, install collectors and verify real node/pod/API events before adding consumers.
    The native logging patches were prepared before bootstrap in Step 1; do not bootstrap again.
-4. Accept the [live block CSI prerequisite](procedures/basic-platform.md#persistence), including claim
-   persistence/recovery checks. The example does not install a Proxmox/Ceph block driver.
+4. Choose [2a: install Ceph RBD CSI](procedures/basic-platform.md#8a-install-ceph-rbd-csi-against-existing-proxmoxceph-storage)
+   or [2b: retain an existing CSI owner](procedures/basic-platform.md#8b-accept-an-existing-csi-owner).
+   Complete claim persistence/recovery checks before consumers. Add [2c: NFS CSI](procedures/basic-platform.md#8c-install-nfs-csi-for-backupshared-file-claims)
+   for selected NAS claims; file backup storage does not replace live database block storage.
 5. Complete [basic platform action 9](procedures/basic-platform.md#8a-prepare-flux-and-managed-bootstrap-secrets--main-path)
    for the selected Secret owner. It prepares the independent Flux source/encrypted canary and performs
    the remaining platform render/review/apply once. Return here for Step 3.
@@ -232,7 +237,7 @@ Scope: cluster sources and bounded local queues; the receiver and its archive ar
    still passes with the installed platform. Collectors were installed in Step 2; this is verification,
    not another patch/bootstrap or installer pass.
 2. For **1a**, run the [Terraform lifecycle's verification commands](procedures/talos-terraform.md#verify-and-hand-over).
-   For **1b**, complete [manual verification and handover](step-1b-manual-cluster.md#verify-and-hand-over)
+   For **1b**, complete [existing-cluster verification and handover](step-1b-existing-cluster.md#verify-and-hand-over)
    with that lifecycle's existing client files. Accept every selected
    [foundation gate](procedures/kubernetes.md#cluster-foundation) and recovery check below.
    Empty manifests or three running VMs are insufficient.

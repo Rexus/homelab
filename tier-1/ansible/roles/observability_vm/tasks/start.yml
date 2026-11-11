@@ -1,0 +1,48 @@
+---
+# Called serially after all seven guests have their configuration and mounted data.
+- name: Start or reconcile this host's selected services
+  ansible.builtin.systemd_service:
+    name: "obs-{{ item }}.service"
+    daemon_reload: true
+    state: "{{ 'restarted' if item in observability_vm_restart_services | default([]) else 'started' }}"
+  loop: "{{ observability_vm_services }}"
+  # Quadlet [Install] owns boot activation; generated units cannot be systemctl-enabled.
+
+- name: Wait for the authenticated metrics backend
+  ansible.builtin.uri:
+    url: "https://{{ observability_vm_endpoints[inventory_hostname] }}:8428/api/v1/query?query=1"
+    url_username: "{{ observability_vm_metrics_auth.username }}"
+    url_password: "{{ observability_vm_metrics_auth.password }}"
+    force_basic_auth: true
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+  register: observability_vm_metrics_health
+  until: observability_vm_metrics_health.status | default(0) == 200
+  retries: 30
+  delay: 5
+  no_log: true
+  when: inventory_hostname in observability_vm_metrics_hosts
+
+- name: Require surviving search quorum before advancing a normal rolling reconciliation
+  ansible.builtin.uri:
+    url: >-
+      https://{{ observability_vm_endpoints[inventory_hostname] }}:9200/_cluster/health?wait_for_status=yellow&timeout=60s
+    client_cert: "{{ observability_vm_search_admin_tls.cert_src }}"
+    client_key: "{{ observability_vm_search_admin_tls.key_src }}"
+    ca_path: "{{ observability_vm_ca_src }}"
+    validate_certs: true
+    return_content: true
+    timeout: 70
+  register: observability_vm_search_rolling_health
+  until: >-
+    observability_vm_search_rolling_health.status | default(0) == 200 and
+    not observability_vm_search_rolling_health.json.timed_out | default(true) and
+    observability_vm_search_rolling_health.json.number_of_nodes | default(0) | int >= 2
+  retries: 6
+  delay: 5
+  delegate_to: localhost
+  become: false
+  no_log: true
+  when:
+    - inventory_hostname in observability_vm_search_hosts
+    - not observability_vm_search_bootstrap | bool

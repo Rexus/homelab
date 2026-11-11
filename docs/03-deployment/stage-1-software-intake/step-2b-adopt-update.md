@@ -94,7 +94,7 @@ failover validation may move the VIP temporarily. Do not destroy caches, clear d
 Return to [Stage 1, Step 5](README.md#step-5-test-the-selected-intake-path) to verify the cache
 and its consumers. Steps 6–7 reapply the retained bootstrap and Proxmox settings to adopt updated
 package policy, then verify retrieval and bypass denial. Keep the accepted endpoint and bypass list.
-For recurring APT signature/hash failures, use the [diagnostic runbook](../../05-operations/hosts/apt-refresh.md).
+For recurring APT signature/hash failures, use the [diagnostic runbook](../../05-operations/02-software-intake/apt-refresh.md).
 A successful normal refresh needs no permanent `No-Cache` or pipelining override.
 
 Select [Stage 3, option 3b](../stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional)

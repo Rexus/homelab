@@ -1,0 +1,76 @@
+---
+- name: Select the original key on this physical backend without alias substitution
+  ansible.builtin.set_fact:
+    hsm_remote_probe_uri: >-
+      pkcs11:serial={{ hsm_remote_backend.value.serial }};id={{ hsm_remote_key_id | list | batch(2)
+      | map('join') | map('regex_replace', '^', '%') | join }};type=private
+    hsm_remote_native_probe_environment: >-
+      {{ hsm_remote_probe_environment | default({}) | combine(
+        {'XDG_CONFIG_HOME': hsm_remote_probe_config_dir ~ '/' ~ hsm_remote_backend.key}
+        if hsm_remote_probe_library is not defined else {}) }}
+
+# p11-kit filters tokens, not objects. Custody must dedicate the token to this key.
+- name: Inspect authenticated private-key inventory without changing objects
+  ansible.builtin.command:
+    argv: >-
+      {{ [hsm_remote_p11tool_binary, '--batch']
+         + (['--provider', hsm_remote_probe_library] if hsm_remote_probe_library is defined else [])
+         + ['--login', '--list-all-privkeys', 'pkcs11:serial=' ~ hsm_remote_backend.value.serial] }}
+    stdin: ""
+  become: true
+  become_user: "{{ hsm_remote_probe_user | default(hsm_remote_client_user) }}"
+  environment: "{{ hsm_remote_native_probe_environment | combine({'GNUTLS_PIN': hsm_remote_probe_pin}) }}"
+  changed_when: false
+  register: hsm_remote_private_inventory
+  no_log: true
+  timeout: 45
+
+- name: Refuse a token exposing multiple private keys through this credential
+  ansible.builtin.assert:
+    that: hsm_remote_private_inventory.stdout | regex_findall('(?m)^.*URL:') | length == 1
+    fail_msg: Dedicate this token to one original signing key; native p11-kit provides token-level access.
+
+- name: Read only the public key through the selected native PKCS11 library
+  ansible.builtin.command:
+    argv: >-
+      {{ [hsm_remote_p11tool_binary, '--batch']
+         + (['--provider', hsm_remote_probe_library] if hsm_remote_probe_library is defined else [])
+         + ['--export-pubkey']
+         + (['--login'] if hsm_remote_probe_login | bool else []) + [hsm_remote_probe_uri] }}
+    stdin: ""
+  become: true
+  become_user: "{{ hsm_remote_probe_user | default(hsm_remote_client_user) }}"
+  environment: >-
+    {{ hsm_remote_native_probe_environment | combine(
+      {'GNUTLS_PIN': hsm_remote_probe_pin} if hsm_remote_probe_login | bool else {}) }}
+  changed_when: false
+  register: hsm_remote_public_key
+  no_log: "{{ hsm_remote_probe_login | bool }}"
+  timeout: 45
+
+- name: Compute the SPKI fingerprint from the returned public key
+  community.crypto.openssl_publickey_info:
+    content: "{{ hsm_remote_public_key.stdout }}"
+  register: hsm_remote_public_key_info
+
+- name: Reject a different key even when a token label or object ID matches
+  ansible.builtin.assert:
+    that: >-
+      hsm_remote_public_key_info.fingerprints.sha256 | replace(':', '') | lower
+      == hsm_remote_expected_spki_sha256
+    fail_msg: Original-key mismatch on this backend; restore the approved key through custody, never generate a substitute.
+
+- name: Perform only the explicitly selected native sign-and-verify readiness test
+  ansible.builtin.command:
+    argv: >-
+      {{ [hsm_remote_p11tool_binary, '--batch']
+         + (['--provider', hsm_remote_probe_library] if hsm_remote_probe_library is defined else [])
+         + ['--login', '--test-sign', hsm_remote_probe_uri] }}
+    stdin: ""
+  become: true
+  become_user: "{{ hsm_remote_probe_user | default(hsm_remote_client_user) }}"
+  environment: "{{ hsm_remote_native_probe_environment | combine({'GNUTLS_PIN': hsm_remote_probe_pin}) }}"
+  changed_when: false
+  no_log: true
+  timeout: 45
+  when: hsm_remote_probe_sign | bool

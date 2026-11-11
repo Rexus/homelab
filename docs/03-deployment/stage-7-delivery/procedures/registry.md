@@ -8,7 +8,7 @@
 The cluster variant uses [clusters/tier1/platform/artifact-registry/](../../../../tier-1/clusters/tier1/platform/artifact-registry);
 the integrated source-control variant uses the selected source-control deployment.
 
-**Design:** [artifact supply options A-C](../../../01-architecture/20-delivery/01-artifact-supply.md).
+**Design:** [artifact supply options A-C](../../../01-architecture/10-delivery/01-artifact-supply.md).
 **Prerequisites:** approved runtime, storage, TLS/DNS, identity policy and retained
 bootstrap artifacts. **Owner:** Tier 1. The
 [native delivery installer](delivery-installer.md) supplies pinned official Harbor

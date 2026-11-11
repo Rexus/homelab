@@ -4,8 +4,8 @@ Deploy the dedicated FreeIPA primary and CA-enabled replica outside Kubernetes.
 Keycloak is a later service in the Tier 0 cluster, not part of this recipe.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Design:** [identity authority](../../../01-architecture/18-identity/README.md),
-[CA hierarchy](../../../01-architecture/16-cryptography/01-certificate-authority.md).
+**Design:** [identity authority](../../../01-architecture/09-identity/README.md),
+[CA hierarchy](../../../01-architecture/08-cryptography/01-certificate-authority.md).
 **Prerequisites:** accepted logging/trust, independent SSH/DNS/time, supported Linux
 image, repository access and protected bootstrap passwords.
 
@@ -113,7 +113,7 @@ native installation. These inputs do not rechain an existing installed domain.
 Set `foundation_freeipa_ca_mode: external` and
 `foundation_freeipa_external_phase: csr` in local foundation vars. Inject the
 bootstrap passwords through the controller or an
-[Ansible-only secret override](../../../05-operations/secret-handling/ansible-vault.md).
+[Ansible-only secret override](../../../05-operations/03-cryptography/ansible-vault.md).
 
 Edit **`<prefix>-tier-0/ansible/group_vars/foundation.yml`**, preserving its IP map and other fields:
 
@@ -214,10 +214,26 @@ bash scripts/deploy.sh foundation --recipe maintenance
 
 ## Existing domains and alternatives
 
-An existing qualified identity service can satisfy this capability without a
-duplicate installation. The `internal` CA mode preserves the previous internally
-rooted FreeIPA alternative and its normal `foundation` command; it is not the
-selected sibling-CA reference. Never switch an existing domain's mode expecting
+**Existing directory:** verify its LDAPS name/chain, user/group search bases, restricted
+reader, DNS/time, directory availability and independent recovery. Keycloak's supplied
+federation uses the FreeIPA LDAP schema; qualify that contract before substituting another
+directory product. Retain the existing owner, realm and recovery credentials, skip guest/realm
+installation, then continue at [identity federation](../README.md#step-2-deploy-identity-federation).
+
+**New internally rooted FreeIPA alternative:** complete Step 1, then set
+`foundation_freeipa_ca_mode: internal` in local `ansible/group_vars/foundation.yml`.
+Keep `baseline_disable_ipv6: false`, configure the bootstrap DNS forwarders and supply the
+protected passwords as in Step 2 actions 5–6. Skip the external CSR/signing actions.
+
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+bash scripts/deploy.sh foundation --ansible-only
+```
+
+The upstream roles install the primary and replica in that order. Complete Step 3 action 11's
+replication and recovery checks, then rejoin identity federation. This option retains FreeIPA's
+internal root rather than the selected sibling-CA design. Never switch an existing domain's mode expecting
 the installer to migrate it. Rechaining, renewal and recovery require a separately
 tested migration with backups and rollback.
 

@@ -10,12 +10,13 @@ and its registry destination are accepted. This adds host-image lifecycle, not a
 **Change:** Use image-based hosts while Tier 0 retains template ownership.
 **Return:** [Step 3](README.md#step-3-authorize-ci-through-vault) for secret integration before infrastructure handover.
 
-**Design:** [guest and image lifecycle variants](../../01-architecture/10-hosting/README.md).
+**Design:** [guest and image lifecycle variants](../../01-architecture/04-hosting/README.md).
 
-**Coverage:** the supplied role prepares a builder and can request `bootc switch`; it does not
-perform an initial bootc OS installation. A normal Alma/Rocky/RHEL cloud image is not converted
-just by installing the `bootc` package. Initial installation and compatibility qualification are
-project integration; stop at the explicit gate below until they are complete. [8]
+**Coverage:** route **3a** builds an initial qcow2 from an approved bootable OCI image with the native
+`bootc-image-builder` container, fetches it to the controller and supplies the existing Terraform
+publisher's catalog entry. The dedicated builder stays a mutable VM. Route **3b** retains switching
+and finalizing an already bootc-native candidate. Installing the `bootc` package does not convert
+an ordinary cloud OS; neither route overwrites the running builder's root. [8, 9]
 
 ## Table of contents
 
@@ -26,6 +27,8 @@ project integration; stop at the explicit gate below until they are complete. [8
 - [What this deploys](#what-this-deploys)
 - [Reference workflow](#reference-workflow)
 - [Template conversion flow](#template-conversion-flow)
+  - [3a: build the initial disk](#build-initial-disk)
+  - [3b: use an existing native host](#existing-native-host)
 - [Distro support](#distro-support)
 - [Operating model](#operating-model)
 - [Read more](#read-more)
@@ -79,7 +82,7 @@ used by other systems. Its builder consumes approved images with a local
 recovery copy; a live Tier 1 registry or runner must not be required to rebuild
 it. General build services can prepare candidates, but acceptance and privileged
 publication remain protected at Tier 0. Offline custody uses separate transfers.
-See [Template lifecycle](../../05-operations/virtual-machines/template-lifecycle.md).
+See [Template lifecycle](../../05-operations/01-hosting/templates/template-lifecycle.md).
 
 Use the accepted Stage 7 registry for this Stage 9 option. A separately commissioned GitLab registry
 is another valid destination; the supplied Kubernetes GitLab chart disables its bundled registry.
@@ -110,63 +113,79 @@ not the only possible model.
 | --- | --- | --- |
 | Tier 0 | [terraform/deployments/immutable-template/](../../../tier-0/terraform/deployments/immutable-template); local `terraform.tfvars` | Temporary template-builder VM |
 | Tier 0 | `ansible/inventory/hosts.yml` | Stable `immutable_template_builders` host group |
-| Tier 0 | `ansible/group_vars/immutable_template.yml` | bootc image, registry auth, CA trust and cleanup |
-| Tier 0 | [ansible/roles/immutable_template/](../../../tier-0/ansible/roles/immutable_template) | bootc tooling and preparation for template conversion |
+| Tier 0 | `ansible/group_vars/immutable_template.yml` | Mode, pinned source/product containers, registry trust/auth, build and publisher inputs |
+| Tier 0 | [ansible/roles/immutable_template/](../../../tier-0/ansible/roles/immutable_template) | Native disk build/fetch or existing-host switch/finalization |
 | Shared | [ansible/roles/baseline/](../../../shared/ansible/roles/baseline) | Common host preparation |
 | Shared | [scripts/deploy.sh](../../../shared/scripts/deploy.sh) | Execution helper called from Tier 0's root |
 
-The default is one builder VM named for the target template,
-`rhel-10-immu-tmpl`. The builder starts as a normal VM so Ansible can configure
-and verify it. Convert it to a Proxmox template only after the bootc image and
-rollback behavior are tested.
+The example uses one builder VM, `rhel-10-immu-tmpl`. In image mode it stays running and owns
+only build workspaces. Its qcow2 is published as a **different, versioned template VMID** through
+`terraform/deployments/templates`; the existing catalog accepts `image_path` and `sha256`.
+In host mode only, the already bootc-native candidate itself can become a template.
 
 ## Reference workflow
 
+| Selected route | Implementation and ownership | Rejoin |
+| --- | --- | --- |
+| **3a: initial disk**, `immutable_template_mode: image` | Tier 0 dedicated builder → native product container → verified qcow2 on controller → existing template publisher | Image-lifecycle acceptance below |
+| **3b: existing native host**, `immutable_template_mode: host` | Original bootc-native candidate → switch/reboot → cleanup → its original Terraform owner finalizes it | Image-lifecycle acceptance below |
+
+The figure shows **3a**, the default initial-image path. The
+[3b host-mode alternative](#existing-native-host) switches and finalizes its own already bootc-native candidate.
+
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":8,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph T1["Tier 1 / existing delivery services"]
-    Source["Reviewed Containerfile / policy"]
-    CI["Existing CI and OCI registry"]
-    Source --> CI
+    CI["Existing CI and OCI registry<br/>Approved bootc OS image / recovery copy"]
   end
-  Approved["Approved image / independent recovery copy"]
-  subgraph T0["Tier 0 / template lifecycle"]
-    subgraph PVE["Existing Proxmox / application network"]
-      Template["rhel-10-immu-tmpl<br/>Builder VM, then template"]
+  subgraph T0["Tier 0 / initial image path (3a)"]
+    direction TB
+    subgraph Build[" "]
+      direction LR
+      Builder["1. rhel-10-immu-tmpl<br/>Proxmox builder stays mutable<br/>Pinned bootc-image-builder"]
+      Artifact[("2. Controller artifacts<br/>qcow2 + SHA256<br/>publication.yml")]
+      Builder -->|Create / fetch qcow2| Artifact
     end
+    subgraph Publish[" "]
+      direction RL
+      Publisher["3. Existing template publisher<br/>Independent controller"]
+      Template["4. New Proxmox template<br/>Separate published image"]
+      Publisher -->|Publish disk| Template
+    end
+    Build -->|Review / merge generated catalog| Publish
   end
-  CI -. Review and promotion .-> Approved
-  Approved -->|Selected bootc image| Template
+  CI -->|Approved image digest| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  class Source,Approved data
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  class Artifact data
   class T1,CI services
-  class T0,Template control
-  class PVE boundary
+  class T0,Builder,Template control
+  class Build,Publish controlHeading
 ```
 
 **IaC:** Tier 0 [builder inputs](../../../tier-0/terraform/deployments/immutable-template/terraform.tfvars.example)
-and [builder recipe](../../../tier-0/ansible/playbooks/deployment/immutable-template.yml).
-The same guest becomes a template after explicit verification; this does not create workload clones.
+and [image-build recipe](../../../tier-0/ansible/playbooks/deployment/bootc-image.yml), followed by the
+[existing template publisher](../../../tier-0/terraform/deployments/templates/main.tf).
+The builder stays mutable; reviewed controller artifacts create a separate template. Workload clones are not created here.
 CI/image publication is an existing prerequisite or project integration, not installed by the builder recipe.
 
 Figure: this workflow uses GitLab CI and the accepted registry destination. Harbor already belongs to
 Stage 7; it is not a later prerequisite. Other approved
-sources follow the selected [artifact-supply design](../../01-architecture/20-delivery/01-artifact-supply.md).
-Dashed lines mark approval boundaries, not implicit live access. Custody uses
+sources follow the selected [artifact-supply design](../../01-architecture/10-delivery/01-artifact-supply.md).
+Approval and custody transfers do not imply live access. Custody uses
 offline transfer; host updates remain separate. If native Podman builds are needed, select and accept
 the [Podman runner](step-2b-podman-runner.md) at Step 2b; a generic Kubernetes runner alone does not supply
 that build runtime.
 
 ## Template conversion flow
 
-Keep builder preparation, initial OS installation, image switching and final template conversion
-separate. The role executes package tasks and optional switching; a successful preparation run
-does not prove that the VM is booted from an image.
+Configure the selected route before running IaC. Initial disk creation (3a) and an existing native
+host (3b) have different state owners; keep the builder and target VMIDs distinct. Neither a build
+nor a successful host preparation run proves first boot, update or recovery acceptance.
 
 ### 1. Initialize the isolated builder inputs
 
@@ -185,35 +204,147 @@ In **`<prefix>-tier-0/`**, complete
   from the base inputs, with a unique VMID, approved source image, `template = false` and `started = true`.
   The initializer does not create this Terraform overlay.
 - `ansible/inventory/hosts.yml`: the matching `immutable_template_builders` host key.
-- `ansible/group_vars/immutable_template.test.yml`: its reserved IP, approved image reference,
-  registry CA/auth paths and supported packages. The test file overrides the base vars.
+- `ansible/group_vars/immutable_template.test.yml`: its reserved IP, selected `image`/`host` mode,
+  approved image reference and registry CA/auth paths. The test file overrides the base vars.
   Keep `immutable_template_apply_bootc: false` and `immutable_template_prepare_for_template: false`.
 
-Keep the builder in its original state throughout. Prepare it from **`<prefix>-tier-0/`**:
+Choose the real starting state before deployment:
 
-Run from **`<prefix>-tier-0/`**.
+| Starting state | Select and continue |
+| --- | --- |
+| Ordinary mutable builder and accepted bootable OCI image | Configure [3a](#build-initial-disk) and run its deployment; no initial bootc guest or live-root conversion is required |
+| Already installed bootc-native candidate, owned by this lifecycle | Configure [3b](#existing-native-host); its original source and lifecycle remain authoritative |
+
+<a id="build-initial-disk"></a>
+
+### 3a. Build the initial bootc disk — main route
+
+**Prerequisites:** dedicated, qualified RedHat-family x86_64 builder with sufficient disk space
+for rootful container storage and the image build; privilege to install native Podman, `qemu-img`
+and ACL tools. Select the supported RHEL 9/10 product container or a qualified mirror. The current
+upstream compatibility entry point remains supported for RHEL 10; migrate and qualify the unified
+image-builder interface before changing to RHEL 11. Other architectures and image formats are not
+implemented by this route. [9, 10]
+Keep one build writer per dedicated builder.
+
+#### Configure the source and build contract
+
+Edit **`<prefix>-tier-0/ansible/group_vars/immutable_template.test.yml`** using the owning
+[example](../../../tier-0/ansible/group_vars/immutable_template.yml.example):
+
+| Input | Required selection |
+| --- | --- |
+| `immutable_template_mode` | `image`; keep switch, reboot and finalization flags false |
+| `immutable_template_image_builder_accepted` | True only for this dedicated rootful builder; the product container requires privilege and access to its local Podman store |
+| `immutable_template_bootc_image` | Approved bootable OS/application OCI artifact pinned as `registry/path@sha256:<64-hex>` |
+| `immutable_template_image_builder_image` | Approved `registry.redhat.io/rhel10/bootc-image-builder@sha256:<64-hex>` or qualified compatible mirror |
+| `immutable_template_image_sources_approved` | Explicit approval of both pins, source distro, builder architecture and image content |
+| `immutable_template_image_revision` | New lowercase build ID; changed source/product digest, rootfs or customization requires a new ID |
+| `immutable_template_image_rootfs` | Qualified `xfs` or `ext4`; no implicit filesystem fallback |
+| `immutable_template_image_config` | Native builder JSON configuration mapping; default `{}` uses the accepted source's configuration |
+| `immutable_template_image_artifact_dir` | Optional private absolute POSIX path on the controller; default `secrets/bootc-images/` in Tier 0 |
+| `immutable_template_image_publication_key`, `immutable_template_image_publication` | New versioned key/VMID and existing publisher metadata, including UEFI `ovmf`, `q35`, agent/cloud-init support and adequate `disk_size_gb`; path/hash are generated |
+
+Source-image authoring is an accepted application artifact: it must already contain a bootable
+kernel/bootloader, `bootc`, enabled cloud-init and QEMU guest-agent services, and the intended
+first-boot, identity and update behavior. The builder checks the `containers.bootc=1` label and
+architecture; it does not infer these runtime guarantees from that label. Site accounts/keys come
+from the normal clone configuration. Never bake registry pull credentials or machine identity into
+the reusable source. [9]
+
+Set optional `immutable_template_trust_ca_src` and `immutable_template_registry_auth_src` to private
+controller files when needed. The role installs public trust and a root-only pull-auth file, uses
+TLS-verified native Podman pulls and shares only the local container store, read-only build config
+and revision output with the product. It does not mount the builder root or a host disk as an
+installation target. RPM repository definitions, trust and any subscription needed **inside the
+source image** must be valid for the build network; host DNF/proxy settings are not automatically
+image-builder repository configuration. This is not an air-gap provisioning promise. [9, 10]
+
+#### Create the disk and fetch it through Ansible
+
+From **`<prefix>-tier-0/`**, deploy the configured builder and run the selected image mode:
 
 ```bash
 bash scripts/deploy.sh immutable-template --env test
 ```
 
-Review Terraform's inline plan and enter `yes` only for the intended changes.
-`--plan-only` previews; `--auto-approve` is for approved CI. This pass prepares tools/trust,
-not a bootc deployment. The role tolerates a failed initial `bootc status` probe.
+Review Terraform's inline plan before applying. `--plan-only` previews builder infrastructure;
+`--auto-approve` supports unattended runs after supplying every input. If the dedicated builder
+already exists, run the explicit image recipe from **the same Tier 0 root**:
 
-### 3. Qualify the missing initial-installation step
+```bash
+bash scripts/deploy.sh immutable-template --env test --ansible-only --playbook deployment/bootc-image.yml
+```
 
-**Stop for an ordinary cloud-image builder.** Complete a distro-supported initial bootc installation
-or use a separately commissioned bootc-native source image. That installation is not implemented
-by this recipe; do not substitute `bootc switch` for it. [8]
+**Expected:** the actual disk appears on the builder at
+`/var/lib/bootc-image-builder/<revision>/output/qcow2/disk.qcow2`, then on the controller at
+`<artifact-dir>/<inventory-host>/<revision>/disk.qcow2`. Private `request.json` records the exact
+source/product/configuration; `publication.yml` supplies its absolute controller path and SHA256.
+Ansible checks standalone qcow2 format, virtual size, backing-file absence, native `qemu-img check`
+and matching builder/controller SHA256 before creating that fragment. Native scoped read ACLs let
+the automation connection fetch a large artifact without elevated `slurp`. [11, 12]
 
-Before continuing, verify the selected guest is bootc-native and compatible with the role's
-package/preparation tasks. Ensure its image already supplies required packages where runtime package
-installation is unavailable. Retain recoverable data and an independently tested rollback path.
+Rerunning unchanged inputs rechecks/reuses the completed artifact. An existing revision with
+different inputs, altered disk, foreign ownership, symlink or partial output fails closed. Select
+a new revision after inspecting a failed build; automation does not erase old workspaces or
+overwrite earlier artifacts. The dedicated builder is **not** converted into a template.
 
-### 4. Stage and boot a qualified image
+On a native build failure, private details remain at the revision's `build-error.json`; the role
+fails without publishing a completion record. Replace `<revision>` with the failed build ID and
+fetch its diagnostics from **`<prefix>-tier-0/`**, using the managed Ansible connection:
 
-Only after Step 3, in **`<prefix>-tier-0/ansible/group_vars/immutable_template.test.yml`**, select
+```bash
+umask 077
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible immutable_template_builders --playbook-dir ansible \
+  -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml \
+  -e @ansible/group_vars/immutable_template.yml -e @ansible/group_vars/immutable_template.test.yml \
+  --become -m ansible.builtin.fetch \
+  -a 'src=/var/lib/bootc-image-builder/<revision>/build-error.json dest=secrets/bootc-build-errors/'
+```
+
+#### Publish the separate artifact using the existing Terraform owner
+
+Review and merge the generated `templates:` entry from `publication.yml` into
+**`<prefix>-tier-0/templates/proxmox.yml`**, retaining the existing `all:` settings and older entries.
+Confirm a target VMID distinct from the builder and previous revisions, live datastore placement,
+and disk capacity at least as large as the generated virtual disk. The schema remains
+`terraform/modules/proxmox_templates/variables.tf`; no new Terraform input field is needed.
+
+Preview from **`<prefix>-tier-0/`**:
+
+```bash
+bash scripts/proxmox-templates.sh plan --env-file .env.local
+```
+
+Review the complete catalog plan. Publish from **the same Tier 0 root**:
+
+```bash
+bash scripts/proxmox-templates.sh apply --env-file .env.local
+```
+
+Verify the publication from **the same Tier 0 root**:
+
+```bash
+bash scripts/proxmox-templates.sh verify --env-file .env.local
+```
+
+The publisher owns template upload/VM resources and refreshes Shared references; this builder
+does not acquire a second state or mutate the catalog automatically. Continue at
+[image-lifecycle acceptance](#image-lifecycle-acceptance); skip 3b's host conversion actions.
+
+<a id="existing-native-host"></a>
+
+### 3b. Use an existing bootc-native candidate — alternative
+
+Set `immutable_template_mode: host`. A normal cloud OS must first use 3a or an existing accepted
+native source; `bootc switch` is not an initial installer. Verify that this lifecycle already owns
+the candidate. For a native immutable OS whose packages are baked into the source, set
+`immutable_template_manage_packages: false` to skip baseline/package changes. Required lifecycle
+tools must already exist in that accepted source. Retain independently tested recovery. [8]
+
+#### 1. Stage and boot the accepted image
+
+In **`<prefix>-tier-0/ansible/group_vars/immutable_template.test.yml`**, select
 the approved `immutable_template_bootc_image`, set `immutable_template_apply_bootc: true` and
 explicitly select `immutable_template_reboot_after_switch: true` for the accepted reboot window.
 Keep cleanup disabled. Run from **`<prefix>-tier-0/`**:
@@ -222,16 +353,19 @@ Keep cleanup disabled. Run from **`<prefix>-tier-0/`**:
 bash scripts/deploy.sh immutable-template --env test --ansible-only
 ```
 
-On **the builder VM**, verify the booted image, not just a staged deployment:
+From **`<prefix>-tier-0/`**, inspect the builder's booted image through Ansible:
 
 ```bash
-sudo bootc status
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible immutable_template_builders --playbook-dir ansible \
+  -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml \
+  -e @ansible/group_vars/immutable_template.yml -e @ansible/group_vars/immutable_template.test.yml \
+  --become -m ansible.builtin.command -a 'bootc status'
 ```
 
 Verify SSH, cloud-init and the intended update/rollback behavior before proceeding.
 The role's status output alone is not a rollback rehearsal.
 
-### 5. Clean the verified candidate
+#### 2. Clean the verified candidate
 
 In **`<prefix>-tier-0/ansible/group_vars/immutable_template.test.yml`**, enable:
 
@@ -248,7 +382,7 @@ bash scripts/deploy.sh immutable-template --env test --ansible-only
 Require successful cleanup before shutdown; it removes machine-specific cloud-init/SSH state.
 Do not treat ignored probe failures as proof of a clone-ready image.
 
-### 6. Convert the candidate and test a clone
+#### 3. Convert the candidate and test a clone
 
 In **`<prefix>-tier-0/terraform/deployments/immutable-template/terraform.test.tfvars`**, set
 that builder to `template = true` and `started = false`. Run only Terraform for final conversion:
@@ -272,13 +406,17 @@ For private bootc registries, place pull credentials where bootc can read
 them. bootc documents `/etc/ostree/auth.json` as the private registry auth
 location.[3]
 
-Initial bootc installation remains a prerequisite to image switching in this path. For larger scale, prefer
-building disk images directly from the bootc image with the distro-supported
-image tooling when that path is ready for the environment.
+### Image-lifecycle acceptance
+
+For **both routes**, create a disposable clone through its normal Terraform owner, using the published
+reference and normal cloud-init inputs. Verify first boot, intended OS/image, guest agent, unique
+machine/SSH identities and cloud-init behavior through managed Ansible/console checks; no manual
+guest SSH setup is part of either installer. Rehearse an image update, reboot, rollback and recovery
+from retained source/product/container and disk artifacts before accepting 2c.
 
 **Return after image-lifecycle acceptance:** [Stage 9, Step 3](README.md#step-3-authorize-ci-through-vault).
-If initial installation, conversion or rollback remains unqualified, record 2c as incomplete;
-the preparation role alone does not complete this option.
+Record unperformed first-boot/recovery tests separately from missing implementation. A successful
+disk build, checksum, publication or `bootc status` response alone does not establish those results.
 
 ## Distro support
 
@@ -323,7 +461,7 @@ keeps the previous deployment available.[4]
 - [Podman image runner guide](step-2b-podman-runner.md)
 - [Enterprise Linux template](../foundation/proxmox/templates.md)
 - [Proxmox planning guidelines](../../02-conventions/proxmox-conventions.md)
-- [Security principles](../../01-architecture/01-principles.md)
+- [Security principles](../../01-architecture/01-background/01-principles.md)
 
 ## References
 
@@ -337,3 +475,7 @@ keeps the previous deployment available.[4]
 8. [bootc image switching](https://bootc.dev/bootc/man/bootc-switch.8.html) and
    [initial installation into an existing root](https://bootc.dev/bootc/man/bootc-install-to-existing-root.8.html),
    checked 2026-11-09. Initial installation has separate destructive/storage/configuration requirements.
+9. [RHEL native bootc disk creation, prerequisites and customizations, section 6.4](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html-single/using_image_mode_for_rhel_to_build_deploy_and_manage_operating_systems/index).
+10. [Official image-builder transition and RHEL compatibility lifecycle](https://osbuild.org/docs/bootc/deprecation-notice/).
+11. [Native Ansible Podman container module](https://docs.ansible.com/projects/ansible/latest/collections/containers/podman/podman_container_module.html).
+12. [Native scoped file ACLs](https://docs.ansible.com/projects/ansible/latest/collections/ansible/posix/acl_module.html).

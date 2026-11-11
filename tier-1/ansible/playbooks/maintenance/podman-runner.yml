@@ -1,6 +1,6 @@
 ---
 # Reconcile supported configuration only; not a generic upgrade or recovery procedure.
-# Inventory and vars remain tier-local. See docs/05-operations/ansible-recipes.md.
+# Inventory and vars remain tier-local. See docs/05-operations/01-hosting/ansible-recipes.md.
 - name: Reconcile podman-runner configuration
   hosts: podman_runner
   become: true

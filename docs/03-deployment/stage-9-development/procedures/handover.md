@@ -44,16 +44,35 @@ Do not push ignored inputs or state with the Git history.
 
 On **`boot-1`**, stop deployment writes before taking the final state/input copy for handover;
 keep hosted plan/apply jobs disabled during the transfer.
-On **`iac-1`**, restore that collection beneath `/srv/iac/`, preserving the sibling repository names
-and approved Shared revision. Restore ignored inventories, vars, known hosts, original state and
-recovery inputs from the protected backup. Use the accepted
-[recovery set](../../../05-operations/backups/recovery-set.md), not a fresh generation.
+In **Tier 0 `ansible/group_vars/infrastructure_runner.yml`**, set
+`infrastructure_runner_handover_source` to the absolute original collection directory on bootstrap
+and `infrastructure_runner_handover_writers_stopped: true` after the writers/jobs are stopped.
+From **`<prefix>-tier-0/`** on the original bootstrap, transfer it through IaC:
+
+```bash
+bash scripts/deploy.sh infrastructure-runner --ansible-only --playbook deployment/infrastructure-handover.yml
+```
+
+The recipe transfers the sibling repositories and ignored inputs/state into the installed runner's
+private `/srv/iac/` workspace, preserves script executability and verifies every original state copy
+by SHA-256. It refuses different destination state and leaves the runner stopped.
+Bootstrap `.env*` files and disposable provider/plan/venv caches are excluded; configure the runner's
+non-secret CI environment separately. Restore an unavailable original collection from the
+[recovery set](../../../05-operations/06-resilience/backups/recovery-set.md) on bootstrap first.
 
 ## 3. Stop bootstrap writes and check state
 
 On **`boot-1`**, confirm deployment writes remain stopped.
-On **`iac-1`**, verify workspace ownership/permissions, backend lineage and resource addresses against
-the original deployment. Keep one writer per root. An empty checkout or `init` is not a restore.
+Require the handover playbook's state-digest checks to pass. Byte-identical state retains the original
+backend lineage and resource addresses. Keep one writer per root; an empty checkout or `init` is not a restore.
+After completing the protected project and non-secret environment settings below, load the
+same existing runner token through its accepted secret workflow and reapply
+`bash scripts/deploy.sh infrastructure-runner --ansible-only` from bootstrap to start the accepted runner.
+Set `infrastructure_runner_environment_src` to the reviewed controller-side non-secret environment;
+IaC copies it to `/srv/iac/ci.env`. Set `infrastructure_runner_public_key_files` to approved `.pub`
+files; IaC copies them to `/srv/iac/public-keys/`. Use those runner-side paths in the environment.
+Set `infrastructure_runner_known_hosts_src` to the original controller's accepted `known_hosts`
+file to install the same SSH host trust in the runner account. Private SSH keys remain fetched per job.
 
 Do not generate replacement secrets or bootstrap another cluster. Retain the
 existing `.terraform/state/<setup>/prod/terraform.tfstate` and separate cluster/
@@ -95,7 +114,7 @@ never CI artifacts.
 | `IAC_REPOSITORY_DIR` | Absolute persistent owning-tier checkout, not the ephemeral CI checkout |
 | `IAC_SHARED_DIR`, `IAC_SHARED_REVISION` | Sibling Shared checkout and reviewed exact commit |
 | `IAC_SETUP` | One registered Linux setup; use separate reviewed jobs for different roots |
-| `IAC_ENV_FILE` | Absolute approved **non-secret** environment file; remove old bootstrap API credentials so they cannot override Vault injection |
+| `IAC_ENV_FILE` | `/srv/iac/ci.env` from the controller-supplied **non-secret** environment; omit bootstrap API credentials so they cannot override Vault injection |
 | `VAULT_ADDR`, `VAULT_CACERT` | Exact trusted Vault endpoint and local CA file |
 | `VAULT_ROLE`, `VAULT_SECRET_PATH` | Accepted role and CLI path such as `kv/ci/tier0` |
 
@@ -124,7 +143,7 @@ Stop on unexpected replacements, deletions, missing resources or a new empty lin
 
 ## 7. Authorize the saved-plan apply
 
-On **`iac-1`**, review the private runner-local saved plan. Then, in **GitLab**, authorize
+Review the protected pipeline's plan output in **GitLab**, then authorize
 the same pipeline's manual `iac-apply` job. `--plan-file` applies that exact plan;
 failed replans invalidate older plans. The private context fingerprints inventory, ordered
 local inputs, roles and Shared automation. Changed configuration requires a new plan and review.

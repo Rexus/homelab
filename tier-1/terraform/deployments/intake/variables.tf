@@ -151,25 +151,28 @@ variable "vm_instances" {
     }))
     initialization_datastore_id = optional(string)
     nic_firewall                = optional(bool, true)
-    started                     = optional(bool, true)
-    stop_on_destroy             = optional(bool)
-    template_catalog_id         = optional(number)
-    template_tags               = optional(list(string))
-    size                        = optional(string)
-    cores                       = optional(number)
-    memory                      = optional(number)
-    storage_class               = optional(string)
-    disk_size_gb                = number
+    # Uses catalog tags from another template ID, useful while building templates.
+    template_catalog_id = optional(number)
+    # Overrides catalog tags when a VM uses a source image not in the catalog.
+    template_tags = optional(list(string))
+    size          = optional(string)
+    cores         = optional(number)
+    memory        = optional(number)
+    storage_class = optional(string)
+    disk_size_gb  = number
     extra_disks = optional(list(object({
       interface     = string
       size_gb       = number
-      datastore_id  = optional(string)
       storage_class = optional(string)
+      datastore_id  = optional(string)
       iothread      = optional(bool)
       discard       = optional(string)
       ssd           = optional(bool)
-    })), [])
+    })))
     network_zone_key = optional(string)
+    started          = optional(bool)
+    template         = optional(bool)
+    stop_on_destroy  = optional(bool)
     tags             = optional(list(string))
   }))
   default = {}

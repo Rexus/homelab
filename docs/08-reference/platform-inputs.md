@@ -43,7 +43,7 @@ not the previous local choices. Recover actual site values from their independen
 `proxmox_storage_classes` maps VM-disk classes to existing Proxmox datastore IDs;
 it does not describe an object-storage API. A datastore may use Ceph RBD or NAS
 storage without supplying application buckets. Record the chosen
-[storage interfaces](../01-architecture/12-data/README.md#storage-interfaces) separately;
+[storage interfaces](../01-architecture/06-data/README.md#storage-interfaces) separately;
 object endpoints and scoped credentials belong to the consuming service inputs.
 
 ## Find supported settings
@@ -61,6 +61,21 @@ Read those definitions for supported fields, types, defaults and validation; edi
 Shared has no Terraform root: its files supply values to the consuming tier.
 A module-only option must be exposed by the root before it can be set in `.tfvars`.
 Template YAML builds use the separate catalog mapping linked above.
+
+All Linux guest roots retain the `environment_guests.vm_instances` contract through to their VM module.
+Set these per guest in **the owning tier's `terraform/deployments/<setup>/terraform.tfvars`**:
+
+| Field | Behavior |
+| --- | --- |
+| `full_clone` | `true` by default; explicit linked clones require compatible accepted template/storage |
+| `firmware` | Optional explicit match to the source template: BIOS, machine, SCSI controller and EFI enrollment; omission retains existing behavior |
+| `initialization_datastore_id` | Optional Cloud-Init media datastore override; omission uses the selected storage-class mapping |
+| `nic_firewall` | `true` by default; the NIC flag is separate from installed host/cluster firewall policy |
+| `extra_disks` | Additional configured interfaces, capacities and optional datastore/class overrides; service Ansible owns safe initialization and mounts |
+| `started`, `template`, `stop_on_destroy` | Explicit lifecycle controls; converting a VM to a template keeps it stopped |
+
+Changing a supplied field now reaches the resource plan. Review existing deployments for intended
+changes; firmware/storage moves and template conversion are not implicit migration procedures.
 
 ## VM disk storage
 
@@ -83,6 +98,13 @@ Preserve the other classes. Use the actual datastore ID; LVM or Ceph installatio
 can use different names. An omitted `cloud_init_drive` inherits `vm_disk`; an explicit
 value must also accept VM disks. Tier 0's `image_datastore_id` is separate: uploaded
 raw/qcow2 artifacts can stay on `local` with **Import** content enabled.
+
+For an attached data disk, match the service's device input to Terraform's `extra_disks[].interface`.
+The reference `scsi1` disk uses `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1`;
+do not infer it from `/dev/sda` or `/dev/sdb` ordering. The guarded storage role resolves that device,
+preserves existing identity checks and persists the filesystem mount by UUID.
+If a local override still uses a disk letter, update that input after verifying the original volume;
+refresh preserves existing private configuration and UUID pins.
 
 ## Initial guest placement
 
@@ -137,7 +159,7 @@ to resolve a catalog `storage_class` into its `vm_disk` datastore. Tier 0's YAML
 `all:` supplies common build settings; each template can override them, including
 an explicit `datastore_id`. `image_datastore_id` remains a Tier 0 staging reference,
 not a shared live-disk class. The
-[catalog contract](../05-operations/virtual-machines/template-lifecycle.md#catalog-fields-and-defaults)
+[catalog contract](../05-operations/01-hosting/templates/template-lifecycle.md#catalog-fields-and-defaults)
 defines the complete merge and override rules.
 Kubernetes roots retain their separate input contract; neither path loads Linux guest inventory/settings.
 
@@ -193,6 +215,21 @@ plans even though a public key is not a private credential.
 
 ## OS baseline boundary
 
+Additional sources and public trust are explicit local selections:
+
+| Shared baseline input | Owned change |
+| --- | --- |
+| `baseline_trust_anchors` | Controller-side public CA files installed in the native EL/Debian trust store |
+| `baseline_rpm_repositories` | New RPM sources with HTTPS URLs and pinned publisher-key fingerprints |
+| `repository_proxy_dnf_sources` | Selected existing vendor stanzas redirected without replacing their keys; `direct: true` bypasses the proxy for that stanza |
+| `baseline_apt_repositories` | Native deb822 sources with existing vendor keyrings, suites and components |
+| `baseline_apt_retired_files` | Explicitly replaced whole source files, retained as `.save` copies |
+| `baseline_apt_direct_hosts` | Exact internal APT publication hosts bypassing a global proxy |
+
+The [Shared defaults](../../shared/ansible/roles/baseline/defaults/main.yml) own these schemas.
+[Verified consumer deployment](../03-deployment/stage-3-trust/step-3b-verified-consumers.md)
+applies the package/trust subset from the controller without changing guest time, IPv6 or SSH policy.
+
 Shared's [baseline role](../../shared/ansible/roles/baseline/tasks/main.yml) manages
 repository/shell proxy settings, explicitly selected existing DNF source URLs,
 native package-verification defaults, timezone and the selected IPv6 sysctl policy.
@@ -202,7 +239,7 @@ Package policy does not update packages or replace repository definitions/keys; 
 
 SSH access policy, NTP/chrony, host-firewall rules and audit collection must be
 prepared and verified through approved templates/OS configuration and the relevant
-service procedures. The separate guarded [Linux host security profile](../05-operations/hosts/linux-security.md)
+service procedures. The separate guarded [Linux host security profile](../05-operations/01-hosting/linux-security.md)
 supplies native SSH, chrony, firewalld and audit controls with tier-owned inputs;
 it is not silently enabled by the baseline. Service-specific roles add only their implemented controls;
 an installed listener does not imply a permitted or safely restricted network path.

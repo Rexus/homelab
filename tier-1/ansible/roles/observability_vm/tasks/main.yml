@@ -1,0 +1,111 @@
+---
+- name: Load controller-owned private inputs with native Vault support
+  ansible.builtin.include_vars:
+    file: "{{ observability_vm_private_vars_file }}"
+  when: observability_vm_private_vars_file | length > 0
+  no_log: true
+
+- name: Validate the complete dedicated VM selection before changes
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Apply approved guest package sources and public trust
+  ansible.builtin.include_role:
+    name: baseline
+
+- name: Install runtime, filesystem and certificate inspection dependencies
+  ansible.builtin.dnf:
+    name: [podman, openssl, python3-cryptography, xfsprogs, e2fsprogs, util-linux]
+    state: present
+    disable_gpg_check: false
+
+- name: Inspect the installed Podman runtime
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Require the supported Quadlet runtime
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.packages.podman[0].version is version('5.4', '>=')
+      - ansible_service_mgr == 'systemd'
+    fail_msg: Select approved EL10 or EL9 repositories supplying Podman 5.4 or later and systemd/cgroup v2.
+
+- name: Prepare the dedicated persistent filesystem with Shared guards
+  ansible.builtin.include_role:
+    name: data_volume
+  vars:
+    data_volume_device: "{{ observability_vm_data_device }}"
+    data_volume_path: "{{ observability_vm_data_path }}"
+    data_volume_fstype: "{{ observability_vm_data_fstype }}"
+    data_volume_label: obs-data
+    data_volume_expected_uuid: "{{ observability_vm_data_uuid }}"
+    data_volume_min_free_bytes: "{{ observability_vm_data_min_free_bytes }}"
+
+- name: Resolve host services and backend ordering
+  ansible.builtin.set_fact:
+    observability_vm_services: >-
+      {{ (['collector', 'prepper', 'query', 'dashboards'] +
+          (['grafana'] if inventory_hostname == observability_vm_grafana_host else []))
+         if inventory_hostname in observability_vm_gateway_hosts else
+         (['metrics'] if inventory_hostname in observability_vm_metrics_hosts else ['search']) }}
+
+- name: Prepare protected configuration roots
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: '1000'
+    mode: '0750'
+  loop:
+    - "{{ observability_vm_config_path }}"
+    - "{{ observability_vm_config_path }}/tls"
+    - /etc/containers/systemd
+
+- name: Install private registry pull credentials when selected
+  ansible.builtin.copy:
+    src: "{{ observability_vm_registry_auth_src }}"
+    dest: "{{ observability_vm_config_path }}/registry-auth.json"
+    owner: root
+    group: root
+    mode: '0600'
+  when: observability_vm_registry_auth_src | length > 0
+  no_log: true
+
+- name: Install and verify supplied TLS identities
+  ansible.builtin.import_tasks: certificates.yml
+
+- name: Install native service configuration and Quadlets
+  ansible.builtin.include_tasks: service.yml
+  loop: "{{ observability_vm_services }}"
+  loop_control:
+    loop_var: observability_vm_service
+
+- name: Install this guest's Tier 1 Netdata parent or child
+  ansible.builtin.import_tasks: netdata.yml
+
+- name: Set the OpenSearch mmap prerequisite
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: '262144'
+    state: present
+    sysctl_set: true
+    reload: true
+  when: inventory_hostname in observability_vm_search_hosts
+
+- name: Inspect existing search cluster data
+  ansible.builtin.find:
+    paths: "{{ observability_vm_data_path }}/search"
+    file_type: any
+    hidden: true
+    recurse: false
+  register: observability_vm_search_data
+  when: inventory_hostname in observability_vm_search_hosts
+
+- name: Guard the initial cluster-manager election against existing data
+  ansible.builtin.assert:
+    that:
+      - not observability_vm_search_bootstrap | bool or observability_vm_search_data.matched | int == 0
+      - observability_vm_search_bootstrap | bool or observability_vm_search_data.matched | int > 0
+    fail_msg: >-
+      Enable search_bootstrap only for a NEW empty cluster. For restarts/restores keep it false
+      and retain all search data. After the first successful installation set it false and reapply.
+  when: inventory_hostname in observability_vm_search_hosts

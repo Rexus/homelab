@@ -19,6 +19,13 @@ vm_instances = {
     size             = "xl"
     storage_class    = "shared"
     disk_size_gb     = 200
+    # Optional dedicated GitLab data disk; the OS-disk layout above remains the default.
+    # Enable gitlab_data_device in ansible/group_vars/development.yml at first deployment.
+    # extra_disks = [{
+    #   interface     = "scsi1"
+    #   size_gb       = 200
+    #   storage_class = "shared"
+    # }]
     network_zone_key = "application"
     tags             = ["gitlab", "podman", "internal", "always-on", "apps"]
   }

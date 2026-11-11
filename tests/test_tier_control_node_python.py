@@ -108,7 +108,7 @@ class ControlNodePythonNative(TierRepositoryTestCase):
                         PIP_DISABLE_PIP_VERSION_CHECK='1', PIP_NO_CACHE_DIR='1',
                         PROBE_MARKER=str(self.marker), PROBE_SYSTEM='0')
 
-    def run_precheck(self, mode='auto', family='Debian', selected=None, system=False, fail=False):
+    def run_precheck(self, mode='auto', family='Debian', selected=None, system=False, fail=False, dry_run=False):
         tasks = deepcopy(self.filters)
         for task in tasks:
             for child in task.get('block', []):
@@ -149,7 +149,8 @@ class ControlNodePythonNative(TierRepositoryTestCase):
             (self.runtime / 'netaddr').symlink_to(self.netaddr)
         python = str(Path(sys.executable).resolve()) if system else str(self.python)
         result = subprocess.run([python, str(self.launcher),
-                                 '-i', 'localhost,', str(path)], cwd=self.work, env=env,
+                                 '-i', 'localhost,', str(path), *(['--check'] if dry_run else [])],
+                                cwd=self.work, env=env,
                                 capture_output=True, text=True, timeout=60)
         return result.returncode, result.stdout + result.stderr
 
@@ -187,6 +188,13 @@ class ControlNodePythonNative(TierRepositoryTestCase):
         self.assertFalse(self.marker.exists())
         self.assertEqual(before, {p.relative_to(self.venv): p.stat().st_mtime_ns
                                   for p in self.venv.rglob('*') if p.is_file()})
+
+    def test_ansible_check_mode_reports_missing_filter_without_trying_acquisition(self):
+        status, output = self.run_precheck(dry_run=True)
+        self.assertNotEqual(status, 0, output)
+        self.assertIn('Collection check mode never installs Python dependencies', output)
+        self.assertNotIn('TASK [Read the active controller virtual environment', output)
+        self.assertFalse(self.marker.exists())
 
     def test_unrelated_empty_and_nonempty_setups_skip_python_preparation(self):
         for selected in ([], ['community.general']):

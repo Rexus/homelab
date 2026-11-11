@@ -1,0 +1,46 @@
+---
+- name: Require a selected supported provider and explicit package and library inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+      - ansible_service_mgr == 'systemd'
+      - hsm_provider in ['yubihsm2', 'picohsm', 'yubihsm', 'opensc', 'pkcs11']
+      - hsm_provider_mode in ['usb', 'client']
+      - hsm_provider_packages | length > 0
+      - hsm_provider_library is match('^/[a-zA-Z0-9_./+-]+$')
+      - hsm_provider_tool is match('^/[a-zA-Z0-9_./+-]+$')
+      - hsm_provider_expected_serial | string | length > 0
+      - hsm_provider_driver != 'opensc' or hsm_provider_mode == 'usb'
+      - hsm_provider_driver != 'pkcs11' or hsm_provider_mode == 'client'
+    fail_msg: >-
+      Select yubihsm2, picohsm or an approved vendor pkcs11 client, its native packages,
+      absolute library path and expected token serial. Configure approved package sources
+      through baseline before deployment. See the selected Stage 3 hardware option.
+
+- name: Validate supplied native client configuration destinations
+  ansible.builtin.assert:
+    that:
+      - item.src | length > 0
+      - item.dest is match('^/(etc|opt|srv|usr|var)/[a-zA-Z0-9_./+-]+$')
+      - "'/../' not in item.dest"
+  loop: "{{ hsm_provider_config_files }}"
+  no_log: true
+
+- name: Validate nonsecret service environment
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[A-Z][A-Z0-9_]*$')
+      - item.value | string is match('^[a-zA-Z0-9_./:+,=@-]+$')
+      - item.key not in ['YUBIHSM_PKCS11_CONF', 'PKCS11_MODULE_PATH', 'OPENSSL_CONF']
+  loop: "{{ hsm_provider_environment | dict2items }}"
+  no_log: true
+
+- name: Require one serial-selected local YubiHSM connector or an explicit remote URL
+  ansible.builtin.assert:
+    that:
+      - hsm_yubihsm_connector_url is match('^https?://[a-zA-Z0-9.:-]+$')
+      - hsm_provider_mode != 'usb' or hsm_yubihsm_connector_url == 'http://127.0.0.1:12345'
+      - hsm_provider_mode != 'usb' or hsm_yubihsm_serial | string is match('^[0-9]+$')
+      - hsm_yubihsm_connector_binary is match('^/[a-zA-Z0-9_./+-]+$')
+    fail_msg: Local connectors bind only loopback and require a device serial; remote connector trust is explicit.
+  when: hsm_provider_driver == 'yubihsm'

@@ -4,7 +4,7 @@
 **Branch from:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence), when the required failure contract exceeds a single collector.
 **Change:** Add independently placed receivers and verify durable handoff, not merely endpoint failover.
 **Return:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence) to record the demonstrated failure envelope.
-**Design:** [durability and availability](../../01-architecture/24-operations/01-security-logging.md#durability-and-availability).
+**Design:** [durability and availability](../../01-architecture/11-operations/01-protected-logging.md#durability-and-availability).
 **Prerequisites:** functioning intake, independent backup/key custody and supported receiver/storage integration.
 
 ## 1. Add capacity and failure domains

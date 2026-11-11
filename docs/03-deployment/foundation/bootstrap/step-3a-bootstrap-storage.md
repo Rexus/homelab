@@ -146,7 +146,7 @@ On **`boot-1`**, as its normal SSH account:
 )
 ```
 
-Include both disks in the independent [bootstrap recovery set](../../../05-operations/backups/recovery-set.md).
+Include both disks in the independent [bootstrap recovery set](../../../05-operations/06-resilience/backups/recovery-set.md).
 Optionally [move home directories](step-3c-bootstrap-home.md) before creating Python environments or cloning the kit.
 Then return to [Bootstrap 2a](README.md#2a-install-through-approved-sources), or
 [2b offline](README.md#2b-transfer-a-prepared-bundle--offline-alternative).

@@ -1,0 +1,67 @@
+---
+- name: Require an explicit supported OpenBao artifact and independent authority
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_architecture == 'x86_64'
+      - openbao_version == '2.7.2'
+      - openbao_binary_src is match('^/')
+      - openbao_binary_sha256 is match('^[a-f0-9]{64}$')
+      - openbao_binary_dest == '/usr/local/bin/bao'
+      - openbao_service_user == 'openbao'
+      - vault_service_name == 'openbao'
+      - vault_config_dir == '/etc/openbao.d'
+      - vault_data_dir == '/opt/openbao/data'
+      - vault_tls_dir == '/opt/openbao/tls'
+      - vault_log_dir == '/var/log/openbao'
+      - vault_seal_type == 'shamir'
+      - vault_seal_hcl | trim == ''
+      - vault_extra_hcl | trim == ''
+      - vault_tls_cert_src is string and vault_tls_cert_src | length > 0
+      - vault_tls_key_src is string and vault_tls_key_src | length > 0
+      - vault_tls_ca_src is string and vault_tls_ca_src | length > 0
+    fail_msg: >-
+      Select a fresh OpenBao VM/environment, the approved exact OpenBao executable,
+      its executable SHA256 and preissued TLS. This option uses Shamir and never migrates Vault.
+
+- name: Require the accepted PKCS11 client contract when selected
+  ansible.builtin.assert:
+    that:
+      - openbao_plugin_version == '0.2.1'
+      - openbao_hsm_client_mode in ['provider', 'remote', 'existing']
+      - openbao_plugin_src is match('^/')
+      - openbao_plugin_sha256 is match('^[a-f0-9]{64}$')
+      - openbao_plugin_directory == '/opt/openbao/plugins'
+      - openbao_pkcs11_library is match('^/[A-Za-z0-9_./+-]+[.]so([.][0-9]+)*$')
+      - "'..' not in openbao_pkcs11_library.split('/')"
+      - openbao_pkcs11_environment is mapping
+    fail_msg: Supply the approved extracted KMS plugin and native HSM client library/configuration.
+  when: openbao_pkcs11_enabled | bool
+
+- name: Validate private client environment names and values
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[A-Z][A-Z0-9_]+$')
+      - item.key not in ['LD_PRELOAD', 'LD_LIBRARY_PATH', 'BAO_PKCS11_ALIASES']
+      - item.value is string
+      - "'\n' not in item.value and '\r' not in item.value"
+  loop: "{{ openbao_pkcs11_environment | dict2items }}"
+  no_log: true
+
+- name: Verify accepted executable bytes on the controller before guest writes
+  ansible.builtin.stat:
+    path: "{{ item.src }}"
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  loop: >-
+    {{ [{'src': openbao_binary_src, 'sha256': openbao_binary_sha256}] +
+       ([{'src': openbao_plugin_src, 'sha256': openbao_plugin_sha256}] if openbao_pkcs11_enabled | bool else []) }}
+  register: openbao_source_artifacts
+
+- name: Reject absent or unapproved intake artifacts
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - item.stat.checksum | default('') == item.item.sha256
+  loop: "{{ openbao_source_artifacts.results }}"

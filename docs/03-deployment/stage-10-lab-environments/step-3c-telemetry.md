@@ -14,7 +14,7 @@ this recipe creates neither another syslog server nor an authoritative archive.
 **Prerequisites:** accepted [Observability](../stage-8-observability/README.md),
 an existing application namespace, CSI storage and enforced network policies.
 Application SDK instrumentation and its receiver configuration are application-owned.
-**Design:** [telemetry boundaries](../../01-architecture/24-operations/03-telemetry.md).
+**Design:** [telemetry boundaries](../../01-architecture/11-operations/03-observability.md).
 
 ## Main path
 

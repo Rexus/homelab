@@ -1,0 +1,39 @@
+---
+- name: Check controller tooling for direct hardware-token operations
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: hsm
+    control_node_require_terraform: false
+
+- name: Require the hardware issuer selection before token activation
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Require exactly one selected online issuer
+      ansible.builtin.assert:
+        that:
+          - groups.get('issuing_ca', []) | length == 1
+          - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
+
+- name: Wait for the managed hardware-backed issuer
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: issuing_ca
+
+- name: Bind public certificates to the original hardware key through the native issuer CLI
+  hosts: issuing_ca
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  pre_tasks:
+    - name: Keep hardware activation on the sole online issuer
+      ansible.builtin.assert:
+        that:
+          - groups.get('issuing_ca', []) | length == 1
+          - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
+  tasks:
+    - name: Run only the explicit hardware-token operation
+      ansible.builtin.include_role:
+        name: hsm_provider
+        tasks_from: token

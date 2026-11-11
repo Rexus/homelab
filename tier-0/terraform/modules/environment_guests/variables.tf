@@ -78,6 +78,15 @@ variable "vm_instances" {
     proxmox_node_name = optional(string)
     vm_id             = optional(number)
     template_vm_id    = optional(number)
+    full_clone        = optional(bool, true)
+    firmware = optional(object({
+      bios                  = optional(string, "seabios")
+      machine               = optional(string)
+      scsi_hardware         = optional(string, "virtio-scsi-single")
+      efi_pre_enrolled_keys = optional(bool, false)
+    }))
+    initialization_datastore_id = optional(string)
+    nic_firewall                = optional(bool, true)
     # Uses catalog tags from another template ID, useful while building templates.
     template_catalog_id = optional(number)
     # Overrides catalog tags when a VM uses a source image not in the catalog.
@@ -87,6 +96,11 @@ variable "vm_instances" {
     memory        = optional(number)
     storage_class = optional(string)
     disk_size_gb  = number
+    usb_devices = optional(list(object({
+      host    = optional(string)
+      mapping = optional(string)
+      usb3    = optional(bool, false)
+    })), [])
     extra_disks = optional(list(object({
       interface     = string
       size_gb       = number

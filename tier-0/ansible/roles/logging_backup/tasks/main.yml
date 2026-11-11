@@ -69,6 +69,9 @@
     mode: "0755"
   loop: [logging_checkpoint.py, logging_io.py, logging_health.py, logging_projection.py]
 
+- name: Refuse damaged repository adoption before optional initialization
+  ansible.builtin.import_tasks: initialize.yml
+
 - name: Initialize a new encrypted repository only with explicit approval
   ansible.builtin.command:
     argv: [restic, --repo, "{{ logging_backup_repository }}", --password-file, /etc/security-log-backup.password, init]

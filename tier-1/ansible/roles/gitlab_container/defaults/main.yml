@@ -21,3 +21,38 @@ gitlab_packages:
   - podman
 
 gitlab_systemd_unit_path: /etc/systemd/system/gitlab-container.service
+
+# Optional dedicated Proxmox disk; empty preserves the existing OS-disk layout.
+gitlab_data_device: ""
+gitlab_data_expected_uuid: ""
+gitlab_data_min_free_bytes: 10737418240
+gitlab_trusted_ca_sources: []
+gitlab_ready_retries: 90
+
+# Existing accepted confidential Keycloak client; this role owns only the consumer.
+gitlab_oidc_enabled: false
+gitlab_oidc_client_accepted: false
+gitlab_oidc_issuer: ""
+gitlab_oidc_client_id: ""
+gitlab_oidc_client_secret: ""
+gitlab_oidc_label: Keycloak
+gitlab_oidc_block_auto_created_users: true
+
+gitlab_backup_enabled: false
+gitlab_backup_transport: sftp
+gitlab_backup_repository: ""
+gitlab_backup_filesystem: {}
+gitlab_backup_password_src: ""
+gitlab_backup_ssh_key_src: ""
+gitlab_backup_known_hosts_src: ""
+gitlab_backup_custody_accepted: false
+gitlab_backup_initialize: false
+gitlab_backup_calendar: "*-*-* 02:00:00"
+gitlab_backup_timeout_seconds: 7200
+gitlab_backup_min_free_bytes: 10737418240
+gitlab_initial_password_dest: ""
+gitlab_restore_confirm: false
+gitlab_restore_target_empty_accepted: false
+gitlab_restore_snapshot: ""
+gitlab_restore_set: ""
+gitlab_restore_source_home: "{{ gitlab_home }}"

@@ -1,8 +1,14 @@
 ---
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: logging_recovery
+
 # Inventory and recovery authority remain Tier 0; no collector receives these secrets.
 - name: Install independent archive recovery copies
   hosts: logging_recovery
   become: true
   serial: 1
   roles:
+    - baseline
     - logging_backup

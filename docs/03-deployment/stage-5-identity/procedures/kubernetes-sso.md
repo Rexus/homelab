@@ -17,11 +17,11 @@ selected schema is Talos **1.13 v1alpha1**, as in the
 [basic platform](../../stage-4-kubernetes/procedures/basic-platform.md).
 Do not apply this document to 1.14's split configuration schema. [1]
 The supplied recipe also requires the original **Terraform-owned** plan and machine configurations.
-It does not support the manual Stage 4 lifecycle: retain that owner and qualify its separate native
+It does not adopt an existing externally managed Stage 4 cluster: retain that owner and qualify its separate native
 OIDC rollout/recovery procedure rather than creating a new Terraform state or a synthetic plan.
-API acceptance also needs an independently prepared OIDC login client for the `headlamp` audience
-and the intended namespace/group RBAC. This rollout does not register that client, obtain a user's token
-or install Headlamp. If that verification path is absent, API acceptance remains blocked; do not set its flag true.
+After the state commit, run the supplied [CLI client and namespace-access workflow](kubernetes-cli-access.md)
+to obtain a human login path for the `headlamp` audience before Headlamp exists. The API rollout,
+client/RBAC commissioning and real human acceptance are separate operations.
 
 ## Table of contents
 
@@ -29,6 +29,7 @@ or install Headlamp. If that verification path is absent, API acceptance remains
 - [Preserve the authoritative configuration](#preserve-the-authoritative-configuration)
 - [Render and apply serially](#render-and-apply-serially)
 - [Commit the reviewed state](#commit-the-reviewed-state)
+- [Commission CLI login and namespace access](#commission-cli-login-and-namespace-access)
 - [Outage and recovery acceptance](#outage-and-recovery-acceptance)
 - [References](#references)
 
@@ -52,7 +53,10 @@ that token's `iss`, `aud`, `sub` and group values; a same-named nested directory
 group must not accidentally grant access. Retain stable Keycloak realm/database
 state because recreating identities changes their subjects. [2][3]
 
-Set the same issuer and private client secret in Headlamp. The
+Before installing Headlamp, the [CLI workflow](kubernetes-cli-access.md) registers a separate public PKCE
+client, adds the API audience to its ID token and creates explicit namespace `view` bindings.
+No Headlamp client/Secret is needed for that login. When installing Headlamp later, set the same issuer
+and its own private client secret. The
 [control-applications inputs](../../../../tier-0/ansible/group_vars/control_applications.yml.example)
 select `oidc:platform-viewers` and namespace `view` bindings. No cluster-wide
 RBAC is implied. For another cluster, separately review its permitted groups,
@@ -241,6 +245,13 @@ plan must show no remaining machine-configuration updates. Archive recovery
 evidence and retain the full input patch list. This procedure has not been
 exercised against a live cluster.
 
+## Commission CLI login and namespace access
+
+After committing the API configuration, complete [Kubernetes CLI access](kubernetes-cli-access.md):
+configure/render the public integration, apply the client and namespace bindings, then test real
+allowed and denied human identities. This consumes existing Keycloak and namespaces, without deploying
+Headlamp or invoking the application-installation workflow. Return here for outage/recovery gates.
+
 ## Outage and recovery acceptance
 
 Upstream Kubernetes 1.35 and 1.36 source initializes remote OIDC discovery
@@ -251,7 +262,7 @@ cluster's availability: malformed local CA/configuration can still prevent
 startup, and key-cache, network and load-balancer behavior require testing. [7][8]
 
 Before Headlamp installation, keep `control_applications_headlamp_api_oidc_accepted: false` until recording
-the API checks below. Use the independently prepared login client, verified audience/group claims and
+the API checks below. Use the [commissioned CLI login client](kubernetes-cli-access.md), verified audience/group claims and
 approved namespace RBAC; do not wait for a UI that has not been installed or substitute administrator X509
 access for the bearer-token tests.
 
@@ -299,7 +310,7 @@ file replacement/serial reboot, not `op: create` over the existing file.
 Return to [Stage 5, Step 3](../README.md#step-3-accept-identity-and-human-sso)
 to finish the service SSO gate and identity acceptance. Stage 6 separately installs
 [NetBox change collection](../../stage-6-secrets/procedures/netbox-audit.md) and
-[scheduled control recovery copies](../../../05-operations/backups/control-applications.md#configure-and-schedule).
+[scheduled control recovery copies](../../../05-operations/06-resilience/backups/control-applications.md#configure-and-schedule).
 Neither recipe is an outcome of Kubernetes SSO.
 
 ## References

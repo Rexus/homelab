@@ -1,0 +1,76 @@
+---
+- name: Require explicit hardware qualification and a private accepted OpenBao API
+  ansible.builtin.assert:
+    that:
+      - openbao_signing_address is match('^https://[A-Za-z0-9.:-]+(:[0-9]+)?$')
+      - openbao_signing_ca_src is match('^/')
+      - openbao_signing_token | length > 0
+      - openbao_signing_provider_accepted | bool
+      - openbao_signing_hardware_profile in ['yubihsm2', 'picohsm-opensc']
+      - openbao_signing_domain is match('^[a-z][a-z0-9-]{0,40}$')
+      - openbao_signing_mount is match('^[a-z][a-z0-9-]{0,40}$')
+      - openbao_signing_cert_mount is match('^[a-z][a-z0-9-]{0,40}$')
+      - openbao_signing_node_ids | length == openbao_signing_node_ids | unique | length
+      - (openbao_signing_node_ids | length == 1 and openbao_signing_learning_single | bool) or
+        (openbao_signing_node_ids | length == 3 and not openbao_signing_learning_single | bool)
+      - openbao_signing_token_serial | length > 0 or openbao_signing_token_label | length > 0
+      - openbao_signing_pin | length > 0
+      - openbao_signing_keys | length > 0
+      - openbao_signing_keys | map(attribute='name') | unique | length == openbao_signing_keys | length
+      - openbao_signing_clients | map(attribute='name') | unique | length == openbao_signing_clients | length
+    fail_msg: >-
+      Supply a TLS API, private credentials, three expected Raft voters (or explicit one-node learning),
+      and a qualified homogeneous hardware key domain. Qualify every failover backend against the original SPKI.
+  no_log: true
+
+- name: Validate exact external key references and qualified mechanisms
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9-]{0,40}$')
+      - item.id is match('^0x([a-fA-F0-9]{2})+$')
+      - item.label is string and item.label | length > 0
+      - item.public_key_src is match('^/')
+      - item.public_key_sha256 is match('^[a-f0-9]{64}$')
+      - (item.algorithm == 'rsa-pss-sha256' and item.mechanism == 'CKM_RSA_PKCS_PSS') or
+        (item.algorithm == 'ecdsa-p256-sha256' and item.mechanism == 'CKM_ECDSA')
+  loop: "{{ openbao_signing_keys }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Validate workload names and selected key scope
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9-]{0,40}$')
+      - item.certificate_src is match('^/')
+      - item['keys'] | length > 0
+      - item['keys'] | difference(openbao_signing_keys | map(attribute='name') | list) | length == 0
+      - item.bound_cidrs | length > 0
+      - "'0.0.0.0/0' not in item.bound_cidrs and '::/0' not in item.bound_cidrs"
+  loop: "{{ openbao_signing_clients }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Read original public key identities before API writes
+  community.crypto.openssl_publickey_info:
+    path: "{{ item.public_key_src }}"
+  loop: "{{ openbao_signing_keys }}"
+  register: openbao_public_keys
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Pin SHA256 of original DER SubjectPublicKeyInfo and supported public parameters
+  ansible.builtin.assert:
+    quiet: true
+    that:
+      - item.fingerprints.sha256 | replace(':', '') == item.item.public_key_sha256
+      - (item.item.algorithm == 'rsa-pss-sha256' and item.type == 'RSA' and item.public_data.size >= 2048) or
+        (item.item.algorithm == 'ecdsa-p256-sha256' and item.type == 'ECC' and item.public_data.curve == 'secp256r1')
+    fail_msg: Original public key pin or qualified algorithm does not match. Do not register a replacement key.
+  loop: "{{ openbao_public_keys.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+
+- name: Require native controller OpenSSL for RSA-PSS and ECDSA signature qualification
+  ansible.builtin.command:
+    argv: [openssl, version]
+  changed_when: false

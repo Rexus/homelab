@@ -58,7 +58,8 @@ The fresh example and following realization select **`filesystem` on an existing
 NAS backup file area**; they show configured resources, not live acceptance. The
 role retains `s3` when older inputs omit the selector; that is a separate storage
 choice under [backup storage](#choose-backup-storage). Cluster ingress/DNS,
-the NAS PVC/repository and leaf certificates are existing prerequisites.
+the NAS PVC and leaf certificates are existing prerequisites. The installer commissions
+the selected repository from the inputs below.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":40,"padding":12,"wrappingWidth":380,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -104,6 +105,8 @@ flowchart TB
 [persistence](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/persistence.yml.j2),
 [backup resources](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/backup.yml.j2)
 and [staged apply](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-native-apply.yml).
+The view shows application and export resources after repository commissioning;
+the transient filesystem commissioning Job runs before data services start.
 **Prerequisites:** [existing NAS storage](../foundation/storage/README.md#use-nas-file-storage)
 and Keycloak retain their existing owners. Only the commissioned file PVC and OIDC
 interface are consumed, never Tier 0 control credentials. No NAS gateway is added.
@@ -261,7 +264,7 @@ This native reference does not register remote Tier 2 clusters or Tier 0 targets
 
 The fresh example sets `delivery_platform_spinnaker_backup_backend: filesystem`.
 Existing inputs keep `s3` when the selector is omitted. Both modes consume already
-commissioned storage, export SQL/RDB through the staging PVC, encrypt with restic,
+commissioned storage interfaces, export SQL/RDB through the staging PVC, encrypt with restic,
 then verify all repository data before removing successful staging. [7]
 
 | Backend | Required existing storage and inputs |
@@ -276,7 +279,8 @@ volume, outside the cluster's data lifecycle, and creates its namespace, PV and 
 before apply. The role requires a Bound filesystem claim, an exact PV claim binding,
 `Retain` reclaim policy and a writable NFS/CSI source. It rejects local/hostPath PVs;
 the operator must verify a CSI driver's actual remote NAS backing. The role never
-creates, formats, initializes or deletes the NAS volume or file repository. [8]
+creates, formats or deletes the NAS volume. It can initialize only an absent child
+repository when explicitly enabled; existing repositories are validated. [8]
 
 | Full input prefix: `delivery_platform_spinnaker_backup_` | Filesystem value |
 | --- | --- |
@@ -284,32 +288,35 @@ creates, formats, initializes or deletes the NAS volume or file repository. [8]
 | `filesystem_claim` | Existing PVC name, distinct from SQL, Redis and `spinnaker-backup` staging |
 | `filesystem_repository` | One directory name under the PVC root; default `spinnaker`; no slashes or traversal |
 | `filesystem_marker` | Exact 32-128 character ASCII alphanumeric/underscore/hyphen identity in `<repository>/.spinnaker-backup-repository` |
+| `filesystem_initialize` | `false` by default; explicitly select `true` only for a new, absent repository directory |
 | `egress` | Not used in filesystem mode; normally leave `[]` |
 
-Commission a **new** repository once on the verified NAS mount, using the pinned
-restic executable and a separately retained password file. Set `SPINNAKER_NAS_MOUNT`
-to its actual mountpoint. Run with an authorized storage identity; leave repository
-files writable by the backup pod's UID/GID `999`, including under NFS root squash.
-Existing repositories keep their original password and marker; skip initialization.
+Choose one route in **`<prefix>-tier-1/ansible/group_vars/delivery_platform.yml`** before rendering:
 
-Run from **`<prefix>-tier-1/`**.
+- **New repository:** select an absent child directory, set a unique retained `filesystem_marker`
+  and `filesystem_initialize: true`. Supply a separately retained password through
+  `spinnaker-backup/RESTIC_PASSWORD`. The storage owner must allow UID/GID `999` to create
+  that child under the PVC root, including under NFS root squash.
+- **Existing repository:** retain its exact directory, marker and password; keep
+  `filesystem_initialize: false`. Existing empty directories, partial repositories,
+  wrong markers and wrong passwords fail without initialization or repair.
 
-```bash
-export RESTIC_REPOSITORY="${SPINNAKER_NAS_MOUNT:?Set the verified NAS mountpoint}/spinnaker"
-export RESTIC_PASSWORD_FILE=/absolute/private/spinnaker-restic.password
-mountpoint -q "$SPINNAKER_NAS_MOUNT" || exit 1
-test ! -e "$RESTIC_REPOSITORY" && test ! -L "$RESTIC_REPOSITORY" || exit 1
-restic init --repository-version 2 || exit 1
-openssl rand -hex 32 > "$RESTIC_REPOSITORY/.spinnaker-backup-repository"
-```
+Both routes continue to **Step 3**. Apply runs the pinned restic image in
+`spinnaker-repository-commission` through the
+[Ansible lifecycle](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-repository.yml).
+Ansible waits for the Job's `Complete` condition before continuing. [9]
+It checks the actual mount and direct-child containment before creating anything, initializes
+only an absent directory with explicit authorization, then validates the config and password.
+No controller NAS mount, interactive guest login or local restic installation is required.
+After successful commissioning, set `filesystem_initialize: false`, render again and use the
+new review checksum for subsequent applies. Retain the marker and password under recovery custody.
 
-Copy that marker's value into `filesystem_marker` and supply the same retained
-password as `spinnaker-backup/RESTIC_PASSWORD`. AWS keys, object TLS trust and object
-egress are unnecessary. Only the restic container mounts the NAS PVC at `/repository`;
-dump containers mount staging. The Job checks the actual mount, directory containment,
-matching nonsymlink marker, existing restic config and password before writing.
-An absent mount, marker or repository fails closed; there is no emptyDir repository
-or local-directory fallback. The small emptyDir at `/cache` holds only scratch/cache.
+AWS keys, object TLS trust and object egress are unnecessary. Only restic containers mount
+the NAS PVC at `/repository`; dump containers mount staging. Scheduled and verification backups
+always require an existing config and matching nonsymlink marker; they never initialize a file
+repository. An absent mount fails closed, including during commissioning. No emptyDir repository
+or local-directory fallback is used; `/cache` holds only scratch/cache. A failed initialization
+leaves its partial directory for storage-owner investigation; rerunning never erases or repairs it.
 
 Allow the storage path from Kubernetes **nodes/CSI components** to the NAS through
 the storage owner's firewall policy; pod egress rules do not authorize node NFS
@@ -344,7 +351,7 @@ and scoped target contracts are all included. The output directory contains:
 | Output | Review |
 | --- | --- |
 | `spinnaker-native/` | Complete reproducible Kustomize source and public trust inputs |
-| `spinnaker-manifests.yml` | Eight services, configuration, optional leaf Certificate requests, SQL/Redis, SQL and backup-verification Jobs, target identities, policies, ingress and backup CronJob |
+| `spinnaker-manifests.yml` | Eight services, configuration, optional leaf Certificate requests, SQL/Redis, SQL and backup-verification Jobs, filesystem commissioning Job when selected, target identities, policies, ingress and backup CronJob |
 | `spinnaker-backup-iam.json` | S3 only: least-privilege policy for IAM-compatible existing object storage; removed from render output in filesystem mode |
 | `spinnaker.sha256` | Exact checksum binding the complete render, including target grants |
 | `credentials/` | Private stable bootstrap passwords only when bootstrap ownership is selected |
@@ -370,7 +377,8 @@ and then executes this dependency order:
    CRDs), Traefik CRD/ingress class and server version before resource changes.
 2. Create selected namespaces; provision explicitly owned credentials, public trust
    and hashed Redis ACL; apply configuration, certificates, policies and target RBAC.
-3. In issuer mode wait for all current-generation certificates; start MySQL/Redis
+3. In filesystem mode run the commissioning/validation Job to completion. In issuer
+   mode wait for all current-generation certificates; start MySQL/Redis
    and wait for current-generation persistent replicas.
 4. Recreate the transient, idempotent SQL provisioning Job; wait for five schemas,
    schema-local service users and migration users.
@@ -467,7 +475,8 @@ site's acceptance environment.
 
 ## References
 
-Storage sources checked 2026-10-27; other sources checked 2026-10-26.
+Repository commissioning sources checked 2026-11-11; storage sources checked 2026-10-27;
+other sources checked 2026-10-26.
 Version/revision values live in the machine-readable role inputs.
 
 1. [Official native installation](https://spinnaker.io/docs/setup/install/).
@@ -485,3 +494,5 @@ Version/revision values live in the machine-readable role inputs.
    [backup and verification](https://restic.readthedocs.io/en/stable/040_backup.html)
    and [fail-closed scripting](https://restic.readthedocs.io/en/stable/075_scripting.html).
 8. [Kubernetes persistent volumes: binding, NFS, CSI and retention](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
+9. [Ansible Kubernetes resource waits](https://docs.ansible.com/projects/ansible/latest/collections/kubernetes/core/k8s_module.html)
+   and [Kubernetes Job completion](https://kubernetes.io/docs/concepts/workloads/controllers/job/).

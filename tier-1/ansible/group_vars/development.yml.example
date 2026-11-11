@@ -27,4 +27,59 @@ gitlab_tls_key_src: ""
 gitlab_letsencrypt_enabled: false
 
 # Add one gitlab.rb line per item when this instance needs extra settings.
+# Do not override managed OIDC/backup settings here. Role defaults are authoritative:
+# ansible/roles/gitlab_container/defaults/main.yml.
 gitlab_omnibus_extra_config: []
+
+# Optional attached Proxmox SCSI data disk. Empty uses the Terraform-managed OS disk.
+# Add extra_disks to vm_instances.git-1 first; see the matching Terraform example.
+# Never change this on an existing populated gitlab_home to migrate data implicitly.
+gitlab_data_device: ""
+gitlab_data_expected_uuid: ""  # Record/pin after first commissioning; retain on recovery.
+
+# Public CA chains needed inside Omnibus for Keycloak/private HTTPS (one PEM .crt per CA).
+gitlab_trusted_ca_sources: []
+
+# Accepted existing Keycloak confidential client: code flow + PKCE S256, exact callback
+# https://<gitlab_hostname>/users/auth/openid_connect/callback, scopes openid/profile/email.
+# Stable sub identity; provision/approve GitLab membership separately. No email auto-linking.
+gitlab_oidc_enabled: true
+gitlab_oidc_client_accepted: false
+gitlab_oidc_issuer: ""
+gitlab_oidc_client_id: ""
+# Supply gitlab_oidc_client_secret through an encrypted/private --ansible-vars file.
+gitlab_oidc_block_auto_created_users: true
+
+# One independent encrypted repository. This is backup storage, never live PGDATA.
+gitlab_backup_enabled: true
+gitlab_backup_custody_accepted: false
+gitlab_backup_transport: sftp  # sftp or filesystem (NFS/SMB client mount).
+gitlab_backup_repository: ""  # sftp:gitlab@recovery.example.com:/backups/git-1
+gitlab_backup_password_src: ""  # Absolute controller file; retain independently.
+gitlab_backup_ssh_key_src: ""   # Absolute controller private-key file; SFTP only.
+gitlab_backup_known_hosts_src: ""  # Absolute controller pinned known_hosts; SFTP only.
+gitlab_backup_calendar: "*-*-* 02:00:00"
+gitlab_backup_timeout_seconds: 7200
+gitlab_backup_initialize: false  # Filesystem only: initialize an independently commissioned EMPTY repo.
+
+# For filesystem transport replace {} with the contract below. The NAS custodian creates
+# the repository and .development-data-backup-target marker on the independent share first.
+gitlab_backup_filesystem: {}
+# gitlab_backup_filesystem:
+#   mount: /mnt/gitlab-backup
+#   source: nas.example.com:/exports/gitlab
+#   fstype: nfs4
+#   marker: <independently-recorded-32-to-128-character-token>
+#   uid: 65534  # Effective NAS write identity, including root squash.
+#   gid: 65534
+#   manage_mount: true
+#   credentials_src: /private/gitlab-smb.credentials  # CIFS only; username/password file.
+
+# Explicit controller destination for the separate initial-access recipe; parent mode 0700.
+gitlab_initial_password_dest: ""
+
+# Separate isolated recovery recipe only; keep false for normal deployment.
+gitlab_restore_confirm: false
+gitlab_restore_target_empty_accepted: false
+gitlab_restore_snapshot: ""  # Full 64-character restic snapshot ID, never latest.
+gitlab_restore_set: ""       # gitlab-vm-set.<8-character-suffix> from that snapshot's tags.

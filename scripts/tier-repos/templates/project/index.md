@@ -24,14 +24,15 @@ connects these implementation choices to the overall system design.
 | Standards | Record local names, domains, tags and the zone/VNet network plan | [Platform standards](../platform-standards.md) |
 | VMID allocation | Follow the convention; keep individual assignments in tier-local Terraform | [VMID quick reference](auto-docs/02-conventions/vmid-convention.md) |
 | Hosting | Reference: Proxmox VE 9.2+, three hosts, native HA and dynamic rebalancing | [HA and failover](auto-docs/03-deployment/foundation/proxmox/step-1b-cluster-ha.md) |
-| Networks | Reference: VLAN-aware bridges; record SDN selection if used | [Network design](auto-docs/01-architecture/11-networking/README.md) |
-| Storage | Reference: Proxmox/Ceph live volumes, separate NAS backups | [Storage interfaces](auto-docs/01-architecture/12-data/README.md#storage-interfaces) |
-| Trust | Reference: software custody; record USB/network HSM selection if used | [Cryptography variants](auto-docs/01-architecture/16-cryptography/README.md) |
-| Kubernetes | Reference: Talos; retain exact image/schematic in Tier 0 inputs | [Cluster design](auto-docs/01-architecture/10-hosting/04-kubernetes.md) |
-| Delivery | Select Argo CD or Spinnaker in Tier 1; Flux in Tier 0 | [Controller choices](auto-docs/01-architecture/20-delivery/02-controllers.md) |
+| Networks | Reference: VLAN-aware bridges; record SDN selection if used | [Network design](auto-docs/01-architecture/05-networking/README.md) |
+| Storage | Reference: Proxmox/Ceph live volumes, separate NAS backups | [Storage interfaces](auto-docs/01-architecture/06-data/README.md#storage-interfaces) |
+| Trust | Reference: software custody; record USB/network HSM selection if used | [Cryptography variants](auto-docs/01-architecture/08-cryptography/README.md) |
+| Kubernetes | Reference: Talos; retain exact image/schematic in Tier 0 inputs | [Cluster design](auto-docs/01-architecture/04-hosting/03-kubernetes.md) |
+| Delivery | Select Argo CD or Spinnaker in Tier 1; Flux in Tier 0 | [Controller choices](auto-docs/01-architecture/10-delivery/02-controllers.md) |
 
-Check compatibility in the [variant contracts](auto-docs/01-architecture/08-variants.md).
-The [runtime relationships](auto-docs/01-architecture/07-runtime-flows.md) explain cross-tier flows.
+Record consequential choices with the [selection guidance](auto-docs/01-architecture/02-organization/README.md#selected-design).
+The [interaction index](auto-docs/01-architecture/README.md#how-the-platform-works-together)
+opens the communication examples beside their owning capability.
 
 ## Deployment checklist
 
@@ -53,7 +54,7 @@ generation proves no operational result. Existing accepted services can satisfy 
 | Need | Reference | Local record |
 | --- | --- | --- |
 | Find a command or input | [Repository scripts](auto-docs/08-reference/repository-scripts.md) | Tier-owned configuration |
-| Back up and recover | [Recovery guides](auto-docs/05-operations/recovery.md) | Record offline reader/key kit, RPO/RTO and pruning custodian, restore-test dates and evidence links; no secrets |
+| Back up and recover | [Recovery guides](auto-docs/05-operations/06-resilience/README.md) | Record offline reader/key kit, RPO/RTO and pruning custodian, restore-test dates and evidence links; no secrets |
 | Maintain services | [Operations](auto-docs/05-operations/README.md) | Maintenance owner and schedule |
 | Adopt upstream changes | [Refresh contract](auto-docs/04-development/generated-repositories.md#refresh-and-local-ownership) | Tested revision and exceptions |
 

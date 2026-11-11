@@ -1,6 +1,6 @@
 # Stage 9: Development platform
 
-**Related:** [Architecture](../../01-architecture/22-development-platform/README.md) · [Operations](../../05-operations/development-platform/README.md)
+**Related:** [Architecture](../../01-architecture/10-delivery/03-development-platform.md) · [Operations](../../05-operations/05-delivery.md)
 
 Deploy source control and CI, then transfer routine infrastructure execution from
 the bootstrap workstation. The reference uses GitLab on Tier 1 Kubernetes,
@@ -15,7 +15,7 @@ Step 1 provisions the GitLab data services; they are not a previous stage to fin
 policy and dedicated data-service installation are supplied. Storage/PKI commissioning,
 live acceptance and automated lab requests remain separate; see
 [coverage](../../08-reference/implementation-support.md#stage-coverage).
-**Design:** [development platform](../../01-architecture/22-development-platform/README.md).
+**Design:** [development platform](../../01-architecture/10-delivery/03-development-platform.md).
 
 **Execution context:** `<prefix>-tier-1/`.
 
@@ -29,7 +29,7 @@ the protected infrastructure runner is a separate required deployment at Step 4.
 | Step | Path or option | Continue when |
 | --- | --- | --- |
 | 1a | Kubernetes GitLab: [data VMs](procedures/data-services.md), [GitLab/SSO](procedures/gitlab.md), then [joint backup checks](procedures/data-services.md#backups-and-recovery) | Source control and recovery are accepted; go to Step 2 |
-| 1b | [Source-control VM](step-1b-source-control-vm.md), instead of 1a | Complete its project-supplied SSO and backup/restore integration, then Step 2 |
+| 1b | [Source-control VM](step-1b-source-control-vm.md), instead of 1a | Configure native OIDC and scheduled encrypted backups, verify recovery, then Step 2 |
 | 1c | Optional [delivery-controller ownership](procedures/gitlab.md#delivery-ownership) for 1a, instead of direct Ansible apply | Choose before chart apply; rejoin Step 1 backup/SSO checks after adoption |
 | 2a | [Kubernetes job runners](procedures/kubernetes-runners.md) | Accept bounded jobs and cleanup before Step 3 |
 | 2b | [Podman build runner](step-2b-podman-runner.md), instead of 2a | Accept the same isolation boundary, then Step 3 |

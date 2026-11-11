@@ -10,7 +10,7 @@ retain the independent recovery workstation.
 
 ## Step 1: Accept direct-CI trust
 
-Approve the [trusted-CI decision](../../../01-architecture/22-development-platform/README.md#privileged-ci).
+Approve the [trusted-CI decision](../../../01-architecture/10-delivery/03-development-platform.md#privileged-ci).
 The infrastructure project, GitLab administrators and administrators able to modify
 GitLab's cluster, data, signing keys or backups are Tier 0 authorities in this option.
 Do not grant those rights to ordinary platform developers. Argo CD/Spinnaker and
@@ -47,6 +47,12 @@ Edit in **`<prefix>-tier-0/`**.
   runner version, local CA path and tool packages. Set `infrastructure_runner_trust_ci_control_plane: true`
   only after Step 1's trust decision.
 
+For approved package sources absent from the template, set `baseline_rpm_repositories`
+in the same file to their HTTPS base URLs, public-key URLs and pinned fingerprints.
+The [Shared input definitions](../../../../shared/ansible/roles/baseline/defaults/main.yml)
+also provide `baseline_trust_anchors` for internal repository CAs. The role installs
+Terraform, Vault, Ansible, Git and rsync from those sources; no manual guest tool installation is required.
+
 Enter the newly created **project runner** token without recording it in shell history:
 
 Run from **`<prefix>-tier-0/`**.
@@ -80,7 +86,9 @@ Register OS, authentication and CI events with
 and gateway policies: GitLab/Vault HTTPS, approved software sources and only required
 infrastructure APIs/SSH. Do not expose a public runner listener.
 
-Install the approved public CA chains in the runner OS/tool trust stores too.
+Set `baseline_trust_anchors` in the same runner inputs to the approved controller-side
+public root certificate files (one CA per file), then reapply the runner deployment.
+Shared installs them in the native EL/Debian OS trust store; no guest login is required.
 The Runner-specific `ca.crt` does not by itself configure persistent `git fetch`,
 Terraform, Vault CLI or other HTTPS clients. Verify GitLab cloning and Proxmox/Vault
 connections as the `gitlab-runner` user without disabling certificate verification.

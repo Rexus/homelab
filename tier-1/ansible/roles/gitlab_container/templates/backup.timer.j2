@@ -1,0 +1,11 @@
+[Unit]
+Description=Schedule independent GitLab recovery sets
+
+[Timer]
+OnCalendar={{ gitlab_backup_calendar }}
+Persistent=true
+RandomizedDelaySec=300
+Unit=gitlab-vm-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -2,7 +2,7 @@
 
 Tier 0 owns the issuer host, configuration, database and signing authority.
 The [deployment guide](../03-deployment/stage-3-trust/procedures/issuer.md) owns execution;
-the [CA design](../01-architecture/16-cryptography/01-certificate-authority.md) owns trust boundaries.
+the [CA design](../01-architecture/08-cryptography/01-certificate-authority.md) owns trust boundaries.
 
 ## Contents
 
@@ -24,7 +24,7 @@ files are not automatically discovered by every inventory/playbook combination.
 | `openxpki_configuration_src`, `openxpki_configuration_sha256` | Absolute controller archive path and independently reviewed SHA-256 |
 | `openxpki_package_versions` | Exact versions for `libopenxpki-perl`, `openxpki-cgi-session-driver`, `openxpki-i18n`; matched to configuration/schema |
 | `openxpki_repository_key_sha256` | Independently verified signing-key checksum; HTTPS and APT signature checks remain enabled |
-| `openxpki_data_device`, `openxpki_data_mount` | Dedicated guest block device and data root; defaults `/dev/sdb` and `/srv/openxpki` |
+| `openxpki_data_device`, `openxpki_data_mount` | Dedicated guest block device and data root; defaults `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1` and `/srv/openxpki` |
 | `openxpki_data_fstype`, `openxpki_data_label` | New filesystem type/label; defaults `xfs` / `openxpki`. Select `ext4` explicitly for existing ext4 storage |
 | `openxpki_data_uuid` | Optional UUID pin; empty for a new disk. A missing pinned volume is never replaced or formatted |
 | `openxpki_min_free_mb` | Minimum available data capacity; defaults 2048 MiB |

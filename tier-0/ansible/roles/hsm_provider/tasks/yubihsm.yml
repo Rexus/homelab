@@ -1,0 +1,63 @@
+---
+- name: Render the native PKCS11 connector selection
+  ansible.builtin.template:
+    src: yubihsm_pkcs11.conf.j2
+    dest: /etc/hsm-provider/yubihsm_pkcs11.conf
+    owner: root
+    group: "{{ hsm_provider_group }}"
+    mode: "0640"
+
+- name: Configure a host-local serial-selected connector
+  when: hsm_provider_mode == 'usb'
+  block:
+    - name: Create the unprivileged USB connector identity
+      ansible.builtin.user:
+        name: hsm-connector
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+
+    - name: Render native connector configuration
+      ansible.builtin.template:
+        src: yubihsm-connector.yaml.j2
+        dest: /etc/hsm-provider/yubihsm-connector.yaml
+        owner: root
+        group: hsm-connector
+        mode: "0640"
+      notify: Restart selected YubiHSM connector
+
+    - name: Permit only the selected USB token to the connector account
+      ansible.builtin.template:
+        src: yubihsm.rules.j2
+        dest: /etc/udev/rules.d/99-hsm-provider.rules
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Apply selected YubiHSM USB permissions
+
+    - name: Create the packaged connector override directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/yubihsm-connector.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Bind the packaged service to the reviewed native configuration
+      ansible.builtin.template:
+        src: connector-service.conf.j2
+        dest: /etc/systemd/system/yubihsm-connector.service.d/hsm-provider.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart selected YubiHSM connector
+
+    - name: Apply USB permissions and configuration before starting the connector
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable the configured connector
+      ansible.builtin.systemd_service:
+        name: yubihsm-connector.service
+        daemon_reload: true
+        enabled: true
+        state: started

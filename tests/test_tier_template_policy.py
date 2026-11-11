@@ -104,6 +104,71 @@ class TemplatePolicy(TierRepositoryTestCase):
 @unittest.skipUnless(os.name != 'nt' and shutil.which('ansible-playbook'),
                      'Requires native Ansible on Linux/WSL')
 class TemplateRefreshCleanup(TierRepositoryTestCase):
+    def test_replacement_preserves_ordinary_vm_configuration_and_disk(self):
+        self.root.mkdir(parents=True)
+        commands = self.root / 'commands'
+        commands.mkdir()
+        qm = commands / 'qm'
+        qm.write_text('''#!/usr/bin/env python3
+import json, os, pathlib, sys
+root = pathlib.Path(os.environ['QM_FIXTURE_ROOT'])
+args = sys.argv[1:]
+with open(os.environ['QM_FIXTURE_LOG'], 'a') as log:
+    log.write(json.dumps(args) + '\\n')
+config = root / (args[1] + '.conf')
+if args[0] == 'config':
+    if not config.exists():
+        sys.exit(2)
+    print(config.read_text(), end='')
+elif args[0] == 'destroy':
+    config.unlink()
+    (root / (args[1] + '.disk')).unlink()
+elif args[0] == 'clone':
+    (root / (args[2] + '.conf')).write_text('name: selected-image\\n')
+    (root / (args[2] + '.disk')).write_bytes(b'new image disk')
+elif args[0] == 'template':
+    config.write_text(config.read_text() + 'template: 1\\n')
+else:
+    sys.exit(99)
+''')
+        qm.chmod(0o755)
+        for name, target_config, rejected in (
+                ('ordinary', b'name: important-service\n', True),
+                ('explicit-false', b'name: important-service\ntemplate: 0\n', True),
+                ('template', b'name: selected-image\ntemplate: 1\n', False)):
+            with self.subTest(target=name):
+                fixture = self.root / name
+                fixture.mkdir()
+                staged = fixture / '9102.conf'
+                staged.write_bytes(b'name: staged-image\ntemplate: 1\n')
+                target = fixture / '9101.conf'
+                target.write_bytes(target_config)
+                disk = fixture / '9101.disk'
+                disk.write_bytes(b'irreplaceable original VM disk')
+                calls = fixture / 'calls.jsonl'
+                play = fixture / 'replacement.yml'
+                play.write_text(yaml.safe_dump([{
+                    'hosts': 'localhost', 'connection': 'local', 'gather_facts': False,
+                    'environment': {'PATH': f'{commands}:{os.environ["PATH"]}',
+                                    'QM_FIXTURE_ROOT': str(fixture), 'QM_FIXTURE_LOG': str(calls)},
+                    'vars': {'template_refresh_replace_enabled': True, 'template_refresh_replacements': [
+                        {'name': 'selected-image', 'staged_vm_id': 9102, 'target_vm_id': 9101}]},
+                    'tasks': [{'ansible.builtin.import_tasks': str(
+                        UPSTREAM / 'tier-0/ansible/roles/proxmox_template_replace/tasks/main.yml')}],
+                }], sort_keys=False))
+                result = subprocess.run(['ansible-playbook', '-i', 'localhost,', str(play)],
+                                        cwd=fixture, capture_output=True, text=True, timeout=60)
+                self.assertEqual(result.returncode != 0, rejected, result.stdout + result.stderr)
+                operations = [json.loads(line)[0] for line in calls.read_text().splitlines()]
+                self.assertEqual(staged.read_bytes(), b'name: staged-image\ntemplate: 1\n')
+                if rejected:
+                    self.assertEqual(target.read_bytes(), target_config)
+                    self.assertEqual(disk.read_bytes(), b'irreplaceable original VM disk')
+                    self.assertEqual(operations, ['config', 'config'])
+                else:
+                    self.assertEqual(operations, ['config', 'config', 'destroy', 'clone', 'template'])
+                    self.assertEqual(disk.read_bytes(), b'new image disk')
+
     def test_cloud_init_cleanup_failure_stops_subsequent_tasks(self):
         self.root.mkdir(parents=True)
         tasks = yaml.safe_load((UPSTREAM / 'tier-0/ansible/roles/template_refresh/tasks/main.yml').read_text())

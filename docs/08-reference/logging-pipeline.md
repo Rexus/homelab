@@ -101,7 +101,8 @@ Exact defaults live with the named role; local overrides are ignored tier vars.
 | `logging_backup_` | Independent host, explicit local repository device/path/fstype/UUID or adopted commissioned mount, free-space reserve, read-only NAS source/marker/credential, separately held password file and schedule/dead-man URL; explicit repository initialization |
 
 `logging_backup_repository_device` defaults to empty for compatibility with existing commissioned mounts.
-The new starter explicitly selects `/dev/sdb` at `/srv/security-log-backup`; Shared's `data_volume`
+The new starter explicitly selects `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1`
+at `/srv/security-log-backup`; Shared's `data_volume`
 prepares only eligible blank local storage and persists its UUID. Existing UUID pins are retained.
 Adoption changes no filesystem or mount declaration; supported destinations are XFS/ext4/Btrfs/ZFS
 or already mounted NFS/SMB. Root, the archive input, volatile filesystems and conflicting identities
@@ -123,7 +124,7 @@ Native tests use temporary files/loopback ports, not installed services.
 
 EL 10 deployment, SELinux/AppArmor, real SMB fsync/snapshots, physical faults, device
 buffers, denied reads and alert delivery still require the
-[live drill](../05-operations/logging-drill.md). Source tests do not accept the installation.
+[live drill](../05-operations/06-resilience/logging-drill.md). Source tests do not accept the installation.
 
 ## References
 

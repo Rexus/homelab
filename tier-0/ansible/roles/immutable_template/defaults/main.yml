@@ -1,4 +1,20 @@
 ---
+# host preserves the existing preparation/switch/finalization workflow.
+immutable_template_mode: host
+immutable_template_manage_packages: true
+
+# image builds a separate disk; it never installs onto the running builder root.
+immutable_template_image_builder_accepted: false
+immutable_template_image_sources_approved: false
+immutable_template_image_builder_image: ""
+immutable_template_image_revision: ""
+immutable_template_image_rootfs: xfs
+immutable_template_image_config: {}
+immutable_template_image_artifact_dir: "{{ (playbook_dir ~ '/../../../secrets/bootc-images') | realpath }}"
+# Existing publisher metadata; image_path and sha256 are derived after fetch.
+immutable_template_image_publication: {}
+immutable_template_image_publication_key: ""
+
 immutable_template_packages:
   - bootc
   - podman

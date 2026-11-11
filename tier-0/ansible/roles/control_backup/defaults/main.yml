@@ -6,8 +6,11 @@ control_backup_password_file: "{{ lookup('ansible.builtin.env', 'CONTROL_BACKUP_
 control_backup_calendar: hourly
 control_backup_watchdog_url: ""
 control_backup_directory: /var/lib/control-backup
-# Install a release-matched, verified Vault CLI through the site's software intake.
-control_backup_vault_binary: /usr/local/bin/vault
+# An accepted vendor source is configured through the selected host baseline.
+control_backup_vault_package: vault
+control_backup_vault_binary: /usr/bin/vault
+control_backup_repository_source: ""
+control_backup_repository_mount_options: rw,hard,nfsvers=4.1,nosuid,nodev,noexec,_netdev,nofail
 control_backup_vault_address: ""
 control_backup_vault_server_name: ""
 control_backup_vault_ca_file: ""

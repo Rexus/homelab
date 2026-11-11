@@ -1,0 +1,38 @@
+---
+- name: Check that each parent currently sees all seven connected guest identities
+  ansible.builtin.uri:
+    url: >-
+      https://{{ observability_vm_endpoints[inventory_hostname] }}:{{ observability_vm_netdata_diagnostics_port }}/api/v1/info
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+    return_content: true
+  register: observability_vm_netdata_members
+  until: >-
+    observability_vm_netdata_members.status | default(0) == 200 and
+    (observability_vm_gateway_hosts + observability_vm_metrics_hosts + observability_vm_search_hosts)
+    | difference(observability_vm_netdata_members.json.mirrored_hosts_status | default([])
+                 | selectattr('reachable', 'equalto', true) | map(attribute='hostname') | list) | length == 0
+  retries: 30
+  delay: 5
+  when: inventory_hostname in observability_vm_gateway_hosts
+
+- name: Read the selected parent's native Prometheus export
+  ansible.builtin.uri:
+    url: >-
+      https://{{ observability_vm_endpoints[inventory_hostname] }}:{{ observability_vm_netdata_diagnostics_port }}/api/v1/allmetrics?format=prometheus&help=no&allhosts=yes
+    ca_path: "{{ observability_vm_config_path }}/tls/ca.crt"
+    validate_certs: true
+    return_content: true
+  register: observability_vm_netdata_metrics
+  when:
+    - inventory_hostname == observability_vm_netdata_scrape_parent
+    - observability_vm_netdata_scrape_metrics | length > 0
+  no_log: true
+
+- name: Require actual samples for every selected bridge metric
+  ansible.builtin.assert:
+    that:
+      - observability_vm_netdata_metrics.content is search('(?m)^' ~ item ~ '(?:[ \t{])')
+    fail_msg: "Selected Netdata metric {{ item }} is absent; choose a name from the native Prometheus export."
+  loop: "{{ observability_vm_netdata_scrape_metrics }}"
+  when: inventory_hostname == observability_vm_netdata_scrape_parent

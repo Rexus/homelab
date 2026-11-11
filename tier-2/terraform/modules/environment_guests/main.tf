@@ -90,12 +90,16 @@ locals {
         local.template_metadata[tostring(local.resolved_vm_template_ids[key])].node_name,
         null,
       )
-      size          = coalesce(try(vm.size, null), "small")
-      cores         = try(vm.cores, null)
-      memory        = try(vm.memory, null)
-      storage_class = coalesce(try(vm.storage_class, null), "local")
-      disk_size_gb  = vm.disk_size_gb
-      extra_disks   = coalesce(try(vm.extra_disks, null), [])
+      full_clone                  = vm.full_clone
+      firmware                    = vm.firmware
+      initialization_datastore_id = vm.initialization_datastore_id
+      nic_firewall                = vm.nic_firewall
+      size                        = coalesce(try(vm.size, null), "small")
+      cores                       = try(vm.cores, null)
+      memory                      = try(vm.memory, null)
+      storage_class               = coalesce(try(vm.storage_class, null), "local")
+      disk_size_gb                = vm.disk_size_gb
+      extra_disks                 = coalesce(try(vm.extra_disks, null), [])
       network_zone_key = coalesce(
         try(vm.network_zone_key, null),
         var.default_vm_network_zone_key,

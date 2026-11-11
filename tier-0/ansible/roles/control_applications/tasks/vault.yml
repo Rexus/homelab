@@ -1,7 +1,7 @@
 ---
 - name: Require initialized and unsealed Vault before audit or SSO configuration
   ansible.builtin.uri:
-    url: "https://{{ control_applications_hosts.vault }}/v1/sys/health"
+    url: "{{ control_applications_vault_address }}/v1/sys/health"
     validate_certs: true
     ca_path: "{{ control_applications_vault_ca_path | default(omit, true) }}"
     return_content: true
@@ -15,17 +15,17 @@
   no_log: true
   module_defaults:
     community.hashi_vault.vault_read:
-      url: "https://{{ control_applications_hosts.vault }}"
+      url: "{{ control_applications_vault_address }}"
       token: "{{ control_applications_vault_token }}"
       ca_cert: "{{ control_applications_vault_ca_path | default(omit, true) }}"
       validate_certs: true
     community.hashi_vault.vault_write:
-      url: "https://{{ control_applications_hosts.vault }}"
+      url: "{{ control_applications_vault_address }}"
       token: "{{ control_applications_vault_token }}"
       ca_cert: "{{ control_applications_vault_ca_path | default(omit, true) }}"
       validate_certs: true
     community.hashi_vault.vault_list:
-      url: "https://{{ control_applications_hosts.vault }}"
+      url: "{{ control_applications_vault_address }}"
       token: "{{ control_applications_vault_token }}"
       ca_cert: "{{ control_applications_vault_ca_path | default(omit, true) }}"
       validate_certs: true
@@ -41,9 +41,7 @@
         data:
           type: file
           options: {file_path: "{{ item.destination }}", mode: "0600"}
-      loop:
-        - {name: file, destination: /vault/audit/audit.json}
-        - {name: stdout, destination: stdout}
+      loop: "{{ control_applications_vault_audit_destinations }}"
       when:
         - control_applications_vault_phase == 'configure'
         - item.name ~ '/' not in control_applications_vault_audits.data.data
@@ -59,9 +57,7 @@
           - item.name ~ '/' in control_applications_vault_audits.data.data
           - control_applications_vault_audits.data.data[item.name ~ '/'].type == 'file'
           - control_applications_vault_audits.data.data[item.name ~ '/'].options.file_path == item.destination
-      loop:
-        - {name: file, destination: /vault/audit/audit.json}
-        - {name: stdout, destination: stdout}
+      loop: "{{ control_applications_vault_audit_destinations }}"
 
     - name: Inspect enabled authentication methods
       community.hashi_vault.vault_read:

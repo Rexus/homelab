@@ -5,8 +5,9 @@
 # VMID allocations: docs/02-conventions/vmid-convention.md
 # Optional dedicated-VM alternative to the Tier 1 Kubernetes observability workloads.
 # Separate gateway, metrics and search roles scale independently.
-# Terraform and the Ansible recipe create VMs and OS baseline only.
-# Product services, replication, query routing and UI remain runtime integration.
+# Terraform provisions VM/disks; Ansible installs the native Podman/systemd products.
+# Use an approved EL10 x86_64 template and approved repositories with Podman >= 5.4; EL9 is also supported.
+# Each scsi1 data disk matches observability_vm_data_device; mounts persist by UUID.
 # Protected syslog/audit intake and archive stay in Tier 0.
 # Existing sites must migrate deliberately; never replace live inputs with this example.
 
@@ -16,18 +17,24 @@ vm_instances = {
   "otel-1" = {
     vm_id             = 1401
     proxmox_node_name = "pve01"
-    size              = "small"
+    size              = "large"
+    cores             = 4
+    memory            = 12288
     storage_class     = "local"
     disk_size_gb      = 40
+    extra_disks       = [{ interface = "scsi1", size_gb = 80 }]
     network_zone_key  = "observability"
     tags              = ["otel-collector", "internal", "always-on", "platform"]
   }
   "otel-2" = {
     vm_id             = 1402
     proxmox_node_name = "pve02"
-    size              = "small"
+    size              = "large"
+    cores             = 4
+    memory            = 12288
     storage_class     = "local"
     disk_size_gb      = 40
+    extra_disks       = [{ interface = "scsi1", size_gb = 80 }]
     network_zone_key  = "observability"
     tags              = ["otel-collector", "internal", "always-on", "platform"]
   }
@@ -36,7 +43,9 @@ vm_instances = {
     proxmox_node_name = "pve01"
     size              = "large"
     storage_class     = "local"
-    disk_size_gb      = 500
+    disk_size_gb      = 40
+    memory            = 12288
+    extra_disks       = [{ interface = "scsi1", size_gb = 500 }]
     network_zone_key  = "observability"
     tags              = ["victoriametrics", "internal", "always-on", "platform"]
   }
@@ -45,7 +54,9 @@ vm_instances = {
     proxmox_node_name = "pve02"
     size              = "large"
     storage_class     = "local"
-    disk_size_gb      = 500
+    disk_size_gb      = 40
+    memory            = 12288
+    extra_disks       = [{ interface = "scsi1", size_gb = 500 }]
     network_zone_key  = "observability"
     tags              = ["victoriametrics", "internal", "always-on", "platform"]
   }
@@ -54,7 +65,9 @@ vm_instances = {
     proxmox_node_name = "pve01"
     size              = "large"
     storage_class     = "local"
-    disk_size_gb      = 1000
+    disk_size_gb      = 40
+    memory            = 12288
+    extra_disks       = [{ interface = "scsi1", size_gb = 1000 }]
     network_zone_key  = "observability"
     tags              = ["opensearch", "internal", "always-on", "platform"]
   }
@@ -63,7 +76,9 @@ vm_instances = {
     proxmox_node_name = "pve02"
     size              = "large"
     storage_class     = "local"
-    disk_size_gb      = 1000
+    disk_size_gb      = 40
+    memory            = 12288
+    extra_disks       = [{ interface = "scsi1", size_gb = 1000 }]
     network_zone_key  = "observability"
     tags              = ["opensearch", "internal", "always-on", "platform"]
   }
@@ -72,7 +87,9 @@ vm_instances = {
     proxmox_node_name = "pve03"
     size              = "large"
     storage_class     = "local"
-    disk_size_gb      = 1000
+    disk_size_gb      = 40
+    memory            = 12288
+    extra_disks       = [{ interface = "scsi1", size_gb = 1000 }]
     network_zone_key  = "observability"
     tags              = ["opensearch", "internal", "always-on", "platform"]
   }

@@ -81,8 +81,8 @@ the approved image's kernel settings or preloaded artifacts, not this patch alon
 ## Accept the path
 
 For a new Terraform-owned cluster, return to [node preparation](talos-terraform.md#controlled-image-access)
-before its saved-plan/apply step. For a manual cluster, merge these native settings into the reviewed node
-files before [initial configuration](../step-1b-manual-cluster.md#configure-and-bootstrap).
+before its saved-plan/apply step. For an existing externally managed cluster, merge these native settings into the reviewed node
+files before [initial configuration](../step-1b-existing-cluster.md#configure-and-bootstrap).
 Use the live checks below after bootstrap; they are not prerequisites for rendering the patches.
 
 | Check | Required evidence |

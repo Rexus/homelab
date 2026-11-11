@@ -1,0 +1,80 @@
+---
+- name: Require a protected Keycloak administration identity
+  ansible.builtin.assert:
+    that:
+      - sso_human_keycloak_auth.get('auth_username', '') | length > 0
+      - sso_human_keycloak_auth.get('auth_password', '') | length > 0
+  no_log: true
+
+- name: Inspect the selected recovery context without exporting its private credentials
+  ansible.builtin.command:
+    argv:
+      - "{{ sso_human_kubectl }}"
+      - --kubeconfig
+      - "{{ sso_human_admin_kubeconfig }}"
+      - --context
+      - "{{ sso_human_admin_context }}"
+      - config
+      - view
+      - --raw
+      - --minify
+      - --flatten
+      - -o
+      - json
+  register: sso_human_recovery
+  changed_when: false
+  no_log: true
+
+- name: Bind the public human configuration to the actual certificate-only recovery target
+  ansible.builtin.assert:
+    that:
+      - identity.get('client-certificate-data', '') | length > 0
+      - identity.get('client-key-data', '') | length > 0
+      - identity.keys() | list | difference(['client-certificate-data', 'client-key-data']) | length == 0
+      - not cluster.get('insecure-skip-tls-verify', false)
+      - cluster.server == sso_human_api_server
+      - cluster.get('certificate-authority-data', '') | b64decode | trim == sso_human_api_ca_pem | trim
+    fail_msg: Select the existing X509 recovery context with this exact API endpoint and public CA.
+  vars:
+    identity: "{{ (sso_human_recovery.stdout | from_json).users[0].user }}"
+    cluster: "{{ (sso_human_recovery.stdout | from_json).clusters[0].cluster }}"
+  no_log: true
+
+- name: Inspect only the explicitly selected existing namespaces
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ sso_human_admin_kubeconfig }}"
+    context: "{{ sso_human_admin_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Namespace
+    name: "{{ item }}"
+  loop: "{{ sso_human_namespaces }}"
+  register: sso_human_namespace_checks
+
+- name: Refuse absent or terminating namespaces before any client or RBAC change
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].status.phase == 'Active'
+      - not item.resources[0].metadata.get('deletionTimestamp')
+  loop: "{{ sso_human_namespace_checks.results }}"
+  loop_control: {label: "{{ item.item }}"}
+
+- name: Register the dedicated public PKCE client on the existing realm
+  community.general.keycloak_client:
+  args: "{{ lookup('ansible.builtin.template', 'sso-human-client.yml.j2') | from_yaml }}"
+  module_defaults:
+    group/community.general.keycloak:
+      auth_keycloak_url: "{{ sso_human_keycloak_url }}"
+      auth_realm: "{{ sso_human_keycloak_auth.get('auth_realm', 'master') }}"
+      auth_username: "{{ sso_human_keycloak_auth.auth_username }}"
+      auth_password: "{{ sso_human_keycloak_auth.auth_password }}"
+      validate_certs: true
+  no_log: true
+
+- name: Bind only the approved group to namespace view
+  kubernetes.core.k8s:
+    kubeconfig: "{{ sso_human_admin_kubeconfig }}"
+    context: "{{ sso_human_admin_context }}"
+    validate_certs: true
+    definition: "{{ lookup('ansible.builtin.template', 'sso-human-rbac.yml.j2') | from_yaml_all | list }}"

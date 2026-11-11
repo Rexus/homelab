@@ -30,6 +30,10 @@
   {'name': product ~ '-tls', 'keys': ['tls.crt', 'tls.key', 'ca.crt'], 'type': 'kubernetes.io/tls'}
 ] %}
 {% set before = [] %}
+{% if product == 'vault' and control_applications_vault_seal_type != 'shamir' %}
+{% set seal_keys = ['VAULT_TRANSIT_SEAL_TOKEN', 'ca.crt'] if control_applications_vault_seal_type == 'transit' else ['VAULT_HSM_PIN'] %}
+{% set secrets = secrets + [{'name': 'vault-seal', 'keys': seal_keys}] %}
+{% endif %}
 {% set after = [
   lookup('ansible.builtin.template', 'ingress.yml.j2', template_vars=product_vars) | from_yaml
 ] %}

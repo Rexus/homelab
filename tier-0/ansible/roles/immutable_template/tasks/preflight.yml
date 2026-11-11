@@ -1,0 +1,50 @@
+---
+- name: Require a supported host and an explicit image or host workflow
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - immutable_template_mode in ['host', 'image']
+    fail_msg: Select host or image on a qualified RedHat-family builder; other OS families are not implemented.
+
+- name: Validate the dedicated native bootc disk build before changing the builder
+  ansible.builtin.assert:
+    that:
+      - immutable_template_image_builder_accepted | bool
+      - immutable_template_image_sources_approved | bool
+      - ansible_architecture == 'x86_64'
+      - ansible_user is defined and ansible_user | length > 0
+      - not immutable_template_apply_bootc | bool
+      - not immutable_template_prepare_for_template | bool
+      - not immutable_template_reboot_after_switch | bool
+      - immutable_template_bootc_transport == 'registry'
+      - immutable_template_bootc_image is match('^[a-zA-Z0-9][a-zA-Z0-9.:-]*/[a-zA-Z0-9][a-zA-Z0-9./:_-]*@sha256:[a-f0-9]{64}$')
+      - immutable_template_image_builder_image is match('^[a-zA-Z0-9][a-zA-Z0-9.:-]*/[a-zA-Z0-9][a-zA-Z0-9./:_-]*@sha256:[a-f0-9]{64}$')
+      - immutable_template_image_revision is match('^[a-z0-9][a-z0-9-]{0,62}$')
+      - immutable_template_image_rootfs in ['xfs', 'ext4']
+      - immutable_template_image_config is mapping
+      - immutable_template_image_artifact_dir is match('^/[^\s:]+$')
+      - "'..' not in immutable_template_image_artifact_dir.split('/')"
+      - immutable_template_image_artifact_dir == immutable_template_image_artifact_dir | realpath
+      - immutable_template_image_artifact_dir not in ['/', '/tmp', '/var', '/var/lib', '/home', '/root']
+      - inventory_hostname is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+      - immutable_template_image_publication_key is match('^[a-z0-9][a-z0-9-]*$')
+      - immutable_template_image_publication is mapping
+      - immutable_template_image_publication.get('family', '') == 'redhat'
+      - immutable_template_image_publication.get('release', '') is match('^v?[0-9]')
+      - immutable_template_image_publication.get('release', '') is not search('(?i)latest|stable|REPLACE')
+      - immutable_template_image_publication.get('name', '') is match('^[a-zA-Z0-9][a-zA-Z0-9-]*$')
+      - immutable_template_image_publication.get('vm_id', 0) | int >= 100
+      - immutable_template_image_publication.get('bios', '') == 'ovmf'
+      - immutable_template_image_publication.get('machine', '') == 'q35'
+      - immutable_template_image_publication.get('cloud_init_drive', false) == true
+      - immutable_template_image_publication.get('qemu_agent', false) == true
+      - immutable_template_image_publication.get('disk_size_gb', 0) | int > 0
+      - "'image_path' not in immutable_template_image_publication"
+      - "'sha256' not in immutable_template_image_publication"
+      - immutable_template_image_publication.get('image_datastore_id', '') | length > 0
+    fail_msg: >-
+      Accept a dedicated x86_64 rootful builder and approved digest-pinned OS/product images.
+      Set a new revision, private absolute controller artifact directory and UEFI/cloud-init publisher metadata.
+      Image mode cannot switch, clean or reboot the running host. Source OS content must already supply
+      bootc, cloud-init and qemu-guest-agent; use the existing publisher for the resulting separate disk.
+  when: immutable_template_mode == 'image'

@@ -13,6 +13,17 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Repository intent
 
+- Architecture groups related functions into substantive domain chapters: Hosting includes Kubernetes
+  and lab isolation; Cryptography includes trust and secrets; Delivery includes the development
+  platform; Operations includes protected logging and observability. Stage names link directly to
+  these designs rather than thin parallel landing folders. Background and organizational authority
+  precede implementation choices. Keep request/response sequences beside the capability that owns
+  their behavior, and explain when each design should be read to make a decision.
+- Architecture chapters use continuous 01–11 numbering, with technical domains after context,
+  ownership and the reference view. Operations uses the same domain names in six task groups,
+  with configuration and executable tasks directly at the entry point. Its chapter numbers
+  are independent of architecture chapters and deployment stages. Avoid rebuilding thin
+  per-stage index folders; map all ten stages to their actual design and runbook homes.
 - public homelab and small datacenter IaC baseline
 - chosen virtualization platform is Proxmox; other hypervisors are not selectable implementations
 - New deployments target Proxmox VE 9+; the selected 9.2+ path uses native HA/affinity
@@ -40,7 +51,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - Foundation now has four numbered actions: hosts/networks, first manual Linux template, bootstrap,
   then managed publication/clone/recovery qualification. Select HA/SDN before guests, complete SDN
   authorization after bootstrap, and qualify guest HA/ProxLB before leaving Foundation. Old anchors remain.
-  Linux host security belongs under docs/05-operations/hosts/linux-security.md and is first selected at
+  Linux host security belongs under docs/05-operations/01-hosting/linux-security.md and is first selected at
   Stage 1 option 4b after cache VMs exist, not a pre-guest Foundation deployment.
 - Normal post-bootstrap deployment provisions the complete selected realization through IaC:
   Terraform owns guests, attached disks and state; Ansible owns guest filesystems, persistent mounts
@@ -48,6 +59,31 @@ This file keeps durable context for AI-assisted work across sessions.
   Never turn guest mkfs/fstab work into an undocumented manual prerequisite. Existing data, UUID
   pins and mount declarations are preserved; missing storage requires recovery, not silent replacement.
   NAS-side exports/access/snapshots and offline signing/recovery custody remain explicit prerequisites.
+- Apply stable extra-disk selection to every guest consumer, not only cache: match the
+  Ansible device selector to the configured Terraform interface, using the scsiN by-id link
+  for the reference SCSI disks, then persist by filesystem UUID. Kernel letters may reorder.
+  Preserve local overrides and identity pins; test supplied extra-disk definitions against
+  the actual service inputs, including generated output.
+- Trace supported Linux VM settings through root types, environment normalization, module arguments
+  and native resources. Terraform object conversions can silently discard fields. Retain root-specific
+  placement/identity guards when extending common contracts; full clones and NIC filtering stay defaults.
+- HSM guidance starts with an offline root, one hardware-backed issuer and independent recovery.
+  Primary hardware profiles are YubiHSM 2 and PicoHSM; keep each replicated key/recovery domain
+  within one qualified family unless cross-vendor transfer is independently qualified. Match
+  original public SPKI, serial and object identity; labels alone do not establish key equality.
+  PKI and HashiCorp Vault are the first path. Vault stays the reference secret service with
+  default Shamir unseal; OpenBao signing is optional and must not silently replace or migrate it.
+  Optional shared access comprises restricted native PKCS#11 remoting and an open-source signing API.
+  The selected API direction is OpenBao stable external keys/PKCS#11 as a Stage 6 secret-service option,
+  with actual HSM signing rather than software Transit keys protected only by an HSM seal.
+  Keep state/quorum, physical key copies and client retry semantics separate. Avoid paid SignServer
+  dependencies or stale Community forks; qualify recent integrations without claiming proven security.
+- New guest deployment and diagnostic commands run from the controller: use native Ansible
+  connection waits before facts, provision guest storage through Terraform plus guarded roles,
+  and perform remote checks through Ansible/product APIs. Never require interactive SSH, manual
+  guest package/repository setup or guest filesystem edits to complete a normal installation.
+  Shared's baseline can install explicitly selected RPM sources and public OS trust anchors;
+  custody approval remains separate from controller-driven certificate transfer/token commands.
 - Prefer 3–8 character unqualified guest hostnames, including the instance suffix: boot-1,
   idm-1, log-1. Keep role abbreviations in docs/02-conventions/proxmox-conventions.md.
   This is a readability preference, not the DNS limit or SDN VNet's hard naming restriction;
@@ -81,7 +117,7 @@ This file keeps durable context for AI-assisted work across sessions.
   accepted content. OCI/Trivy gates and opaque guest-filesystem scanning remain separate integrations.
   Keep publisher trust, malware assessment and vulnerability policy distinct;
   Tier 0 selects/verifies updates and retains independently usable supply. See
-  docs/01-architecture/13-software-intake/02-verification.md. Do not reject every OS update for any CVE.
+  docs/01-architecture/07-software-intake/01-verification.md. Do not reject every OS update for any CVE.
 - Create boot-1 as a full clone, never a linked clone. Retain an offline VM backup with
   both OS/workspace disks and a tested restore path outside the failed platform. A full
   clone alone is not disaster recovery; original state, keys and approved tooling must survive.
@@ -134,7 +170,7 @@ This file keeps durable context for AI-assisted work across sessions.
   `scripts/kubernetes-cluster.sh`; retain existing Talos state, inventory, provider,
   and credential contracts. The old script delegates; old roots require deliberate migration
 - `docs/03-deployment/stage-4-kubernetes/procedures/kubernetes.md` owns cluster choices and common readiness;
-  its `talos-terraform.md` sibling and stage's `step-1b-manual-cluster.md` own implementation procedures
+  its `talos-terraform.md` sibling and stage's `step-1b-existing-cluster.md` own implementation procedures
 - The complete supplied human-SSO rollout qualifies Talos 1.13.x and requires the original
   Terraform-owned plan. Manual cluster credentials survive later guides, but that alternative's
   SSO configuration persistence/rollout/recovery implementation is still a recorded gap.
@@ -277,7 +313,7 @@ This file keeps durable context for AI-assisted work across sessions.
   administrators, or qualified retention locks when privileged deletion must be prevented.
   One homelab operator may hold all roles with separate credentials; same-person custody
   is explicit, not WORM. Growth/access changes trigger review, not an automatic cloud dependency.
-  docs/01-architecture/24-operations/02-log-retention.md owns this choice; Stage 2 options 3c/3d guide it.
+  docs/01-architecture/11-operations/02-log-retention.md owns this choice; Stage 2 options 3c/3d guide it.
 - Logging implementation: Shared owns stateless `log_forwarder`; tier inventories,
   source keys/cursors and selectors stay local. Tier 0 owns reviewed-CSR signing,
   receiver, create-only NAS checkpoints, audited application filesystem views and
@@ -330,7 +366,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - Tier 0 operates and recovers without Tier 2; request-source loss pauses new
   requests, not control operations, and must not trigger workload deletion
 - delegated provisioning is a design goal, not an implemented controller or API;
-  its authoritative contract is docs/01-architecture/10-hosting/03-provisioning.md
+  its authoritative contract is docs/01-architecture/04-hosting/02-provisioning.md
 - docs/03-deployment/foundation/ contains unnumbered host/network/access/template prerequisites;
   docs/03-deployment/README.md indexes ten numbered capabilities: software intake, protected logging,
   cryptographic trust, Kubernetes, Identity, Secrets, Delivery, Observability, Development platform and Lab environments
@@ -409,7 +445,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - administration uses task/FAQ navigation and short operator runbooks: execution host/repository,
   prerequisites, exact inputs, numbered commands, expected result and stop/rollback paths.
   Preserve recovery/custody gates; link design rationale to architecture. Backup theory lives in
-  docs/01-architecture/24-operations/04-backup-recovery.md; provider field details belong in reference docs.
+  docs/01-architecture/11-operations/04-backup-recovery.md; provider field details belong in reference docs.
 - normal Linux deploy.sh calls Terraform apply once, with its native inline plan/approval;
   --plan-only is optional and --auto-approve uses -input=false for approved CI. Dedicated
   template/Kubernetes saved-plan workflows and manual signing/activation gates remain explicit.
@@ -432,7 +468,7 @@ This file keeps durable context for AI-assisted work across sessions.
   DMZ membership never allows peer access or unsolicited WAN publication
 - authoritative mirrors and general Internet-facing build runners remain Tier 1 / DMZ,
   using the separate delivery_edge subnet; they hold no Tier 0 credentials
-- controlled software intake is documented in docs/01-architecture/13-software-intake/01-design.md;
+- controlled software intake is documented in docs/01-architecture/07-software-intake/README.md;
   Squid/VIP supplies the existing explicit proxy/cache, not a mirror or patch controller
 - Stage 1 Step 7 explicitly commissions Proxmox host update access using Tier 0's existing
   proxmox-hosts.yml recipe (Datacenter download proxy plus per-host APT), then links controlled
@@ -450,8 +486,8 @@ This file keeps durable context for AI-assisted work across sessions.
   any remote perimeter entry is isolated from the privileged session host
 - public edge never carries Tier 0 admin/control API or foundational signing/recovery traffic;
   optional consumer API publication is separately scoped and retains private Tier 0 operation
-- replicated USB signing uses a capacity-sized pool of Tier 0 service VMs, one local token per host;
-  the private endpoint is logical and co-hosted, never a mandatory extra LB pair or Tier 1 cluster
+- shared USB access uses Tier 0 device VMs with one local token per host and pinned private endpoints;
+  native remoting has no mandatory VIP, extra load-balancer pair or Tier 1 dependency
 - two enabled service hosts are a starter, not a limit; choose N using measured traffic,
   operation/session mix, latency and failure/maintenance headroom; size VIP/proxy capacity separately
 - Vault consumes HSM-backed key generation/private-key operations where supported;
@@ -459,10 +495,9 @@ This file keeps durable context for AI-assisted work across sessions.
 - single-device custody plus independent backup can satisfy initial deployment;
   deployment adds the replicated variant when selected consumer availability requires it,
   not automatically because Vault or a registry exists; root custody stays offline
-- integrated VIP/balancing means software on the existing HSM service hosts, not USB-device
-  networking or additional frontend VMs; higher-tier service loss never blocks Tier 0 startup
-- endpoint variants E1 client failover, E2 private VIP and E3 co-hosted VIP/proxies refine custody C;
-  E3 requires a supported active-active application; VIP ownership is separately active/standby
+- external application endpoint variants E1 client failover, E2 private VIP and E3 co-hosted
+  VIP/proxies remain qualified integration choices. They are not the native SSH remoting path.
+  E3 requires supported application HA; VIP ownership is separately active/standby
 - application state, key replication, sessions and device/key readiness have separate contracts;
   a TCP check or duplicated key material does not prove application HA
 - optional HSM ingress targets hsm_gateways, defaults disabled and requires explicit HA/readiness
@@ -605,7 +640,8 @@ This file keeps durable context for AI-assisted work across sessions.
 - lower-numbered tiers must recover without higher-numbered tiers; normal
   consumers use scoped service endpoints, while offline custody supplies transfers
 - keep Packer, Terraform, and Ansible responsibilities separate
-- the Shared baseline implements proxy settings, timezone and IPv6 policy only;
+- the Shared baseline implements proxy/package-source policy, explicit public trust anchors,
+  timezone and IPv6 settings;
   a separate opt-in host_security role supplies SSH/chrony/firewalld/audit with tier-owned
   allowlists and access gates. It does not imply appliance, Kubernetes-host or egress enforcement.
 - initializers and deployment entry points use umask 077 for new local files and backups;

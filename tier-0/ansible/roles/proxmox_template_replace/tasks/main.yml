@@ -42,6 +42,16 @@
   register: template_refresh_target_configs
   loop: "{{ template_refresh_replacements }}"
 
+- name: Refuse to destroy an ordinary VM at a selected template ID
+  ansible.builtin.assert:
+    that:
+      - item.stdout is search('(?m)^template:\s*1$')
+    fail_msg: >-
+      Target VM {{ item.item.target_vm_id }} is not a template. Keep it intact and
+      correct the target VMID; template replacement cannot delete an ordinary VM.
+  loop: "{{ template_refresh_target_configs.results }}"
+  when: item.rc == 0
+
 - name: Destroy current target template before same-ID replacement
   ansible.builtin.command:
     argv:

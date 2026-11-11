@@ -1,10 +1,18 @@
 ---
 # Use explicit tier-owned -e @group_vars/cluster_security_logging.yml inputs.
+- name: Prepare selected deployment tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: cluster-security-logging
+    control_node_require_terraform: false
+
 - name: Configure Kubernetes node and audit event forwarding
   hosts: localhost
   connection: local
   gather_facts: false
   vars:
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
-  roles:
-    - cluster_security_logging
+  tasks:
+    - name: Run the selected deployment after tooling preparation
+      ansible.builtin.include_role:
+        name: cluster_security_logging

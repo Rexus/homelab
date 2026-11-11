@@ -1,4 +1,12 @@
 ---
+baseline_trust_anchors: []
+baseline_rpm_repositories: []
+baseline_apt_repositories: []
+baseline_apt_retired_files: []
+baseline_apt_direct_hosts: []
+baseline_package_sources_environment: >-
+  {{ {'http_proxy': repository_proxy_url, 'https_proxy': repository_proxy_effective_https_url}
+     if repository_proxy_active | bool else {} }}
 # Implemented scope: docs/08-reference/platform-inputs.md#os-baseline-boundary
 baseline_manage_package_policy: true
 package_policy_os_family: "{{ ansible_os_family | default('') }}"

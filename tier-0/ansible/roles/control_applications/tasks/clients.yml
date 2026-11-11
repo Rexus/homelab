@@ -48,14 +48,14 @@
         service_accounts_enabled: false
         full_scope_allowed: false
         redirect_uris: "{{ callbacks[item] }}"
-        web_origins: ["https://{{ control_applications_hosts[item] }}"]
+        web_origins: "{{ [control_applications_vault_address] if item == 'vault' else ['https://' ~ control_applications_hosts[item]] }}"
         default_client_scopes: [profile, email, groups]
         attributes: "{{ {'pkce.code.challenge.method': 'S256'} if item == 'headlamp' else {} }}"
         state: present
       vars:
         callbacks:
           vault:
-            - "https://{{ control_applications_hosts.vault }}/ui/vault/auth/oidc/oidc/callback"
+            - "{{ control_applications_vault_address }}/ui/vault/auth/oidc/oidc/callback"
             - http://localhost:8250/oidc/callback
           netbox:
             - "https://{{ control_applications_hosts.netbox }}/oauth/complete/oidc/"

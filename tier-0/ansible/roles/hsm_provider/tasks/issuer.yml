@@ -1,0 +1,35 @@
+---
+# The issuer playbook validates mounted original storage before provider installation.
+- name: Require an existing hardware key reference and native engine
+  ansible.builtin.import_tasks: issuer-identity.yml
+
+- name: Keep the issuer inactive during provider binding
+  ansible.builtin.assert:
+    that:
+      - not openxpki_activate_runtime | bool
+
+- name: Create the issuer service environment override directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/openxpki-serverd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Bind the inactive issuer service to the selected provider configuration
+  ansible.builtin.template:
+    src: issuer-service.conf.j2
+    dest: /etc/systemd/system/openxpki-serverd.service.d/hsm-provider.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: hsm_issuer_service_environment
+
+- name: Reload the issuer service definition without starting issuance
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: hsm_issuer_service_environment.changed
+
+- name: Prepare a public CSR from the original hardware key only when selected
+  ansible.builtin.import_tasks: issuer-csr.yml
+  when: hsm_issuer_create_csr | bool

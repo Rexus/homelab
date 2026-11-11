@@ -1,16 +1,18 @@
 # Step 3b: Optional Windows Update access
 
 **Branch from:** [Step 3](README.md#step-3-configure-the-cache-deployment), option **3b**.
-**Change:** extend the cache policy and configure an accepted Windows consumer.
+**Change:** extend cache policy for an existing externally managed Windows consumer.
 **Working repository:** `<prefix>-tier-2/` for the cache; Windows client policy is managed separately.
 **Choose before:** [Step 4](README.md#step-4-deploy-the-cache-pair) for a new pair, or before
 [Step 2b reconciliation](step-2b-adopt-update.md#3-reconcile-the-existing-cache) for an existing pair.
 **Return:** deploy or reconcile the cache, complete [Step 5](README.md#step-5-test-the-selected-intake-path),
 then validate the Windows consumer below before accepting this option.
 
-This is a candidate route for Windows Update, not an implemented Windows provisioning or patch-management
-workflow. Client configuration, firewall changes and acceptance are manual. The supplied Squid policy has
-not been verified end to end with Windows Update or Delivery Optimization (DO).
+This option consumes an **existing Windows endpoint-management service**. That owner supplies and
+verifies device-wide proxy, bypass and Delivery Optimization (DO) policies through its established
+management workflow. The repository automates the Tier 2 Squid allowlist only; it owns no Windows
+inventory, client policy installer, WSUS or patch-management service. An unmanaged/new Windows guest
+does not satisfy this option. The supplied Squid policy has not been verified end to end with Windows Update or DO.
 
 ## Contents
 
@@ -76,8 +78,10 @@ equivalent source/client restrictions with its owner; no Tier 2 cache configurat
 
 ## 3. Configure the Windows consumer
 
-After deployment or reconciliation and the general Step 5 checks, configure a representative **Windows
-device** through its approved management system:
+After deployment or reconciliation and the general Step 5 checks, have the existing management owner
+apply these inputs to a representative **Windows device** through its approved management system.
+Use that system's policy-as-code or unattended deployment workflow; this guide supplies the interface
+contract, not local guest preparation commands:
 
 1. Configure the selected proxy endpoint for Windows Update scanning and downloads. Windows Update
    uses WinHTTP for scanning and BITS or DO for downloads; DO uses Windows Proxy settings and WinHTTP

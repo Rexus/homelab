@@ -8,7 +8,7 @@ Step 1b and does not repeat this creation procedure.
 Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes) and
 [clusters/tier1/](../../../../tier-1/clusters/tier1); other clusters use their own tier repositories.
 
-**Design:** [delivery runtimes](../../../01-architecture/05-software-lifecycle.md).
+**Design:** [delivery runtimes](../../../01-architecture/10-delivery/README.md).
 
 ## Table of contents
 
@@ -60,7 +60,7 @@ patches and an independent API endpoint. Use Tier 1's inputs throughout, then re
 **Size before provisioning:** edit `nodes[*].size` or add workers in those same three files.
 The `medium` starter is for cluster bootstrap; it is insufficient for the complete Delivery,
 Observability and GitLab stack. Budget the selected releases' rendered CPU/memory requests,
-storage and surviving-host capacity using the [cluster capacity design](../../../01-architecture/10-hosting/04-kubernetes.md).
+storage and surviving-host capacity using the [cluster capacity design](../../../01-architecture/04-hosting/03-kubernetes.md).
 
 ## 3. Load the provider environment
 
@@ -199,7 +199,7 @@ Separate clusters remain an option where namespace/RBAC isolation is insufficien
 
 ## Read more
 
-- [Cluster topology and capacity](../../../01-architecture/10-hosting/04-kubernetes.md)
-- [Delivery choices and authority](../../../01-architecture/20-delivery/02-controllers.md)
-- [Shared service dependencies](../../../01-architecture/04-service-boundaries.md)
+- [Cluster topology and capacity](../../../01-architecture/04-hosting/03-kubernetes.md)
+- [Delivery choices and authority](../../../01-architecture/10-delivery/02-controllers.md)
+- [Shared service dependencies](../../../01-architecture/02-organization/README.md)
 - [Tier 1 deployment checklist](../../../06-paths/tier-1/README.md)

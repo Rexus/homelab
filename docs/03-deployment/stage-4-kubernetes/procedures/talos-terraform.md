@@ -4,13 +4,13 @@
 [cluster repository map](kubernetes.md#repository-locations). Stage 4 uses `<prefix>-tier-0`.
 Run commands from the selected tier's root; Shared is not the cluster's working directory.
 
-**Design:** [cluster runtime variants](../../../01-architecture/10-hosting/README.md).
+**Design:** [cluster runtime variants](../../../01-architecture/04-hosting/README.md).
 
 This is the current Talos implementation of the [Kubernetes cluster goal](kubernetes.md).
 Each tier owns its cluster VMs, inventory, Talos configuration, bootstrap,
 credentials, and state. Shared supplies the stateless command, approved template
 references and size profiles. This workflow creates a **new cluster**, not an adoption or restore.
-For manual installation, use the [operator procedure](../step-1b-manual-cluster.md).
+To consume an existing cluster, use the [adoption procedure](../step-1b-existing-cluster.md).
 
 ## Table of contents
 
@@ -141,7 +141,7 @@ are not a health-gated parallel upgrade procedure.
 | 1 | `app` VNet | `10.20.20.110-112` | `clusters/tier1/` |
 | 2 | `vmbr0`, VLAN 420 | `10.42.20.10-12` | `clusters/tier2/` |
 
-These are reviewed example allocations from the [network map](../../../01-architecture/11-networking/README.md#example-network-plan).
+These are reviewed example allocations from the [network map](../../../01-architecture/05-networking/README.md#example-network-plan).
 Create the selected attachment on every eligible Proxmox node before planning.
 
 ### 3. Load this tier's API credentials
@@ -355,14 +355,14 @@ Use release-matched Talos upgrade and recovery procedures, with etcd and workloa
 Never initialize replacement state or regenerate secrets for an existing cluster.
 Restore its state and recovery material. Existing manually built clusters need
 an explicit resource/secret adoption plan before using this root; see
-[Recovery](../step-1b-manual-cluster.md#recovery) and the [repository upgrade notes](../../../04-development/generated-repositories.md#automation-ownership-upgrade).
+[Recovery](../step-1b-existing-cluster.md#recovery) and the [repository upgrade notes](../../../04-development/generated-repositories.md#automation-ownership-upgrade).
 
 ## Worker capacity
 
 Add workers explicitly to the owning tier's inventory, IP map and `nodes` map.
 Optional `pool = "compute"` emits `node-pool=compute`; Tier 1 may use infrastructure,
 stateful or compute pools, and Tier 2 development, testing or lab pools. No nodes
-are automatically scaled. Use the [pool operations](../../../05-operations/kubernetes-pools.md)
+are automatically scaled. Use the [pool operations](../../../05-operations/01-hosting/kubernetes-and-labs.md)
 for selectors, taints and transition checks. Do not remove existing workers simply
 to match a newer example. `allow_scheduling_on_control_planes` defaults to false
 for existing input objects; new compact examples explicitly set it to true.

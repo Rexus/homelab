@@ -220,6 +220,15 @@ class AutomationContract(unittest.TestCase):
         self.assertEqual(play['hosts'], 'control_recovery')
         tasks = yaml.safe_load((ROLE / 'tasks/main.yml').read_text())
         self.assertTrue(any('ansible.posix.mount' in task for task in tasks))
+        repository_mount = next(task['ansible.posix.mount'] for task in tasks
+                                if task.get('ansible.posix.mount', {}).get('src') == '{{ control_backup_repository_source }}')
+        self.assertEqual(repository_mount['fstype'], 'nfs')
+        self.assertEqual(repository_mount['path'], '{{ control_backup_repository }}')
+        preflight = yaml.safe_load((ROLE / 'tasks/preflight.yml').read_text())
+        package_index = next(index for index, task in enumerate(preflight) if 'ansible.builtin.package' in task)
+        cli_index = next(index for index, task in enumerate(preflight) if
+                         task.get('ansible.builtin.command', {}).get('argv') == ['{{ control_backup_vault_binary }}', 'version'])
+        self.assertLess(package_index, cli_index)
         self.assertTrue(any('ansible.builtin.systemd_service' in task for task in tasks))
         runtime = (ROLE / 'files/control_backup.py').read_text()
         for forbidden in ["'init'", "'forget'", "'prune'", "'restore'", 'pg_dump']:

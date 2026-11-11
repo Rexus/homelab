@@ -1,0 +1,42 @@
+---
+- name: Prepare native OpenBao signing controller dependencies
+  ansible.builtin.import_playbook: ../control-node.yml
+  tags: [always]
+  vars:
+    control_node_setup: openbao-signing
+    control_node_require_terraform: false
+
+- name: Configure the accepted optional OpenBao signing service after its ceremony
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  tasks:
+    - name: Prepare the accepted controller CLI without manual installation
+      ansible.builtin.include_role:
+        name: vault
+        tasks_from: openbao-controller
+        apply:
+          tags: [openbao-artifacts]
+      tags: [always, openbao-artifacts]
+
+    - name: Reconcile native external keys and narrowly scoped workload access
+      ansible.builtin.include_role:
+        name: vault
+        tasks_from: openbao-signing
+        apply:
+          tags: [openbao-signing]
+      tags: [openbao-signing]
+
+- name: Optionally prepare the matching CLI on the existing independent recovery host
+  hosts: control_recovery
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Provision accepted snapshot tooling without another backup stack
+      ansible.builtin.include_role:
+        name: vault
+        tasks_from: openbao-backup-cli
+      when: openbao_signing_prepare_backup_cli | default(false) | bool

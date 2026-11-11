@@ -1,0 +1,67 @@
+---
+- name: Inspect the preissued workload certificate
+  community.crypto.x509_certificate_info:
+    path: "{{ openbao_client.certificate_src }}"
+    valid_at: {now: '+0s', next_week: '+7d'}
+  register: openbao_client_cert
+
+- name: Require an unexpired leaf client certificate
+  ansible.builtin.assert:
+    that:
+      - "'CA:TRUE' not in (openbao_client_cert.basic_constraints | default([], true))"
+      - openbao_client_cert.valid_at.now and openbao_client_cert.valid_at.next_week
+      - "'TLS Web Client Authentication' in (openbao_client_cert.extended_key_usage | default([], true))"
+
+- name: Read the domain-specific workload policy
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/sys/policies/acl/{{ openbao_signing_domain }}-{{ openbao_client.name }}"
+    status_code: [200, 404]
+  register: openbao_client_policy
+
+- name: Reconcile only exact key signing paths and algorithm parameters
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/sys/policies/acl/{{ openbao_signing_domain }}-{{ openbao_client.name }}"
+    method: PUT
+    body:
+      policy: "{{ lookup('ansible.builtin.template', 'openbao-signing-policy.hcl.j2') }}"
+  when: >-
+    openbao_client_policy.status == 404 or openbao_client_policy.json.data.policy !=
+    lookup('ansible.builtin.template', 'openbao-signing-policy.hcl.j2')
+  changed_when: true
+
+- name: Read the dedicated certificate workload role
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/auth/{{ openbao_signing_cert_mount }}/certs/{{ openbao_signing_domain }}-{{ openbao_client.name }}"
+    status_code: [200, 404]
+  register: openbao_client_role
+
+- name: Define the exact short-lived certificate login permissions
+  ansible.builtin.set_fact:
+    openbao_client_body:
+      certificate: "{{ lookup('ansible.builtin.file', openbao_client.certificate_src, rstrip=false) }}"
+      token_policies: ["{{ openbao_signing_domain }}-{{ openbao_client.name }}"]
+      token_no_default_policy: true
+      token_ttl: 900
+      token_max_ttl: 900
+      token_explicit_max_ttl: 900
+      token_bound_cidrs: "{{ openbao_client.bound_cidrs }}"
+
+- name: Compare canonical host CIDRs returned without their full-length prefix
+  ansible.builtin.set_fact:
+    openbao_client_desired_state: >-
+      {{ openbao_client_body | combine({'token_bound_cidrs': openbao_client.bound_cidrs |
+          map('regex_replace', '/(32|128)$', '') | sort | list}) }}
+    openbao_client_existing_state: >-
+      {{ openbao_client_role.json.get('data', {}) | combine({'token_bound_cidrs':
+          openbao_client_role.json.get('data', {}).get('token_bound_cidrs', []) |
+          map('regex_replace', '/(32|128)$', '') | sort | list}) }}
+
+- name: Reconcile the selected leaf certificate login without broad or default policies
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/auth/{{ openbao_signing_cert_mount }}/certs/{{ openbao_signing_domain }}-{{ openbao_client.name }}"
+    method: POST
+    body: "{{ openbao_client_body }}"
+  when: >-
+    openbao_client_role.status == 404 or
+    openbao_client_desired_state.items() | difference(openbao_client_existing_state.items()) | length > 0
+  changed_when: true

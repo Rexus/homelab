@@ -1,0 +1,55 @@
+---
+namespace_labels:
+  pod-security.kubernetes.io/enforce: privileged
+required_secrets:
+  - name: {{ cluster_platform_ceph_rbd_secret | to_json }}
+    keys: [userID, userKey]
+values:
+  driverName: rbd.csi.ceph.com
+  kubeletDir: /var/lib/kubelet
+  cephLogDirHostPath: /var/lib/ceph-csi
+  selinuxMount: false
+  CSIDriver:
+    seLinuxMount: false
+  csiConfig:
+    - clusterID: {{ cluster_platform_ceph_rbd_fsid | to_json }}
+      monitors: {{ cluster_platform_ceph_rbd_monitors | to_json }}
+  nodeplugin:
+    name: nodeplugin
+    tolerations:
+      - {operator: Exists}
+  provisioner:
+    name: provisioner
+    replicaCount: 1
+    skipForceFlatten: false
+    tolerations:
+      - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+    attacher:
+      enabled: true
+    resizer:
+      enabled: true
+  secret:
+    create: false
+  storageClass:
+    create: false
+  volumeSnapshotClass:
+    create: false
+after:
+  - apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: {{ cluster_platform_storage_class | to_json }}
+    provisioner: rbd.csi.ceph.com
+    parameters:
+      clusterID: {{ cluster_platform_ceph_rbd_fsid | to_json }}
+      pool: {{ cluster_platform_ceph_rbd_pool | to_json }}
+      imageFeatures: {{ cluster_platform_ceph_rbd_image_features | join(',') | to_json }}
+      mounter: rbd
+      csi.storage.k8s.io/fstype: ext4
+{% for operation in ['provisioner', 'controller-expand', 'node-stage'] %}
+      csi.storage.k8s.io/{{ operation }}-secret-name: {{ cluster_platform_ceph_rbd_secret | to_json }}
+      csi.storage.k8s.io/{{ operation }}-secret-namespace: ceph-csi-rbd
+{% endfor %}
+    reclaimPolicy: Retain
+    volumeBindingMode: Immediate
+    allowVolumeExpansion: true

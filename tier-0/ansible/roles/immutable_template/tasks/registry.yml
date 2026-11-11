@@ -1,0 +1,37 @@
+---
+- name: Install private CA certificate for bootc and registry traffic
+  ansible.builtin.copy:
+    src: "{{ immutable_template_trust_ca_src }}"
+    dest: "{{ immutable_template_trust_ca_dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: immutable_template_trust_ca
+  when: immutable_template_trust_ca_src | length > 0
+
+- name: Update system CA trust after installing its public anchor
+  ansible.builtin.command:
+    argv: [update-ca-trust]
+  changed_when: true
+  when:
+    - immutable_template_trust_ca_src | length > 0
+    - immutable_template_trust_ca.changed
+
+- name: Ensure the private registry authentication directory exists
+  ansible.builtin.file:
+    path: "{{ immutable_template_registry_auth_dest | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: immutable_template_registry_auth_src | length > 0
+
+- name: Install the explicitly supplied private registry authentication file
+  ansible.builtin.copy:
+    src: "{{ immutable_template_registry_auth_src }}"
+    dest: "{{ immutable_template_registry_auth_dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: immutable_template_registry_auth_src | length > 0

@@ -1,0 +1,8 @@
+# Reviewed historical test assertions containing only public deployment-stage names.
+# Exact fingerprints preserve scanning of every other line, rule and future commit.
+c6a8e882acf849597073970d0b2bf1ecd0c9f795:tests/test_tier_reader_roles.py:generic-api-key:158
+c6a8e882acf849597073970d0b2bf1ecd0c9f795:tests/test_tier_reader_roles.py:generic-api-key:166
+b95e63c3f724ec36102edb56595e19aaab7ddb2e:tests/test_tier_reader_roles.py:generic-api-key:158
+b95e63c3f724ec36102edb56595e19aaab7ddb2e:tests/test_tier_reader_roles.py:generic-api-key:165
+782ae58052bf30dd21ef21ca540193b6626ddf5e:tests/test_tier_reader_roles.py:generic-api-key:157
+782ae58052bf30dd21ef21ca540193b6626ddf5e:tests/test_tier_reader_roles.py:generic-api-key:164

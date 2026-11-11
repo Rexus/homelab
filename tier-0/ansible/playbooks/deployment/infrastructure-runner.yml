@@ -1,4 +1,9 @@
 ---
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: infrastructure_runner
+
 - name: Prepare dedicated infrastructure runner host
   hosts: infrastructure_runner
   become: true

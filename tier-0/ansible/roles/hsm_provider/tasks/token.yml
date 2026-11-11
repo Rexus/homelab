@@ -1,0 +1,66 @@
+---
+- name: Validate original-key custody and credentials before token operations
+  ansible.builtin.import_tasks: issuer-credentials.yml
+
+- name: Validate the explicitly selected provider inputs without changing the host
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Check original issuer runtime and storage
+  ansible.builtin.import_role:
+    name: openxpki
+    tasks_from: preflight
+
+- name: Check the pinned active issuer certificate and state
+  ansible.builtin.import_role:
+    name: openxpki
+    tasks_from: signer
+
+- name: Require an active managed CLI and explicit token operation
+  ansible.builtin.assert:
+    that:
+      - openxpki_activate_runtime | bool
+      - openxpki_managed_cli | bool
+      - hsm_provider_user == 'openxpki'
+      - hsm_provider_group == 'openxpki'
+      - openxpki_token_operation in ['inspect', 'import-root', 'import-issuer', 'check', 'publish-crl', 'publish-ca']
+      - openxpki_token_operation != 'check' or openxpki_token_alias is match('^[A-Za-z0-9_-]+$')
+
+- name: Validate the immutable hardware signer configuration
+  ansible.builtin.import_tasks: issuer-identity.yml
+
+- name: Inspect the original device without logging in
+  ansible.builtin.import_tasks: inspect.yml
+
+- name: Read the original hardware key public component for certificate binding
+  ansible.builtin.import_tasks: issuer-public-key.yml
+
+- name: Require the signed certificate to match the original hardware key
+  ansible.builtin.assert:
+    that: openxpki_issuer_certificate.public_key | trim == hsm_issuer_public_key.stdout | trim
+    fail_msg: The approved certificate must match the original hardware key; no replacement key is generated.
+
+- name: Verify the separately supplied public certificate chain
+  ansible.builtin.command:
+    argv: [openssl, verify, -CAfile, "{{ openxpki_data_mount }}/identity/root.pem",
+           "{{ openxpki_data_mount }}/identity/issuer.pem"]
+  changed_when: false
+
+- name: Run the selected native public-certificate or token operation
+  ansible.builtin.command:
+    argv: "{{ ['oxi', '--auth-key', openxpki_data_mount ~ '/keys/cli.pem'] + operations[openxpki_token_operation] }}"
+  become_user: openxpki
+  changed_when: openxpki_token_operation in ['import-root', 'import-issuer', 'publish-crl', 'publish-ca']
+  register: hsm_issuer_token_result
+  vars:
+    operations:
+      inspect: [token, list, --realm, "{{ openxpki_realm }}"]
+      import-root: [certificate, add, --cert, "{{ openxpki_data_mount }}/identity/root.pem"]
+      import-issuer: [token, add, --realm, "{{ openxpki_realm }}", --type, certsign, --cert,
+                     "{{ openxpki_data_mount }}/identity/issuer.pem"]
+      check: [api, get_token_info, --realm, "{{ openxpki_realm }}", --, "alias={{ openxpki_token_alias }}"]
+      publish-crl: [workflow, create, --realm, "{{ openxpki_realm }}", --type, crl_issuance]
+      publish-ca: [workflow, create, --realm, "{{ openxpki_realm }}", --type, ca_publish]
+
+- name: Show public token or workflow identifiers for custodian review
+  ansible.builtin.debug:
+    var: hsm_issuer_token_result.stdout

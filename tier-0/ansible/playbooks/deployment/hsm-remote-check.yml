@@ -1,0 +1,31 @@
+---
+- name: Prepare controller tooling for native HSM readiness checks
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: hsm
+    control_node_require_terraform: false
+
+- name: Require explicitly selected application hosts
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Refuse an empty readiness check
+      ansible.builtin.assert:
+        that: groups.get(hsm_remote_client_hosts | default('hsm_clients'), []) | length > 0
+
+- name: Wait for the selected application hosts
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: "{{ hsm_remote_client_hosts | default('hsm_clients') }}"
+
+- name: Check installed transport, original keys and signing without provisioning objects
+  hosts: "{{ hsm_remote_client_hosts | default('hsm_clients') }}"
+  become: true
+  any_errors_fatal: true
+  tasks:
+    - name: Run native readiness probes without installing or rewriting configuration
+      ansible.builtin.include_role:
+        name: hsm_remote
+      vars:
+        hsm_remote_action: check

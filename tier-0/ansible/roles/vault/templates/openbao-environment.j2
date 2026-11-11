@@ -1,0 +1,3 @@
+{% for name, value in openbao_pkcs11_environment.items() %}
+{{ name }}={{ value | to_json }}
+{% endfor %}

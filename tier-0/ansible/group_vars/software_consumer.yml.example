@@ -1,0 +1,24 @@
+---
+# Private consumer selection; load after its existing inventory/IP setup vars.
+# Schema: ../<prefix>-shared/ansible/roles/baseline/defaults/main.yml
+# Guide: docs/03-deployment/stage-3-trust/step-3b-verified-consumers.md
+software_consumer_group: REPLACE_WITH_EXISTING_INVENTORY_GROUP
+# Controller paths to approved public CA certificates, one CA per file.
+baseline_trust_anchors: []
+
+# EL: each entry edits an existing native stanza and retains its publisher key.
+repository_proxy_dnf_sources: []
+# - file: rocky.repo
+#   section: baseos
+#   baseurl: https://intake.internal.example.com/approved/rocky-baseos/REPLACE_VERSION/content/
+#   direct: true
+
+# APT: declare every replacement stanza before retiring a complete old source file.
+baseline_apt_repositories: []
+# - name: approved-debian
+#   uri: https://intake.internal.example.com/approved/debian/REPLACE_VERSION/content/
+#   suites: [REPLACE_EXISTING_SUITE]
+#   components: [main]
+#   signed_by: /usr/share/keyrings/debian-archive-keyring.gpg
+baseline_apt_retired_files: []  # e.g. [debian.sources], only after all its feeds are represented
+baseline_apt_direct_hosts: []   # e.g. [intake.internal.example.com]

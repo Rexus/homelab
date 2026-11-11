@@ -115,11 +115,10 @@ class DiagramConventions(TierRepositoryTestCase):
     def test_placement_grids_keep_tiers_ordered_without_traffic_arrows(self):
         root = UPSTREAM / "docs/01-architecture"
         overview = diagrams(root / "README.md")
-        layers = overview[1]
-        self.assertIn("block-beta\n  columns 3", layers)
-        for code in (overview[0], overview[2],
-                     diagrams(root / "10-hosting/04-kubernetes.md")[0],
-                     diagrams(root / "10-hosting/01-runtime.md")[0]):
+        layers = diagrams(root / "05-networking/README.md")[0]
+        for code in (overview[0], diagrams(root / "02-organization/01-tier-ownership.md")[0],
+                     diagrams(root / "04-hosting/03-kubernetes.md")[0],
+                     diagrams(root / "04-hosting/01-runtime.md")[0]):
             self.assertIn("block-beta", code)
             order = [code.index(f'T{tier}["') for tier in (2, 1, 0)]
             self.assertEqual(order, sorted(order))
@@ -127,7 +126,7 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertNotIn("---", code)
         self.assertLess(layers.index('Edge["'), layers.index('Application["'))
         self.assertLess(layers.index('Application["'), layers.index('Control["'))
-        identity = diagrams(root / "18-identity/README.md")[0]
+        identity = diagrams(root / "09-identity/README.md")[0]
         self.assertIn('T0Title["Tier 0 / Control layer"]', identity)
         self.assertIn("T2 ~~~ T1", identity)
         self.assertIn("T1 -->|OIDC to the IdP| T0", identity)
@@ -137,39 +136,39 @@ class DiagramConventions(TierRepositoryTestCase):
 
     def test_domain_views_group_authority_and_separate_offline_custody(self):
         root = UPSTREAM / "docs/01-architecture"
-        for name in ("16-cryptography/README.md", "05-software-lifecycle.md"):
+        for name in ("08-cryptography/README.md", "10-delivery/README.md"):
             code = diagrams(root / name)[0]
             boundary = "block:T" if "block-beta" in code else "subgraph T"
             order = [code.index(f"{boundary}{tier}") for tier in (2, 1, 0)]
             self.assertEqual(order, sorted(order), name)
             self.assertEqual(code.count(f"{boundary}0"), 1, name)
-        crypto = diagrams(root / "16-cryptography/README.md")[0]
+        crypto = diagrams(root / "08-cryptography/README.md")[0]
         self.assertLess(crypto.index("block:T0"), crypto.index('Root["'))
         self.assertGreater(crypto.index('Root["'), crypto.index('Identity["'))
         self.assertIn("Root -.-> Issuer", crypto)
         self.assertIn("Root -.-> Identity", crypto)
-        controllers = diagrams(root / "20-delivery/02-controllers.md")[0]
+        controllers = diagrams(root / "10-delivery/02-controllers.md")[0]
         self.assertIn("T2 ~~~ T1 ~~~ T0", controllers)
         self.assertEqual(controllers.count('subgraph T0["'), 1)
-        for name in ("16-cryptography/03-hsm-selection.md", "16-cryptography/05-network-hsm.md",
-                     "16-cryptography/06-vault-seal.md"):
+        for name in ("08-cryptography/03-hsm-selection.md", "08-cryptography/05-network-hsm.md",
+                     "08-cryptography/06-vault-seal.md"):
             for code in diagrams(root / name):
                 self.assertIn("block:T0", code, name)
                 self.assertRegex(code, r'(?i)offline (?:recovery|backup) custody', name)
-        telemetry = diagrams(root / "24-operations/03-telemetry.md")[0]
+        telemetry = diagrams(root / "11-operations/03-observability.md")[0]
         for tier in (2, 1):
             self.assertIn(f"T{tier} -->|Security / audit submissions| T0", telemetry)
         self.assertIn('subgraph T0["Tier 0 / Security Logging and Audit"]', telemetry)
         self.assertIn('Critical["Independent health / alerts"]', telemetry)
         self.assertIn('subgraph Cluster["Platform Kubernetes / separate workloads"]', telemetry)
-        retention = diagrams(root / "24-operations/02-log-retention.md")[0]
+        retention = diagrams(root / "11-operations/02-log-retention.md")[0]
         self.assertIn('subgraph T0["', retention)
         self.assertIn("Intake -->|Verified checkpoints| Protection", retention)
         self.assertIn("Storage -->|Backup| Recovery", retention)
 
     def test_charts_and_sequence_keep_theme_aware_text(self):
         root = UPSTREAM / "docs/01-architecture"
-        charts = [code for code in diagrams(root / "02-private-cloud.md") if "xychart-beta" in code]
+        charts = [code for code in diagrams(root / "01-background/README.md") if "xychart-beta" in code]
         self.assertEqual(len(charts), 2)
         palette = json.loads((UPSTREAM / "docs" / PALETTE).read_text())
         for chart in charts:
@@ -178,7 +177,7 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertNotIn("theme", config)
             colours = config["themeVariables"]["xyChart"]["plotColorPalette"].split(",")
             self.assertEqual(colours, palette["charts"]["series"])
-        sequence = diagrams(root / "07-runtime-flows.md")[0]
+        sequence = next(code for code in diagrams(root / "09-identity/README.md") if "sequenceDiagram" in code)
         self.assertIn("sequenceDiagram", sequence)
         self.assertNotIn("theme", sequence)
         self.assertIn("rect rgba(", sequence)
@@ -204,7 +203,7 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertLess(code.index('subgraph T0['), code.index('subgraph PVE['))
             self.assertLess(code.index('subgraph PVE['), code.index(f'VM["{guest}<br/>'))
             self.assertNotRegex(code, r'(?m)^\s*space(?::\d+)?(?:\s|$)')
-        self.assertIn("Allocated, not mounted", steps[0])
+        self.assertIn("Guarded filesystem<br/>UUID mount", steps[0])
         self.assertIn('interface     = "scsi1"', hardware)
         self.assertIn('scsi1 / local data disk', steps[0])
         self.assertIn(f'TLS {defaults["syslog_ng_tls_port"]}', steps[1])
@@ -230,7 +229,7 @@ class DiagramConventions(TierRepositoryTestCase):
 
     def test_directory_peers_stack_and_issuers_remain_foundational(self):
         root = UPSTREAM / "docs"
-        identity = diagrams(root / "01-architecture/18-identity/README.md")[0]
+        identity = diagrams(root / "01-architecture/09-identity/README.md")[0]
         self.assertIn('subgraph Directory["Directory authority / identity network"]\n        direction TB', identity)
         self.assertIn('Primary["Directory primary"] <--> Replica["Directory replica"]', identity)
         trust = diagrams(root / "03-deployment/stage-3-trust/README.md")[0]

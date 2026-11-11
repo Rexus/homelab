@@ -3,8 +3,8 @@
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for network policy.
 Guest-specific inputs remain in the consuming tier; gateway changes are operator procedures.
 
-**Design:** [network map](../../../01-architecture/11-networking/README.md) and
-[firewall contracts](../../../01-architecture/11-networking/01-firewall-policy.md).
+**Design:** [network map](../../../01-architecture/05-networking/README.md) and
+[firewall contracts](../../../01-architecture/05-networking/01-firewall-policy.md).
 **Prerequisites:** local console recovery and the approved endpoint/port policy.
 
 ## Step 1: Preserve recovery and define rules
@@ -12,7 +12,7 @@ Guest-specific inputs remain in the consuming tier; gateway changes are operator
 1. Export the current configuration and test local recovery access.
 2. Inventory routing, NAT/VPN rules, gateway services, and IPv6.
 3. Record every required source, destination, protocol and port in the project policy.
-   Use the [rule contracts](../../../01-architecture/11-networking/01-firewall-policy.md#rule-contracts).
+   Use the [rule contracts](../../../01-architecture/05-networking/01-firewall-policy.md#rule-contracts).
 
 ## Step 2: Apply a pilot policy
 

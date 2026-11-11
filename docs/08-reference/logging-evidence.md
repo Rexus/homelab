@@ -2,7 +2,7 @@
 
 Generate synthetic markers and compare their exported/restored contents. The tool
 sends no events, injects no faults and never writes to a receiver or archive.
-Use the [fault/restore drill](../05-operations/logging-drill.md) for acceptance.
+Use the [fault/restore drill](../05-operations/06-resilience/logging-drill.md) for acceptance.
 
 **Working repository:** Tier 0, using `bash scripts/log-evidence.sh`.
 The shortcut runs Shared's [scripts/log-evidence.py](../../shared/scripts/log-evidence.py).

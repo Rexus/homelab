@@ -1,6 +1,25 @@
 ---
+- name: Check declared storage modules on the controller before guest changes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Verify native filesystem and NAS collection availability
+      ansible.builtin.command:
+        argv: [ansible-doc, --type, module, --json, community.general.filesystem, ansible.posix.mount]
+      changed_when: false
+      register: gitlab_vm_storage_modules
+      failed_when: >-
+        gitlab_vm_storage_modules.rc != 0 or
+        (gitlab_vm_storage_modules.stdout | from_json | length) != 2
+
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: development_platform
+
 # Development platform: Stage 9, source-control VM alternative.
-# Recipe mapping: docs/05-operations/ansible-recipes.md
+# Recipe mapping: docs/05-operations/01-hosting/ansible-recipes.md
 - name: Configure development platform hosts
   hosts: development_platform
   become: true

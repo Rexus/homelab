@@ -1,0 +1,35 @@
+---
+- name: Require explicit reader and service identity scope for headless PCSC access
+  ansible.builtin.assert:
+    that:
+      - hsm_provider_pcsc_policy_id is match('^[a-z][a-z0-9-]{1,40}$')
+      - hsm_provider_pcsc_users | reject('match', '^[a-z_][a-z0-9_-]{0,30}$') | list | length == 0
+      - hsm_provider_pcsc_users | length == 0 or hsm_provider_pcsc_readers | length > 0
+      - hsm_provider_pcsc_readers | select('match', '^.{8,200}$') | list | length == hsm_provider_pcsc_readers | length
+    fail_msg: Declare exact accepted PCSC reader names and only the service users requiring headless access.
+
+- name: Install native Polkit support without disabling PCSC authorization
+  ansible.builtin.package:
+    name: "{{ 'polkitd' if ansible_os_family == 'Debian' else 'polkit' }}"
+    state: present
+
+- name: Create the native local authorization rule directory
+  ansible.builtin.file:
+    path: /etc/polkit-1/rules.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the bounded PCSC service and reader authorization
+  ansible.builtin.template:
+    src: pcsc.rules.j2
+    dest: "/etc/polkit-1/rules.d/00-hsm-{{ hsm_provider_pcsc_policy_id }}.rules"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Start native Polkit for noninteractive PCSC authorization
+  ansible.builtin.systemd_service:
+    name: polkit.service
+    state: started

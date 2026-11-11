@@ -1,0 +1,29 @@
+---
+- name: Validate the selected existing consumer group
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Require an explicitly populated inventory group and repository selection
+      ansible.builtin.assert:
+        that:
+          - software_consumer_group | default('') in groups
+          - groups.get(software_consumer_group | default(''), []) | length > 0
+          - software_consumer_group not in ['all', 'ungrouped']
+          - repository_proxy_dnf_sources | default([]) | length > 0 or baseline_apt_repositories | default([]) | length > 0
+        fail_msg: Select one populated software_consumer_group and its approved RPM or APT repository inputs.
+
+- name: Wait for the accepted consumer targets
+  ansible.builtin.import_playbook: guest-ready.yml
+  vars:
+    guest_ready_group: "{{ software_consumer_group | default('all:!all', true) }}"
+
+- name: Configure native package consumers without installing updates
+  hosts: "{{ software_consumer_group | default('all:!all', true) }}"
+  become: true
+  serial: 1
+  tasks:
+    - name: Apply only trust, selected repository configuration and metadata verification
+      ansible.builtin.include_role:
+        name: baseline
+        tasks_from: package_consumer

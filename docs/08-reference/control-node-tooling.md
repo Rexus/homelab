@@ -42,7 +42,7 @@ Have these ready before running automation:
 For Proxmox token setup, read
 [Proxmox API setup](../03-deployment/foundation/proxmox/api-access.md).
 For the shared zone names and IaC mapping, read
-[Network architecture](../01-architecture/11-networking/README.md).
+[Network architecture](../01-architecture/05-networking/README.md).
 
 ## Deployment machine
 
@@ -69,8 +69,10 @@ Require these tools there:
 `Packer` is only needed when building templates from the same machine.
 
 Each deployment run starts with a local Ansible precheck on that deployment
-machine. That precheck is setup-aware: it verifies the Ansible collections and network-filter
-Python dependency needed by the selected setup. Default `auto` mode tries missing collections from
+machine. That precheck is setup-aware: it verifies the Ansible collections, controller Python
+clients and native CLI tools needed by the selected setup. Direct localhost deployment plays import
+the same tier-owned precheck before their roles run; Terraform is not required by those imports.
+Default `auto` mode tries missing collections from
 OS packages first, then uses Galaxy to converge declared version ranges; versioned
 requirements can still invoke Galaxy when installed. Set
 `CONTROL_NODE_COLLECTIONS_MODE=check` for a prepared disconnected controller:
@@ -81,11 +83,54 @@ For example, `foundation` includes directory and issuer requirements:
 and `ansible.mariadb`, while `cache` needs `community.general`,
 `ansible.posix`, `ansible.utils` and controller Python's `netaddr`.
 
-When `ansible.utils` is selected, the precheck validates `netaddr` in `ansible_playbook_python`
-independently of collection presence. `auto` installs `python3-netaddr` for OS-packaged Ansible
-on RedHat/Debian families, or installs the declared requirement inside the active venv.
-`check` rejects a missing/incompatible library without installing anything. It does not change
-guest interpreters or use pip to modify system Python. [14]
+Python checks run in `ansible_playbook_python`, independently of collection presence.
+The selected clients are checked for compatible versions and working imports before deployment.
+The network filter also runs a real `ipaddr` check. [14][15][16][17]
+
+Collection ranges include upper bounds to retain the release lines qualified with
+OS-packaged `ansible-core` 2.16. A newer installed collection outside those ranges is
+incompatible, even if Galaxy lists it successfully. Prepare the ranges in the owning
+manifests; the effective first copy on Ansible's collection path must satisfy them.
+The Proxmox collection separately requires core 2.17 or newer; template commands
+prepare the accepted isolated runtime. [4][9]
+
+| Selected collection | Controller libraries | Native OS packages (RedHat / Debian families) |
+| --- | --- | --- |
+| `ansible.utils` | `netaddr` | `python3-netaddr` |
+| `kubernetes.core` | `kubernetes`, `jsonpatch`, `PyYAML` | `python3-kubernetes`, `python3-jsonpatch`, `python3-pyyaml` / `python3-yaml` |
+| `community.hashi_vault` | `hvac` | `python3-hvac` |
+| `community.crypto` | `cryptography` | `python3-cryptography` |
+| `amazon.aws` | `boto3`, `botocore` | `python3-boto3`, `python3-botocore` |
+
+`auto` installs missing/incompatible clients with the native package manager for system Python on
+RedHat/Debian families, or with `ansible.builtin.pip` inside Ansible's existing virtual environment.
+It detects the interpreter's actual environment rather than trusting `$VIRTUAL_ENV`. No system pip
+installation or new virtual environment is used. Native packages that cannot satisfy the declared
+versions fail with the interpreter and requirements to prepare; select the accepted isolated runtime
+in that case. Exact requirements live in
+[shared Python checks](../../shared/ansible/playbooks/tasks/control-node-python.yml),
+[network-filter checks](../../shared/ansible/playbooks/tasks/control-node-network-filters.yml)
+and each tier's `ansible/requirements.txt`. [18]
+
+Older `community.general` releases also need `pkg_resources` to inspect package versions.
+If that probe is unavailable, `auto` adds native `python3-setuptools`, or `setuptools<82` inside
+the existing venv. Dependency `check` mode instead reports the missing metadata support. [19]
+
+`CONTROL_NODE_COLLECTIONS_MODE=check` rejects missing/incompatible collections or Python clients
+without acquisition. Ansible `--check` also validates prepared dependencies without installing them.
+For disconnected execution, install matching OS packages or prepared local wheels and collections
+first, then select dependency `check` mode. Acquisition inherits the process's existing proxy and
+pip source settings, including `PIP_NO_INDEX` and `PIP_FIND_LINKS`; these do not constrain Galaxy.
+Missing network-filter dependencies fail at the preparation check rather than continuing into
+tasks whose installation results would be unavailable in Ansible check mode. [20]
+
+Native tool checks run only the selected commands: Helm for chart-based cluster/platform plays,
+and Talos client versions for the control-applications Kubernetes SSO workflow, plus kubectl on apply.
+The lab-environment manifest play does not require Helm. Missing tools fail before deployment
+changes; the precheck never fetches standalone binaries. Use the bootstrap guide's approved
+artifact/package inputs to prepare them. Tier-owned `control_node_setup_tool_commands` declares
+the commands; SSO checks honor `control_applications_sso_talosctl` and
+`control_applications_sso_kubectl` when passed with the deployment inputs.
 
 Run the tier's `ansible/playbooks/control-node.yml`, which imports shared checks
 with tier-owned requirements. Follow the
@@ -103,8 +148,12 @@ inspect raw template settings; their [runtime setup](#automatic-template-runtime
 and requires no guest SSH or hosted control service.
 
 The repository deployment wrapper runs that precheck before Terraform or host
-playbooks. Follow the root README or the setup-specific guide for the actual
-run commands.
+playbooks. It passes the same ordered variable files as the deployment: `all.yml`, setup
+inputs, optional environment inputs, then each `--ansible-vars` override. The precheck
+still targets only `localhost`; `--inventory` selects the managed-host inventory used
+by Terraform and the service recipe. `--env-file` is loaded before the precheck, including
+its proxy/source settings and dependency-check mode. Follow the root README or the
+setup-specific guide for the actual run commands.
 
 For provider credentials, use one of these paths:
 
@@ -230,6 +279,11 @@ runner, select `TEMPLATE_RUNTIME_MODE=check` and provide compatible Python, Ansi
 module dependencies and collections. Keep wheel/collection artifacts available for recovery;
 generated repositories include the bootstrap code and dependency declarations.
 
+The protected template CI example retains both the reviewed `.tfplan` and its `.context`
+file for the publish job. Its target state, inputs and absolute workspace paths must
+match the planning job; a changed context requires a new plan. Neither file replaces
+independent state and artifact recovery copies. [21]
+
 To prepare a runner or recovery host before platform access, run from `<prefix>-tier-0/`:
 
 ```bash
@@ -349,15 +403,17 @@ encrypted off-host recovery separately.
 - [Environment variable conventions](environment-variables.md)
 - [Offline bootstrap preparation and later approved-source handover](../03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md)
 - [Repository scripts](repository-scripts.md)
-- [Secret strategy](../05-operations/secret-handling/strategy.md)
+- [Secret strategy](../05-operations/03-cryptography/secret-handling.md)
 - [Identity foundation path](../03-deployment/stage-5-identity/procedures/freeipa.md)
-- [Windows and AD support](../01-architecture/18-identity/01-windows-integration.md)
+- [Windows and AD support](../01-architecture/09-identity/01-windows-integration.md)
 - [Deployment readiness](../03-deployment/readiness.md)
 - [Proxmox reference platform](../03-deployment/foundation/proxmox/README.md)
 
 ## References
 
 Sources checked 2026-11-08.
+
+Controller Python module, pip, metadata and execution references [15]–[21] checked 2026-11-11.
 
 1. [HashiCorp Terraform installation](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli).
 2. [Ansible distribution packages and EPEL](https://docs.ansible.com/projects/ansible/latest/installation_guide/installation_distros.html).
@@ -374,3 +430,10 @@ Sources checked 2026-11-08.
     and [the official 6.0.0 release metadata](https://github.com/ansible-collections/ansible.utils/blob/v6.0.0/galaxy.yml).
 13. [Ad-hoc Ansible playbook directory and variable discovery](https://docs.ansible.com/projects/ansible/latest/cli/ansible.html#cmdoption-ansible-playbook-dir).
 14. [Controller-side IP filter requirements](https://docs.ansible.com/projects/ansible/latest/collections/ansible/utils/ipaddr_filter.html#requirements).
+15. [Native Kubernetes module requirements](https://docs.ansible.com/projects/ansible/latest/collections/kubernetes/core/k8s_module.html#requirements).
+16. [Native Vault module requirements](https://docs.ansible.com/projects/ansible/latest/collections/community/hashi_vault/vault_read_module.html#requirements).
+17. [Native certificate module requirements](https://docs.ansible.com/projects/ansible/latest/collections/community/crypto/x509_certificate_module.html#requirements).
+18. [Ansible pip and existing virtual environments](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/pip_module.html).
+19. [Setuptools removal of pkg_resources](https://setuptools.pypa.io/en/latest/history.html#v82-0-0).
+20. [Ansible check-mode behavior and registered results](https://docs.ansible.com/projects/ansible-core/2.16/playbook_guide/playbooks_checkmode.html).
+21. [GitLab job artifacts and cross-job handoff](https://docs.gitlab.com/ci/jobs/job_artifacts/).

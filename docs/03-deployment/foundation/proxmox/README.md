@@ -6,7 +6,7 @@ Proxmox host administration and every template lifecycle belong to Tier 0.
 **Working repository:** `<prefix>-tier-0` after generation (source: `tier-0/`).
 **Run on:** an independent workstation and each host's console/GUI.
 **Target:** Proxmox VE 9+; the native dynamic-rebalancing branch requires 9.2+.
-**Design:** [compute foundation](../../../01-architecture/10-hosting/README.md).
+**Design:** [compute foundation](../../../01-architecture/04-hosting/README.md).
 
 ## Contents
 
@@ -70,17 +70,17 @@ API tokens and Terraform follow creation of the first manual template and bootst
 | --- | --- |
 | Host attachments, bonds and storage fabric | [Host networking](network.md) |
 | Scoped credentials and trust | [API setup](api-access.md) |
-| Initialize local files and manage installed hosts over SSH | [Bootstrap host-management setup](../../../05-operations/hosts/management.md) |
+| Initialize local files and manage installed hosts over SSH | [Bootstrap host-management setup](../../../05-operations/01-hosting/README.md) |
 | Import a verified image in the GUI | [VM templates](templates.md) |
-| Publish/adopt and maintain templates | [Template lifecycle](../../../05-operations/virtual-machines/template-lifecycle.md) |
+| Publish/adopt and maintain templates | [Template lifecycle](../../../05-operations/01-hosting/templates/template-lifecycle.md) |
 | HA controls and fault behavior | [Menu reference](../../../08-reference/proxmox-ha.md), [worked failover](failover.md) |
 | ProxLB instead of native rebalancing | [Alternative balancer](step-4c-proxlb.md) |
-| Restore a disposable guest | [Backup/restore](../../../05-operations/backups/virtual-machines.md) |
+| Restore a disposable guest | [Backup/restore](../../../05-operations/06-resilience/backups/virtual-machines.md) |
 | Apply the Linux service-VM profile after guest deployment | [Stage 1, option 4b](../../stage-1-software-intake/README.md#4b-apply-the-linux-security-profile--optional) |
 
 <a id="related-references"></a>
 
-For broader context, see the [private-cloud model](../../../01-architecture/02-private-cloud.md)
+For broader context, see the [private-cloud model](../../../01-architecture/01-background/README.md)
 and [Tier 0 checklist](../../../06-paths/tier-0/README.md).
 
 ## References

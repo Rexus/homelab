@@ -89,7 +89,7 @@ class VmidConventions(TierRepositoryTestCase):
             "vault": ({"vault-1": 221}, set()),
             "hsm": ({"hsm-1": 231, "hsm-2": 232}, {233, 521}),
             "cluster-endpoint": ({"api-gw-1": 301, "api-gw-2": 302}, set()),
-            "syslog": ({"log-1": 401}, {402}),
+            "syslog": ({"log-1": 401}, {402, 403}),
             "infrastructure-runner": ({"iac-1": 511}, set()),
         }
         for setup, (expected_guests, expected_optional) in allocations.items():
@@ -127,7 +127,7 @@ class VmidConventions(TierRepositoryTestCase):
         manifest = json.loads((repo / ".generated-files.json").read_text())
         for asset in (relative, image):
             self.assertIn(f"docs/auto-docs/{asset}", manifest["files"])
-        for name in ("README.md", "docs/development/code-layout.md", "docs/deployment/foundation/README.md"):
+        for name in ("README.md", "docs/04-development/code-layout.md", "docs/03-deployment/foundation/README.md"):
             self.assertIn("vmid-convention.md", (UPSTREAM / name).read_text(), name)
         for tier in range(3):
             self.assertIn(relative, (self.root / f"verify-tier-{tier}/README.md").read_text())

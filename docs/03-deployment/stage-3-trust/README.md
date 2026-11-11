@@ -1,6 +1,6 @@
 # Stage 3: Cryptographic trust
 
-**Related:** [Architecture](../../01-architecture/15-cryptographic-trust/README.md) · [Operations](../../05-operations/cryptographic-trust/README.md)
+**Related:** [Architecture](../../01-architecture/08-cryptography/01-certificate-authority.md) · [Operations](../../05-operations/03-cryptography/README.md)
 
 Establish an offline root and an online issuing CA. Normal issuance and renewal use
 the intermediate CA, never an online root. Hardware protection changes key custody;
@@ -13,9 +13,10 @@ Community as the permanent infrastructure issuer and clca for offline root opera
 existing qualified authorities remain valid. The runtime installer does not perform root ceremonies or token activation.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Automation:** software issuer/key/policy and recovery mechanisms are supplied;
-ceremonies, token activation and acceptance remain controlled operations. Hardware and
-ACME variants need integration; see [coverage](../../08-reference/implementation-support.md#stage-coverage).
-**Design:** [certificate authority](../../01-architecture/16-cryptography/01-certificate-authority.md).
+ceremonies and acceptance remain controlled operations. Native provider installation and original-key
+issuer CSR/token operations are supplied; ACME adapter qualification remains separate. See
+[coverage](../../08-reference/implementation-support.md#stage-coverage).
+**Design:** [certificate authority](../../01-architecture/08-cryptography/01-certificate-authority.md).
 
 ## Main path
 
@@ -23,8 +24,9 @@ ACME variants need integration; see [coverage](../../08-reference/implementation
 | --- | --- | --- |
 | 1a: software custody, main | [Software PKI](procedures/software-pki.md), with [local key custody](procedures/local-key-custody.md) | Step 2 after key/CSR preparation |
 | 1b / 1c / 1d: hardware custody | [USB pool](step-1b-usb-hsm.md), [network HSM](step-1c-network-hsm.md), or [single USB](step-1d-single-usb.md) | Step 2 after provider qualification |
+| Within 1b: shared PKCS#11, optional | [Restricted native remoting](procedures/pkcs11-remoting.md), after provider/key recovery qualification | Return to 1b acceptance; the signing API is a separate Stage 6 option |
 | 2: signing and activation | [Software root ceremony](procedures/offline-software-root.md) or [hardware root ceremony](procedures/offline-root.md); [issuer runtime](procedures/issuer.md) and [token activation](procedures/issuer-token.md) | Step 3 |
-| 3a: API certificate transition, optional | [Adopt platform PKI](../../05-operations/hosts/proxmox-tls.md#step-2-adopt-the-platform-pki) | Verify every API caller before completion |
+| 3a: API certificate transition, optional | [Adopt platform PKI](../../05-operations/01-hosting/proxmox-tls.md#step-2-adopt-the-platform-pki) | Verify every API caller before completion |
 | 3b: verified intake, optional | [Worker installer](step-3b-verified-intake.md), then [consumer cutover](step-3b-verified-consumers.md) | Stage 3 completion after selected sources/consumers pass |
 
 1. [Prepare issuer and key custody](#step-1-prepare-issuer-and-key-custody)
@@ -87,7 +89,7 @@ Hardware options replace software key custody; they are not additional default V
 ## Step 1: Prepare issuer and key custody
 
 1. **Choose custody before creating keys.** Approve
-   [algorithms](../../01-architecture/16-cryptography/02-algorithm-selection.md), custodians,
+   [algorithms](../../01-architecture/08-cryptography/02-algorithm-selection.md), custodians,
    recovery recipients and trust scope. Select one path:
 
    | Step | Selected path | Required work and return |
@@ -101,7 +103,8 @@ Hardware options replace software key custody; they are not additional default V
    host/runtime installation; do not repeat it. **Hardware:** commission the selected provider,
    supply its qualified production configuration and complete
    [issuer host/runtime Steps 1–2](procedures/issuer.md#step-1-provision-the-host), then prepare the
-   issuer key/CSR with that provider. HSM host provisioning alone supplies none of those integrations.
+   issuer key/CSR using the hardware path's native binding recipe. Provisioning a host alone does not
+   activate the issuer or create its keys.
    **Do not run the identity recipe in Stage 3**, initialize a second database or create another state owner.
 3. Stop with a prepared issuer key/CSR, reviewed policy bundle and independent
    recovery copies. The offline signing operation is next; a running VM is not an active CA.
@@ -110,6 +113,10 @@ A single device with an independently tested backup can satisfy initial custody
 requirements. Size the replicated service for consumer traffic and availability,
 not merely because Vault or a registry has been installed.
 The HSM path remains Tier 0-owned and independently deployable in either form.
+The initial hardware profiles are YubiHSM 2 and PicoHSM; select and qualify one per key/recovery
+domain. Start with the local issuer path and keep Vault's default Shamir seal unless a separate
+seal requirement justifies more dependencies. [Shared signing](../../01-architecture/08-cryptography/04-usb-hsm.md)
+is an optional extension, not a prerequisite for PKI or Vault.
 
 Tier 0's [terraform/deployments/foundation/](../../../tier-0/terraform/deployments/foundation)
 provisions the issuer host. Its Tier 0 OpenXPKI recipe installs the native runtime
@@ -134,13 +141,13 @@ plan; do not remove existing resources to make its contents match a stage number
    Starting a daemon alone does not activate a signing token.
 
 A ceremony VLAN or disconnected VM alone does not isolate root keys from a connected
-hypervisor administrator. Follow the [custody boundary](../../01-architecture/06-reference-platform.md#service-placement).
+hypervisor administrator. Follow the [custody boundary](../../01-architecture/03-reference-platform.md#service-placement).
 OpenXPKI remains the long-term infrastructure issuer; Vault's later deployment does
 not imply a CA migration or become a prerequisite for this service.
 
 ## Step 3: Enable and verify routine issuance
 
-1. Run the [CA acceptance matrix](../../05-operations/cryptography/certificate-authority.md#acceptance-evidence):
+1. Run the [CA acceptance matrix](../../05-operations/03-cryptography/certificate-authority.md#acceptance-evidence):
    permitted and denied requests, renewal, revocation, publication and independent
    restore, with the root offline. Hardware paths also test device/host loss and backup.
 2. Distribute only the approved public trust material to authorized consumers;
@@ -152,7 +159,7 @@ The Community ACME adapter is a separate qualification gate, not an installed ce
 ### 3a: Adopt platform PKI for Proxmox — optional
 
 If the selected policy replaces Proxmox API certificates, complete the
-[API PKI transition](../../05-operations/hosts/proxmox-tls.md#step-2-adopt-the-platform-pki)
+[API PKI transition](../../05-operations/01-hosting/proxmox-tls.md#step-2-adopt-the-platform-pki)
 and verify every caller. Retaining the independently trusted Proxmox CA is also valid;
 neither path retains an API verification bypass.
 
@@ -171,6 +178,6 @@ it must not acquire ceremony authority.
 ## Capability available
 
 **Result:** after acceptance, certificate trust and online issuance are operational according to the
-[cryptography design](../../01-architecture/16-cryptography/README.md), independently of the
+[cryptography design](../../01-architecture/08-cryptography/README.md), independently of the
 future cluster. Record recovery evidence and continue with
 [Stage 4: Kubernetes](../stage-4-kubernetes/README.md).

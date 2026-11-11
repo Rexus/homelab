@@ -1,0 +1,156 @@
+---
+# Reuse the default runtime's authoritative scope/SSO roles and read-only policy.
+- name: Render the shared OpenSearch security policy with VM endpoints
+  ansible.builtin.set_fact:
+    observability_vm_search_policy: >-
+      {{ lookup('ansible.builtin.template', role_path ~ '/../observability_platform/templates/search-policy.yml.j2')
+         | from_yaml | combine({'internal_users.yml': {
+           '_meta': {'type': 'internalusers', 'config_version': 2},
+           'data-prepper': {'hash': observability_vm_search_user_hashes['data-prepper'], 'backend_roles': []},
+           'dashboards-server': {'hash': observability_vm_search_user_hashes['dashboards-server'], 'backend_roles': []}
+         }}) }}
+  vars:
+    observability_log_scopes: "{{ observability_vm_log_scopes }}"
+    observability_oidc_issuer: "{{ observability_vm_oidc_issuer }}"
+    observability_oidc_dashboards_client_id: "{{ observability_vm_oidc_dashboards_client_id }}"
+  no_log: true
+
+- name: Prepare the native security configuration directory
+  ansible.builtin.file:
+    path: "{{ observability_vm_config_path }}/security"
+    state: directory
+    owner: root
+    group: '1000'
+    mode: '0750'
+
+- name: Install the complete native policy file set
+  ansible.builtin.copy:
+    content: "{{ item.value | to_nice_yaml(indent=2) }}"
+    dest: "{{ observability_vm_config_path }}/security/{{ item.key }}"
+    owner: root
+    group: '1000'
+    mode: '0640'
+  loop: "{{ observability_vm_search_policy | dict2items }}"
+  no_log: true
+
+- name: Read the last successfully applied policy digest
+  ansible.builtin.stat:
+    path: "{{ observability_vm_data_path }}/search-security.sha256"
+  register: observability_vm_security_marker
+
+- name: Load the existing policy digest
+  ansible.builtin.slurp:
+    src: "{{ observability_vm_data_path }}/search-security.sha256"
+  register: observability_vm_security_previous
+  when: observability_vm_security_marker.stat.exists
+
+- name: Compute the desired policy and native tool identity
+  ansible.builtin.set_fact:
+    observability_vm_security_digest: >-
+      {{ ((observability_vm_search_policy | to_json) ~ observability_vm_images.search) | hash('sha256') }}
+  no_log: true
+
+- name: Allocate short-lived administrator certificate staging
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: observability-search-admin-
+  register: observability_vm_admin_staging
+
+- name: Apply and verify search security with temporary administrative custody
+  block:
+    - name: Allow only the administrative job user to traverse staging
+      ansible.builtin.file:
+        path: "{{ observability_vm_admin_staging.path }}"
+        owner: '1000'
+        group: '1000'
+        mode: '0700'
+
+    - name: Stage externally issued administrator credentials
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ observability_vm_admin_staging.path }}/{{ item.name }}"
+        owner: '1000'
+        group: '1000'
+        mode: '0600'
+      loop:
+        - {name: tls.crt, src: "{{ observability_vm_search_admin_tls.cert_src }}"}
+        - {name: ca.crt, src: "{{ observability_vm_ca_src }}"}
+      no_log: true
+
+    - name: Stage the supplied administrator key in native PKCS8 format
+      community.crypto.openssl_privatekey_convert:
+        src_content: "{{ lookup('ansible.builtin.file', observability_vm_search_admin_tls.key_src) }}"
+        dest_path: "{{ observability_vm_admin_staging.path }}/tls.key"
+        format: pkcs8
+        owner: '1000'
+        group: '1000'
+        mode: '0600'
+      no_log: true
+
+    - name: Verify the administrator client chain
+      ansible.builtin.command:
+        argv: [openssl, verify, -CAfile, "{{ observability_vm_admin_staging.path }}/ca.crt",
+               -purpose, sslclient, "{{ observability_vm_admin_staging.path }}/tls.crt"]
+      changed_when: false
+
+    - name: Render the native one-shot security administration Quadlet
+      ansible.builtin.template:
+        src: search-security.container.j2
+        dest: /etc/containers/systemd/obs-search-security.container
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Apply changed policy with the native security administration tool
+      ansible.builtin.systemd_service:
+        name: obs-search-security.service
+        state: restarted
+        daemon_reload: true
+      register: observability_vm_security_apply
+      until: observability_vm_security_apply is succeeded
+      retries: 3
+      delay: 10
+      when: >-
+        not observability_vm_security_marker.stat.exists or
+        (observability_vm_security_previous.content | default('') | b64decode | trim) != observability_vm_security_digest
+      no_log: true
+
+    - name: Wait for all selected search members and green shard health
+      ansible.builtin.uri:
+        url: >-
+          https://{{ observability_vm_endpoints[inventory_hostname] }}:9200/_cluster/health?wait_for_status=green&wait_for_nodes=3&timeout=60s
+        ca_path: "{{ observability_vm_admin_staging.path }}/ca.crt"
+        client_cert: "{{ observability_vm_admin_staging.path }}/tls.crt"
+        client_key: "{{ observability_vm_admin_staging.path }}/tls.key"
+        validate_certs: true
+        return_content: true
+        timeout: 70
+      register: observability_vm_security_health
+      until: >-
+        observability_vm_security_health.status | default(0) == 200 and
+        not observability_vm_security_health.json.timed_out | default(true) and
+        observability_vm_security_health.json.number_of_nodes | default(0) | int == 3
+      retries: 6
+      delay: 5
+      no_log: true
+
+    - name: Record only successfully applied and checked policy
+      ansible.builtin.copy:
+        content: "{{ observability_vm_security_digest }}\n"
+        dest: "{{ observability_vm_data_path }}/search-security.sha256"
+        owner: root
+        group: root
+        mode: '0600'
+  always:
+    - name: Remove temporary administrative credentials and job definition
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ observability_vm_admin_staging.path }}"
+        - /etc/containers/systemd/obs-search-security.container
+      no_log: true
+
+    - name: Remove the transient administrative unit from systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

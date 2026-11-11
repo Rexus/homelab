@@ -205,7 +205,7 @@ delivery system; test notifications while the controller is unavailable.
 
 HSTS is enabled for the served hostname, without preload or includeSubDomains.
 Keep port 80's challenge exception when redirecting. Complete the
-[security controls](../../05-operations/cryptography/security-controls.md)
+[security controls](../../05-operations/03-cryptography/security-controls.md)
 before treating this path as production-ready.
 
 ## References

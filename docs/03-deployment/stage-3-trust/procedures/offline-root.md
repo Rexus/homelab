@@ -6,7 +6,7 @@ network key-provider choices retain their own custody/recovery requirements.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`) stores policy and public
 handoff records only. Ceremony execution and authoritative root state stay offline.
-**Design:** [certificate hierarchy](../../../01-architecture/16-cryptography/01-certificate-authority.md#trust-hierarchy).
+**Design:** [certificate hierarchy](../../../01-architecture/08-cryptography/01-certificate-authority.md#trust-hierarchy).
 **Prerequisites:** authorized custodians, approved ceremony environment/media, verified
 tool/provider artifacts and independent recovery storage. No root installer or signing
 automation is supplied; use the selected revision's [clca procedure][1].
@@ -78,7 +78,7 @@ the custody environment, approval and physical transfer remain manual.
    date, requests, approvals and media handling. Revocation enforcement is tested at clients.
 2. Back up the complete CA instance after each change. clca's archive backup is not by
    itself encryption, independent custody or HSM-key recovery. [1] Apply the
-   [backup policy](../../../05-operations/backups/virtual-machines.md#backup-policy)
+   [backup policy](../../../05-operations/06-resilience/backups/virtual-machines.md#backup-policy)
    and preserve recovery material under separate authorization.
 3. Verify the offline recovery copy and close the ceremony: disconnect/secure devices
    and media, remove temporary transfer material under policy and confirm no online

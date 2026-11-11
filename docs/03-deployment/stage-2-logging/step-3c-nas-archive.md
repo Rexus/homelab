@@ -10,7 +10,7 @@ retention is not required for this selected homelab model.
 [locked-retention alternative](step-3d-retention-lock.md). Select that alternative when trusted NAS administration is insufficient.
 **Change:** Protect archive checkpoints with NAS-owned snapshots and independent backups, without claiming WORM.
 **Return:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence) to record the demonstrated protection boundary.
-**Design:** [choice A: NAS custody](../../01-architecture/24-operations/02-log-retention.md).
+**Design:** [choice A: NAS custody](../../01-architecture/11-operations/02-log-retention.md).
 **Prerequisites:** working collection, dedicated NAS storage, independent admin
 credentials and a recovery destination outside that NAS's failure domain.
 **Automation boundary:** Tier 0 supplies separate archive and independent-backup
@@ -148,8 +148,19 @@ restrictions for that mode. [1]
    initialization only for a deliberately new destination; otherwise use the existing
    repository/password. Create `ansible/host_vars/<recovery-host>.yml` with its
    existing `ansible_host`, SSH account/key overrides and any per-host backup settings.
-   The recovery host need not belong to a Terraform setup; never borrow a collector's
-   address. Deploy against that one inventory host:
+   For a new recovery VM, enable the commented `rec-1` entry in **Tier 0
+   `terraform/deployments/syslog/terraform.tfvars`**, add it under `logging_recovery`
+   in inventory, and add its address to `platform_host_ips` in `ansible/group_vars/syslog.yml`.
+   Select an independent physical host/storage failure domain; never borrow a collector's address.
+   From **`<prefix>-tier-0/`**, provision its VM and attached `scsi1` recovery disk:
+
+   ```bash
+   bash scripts/deploy.sh syslog --terraform-only
+   ```
+
+   An accepted existing independent host is an adoption alternative. The backup playbook
+   waits for the selected host and prepares its filesystem; no guest login is required.
+   Deploy against that one inventory host:
 
    Edit **`ansible/group_vars/logging_backup.yml`**:
 
@@ -157,7 +168,7 @@ restrictions for that mode. [1]
    | --- | --- |
    | `logging_backup_source`, `logging_backup_marker` | Same commissioned NAS archive and marker; access uses the separate read-only account |
    | `logging_backup_repository` | Dedicated recovery mount root, such as `/srv/security-log-backup`, outside the NAS/collector failure domain |
-   | `logging_backup_repository_device` | Actual attached local block device; starter `/dev/sdb`. Empty selects adoption of an already commissioned mount |
+   | `logging_backup_repository_device` | Attached `scsi1` disk: `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1`. Empty selects adoption of an existing mount |
    | `logging_backup_repository_fstype` | `xfs` for a new local disk; `ext4` also supported; match retained local filesystems |
    | `logging_backup_repository_uuid` | Empty for a new blank disk; original UUID for an existing/restored local filesystem |
    | `logging_backup_repository_min_free_bytes` | Required free-space reserve before commissioning |
@@ -210,7 +221,7 @@ host file last and rerun separately for each collector or recovery host.
 Record source-to-copy lag and the latest verified snapshot/backup checkpoint.
 An asynchronous copy/snapshot interval creates an exposed tail; it is not zero RPO.
 RAID and another snapshot on the same NAS do not cover loss of the whole appliance.
-Protect decryption keys independently under the [backup policy](../../05-operations/backups/virtual-machines.md#backup-policy).
+Protect decryption keys independently under the [backup policy](../../05-operations/06-resilience/backups/virtual-machines.md#backup-policy).
 The [pipeline contract](../../08-reference/logging-pipeline.md) defines exact paths,
 failure behavior, filesystem reader views and the distinction between transport,
 NAS checkpoint, NAS snapshot and independent backup. Snapshot coverage is
@@ -218,7 +229,7 @@ commissioned/checked on the NAS, not inferred from a successful transfer heartbe
 
 ## Step 3: Verify and record the boundary
 
-1. Run the [logging drill](../../05-operations/logging-drill.md) for this profile.
+1. Run the [logging drill](../../05-operations/06-resilience/logging-drill.md) for this profile.
    Deny raw access/deletion to producers and query users. Test that transfer
    credentials cannot administer snapshots/backups; test live-share deletion only
    with disposable records, then restore the covered checkpoint.

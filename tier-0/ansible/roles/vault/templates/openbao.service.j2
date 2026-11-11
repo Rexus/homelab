@@ -1,0 +1,23 @@
+[Unit]
+Description=Optional OpenBao secret service and external-key API
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor={{ vault_data_dir }} {{ vault_log_dir }}
+
+[Service]
+User={{ openbao_service_user }}
+Group={{ openbao_service_user }}
+EnvironmentFile={{ vault_config_dir }}/environment
+ExecStart={{ openbao_binary_dest }} server -config={{ vault_config_dir }}/openbao.hcl
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=60
+LimitCORE=0
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

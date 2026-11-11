@@ -1,0 +1,46 @@
+---
+- name: Require an existing serial-selected private hardware key and native engine
+  ansible.builtin.assert:
+    that:
+      - hsm_issuer_engine_library is match('^/[a-zA-Z0-9_./+-]+$')
+      - hsm_issuer_key is match('^pkcs11:[a-zA-Z0-9_%;=.:/-]+$')
+      - "'pin-' not in hsm_issuer_key | lower"
+      - >-
+        hsm_issuer_key is search('(^pkcs11:|;)serial='
+          ~ (hsm_provider_expected_serial | string | regex_escape) ~ '(;|$)')
+      - hsm_issuer_key is search('(^pkcs11:|;)id=[^;]+(;|$)')
+      - hsm_issuer_key is search('(^pkcs11:|;)type=private(;|$)')
+      - not openxpki_create_issuer_key | default(false) | bool
+    fail_msg: Select the original serial and private-key object URI without credentials; no new key is generated.
+
+- name: Inspect the installed OpenSSL PKCS11 engine
+  ansible.builtin.stat:
+    path: "{{ hsm_issuer_engine_library }}"
+  register: hsm_issuer_engine_state
+
+- name: Require the separately selected engine package
+  ansible.builtin.assert:
+    that: hsm_issuer_engine_state.stat.isreg | default(false)
+
+- name: Read the approved issuer token configuration without modifying the bundle
+  ansible.builtin.slurp:
+    src: "{{ openxpki_release_dir }}/config.d/realm/{{ openxpki_realm }}/crypto.yaml"
+  register: hsm_issuer_crypto
+  no_log: true
+
+- name: Parse the approved native issuer signer
+  ansible.builtin.set_fact:
+    hsm_issuer_signer: "{{ (hsm_issuer_crypto.content | b64decode | from_yaml).token['ca-signer'] }}"
+  no_log: true
+
+- name: Require the selected provider and original key in the approved native signer
+  ansible.builtin.assert:
+    that:
+      - hsm_issuer_signer.engine == 'PKCS11'
+      - hsm_issuer_signer.key_store == 'ENGINE'
+      - hsm_issuer_signer.key == hsm_issuer_key
+      - hsm_provider_library in hsm_issuer_signer.engine_section
+      - hsm_issuer_engine_library in hsm_issuer_signer.engine_section
+      - "'__PIN__' in hsm_issuer_signer.engine_section"
+    fail_msg: The immutable bundle must select the reviewed PKCS11 signer and protected secret reference.
+  no_log: true

@@ -11,15 +11,15 @@ DOCS = UPSTREAM / "docs"
 
 class DiagramDependencies(unittest.TestCase):
     def test_authority_maps_place_foundational_peers_to_the_right(self):
-        runtime = diagrams(DOCS / "01-architecture/10-hosting/01-runtime.md")[0]
+        runtime = diagrams(DOCS / "01-architecture/04-hosting/01-runtime.md")[0]
         self.assertLess(runtime.index('Cluster["'), runtime.index('Dedicated["'))
-        delivery = diagrams(DOCS / "01-architecture/05-software-lifecycle.md")[0]
+        delivery = diagrams(DOCS / "01-architecture/10-delivery/README.md")[0]
         for peers in (("Build", "Deploy", "Source"), ("ControlDelivery", "Hosting")):
             positions = [delivery.index(f'{name}["') for name in peers]
             self.assertEqual(positions, sorted(positions))
 
     def test_controller_inputs_and_scoped_changes_keep_their_real_direction(self):
-        code = diagrams(DOCS / "01-architecture/20-delivery/02-controllers.md")[0]
+        code = diagrams(DOCS / "01-architecture/10-delivery/02-controllers.md")[0]
         for tier in (1, 0):
             self.assertRegex(code, rf'subgraph T{tier}\["[^\n]+\n    direction RL')
         for edge in ("Release -->|Approved inputs| D", "D -->|Scoped changes| Platform",

@@ -204,13 +204,13 @@ For Terraform-owned clusters, append reviewed patch strings to that tier's
 existing `machine_config_patches`, preserving the other ordered entries. In
 `.tfvars`, use YAML heredoc strings rather than function calls. Review the plan
 and API-server rollout; do not run a second manual configuration owner against
-Terraform-managed nodes. Manual clusters can use matching `talosctl machineconfig
+Terraform-managed nodes. Existing independently managed clusters use their owner's matching `talosctl machineconfig
 patch`, offline `validate --mode metal`, and their established apply procedure.
 Validate the **complete merged configuration** with the matching Talos CLI.
 
 For the initial Stage 4 installation, return to the selected lifecycle after adding both patches:
 [Terraform Step 3](talos-terraform.md#plan-and-deploy) or
-[manual configuration/bootstrap](../step-1b-manual-cluster.md#configure-and-bootstrap).
+[existing-cluster handover](../step-1b-existing-cluster.md#configure-and-bootstrap).
 Bootstrap once, export that lifecycle's credentials and install Cilium before continuing below. For an
 existing cluster, use its health-gated maintenance procedure instead of a fresh bootstrap.
 

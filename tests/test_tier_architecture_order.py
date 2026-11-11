@@ -20,21 +20,27 @@ class ArchitectureOrder(TierRepositoryTestCase):
     def test_folders_and_detail_files_expose_a_foundation_first_reading_order(self):
         root = UPSTREAM / "docs/01-architecture"
         folders = sorted(path.name for path in root.iterdir() if path.is_dir())
-        self.assertEqual(folders[:4], ["10-hosting", "11-networking", "12-data", "13-software-intake"])
-        self.assertLess(folders.index("13-software-intake"), folders.index("18-identity"))
-        self.assertTrue((root / "10-hosting/02-bootstrap.md").is_file())
+        entries = sorted(path.name for path in root.iterdir() if path.name != "README.md")
+        self.assertEqual([int(name[:2]) for name in entries], list(range(1, 12)))
+        self.assertLess(folders.index("07-software-intake"), folders.index("09-identity"))
+        self.assertTrue((root / "04-hosting/02-provisioning.md").is_file())
+        for directory in root.rglob("*"):
+            if directory.is_dir():
+                numbers = sorted(int(page.name[:2]) for page in directory.glob("*.md")
+                                 if page.name != "README.md")
+                self.assertEqual(numbers, list(range(1, len(numbers) + 1)), str(directory))
         for page in root.rglob("*.md"):
             if page.name != "README.md":
                 self.assertRegex(page.name, r"^\d{2}-", str(page))
 
     def test_proxy_sequence_distinguishes_cached_http_and_https_tunnels(self):
-        page = UPSTREAM / "docs/01-architecture/13-software-intake/README.md"
+        page = UPSTREAM / "docs/01-architecture/07-software-intake/README.md"
         text = page.read_text(encoding="utf-8")
         self.assertIn("sequenceDiagram", text)
         self.assertIn("Fresh cache hit", text)
         self.assertIn("cacheable HTTP", text)
         self.assertIn("HTTPS CONNECT", text)
-        self.assertRegex(text, r"Encrypted payload is not cached")
+        self.assertRegex(text, r"(?i)encrypted payload is not cached")
 
     def test_figures_have_explanatory_captions_in_source_and_generated_manual(self):
         self.generate()

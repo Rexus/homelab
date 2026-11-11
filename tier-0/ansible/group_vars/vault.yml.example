@@ -1,6 +1,8 @@
 # Copy to: ansible/group_vars/vault.yml
 # Replace every value before use.
 # Reference guide: docs/03-deployment/stage-6-secrets/step-1b-vault-vm.md
+# Schema/defaults: ansible/roles/vault/defaults/main.yml
+# Post-unseal API fields: ansible/roles/control_applications/defaults/main.yml
 
 platform_host_ips:
   vault-1: 10.20.21.40
@@ -30,3 +32,26 @@ vault_raft_retry_join: []
 # Leave empty when using the default Shamir seal.
 vault_seal_hcl: ""
 vault_extra_hcl: ""
+vault_seal_type: shamir
+# Transit and licensed PKCS11 settings: Stage 6 option 1c; never embed a token/PIN in HCL.
+vault_transit: {}
+vault_seal_environment: {}
+vault_provider_packages: []
+vault_provider_accepted: false
+
+# Run vault-configure.yml after the independent initialization/unseal ceremony.
+control_applications_vault_phase: configure
+control_applications_vault_token: "{{ lookup('ansible.builtin.env', 'VAULT_TOKEN') }}"
+control_applications_oidc_issuer: https://sso.lab.example.com/realms/platform
+control_applications_oidc_ca_pem: ""
+control_applications_oidc_client_secrets: {}
+control_applications_vault_policies:
+  platform-read:
+    'path "secret/data/platform/*" { capabilities = ["read"] }'
+control_applications_vault_oidc_roles:
+  - {name: platform-read, groups: [platform-readers], policies: [platform-read]}
+control_applications_register_clients: false
+# When registering the client here, also set hosts.keycloak, keycloak_realm and
+# keycloak_auth in the private inputs. The selected VM callback includes its API port.
+control_applications_backup_restore_accepted: false
+control_applications_vault_audit_forwarding_accepted: false

@@ -32,7 +32,7 @@ Keycloak additionally needs FreeIPA. Consumers need the accepted existing IdP.
 | CNPG | Existing controller and `Cluster` CRD; the object/WAL option additionally requires Barman Cloud and its backup CRDs [1] |
 | Ingress and TLS | Existing Traefik ingress and CRD providers with `ServersTransport` CRD; external certificates/keys |
 | Live database storage | Qualified Proxmox/Ceph-backed block volumes; separate from NetBox media and NAS backup claims |
-| Database backup destination | [Scheduled verified full copies to NAS](../../../05-operations/backups/postgresql.md), or existing S3-compatible storage for the object/WAL option; no gateway is installed |
+| Database backup destination | [Scheduled verified full copies to NAS](../../../05-operations/06-resilience/backups/postgresql.md), or existing S3-compatible storage for the object/WAL option; no gateway is installed |
 | NetBox media | RWX-capable storage class shared by web, worker and housekeeping pods; separate media backup/restore |
 | Protected logs | Shared `cluster_security_logging` captures pod stdout and forwards it to protected Tier 0 mTLS intake |
 | Headlamp | Accepted [native Talos API OIDC integration](../../stage-5-identity/procedures/kubernetes-sso.md), with independent X509 recovery and matching `headlamp` audience/group bindings [4] |
@@ -92,6 +92,7 @@ terminate TLS at ingress and use cluster-internal HTTP; qualify network isolatio
 | `control_applications_manage_secrets` | `false`; use pre-existing Secrets, or explicitly permit Shared to create them from private `stringData` |
 | `control_applications_register_clients` | `false`; enable to converge selected clients on the existing Keycloak realm |
 | `control_applications_vault_phase` | `install`, `configure`, then `accept`; see the [Vault ceremony](vault-kubernetes.md) |
+| `control_applications_vault_seal_type` | `shamir` by default; [option 1c](../step-1c-seal-integration.md) configures Transit or a qualified licensed PKCS#11 artifact before initialization |
 | `control_applications_backup_mode` | Fresh examples select `files`; omitted values retain the existing `object` behavior |
 | `control_applications_backup_files_phase` | With Keycloak/NetBox selected, `prepare` pauses the batch after database setup; `backup` proceeds after NAS commissioning. Ignored for Vault/Headlamp-only runs |
 | `control_applications_database_storage_class` | Qualified live Proxmox/Ceph-backed block class, separate from the backup destination |
@@ -190,7 +191,7 @@ nor live services work. Do not apply these inputs against another tier's cluster
 When using externally owned Secrets, omit `-e @secrets/control-applications.yml --ask-vault-pass`
 from both commands. No Ansible confirmation prompt is provided: `action=apply` is the explicit gate.
 For NAS database backups, stop after the `prepare` pass, complete
-[backup commissioning](../../../05-operations/backups/postgresql.md), then edit
+[backup commissioning](../../../05-operations/06-resilience/backups/postgresql.md), then edit
 `control_applications_backup_files_phase: backup` and the verified claim/marker fields
 before repeating render/review/apply. A prepare-only pass has not installed the dependent application.
 Commission each database separately: NetBox's claim, marker and system identifier differ from Keycloak's.
@@ -207,7 +208,7 @@ Select one backup method. Scheduled full file backups send verified copies to a
 separate NAS backup PVC; live database data remains on Proxmox/Ceph-backed volumes.
 These copies include the WAL needed for that backup, not transactions written
 after it completes. Recovery is bounded by the last completed verified set.
-Follow [prepare, commission and enable](../../../05-operations/backups/postgresql.md)
+Follow [prepare, commission and enable](../../../05-operations/06-resilience/backups/postgresql.md)
 before treating a fresh files-mode application install as complete.
 
 The object/WAL option archives through Barman and schedules physical backups to
@@ -221,7 +222,7 @@ Cluster name and fresh PVCs: `bootstrap.recovery.source` references an
 `externalClusters[].plugin` entry with `barmanObjectName` and the original database
 `serverName`. Restore read credentials and TLS independently. Never replace the
 running Cluster's `initdb` bootstrap or share archive prefixes between writers. [1]
-Use the separate [NAS-file recovery procedure](../../../05-operations/recovery/cnpg-files.md)
+Use the separate [NAS-file recovery procedure](../../../05-operations/06-resilience/recovery/cnpg-files.md)
 for a completed file set; it does not replay a Barman archive.
 
 NetBox media has a separate RWX persistent volume shared by web, worker and

@@ -202,7 +202,7 @@ reload HAProxy or restart Keepalived. [5][6][7]
 Before Kubernetes starts, the proxy can have no healthy backends. This is an
 expected bootstrap state, not permission to bypass the independent endpoint.
 Proceed with the selected [Terraform](talos-terraform.md#configure) or
-[manual cluster lifecycle](../step-1b-manual-cluster.md#prepare) once both gateways,
+[existing owner’s lifecycle](../step-1b-existing-cluster.md#prepare) once both gateways,
 VIP ownership, DNS and network gates are ready. API readiness is a post-bootstrap acceptance check.
 
 ## Verify and hand over
@@ -231,7 +231,7 @@ kubectl get nodes -o wide
 Before bootstrap, complete DNS/VIP and parser checks; backend readiness is expected
 to fail until the control planes exist. Continue with
 the selected [Terraform input configuration](talos-terraform.md#configure) or
-[manual lifecycle](../step-1b-manual-cluster.md#prepare), then return here for the live failover
+[existing owner’s lifecycle](../step-1b-existing-cluster.md#prepare), then return here for the live failover
 and isolation tests below using that lifecycle's exported kubeconfig.
 
 | Acceptance exercise | Required result |

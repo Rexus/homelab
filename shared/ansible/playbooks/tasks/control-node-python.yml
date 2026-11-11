@@ -1,0 +1,151 @@
+---
+# Local modules and lookups use the same interpreter as the direct deployment plays.
+- name: Prepare selected controller Python clients
+  vars:
+    control_node_python_catalog:
+      - collection: kubernetes.core
+        requirements: ['kubernetes>=24.2.0', 'jsonpatch>=1.33', 'PyYAML>=6.0']
+        imports: [kubernetes, jsonpatch, yaml]
+        packages:
+          RedHat: [python3-kubernetes, python3-jsonpatch, python3-pyyaml]
+          Debian: [python3-kubernetes, python3-jsonpatch, python3-yaml]
+      - collection: community.hashi_vault
+        # python_requirements_info accepts one bound per entry; pip intersects both.
+        requirements: ['hvac>=2.3.0', 'hvac<3.0.0']
+        imports: [hvac]
+        packages:
+          RedHat: [python3-hvac]
+          Debian: [python3-hvac]
+      - collection: community.crypto
+        requirements: ['cryptography>=43.0.0']
+        imports: [cryptography]
+        packages:
+          RedHat: [python3-cryptography]
+          Debian: [python3-cryptography]
+      - collection: amazon.aws
+        requirements: ['boto3>=1.35.0', 'botocore>=1.35.0']
+        imports: [boto3, botocore]
+        packages:
+          RedHat: [python3-boto3, python3-botocore]
+          Debian: [python3-boto3, python3-botocore]
+      # The bounded community.general 10.x metadata probe imports pkg_resources.
+      - collection: community.general
+        requirements: ['setuptools>=65', 'setuptools<82']
+        imports: [pkg_resources]
+        packages:
+          RedHat: [python3-setuptools]
+          Debian: [python3-setuptools]
+    control_node_python_selected: >-
+      {{ control_node_python_catalog | selectattr('collection', 'in',
+         control_node_required_collections | map(attribute='name') | list) | list }}
+    control_node_python_requirements: >-
+      {{ control_node_python_selected | map(attribute='requirements') | flatten | unique | list }}
+    control_node_python_imports: >-
+      {{ control_node_python_selected | map(attribute='imports') | flatten | unique | list }}
+  when: control_node_python_selected | length > 0
+  block:
+    - name: Inspect selected Python clients in Ansible's controller interpreter
+      community.general.python_requirements_info:
+        dependencies: "{{ control_node_python_requirements }}"
+      register: control_node_python_info
+      failed_when: false
+
+    - name: Require prepared Python clients in dependency check mode
+      ansible.builtin.assert:
+        that:
+          - control_node_python_info.not_found is defined
+          - control_node_python_info.not_found | default(['metadata probe unavailable']) | length == 0
+          - control_node_python_info.mismatched | default({}) | length == 0
+        fail_msg: >-
+          {{ ansible_playbook_python }} needs {{ control_node_python_requirements | join(', ') }}.
+          Missing: {{ control_node_python_info.not_found | default(['metadata probe unavailable']) }};
+          incompatible: {{ control_node_python_info.mismatched | default({}) }}.
+          Dependency check mode never installs Python libraries. Prepare matching native OS packages
+          or local wheels inside the active venv, then retry with CONTROL_NODE_COLLECTIONS_MODE=check.
+          Older community.general needs setuptools with pkg_resources (setuptools<82).
+          {{ control_node_python_info.msg | default('') }}
+          See docs/08-reference/control-node-tooling.md#ansible-environment.
+      when: control_node_collections_mode == 'check' or ansible_check_mode
+
+    - name: Prepare missing or incompatible controller Python clients
+      when:
+        - control_node_collections_mode == 'auto'
+        - not ansible_check_mode
+        - >-
+          control_node_python_info.not_found | default(['metadata probe unavailable']) | length > 0 or
+          control_node_python_info.mismatched | default({}) | length > 0
+      block:
+        - name: Identify the actual controller interpreter environment
+          ansible.builtin.command:
+            argv:
+              - "{{ ansible_playbook_python }}"
+              - -c
+              - 'import sys; print(sys.prefix if sys.prefix != sys.base_prefix else "")'
+          changed_when: false
+          register: control_node_python_venv
+
+        - name: Require a supported native system package path
+          ansible.builtin.assert:
+            that: ansible_os_family in ['RedHat', 'Debian']
+            fail_msg: >-
+              No controller OS package mapping exists for {{ ansible_os_family }}.
+              Prepare {{ control_node_python_requirements | join(', ') }} in an accepted isolated
+              runtime; do not install pip libraries into system Python.
+          when: control_node_python_venv.stdout | trim | length == 0
+
+        - name: Install controller clients with the native OS package manager
+          ansible.builtin.package:
+            name: >-
+              {{ control_node_python_selected | map(attribute='packages.' ~ ansible_os_family)
+                 | flatten | union(['python3-setuptools'] if control_node_python_info.not_found is undefined else [])
+                 | unique | list }}
+            state: present
+          become: true
+          when: control_node_python_venv.stdout | trim | length == 0
+
+        - name: Install controller clients only inside the existing Ansible virtual environment
+          ansible.builtin.pip:
+            name: >-
+              {{ control_node_python_requirements
+                 + (['setuptools<82'] if control_node_python_info.not_found is undefined else []) }}
+            virtualenv: "{{ control_node_python_venv.stdout | trim }}"
+          when: control_node_python_venv.stdout | trim | length > 0
+
+    - name: Recheck selected controller Python requirements
+      community.general.python_requirements_info:
+        dependencies: "{{ control_node_python_requirements }}"
+      register: control_node_python_final
+      failed_when: false
+
+    - name: Require compatible clients in the interpreter that runs deployment
+      ansible.builtin.assert:
+        that:
+          - control_node_python_final.not_found is defined
+          - control_node_python_final.not_found | default(['metadata probe unavailable']) | length == 0
+          - control_node_python_final.mismatched | default({}) | length == 0
+        fail_msg: >-
+          {{ ansible_playbook_python }} still needs {{ control_node_python_requirements | join(', ') }}.
+          Missing: {{ control_node_python_final.not_found | default(['metadata probe unavailable']) }};
+          incompatible: {{ control_node_python_final.mismatched | default({}) }}.
+          Verify OS packages match this interpreter. If native packages are too old or Python is
+          custom-installed, select the accepted isolated runtime and rerun; never use global system pip.
+          {{ control_node_python_final.msg | default('') }}
+
+    - name: Verify selected Python clients really import before deployment
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - "import {{ control_node_python_imports | join(', ') }}"
+      register: control_node_python_import_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Require working controller Python imports
+      ansible.builtin.assert:
+        that: control_node_python_import_check.rc == 0
+        fail_msg: >-
+          {{ ansible_playbook_python }} cannot import {{ control_node_python_imports | join(', ') }}.
+          Repair the selected interpreter's packages before retrying:
+          {{ control_node_python_import_check.stderr }}

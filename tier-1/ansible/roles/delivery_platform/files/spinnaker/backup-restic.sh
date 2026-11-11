@@ -21,27 +21,8 @@ case "${BACKUP_BACKEND:-s3}" in
     esac
     ;;
   filesystem)
-    : "${BACKUP_FILESYSTEM_MARKER:?Missing repository custody marker}"
-    mount="${BACKUP_FILESYSTEM_MOUNT:-/repository}"
-    case "$mount" in /*) ;; *) exit 1 ;; esac
-    test ! -L "$mount"
-    test "$(cd "$mount" && pwd -P)" = "$mount"
-    # A marker alone must never turn an unmounted local directory into a repository.
-    awk -v target="$mount" '$5 == target { found=1 } END { exit !found }' /proc/self/mountinfo || {
-      echo 'NAS repository mount is absent' >&2; exit 1
-    }
-    case "$RESTIC_REPOSITORY" in "$mount"/*) ;; *) exit 1 ;; esac
-    repository_name="${RESTIC_REPOSITORY#"$mount"/}"
-    case "$repository_name" in ''|*[!a-z0-9_-]*) exit 1 ;; esac
-    test ! -L "$RESTIC_REPOSITORY"
-    marker="$RESTIC_REPOSITORY/.spinnaker-backup-repository"
-    test -f "$marker"
-    test ! -L "$marker"
-    test "$(cat "$marker")" = "$BACKUP_FILESYSTEM_MARKER"
-    test -s "$RESTIC_REPOSITORY/config"
-    test ! -L "$RESTIC_REPOSITORY/config"
+    sh "$(dirname "$0")/filesystem-repository.sh" verify
     set --
-    restic cat config >/dev/null
     ;;
   *) echo 'Unsupported backup backend' >&2; exit 1 ;;
 esac

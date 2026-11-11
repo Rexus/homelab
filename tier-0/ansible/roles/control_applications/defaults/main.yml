@@ -62,6 +62,17 @@ control_applications_vault_policies: {}
 control_applications_vault_oidc_roles: []
 control_applications_vault_audit_forwarding_accepted: false
 control_applications_vault_ca_path: ""
+control_applications_vault_address: "https://{{ control_applications_hosts.vault }}"
+control_applications_vault_audit_destinations:
+  - {name: file, destination: /vault/audit/audit.json}
+  - {name: stdout, destination: stdout}
+# Transit uses a separately recoverable provider; its token is a Secret environment variable.
+control_applications_vault_seal_type: shamir
+control_applications_vault_transit: {}
+control_applications_vault_seal_hcl: ""
+control_applications_vault_provider_image: {}
+control_applications_vault_provider_accepted: false
+control_applications_vault_seal_migration_accepted: false
 control_applications_oidc_ca_pem: ""
 control_applications_valkey_image: ""
 control_applications_netbox_media_size: 5Gi

@@ -3,6 +3,9 @@ global:
   tlsDisable: false
 injector: {enabled: false}
 server:
+{% if control_applications_vault_provider_image | length > 0 %}
+  image: {{ control_applications_vault_provider_image | to_json }}
+{% endif %}
   logFormat: json
   statefulSet:
     securityContext:
@@ -37,8 +40,20 @@ server:
   persistentVolumeClaimRetentionPolicy: {whenDeleted: Retain, whenScaled: Retain}
   volumes:
     - {name: tls, secret: {secretName: vault-tls}}
+{% if control_applications_vault_seal_type == 'transit' %}
+    - {name: seal-ca, secret: {secretName: vault-seal, items: [{key: ca.crt, path: ca.crt}]}}
+{% endif %}
   volumeMounts:
     - {name: tls, mountPath: /vault/tls, readOnly: true}
+{% if control_applications_vault_seal_type == 'transit' %}
+    - {name: seal-ca, mountPath: /vault/seal, readOnly: true}
+{% endif %}
+{% if control_applications_vault_seal_type != 'shamir' %}
+  extraSecretEnvironmentVars:
+    - envName: {{ 'VAULT_TRANSIT_SEAL_TOKEN' if control_applications_vault_seal_type == 'transit' else 'VAULT_HSM_PIN' }}
+      secretName: vault-seal
+      secretKey: {{ 'VAULT_TRANSIT_SEAL_TOKEN' if control_applications_vault_seal_type == 'transit' else 'VAULT_HSM_PIN' }}
+{% endif %}
   extraEnvironmentVars:
     VAULT_CACERT: /vault/tls/ca.crt
     VAULT_TLS_SERVER_NAME: {{ control_applications_hosts.vault | to_json }}
@@ -78,6 +93,17 @@ server:
 {% endfor %}
         }
         service_registration "kubernetes" {}
+{% if control_applications_vault_seal_type == 'transit' %}
+        seal "transit" {
+          address = {{ control_applications_vault_transit.address | to_json }}
+          key_name = {{ control_applications_vault_transit.key_name | to_json }}
+          mount_path = {{ control_applications_vault_transit.get('mount_path', 'transit/') | to_json }}
+          tls_ca_cert = "/vault/seal/ca.crt"
+          tls_server_name = {{ control_applications_vault_transit.tls_server_name | to_json }}
+        }
+{% elif control_applications_vault_seal_type == 'pkcs11' %}
+{{ control_applications_vault_seal_hcl | indent(8, true) }}
+{% endif %}
   resources:
     requests: {cpu: 250m, memory: 512Mi}
     limits: {memory: 1Gi}

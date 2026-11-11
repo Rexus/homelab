@@ -17,7 +17,7 @@
           Debian: [python3-netaddr]
       community.general:
         name: community.general
-        version: '>=10.2.0'
+        version: '>=10.2.0,<11.0.0'
         os_packages:
           RedHat:
             - ansible-collection-community-general
@@ -25,7 +25,7 @@
             - ansible-collection-community-general
       ansible.posix:
         name: ansible.posix
-        version: '>=1.5.0'
+        version: '>=1.5.0,<3.0.0'
         os_packages:
           RedHat:
             - ansible-collection-ansible-posix
@@ -33,6 +33,7 @@
             - ansible-collection-ansible-posix
       community.crypto:
         name: community.crypto
+        version: '>=2.26.0,<3.0.0'
         os_packages:
           RedHat: [ansible-collection-community-crypto]
           Debian: [ansible]
@@ -85,13 +86,45 @@
             else 'none'
           }}.
 
+    - name: Require the declared engine for collections outside the bootstrap baseline
+      ansible.builtin.assert:
+        that: ansible_version.full is ansible.builtin.version(item.min_ansible_core, '>=')
+        fail_msg: >-
+          Setup {{ control_node_selected_setup }} requires ansible-core >= {{ item.min_ansible_core }}
+          for {{ item.name }}; this controller runs {{ ansible_version.full }}.
+          Select the accepted isolated runtime before retrying. Proxmox template commands prepare
+          their runtime through scripts/proxmox-templates.sh; do not replace system Ansible with pip.
+      loop: "{{ control_node_required_collections }}"
+      when: item.min_ansible_core is defined
+
     - name: Verify Terraform is installed on the deployment machine
       ansible.builtin.command:
         argv:
           - terraform
           - version
       changed_when: false
+      check_mode: false
       when: control_node_require_terraform | default(true) | bool
+
+    - name: Check selected native deployment tools without acquiring binaries
+      ansible.builtin.command:
+        argv: "{{ item }}"
+      loop: "{{ (control_node_setup_tool_commands | default({})).get(control_node_selected_setup, []) }}"
+      register: control_node_tool_checks
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Require approved native tools before deployment changes
+      ansible.builtin.assert:
+        that: item.rc | default(1) == 0
+        fail_msg: >-
+          Setup {{ control_node_selected_setup }} cannot run {{ item.item | join(' ') }}.
+          Prepare this tool through the approved bootstrap artifact/package inputs and retry.
+          The precheck never downloads standalone binaries. See docs/08-reference/control-node-tooling.md.
+      loop: "{{ control_node_tool_checks.results }}"
+      loop_control:
+        label: "{{ item.item | join(' ') }}"
 
     - name: Check required Ansible collections
       ansible.builtin.command:
@@ -104,6 +137,7 @@
       register: control_node_collection_checks
       failed_when: false
       changed_when: false
+      check_mode: false
 
     - name: Track missing Ansible collections
       ansible.builtin.set_fact:
@@ -128,7 +162,7 @@
           Missing collections: {{ control_node_missing_collections | map(attribute='name') | join(', ') }}.
           Install the prepared local Galaxy requirements before retrying; check mode never downloads dependencies.
           See docs/03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md.
-      when: control_node_collections_mode == 'check'
+      when: control_node_collections_mode == 'check' or ansible_check_mode
 
     - name: Install missing Ansible collections from OS packages first
       ansible.builtin.package:
@@ -139,6 +173,7 @@
       failed_when: false
       when:
         - control_node_collections_mode == 'auto'
+        - not ansible_check_mode
         - (control_node_collection_packages | default([]) | length) > 0
 
     - name: Re-check required Ansible collections after OS packages
@@ -152,6 +187,7 @@
       register: control_node_collection_rechecks
       failed_when: false
       changed_when: false
+      check_mode: false
       when: (control_node_missing_collections | default([]) | length) > 0
 
     - name: Track collections still missing after OS package install
@@ -185,6 +221,7 @@
       loop: "{{ control_node_required_collections }}"
       when:
         - control_node_collections_mode | default('auto') == 'auto'
+        - not ansible_check_mode
         - item.version is defined or item in control_node_still_missing_collections
       register: control_node_galaxy_install
       changed_when: "'was installed successfully' in control_node_galaxy_install.stdout"
@@ -198,6 +235,8 @@
           {{ item.name }} resolves to {{ installed_version | default('unknown', true) }},
           but requires {{ item.version }}. Correct outdated or unversioned collections earlier
           on Ansible's search path; installing another shadowed copy is insufficient.
+          Incompatible newer copies must also be removed or replaced; the bootstrap dependency
+          ranges deliberately retain collection lines compatible with ansible-core 2.16.
       vars:
         installed_version: >-
           {{ lookup('community.general.collection_version', item.name,
@@ -216,6 +255,12 @@
           {{ result.accepted }}
       loop: "{{ control_node_required_collections }}"
       when: item.version is defined
+
+    - name: Prepare controller Python clients for selected collections
+      ansible.builtin.include_tasks: tasks/control-node-python.yml
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+      when: control_node_required_collections | length > 0
 
     - name: Prepare controller Python for network filters
       ansible.builtin.include_tasks: tasks/control-node-network-filters.yml

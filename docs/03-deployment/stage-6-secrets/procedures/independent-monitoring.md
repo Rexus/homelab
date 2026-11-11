@@ -11,7 +11,7 @@ prerequisite for the earlier collector.
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** accepted [protected logging](../../stage-2-logging/README.md), approved
 runtime/storage and independent recovery inputs. Tier 1 Observability is not required.
-**Design:** [telemetry composition](../../../01-architecture/24-operations/03-telemetry.md).
+**Design:** [telemetry composition](../../../01-architecture/11-operations/03-observability.md).
 
 ## Main path
 

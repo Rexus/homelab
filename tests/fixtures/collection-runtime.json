@@ -1,0 +1,77 @@
+{
+  "baseline": "2.16.0",
+  "collections": [
+    {
+      "name": "community.general",
+      "version": "10.7.6",
+      "requires_ansible": ">=2.15.0",
+      "source": "https://raw.githubusercontent.com/ansible-collections/community.general/10.7.6/meta/runtime.yml"
+    },
+    {
+      "name": "community.crypto",
+      "version": "2.26.0",
+      "requires_ansible": ">=2.9.10",
+      "source": "https://raw.githubusercontent.com/ansible-collections/community.crypto/2.26.0/meta/runtime.yml"
+    },
+    {
+      "name": "ansible.posix",
+      "version": "2.2.0",
+      "requires_ansible": ">=2.16.0",
+      "source": "https://raw.githubusercontent.com/ansible-collections/ansible.posix/2.2.0/meta/runtime.yml"
+    },
+    {
+      "name": "ansible.utils",
+      "version": "6.0.0",
+      "requires_ansible": ">=2.16.0",
+      "source": "https://raw.githubusercontent.com/ansible-collections/ansible.utils/v6.0.0/meta/runtime.yml"
+    },
+    {
+      "name": "kubernetes.core",
+      "version": "6.6.0",
+      "requires_ansible": ">=2.16.0",
+      "source": "https://raw.githubusercontent.com/ansible-collections/kubernetes.core/6.6.0/meta/runtime.yml"
+    },
+    {
+      "name": "community.hashi_vault",
+      "version": "6.2.0",
+      "requires_ansible": ">=2.14.0",
+      "source": "https://raw.githubusercontent.com/ansible-collections/community.hashi_vault/6.2.0/meta/runtime.yml"
+    },
+    {
+      "name": "amazon.aws",
+      "version": "9.5.1",
+      "requires_ansible": ">=2.15.0",
+      "source": "https://raw.githubusercontent.com/ansible-collections/amazon.aws/9.5.1/meta/runtime.yml"
+    },
+    {
+      "name": "community.postgresql",
+      "version": "4.2.0",
+      "requires_ansible": ">=2.9.10",
+      "source": "https://raw.githubusercontent.com/ansible-collections/community.postgresql/4.2.0/meta/runtime.yml"
+    },
+    {
+      "name": "containers.podman",
+      "version": "1.18.0",
+      "requires_ansible": ">=2.8",
+      "source": "https://raw.githubusercontent.com/containers/ansible-podman-collections/1.18.0/meta/runtime.yml"
+    },
+    {
+      "name": "ansible.mariadb",
+      "version": "6.0.2",
+      "requires_ansible": ">=2.16.0",
+      "source": "https://raw.githubusercontent.com/ansible-collections/ansible.mariadb/6.0.2/meta/runtime.yml"
+    },
+    {
+      "name": "freeipa.ansible_freeipa",
+      "version": "1.14.0",
+      "requires_ansible": ">=2.15.0",
+      "source": "https://raw.githubusercontent.com/freeipa/ansible-freeipa/v1.14.0/meta/runtime.yml"
+    },
+    {
+      "name": "community.proxmox",
+      "version": "2.1.0",
+      "requires_ansible": ">=2.17.0",
+      "source": "https://raw.githubusercontent.com/ansible-collections/community.proxmox/2.1.0/meta/runtime.yml"
+    }
+  ]
+}

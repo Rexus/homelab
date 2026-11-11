@@ -6,7 +6,7 @@ Operational tests are in the separate [manual verification list](operational-ver
 This file tracks code coverage and optional integrations, not deployed-system acceptance.
 
 Parent: [operator walkthrough](operator-walkthrough.md).
-Design: [certificate authority](../docs/01-architecture/16-cryptography/01-certificate-authority.md).
+Design: [certificate authority](../docs/01-architecture/08-cryptography/01-certificate-authority.md).
 Deployment: [software-first PKI](../docs/03-deployment/stage-3-trust/procedures/software-pki.md).
 
 ## Selected boundaries
@@ -45,7 +45,7 @@ and is not implied installed by the supplied issuer runtime.
   Existing domains are preserved; renewal/rechaining requires a separate migration procedure.
 - [x] Public HTTP-01, production chain/name checks, verified origins and serialized renewal
   scheduling are supplied for the later selected HTTPS path.
-- [x] [Algorithm/PQC and custody guidance](../docs/05-operations/cryptography/security-controls.md),
+- [x] [Algorithm/PQC and custody guidance](../docs/05-operations/03-cryptography/security-controls.md),
   vendor HSM timing references and a documented new-key HSM migration path.
 - [x] Native local regression checks cover policy construction, ceremony constraints, inputs
   and execution boundaries. They are not live package, custody or recovery qualification.
@@ -56,9 +56,10 @@ and is not implied installed by the supplied issuer runtime.
   with tier-scoped credentials, backend profile/name authorization, restrictive defaults,
   order/workflow correlation and restored bridge state. Community native ACME is Enterprise-only;
   EAB registration alone does not authorize arbitrary certificate requests.
-- [ ] If USB/network HSM custody is selected, implement and qualify the actual provider/device
-  path, permissions, mechanisms, labels and same-key recovery. Gateway/VIP templates and device
-  count do not establish CA application HA or remove database/workflow/session dependencies.
+- [x] Supply native YubiHSM 2/PicoHSM provider installation, original-key issuer CSR/token operations,
+  restricted PKCS#11 remoting and guarded ordinary issuer activation. Native protocol fixtures pass.
+- [ ] Qualify physical provider/device permissions, mechanisms and independent same-key recovery.
+  Gateway/device counts do not establish CA application HA or remove state/session dependencies.
 - [ ] If CA application HA is required beyond tested single-writer recovery, select a supported
   database/workflow/session/key-access design and implement its coordinated failover.
 

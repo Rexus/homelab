@@ -1,0 +1,65 @@
+---
+- name: Require single-line public SSH inputs and distinct destination names
+  ansible.builtin.assert:
+    that:
+      - item | basename is match('^[A-Za-z0-9_.-]+\.pub$')
+      - lookup('ansible.builtin.file', item).strip().splitlines() | length == 1
+      - "'PRIVATE KEY' not in lookup('ansible.builtin.file', item)"
+      - infrastructure_runner_public_key_files | map('basename') | unique | length == infrastructure_runner_public_key_files | length
+  loop: "{{ infrastructure_runner_public_key_files }}"
+  no_log: true
+
+- name: Prepare the private public-key directory for infrastructure jobs
+  ansible.builtin.file:
+    path: "{{ infrastructure_runner_workspace }}/public-keys"
+    state: directory
+    owner: gitlab-runner
+    group: gitlab-runner
+    mode: '0700'
+
+- name: Install only the approved public deployment keys
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ infrastructure_runner_workspace }}/public-keys/{{ item | basename }}"
+    owner: gitlab-runner
+    group: gitlab-runner
+    mode: '0600'
+    validate: /usr/bin/ssh-keygen -lf %s
+  loop: "{{ infrastructure_runner_public_key_files }}"
+
+- name: Install the separately reviewed non-secret CI environment
+  ansible.builtin.copy:
+    src: "{{ infrastructure_runner_environment_src }}"
+    dest: "{{ infrastructure_runner_workspace }}/ci.env"
+    owner: gitlab-runner
+    group: gitlab-runner
+    mode: '0600'
+    validate: /usr/bin/bash -n %s
+  when: infrastructure_runner_environment_src | length > 0
+  no_log: true
+  diff: false
+
+- name: Resolve the installed runner's native home directory
+  ansible.builtin.getent:
+    database: passwd
+    key: gitlab-runner
+  when: infrastructure_runner_known_hosts_src | length > 0
+
+- name: Prepare the runner's protected SSH trust directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts.getent_passwd['gitlab-runner'][4] }}/.ssh"
+    state: directory
+    owner: gitlab-runner
+    group: gitlab-runner
+    mode: '0700'
+  when: infrastructure_runner_known_hosts_src | length > 0
+
+- name: Preserve explicitly selected original SSH host trust
+  ansible.builtin.copy:
+    src: "{{ infrastructure_runner_known_hosts_src }}"
+    dest: "{{ ansible_facts.getent_passwd['gitlab-runner'][4] }}/.ssh/known_hosts"
+    owner: gitlab-runner
+    group: gitlab-runner
+    mode: '0600'
+    validate: /usr/bin/ssh-keygen -lf %s
+  when: infrastructure_runner_known_hosts_src | length > 0

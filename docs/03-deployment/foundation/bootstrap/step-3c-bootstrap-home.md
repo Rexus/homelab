@@ -184,7 +184,7 @@ Repeat **9**'s new SSH login and sudo check.
 ## 11. Back up and continue
 
 Include both disks and the SELinux/fstab configuration in the independent
-[bootstrap recovery set](../../../05-operations/backups/recovery-set.md).
+[bootstrap recovery set](../../../05-operations/06-resilience/backups/recovery-set.md).
 Home data uses the attached disk; root's `/root` and OS packages remain on the OS disk.
 Repository and artifact paths remain under `/srv/tier0`.
 

@@ -1,0 +1,22 @@
+{% for name, backend in hsm_remote_backends | dictsort %}
+Host hsm-{{ hsm_remote_pool_id }}-{{ name }}
+  HostName {{ backend.host }}
+  Port {{ hsm_remote_port }}
+  User {{ hsm_remote_account }}
+  HostKeyAlias hsm-{{ hsm_remote_pool_id }}-{{ name }}
+  IdentityFile {{ hsm_remote_config_dir }}/client.key
+  IdentitiesOnly yes
+  BatchMode yes
+  StrictHostKeyChecking yes
+  UserKnownHostsFile {{ hsm_remote_config_dir }}/known_hosts
+  GlobalKnownHostsFile /dev/null
+  UpdateHostKeys no
+  RequestTTY no
+  ForwardAgent no
+  ClearAllForwardings yes
+  ConnectTimeout 5
+  ConnectionAttempts 1
+  ServerAliveInterval 10
+  ServerAliveCountMax 2
+
+{% endfor %}

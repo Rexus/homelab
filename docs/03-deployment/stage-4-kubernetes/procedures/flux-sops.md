@@ -138,7 +138,7 @@ export KUBECONFIG="${KUBECONFIG:-$PWD/secrets/talos/kubeconfig}"
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=apply
 ```
 
-Retain the selected lifecycle's exported `KUBECONFIG`; manual clusters use their existing
+Retain the selected lifecycle's exported `KUBECONFIG`; existing externally managed clusters use their existing
 `secrets/<cluster-name>/kubeconfig`. Do not create another cluster or copy another tier's credentials
 to satisfy the Terraform-path fallback.
 

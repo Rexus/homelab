@@ -1,0 +1,27 @@
+---
+- name: Validate original-key custody and credentials before public-key inspection
+  ansible.builtin.import_tasks: issuer-credentials.yml
+
+- name: Render native public-key inspection configuration without a PIN
+  ansible.builtin.template:
+    src: issuer-openssl.cnf.j2
+    dest: /etc/hsm-provider/issuer-openssl.cnf
+    owner: root
+    group: openxpki
+    mode: "0640"
+
+- name: Read the original hardware key public component without creating a key
+  ansible.builtin.command:
+    argv: [openssl, pkey, -engine, pkcs11, -inform, ENGINE, -in, "{{ hsm_issuer_key }}",
+           -passin, 'env:HSM_ISSUER_PIN', -pubout]
+  environment: >-
+    {{ hsm_provider_environment | combine({
+      'OPENSSL_CONF': '/etc/hsm-provider/issuer-openssl.cnf',
+      'HSM_ISSUER_PIN': hsm_issuer_pin},
+      {'YUBIHSM_PKCS11_CONF': '/etc/hsm-provider/yubihsm_pkcs11.conf'}
+      if hsm_provider_driver == 'yubihsm' else {}) }}
+  become: true
+  become_user: openxpki
+  changed_when: false
+  register: hsm_issuer_public_key
+  no_log: true

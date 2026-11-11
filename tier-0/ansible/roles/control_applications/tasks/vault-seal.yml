@@ -1,0 +1,58 @@
+---
+- name: Require an explicit supported seal configuration
+  ansible.builtin.assert:
+    that:
+      - control_applications_vault_seal_type in ['shamir', 'transit', 'pkcs11']
+      - control_applications_vault_seal_type == 'pkcs11' or control_applications_vault_seal_hcl | trim | length == 0
+    fail_msg: Select Shamir, Transit or a qualified Enterprise PKCS11 image; never put seal credentials in HCL.
+
+- name: Validate independent Transit service and named key
+  ansible.builtin.assert:
+    that:
+      - control_applications_vault_transit.get('address', '') is match('^https://[^/ ]+(:[0-9]+)?$')
+      - control_applications_vault_transit.address != control_applications_vault_address
+      - control_applications_vault_transit.get('key_name', '') is match('^[a-zA-Z0-9_-]+$')
+      - control_applications_vault_transit.get('mount_path', 'transit/') is match('^[a-zA-Z0-9_/-]+/$')
+      - control_applications_vault_transit.get('tls_server_name', '') is match('^[a-zA-Z0-9][a-zA-Z0-9.-]+$')
+      - control_applications_vault_provider_accepted | bool
+    fail_msg: Supply an independently recoverable HTTPS Transit provider, named key, scoped renewable token and CA.
+  when: control_applications_vault_seal_type == 'transit'
+
+- name: Validate the explicitly qualified Enterprise provider artifact
+  ansible.builtin.assert:
+    that:
+      - control_applications_vault_provider_accepted | bool
+      - control_applications_vault_provider_image.get('repository', '') | length > 0
+      - control_applications_vault_provider_image.get('tag', '') is match('^.+@sha256:[0-9a-f]{64}$')
+      - control_applications_vault_seal_hcl is search('seal\s+"pkcs11"')
+      - control_applications_vault_seal_hcl is not search('(?im)^\s*(pin|token|tls_skip_verify)\s*=')
+    fail_msg: PKCS11 needs a licensed digest-pinned image containing its qualified provider, and credential-free seal HCL.
+  when: control_applications_vault_seal_type == 'pkcs11'
+
+- name: Inspect the existing seal configuration before reconciliation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ control_applications_kubeconfig }}"
+    context: "{{ control_applications_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: ConfigMap
+    namespace: vault
+    name: vault-config
+  register: control_applications_vault_previous_config
+  no_log: true
+  when: control_applications_action == 'apply'
+
+- name: Refuse an implicit seal migration on an existing service
+  ansible.builtin.assert:
+    that:
+      - old_seals == new_seals or control_applications_vault_seal_migration_accepted | bool
+    fail_msg: Seal changes require the supported migration ceremony and retained recovery material; routine apply cannot migrate a seal.
+  vars:
+    old_config: "{{ control_applications_vault_previous_config.resources[0].data | dict2items | map(attribute='value') | join('\n') }}"
+    new_config: "{{ (lookup('ansible.builtin.template', 'vault-values.yml.j2') | from_yaml).server.ha.raft.config }}"
+    old_seals: "{{ old_config | regex_findall('seal\\s+\"[^\"]+\"\\s*\\{[^}]*\\}') | map('regex_replace', '\\s+', '') | list }}"
+    new_seals: "{{ new_config | regex_findall('seal\\s+\"[^\"]+\"\\s*\\{[^}]*\\}') | map('regex_replace', '\\s+', '') | list }}"
+  no_log: true
+  when:
+    - control_applications_action == 'apply'
+    - control_applications_vault_previous_config.resources | length > 0

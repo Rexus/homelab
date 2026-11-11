@@ -1,0 +1,185 @@
+---
+- name: Require an explicit stopped source collection and one destination
+  ansible.builtin.assert:
+    that:
+      - groups.get('infrastructure_runner', []) | length == 1
+      - infrastructure_runner_trust_ci_control_plane | bool
+      - infrastructure_runner_handover_writers_stopped is sameas true
+      - infrastructure_runner_handover_source is match('^/[^\n]+$')
+      - infrastructure_runner_handover_source not in ['/', '/home', '/srv', '/tmp']
+      - "'..' not in infrastructure_runner_handover_source.split('/')"
+      - infrastructure_runner_workspace is match('^/srv/[a-zA-Z0-9/_-]+$')
+      - infrastructure_runner_workspace | regex_replace('/+$', '') != '/srv'
+    fail_msg: Stop bootstrap and CI writers, then select the original collection and its installed single Tier 0 runner.
+
+- name: Normalize the selected source directory
+  ansible.builtin.set_fact:
+    handover_source_root: "{{ infrastructure_runner_handover_source | regex_replace('/+$', '') }}"
+
+- name: Inspect the controller's collection and installed remote workspace without following links
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+    follow: false
+  delegate_to: "{{ item.host }}"
+  become: false
+  loop:
+    - {path: "{{ handover_source_root }}", host: localhost}
+    - {path: "{{ infrastructure_runner_workspace }}", host: "{{ inventory_hostname }}"}
+  register: handover_roots
+
+- name: Require real source and destination directories
+  ansible.builtin.assert:
+    that:
+      - item.stat.isdir | default(false)
+      - not item.stat.islnk | default(false)
+  loop: "{{ handover_roots.results }}"
+
+- name: Inspect collection siblings on the controller
+  ansible.builtin.find:
+    paths: "{{ handover_source_root }}"
+    patterns: ['*-tier-0', '*-shared']
+    file_type: directory
+    recurse: false
+    follow: false
+  delegate_to: localhost
+  become: false
+  register: handover_siblings
+
+- name: Require one matching Tier 0 and Shared collection rather than an arbitrary source tree
+  ansible.builtin.assert:
+    that:
+      - tier_prefixes | intersect(shared_prefixes) | length == 1
+    fail_msg: Select the collection containing the original matching prefix-tier-0 and prefix-shared repositories.
+  vars:
+    names: "{{ handover_siblings.files | map(attribute='path') | map('basename') | list }}"
+    tier_prefixes: "{{ names | select('match', '.*-tier-0$') | map('regex_replace', '-tier-0$', '') | list }}"
+    shared_prefixes: "{{ names | select('match', '.*-shared$') | map('regex_replace', '-shared$', '') | list }}"
+
+- name: Inspect the destination for linked paths before transferring private state
+  ansible.builtin.find:
+    paths: "{{ infrastructure_runner_workspace }}"
+    recurse: true
+    hidden: true
+    follow: false
+    file_type: link
+  register: handover_destination_links
+
+- name: Refuse transfer through existing destination links
+  ansible.builtin.assert:
+    that: handover_destination_links.matched | int == 0
+    fail_msg: Existing workspace links need review before state transfer; no linked destination is overwritten.
+
+- name: Find original Terraform states on the controller
+  ansible.builtin.find:
+    paths: "{{ handover_source_root }}"
+    patterns: '*.tfstate'
+    recurse: true
+    hidden: true
+    follow: false
+    file_type: file
+  delegate_to: localhost
+  become: false
+  register: handover_states
+  no_log: true
+
+- name: Retain only authoritative state files rather than disposable backend metadata
+  ansible.builtin.set_fact:
+    handover_state_files: >-
+      {{ handover_states.files | rejectattr('path', 'search', '/\.terraform/(data|plans)/') |
+         rejectattr('path', 'search', '/\.venv/') | list }}
+  no_log: true
+
+- name: Require original state rather than a freshly generated empty collection
+  ansible.builtin.assert:
+    that: handover_state_files | length > 0
+    fail_msg: Restore the original state on bootstrap before handover; an empty generation is not migration.
+
+- name: Read original state digests without publishing their contents
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+    checksum_algorithm: sha256
+  loop: "{{ handover_state_files }}"
+  delegate_to: localhost
+  become: false
+  register: handover_state_digests
+  no_log: true
+
+- name: Inspect corresponding destination states before any transfer
+  ansible.builtin.stat:
+    path: "{{ infrastructure_runner_workspace }}{{ item.item.path | replace(handover_source_root, '', 1) }}"
+    checksum_algorithm: sha256
+    follow: false
+  loop: "{{ handover_state_digests.results }}"
+  register: handover_previous_states
+  no_log: true
+
+- name: Refuse replacement of different destination state
+  ansible.builtin.assert:
+    that:
+      - not item.stat.exists or item.stat.checksum | default('') == item.item.stat.checksum
+    fail_msg: The destination has different state; resolve its lineage before handover.
+  loop: "{{ handover_previous_states.results }}"
+  no_log: true
+
+- name: Verify the controller rsync dependency before stopping the runner
+  ansible.builtin.command:
+    argv: [rsync, --version]
+  delegate_to: localhost
+  become: false
+  changed_when: false
+
+- name: Verify the runner rsync dependency before changing its service
+  ansible.builtin.command:
+    argv: [rsync, --version]
+  changed_when: false
+
+- name: Stop the accepted runner before transferring the validated collection
+  ansible.builtin.systemd_service:
+    name: gitlab-runner
+    state: stopped
+
+- name: Transfer private inputs and original state over the managed SSH connection
+  ansible.posix.synchronize:
+    src: "{{ handover_source_root }}/"
+    dest: "{{ infrastructure_runner_workspace }}/"
+    archive: true
+    checksum: true
+    delete: false
+    use_ssh_args: true
+    verify_host: true
+    rsync_opts:
+      - --safe-links
+      - --exclude=.env*
+      - --exclude=**/.terraform/data/***
+      - --exclude=**/.terraform/plans/***
+      - --exclude=.venv/
+      - --chown=gitlab-runner:gitlab-runner
+      - --chmod=Du=rwx,Dgo=,Fu=rwX,Fgo=
+  no_log: true
+  diff: false
+
+- name: Read the copied state digests on the runner
+  ansible.builtin.stat:
+    path: "{{ infrastructure_runner_workspace }}{{ item.item.path | replace(handover_source_root, '', 1) }}"
+    checksum_algorithm: sha256
+    follow: false
+  loop: "{{ handover_state_digests.results }}"
+  register: handover_remote_states
+  no_log: true
+
+- name: Require byte-identical state before handing over execution
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - not item.stat.islnk | default(false)
+      - item.stat.checksum == item.item.stat.checksum
+    fail_msg: State copy differs; leave the runner stopped and retain the original bootstrap collection.
+  loop: "{{ handover_remote_states.results }}"
+  no_log: true
+
+- name: Show the completed transfer boundary
+  ansible.builtin.debug:
+    msg: >-
+      Original state and private inputs copied and verified; runner remains stopped.
+      Retain the bootstrap recovery copy, configure the non-secret CI environment and
+      reinstall infrastructure-runner to enable accepted jobs. Bootstrap .env files were excluded.

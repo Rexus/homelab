@@ -28,25 +28,32 @@ module "vms" {
   for_each = module.environment.vm_instances
   source   = "../../modules/vm"
 
-  name                     = each.value.name
-  node_name                = each.value.node_name
-  vm_id                    = each.value.vm_id
-  template_vm_id           = each.value.template_vm_id
-  template_node_name       = each.value.template_node_name
-  storage_class            = each.value.storage_class
-  storage_class_datastores = var.proxmox_storage_classes
-  bridge                   = each.value.bridge
-  vlan_id                  = each.value.vlan_id
-  size                     = each.value.size
-  cores                    = each.value.cores
-  memory                   = each.value.memory
-  disk_size_gb             = each.value.disk_size_gb
-  extra_disks              = each.value.extra_disks
-  ipv4_address             = each.value.ipv4_address
-  ipv4_gateway             = each.value.ipv4_gateway
-  ssh_public_keys          = var.ssh_public_keys
-  ssh_public_key_files     = var.ssh_public_key_files
-  tags                     = each.value.tags
+  name                        = each.value.name
+  node_name                   = each.value.node_name
+  vm_id                       = each.value.vm_id
+  template_vm_id              = each.value.template_vm_id
+  template_node_name          = each.value.template_node_name
+  full_clone                  = each.value.full_clone
+  firmware                    = each.value.firmware
+  initialization_datastore_id = each.value.initialization_datastore_id
+  nic_firewall                = each.value.nic_firewall
+  started                     = each.value.started
+  template                    = each.value.template
+  stop_on_destroy             = each.value.stop_on_destroy
+  storage_class               = each.value.storage_class
+  storage_class_datastores    = var.proxmox_storage_classes
+  bridge                      = each.value.bridge
+  vlan_id                     = each.value.vlan_id
+  size                        = each.value.size
+  cores                       = each.value.cores
+  memory                      = each.value.memory
+  disk_size_gb                = each.value.disk_size_gb
+  extra_disks                 = each.value.extra_disks
+  ipv4_address                = each.value.ipv4_address
+  ipv4_gateway                = each.value.ipv4_gateway
+  ssh_public_keys             = var.ssh_public_keys
+  ssh_public_key_files        = var.ssh_public_key_files
+  tags                        = each.value.tags
 }
 
 module "lxcs" {

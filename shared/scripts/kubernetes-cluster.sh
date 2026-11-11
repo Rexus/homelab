@@ -42,7 +42,7 @@ if [[ "$action" == plan || "$action" == apply ]]; then
       ''|0|f|F|false|False|FALSE) ;;
       *)
         echo "Refusing Proxmox TLS bypass: unset $tls_option and install approved API trust." >&2
-        echo "See docs/05-operations/hosts/proxmox-tls.md." >&2
+        echo "See docs/05-operations/01-hosting/proxmox-tls.md." >&2
         exit 1
         ;;
     esac

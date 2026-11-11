@@ -1,0 +1,53 @@
+---
+- name: Validate the selected provider before changing the host
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Install approved middleware and the native read-only inspection tool
+  ansible.builtin.package:
+    name: "{{ hsm_provider_packages + ['opensc'] }}"
+    state: present
+
+- name: Create protected provider configuration storage
+  ansible.builtin.file:
+    path: /etc/hsm-provider
+    state: directory
+    owner: root
+    group: "{{ hsm_provider_group }}"
+    mode: "0755"
+
+- name: Install supplied vendor-native client configuration from the controller
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default(hsm_provider_group) }}"
+    mode: "{{ item.mode | default('0640') }}"
+  loop: "{{ hsm_provider_config_files }}"
+  no_log: true
+
+- name: Configure the selected YubiHSM provider
+  ansible.builtin.import_tasks: yubihsm.yml
+  when: hsm_provider_driver == 'yubihsm'
+
+- name: Install local OpenSC smart-card transport
+  ansible.builtin.package:
+    name: "{{ ['pcscd', 'libccid'] if ansible_os_family == 'Debian' else ['pcsc-lite', 'pcsc-lite-ccid'] }}"
+    state: present
+  when: hsm_provider_driver == 'opensc'
+
+- name: Enable local OpenSC socket activation
+  ansible.builtin.systemd_service:
+    name: pcscd.socket
+    enabled: true
+    state: started
+  when: hsm_provider_driver == 'opensc'
+
+- name: Authorize only the declared headless PCSC service identities and readers
+  ansible.builtin.import_tasks: pcsc.yml
+  when: hsm_provider_driver == 'opensc'
+
+- name: Apply pending connector configuration before inspecting the provider
+  ansible.builtin.meta: flush_handlers
+
+- name: Inspect the installed provider without initializing or changing the token
+  ansible.builtin.import_tasks: inspect.yml

@@ -30,15 +30,75 @@ class Observability(TierRepositoryTestCase):
             self.assertEqual(hardware.count('network_zone_key  = "observability"'), len(expected))
             self.assertEqual(hardware.count('storage_class     = "local"'), len(expected))
             self.assertIn('proxmox_node_name = "pve03"', hardware)
-            for recipe in ("deployment/telemetry-hosts.yml", "maintenance/observability.yml"):
-                plays = yaml.safe_load((tier / "ansible/playbooks" / recipe).read_text())
-                self.assertEqual(plays[0]["roles"], ["baseline"])
-                self.assertIn("observability", plays[0]["hosts"].split(":"))
+            recipe = tier / "ansible/playbooks/deployment/telemetry-hosts.yml"
+            entries = yaml.safe_load(recipe.read_text())
+            ready = entries[0]
+            self.assertEqual(set(ready["vars"]["guest_ready_group"].split(":")),
+                             {"telemetry_gateways", "security_telemetry", "observability", "archive"})
+            readiness = recipe.parent / ready["ansible.builtin.import_playbook"]
+            self.assertEqual(readiness.name, "guest-ready.yml")
+            readiness_play = yaml.safe_load(readiness.read_text())[0]
+            self.assertFalse(readiness_play["gather_facts"])
+            self.assertIn("ansible.builtin.wait_for_connection", readiness_play["tasks"][0])
+
+            plays = [entry for entry in entries if "hosts" in entry]
+            role_plays = [(index, play) for index, play in enumerate(plays) if "roles" in play]
+            self.assertEqual(len(role_plays), 2)
+            legacy, installation = role_plays
+            self.assertEqual(legacy[1]["roles"], ["baseline"])
+            self.assertEqual(set(legacy[1]["hosts"].split(":")),
+                             {"telemetry_gateways", "security_telemetry", "archive", "!observability"})
+            self.assertEqual(installation[1]["hosts"], "observability")
+            self.assertEqual(installation[1]["roles"], ["observability_vm"])
+            self.assertTrue(installation[1]["any_errors_fatal"])
+
+            tasks = yaml.safe_load((tier / "ansible/roles/observability_vm/tasks/main.yml").read_text())
+            baseline = next(index for index, task in enumerate(tasks)
+                            if task.get("ansible.builtin.include_role", {}).get("name") == "baseline")
+            packages = next(index for index, task in enumerate(tasks) if "ansible.builtin.dnf" in task)
+            storage = next(index for index, task in enumerate(tasks)
+                           if task.get("ansible.builtin.include_role", {}).get("name") == "data_volume")
+            products = next(index for index, task in enumerate(tasks)
+                            if task.get("ansible.builtin.include_tasks") == "service.yml")
+            self.assertLess(baseline, packages)
+            self.assertLess(storage, products)
+
+            calls = [(index, task) for index, play in enumerate(plays) for task in play.get("tasks", [])
+                     if "ansible.builtin.import_role" in task]
+            self.assertEqual({task["ansible.builtin.import_role"]["name"] for _, task in calls},
+                             {"observability_vm"})
+            starts = [(index, task) for index, task in calls
+                      if task["ansible.builtin.import_role"]["tasks_from"] == "start.yml"]
+            self.assertEqual(len(starts), 2)
+            backends = next(index for index, task in starts
+                            if task["when"] == "inventory_hostname not in observability_vm_gateway_hosts")
+            gateways = next(index for index, task in starts
+                            if task["when"] == "inventory_hostname in observability_vm_gateway_hosts")
+            security = next(index for index, task in calls
+                            if task["ansible.builtin.import_role"]["tasks_from"] == "search-security.yml")
+            health = next(index for index, task in calls
+                          if task["ansible.builtin.import_role"]["tasks_from"] == "health.yml")
+            self.assertLess(installation[0], backends)
+            self.assertLess(backends, security)
+            self.assertLess(security, gateways)
+            self.assertLess(gateways, health)
+            for index, _ in calls:
+                self.assertEqual(plays[index]["hosts"], "observability")
+                self.assertTrue(plays[index]["any_errors_fatal"])
+            for index in [backends, gateways]:
+                self.assertEqual(plays[index]["serial"], 1)
+            self.assertFalse((tier / "ansible/roles/syslog_ng").exists())
+
+            maintenance = yaml.safe_load((tier / "ansible/playbooks/maintenance/observability.yml").read_text())
+            host_plays = [play for play in maintenance if "hosts" in play]
+            self.assertEqual(len(host_plays), 1)
+            self.assertEqual(host_plays[0]["roles"], ["baseline"])
+            self.assertIn("observability", host_plays[0]["hosts"].split(":"))
 
     def test_kubernetes_first_design_and_native_installer_are_explicit(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            design = (docs / "01-architecture/24-operations/03-telemetry.md").read_text()
+            design = (docs / "01-architecture/11-operations/03-observability.md").read_text()
             for expected in ("logs, metrics and distributed traces", "Security Logging and Audit",
                              "do **not** have equal resource needs", "existing Tier 1 Kubernetes cluster",
                              "included initially",
@@ -76,9 +136,20 @@ class Observability(TierRepositoryTestCase):
             self.assertIn('# "log-2"', hardware)
             self.assertIn('source = "../../modules/environment_guests"', (root / "main.tf").read_text())
             for recipe in ("deployment/foundation-logging.yml", "maintenance/syslog.yml"):
-                plays = yaml.safe_load((tier / "ansible/playbooks" / recipe).read_text())
+                path = tier / "ansible/playbooks" / recipe
+                entries = yaml.safe_load(path.read_text())
+                if recipe.startswith("deployment/"):
+                    ready = entries[0]
+                    self.assertEqual(ready["vars"]["guest_ready_group"], "foundation_logging")
+                    readiness = path.parent / ready["ansible.builtin.import_playbook"]
+                    self.assertEqual(readiness.name, "guest-ready.yml")
+                    self.assertTrue(readiness.is_file())
+                plays = [entry for entry in entries if "hosts" in entry]
+                self.assertEqual(len(plays), 1)
                 self.assertEqual(plays[0]["hosts"], "foundation_logging")
                 self.assertEqual(plays[0]["roles"], ["baseline", "syslog_ng"])
+                self.assertTrue(plays[0]["become"])
+                self.assertEqual(plays[0]["serial"], 1)
             for other in ("tier-1", "tier-2", "shared"):
                 self.assertFalse((collection / f"{prefix}{other}/terraform/deployments/syslog").exists())
             platform = collection / f"{prefix}tier-1"
@@ -106,14 +177,17 @@ class Observability(TierRepositoryTestCase):
     def test_design_and_stages_preserve_evidence_and_access_boundaries(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            logging = (docs / "01-architecture/24-operations/01-security-logging.md").read_text()
+            logging = (docs / "01-architecture/11-operations/01-protected-logging.md").read_text()
             for expected in ("no loss of accepted records within a declared failure envelope",
                              "not the HA acceptance state", "Dashboards",
                              "Producers cannot read, edit or delete", "Application owner / developer"):
                 self.assertIn(expected, logging)
-            self.assertIn("[Search read boundaries](telemetry.md#read-boundaries)", logging)
-            self.assertIn("log-retention.md#choose-the-protection-boundary", logging)
-            telemetry = (docs / "01-architecture/24-operations/03-telemetry.md").read_text()
+            self.assertIn("[Search read boundaries](03-observability.md#read-boundaries)", logging)
+            self.assertIn("02-log-retention.md#choose-the-protection-boundary", logging)
+            telemetry = (docs / "01-architecture/11-operations/03-observability.md").read_text()
+            self.assertIn("## Read boundaries", telemetry)
+            retention = (docs / "01-architecture/11-operations/02-log-retention.md").read_text()
+            self.assertIn("## Choose the protection boundary", retention)
             for expected in ("Data Prepper", "vmalert", "Alertmanager", "Tier 2 normally retains collection",
                              "not independent querying or alerts", "separate SigNoZ/ClickHouse"):
                 self.assertIn(expected, telemetry)
@@ -131,26 +205,26 @@ class Observability(TierRepositoryTestCase):
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             foundation = (docs / "03-deployment/foundation/README.md").read_text()
             self.assertIn("persistent local host logs from first boot", foundation)
-            logging = (docs / "01-architecture/24-operations/01-security-logging.md").read_text()
+            logging = (docs / "01-architecture/11-operations/01-protected-logging.md").read_text()
             for expected in ("## Offline-readable evidence", "UTF-8 JSON Lines",
                              "independently held recovery kit"):
                 self.assertIn(expected, logging)
-            read_boundaries = (docs / "01-architecture/24-operations/03-telemetry.md").read_text()
+            read_boundaries = (docs / "01-architecture/11-operations/03-observability.md").read_text()
             self.assertIn("no retention or backup authority", read_boundaries)
             procedure = (docs / "03-deployment/stage-2-logging/README.md").read_text()
             self.assertIn("before PKI and FreeIPA", procedure)
             self.assertIn("Only the log-data volume and offline kit survive", procedure)
-            operations = (docs / "05-operations/security-logging.md").read_text()
+            operations = (docs / "05-operations/06-resilience/protected-logging.md").read_text()
             self.assertIn("no-journal-replay", operations)
             self.assertIn("never let reindexing modify originals", operations)
-            backup = (docs / "05-operations/backups/virtual-machines.md").read_text()
-            self.assertIn("01-architecture/24-operations/04-backup-recovery.md", backup)
-            design = (docs / "01-architecture/24-operations/04-backup-recovery.md").read_text()
+            backup = (docs / "05-operations/06-resilience/backups/virtual-machines.md").read_text()
+            self.assertIn("01-architecture/11-operations/04-backup-recovery.md", backup)
+            design = (docs / "01-architecture/11-operations/04-backup-recovery.md").read_text()
             for expected in ("**3-2-1**", "including the primary", "two media types"):
                 self.assertIn(expected, design)
             for expected in ("DatastoreBackup", "Datastore.Prune", "RPO", "RTO"):
                 self.assertIn(expected, backup)
-            recovery = (docs / "05-operations/recovery.md").read_text()
+            recovery = (docs / "05-operations/06-resilience/README.md").read_text()
             intake = recovery.index("| 3 | Restore approved software supply and Tier 0 protected evidence storage")
             self.assertLess(recovery.index("| 1 | Isolate"), intake)
             self.assertLess(intake, recovery.index("| 4 | Restore Tier 0 trust"))
@@ -161,7 +235,7 @@ class Observability(TierRepositoryTestCase):
     def test_archive_choices_preserve_nas_limits_and_stronger_retention_as_an_option(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            design = (docs / "01-architecture/24-operations/02-log-retention.md").read_text()
+            design = (docs / "01-architecture/11-operations/02-log-retention.md").read_text()
             self.assertIn("A: NAS snapshots and independent backups", design)
             self.assertIn("B: Storage-enforced retention locks", design)
             self.assertIn("One person holding several roles is acceptable", design)
@@ -176,7 +250,7 @@ class Observability(TierRepositoryTestCase):
                 self.assertIn("**Automation boundary:**", content)
                 for step in range(1, 4):
                     self.assertIn(f"## Step {step}:", content)
-            drill = (docs / "05-operations/logging-drill.md").read_text()
+            drill = (docs / "05-operations/06-resilience/logging-drill.md").read_text()
             self.assertIn("not a passed prevention test", drill)
         record = (self.root / "verify-tier-0/docs/administration/logging-evidence.md").read_text()
         self.assertIn("Archive choice: A NAS-backed, B retention-locked, or combined", record)

@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 import re
-from documentation_migration import MOVES, compatibility_stub, prune_auto_docs
+from documentation_migration import MOVES, compatibility_stub, prune_auto_docs, referenced_manual_aliases
 from project_docs import owned_template, repository_guides
 
 AUTO_DOCS = "docs/auto-docs"
@@ -29,12 +29,13 @@ def compatibility_paths(path):
             old = f"{area}/software/{route}"
             if MOVES[old] == relative.as_posix():
                 aliases.append(Path(old))
-    # Retain the previous architecture paths when capability folders and pages
-    # are renumbered. Both the numbered and original area names have readers.
+    # Retired numbered routes are retained only for project records that need them;
+    # original area aliases remain available outside the current reading tree.
     for old, current in MOVES.items():
-        if old.startswith("01-architecture/") and current == relative.as_posix():
+        area = Path(old).parts[0]
+        if area in ("01-architecture", "03-deployment", "05-operations") and current == relative.as_posix():
             aliases.append(Path(old))
-            aliases.append(Path("architecture", *Path(old).parts[1:]))
+            aliases.extend(Path(legacy, *Path(old).parts[1:]) for legacy in areas[area])
     return list(dict.fromkeys(aliases))
 
 
@@ -79,7 +80,7 @@ def tier_readme(writer, tier, prefix, setups):
         "```\n\n"
         f"Follow the [cluster procedure]({docs}/03-deployment/stage-4-kubernetes/procedures/talos-terraform.md)\n"
         "to configure, plan, deploy and verify. Cluster manifests are starters, not installed services.\n"
-        f"Record the [delivery choice]({docs}/01-architecture/20-delivery/02-controllers.md) separately;\n"
+        f"Record the [delivery choice]({docs}/01-architecture/10-delivery/02-controllers.md) separately;\n"
         "Tier 1 does not inherit Tier 0 Flux automatically.\n"
     )
     if tier == "tier-0":
@@ -99,10 +100,10 @@ def tier_readme(writer, tier, prefix, setups):
             "bash scripts/proxmox-templates.sh init\n"
             "```\n\n"
             "Set local images, placement, checksums, and protected API access, then follow\n"
-            f"the [template lifecycle]({docs}/05-operations/virtual-machines/template-lifecycle.md#local-workflow)\n"
+            f"the [template lifecycle]({docs}/05-operations/01-hosting/templates/template-lifecycle.md#local-workflow)\n"
             "to plan, publish, and test templates before deploying guests. For existing manual templates,\n"
-            f"use [import and apply]({docs}/05-operations/virtual-machines/template-lifecycle.md#adopt-existing-templates).\n"
-            f"An intentional OS-disk replacement uses [boot-disk maintenance]({docs}/05-operations/virtual-machines/template-disk.md).\n"
+            f"use [import and apply]({docs}/05-operations/01-hosting/templates/template-lifecycle.md#adopt-existing-templates).\n"
+            f"An intentional OS-disk replacement uses [boot-disk maintenance]({docs}/05-operations/01-hosting/templates/template-disk.md).\n"
             f"Complete [Foundation Step 4]({docs}/03-deployment/foundation/README.md#step-4-publish-and-test-vm-templates)\n"
             "before Stage 1; it lists the commands for both paths. No hosted CI or control cluster is required.\n\n"
             f"Accept [Stage 1: software intake]({docs}/03-deployment/stage-1-software-intake/README.md) first,\n"
@@ -156,7 +157,9 @@ def copy_documentation(writer, prefix, upstream):
     documents = sorted((upstream / "docs").rglob("*.md"))
     assets = ("08-reference/diagrams/palette.json", "02-conventions/vmid-convention.svg")
     current_paths = {f"{AUTO_DOCS}/{path.relative_to(upstream / 'docs').as_posix()}" for path in documents}
-    aliases = {path: compatibility_paths(Path("docs") / path.relative_to(upstream / "docs"))
+    referenced = referenced_manual_aliases(writer, prefix)
+    aliases = {path: [alias for alias in compatibility_paths(Path("docs") / path.relative_to(upstream / "docs"))
+                       if alias.parts[0] not in ("01-architecture", "03-deployment", "05-operations") or alias in referenced]
                for path in documents}
     current_paths.update(f"{AUTO_DOCS}/{alias.as_posix()}" for paths in aliases.values() for alias in paths)
     current_paths.update(f"{AUTO_DOCS}/{asset}" for asset in (*assets, "LICENSE"))

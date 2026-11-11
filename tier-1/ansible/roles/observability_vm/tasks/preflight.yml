@@ -1,0 +1,173 @@
+---
+- name: Require the supported OS and complete inventory selection
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution in ['AlmaLinux', 'Rocky', 'RedHat']
+      - ansible_distribution_major_version in ['9', '10']
+      - ansible_architecture == 'x86_64'
+      - not ansible_check_mode
+      - observability_vm_gateway_hosts | length == 2
+      - observability_vm_metrics_hosts | length == 2
+      - observability_vm_search_hosts | length == 3
+      - selected | unique | length == selected | length
+      - selected | sort == ansible_play_hosts_all | sort
+      - selected | difference(observability_vm_endpoints.keys() | list) | length == 0
+      - selected | difference(observability_vm_tls.keys() | list) | length == 0
+      - observability_vm_grafana_host in observability_vm_gateway_hosts
+      - observability_vm_metrics_read_members | length > 0
+      - observability_vm_metrics_read_members | difference(observability_vm_metrics_hosts) | length == 0
+      - observability_vm_data_device is match('^/dev/disk/by-id/[^ /]+$')
+      - observability_vm_data_path is match('^/[A-Za-z0-9_/-]+$')
+      - observability_vm_config_path is match('^/[A-Za-z0-9_/-]+$')
+      - observability_vm_data_path != observability_vm_config_path
+    fail_msg: >-
+      Use the full dedicated observability VM inventory on EL10 (or EL9) x86_64. Set endpoint and TLS maps
+      for every selected host. Partial --limit and Ansible check mode cannot install this cluster;
+      use deploy.sh --plan-only for the infrastructure preview.
+  vars:
+    selected: >-
+      {{ observability_vm_gateway_hosts + observability_vm_metrics_hosts + observability_vm_search_hosts }}
+
+- name: Require immutable approved product images
+  ansible.builtin.assert:
+    that:
+      - observability_vm_images[item] | default('') is match('^[A-Za-z0-9][A-Za-z0-9./_:-]+@sha256:[a-f0-9]{64}$')
+      - >-
+        observability_vm_images[item].split('/')[0]
+        is match('^(localhost|[a-z0-9-]+([.][a-z0-9-]+)+)(:[0-9]+)?$')
+    fail_msg: "Pin observability_vm_images.{{ item }} to an approved fully qualified repository@sha256 digest."
+  loop: [collector, prepper, metrics, query, search, dashboards, grafana, netdata]
+
+- name: Validate Tier 1 diagnostics and streaming inputs
+  ansible.builtin.import_tasks: netdata-preflight.yml
+
+- name: Validate DNS identities and controller TLS inputs
+  ansible.builtin.assert:
+    that:
+      - observability_vm_endpoints[item] is match('^[a-z0-9][a-z0-9.-]+[.][a-z0-9-]+$')
+      - observability_vm_tls[item].cert_src | length > 0
+      - observability_vm_tls[item].key_src | length > 0
+  loop: "{{ observability_vm_gateway_hosts + observability_vm_metrics_hosts + observability_vm_search_hosts }}"
+
+- name: Require PKI and SSO contracts before touching guests
+  ansible.builtin.assert:
+    that:
+      - observability_vm_ca_src | length > 0
+      - observability_vm_oidc_ca_src | length > 0
+      - observability_vm_metrics_client_ca_src | length > 0
+      - observability_vm_search_admin_tls.cert_src | default('') | length > 0
+      - observability_vm_search_admin_tls.key_src | default('') | length > 0
+      - observability_vm_search_node_dns | length == observability_vm_search_hosts | length
+      - observability_vm_search_admin_dns | length > 0
+      - observability_vm_oidc_issuer is match('^https://[^ /]+/[^ ]+$')
+      - observability_vm_grafana_url is match('^https://[^ /]+(:[0-9]+)?$')
+      - observability_vm_dashboards_url is match('^https://[^ /]+(:[0-9]+)?$')
+      - observability_vm_oidc_operator_group is match('^[A-Za-z0-9_-]+$')
+      - observability_vm_search_heap is match('^[1-9][0-9]*[mg]$')
+      - observability_vm_metrics_retention is match('^[1-9][0-9]*[dwy]$')
+      - observability_vm_queue_batches | int > 0
+      - observability_vm_log_scopes | length > 0
+
+- name: Require distinct service credentials
+  ansible.builtin.assert:
+    that:
+      - item.username | default('') is match('^[A-Za-z0-9_-]+$')
+      - item.password | default('') is match('^[A-Za-z0-9_-]{24,}$')
+      - observability_vm_reader_auth.username != observability_vm_metrics_auth.username
+  loop: >-
+    {{ [observability_vm_metrics_auth, observability_vm_reader_auth,
+        observability_vm_prepper_auth, observability_vm_prepper_core_auth] }}
+  no_log: true
+
+- name: Inspect the native cgroup v2 interface
+  ansible.builtin.stat:
+    path: /sys/fs/cgroup/cgroup.controllers
+    get_checksum: false
+  register: observability_vm_cgroups
+
+- name: Require cgroup v2 for Quadlet resource controls
+  ansible.builtin.assert:
+    that: observability_vm_cgroups.stat.exists
+
+- name: Require private secrets safe for native environment and INI expansion
+  ansible.builtin.assert:
+    that: item is match('^[A-Za-z0-9_-]{24,}$')
+    fail_msg: Use independently generated secrets with at least 24 URL-safe characters.
+  loop:
+    - "{{ observability_vm_prepper_search_password }}"
+    - "{{ observability_vm_dashboards_search_password }}"
+    - "{{ observability_vm_oidc_grafana_secret }}"
+    - "{{ observability_vm_oidc_dashboards_secret }}"
+    - "{{ observability_vm_grafana_admin_password }}"
+    - "{{ observability_vm_grafana_secret_key }}"
+  no_log: true
+
+- name: Require reviewed bcrypt credentials for search service identities
+  ansible.builtin.assert:
+    that:
+      - observability_vm_search_user_hashes[item] | default('') is match('^\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}$')
+  loop: [data-prepper, dashboards-server]
+  no_log: true
+
+- name: Validate scoped ingestion and reader groups
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9-]{0,40}$')
+      - item.kind in ['application', 'projection']
+      - item.port | int >= 4400 and item.port | int < 20000
+      - item.client_ca_src | length > 0
+      - item.reader_backend_roles | length > 0
+      - item.reader_backend_roles | intersect(['all_access', 'ingest', 'kibana_server']) | length == 0
+      - observability_vm_log_scopes | map(attribute='name') | unique | length == observability_vm_log_scopes | length
+      - observability_vm_log_scopes | map(attribute='port') | unique | length == observability_vm_log_scopes | length
+  loop: "{{ observability_vm_log_scopes }}"
+
+- name: Check declared TLS and registry files on the controller before guest changes
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    get_checksum: false
+  delegate_to: localhost
+  become: false
+  run_once: true
+  loop: >-
+    {{ [observability_vm_ca_src, observability_vm_oidc_ca_src, observability_vm_metrics_client_ca_src,
+        observability_vm_search_admin_tls.cert_src, observability_vm_search_admin_tls.key_src] +
+       (observability_vm_tls.values() | map(attribute='cert_src') | list) +
+       (observability_vm_tls.values() | map(attribute='key_src') | list) +
+       (observability_vm_log_scopes | map(attribute='client_ca_src') | list) +
+       ([observability_vm_registry_auth_src] if observability_vm_registry_auth_src | length > 0 else []) }}
+  register: observability_vm_controller_files
+  no_log: true
+
+- name: Reject missing declared controller inputs
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isreg | default(false)
+      - item.item is match('^/')
+    fail_msg: Supply existing absolute controller paths for TLS and optional registry inputs.
+  loop: "{{ observability_vm_controller_files.results }}"
+  run_once: true
+  no_log: true
+
+- name: Inspect selected source trust anchors for accidental scope reuse
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  run_once: true
+  loop: >-
+    {{ [observability_vm_metrics_client_ca_src] +
+       (observability_vm_log_scopes | map(attribute='client_ca_src') | list) }}
+  register: observability_vm_source_trust
+
+- name: Reject duplicate source trust bundles across scopes
+  ansible.builtin.assert:
+    that:
+      - >-
+        observability_vm_source_trust.results | map(attribute='stat.checksum') | unique | length ==
+        observability_vm_source_trust.results | length
+    fail_msg: Use independent narrow client CA trust for metrics and every source scope.
+  run_once: true

@@ -45,6 +45,10 @@
 - name: Inspect existing services without changing the OS logger
   ansible.builtin.service_facts:
 
+- name: Prepare the selected firewall instead of requiring manual guest setup
+  ansible.builtin.import_tasks: firewall-bootstrap.yml
+  when: syslog_ng_manage_firewall | bool
+
 - name: Refuse a competing package daemon or absent managed firewall
   ansible.builtin.assert:
     that:

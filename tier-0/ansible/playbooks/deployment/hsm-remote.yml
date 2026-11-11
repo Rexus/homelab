@@ -1,0 +1,48 @@
+---
+- name: Prepare controller tooling for native HSM remoting
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: hsm
+    control_node_require_terraform: false
+
+- name: Require the complete explicitly selected backend pool
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Refuse an empty or partially selected key domain
+      ansible.builtin.assert:
+        that:
+          - hsm_remote_backends | default({}) | length >= 2
+          - >-
+            hsm_remote_backends.keys() | list | difference(
+            groups.get(hsm_remote_server_hosts | default('hsm_gateways'), [])) | length == 0
+        fail_msg: Run the complete declared backend group; do not accept a partial same-key pool.
+
+- name: Wait for the declared provider hosts
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: "{{ hsm_remote_server_hosts | default('hsm_gateways') }}"
+
+- name: Publish restricted native access to each accepted original key
+  hosts: "{{ hsm_remote_server_hosts | default('hsm_gateways') }}"
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  pre_tasks:
+    - name: Require this selected host to belong to the declared domain
+      ansible.builtin.assert:
+        that:
+          - inventory_hostname in hsm_remote_backends
+          - hsm_remote_backends.keys() | list | difference(ansible_play_hosts_all) | length == 0
+    - name: Inspect the existing installed physical provider without provisioning objects
+      ansible.builtin.include_role:
+        name: hsm_provider
+        tasks_from: inspect
+        public: true
+  tasks:
+    - name: Configure only the optional restricted remoting extension
+      ansible.builtin.include_role:
+        name: hsm_remote
+      vars:
+        hsm_remote_action: server

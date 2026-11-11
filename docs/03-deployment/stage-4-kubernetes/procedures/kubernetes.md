@@ -3,7 +3,7 @@
 **Working repository:** the cluster owner's `<prefix>-tier-0`, `<prefix>-tier-1`
 or `<prefix>-tier-2` (source: matching `tier-N/`). Stage 4 uses Tier 0.
 
-**Design:** [cluster runtime variants](../../../01-architecture/10-hosting/README.md).
+**Design:** [cluster runtime variants](../../../01-architecture/04-hosting/README.md).
 
 The goal is an independently recoverable Kubernetes cluster on Proxmox.
 Tier 0 uses it for control services; Tier 1 can use a separate cluster for
@@ -51,7 +51,7 @@ See the [collection repository map](../../README.md#repository-locations) for so
 
 | Choice | Role in this repository | Detailed procedure |
 | --- | --- | --- |
-| Talos | Current working node-OS example; the starting path for Kubernetes bootstrap | [Tier-local Terraform](talos-terraform.md) or [manual bootstrap](../step-1b-manual-cluster.md) |
+| Talos | Current working node-OS example; the starting path for Kubernetes bootstrap | [Tier-local Terraform](talos-terraform.md) or [existing-cluster handover](../step-1b-existing-cluster.md) |
 | Immutable AlmaLinux or another node OS | Possible later implementation; cluster installation, upgrades, and recovery are not supplied for it | Record the choice in project documentation and implement its lifecycle in the owning tier |
 
 Talos is the starting implementation because it provides a focused Kubernetes
@@ -74,7 +74,7 @@ state owner for the same cluster.
 5. Continue with the common foundation below; retain OS-specific recovery inputs.
 
 For the supplied **Terraform lifecycle** in any tier, initialize from that tier's repository root.
-The manual alternative follows its own linked procedure instead.
+The existing-cluster alternative retains its original node and state owner.
 
 Run from the selected cluster owner: **`<prefix>-tier-0/`**, `<prefix>-tier-1/` or `<prefix>-tier-2/`.
 
@@ -132,10 +132,10 @@ Shared procedures do not justify copying Tier 0 credentials or privileges into a
 
 ## Continue reading
 
-- [Cluster topology](../../../01-architecture/10-hosting/04-kubernetes.md)
-- [Delivery controller choices](../../../01-architecture/20-delivery/02-controllers.md)
+- [Cluster topology](../../../01-architecture/04-hosting/03-kubernetes.md)
+- [Delivery controller choices](../../../01-architecture/10-delivery/02-controllers.md)
 - [Application-platform choices](../../stage-7-delivery/procedures/platform-cluster.md)
-- [Tier ownership and recovery](../../../01-architecture/03-tier-ownership.md)
+- [Tier ownership and recovery](../../../01-architecture/02-organization/01-tier-ownership.md)
 - [Cluster implementation and state](talos-terraform.md#state-and-lifecycle)
 
 ## References

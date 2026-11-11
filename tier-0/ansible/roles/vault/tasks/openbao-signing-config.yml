@@ -1,0 +1,67 @@
+---
+- name: Read the selected external-key domain
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/sys/external-keys/configs/{{ openbao_signing_domain }}"
+    status_code: [200, 400]
+  register: openbao_config
+
+- name: Accept only the native missing-config response before creation
+  ansible.builtin.assert:
+    that:
+      - openbao_config.json.errors | length == 1
+      - openbao_config.json.errors[0] is match('^config .* not found$')
+      - openbao_signing_domain in openbao_config.json.errors[0]
+  when: openbao_config.status == 400
+
+- name: Refuse repointing an existing key domain or changing its token identity
+  ansible.builtin.assert:
+    that:
+      - openbao_config.json.data.plugin == 'pkcs11'
+      - openbao_config.json.data.lib == 'hsm'
+      - openbao_config.json.data.serial | default('') == openbao_signing_token_serial
+      - openbao_config.json.data.token_label | default('') == openbao_signing_token_label
+      - openbao_config.json.data.slot | default('') == ''
+  when: openbao_config.status == 200
+
+- name: Create a verified native PKCS11 configuration without generating any key
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/sys/external-keys/configs/{{ openbao_signing_domain }}"
+    method: POST
+    body:
+      plugin: pkcs11
+      lib: hsm
+      serial: "{{ openbao_signing_token_serial }}"
+      token_label: "{{ openbao_signing_token_label }}"
+      pin: "{{ openbao_signing_pin }}"
+      verify: true
+      disable_software_encryption: true
+  when: openbao_config.status == 400 or openbao_signing_rotate_pin | bool
+  changed_when: true
+
+- name: Inspect native secrets and authentication mounts
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/sys/{{ item }}"
+  loop: [mounts, auth]
+  register: openbao_mounts
+
+- name: Refuse repurposing existing mounts
+  ansible.builtin.assert:
+    that: item.path not in item.mounts or item.mounts[item.path].type == item.type
+  loop:
+    - path: "{{ openbao_signing_mount }}/"
+      type: transit
+      mounts: "{{ openbao_mounts.results[0].json.data }}"
+    - path: "{{ openbao_signing_cert_mount }}/"
+      type: cert
+      mounts: "{{ openbao_mounts.results[1].json.data }}"
+
+- name: Enable only the selected native Transit and certificate mounts
+  ansible.builtin.uri:
+    url: "{{ openbao_signing_address }}/v1/sys/{{ item.endpoint }}/{{ item.path }}"
+    method: POST
+    body: {type: "{{ item.type }}"}
+  loop:
+    - {endpoint: mounts, path: "{{ openbao_signing_mount }}", type: transit, index: 0}
+    - {endpoint: auth, path: "{{ openbao_signing_cert_mount }}", type: cert, index: 1}
+  when: (item.path ~ '/') not in openbao_mounts.results[item.index].json.data
+  changed_when: true

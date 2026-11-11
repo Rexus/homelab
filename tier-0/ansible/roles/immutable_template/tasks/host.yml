@@ -1,0 +1,135 @@
+---
+- name: Validate immutable template inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+      - not immutable_template_apply_bootc | bool or immutable_template_bootc_image | length > 0
+    fail_msg: >-
+      The immutable_template role currently targets Fedora or Enterprise Linux-like
+      guests. Set immutable_template_bootc_image when immutable_template_apply_bootc is
+      true.
+
+- name: Prepare explicitly supplied registry trust and credentials
+  ansible.builtin.import_tasks: registry.yml
+
+- name: Install immutable template packages when the host permits package management
+  ansible.builtin.dnf:
+    name: "{{ immutable_template_packages }}"
+    state: present
+    update_cache: true
+  when: immutable_template_manage_packages | bool
+
+- name: Check current bootc status
+  ansible.builtin.command:
+    argv:
+      - bootc
+      - status
+      - --format=json
+  register: immutable_template_bootc_status
+  changed_when: false
+  failed_when: false
+
+- name: Require a bootc-native deployment before switching or finalizing the host
+  ansible.builtin.assert:
+    that:
+      - immutable_template_bootc_status.rc == 0
+      - (immutable_template_bootc_status.stdout | from_json).get('status', {}).get('booted') is not none
+    fail_msg: >-
+      This host must already be bootc-native. Use mode=image to build an initial qcow2;
+      installing bootc or switching an ordinary cloud OS is not an initial installation.
+  when: immutable_template_apply_bootc | bool or immutable_template_prepare_for_template | bool
+
+- name: Switch builder to bootc image and retain current deployment
+  ansible.builtin.command:
+    argv:
+      - bootc
+      - switch
+      - --transport
+      - "{{ immutable_template_bootc_transport }}"
+      - --retain
+      - "{{ immutable_template_bootc_image }}"
+  register: immutable_template_bootc_switch_retain
+  when:
+    - immutable_template_apply_bootc | bool
+    - immutable_template_bootc_retain | bool
+    - immutable_template_bootc_image not in (immutable_template_bootc_status.stdout | default(''))
+
+- name: Switch builder to bootc image
+  ansible.builtin.command:
+    argv:
+      - bootc
+      - switch
+      - --transport
+      - "{{ immutable_template_bootc_transport }}"
+      - "{{ immutable_template_bootc_image }}"
+  register: immutable_template_bootc_switch
+  when:
+    - immutable_template_apply_bootc | bool
+    - not immutable_template_bootc_retain | bool
+    - immutable_template_bootc_image not in (immutable_template_bootc_status.stdout | default(''))
+
+- name: Reboot into staged bootc image
+  ansible.builtin.reboot:
+    reboot_timeout: 900
+  when:
+    - immutable_template_reboot_after_switch | bool
+    - >-
+      (
+        immutable_template_bootc_switch_retain is defined
+        and immutable_template_bootc_switch_retain.changed
+      )
+      or (
+        immutable_template_bootc_switch is defined
+        and immutable_template_bootc_switch.changed
+      )
+
+- name: Verify bootc status after preparation
+  ansible.builtin.command:
+    argv:
+      - bootc
+      - status
+  changed_when: false
+  when: immutable_template_apply_bootc | bool
+
+- name: Clean package manager cache before template conversion
+  ansible.builtin.command:
+    argv:
+      - dnf
+      - clean
+      - all
+  changed_when: true
+  when:
+    - immutable_template_prepare_for_template | bool
+    - immutable_template_clean_package_cache | bool
+    - immutable_template_manage_packages | bool
+
+- name: Clean cloud-init state before template conversion
+  ansible.builtin.command:
+    argv:
+      - cloud-init
+      - clean
+      - --logs
+      - --machine-id
+  changed_when: true
+  when:
+    - immutable_template_prepare_for_template | bool
+    - immutable_template_clean_cloud_init | bool
+
+- name: Find SSH host keys before template conversion
+  ansible.builtin.find:
+    paths: /etc/ssh
+    patterns: "ssh_host_*"
+    file_type: file
+  register: immutable_template_ssh_host_keys
+  when:
+    - immutable_template_prepare_for_template | bool
+    - immutable_template_clean_ssh_host_keys | bool
+
+- name: Remove SSH host keys before template conversion
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ immutable_template_ssh_host_keys.files | default([]) }}"
+  when:
+    - immutable_template_prepare_for_template | bool
+    - immutable_template_clean_ssh_host_keys | bool

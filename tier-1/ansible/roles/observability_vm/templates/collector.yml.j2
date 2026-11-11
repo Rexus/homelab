@@ -1,0 +1,77 @@
+extensions:
+  health_check: {endpoint: '127.0.0.1:13133'}
+  file_storage: {directory: /data, create_directory: true}
+  basicauth/metrics:
+    client_auth: {username: '${env:VM_USERNAME}', password: '${env:VM_PASSWORD}'}
+  basicauth/prepper:
+    client_auth: {username: '${env:DP_USERNAME}', password: '${env:DP_PASSWORD}'}
+receivers:
+{% if inventory_hostname == observability_vm_netdata_scrape_parent and observability_vm_netdata_scrape_metrics | length > 0 %}
+  prometheus/netdata:
+    config:
+      scrape_configs:
+        - job_name: platform-netdata
+          scrape_interval: 30s
+          scheme: https
+          metrics_path: /api/v1/allmetrics
+          params: {format: [prometheus], help: ['no'], allhosts: ['yes']}
+          tls_config: {ca_file: /tls/ca.crt}
+          static_configs:
+            - targets: ['{{ observability_vm_endpoints[observability_vm_netdata_scrape_parent] }}:{{ observability_vm_netdata_diagnostics_port }}']
+          metric_relabel_configs:
+            - {source_labels: [__name__], regex: {{ observability_vm_netdata_scrape_metrics | join('|') | to_json }}, action: keep}
+{% endif %}
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        tls: {cert_file: /tls/tls.crt, key_file: /tls/tls.key, client_ca_file: /tls/metrics-clients.crt}
+{% for scope in observability_vm_log_scopes %}
+  otlp/{{ scope.name }}:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:{{ scope.port }}
+        tls: {cert_file: /tls/tls.crt, key_file: /tls/tls.key, client_ca_file: /tls/{{ scope.name }}-clients.crt}
+{% endfor %}
+processors:
+  memory_limiter: {check_interval: 1s, limit_mib: 1536, spike_limit_mib: 256}
+  batch: {send_batch_size: 1024, timeout: 5s}
+exporters:
+{% for member in observability_vm_metrics_hosts %}
+  otlphttp/{{ member }}:
+    metrics_endpoint: https://{{ observability_vm_endpoints[member] }}:8428/opentelemetry/v1/metrics
+    tls: {ca_file: /tls/ca.crt}
+    auth: {authenticator: basicauth/metrics}
+    sending_queue: {enabled: true, storage: file_storage, queue_size: {{ observability_vm_queue_batches }}, num_consumers: 1}
+    retry_on_failure: {enabled: true, max_elapsed_time: 0s}
+{% endfor %}
+{% for scope in observability_vm_log_scopes %}
+{% set scope_index = loop.index0 %}
+{% for signal in ['logs', 'traces'] %}
+{% if signal == 'logs' or scope.kind == 'application' %}
+  otlp/{{ scope.name }}-{{ signal }}:
+    endpoint: {{ observability_vm_endpoints[inventory_hostname] }}:{{ 21890 + 2 * scope_index + loop.index0 }}
+    tls: {ca_file: /tls/ca.crt}
+    auth: {authenticator: basicauth/prepper}
+    sending_queue: {enabled: true, storage: file_storage, queue_size: {{ observability_vm_queue_batches }}}
+    retry_on_failure: {enabled: true, max_elapsed_time: 0s}
+{% endif %}
+{% endfor %}
+{% endfor %}
+service:
+  extensions: [health_check, file_storage, basicauth/metrics, basicauth/prepper]
+  pipelines:
+    metrics:
+      receivers: [otlp{% if inventory_hostname == observability_vm_netdata_scrape_parent and observability_vm_netdata_scrape_metrics | length > 0 %}, prometheus/netdata{% endif %}]
+      processors: [memory_limiter, batch]
+      exporters: {{ observability_vm_metrics_hosts | map('regex_replace', '^', 'otlphttp/') | list | to_json }}
+{% for scope in observability_vm_log_scopes %}
+{% for signal in ['logs', 'traces'] %}
+{% if signal == 'logs' or scope.kind == 'application' %}
+    {{ signal }}/{{ scope.name }}:
+      receivers: [otlp/{{ scope.name }}]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/{{ scope.name }}-{{ signal }}]
+{% endif %}
+{% endfor %}
+{% endfor %}

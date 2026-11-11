@@ -40,7 +40,7 @@ ${selections}
 Expand complex selections in focused design records under `architecture/`.
 Each record identifies its parent domain, the resulting topology, selected
 variant, alternatives, and required guarantees. Follow the
-[variant contract](${docs}/01-architecture/08-variants.md); a changed consumer interface
+[selection guidance](${docs}/01-architecture/02-organization/README.md#selected-design); a changed consumer interface
 or trust boundary also requires an update to the affected parent views.
 
 ## Boundaries

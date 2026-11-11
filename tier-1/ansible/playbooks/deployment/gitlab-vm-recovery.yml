@@ -1,0 +1,16 @@
+---
+- name: Wait for the isolated recovery guest from the controller
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: development_platform
+
+- name: Recover a selected GitLab set on an explicitly accepted isolated target
+  hosts: development_platform
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Run guarded native recovery
+      ansible.builtin.include_role:
+        name: gitlab_container
+        tasks_from: recovery

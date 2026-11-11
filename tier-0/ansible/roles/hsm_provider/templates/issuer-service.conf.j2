@@ -1,0 +1,8 @@
+[Service]
+Environment="PKCS11_MODULE_PATH={{ hsm_provider_library }}"
+{% if hsm_provider_driver == 'yubihsm' %}
+Environment="YUBIHSM_PKCS11_CONF=/etc/hsm-provider/yubihsm_pkcs11.conf"
+{% endif %}
+{% for key, value in hsm_provider_environment | dictsort %}
+Environment="{{ key }}={{ value }}"
+{% endfor %}

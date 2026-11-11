@@ -5,8 +5,8 @@ reviewed bundle, then install on `boot-1` without public package access.
 This supplies controller tooling and providers for templates and initial Linux
 deployments; it does **not** make every platform stage disconnected-ready.
 
-For a **new installation**, generate a fresh collection after [retiring old resources](../../../05-operations/provisioning.md)
-where applicable. For recovery, [restore the bootstrap and original inputs/state](../../../05-operations/recovery/bootstrap.md)
+For a **new installation**, generate a fresh collection after [retiring old resources](../../../05-operations/01-hosting/provisioning.md)
+where applicable. For recovery, [restore the bootstrap and original inputs/state](../../../05-operations/06-resilience/recovery/bootstrap.md)
 instead of replacing them with generated examples.
 
 **Working repositories:** reviewed upstream kit for acquisition; `<prefix>-tier-0`
@@ -277,7 +277,7 @@ repositories to bypass an incomplete offline install.
 ## 8. Restore the kit and install Ansible
 
 For a **new** installation only, follow **1–5** in the same Bash session.
-During recovery, use the [bootstrap restore path](../../../05-operations/recovery/bootstrap.md)
+During recovery, use the [bootstrap restore path](../../../05-operations/06-resilience/recovery/bootstrap.md)
 to retain existing inputs and original state.
 
 ### 1. Restore the kit checkout

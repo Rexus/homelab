@@ -1,0 +1,74 @@
+---
+# Dedicated EL10/Podman realization; EL9 also uses the same native package/config paths.
+observability_vm_gateway_hosts: [otel-1, otel-2]
+observability_vm_metrics_hosts: [metric-1, metric-2]
+observability_vm_search_hosts: [search-1, search-2, search-3]
+observability_vm_grafana_host: otel-1
+observability_vm_endpoints: {}
+observability_vm_images: {}
+observability_vm_private_vars_file: ""
+# Required image keys: collector, prepper, metrics, query, search, dashboards, grafana, netdata.
+# Every reference must include @sha256:<digest>; credentials remain outside the unit files.
+observability_vm_registry_auth_src: ""
+observability_vm_config_path: /etc/observability-vm
+observability_vm_data_path: /srv/observability
+observability_vm_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
+observability_vm_data_fstype: xfs
+observability_vm_data_uuid: ""
+observability_vm_data_min_free_bytes: 1073741824
+observability_vm_ca_src: ""
+observability_vm_oidc_ca_src: ""
+observability_vm_metrics_client_ca_src: ""
+# Each host: {cert_src, key_src}; node certificates need serverAuth and clientAuth.
+observability_vm_tls: {}
+observability_vm_search_admin_tls: {}
+observability_vm_search_node_dns: []
+observability_vm_search_admin_dns: []
+observability_vm_search_bootstrap: false
+observability_vm_search_heap: 2g
+observability_vm_metrics_auth: {}
+observability_vm_reader_auth: {}
+observability_vm_prepper_auth: {}
+observability_vm_prepper_core_auth: {}
+observability_vm_prepper_search_password: ""
+observability_vm_dashboards_search_password: ""
+observability_vm_search_user_hashes: {}
+observability_vm_log_scopes: []
+# {name, kind: application|projection, port, client_ca_src, reader_backend_roles: [...]}
+observability_vm_metrics_read_members: [metric-1]
+observability_vm_metrics_retention: 30d
+observability_vm_queue_batches: 10000
+observability_vm_oidc_issuer: ""
+observability_vm_oidc_operator_group: platform-observability-readers
+observability_vm_oidc_grafana_client_id: observability-grafana
+observability_vm_oidc_dashboards_client_id: observability-dashboards
+observability_vm_oidc_grafana_secret: ""
+observability_vm_oidc_dashboards_secret: ""
+observability_vm_grafana_url: ""
+observability_vm_dashboards_url: ""
+observability_vm_grafana_admin_password: ""
+observability_vm_grafana_secret_key: ""
+# Native Netdata image contract: v2.12.2, netdata UID/GID 201; no Cloud claiming or Tier 0 access.
+observability_vm_netdata_uid: 201
+observability_vm_netdata_gid: 201
+observability_vm_netdata_child_key: ""
+observability_vm_netdata_peer_key: ""
+# Native IPv4 allow patterns, e.g. ['10.20.10.*']; choose only diagnostic administrator sources.
+observability_vm_netdata_admin_allow_from: []
+observability_vm_netdata_diagnostics_port: 20000
+observability_vm_netdata_parent_limits: {memory: 2G, cpu: '100%'}
+observability_vm_netdata_child_limits: {memory: 512M, cpu: '50%'}
+observability_vm_netdata_parent_history_mib: 8192
+observability_vm_netdata_child_history_mib: 256
+# One collection owner for all seven guests; change explicitly after qualifying the other parent.
+observability_vm_netdata_scrape_parent: "{{ observability_vm_gateway_hosts[0] }}"
+observability_vm_netdata_scrape_metrics: []
+# Per-service cgroup ceilings; tune together with the VM's CPU/RAM allocation.
+observability_vm_limits:
+  collector: {memory: 2G, cpu: '200%'}
+  prepper: {memory: 3G, cpu: '200%'}
+  query: {memory: 512M, cpu: '100%'}
+  dashboards: {memory: 2G, cpu: '100%'}
+  grafana: {memory: 1G, cpu: '100%'}
+  metrics: {memory: 8G, cpu: '400%'}
+  search: {memory: 6G, cpu: '400%'}

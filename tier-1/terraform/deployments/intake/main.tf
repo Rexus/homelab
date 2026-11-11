@@ -33,6 +33,7 @@ module "vms" {
   vm_id                       = each.value.vm_id
   template_vm_id              = each.value.template_vm_id
   template_node_name          = each.value.template_node_name
+  template                    = each.value.template
   full_clone                  = each.value.full_clone
   firmware                    = each.value.firmware
   initialization_datastore_id = each.value.initialization_datastore_id

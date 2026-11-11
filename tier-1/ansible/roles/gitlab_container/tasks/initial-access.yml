@@ -1,0 +1,56 @@
+---
+- name: Require an explicit controller credential destination
+  ansible.builtin.assert:
+    that:
+      - gitlab_initial_password_dest is match('^/[^\n]+/[^/\n]+$')
+      - "'..' not in gitlab_initial_password_dest.split('/')"
+    fail_msg: Select a private absolute controller file outside Git; its parent must already exist with mode 0700.
+
+- name: Inspect the private controller destination directory
+  ansible.builtin.stat:
+    path: "{{ gitlab_initial_password_dest | dirname }}"
+    follow: false
+  register: gitlab_initial_directory
+  delegate_to: localhost
+  become: false
+
+- name: Require private credential custody before retrieval
+  ansible.builtin.assert:
+    that:
+      - gitlab_initial_directory.stat.isdir | default(false)
+      - not gitlab_initial_directory.stat.islnk | default(false)
+      - gitlab_initial_directory.stat.mode == '0700'
+    fail_msg: Prepare an owner-only controller directory outside Git before retrieving the temporary credential.
+
+- name: Inspect the temporary credential without exposing it
+  ansible.builtin.stat:
+    path: "{{ gitlab_home }}/config/initial_root_password"
+    follow: false
+    get_checksum: false
+  register: gitlab_initial_file
+
+- name: Require the original temporary credential file
+  ansible.builtin.assert:
+    that:
+      - gitlab_initial_file.stat.isreg | default(false)
+      - not gitlab_initial_file.stat.islnk | default(false)
+    fail_msg: >-
+      The temporary password is absent or expired. Use the independently retained administrator
+      credential or GitLab's authorized reset procedure; this recipe never resets an existing account.
+
+- name: Read the sensitive temporary administrator credential
+  ansible.builtin.slurp:
+    src: "{{ gitlab_home }}/config/initial_root_password"
+  register: gitlab_initial_password
+  no_log: true
+
+- name: Retain the credential privately on the controller without overwriting existing custody
+  ansible.builtin.copy:
+    content: "{{ gitlab_initial_password.content | b64decode }}"
+    dest: "{{ gitlab_initial_password_dest }}"
+    mode: "0600"
+    force: false
+  delegate_to: localhost
+  become: false
+  no_log: true
+  diff: false

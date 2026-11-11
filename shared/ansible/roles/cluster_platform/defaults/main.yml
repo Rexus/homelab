@@ -23,6 +23,27 @@ cluster_platform_nfs_prerequisites_accepted: false
 cluster_platform_nfs_server: ""
 cluster_platform_nfs_share: ""
 cluster_platform_nfs_mount_options: [nfsvers=4.1, hard]
+
+# Existing Ceph remains owned by its storage operator; this role installs only RBD CSI.
+cluster_platform_ceph_rbd_prerequisites_accepted: false
+cluster_platform_talos_ceph_rbd_ready: false
+cluster_platform_ceph_rbd_images_approved: false
+cluster_platform_ceph_rbd_fsid: ""
+cluster_platform_ceph_rbd_monitors: []
+cluster_platform_ceph_rbd_pool: ""
+cluster_platform_ceph_rbd_user_id: ""
+cluster_platform_ceph_rbd_secret: csi-rbd-secret
+cluster_platform_ceph_rbd_image_features: [layering]
+cluster_platform_ceph_rbd_chart:
+  name: ceph-csi-rbd
+  namespace: ceph-csi-rbd
+  repository: https://ceph.github.io/csi-charts
+  chart: ceph-csi-rbd
+  health:
+    - {api_version: apps/v1, kind: Deployment, name: ceph-csi-rbd-provisioner, namespace: ceph-csi-rbd}
+    - {api_version: apps/v1, kind: DaemonSet, name: ceph-csi-rbd-nodeplugin, namespace: ceph-csi-rbd}
+    - {api_version: storage.k8s.io/v1, kind: CSIDriver, name: rbd.csi.ceph.com}
+
 cluster_platform_ingress_class: traefik
 cluster_platform_ingress_http_port: 30080
 cluster_platform_ingress_https_port: 30443

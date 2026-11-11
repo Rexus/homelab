@@ -301,9 +301,9 @@ Use these related documents as the source of truth for adjacent platform
 guidelines:
 
 - use [Host networking](../03-deployment/foundation/proxmox/network.md) and
-  [Network architecture](../01-architecture/11-networking/README.md)
+  [Network architecture](../01-architecture/05-networking/README.md)
   for bridge, VLAN, and subnet naming
-- use [Hardening baseline](../05-operations/hosts/hardening.md) for the checkpoint that node, bridge,
+- use [Hardening baseline](../05-operations/01-hosting/proxmox-hardening.md) for the checkpoint that node, bridge,
   and storage names are finalized before broad automation
 - keep environment-specific VM names, IP settings, and workload labels in local
   Terraform variables and Ansible inventory rather than in shared templates

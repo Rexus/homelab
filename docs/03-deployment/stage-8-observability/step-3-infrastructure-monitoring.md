@@ -19,12 +19,12 @@ but never targets, credentials or state.
 accepted Tier 1 signal intake from [Stage 8 Step 2](README.md#step-2-deploy-the-signal-pipelines)
 or the [dedicated VM integration](step-1b-dedicated-vms.md#step-3-integrate-and-accept-the-services),
 approved source inventory, TLS trust, firewall policy and physical failure-domain mapping.
-**Design:** [coverage and ownership](../../01-architecture/24-operations/03-telemetry.md#infrastructure-coverage).
+**Design:** [coverage and ownership](../../01-architecture/11-operations/03-observability.md#infrastructure-coverage).
 **Automation:** the [Tier 0 role](../../../tier-0/ansible/roles/infrastructure_monitoring)
 installs its independent Netdata parent, Redfish jobs, loopback Proxmox exporter and optional
 allowlisted metric bridge. The [Tier 1 role](../../../tier-1/ansible/roles/observability_platform)
 owns Kubernetes diagnostics and both metrics copies on the main path. The VM alternative
-requires project-owned product installation; the cluster starter installs no products.
+uses the [native VM installer](../../../tier-1/ansible/roles/observability_vm); the cluster starter installs no products.
 
 ## Main path
 
@@ -80,7 +80,9 @@ On the Kubernetes path, Step 2 already installs the Tier 1 parents and their loc
 If this review changes Tier 1 values, render/review/reapply the existing
 [Observability installation](procedures/observability-platform.md#8-render-the-complete-platform) before enabling its sources.
 Keep `observability_search_bootstrap: false` for that established cluster. On the VM path,
-use the project-owned service configuration and accepted receiver; do not apply the Kubernetes role.
+edit **`<prefix>-tier-1/ansible/group_vars/observability.yml`** instead of chart values. Retain the
+accepted `observability_vm_netdata_scrape_parent` and exact `observability_vm_netdata_scrape_metrics`
+allowlist, then [reconcile the native VM services](../../05-operations/06-resilience/observability.md#how-are-dedicated-vms-reconciled).
 
 The Netdata interface is operator diagnostics, not a multi-tenant application portal.
 Do not expose raw Tier 0 views, Functions or BMC credentials through the Tier 1 UI.

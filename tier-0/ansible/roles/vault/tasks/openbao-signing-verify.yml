@@ -1,0 +1,55 @@
+---
+- name: Create private controller qualification workspace
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: openbao-signing-
+  register: openbao_probe_dir
+  changed_when: false
+
+- name: Verify one native signature without accessing the HSM private key
+  block:
+    - name: Create a fresh public qualification challenge
+      ansible.builtin.copy:
+        content: "{{ lookup('ansible.builtin.password', '/dev/null', length=48, chars=['ascii_letters', 'digits']) }}"
+        dest: "{{ openbao_probe_dir.path }}/challenge"
+        mode: "0600"
+      changed_when: false
+
+    - name: Sign the challenge through the external-key Transit endpoint
+      ansible.builtin.uri:
+        url: "{{ openbao_signing_address }}/v1/{{ openbao_signing_mount }}/sign/{{ openbao_key.name }}/sha2-256"
+        method: POST
+        body: >-
+          {{ {'input': lookup('ansible.builtin.file', openbao_probe_dir.path ~ '/challenge', rstrip=false) | b64encode,
+              'key_version': 1, 'prehashed': false} |
+             combine({'signature_algorithm': 'pss', 'salt_length': 'hash'} if
+                     openbao_key.algorithm == 'rsa-pss-sha256' else {'marshaling_algorithm': 'asn1'}) }}
+      register: openbao_signature
+      changed_when: false
+
+    - name: Require the single pinned version and normal base64 signature encoding
+      ansible.builtin.assert:
+        that: openbao_signature.json.data.signature is match('^vault:v1:[A-Za-z0-9+/]+={0,2}$')
+
+    # The crypto signature module has no RSA-PSS parameters; native OpenSSL covers both selected algorithms.
+    - name: Decode the native signature without text conversion of binary bytes
+      ansible.builtin.command:
+        argv: [openssl, base64, -d, -A, -out, "{{ openbao_probe_dir.path }}/signature"]
+        stdin: "{{ openbao_signature.json.data.signature.split(':')[2] }}"
+        stdin_add_newline: false
+      changed_when: false
+
+    - name: Verify the actual signature with the original pinned public key
+      ansible.builtin.command:
+        argv: >-
+          {{ ['openssl', 'dgst', '-sha256', '-verify', openbao_key.public_key_src,
+              '-signature', openbao_probe_dir.path ~ '/signature'] +
+             (['-sigopt', 'rsa_padding_mode:pss', '-sigopt', 'rsa_pss_saltlen:32'] if
+              openbao_key.algorithm == 'rsa-pss-sha256' else []) + [openbao_probe_dir.path ~ '/challenge'] }}
+      changed_when: false
+  always:
+    - name: Remove only this controller qualification workspace
+      ansible.builtin.file:
+        path: "{{ openbao_probe_dir.path }}"
+        state: absent
+      changed_when: false

@@ -34,7 +34,7 @@ The Linux `lab` setup supplies an OS baseline; its application installer is proj
 The [Stage 10 application recipe](../../03-deployment/stage-10-lab-environments/step-3a-application.md)
 supplies a bounded Kubernetes HTTP example after an accepted cluster, not a Linux application installer.
 Future self-service requests are controlled by Tier 0; that controller is
-[not implemented yet](../../01-architecture/10-hosting/03-provisioning.md#delegated-provisioning).
+[not implemented yet](../../01-architecture/04-hosting/02-provisioning.md#delegated-provisioning).
 Do not give workload users infrastructure-wide credentials to fill that gap.
 
 ## Getting started

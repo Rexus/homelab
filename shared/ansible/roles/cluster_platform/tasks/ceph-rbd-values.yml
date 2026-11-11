@@ -1,0 +1,48 @@
+---
+- name: Retain the Talos mount, RBD identity and external Secret contracts after overrides
+  ansible.builtin.assert:
+    that:
+      - ceph.driverName == 'rbd.csi.ceph.com'
+      - ceph.kubeletDir == '/var/lib/kubelet'
+      - ceph.cephLogDirHostPath == '/var/lib/ceph-csi'
+      - ceph.selinuxMount == false
+      - ceph.CSIDriver.seLinuxMount == false
+      - ceph.nodeplugin.name == 'nodeplugin'
+      - ceph.provisioner.name == 'provisioner'
+      - ceph.provisioner.replicaCount | int > 0
+      - ceph.provisioner.skipForceFlatten == false
+      - ceph.provisioner.attacher.enabled == true
+      - ceph.provisioner.resizer.enabled == true
+      - ceph.secret == {'create':false}
+      - ceph.storageClass.create == false
+      - ceph.volumeSnapshotClass.create == false
+      - ceph.csiConfig == expected_config
+      - ceph.get('externallyManagedConfigmap', false) == false
+      - ceph.get('extraDeploy', []) | length == 0
+      - ceph.get('nameOverride', '') == ''
+      - ceph.get('fullnameOverride', '') == ''
+    fail_msg: >-
+      Retain native RBD names, Talos kubelet/log paths, kernel mounter compatibility and externally managed Secrets.
+      Use the role's StorageClass and csiConfig inputs; never put credentials or extra resources in Helm values.
+  vars:
+    ceph: "{{ (cluster_platform_releases | selectattr('component', 'equalto', 'storage') | first)['values'] }}"
+    expected_config:
+      - clusterID: "{{ cluster_platform_ceph_rbd_fsid }}"
+        monitors: "{{ cluster_platform_ceph_rbd_monitors }}"
+
+- name: Require exact approved digest pins for every native RBD container image
+  ansible.builtin.assert:
+    that:
+      - image.get('repository', '') is match('^[a-zA-Z0-9][a-zA-Z0-9./:_-]+$')
+      - image.get('tag', '') is match('^v?[0-9]+\.[0-9]+\.[0-9]+([._+-][a-zA-Z0-9.-]+)?@sha256:[a-f0-9]{64}$')
+    fail_msg: Pin the Ceph CSI driver, registrar, provisioner, attacher, resizer and snapshotter by version and digest.
+  vars:
+    ceph: "{{ (cluster_platform_releases | selectattr('component', 'equalto', 'storage') | first)['values'] }}"
+    image: "{{ ceph.get(item[0], {}).get(item[1], {}).get('image', {}) }}"
+  loop:
+    - [nodeplugin, plugin]
+    - [nodeplugin, registrar]
+    - [provisioner, provisioner]
+    - [provisioner, attacher]
+    - [provisioner, resizer]
+    - [provisioner, snapshotter]

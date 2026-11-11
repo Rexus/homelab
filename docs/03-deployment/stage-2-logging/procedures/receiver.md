@@ -7,8 +7,9 @@ Local records are mutable staging, **not an immutable archive or HA acceptance**
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** [Stage 2, Step 1](../README.md#step-1-provision-the-log-host), EL 10
 (AlmaLinux/Rocky/RHEL), approved signed syslog-ng 4.11+ packages and dependencies,
-working time/DNS, firewalld, and independently supplied TLS certificates.
-Prepare repository access or an approved offline mirror before deployment; the role
+working time/DNS and independently supplied TLS certificates. IaC installs and enables
+the managed firewalld instance while retaining the deployment SSH port.
+Select repository access or an approved offline mirror in the local inputs before deployment; the role
 does not enable EPEL or depend on a later Tier 1 software-supply service. [1]
 The 4.11 minimum includes the upstream first-read TLS metadata fix: older versions
 can omit the CN used for strict routing and drop the first read batch. Do not relax
@@ -17,6 +18,11 @@ or approved offline package source before the receiver installation. [3]
 Do not assume EPEL alone satisfies that gate: distribution versions may lag it.
 Qualify the upstream stable EL 10 packages/signing key or a reviewed internal build;
 never substitute Fedora RPMs, nightly packages or disabled signature checks. [1][4]
+
+For a source absent from the approved template, edit **Tier 0 `ansible/group_vars/syslog.yml`**:
+set `baseline_rpm_repositories` to its accepted HTTPS base URL, public-key URL and verified
+fingerprint using the [Shared schema](../../../../shared/ansible/roles/baseline/defaults/main.yml).
+The baseline configures that source through IaC; it is not a manual guest preparation step.
 
 ## Contents
 
@@ -60,10 +66,12 @@ existing mount declaration, then persists its UUID mount. No manual formatting o
 ### 2b. Existing or recovered filesystem — adoption path
 
 Set `syslog_ng_data_device`, `syslog_ng_data_fstype` (`xfs` or `ext4`) and `syslog_ng_data_uuid`
-to the retained filesystem's actual values. Obtain its UUID from the recovery record or, on **`log-1`**:
+to the retained filesystem's actual values. Use the recovery record or inspect it from **`<prefix>-tier-0/`**:
 
 ```bash
-lsblk --output NAME,SERIAL,SIZE,FSTYPE,UUID,MOUNTPOINTS
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible foundation_logging --playbook-dir ansible \
+  -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml \
+  -m ansible.builtin.command -a 'lsblk --output NAME,SERIAL,SIZE,FSTYPE,UUID,MOUNTPOINTS'
 ```
 
 Stop if identity is uncertain. An explicit UUID mismatch, incompatible signature or missing declared
@@ -167,17 +175,22 @@ The unused vendor unit is disabled/masked after installation to prevent a boot c
 
 ### 9. Check the service
 
-On **`log-1`**, verify the data mount and inspect startup errors without deleting queues:
+Verify the data mount and service from **`<prefix>-tier-0/`**:
 
 ```bash
-findmnt --mountpoint /srv/security-logging --output TARGET,SOURCE,UUID,FSTYPE,OPTIONS
-df -h /srv/security-logging
-sudo systemctl status syslog-ng-receiver.service
-sudo journalctl --unit syslog-ng-receiver.service --since '-10 minutes'
+bash scripts/deploy.sh syslog --ansible-only --playbook deployment/logging-verify.yml
 ```
 
 **Expected:** the selected UUID, filesystem and capacity are present. Record the UUID outside the guest;
 verify the persistent mount after a controlled reboot before accepting recovery readiness.
+
+For startup errors, read the receiver journal from **`<prefix>-tier-0/`**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible foundation_logging --playbook-dir ansible \
+  -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml \
+  --become -m ansible.builtin.command -a 'journalctl --unit=syslog-ng-receiver.service --since="-10 minutes" --no-pager'
+```
 
 ### 10. Enable the first producer and verify its event
 
@@ -192,7 +205,7 @@ Add the supported Proxmox hosts and appliance exports through that same source g
 
 Return to [Stage 2, Step 3](../README.md#step-3-protect-and-verify-retained-evidence).
 Prepare [NAS checkpoints, independent copies and audited reader access](../step-3c-nas-archive.md),
-or the selected locked-storage alternative, then run the [fault/restore drill](../../../05-operations/logging-drill.md).
+or the selected locked-storage alternative, then run the [fault/restore drill](../../../05-operations/06-resilience/logging-drill.md).
 
 The [receiver reference](../../../08-reference/syslog-receiver.md) defines files, queue sizing,
 runtime safeguards, reconciliation fields and limitations. The maintenance recipe reuses

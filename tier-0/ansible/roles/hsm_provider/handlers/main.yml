@@ -1,0 +1,25 @@
+---
+- name: Reload USB device rules
+  ansible.builtin.command:
+    argv: [udevadm, control, --reload-rules]
+  changed_when: true
+  listen: Apply selected YubiHSM USB permissions
+
+- name: Apply selected YubiHSM USB permissions
+  ansible.builtin.command:
+    argv: [udevadm, trigger, --subsystem-match=usb, --attr-match=idVendor=1050,
+           --attr-match=idProduct=0030, "--attr-match=serial={{ hsm_yubihsm_serial }}"]
+  changed_when: true
+  listen: Apply selected YubiHSM USB permissions
+
+- name: Wait for selected USB permission changes
+  ansible.builtin.command:
+    argv: [udevadm, settle]
+  changed_when: false
+  listen: Apply selected YubiHSM USB permissions
+
+- name: Restart selected YubiHSM connector
+  ansible.builtin.systemd_service:
+    name: yubihsm-connector.service
+    daemon_reload: true
+    state: restarted

@@ -1,0 +1,27 @@
+---
+# Contract and examples: docs/03-deployment/stage-3-trust/step-1b-usb-hsm.md
+hsm_provider: ""
+hsm_provider_driver: "{{ {'picohsm': 'opensc', 'yubihsm2': 'yubihsm'}.get(hsm_provider, hsm_provider) }}"
+hsm_provider_custody_ready: false
+hsm_provider_mode: usb
+hsm_provider_packages: []
+hsm_provider_library: ""
+hsm_provider_config_files: []
+hsm_provider_environment: {}
+hsm_provider_user: root
+hsm_provider_group: root
+hsm_provider_pcsc_users: "{{ [hsm_provider_user] | reject('equalto', 'root') | list }}"
+hsm_provider_pcsc_readers: []
+hsm_provider_pcsc_policy_id: provider
+hsm_provider_tool: /usr/bin/pkcs11-tool
+hsm_provider_expected_serial: ""
+hsm_yubihsm_connector_url: http://127.0.0.1:12345
+hsm_yubihsm_connector_binary: /usr/bin/yubihsm-connector
+hsm_yubihsm_serial: ""
+hsm_issuer_engine_library: ""
+hsm_issuer_key: ""
+hsm_issuer_create_csr: false
+hsm_issuer_common_name: ""
+hsm_issuer_csr_path: /srv/openxpki/identity/issuer.csr
+hsm_issuer_csr_dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/share/pki-ceremony/{{ inventory_hostname }}-issuer.csr"
+hsm_issuer_pin: "{{ lookup('ansible.builtin.env', 'HSM_ISSUER_PIN') }}"

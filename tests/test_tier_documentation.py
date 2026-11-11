@@ -24,27 +24,27 @@ class RepositoryDocumentation(TierRepositoryTestCase):
     def test_generated_storage_design_distinguishes_capability_api_and_hosting(self):
         self.generate()
         docs = self.root / "verify-architecture/docs/auto-docs"
-        design = (docs / "01-architecture/12-data/README.md").read_text(encoding="utf-8")
+        design = (docs / "01-architecture/06-data/README.md").read_text(encoding="utf-8")
         for term in ("**Object storage**", "**S3-compatible API**", "CephFS",
                      "Object Gateway (RGW)", "backups **to**", "independent recovery"):
             self.assertIn(term, design)
         self.assertIn("does not establish that RGW exists", design)
         self.assertIn("Proxmox/Ceph-backed block storage. NAS file areas receive backup copies", design)
-        hosting = (docs / "01-architecture/10-hosting/01-runtime.md").read_text(encoding="utf-8")
-        self.assertIn("../12-data/README.md", hosting)
+        hosting = (docs / "01-architecture/04-hosting/01-runtime.md").read_text(encoding="utf-8")
+        self.assertIn("../06-data/README.md", hosting)
         self.assertNotIn("## Reference realization", hosting)
         foundation = (docs / "03-deployment/foundation/README.md").read_text(encoding="utf-8")
         self.assertIn("storage/README.md", foundation)
         guide = (docs / "03-deployment/foundation/storage/README.md").read_text(encoding="utf-8")
-        self.assertIn("12-data/README.md#storage-interfaces", guide)
+        self.assertIn("06-data/README.md#storage-interfaces", guide)
         self.assertIn("## Step 2a: Prepare NAS file storage", guide)
         self.assertIn("## Step 2b: Qualify an object endpoint", guide)
         self.assertIn("does not deploy a storage gateway", guide)
-        backups = (docs / "05-operations/backups/virtual-machines.md").read_text()
+        backups = (docs / "05-operations/06-resilience/backups/virtual-machines.md").read_text()
         self.assertIn('id="nas-file-target"', backups)
         self.assertIn("Datacenter > Storage > Add > NFS", backups)
         self.assertIn("neither path requires an object-storage API", backups)
-        database_backups = (docs / "05-operations/backups/postgresql.md").read_text()
+        database_backups = (docs / "05-operations/06-resilience/backups/postgresql.md").read_text()
         inputs = yaml.safe_load((UPSTREAM / "tier-0/ansible/group_vars/control_applications.yml.example").read_text())
         defaults = yaml.safe_load((UPSTREAM / "tier-0/ansible/roles/control_applications/defaults/main.yml").read_text())
         self.assertIn(inputs["control_applications_backup_files"]["keycloak"]["claim"], database_backups)
@@ -261,7 +261,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             readme = (self.root / f"verify-{tier}/README.md").read_text(encoding="utf-8")
             self.assertNotIn(publisher, readme)
             self.assertIn("operator-run workflows", readme)
-            self.assertIn("10-hosting/03-provisioning.md", readme)
+            self.assertIn("04-hosting/02-provisioning.md", readme)
             self.assertNotIn("${", readme)
 
     def test_naming_worksheet_records_conventions_and_zone_network_plan(self):
@@ -344,7 +344,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertLess(tier0.index("step-1c-sdn.md"), tier0.index("template-lifecycle.md"))
         quickstart = tier0.split("## Getting started", 1)[1].split("## Navigation", 1)[0]
         self.assertLess(quickstart.index("template-lifecycle.md"), quickstart.index("kubernetes-cluster.sh init"))
-        self.assertIn("operator-run bootstrap", (architecture / "03-deployment/stage-4-kubernetes/step-1b-manual-cluster.md").read_text())
+        self.assertIn("existing owner", (architecture / "03-deployment/stage-4-kubernetes/step-1b-existing-cluster.md").read_text())
         for step in range(1, 11):
             self.assertIn(f"**{step}:", tier0)
         bootstrap = (architecture / "03-deployment/README.md").read_text()
@@ -422,12 +422,15 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("step-1b-dedicated-vms.md", observability)
         self.assertNotIn("step-2d-telemetry-vm.md", control)
         hardware = (stages[2].parent / "step-1b-usb-hsm.md").read_text()
-        self.assertIn("OS baseline", hardware)
-        self.assertIn("not a native HSM cluster", hardware)
+        self.assertIn("Terraform provisions the selected VMs", hardware)
+        self.assertIn("hsm_provider", hardware)
+        self.assertIn("native p11-kit/SSH", hardware)
+        self.assertIn("Existing independent tokens are not a replicated key domain",
+                      " ".join(hardware.split()))
         self.assertEqual(hardware.count("```mermaid"), 1)
         self.assertIn("step-1b-usb-hsm.md", project)
         self.assertIn("Direct-CI trust, Vault and original-state handover", project)
-        design = (docs / "01-architecture/06-reference-platform.md").read_text()
+        design = (docs / "01-architecture/03-reference-platform.md").read_text()
         self.assertIn("not a claim that every service is automated", design)
         self.assertIn("no network route", design)
         self.assertIn("independent recovery/unseal material", design)
@@ -547,7 +550,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         edited += [architecture / "docs/auto-docs/01-architecture/README.md"]
         deleted = [edited.pop(0), edited.pop(0), architecture / "platform-standards.md",
                    self.root / "verify-tier-2/docs/architecture/README.md",
-                   architecture / "docs/auto-docs/05-operations/secret-handling/strategy.md"]
+                   architecture / "docs/auto-docs/05-operations/03-cryptography/secret-handling.md"]
         expected = {path: path.read_bytes() for path in deleted}
         for path in edited:
             path.write_text("# Project-owned changes\n", encoding="utf-8")

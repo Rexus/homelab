@@ -12,6 +12,10 @@
     validate_certs: true
     definition: "{{ spinnaker_native_foundation }}"
 
+- name: Commission or validate the independent file repository before starting data services
+  ansible.builtin.include_tasks: spinnaker-repository.yml
+  when: delivery_platform_spinnaker_backup_backend == 'filesystem'
+
 - name: Wait for every verified private TLS and PKCS12 certificate
   kubernetes.core.k8s_info:
     kubeconfig: "{{ delivery_platform_kubeconfig }}"

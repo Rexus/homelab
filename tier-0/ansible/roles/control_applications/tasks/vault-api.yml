@@ -1,0 +1,32 @@
+---
+# The same native API reconciliation serves the VM and Kubernetes placements.
+- name: Validate post-unseal API configuration before changing access
+  ansible.builtin.assert:
+    that:
+      - control_applications_vault_phase in ['configure', 'accept']
+      - control_applications_vault_address is match('^https://[^/ ]+(:[0-9]+)?$')
+      - control_applications_vault_token | length > 0
+      - control_applications_vault_policies | length > 0
+      - control_applications_vault_oidc_roles | length > 0
+      - control_applications_oidc_issuer is match('^https://[^ ]+/realms/[^/ ]+$')
+      - control_applications_vault_replicas | int >= 1
+      - control_applications_vault_audit_destinations | length > 0
+      - control_applications_vault_phase != 'configure' or control_applications_oidc_client_secrets.get('vault', '') | length > 0
+      - control_applications_vault_phase != 'accept' or control_applications_backup_restore_accepted | bool
+      - control_applications_vault_phase != 'accept' or control_applications_vault_audit_forwarding_accepted | bool
+    fail_msg: Select the original HTTPS Vault, scoped SSO policy, private bootstrap authority and recovery evidence.
+  no_log: true
+
+- name: Reject unbounded human access mappings
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9_-]+$')
+      - item.groups | length > 0
+      - "'*' not in item.groups"
+      - item.policies | length > 0
+      - "'root' not in item.policies"
+      - item.policies | difference(control_applications_vault_policies.keys() | list) | length == 0
+  loop: "{{ control_applications_vault_oidc_roles }}"
+
+- name: Reconcile or verify native audit and OIDC configuration
+  ansible.builtin.import_tasks: vault.yml

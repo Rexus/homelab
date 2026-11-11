@@ -8,7 +8,7 @@ storage VM to translate one interface into another.
 **Working repositories:** `<prefix>-tier-0` for control databases and protected
 archives; `<prefix>-tier-1` for shared applications. Shared provides reusable
 execution, not storage resources, inventory or credentials.
-**Design:** [storage interfaces](../../../01-architecture/12-data/README.md#storage-interfaces).
+**Design:** [storage interfaces](../../../01-architecture/06-data/README.md#storage-interfaces).
 **Prerequisites:** commissioned storage, scoped access, verified transport and an
 independent recovery copy. Storage administration remains a Tier 0 authority.
 
@@ -45,20 +45,20 @@ link resolves to its retained data volume before updating local inputs; keep the
 
 | Consumer | Interface used by the supplied implementation | Procedure |
 | --- | --- | --- |
-| VM/CT backup files | Proxmox-managed NAS NFS target; PBS remains a separate alternative | [Native NAS backup path](../../../05-operations/backups/virtual-machines.md#nas-file-target) |
+| VM/CT backup files | Proxmox-managed NAS NFS target; PBS remains a separate alternative | [Native NAS backup path](../../../05-operations/06-resilience/backups/virtual-machines.md#nas-file-target) |
 | Protected log archive | Direct encrypted SMB mount; local intake remains independent of the NAS | [NAS archive](../../stage-2-logging/step-3c-nas-archive.md) |
-| Control recovery copies | Commissioned mounted file repository; read-only source views, separately encrypted backup copies | [Control backups](../../../05-operations/backups/control-applications.md) |
+| Control recovery copies | Commissioned mounted file repository; read-only source views, separately encrypted backup copies | [Control backups](../../../05-operations/06-resilience/backups/control-applications.md) |
 | NetBox shared media | Existing RWX-capable Kubernetes storage, such as qualified NAS-backed CSI | [Application storage](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership) |
 | Keycloak, NetBox and Grafana database backups | Scheduled verified full backups to a separate NAS file PVC; existing object/WAL archive remains an explicit PITR option | [Database backup inputs](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership), [Grafana](../../stage-8-observability/procedures/observability-platform.md) |
 | GitLab Kubernetes chart | Existing object storage with ten private versioned buckets; S3-compatible API, including live application objects | [GitLab data services](../../stage-9-development/procedures/data-services.md#prepare-object-storage) |
 | GitLab data-VM recovery copies | Encrypted file repository on a commissioned NAS mount or existing SFTP destination | [Data-service backup inputs](../../stage-9-development/procedures/data-services.md#backups-and-recovery) |
-| Spinnaker recovery | Existing file repository or object endpoint, selected explicitly | [Backup inputs](../../stage-7-delivery/step-2b-spinnaker.md#step-2-prepare-credentials-and-boundaries) |
+| Spinnaker recovery | Existing retained NAS PVC or object endpoint; installer can commission a new file repository from explicit inputs | [Backup inputs](../../stage-7-delivery/step-2b-spinnaker.md#choose-backup-storage) |
 
 GitLab's chart requires object storage for its application objects. The Barman
 Cloud path uses object storage for continuous WAL/PITR. A NAS file-backup choice
 uses a different implementation and recovers to a completed scheduled backup,
 not an arbitrary later time. A mounted share is not an API substitution. [1][2]
-Use the [PostgreSQL file-backup procedure](../../../05-operations/backups/postgresql.md)
+Use the [PostgreSQL file-backup procedure](../../../05-operations/06-resilience/backups/postgresql.md)
 for the selected NAS path; it leaves live database storage unchanged.
 If the required native interface is unavailable, stop at that prerequisite or
 select a separately documented application variant. Do not invent an endpoint.
@@ -70,10 +70,12 @@ select a separately documented application variant. Do not invent an endpoint.
 1. Commission a dedicated export/share and capacity budget on the NAS. Assign
    only the producer, transfer or reader permissions needed by that dataset.
    Select NFS or SMB according to the consumer and the NAS's supported security.
-2. Mount it using the consuming procedure or a qualified CSI driver. Verify the
+2. Hand off its native interface through the consuming procedure or a qualified CSI driver. Verify the
    actual export, expected marker and permissions before enabling writes.
    The logging recipe implements encrypted SMB; an NFS alternative needs explicit
    identity, network and mount qualification, not just a changed URI.
+   A preprovisioned Kubernetes PVC is an accepted storage-owner interface; it does not
+   require a controller-side mount. Repository commissioning follows the consumer's IaC path.
 3. Test NAS/network loss, full storage, remount and clean-target restore. A failed
    mount must not redirect writes into an empty local directory. Keep log intake
    on local storage; NAS availability affects archive progress, not its listener.
@@ -96,7 +98,7 @@ The storage owner supplies an existing private HTTPS endpoint, trusted CA, bucke
 names and distinct consumer keys. A supported NAS endpoint or Ceph RGW can meet
 this contract; Proxmox RBD, CephFS or an NFS/SMB share alone cannot. This repository
 does not install RGW or another gateway as a side effect. See the
-[Ceph and UNAS interface distinction](../../../01-architecture/12-data/README.md#storage-interfaces).
+[Ceph and UNAS interface distinction](../../../01-architecture/06-data/README.md#storage-interfaces).
 
 | Check | Required evidence |
 | --- | --- |
@@ -126,7 +128,7 @@ state and credentials until its consumers and data are explicitly migrated and
 verified. Removing a starter from the reference is not permission to destroy it.
 
 Return to [foundation host/network preparation](../README.md#before-starting-hosts-and-networks).
-The first disposable guest's [backup/restore test](../../../05-operations/backups/virtual-machines.md#quick-steps)
+The first disposable guest's [backup/restore test](../../../05-operations/06-resilience/backups/virtual-machines.md#quick-steps)
 is an acceptance gate before relying on this recovery path.
 
 ## References

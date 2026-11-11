@@ -1,6 +1,6 @@
 # Stage 5: Identity
 
-**Related:** [Architecture](../../01-architecture/18-identity/README.md) · [Operations](../../05-operations/identity/README.md)
+**Related:** [Architecture](../../01-architecture/09-identity/README.md) · [Operations](../../05-operations/04-identity.md)
 
 Establish directory authority and federated service authentication. Ansible configures
 FreeIPA on dedicated VMs; the accepted Tier 0 Kubernetes platform hosts the identity provider.
@@ -13,20 +13,20 @@ approved compute/templates, certificate trust, software supply and independent c
 service acceptance are separate operations.
 See [stage coverage](../../08-reference/implementation-support.md#stage-coverage) for
 prerequisites, optional variants and live acceptance.
-**Design:** [identity authority](../../01-architecture/18-identity/README.md) and
-[cluster runtime](../../01-architecture/10-hosting/README.md).
+**Design:** [identity authority](../../01-architecture/09-identity/README.md) and
+[cluster runtime](../../01-architecture/04-hosting/README.md).
 
 The supplied API SSO rollout uses the **Terraform-owned Talos 1.13.x** reference from Stage 4.
-A manual cluster needs its own qualified native SSO/recovery integration; the plan-based recipe
+An existing externally managed cluster needs its own qualified native SSO/recovery integration; the plan-based recipe
 does not adopt it. Talos 1.14 remains outside this complete reference path until separately qualified.
 
 ## Main path
 
 | Step | Detailed path | Rejoin |
 | --- | --- | --- |
-| 1: directory | [FreeIPA](procedures/freeipa.md), including its separate CA-signing pause | Step 2 after primary/replica acceptance |
-| 2: federation | [Keycloak](procedures/keycloak.md), including database/backup preparation | Step 3 after federation works |
-| 3: human access | [Kubernetes SSO](procedures/kubernetes-sso.md) and [service SSO contracts](procedures/service-sso.md) | Accept current identity clients; each later service connects SSO during its own installation |
+| 1: directory | [FreeIPA](procedures/freeipa.md), including its separate CA-signing pause; [existing directory or internal CA alternative](procedures/freeipa.md#existing-domains-and-alternatives) must be selected before provisioning | Step 2 after directory acceptance |
+| 2: federation | [Keycloak](procedures/keycloak.md); select NAS file backups or existing object/WAL storage in its [configuration step](procedures/keycloak.md#2-edit-the-identity-provider-settings), before preparing credentials | Step 3 after federation works |
+| 3: human access | [Kubernetes API SSO](procedures/kubernetes-sso.md), then [CLI client and namespace RBAC](procedures/kubernetes-cli-access.md) before Headlamp, plus [service SSO contracts](procedures/service-sso.md) | Accept real human API login/denial and recovery; each later service connects SSO during its own installation |
 
 1. [Deploy the directory pair](#step-1-deploy-the-directory-pair)
 2. [Deploy identity federation](#step-2-deploy-identity-federation)
@@ -37,6 +37,10 @@ are the required installation steps, not optional variants. They use the existin
 foundation state and control cluster; no new state or inventory owner is introduced.
 
 ## Step 1: Deploy the directory pair
+
+For an existing accepted directory, follow its [interface checks](procedures/freeipa.md#existing-domains-and-alternatives)
+and continue at Step 2 without creating a second realm. For a new pair, select the default external-CA
+path below or the explicit internal-CA alternative before running the installer.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -136,7 +140,7 @@ The picture shows configured placement, not a verified live installation.
 The existing directory comes from the [FreeIPA recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml).
 CNPG must be available before database creation. Backup destinations are separate
 from its live volumes; the Barman plugin is required only for the object/WAL option.
-The [backup realization](../../05-operations/backups/postgresql.md) identifies the
+The [backup realization](../../05-operations/06-resilience/backups/postgresql.md) identifies the
 scheduled file jobs and NAS destinations omitted from this runtime view.
 
 1. Complete [Keycloak Steps 1-2](procedures/keycloak.md#configure-and-install): copy the
@@ -157,10 +161,10 @@ Retain bootstrap credentials and test recovery without normal directory or IdP l
 2. Before enabling Headlamp, complete [Kubernetes API human SSO](procedures/kubernetes-sso.md)
    using its supported schema and serial rollout. Preserve X509/Talos recovery and
    prove certificate access during an issuer outage. Unsupported schemas require
-   qualification; do not silently apply the 1.13 patch to 1.14. Accept the API using an independently
-   prepared OIDC client for the `headlamp` audience; Headlamp's UI is installed and tested in Stage 6.
-   If that client/token path is unavailable, record the API acceptance gap and keep Headlamp blocked;
-   a healthy Keycloak alone does not satisfy its installation gate.
+   qualification; do not silently apply the 1.13 patch to 1.14. Then complete the supplied
+   [CLI client and namespace RBAC workflow](procedures/kubernetes-cli-access.md) and real allowed/denied
+   human API checks for the `headlamp` audience. Headlamp's UI is installed and tested in Stage 6;
+   keep its acceptance flag false until the API login, authorization and recovery gates pass.
 3. Apply the [service SSO gate](procedures/service-sso.md) to supported later consumers;
    register their OIDC clients with exact callbacks, scoped roles and independent emergency access.
 
@@ -176,7 +180,7 @@ identity, application authorization or independent recovery credentials.
 **Result:** after the selected integrations and acceptance checks, replicated directory services,
 a federated identity provider and the
 existing Kubernetes platform realize the
-[identity design](../../01-architecture/18-identity/README.md). Bootstrap and recovery
+[identity design](../../01-architecture/09-identity/README.md). Bootstrap and recovery
 remain independent of normal Keycloak login, Vault, GitLab and Harbor.
 
 Record directory, federation and backup checks. Continue with

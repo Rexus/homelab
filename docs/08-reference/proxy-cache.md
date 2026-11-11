@@ -5,7 +5,7 @@ The [Stage 1 README](../03-deployment/stage-1-software-intake/README.md) is the 
 This page explains settings and behavior; it is not another deployment to perform.
 
 **Working repository:** `<prefix>-tier-2` for cache inputs. Each consumer's owning tier selects its endpoint.
-**Design:** [controlled software intake](../01-architecture/13-software-intake/01-design.md).
+**Design:** [controlled software intake](../01-architecture/07-software-intake/README.md).
 
 ## Contents
 
@@ -61,7 +61,7 @@ The internal listener uses HTTP proxy protocol. HTTPS destinations use encrypted
 these are **not cached** or scanned. Plain HTTP responses may be cached; a tunnel success is not a cache hit.
 The supplied installer is an explicit proxy, not a transparent/intercepting proxy.
 For authenticated or TLS/mTLS proxy listeners, select a separately reviewed implementation.
-See [transport and integrity](../01-architecture/13-software-intake/01-design.md#transport-and-integrity) for trust choices.
+See [transport and integrity](../01-architecture/07-software-intake/README.md#transport-and-integrity) for trust choices.
 
 A leading dot in an allowed domain includes its subdomains. Include approved CDN/redirect targets deliberately;
 shared domains such as GitHub permit more than one project. IP URLs do not gain permission through reverse DNS.
@@ -122,7 +122,7 @@ Each consumer selects `repository_proxy_enabled`, `repository_proxy_url` and opt
 `repository_proxy_fqdn` in its own `ansible/group_vars/all.yml` or `all.<env>.yml`.
 Use `repository_proxy_ip` only for a temporary hosts entry before independent DNS works;
 consumer URLs contain no subnet prefix. Follow [bootstrap Step 6](../03-deployment/stage-1-software-intake/step-6-bootstrap-consumer.md)
-and the [Proxmox host procedure](../05-operations/hosts/update-access.md) for existing hosts.
+and the [Proxmox host procedure](../05-operations/02-software-intake/host-updates.md) for existing hosts.
 
 | Consumer | Behavior |
 | --- | --- |
@@ -135,7 +135,7 @@ Shared's baseline manages DNF through an INI-aware module and APT through an own
 Package verification policy also applies without a proxy.
 No cache-to-Tier-0 management rule or update push is required; Tier 0 initiates retrieval.
 Enforce direct-WAN bypass denial through the
-[firewall contract](../01-architecture/11-networking/01-firewall-policy.md#rule-contracts), then test it.
+[firewall contract](../01-architecture/05-networking/01-firewall-policy.md#rule-contracts), then test it.
 
 Cache hosts build the service: retain `repository_proxy_enabled: false` in `cache.yml`, or use a different
 accepted upstream proxy. They cannot install through their own unfinished VIP.

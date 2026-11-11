@@ -1,0 +1,3 @@
+{% for name, client in hsm_remote_clients | dictsort %}
+restrict,from="{{ client.sources | join(',') }}" {{ client.public_key }}
+{% endfor %}

@@ -199,3 +199,7 @@
       - control_applications_action != 'apply' or control_applications_headlamp_api_oidc_accepted | bool
     fail_msg: Configure API OIDC for the Headlamp audience and explicit group/namespace RBAC first.
   when: "'headlamp' in control_applications_components"
+
+- name: Validate the selected Vault seal before rendering any release
+  ansible.builtin.import_tasks: vault-seal.yml
+  when: "'vault' in control_applications_components"

@@ -1,0 +1,25 @@
+{# Same separate child/peer credential and replication contract as the Kubernetes parents. #}
+[stream]
+  enabled = yes
+  destination = {% for parent in observability_vm_gateway_hosts if parent != inventory_hostname %}{{ observability_vm_endpoints[parent] }}:19999:SSL {% endfor %}
+
+  api key = {{ observability_vm_netdata_peer_key if inventory_hostname in observability_vm_gateway_hosts else observability_vm_netdata_child_key }}
+  ssl skip certificate verification = no
+  CAfile = /etc/netdata/private/ca.crt
+{% if inventory_hostname in observability_vm_gateway_hosts %}
+[{{ observability_vm_netdata_child_key }}]
+  enabled = yes
+  allow from = {{ (observability_vm_metrics_hosts + observability_vm_search_hosts) | map('extract', platform_host_ips) | join(' ') }}
+  default memory mode = dbengine
+  health enabled by default = no
+  enable replication = yes
+  replication period = 1d
+[{{ observability_vm_netdata_peer_key }}]
+  enabled = yes
+  allow from = {% for parent in observability_vm_gateway_hosts if parent != inventory_hostname %}{{ platform_host_ips[parent] }} {% endfor %}
+
+  default memory mode = dbengine
+  health enabled by default = no
+  enable replication = yes
+  replication period = 1d
+{% endif %}

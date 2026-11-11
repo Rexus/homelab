@@ -1,8 +1,12 @@
 ---
 - name: Assemble product values and native resources
   ansible.builtin.set_fact:
-    cluster_platform_product: "{{ lookup('ansible.builtin.template', cluster_platform_component ~ '.yml.j2') | from_yaml }}"
-    cluster_platform_chart: "{{ cluster_platform_catalog[cluster_platform_component] }}"
+    cluster_platform_product: "{{ lookup('ansible.builtin.template', product_template) | from_yaml }}"
+    cluster_platform_chart: >-
+      {{ cluster_platform_ceph_rbd_chart if ceph_rbd | bool else cluster_platform_catalog[cluster_platform_component] }}
+  vars:
+    ceph_rbd: "{{ cluster_platform_component == 'storage' and cluster_platform_storage_provider == 'ceph_rbd' }}"
+    product_template: "{{ 'ceph-rbd.yml.j2' if ceph_rbd | bool else cluster_platform_component ~ '.yml.j2' }}"
   no_log: true
 
 - name: Append a complete shared application contract
@@ -13,6 +17,7 @@
         'namespace': cluster_platform_chart.namespace,
         'repository': cluster_platform_repositories.get(cluster_platform_component, cluster_platform_chart.repository),
         'chart': cluster_platform_chart.chart,
+        'health': cluster_platform_chart.health,
         'version': cluster_platform_versions[cluster_platform_component],
         'values': cluster_platform_product['values'] | combine(
           cluster_platform_values.get(cluster_platform_component, {}), recursive=True),

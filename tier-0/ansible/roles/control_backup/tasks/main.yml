@@ -38,6 +38,21 @@
     argv: [python3, -c, "import sys; assert sys.version_info >= (3, 9), 'Python 3.9+ required'"]
   changed_when: false
 
+- name: Install the native NFS client for a selected recovery export
+  ansible.builtin.package:
+    name: "{{ 'nfs-utils' if ansible_os_family == 'RedHat' else 'nfs-common' }}"
+    state: present
+  when: control_backup_repository_source | length > 0
+
+- name: Mount the explicitly selected native recovery export
+  ansible.posix.mount:
+    path: "{{ control_backup_repository }}"
+    src: "{{ control_backup_repository_source }}"
+    fstype: nfs
+    opts: "{{ control_backup_repository_mount_options }}"
+    state: mounted
+  when: control_backup_repository_source | length > 0
+
 - name: Prepare root-only recovery directories
   ansible.builtin.file:
     path: "{{ item }}"

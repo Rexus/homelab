@@ -1,6 +1,11 @@
 ---
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: vault
+
 # Secrets: Stage 6, dedicated Vault VM alternative.
-# Recipe mapping: docs/05-operations/ansible-recipes.md
+# Recipe mapping: docs/05-operations/01-hosting/ansible-recipes.md
 - name: Apply Vault host baseline
   hosts: vault
   become: true

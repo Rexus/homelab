@@ -70,7 +70,13 @@
       - control_backup_media_credentials_file is match('^/')
   when: control_backup_media_enabled | bool
 
-- name: Inspect the independently installed Vault CLI
+- name: Install the selected matching Vault CLI from accepted package sources
+  ansible.builtin.package:
+    name: "{{ control_backup_vault_package }}"
+    state: present
+  when: control_backup_vault_package | length > 0
+
+- name: Verify the selected Vault CLI before changing the schedule
   ansible.builtin.command:
     argv: ["{{ control_backup_vault_binary }}", version]
   changed_when: false

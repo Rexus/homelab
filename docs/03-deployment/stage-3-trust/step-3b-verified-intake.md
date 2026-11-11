@@ -127,7 +127,7 @@ not rewritten or re-signed. Missing packages, invalid signatures or stale metada
 **Coverage:** ClamAV checks supported files/archives and holds detections, encrypted/broken content,
 scan-limit failures and engine errors. Opaque VM disk images (`raw`, `qcow2`, ISO and similar) are
 held; this path does not inspect their guest filesystems. OCI signatures, Trivy vulnerability gates
-and automatic patch installation are separate integrations. See the [design](../../01-architecture/13-software-intake/02-verification.md).
+and automatic patch installation are separate integrations. See the [design](../../01-architecture/07-software-intake/01-verification.md).
 
 For the supplied proxy pair, edit **Tier 2 `ansible/group_vars/cache.yml`**: add the worker's actual
 IP as a narrow entry in `cache_squid_allowed_cidrs` (starter `10.30.31.40/32`) and include selected
@@ -255,7 +255,7 @@ curl --fail --show-error "https://$INTAKE_HOST/approved/$SOURCE/latest.json"
 
 **Expected:** a version, immutable content URL and receipt URL. Read that receipt and a selected
 file using the returned URLs. A new source stays 404 until accepted; rejected bytes never appear
-under `/approved/`. Complete the [failure checks](../../05-operations/software-intake.md#how-is-the-publication-gate-tested)
+under `/approved/`. Complete the [failure checks](../../05-operations/02-software-intake/verified-publication.md#how-is-the-publication-gate-tested)
 in a disposable test source before selecting production consumers.
 
 <a id="8-connect-consumers-and-schedule-intake"></a>
@@ -322,5 +322,5 @@ firewall and protected logging are commissioned prerequisites, not additional re
 After first-publication and failure acceptance, set `software_intake_timer_enabled: true` and
 the desired `software_intake_schedule` in Tier 1 `intake.yml`; repeat Step 3. Retain the deployment
 inputs, public keys, receipts and VM/data backup independently. Continue the main
-[Stage 3 completion](README.md#capability-available); use the [operations runbook](../../05-operations/software-intake.md)
+[Stage 3 completion](README.md#capability-available); use the [operations runbook](../../05-operations/02-software-intake/verified-publication.md)
 for incidents, rollback and storage cleanup.

@@ -1,6 +1,6 @@
 # Stage 2: Protected logging
 
-**Related:** [Architecture](../../01-architecture/14-protected-logging/README.md) · [Operations](../../05-operations/protected-logging/README.md)
+**Related:** [Architecture](../../01-architecture/11-operations/01-protected-logging.md) · [Operations](../../05-operations/06-resilience/protected-logging.md)
 
 Deploy independent Tier 0 log intake before PKI, FreeIPA or Kubernetes. This capability
 provides **Security Logging and Audit** for traceability and recovery. Later
@@ -8,7 +8,7 @@ provides **Security Logging and Audit** for traceability and recovery. Later
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 Run repository scripts from this root; Shared is execution code, not an evidence owner.
-**Design:** [protected security logging](../../01-architecture/24-operations/01-security-logging.md).
+**Design:** [protected security logging](../../01-architecture/11-operations/01-protected-logging.md).
 **Prerequisites:** verified [foundation](../foundation/README.md): approved Linux templates, Control networking, local tools/state,
 independent bootstrap credentials and protected storage. Kubernetes, FreeIPA,
 Keycloak, Vault and Tier 1 analytics are not prerequisites.
@@ -19,7 +19,7 @@ NAS custody and live acceptance remain required. See [coverage](../../08-referen
 
 | Step / option | Detailed path | Rejoin |
 | --- | --- | --- |
-| 1: first receiver VM/disks | Provision below; no platform PKI or cluster required | Step 2 |
+| 1: first receiver VM/disks | Provision and prepare storage below; no platform PKI or cluster required | Step 2 |
 | 2: trust, receiver, then producers | [Independent signing](procedures/producer-trust.md), [receiver](procedures/receiver.md), then [sources](procedures/sources.md) | Step 3 after authorized test events arrive |
 | 3a: single collector, main | Retain the first collector's explicit failure limits | Select storage 3c or 3d |
 | 3b: extra receiver, optional | [Redundant intake](step-3b-redundant-intake.md) | Select storage 3c or 3d for the resulting topology |
@@ -58,11 +58,11 @@ flowchart LR
       Devices["Gateway / switches<br/>Retain local logs"]
     end
     subgraph PVE["Existing Proxmox host"]
-      direction LR
+      direction TB
       Host["Hypervisor logs<br/>Retain locally"]
       Template["Approved<br/>Linux template"]
       VM["log-1<br/>New VM / OS disk"]
-      Data[("scsi1 / local data disk<br/>Allocated, not mounted")]
+      Data[("scsi1 / local data disk<br/>Guarded filesystem<br/>UUID mount")]
       Template -->|Clone| VM
       VM -->|Attached disk| Data
     end
@@ -80,7 +80,8 @@ flowchart LR
 ```
 
 **IaC:** Tier 0 [VM/disk definitions](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example)
-and [inventory](../../../tier-0/ansible/inventory/hosts.yml.example).
+and [inventory](../../../tier-0/ansible/inventory/hosts.yml.example), followed by the
+[storage recipe](../../../tier-0/ansible/playbooks/deployment/logging-storage.yml).
 Proxmox, network devices and the approved template already exist; this step does not create them.
 
 Tier 0 is the ownership boundary; **Stage 2** is the deployment capability, not Tier 1.
@@ -107,11 +108,11 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    | Shared: `config/platform.tfvars` | Actual `default_platform_node_name` and `proxmox_storage_classes`; `local.vm_disk` must name storage accepting VM images, such as `local-zfs` |
    | Shared: `templates/proxmox-catalog.tfvars` | `default_linux_vm_template_id` selects the approved Linux template, not the Talos image |
    | `terraform/common.tfvars` | `network_zones.management` must match the intended private attachment, prefix and gateway, or applied SDN lookup |
-   | `terraform/deployments/syslog/terraform.tfvars` | Keep `log-1`; set its unused `vm_id`, size, `storage_class`, `disk_size_gb` and `extra_disks` capacity |
+   | `terraform/deployments/syslog/terraform.tfvars` | Keep `log-1`; set its unused `vm_id`, size, `storage_class`, `disk_size_gb` and `extra_disks` capacity; retain `scsi1` or match the data-device input |
    | `ansible/inventory/hosts.yml` | Include `log-1` under `foundation_logging`; retain existing groups/hosts |
-   | `ansible/group_vars/syslog.yml` | Set `platform_host_ips.log-1` to its reserved address; complete receiver fields in Step 2 below |
+   | `ansible/group_vars/syslog.yml` | Set `platform_host_ips.log-1` and the attached data device/filesystem; the starter's stable `scsi1` path matches Terraform. Complete receiver trust in Step 2 |
 
-3. Provision the VM and disks. Review Terraform's displayed plan; enter `yes` only
+3. Provision the VM and attached disks. Review Terraform's displayed plan; enter `yes` only
    for the intended changes:
 
    Run from **`<prefix>-tier-0/`**.
@@ -121,28 +122,27 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    ```
 
    Optional preview: add `--plan-only`. An approved unattended provisioning job
-   can add `--auto-approve`; this does not prepare the data mount or receiver trust.
-4. Check SSH from the execution host, using the address set above:
-
-   Run from **`<prefix>-tier-0/`**.
+   can add `--auto-approve`.
+4. Prepare and verify storage from **`<prefix>-tier-0/`**:
 
    ```bash
-   read -r -p 'Reserved log-1 IP: ' LOG_HOST_IP
-   ssh "automation@$LOG_HOST_IP"
+   bash scripts/deploy.sh syslog --ansible-only --playbook deployment/logging-storage.yml
    ```
 
-   Use the configured SSH account if different. Step 2 prepares storage through Ansible;
-   return to the Tier 0 execution shell for repository commands.
+   Ansible waits for the guest, prepares the guarded data filesystem and mounts it by UUID.
+   It prints the verified binding for the recovery record. Receiver certificates and producer
+   enrollment follow in Step 2.
 
 Edit the local files seeded from examples. The starter creates `log-1`
-outside Kubernetes with an OS disk and a separate log-data disk. This Terraform-only
-step does not configure the receiver or format/mount that disk. Size storage from measured rate/retention,
+outside Kubernetes with an OS disk and a separate mounted log-data disk. Remain on the
+bootstrap/controller for all commands; no guest login, `mkfs` or fstab edit is required.
+Size storage from measured rate/retention,
 not from the starter's example capacity.
 
 Existing installations retain their current logical host keys, credentials and archive
 identities on refresh; see the [guest identity contract](../../08-reference/syslog-receiver.md#guest-identity).
 
-**Result:** a reachable log host and allocated data disk, not yet a working collector.
+**Result:** a reachable log host and verified persistent data mount, not yet a working collector.
 An existing independently operated receiver is also valid.
 The single-host bootstrap is not accepted as lossless/HA security logging.
 Start collecting before PKI and FreeIPA with the independent trust described below;
@@ -233,14 +233,14 @@ Continue with Step 3 after each required source's delivery passes. Preserve earl
 | Network policy | Narrow source-to-intake rules from every tier; no producer route to archive query/admin APIs; bounded rate/message size |
 | Raw archive | Tier 0 custody, selected NAS/locked-retention model, independent copies and keys; no producer overwrite/read/delete access |
 | Offline format | Portable text/JSON Lines, source catalogue and integrity metadata on the data volume; tested reader kit and separately held recovery keys |
-| Backups | Include the separate data disk or use a verified archive-level backup; apply the [backup policy](../../05-operations/backups/virtual-machines.md#backup-policy), not only VM snapshots |
+| Backups | Include the separate data disk or use a verified archive-level backup; apply the [backup policy](../../05-operations/06-resilience/backups/virtual-machines.md#backup-policy), not only VM snapshots |
 | Readers | Explicit system-administrator/security-reader roles; queries and exports audited; no general developer access to raw evidence |
 | Unsupported sources | Document any UDP or unauthenticated first-hop exception and local relay; do not claim end-to-end zero loss |
 
 The default receiver writes local JSON Lines and reliable delivery queues; neither
 is independently locked retention. An existing rsyslog receiver can satisfy the same
 contract instead; do not run two listeners on the same address/port.
-The [design](../../01-architecture/24-operations/01-security-logging.md#durability-and-availability)
+The [design](../../01-architecture/11-operations/01-protected-logging.md#durability-and-availability)
 owns acknowledgement and failure requirements; neither TCP nor a VIP proves them.
 The [software PKI policy](../stage-3-trust/procedures/software-pki.md#decisions-and-recovery-kit)
 issues TLS-server certificates only, not producer client-auth certificates. Retain
@@ -330,7 +330,7 @@ the NAS custody boundary with qualified retention-locked storage.
    may hold the separate credentials; record that custody assumption.
    **Alternative:** [locked retention](step-3d-retention-lock.md) replaces or supplements
    NAS snapshots when privileged deletion must be prevented. Return here afterward.
-3. Complete the [numbered fault/restore drill](../../05-operations/logging-drill.md)
+3. Complete the [numbered fault/restore drill](../../05-operations/06-resilience/logging-drill.md)
    and acceptance matrix below for the selected topology. Keep live results with the project records.
 4. Record [readiness](../readiness.md#readiness-levels), checkpoint/snapshot/backup lag
    and the transport-release limit before proceeding to Stage 3.
@@ -346,7 +346,7 @@ the NAS custody boundary with qualified retention-locked storage.
 Prove this with numbered synthetic events and source/receiver/archive counts,
 not just an open port or a successful Terraform apply. Record unavoidable source
 gaps separately from loss of already accepted records.
-Follow the [numbered fault and restore drill](../../05-operations/logging-drill.md).
+Follow the [numbered fault and restore drill](../../05-operations/06-resilience/logging-drill.md).
 It supplies synthetic record reconciliation and a project-owned acceptance record;
 real faults, retention denials and independent backup restoration still require the
 selected receiver/storage implementation. Offline checker tests do not accept this stage.
@@ -371,7 +371,7 @@ Do not move Tier 1 observability state or reuse a VM under two states.
 
 ## Capability available
 
-**Result:** protected logging realizes the [evidence design](../../01-architecture/24-operations/01-security-logging.md)
+**Result:** protected logging realizes the [evidence design](../../01-architecture/11-operations/01-protected-logging.md)
 at its recorded readiness, before PKI or identity. Add sources as each tier appears.
 Continue with [Stage 3: Cryptographic trust](../stage-3-trust/README.md).
 Later [monitoring](../stage-6-secrets/procedures/independent-monitoring.md) and

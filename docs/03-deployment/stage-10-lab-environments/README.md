@@ -1,6 +1,6 @@
 # Stage 10: Lab environments
 
-**Related:** [Architecture](../../01-architecture/23-lab-environments/README.md) · [Operations](../../05-operations/lab-environments/README.md)
+**Related:** [Architecture](../../01-architecture/04-hosting/04-lab-environments.md) · [Operations](../../05-operations/01-hosting/kubernetes-and-labs.md)
 
 Create isolated Tier 2 VMs and Kubernetes environments for development, testing
 and experiments. Begin with reviewed operator deployments; future self-service
@@ -81,7 +81,7 @@ feed a [Shared plan executor](../../../shared/scripts/deploy.sh); automated Tier
 1. Record the workload owner, permitted templates, sizes, networks and quotas in
    the [Tier 2 repository](../../06-paths/tier-2/README.md).
 2. Validate the requested scope under the
-   [provisioning contract](../../01-architecture/10-hosting/03-provisioning.md).
+   [provisioning contract](../../01-architecture/04-hosting/02-provisioning.md).
    Step 2 creates the runtime's plan after its inputs are configured.
 3. Have an authorized Tier 0 operator accept that scope before provisioning.
    Test automated accepted/rejected request handling only if the separate dispatcher has actually
@@ -275,7 +275,7 @@ Select **2c: bounded automation** only after that operator deployment works; com
 [dispatcher integration contract](procedures/isolated-clusters.md#step-3-introduce-bounded-automation)
 and its acceptance tests before handing requests to users. Otherwise continue directly to Step 3.
 
-**Result:** the [compute runtime](../../01-architecture/10-hosting/README.md) is ready within
+**Result:** the [compute runtime](../../01-architecture/04-hosting/README.md) is ready within
 the workload's allocated scope, without changing Tier 0 ownership.
 
 ## Step 3: Deploy and verify applications
@@ -334,7 +334,7 @@ See [application installation](step-3a-application.md) for commands and acceptan
    independent recovery and separately authorized key ceremonies.
 
 **Result:** application delivery works independently of privileged infrastructure
-execution, as required by the [service boundaries](../../01-architecture/04-service-boundaries.md).
+execution, as required by the [service boundaries](../../01-architecture/02-organization/README.md).
 
 ## Capability available
 

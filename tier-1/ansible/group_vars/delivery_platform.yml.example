@@ -38,8 +38,10 @@ delivery_platform_spinnaker_backup_backend: filesystem
 # Filesystem only: existing Bound NAS PVC with Retain PV, separate from data/staging.
 delivery_platform_spinnaker_backup_filesystem_claim: spinnaker-nas-repository
 delivery_platform_spinnaker_backup_filesystem_repository: spinnaker
-# Identity in <repository>/.spinnaker-backup-repository, commissioned by its custodian.
+# Retained identity in <repository>/.spinnaker-backup-repository; set before first apply.
 delivery_platform_spinnaker_backup_filesystem_marker: ""
+# Explicitly enable only for a new absent child directory; disable after commissioning.
+delivery_platform_spinnaker_backup_filesystem_initialize: false
 # S3 only: existing native HTTPS object endpoint, private bucket/prefix and scoped key.
 delivery_platform_spinnaker_backup_s3_endpoint: ""
 delivery_platform_spinnaker_backup_s3_bucket: spinnaker-backups

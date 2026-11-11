@@ -1,0 +1,15 @@
+apiVersion: 1
+datasources:
+  - name: Platform Metrics
+    uid: platform-metrics
+    type: prometheus
+    access: proxy
+    url: https://{{ observability_vm_endpoints[inventory_hostname] }}:8427
+    basicAuth: true
+    basicAuthUser: {{ observability_vm_reader_auth.username | to_json }}
+    editable: false
+    jsonData: {tlsAuthWithCACert: true}
+    secureJsonData:
+      basicAuthPassword: {{ observability_vm_reader_auth.password | to_json }}
+      tlsCACert: |
+{{ lookup('ansible.builtin.file', observability_vm_ca_src) | indent(8, true) }}

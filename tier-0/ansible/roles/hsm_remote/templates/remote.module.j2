@@ -1,0 +1,3 @@
+# Native p11-kit RPC; every connection selects this explicit backend.
+remote: |{{ hsm_remote_ssh_binary }} -F {{ hsm_remote_config_dir }}/ssh_config hsm-{{ hsm_remote_pool_id }}-{{ item.key }}
+critical: no

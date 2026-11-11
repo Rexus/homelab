@@ -19,6 +19,40 @@ ANSIBLE = os.environ.get('ANSIBLE_PLAYBOOK') or shutil.which('ansible-playbook')
 
 
 class DataVolumeOwnership(TierRepositoryTestCase):
+    def test_every_reference_extra_disk_matches_its_service_stable_device(self):
+        import hcl2
+        self.generate()
+        bindings = {
+            ('tier-0', 'foundation'): ('issuer', 'openxpki_data_device'),
+            ('tier-0', 'syslog'): ('syslog', 'syslog_ng_data_device'),
+            ('tier-1', 'intake'): ('intake', 'software_intake_data_device'),
+            ('tier-1', 'observability'): ('observability', 'observability_vm_data_device'),
+            ('tier-2', 'cache'): ('cache', 'cache_squid_data_device'),
+        }
+        roles = {'issuer': 'openxpki', 'syslog': 'syslog_ng', 'intake': 'software_intake',
+                 'observability': 'observability_vm', 'cache': 'cache_proxy'}
+        for base, prefix in ((UPSTREAM, ''), (self.root, 'verify-')):
+            checked = set()
+            for tier in ('tier-0', 'tier-1', 'tier-2'):
+                owner = base / (prefix + tier)
+                for example in (owner / 'terraform/deployments').glob('*/terraform.tfvars.example'):
+                    values = hcl2.loads(example.read_text(), serialization_options=hcl2.SerializationOptions(
+                        strip_string_quotes=True, with_comments=False))
+                    for guest, settings in values.get('vm_instances', {}).items():
+                        for disk in settings.get('extra_disks', []):
+                            key = (tier, example.parent.name)
+                            self.assertIn(key, bindings, f'Add a service-device correspondence for {example}: {guest}')
+                            inputs, field = bindings[key]
+                            configuration = yaml.safe_load((owner / f'ansible/roles/{roles[inputs]}/defaults/main.yml').read_text())
+                            configuration |= yaml.safe_load((owner / f'ansible/group_vars/{inputs}.yml.example').read_text())
+                            expected = '/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-' + disk['interface']
+                            self.assertEqual(configuration[field], expected, f'{example}: {guest}')
+                            checked.add(key)
+            self.assertEqual(checked, set(bindings))
+            backup = yaml.safe_load((base / (prefix + 'tier-0') / 'ansible/group_vars/logging_backup.yml.example').read_text())
+            self.assertEqual(backup['logging_backup_repository_device'],
+                             '/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1')
+
     def test_generated_storage_code_and_intake_call_match_source(self):
         self.generate()
         generated = self.root / 'verify-shared/ansible/roles/data_volume'

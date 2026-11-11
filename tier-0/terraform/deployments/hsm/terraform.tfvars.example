@@ -17,13 +17,15 @@ hsm_variant = "hardware"
 # Two enabled hosts are a starter, not a limit; size the pool for traffic and failure headroom.
 # Each private Tier 0 service VM has one host-local HSM.
 # Any VIP/proxy runs on these same VMs; no public edge or extra LB pair is required.
-# The signing runtime, device passthrough and endpoint integration remain operator work.
+# Native USB attachments are declared below; middleware is selected in hsm.yml.
+# The application endpoint, key ceremonies and application HA remain separate integrations.
 # Separate physical hosts are examples; verify USB affinity and Proxmox HA placement.
 # The Tier 0 Ansible inventory and hsm.yml include the matching hsm-1 and
 # hsm-2 entries.
 vm_instances = {
   "hsm-1" = {
     proxmox_node_name = "pve01"
+    usb_devices      = [{ mapping = "hsm-1-token" }]
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 9101
     vm_id            = 231
@@ -35,6 +37,7 @@ vm_instances = {
   }
   "hsm-2" = {
     proxmox_node_name = "pve02"
+    usb_devices      = [{ mapping = "hsm-2-token" }]
     vm_id             = 232
     size              = "small"
     storage_class     = "local"
@@ -66,3 +69,8 @@ vm_instances = {
 }
 
 lxc_instances = {}
+
+# Existing approved Proxmox resource mappings, each restricted to the intended host/device.
+# A mapping does not synchronize keys or make a USB token available on another node.
+# Alternatively use host = "1-2.3" for an approved physical bus-port on the pinned node.
+# Raw host passthrough may require stronger Proxmox privileges than mapped devices.

@@ -60,5 +60,5 @@ workload-user access to Tier 0 credentials. For VM mobility, confirm the
 | Shared prerequisites | [Shared services](../../08-reference/implementation-support.md) |
 | Create the platform cluster | [Tier 1 Kubernetes](../../03-deployment/stage-7-delivery/procedures/platform-cluster.md) |
 | Cluster choices and readiness | [Common cluster foundation](../../03-deployment/stage-4-kubernetes/procedures/kubernetes.md) |
-| Ownership and privileged execution | [Infrastructure control](../../01-architecture/10-hosting/03-provisioning.md) |
+| Ownership and privileged execution | [Infrastructure control](../../01-architecture/04-hosting/02-provisioning.md) |
 | Refresh and project records | [Project documentation](../../04-development/project-documentation.md) |

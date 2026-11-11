@@ -1,0 +1,157 @@
+---
+- name: Require explicit isolated clean-target recovery inputs
+  ansible.builtin.assert:
+    that:
+      - gitlab_restore_confirm | bool
+      - gitlab_restore_target_empty_accepted | bool
+      - gitlab_restore_snapshot is match('^[a-f0-9]{64}$')
+      - gitlab_restore_set is match('^gitlab-vm-set\.[A-Za-z0-9]{8}$')
+      - gitlab_restore_source_home is match('^/srv/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$')
+    fail_msg: Select one full snapshot ID and set on an isolated freshly deployed target; restore replaces its database.
+
+- name: Stop automatic backups during recovery
+  ansible.builtin.systemd_service:
+    name: gitlab-vm-backup.timer
+    state: stopped
+    enabled: false
+
+- name: Create a new private staging directory without touching live data
+  ansible.builtin.tempfile:
+    state: directory
+    path: "{{ gitlab_home }}"
+    prefix: gitlab-vm-restore.
+  register: gitlab_restore_stage
+
+- name: Retrieve the selected encrypted set with the commissioned transport guards
+  ansible.builtin.command:
+    argv: [timeout, --signal=TERM, --kill-after=60, "{{ gitlab_backup_timeout_seconds | int }}",
+           /etc/gitlab-vm-backup/backup.sh, --restore-stage, "{{ gitlab_restore_snapshot }}",
+           "{{ gitlab_restore_stage.path }}"]
+  changed_when: true
+
+- name: Resolve the selected set inside the isolated staging directory
+  ansible.builtin.set_fact:
+    gitlab_restore_path: "{{ gitlab_restore_stage.path }}{{ gitlab_restore_source_home }}/{{ gitlab_restore_set }}"
+
+- name: Read the selected set's exact image and backup identity
+  ansible.builtin.slurp:
+    src: "{{ gitlab_restore_path }}/{{ item }}"
+  loop: [image-reference, image-id, backup-id]
+  register: gitlab_restore_identity
+
+- name: Read the actual target container image identity
+  ansible.builtin.command:
+    argv: [podman, inspect, --format, "{% raw %}{{.Image}}{% endraw %}", "{{ gitlab_container_name }}"]
+  register: gitlab_restore_target_image
+  changed_when: false
+
+- name: Reject a different image or set before changing GitLab configuration
+  ansible.builtin.assert:
+    that:
+      - gitlab_restore_identity.results[0].content | b64decode | trim == gitlab_container_image
+      - gitlab_restore_identity.results[1].content | b64decode | trim == gitlab_restore_target_image.stdout | trim
+      - gitlab_restore_identity.results[2].content | b64decode | trim == gitlab_restore_set
+    fail_msg: Deploy the exact retained CE image first; recovery never performs an upgrade or edition conversion.
+
+- name: Require the native archive and matching configuration
+  ansible.builtin.stat:
+    path: "{{ gitlab_restore_path }}/{{ item }}"
+    follow: false
+  loop:
+    - "{{ gitlab_restore_set }}_gitlab_backup.tar"
+    - config/gitlab-secrets.json
+    - config/gitlab.rb
+  register: gitlab_restore_files
+
+- name: Reject missing or linked recovery artifacts
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - not item.stat.islnk | default(false)
+      - item.stat.size | default(0) > 0
+  loop: "{{ gitlab_restore_files.results }}"
+
+- name: Stop the isolated container before replacing its configuration
+  ansible.builtin.systemd_service:
+    name: gitlab-container.service
+    state: stopped
+
+- name: Restore the matching secrets and complete configuration on the isolated target
+  ansible.builtin.copy:
+    src: "{{ gitlab_restore_path }}/config/"
+    dest: "{{ gitlab_home }}/config/"
+    remote_src: true
+    mode: preserve
+  no_log: true
+  diff: false
+
+- name: Place the selected archive in GitLab's native backup directory
+  ansible.builtin.copy:
+    src: "{{ gitlab_restore_path }}/{{ gitlab_restore_set }}_gitlab_backup.tar"
+    dest: "{{ gitlab_home }}/data/backups/{{ gitlab_restore_set }}_gitlab_backup.tar"
+    remote_src: true
+    mode: "0600"
+
+- name: Start GitLab and let its entrypoint reconfigure with the restored secrets
+  ansible.builtin.systemd_service:
+    name: gitlab-container.service
+    state: started
+
+- name: Wait for the isolated target with restored configuration
+  ansible.builtin.uri:
+    url: "{{ gitlab_external_url }}/-/readiness"
+    validate_certs: true
+    use_proxy: false
+    status_code: 200
+  register: gitlab_restore_readiness
+  until: gitlab_restore_readiness.status | default(0) == 200
+  retries: "{{ gitlab_ready_retries }}"
+  delay: 10
+
+- name: Stop database clients before the destructive native restore
+  ansible.builtin.command:
+    argv: [podman, exec, "{{ gitlab_container_name }}", gitlab-ctl, stop, "{{ item }}"]
+  loop: [puma, sidekiq]
+  changed_when: true
+
+- name: Recheck the running image after the container entrypoint has completed
+  ansible.builtin.command:
+    argv: [podman, inspect, --format, "{% raw %}{{.Image}}{% endraw %}", "{{ gitlab_container_name }}"]
+  register: gitlab_restore_running_image
+  changed_when: false
+  failed_when: >-
+    gitlab_restore_running_image.stdout | trim !=
+    gitlab_restore_identity.results[1].content | b64decode | trim
+
+- name: Set native archive ownership inside the container
+  ansible.builtin.command:
+    argv: [podman, exec, "{{ gitlab_container_name }}", chown, 'git:git',
+           "/var/opt/gitlab/backups/{{ gitlab_restore_set }}_gitlab_backup.tar"]
+  changed_when: true
+
+- name: Restore the native archive without prompts using GitLab's version checks
+  ansible.builtin.command:
+    argv: [podman, exec, --env, GITLAB_ASSUME_YES=1, "{{ gitlab_container_name }}",
+           timeout, --signal=TERM, --kill-after=60, "{{ gitlab_backup_timeout_seconds | int }}",
+           gitlab-backup, restore, "BACKUP={{ gitlab_restore_set }}"]
+  changed_when: true
+
+- name: Reconfigure and start the restored GitLab services
+  ansible.builtin.command:
+    argv: [podman, exec, "{{ gitlab_container_name }}", gitlab-ctl, "{{ item }}"]
+  loop: [reconfigure, start]
+  changed_when: true
+
+- name: Check native integrity and decryption without logging recovered secrets
+  ansible.builtin.command:
+    argv: [podman, exec, "{{ gitlab_container_name }}", gitlab-rake, "{{ item }}", SANITIZE=true]
+  loop: [gitlab:check, gitlab:doctor:secrets]
+  changed_when: false
+  no_log: true
+
+- name: Report the recovery handoff
+  ansible.builtin.debug:
+    msg: >-
+      Native restore finished. The timer remains disabled and staging is retained.
+      Accept HTTPS, SSO/denials, clone/push, attachments and CI-secret decryption before cutover.
+      Reconcile private inputs with the restored configuration before redeploying or enabling backups.

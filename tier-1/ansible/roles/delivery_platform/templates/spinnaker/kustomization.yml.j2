@@ -24,7 +24,7 @@ configMapGenerator:
   - name: spinnaker-envoy
     files: [redis.yml=envoy.yml]
   - name: spinnaker-scripts
-    files: [prepare-trust.sh, initialize-databases.sh, backup-restic.sh]
+    files: [prepare-trust.sh, initialize-databases.sh, backup-restic.sh, filesystem-repository.sh]
   - name: spinnaker-persistence
     files: [mysql.cnf, redis.conf]
 patches:

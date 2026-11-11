@@ -39,8 +39,8 @@ these shared implementations.
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
 | `shared/scripts/gitlab-iac.sh` | executes explicitly trusted CI with Vault ID tokens and private saved plans | [Stage 9 handover](../03-deployment/stage-9-development/procedures/handover.md); not a tenant request API |
-| `tier-0/scripts/proxmox-templates.sh` | initializes, plans publication/adoption, applies templates or explicitly replaces one boot disk | [Template lifecycle](../05-operations/virtual-machines/template-lifecycle.md), [boot-disk maintenance](../05-operations/virtual-machines/template-disk.md) |
-| `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../05-operations/logging-drill.md); no faults or service changes |
+| `tier-0/scripts/proxmox-templates.sh` | initializes, plans publication/adoption, applies templates or explicitly replaces one boot disk | [Template lifecycle](../05-operations/01-hosting/templates/template-lifecycle.md), [boot-disk maintenance](../05-operations/01-hosting/templates/template-disk.md) |
+| `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../05-operations/06-resilience/logging-drill.md); no faults or service changes |
 | `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports private credentials/plan JSON; currently Talos | [Kubernetes cluster](../03-deployment/stage-4-kubernetes/procedures/kubernetes.md) |
 
 ## Cheat sheet
@@ -77,7 +77,7 @@ Omit `--env <env>` for production.
 | Reset rebuilt host SSH keys | `bash scripts/deploy.sh <setup> --env <env> --reset-known-hosts` |
 
 Template publication uses the separate
-[Tier 0 template workflow](../05-operations/virtual-machines/template-lifecycle.md#local-workflow),
+[Tier 0 template workflow](../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow),
 not `deploy.sh`. Pass `--env-file .env.local` to load local provider aliases, or
 export provider credentials in the runner. `import` discovers existing catalog-matching
 templates/files and prepares a reviewed adoption plan; only `apply` writes the imports.
@@ -284,8 +284,8 @@ bootstrap use their dedicated scripts and retain their documented plan/apply ste
 
 Destroy a disposable environment:
 
-Use [destroy and retirement](../05-operations/provisioning.md) for scope/backup checks and
-[state reconciliation](../05-operations/terraform-state.md) when objects were already removed on the host.
+Use [destroy and retirement](../05-operations/01-hosting/provisioning.md) for scope/backup checks and
+[state reconciliation](../05-operations/01-hosting/terraform-state.md) when objects were already removed on the host.
 
 Run from **`<prefix>-tier-0/`**.
 
@@ -329,7 +329,7 @@ Useful options:
 All supplied Terraform roots verify Proxmox TLS. Provisioning entry points reject
 `PROXMOX_VE_INSECURE` and `PM_VE_INSECURE` values that enable or ambiguously request
 a bypass, including values loaded from the Linux wrapper's environment file.
-Install independently verified [bootstrap trust](../05-operations/hosts/proxmox-tls.md)
+Install independently verified [bootstrap trust](../05-operations/01-hosting/proxmox-tls.md)
 before planning; platform PKI is not required. Ansible-only work and local initialization
 do not need Proxmox API verification exceptions.
 
@@ -363,12 +363,12 @@ their `.deployment-setups`; see [setup ownership](../04-development/generated-re
 | `cache` | Tier 2 ordinary cache pair or larger set for controlled outbound access | [Software intake](../03-deployment/stage-1-software-intake/README.md) |
 | `intake` | Tier 1 verified RPM/APT and selected-artifact publication with managed VM/disks and UUID-mounted data volume; Stage 3 option 3b | [Verified intake](../03-deployment/stage-3-trust/step-3b-verified-intake.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../03-deployment/stage-9-development/step-1b-source-control-vm.md) |
-| `vault` | Stage 6 dedicated secret-service VM alternative | [Vault VM deployment](../03-deployment/stage-6-secrets/step-1b-vault-vm.md) |
-| `observability` | Optional Tier 1 gateway, metrics and search VMs; OS baseline only, not the Kubernetes product deployment or Tier 0 evidence | [Observability VM alternative](../03-deployment/stage-8-observability/step-1b-dedicated-vms.md) |
+| `vault` | Stage 6 dedicated HashiCorp Vault; optional independent OpenBao signing uses a separate named environment/state, never the original Vault guests | [Vault VM deployment](../03-deployment/stage-6-secrets/step-1b-vault-vm.md), [signing option](../03-deployment/stage-6-secrets/step-1d-openbao.md) |
+| `observability` | Optional Tier 1 native gateway, metrics, search and query products with guarded data disks; separate from Kubernetes and Tier 0 evidence | [Observability VM alternative](../03-deployment/stage-8-observability/step-1b-dedicated-vms.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../03-deployment/stage-9-development/step-2b-podman-runner.md) |
 | `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../03-deployment/stage-9-development/step-2c-image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../03-deployment/foundation/proxmox/templates.md) |
-| `hsm` | Tier 0 signing-service host pool and OS baseline; device/provider, HA endpoint and key commissioning remain separate integration | [USB HSM host-pool option](../03-deployment/stage-3-trust/step-1b-usb-hsm.md) |
+| `hsm` | Tier 0 native USB/provider host pool, original-key issuer binding and optional native restricted PKCS#11 remoting; physical key custody and application HA remain separate | [USB HSM host-pool option](../03-deployment/stage-3-trust/step-1b-usb-hsm.md) |
 | `lab` | general-purpose lab guests | this reference and the local inventory |
 
 ## What the deployment wrapper does
@@ -388,7 +388,7 @@ For each setup, `scripts/deploy.sh`:
 8. runs the mapped Ansible playbook or playbooks for the selected setup
 
 Maintenance skips provisioning and uses `ansible/playbooks/maintenance/<setup>.yml`.
-See [recipe scope](../05-operations/ansible-recipes.md) before running it; reconciliation can
+See [recipe scope](../05-operations/01-hosting/ansible-recipes.md) before running it; reconciliation can
 restart services. [Platform inputs](platform-inputs.md) owns the complete
 precedence and local SSH-key contract.
 

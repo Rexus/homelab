@@ -2,6 +2,7 @@
 Description=GitLab container
 Wants=network-online.target
 After=network-online.target
+RequiresMountsFor={{ gitlab_home }}
 
 [Service]
 Restart=always

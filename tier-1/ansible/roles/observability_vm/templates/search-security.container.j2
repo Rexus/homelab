@@ -1,0 +1,26 @@
+[Unit]
+Description=Apply scoped OpenSearch security policy
+Wants=network-online.target
+After=network-online.target obs-search.service
+RequiresMountsFor={{ observability_vm_data_path }}
+
+[Container]
+Image={{ observability_vm_images.search }}
+ContainerName=obs-search-security
+Network=host
+User=1000:1000
+DropCapability=all
+NoNewPrivileges=true
+Pull=missing
+{% if observability_vm_registry_auth_src %}
+PodmanArgs=--authfile={{ observability_vm_config_path }}/registry-auth.json
+{% endif %}
+Environment=JAVA_HOME=/usr/share/opensearch/jdk
+Volume={{ observability_vm_admin_staging.path }}:/admin:ro,Z
+Volume={{ observability_vm_config_path }}/security:/policy:ro,Z
+Entrypoint=/usr/share/opensearch/plugins/opensearch-security/tools/securityadmin.sh
+Exec=-h {{ observability_vm_endpoints[inventory_hostname] }} -p 9200 -cn opensearch -cacert /admin/ca.crt -cert /admin/tls.crt -key /admin/tls.key -cd /policy
+
+[Service]
+Type=oneshot
+TimeoutStartSec=600

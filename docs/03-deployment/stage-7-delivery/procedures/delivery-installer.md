@@ -196,8 +196,10 @@ Apply checks credentials, storage where selected and verified OIDC discovery.
 The Shared Helm executor waits for chart resources. Spinnaker requires the exact
 reviewed output hash and stages certificates, persistence, schema initialization,
 scoped identities and application startup in dependency order. Native filesystem
-backups check the retained PVC/PV before resource changes and the actual mount and
-repository marker inside each backup Job. Both modes require a verified first
+backups check the retained PVC/PV before resource changes, commission or validate the
+repository in a one-shot Job, and check its actual mount and marker inside each backup Job.
+Initialization requires the explicit new-repository input; existing repositories retain their identity.
+Both modes require a verified first
 snapshot before publishing ingress. It never executes
 Halyard. No release is uninstalled or pruned by this procedure.
 
@@ -218,7 +220,7 @@ and Git/image supply until SSO, independent recovery and replacement supply have
 
 Back up original application data, private configuration, encryption/signing keys and
 bootstrap credentials independently.
-Use the selected [Tier 1 product recovery procedure](../../../05-operations/recovery/tier-1-products.md#select-the-authoritative-product-procedure)
+Use the selected [Tier 1 product recovery procedure](../../../05-operations/06-resilience/recovery/tier-1-products.md#select-the-authoritative-product-procedure)
 for Argo CD or Harbor, or [native Spinnaker recovery](../step-2b-spinnaker.md#maintenance-and-recovery).
 The Argo CD/Harbor installer does not schedule those recovery copies.
 
@@ -248,6 +250,7 @@ Run from **the upstream deployment-kit checkout**.
 ```bash
 python3 -B -m unittest discover -s tests -p test_tier_spinnaker_reference.py -v
 python3 -B -m unittest discover -s tests -p test_tier_spinnaker_backup.py -v
+python3 -B -m unittest discover -s tests -p test_tier_deployment_automation_paths.py -v
 ```
 
 Set `RESTIC_BINARY` to the pinned native restic executable (or put it on `PATH`)

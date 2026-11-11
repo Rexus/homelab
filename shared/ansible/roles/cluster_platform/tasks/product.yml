@@ -20,7 +20,7 @@
 
 - name: Require product CRDs and current workload rollout
   ansible.builtin.include_tasks: health.yml
-  loop: "{{ cluster_platform_catalog[cluster_platform_release.component].health }}"
+  loop: "{{ cluster_platform_release.health }}"
   loop_control:
     loop_var: cluster_platform_health
     label: "{{ cluster_platform_health.name }}"

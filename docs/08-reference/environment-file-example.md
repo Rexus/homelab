@@ -49,4 +49,4 @@ use its own `PROXMOX_URL` value with the full `/api2/json` path.
 Read more in:
 
 - [Environment variable conventions](environment-variables.md)
-- [Secret strategy](../05-operations/secret-handling/strategy.md)
+- [Secret strategy](../05-operations/03-cryptography/secret-handling.md)

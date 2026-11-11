@@ -1,111 +1,90 @@
 # Step 3b: Connect a consumer to verified publication
 
 **Branch from:** [Step 3](README.md#step-3-enable-and-verify-routine-issuance), within option **3b**,
-after the worker's [first accepted intake](step-3b-verified-intake.md#5-run-and-inspect-the-first-intake).
-**Change:** connect a selected native package consumer to the accepted publication.
-**Return:** [Stage 3 completion](README.md#capability-available) after the selected consumer passes
-and [worker scheduling](step-3b-verified-intake.md#6-connect-consumers-and-schedule-intake) is complete.
+after [first accepted intake](step-3b-verified-intake.md#5-run-and-inspect-the-first-intake).
+**Change:** configure a selected existing consumer through its owning tier's Ansible.
+**Return:** [Stage 3 completion](README.md#capability-available) after acceptance and
+[worker scheduling](step-3b-verified-intake.md#6-connect-consumers-and-schedule-intake).
 
-It changes the consumer's native repository definitions; the worker never installs packages into consumers.
-Complete one disposable consumer before changing bootstrap or Proxmox.
-
-**Working repositories:** `<prefix>-tier-0`, `<prefix>-tier-1` or `<prefix>-tier-2` owns the consumer
-selection; commands below run on that selected guest/host. Tier 1 owns only the publication service.
+**Working repository:** the consumer's `<prefix>-tier-0`, `<prefix>-tier-1` or `<prefix>-tier-2`.
+Run all commands from that repository on the deployment controller. Tier 1 owns publication,
+not another tier's package installations. Test a disposable consumer before bootstrap or Proxmox.
 
 ## Contents
 
-- [1. Record the selected version](#1-record-the-selected-version)
-- [2a. EL10 repository](#2a-el10-repository)
-- [2b. Debian, Ubuntu or Proxmox repository](#2b-debian-ubuntu-or-proxmox-repository)
-- [3. Accept the cutover](#3-accept-the-cutover)
+1. [Record the selected version](#1-record-the-selected-version)
+2. [Select native repositories](#2-select-native-repositories)
+3. [Apply from the controller](#3-apply-from-the-controller)
+4. [Accept the cutover](#3-accept-the-cutover)
 
 ## 1. Record the selected version
 
-From an allowed management client, read `https://<intake-host>/approved/<source>/latest.json` and
-its versioned receipt. Record the selected `content_path` and expected publisher in the consumer's
-own project configuration. Use the full HTTPS hostname plus **immutable content path**, not `latest.json`.
+Read the publication's `latest.json` and versioned receipt from an approved management client.
+Select its immutable `content_path` and expected publisher; retain those values in local consumer inputs.
+Use the full HTTPS content URL, never `latest.json` as a repository URL.
 
-Keep a copy of the current repository configuration and trusted vendor keys before editing.
-The publication CA must already be trusted on the consumer; never add `insecure`, `trusted=yes`
-or a signature bypass to make the mirror work. An RPM feed and an APT feed are separate sources.
-
-## 2a. EL10 repository
-
-On the **EL10 consumer**, edit the selected existing file under `/etc/yum.repos.d/`.
-Retain its repository ID, vendor `gpgkey` and other distro-specific settings. Set `baseurl`
-to the selected RPM content URL and remove that entry's external `mirrorlist`/`metalink`.
-The relevant fields look like this; replace placeholders and retain the selected metadata policy:
-
-```ini
-[<existing-repository-id>]
-baseurl=https://<intake-host>/approved/<source>/<version>/content/
-enabled=1
-gpgcheck=1
-sslverify=1
-skip_if_unavailable=0
-proxy=_none_
-```
-
-Keep `repo_gpgcheck=1` when that vendor supplies signed metadata; do not enable it blindly for
-an unsigned-metadata feed. Native package signatures remain required. Leave the existing independently
-trusted `gpgkey` in place. Each enabled repository needs its own accepted internal endpoint or must
-be explicitly disabled; changing BaseOS alone does not redirect AppStream, EPEL or other sources.
-
-Refresh only the edited repository on the **consumer**:
+From the **consumer-owning repository**, initialize its additional inputs:
 
 ```bash
-read -r -p 'Existing repository ID: ' REPO_ID
-sudo dnf --disablerepo='*' --enablerepo="$REPO_ID" --refresh makecache
+cp -n ansible/group_vars/software_consumer.yml.example ansible/group_vars/software_consumer.yml
 ```
 
-**Expected:** native metadata refresh and signature checks succeed using the pinned publication.
-This command installs no updates.
+Edit `software_consumer.yml`: set `software_consumer_group` to a populated existing inventory
+group, and `baseline_trust_anchors` to approved public CA files on the controller when needed.
+Load the existing target/IP vars with this file; do not create a second inventory or assign the worker's address.
 
-## 2b. Debian, Ubuntu or Proxmox repository
+## 2. Select native repositories
 
-On the **APT consumer**, edit the matching `.sources` or `.list` file under `/etc/apt/sources.list.d/`
-(or its existing `/etc/apt/sources.list` entry). Preserve the vendor suite, components, architectures
-and `Signed-By` keyring. Replace only its URI with the selected APT content URL.
-A deb822 entry has this shape:
+<a id="2a-el10-repository"></a>
 
-```deb822
-Types: deb
-URIs: https://<intake-host>/approved/<source>/<version>/content/
-Suites: <existing-suite>
-Components: <existing-components>
-Signed-By: <existing-vendor-keyring-path>
-```
+### 2a. EL10 repositories
 
-Use separate published sources for separate suites/pockets; match their signed Codenames as configured
-on the worker. Keep `Check-Valid-Until` enabled. A frozen release that expires requires a newly verified
-publication, not disabling expiry. Avoid duplicate external entries for the same repository.
+In **`ansible/group_vars/software_consumer.yml`**, add a `repository_proxy_dnf_sources` entry
+for each selected existing repository: `file`, `section`, immutable HTTPS `baseurl` and `direct: true`.
+Use the commented example as the shape. The role retains vendor `gpgkey`/metadata policy,
+removes `mirrorlist`/`metalink` for those stanzas and bypasses the proxy only for selected feeds.
+Keep `repo_gpgcheck` enabled where the vendor signs metadata; every enabled feed needs an accepted source.
 
-If a global APT proxy remains enabled, add a host-specific direct route in
-**`/etc/apt/apt.conf.d/91intake-direct`**. Replace the hostname:
+<a id="2b-debian-ubuntu-or-proxmox-repository"></a>
 
-```text
-Acquire::https::Proxy::<intake-host> "DIRECT";
-```
+### 2b. Debian, Ubuntu or Proxmox repositories
 
-On the **consumer**, refresh metadata:
+In the **same file**, add `baseline_apt_repositories` entries with `name`, immutable HTTPS
+`uri`, original `suites`, `components`, optional `architectures` and existing vendor `signed_by` keyring.
+Keep Debian, security, Proxmox and Ceph feeds separate. Add the intake hostname to
+`baseline_apt_direct_hosts` if it bypasses a global proxy.
+
+List whole old files under `baseline_apt_retired_files` only after every required feed in
+each file has a managed replacement. The role retains `.save` copies before retiring those files.
+Unlisted sources and trusted keyrings remain in place. It never enables `trusted=yes`,
+disables expiry/signature checks or substitutes a new publisher key.
+
+## 3. Apply from the controller
+
+Run from the **consumer-owning repository**, loading its existing IP/setup vars before the
+consumer file. Enter that existing setup vars path when prompted:
 
 ```bash
-sudo apt-get -o APT::Update::Error-Mode=any update
+read -r -p 'Existing consumer IP/setup vars file (example: ansible/group_vars/syslog.yml): ' CONSUMER_VARS
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  -e @ansible/group_vars/all.yml -e "@$CONSUMER_VARS" \
+  -e @ansible/group_vars/software_consumer.yml ansible/playbooks/deployment/software-consumer.yml
 ```
 
-**Expected:** every required source refreshes successfully; no package is upgraded. Proxmox's
-Debian, Proxmox and Ceph feeds remain separate native repository entries. This reference acquires
-public HTTPS feeds; authenticated subscription sources require a separately qualified integration.
+**Expected:** approved CA trust and selected repository definitions are applied, then strict
+metadata refresh succeeds on every selected consumer. No package upgrade or reboot is run.
+The existing global proxy is preserved; exact selected internal sources bypass it.
 
-## 3. Accept the cutover
+<a id="3-accept-the-cutover"></a>
 
-1. Confirm every enabled source uses accepted supply and native verification remains enabled.
-2. Deny direct WAN bypass independently. Stop the mirror in a disposable test and require a clear
-   refresh failure, not fallback to an external source.
-3. For **boot-1**, select the existing [mirror-mode recipe](../stage-1-software-intake/step-6-bootstrap-consumer.md#2b-native-mirrors-or-disconnected-supply)
-   after repository/tool supply is commissioned. Other tools still need their own accepted supply.
-4. Record the previous and selected URLs. Follow the [rollback and recovery runbook](../../05-operations/software-intake.md)
-   for another selection; patch rollout/reboots remain separate maintenance operations.
+## 4. Accept the cutover
 
-These are manual native consumer edits. Keep their selected values in the owning project's
-configuration management; the Tier 1 `intake` Terraform state owns only the worker and disks.
+1. Verify every enabled feed has accepted supply and native publisher verification remains enabled.
+2. Independently deny direct WAN bypass. In a disposable test, loss of publication must fail clearly.
+3. For bootstrap, select the existing [mirror-mode recipe](../stage-1-software-intake/step-6-bootstrap-consumer.md#2b-native-mirrors-or-disconnected-supply)
+   after native repository and tool supply is commissioned.
+4. Record old and new selections. Restore a previous accepted input and reapply using the
+   [rollback guidance](../../05-operations/02-software-intake/verified-publication.md).
+
+Patch rollout/reboots remain separate maintenance. The worker's Terraform state owns only its own
+guest and disks; each consuming tier owns its input selections and Ansible changes.

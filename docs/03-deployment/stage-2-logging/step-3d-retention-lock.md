@@ -8,7 +8,7 @@ or supply the primary archive; it does not require moving Tier 0 intake into a c
 **Branch from:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence), when protected versions must survive privileged deletion attempts.
 **Change:** Qualify storage-enforced version retention and its custody/recovery boundary.
 **Return:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence) to record actual lock and replica evidence.
-**Design:** [choice B: locked retention](../../01-architecture/24-operations/02-log-retention.md).
+**Design:** [choice B: locked retention](../../01-architecture/11-operations/02-log-retention.md).
 **Prerequisites:** working collection, independently administered WORM storage,
 approved retention/cost policy and separately protected recovery keys.
 **Automation boundary:** storage provisioning/policies, archive publication,
@@ -56,7 +56,7 @@ or protect records that never reached a completed archive checkpoint.
 
 ## Step 3: Prove enforcement and restoration
 
-1. Follow the [logging drill](../../05-operations/logging-drill.md). Test writer,
+1. Follow the [logging drill](../../05-operations/06-resilience/logging-drill.md). Test writer,
    reader and privileged identities against version deletion, replacement and
    retention shortening. New versions/delete markers must not hide the retained
    version from the recovery procedure. Test the actual lock mode, not only IAM denial.

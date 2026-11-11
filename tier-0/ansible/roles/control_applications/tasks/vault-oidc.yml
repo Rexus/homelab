@@ -33,7 +33,7 @@
       bound_claims: {groups: "{{ item.groups }}"}
       oidc_scopes: [openid, profile, email, groups]
       allowed_redirect_uris:
-        - "https://{{ control_applications_hosts.vault }}/ui/vault/auth/oidc/oidc/callback"
+        - "{{ control_applications_vault_address }}/ui/vault/auth/oidc/oidc/callback"
         - http://localhost:8250/oidc/callback
       token_policies: "{{ item.policies }}"
       token_no_default_policy: true

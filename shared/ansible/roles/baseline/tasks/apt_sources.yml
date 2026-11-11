@@ -1,0 +1,89 @@
+---
+- name: Validate the complete selected native APT source contract
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'Debian'
+      - item.name is match('^[A-Za-z0-9_-]+$')
+      - item.uri is match('^https://[^\s]+$')
+      - item.suites | length > 0
+      - item.components | length > 0
+      - item.signed_by is match('^/(usr/share/keyrings|etc/apt/keyrings)/[A-Za-z0-9_.-]+$')
+  loop: "{{ baseline_apt_repositories }}"
+  loop_control:
+    label: "{{ item.name | default('missing source name') }}"
+
+- name: Validate explicitly replaced vendor files and direct publication hosts
+  ansible.builtin.assert:
+    that:
+      - item is match('^[A-Za-z0-9][A-Za-z0-9_.-]*\.(sources|list)$')
+      - item not in baseline_apt_repositories | map(attribute='name') | map('regex_replace', '$', '.sources') | list
+  loop: "{{ baseline_apt_retired_files }}"
+
+- name: Require plain hostnames for direct publication routing
+  ansible.builtin.assert:
+    that: item is match('^[A-Za-z0-9][A-Za-z0-9.-]*$')
+  loop: "{{ baseline_apt_direct_hosts }}"
+
+- name: Install the native deb822 dependency from the current accepted source
+  ansible.builtin.apt:
+    name: python3-debian
+    state: present
+
+- name: Install explicitly selected native source definitions with vendor keyrings
+  ansible.builtin.deb822_repository:
+    name: "{{ item.name }}"
+    types: [deb]
+    uris: ["{{ item.uri }}"]
+    suites: "{{ item.suites }}"
+    components: "{{ item.components }}"
+    architectures: "{{ item.architectures | default(omit) }}"
+    signed_by: "{{ item.signed_by }}"
+    allow_insecure: false
+    allow_weak: false
+    allow_downgrade_to_insecure: false
+    check_date: true
+    check_valid_until: true
+    state: present
+  loop: "{{ baseline_apt_repositories }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Inspect only the explicitly replaced vendor definitions
+  ansible.builtin.stat:
+    path: "/etc/apt/sources.list.d/{{ item }}"
+    follow: false
+  loop: "{{ baseline_apt_retired_files }}"
+  register: apt_previous_sources
+
+- name: Refuse retiring linked or non-file source definitions
+  ansible.builtin.assert:
+    that:
+      - not item.stat.islnk | default(false)
+      - not item.stat.exists or item.stat.isreg | default(false)
+  loop: "{{ apt_previous_sources.results }}"
+
+- name: Retain the original vendor definitions outside APT's active file set
+  ansible.builtin.copy:
+    src: "/etc/apt/sources.list.d/{{ item.item }}"
+    dest: "/etc/apt/sources.list.d/{{ item.item }}.save"
+    remote_src: true
+    force: false
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ apt_previous_sources.results }}"
+  when: item.stat.exists
+
+- name: Retire only definitions explicitly replaced by the selected managed sources
+  ansible.builtin.file:
+    path: "/etc/apt/sources.list.d/{{ item }}"
+    state: absent
+  loop: "{{ baseline_apt_retired_files }}"
+
+- name: Configure exact internal hosts that bypass a global APT proxy
+  ansible.builtin.template:
+    src: apt-direct-sources.conf.j2
+    dest: /etc/apt/apt.conf.d/91homelab-direct
+    owner: root
+    group: root
+    mode: '0644'

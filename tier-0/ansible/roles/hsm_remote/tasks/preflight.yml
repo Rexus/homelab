@@ -1,0 +1,95 @@
+---
+- name: Require an explicitly selected same-family key domain and existing backends
+  ansible.builtin.assert:
+    that:
+      - hsm_remote_enabled | bool
+      - ansible_os_family in ['Debian', 'RedHat']
+      - hsm_remote_action in ['server', 'client', 'check']
+      - hsm_remote_firewall in ['auto', 'firewalld', 'external']
+      - hsm_remote_pool_id is match('^[a-z][a-z0-9-]{1,30}$')
+      - hsm_remote_family in ['picohsm', 'yubihsm2']
+      - hsm_remote_expected_spki_sha256 is match('^[a-f0-9]{64}$')
+      - hsm_remote_key_id is match('^([a-fA-F0-9]{2})+$')
+      - hsm_remote_backends | length >= 2
+      - hsm_remote_clients | length > 0
+      - hsm_remote_single_key_custody_confirmed | bool
+      - hsm_remote_probe_login | bool
+      - hsm_remote_backends.values() | map(attribute='serial') | unique | length == hsm_remote_backends | length
+      - hsm_remote_p11kit_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - hsm_remote_account is match('^[a-z][a-z0-9_-]{2,30}$')
+      - hsm_remote_account not in ['root', 'automation', 'openxpki', 'openbao', 'vault']
+      - hsm_remote_port | int > 1024 and hsm_remote_port | int < 65536
+      - hsm_remote_listen_address is match('^[a-zA-Z0-9][a-zA-Z0-9.:-]*$')
+      - not hsm_remote_probe_sign | bool or hsm_remote_probe_login | bool
+    fail_msg: >-
+      Select a dedicated picohsm or yubihsm2 pool, two accepted backends, client restrictions,
+      one original-key SPKI pin and a qualified RPC version. Mixed-vendor wrapped backups
+      and matching labels do not establish one replicated key domain.
+
+- name: Validate client identity for configuration and read-only checks
+  ansible.builtin.assert:
+    that:
+      - hsm_remote_client_user is match('^[a-z_][a-z0-9_-]{0,30}$')
+      - hsm_remote_client_user != 'root'
+      - hsm_remote_client_id in hsm_remote_clients
+  when: hsm_remote_action in ['client', 'check']
+
+- name: Validate backend addresses, physical token identities and host-key pins
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[a-z][a-z0-9-]{1,30}$')
+      - item.value.host is match('^[a-zA-Z0-9][a-zA-Z0-9.-]*$')
+      - item.value.serial | string is match('^[a-zA-Z0-9_.-]+$')
+      - item.value.host_public_keys | length > 0
+      - >-
+        item.value.host_public_keys | select('match',
+        '^(ssh-ed25519|ecdsa-sha2-[a-zA-Z0-9-]+|ssh-rsa) [A-Za-z0-9+/]+=*( [^\r\n]*)?$')
+        | list | length == item.value.host_public_keys | length
+  loop: "{{ hsm_remote_backends | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Validate each client's key and explicit IPv4 source restrictions
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[a-z][a-z0-9-]{1,30}$')
+      - item.value.public_key is match('^(ssh-ed25519|ecdsa-sha2-[^ ]+|ssh-rsa) [A-Za-z0-9+/]+=*( [^\r\n]*)?$')
+      - item.value.sources | length > 0
+      - >-
+        item.value.sources | select('match',
+        '^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/([1-9]|[12][0-9]|3[0-2])$')
+        | list | length == item.value.sources | length
+    fail_msg: Each SSH client requires its own public key and explicit IPv4 CIDRs; /0 and wildcard sources are refused.
+  loop: "{{ hsm_remote_clients | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Validate native executable and managed configuration paths
+  ansible.builtin.assert:
+    that: item is match('^/[a-zA-Z0-9_./+-]+$') and '/..' not in item
+  loop:
+    - "{{ hsm_remote_p11kit_binary }}"
+    - "{{ hsm_remote_p11tool_binary }}"
+    - "{{ hsm_remote_sshd_binary }}"
+    - "{{ hsm_remote_ssh_binary }}"
+    - "{{ hsm_remote_config_dir }}"
+    - "{{ hsm_remote_module_dir }}"
+    - "{{ hsm_remote_proxy_library }}"
+
+- name: Validate explicitly selected nonsecret provider environment
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[A-Z][A-Z0-9_]*$')
+      - item.value | string is match('^[a-zA-Z0-9_./:+,@=-]+$')
+      - item.key not in ['GNUTLS_PIN', 'GNUTLS_SO_PIN', 'HSM_REMOTE_PIN']
+  loop: "{{ hsm_remote_environment | dict2items }}"
+  no_log: true
+
+- name: Require nonfactory, separately approved credentials for an explicit authenticated probe
+  ansible.builtin.assert:
+    that:
+      - hsm_provider_custody_ready | default(false) | bool
+      - hsm_remote_probe_pin | length >= 4
+      - hsm_remote_probe_pin not in ['648219', '0001password']
+  when: hsm_remote_probe_login | bool
+  no_log: true

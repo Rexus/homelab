@@ -1,5 +1,11 @@
 ---
 # Stage 5/6 product configuration; run from the Tier 0 repository root.
+- name: Prepare selected deployment tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: control-applications
+    control_node_require_terraform: false
+
 - name: Render or install Tier 0 control applications
   hosts: localhost
   connection: local

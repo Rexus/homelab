@@ -45,8 +45,8 @@ network gateway, firmware and audit settings. Keep headroom for CRLs, renewal
 bursts and recovery. Device duplication alone does not provide CA application HA.
 
 Use local hashing for ordinary checksums; a signature remains necessary when
-authorship matters. See [algorithm selection](../01-architecture/16-cryptography/02-algorithm-selection.md)
-and [post-quantum readiness](../01-architecture/16-cryptography/07-post-quantum.md).
+authorship matters. See [algorithm selection](../01-architecture/08-cryptography/02-algorithm-selection.md)
+and [post-quantum readiness](../01-architecture/08-cryptography/07-post-quantum.md).
 
 ## References
 

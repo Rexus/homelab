@@ -7,7 +7,7 @@ This procedure does not deploy guests.
 **Working repository:** `<prefix>-tier-0` for bootstrap inputs (source: `tier-0/`).
 **Run Steps 1–3 on:** a Proxmox host as an authorized administrator.
 **Run Step 4 on:** the bootstrap host, in the owning generated tier.
-**Design:** [protected provisioning](../../../01-architecture/10-hosting/03-provisioning.md).
+**Design:** [protected provisioning](../../../01-architecture/04-hosting/02-provisioning.md).
 
 ## Contents
 
@@ -44,7 +44,7 @@ a personal administrator token for routine deployments. [1]
 
 <a id="tls-gate"></a>
 
-**TLS gate:** complete [bootstrap CA trust and caller verification](../../../05-operations/hosts/proxmox-tls.md)
+**TLS gate:** complete [bootstrap CA trust and caller verification](../../../05-operations/01-hosting/proxmox-tls.md)
 on the execution host before using the token. Supplied provider roots set
 `insecure = false`; entry points reject bypass flags. Existing projects must review
 retained local provider edits too. Neither FreeIPA nor platform PKI is required first. [5]

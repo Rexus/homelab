@@ -72,7 +72,7 @@ The first five checks cover the basic route; the remaining checks apply to the s
 **Implementation:** supplied. Fresh source/generated roots use verified TLS; the wrappers
 reject current and legacy insecure environment flags. Refresh preserves project inputs;
 review local overrides and the refresh report before accepting existing TLS configuration.
-**Procedure:** [Proxmox bootstrap trust and PKI transition](../docs/05-operations/hosts/proxmox-tls.md).
+**Procedure:** [Proxmox bootstrap trust and PKI transition](../docs/05-operations/01-hosting/proxmox-tls.md).
 
 - [ ] **TLS-1: Verified bootstrap.** Independently verify the Proxmox CA fingerprint, install
   its public trust on every execution host/container and use a name covered by the certificate.
@@ -94,10 +94,10 @@ review local overrides and the refresh report before accepting existing TLS conf
 snapshots/accounts/audit, independent backup storage and external dead-man alerts
 before these checks. Device-native and Kubernetes collector variants require their
 selected integrations. Do not pass this section with only the local receiver.
-Select [A: NAS-backed or B: retention-locked](../docs/01-architecture/24-operations/02-log-retention.md)
+Select [A: NAS-backed or B: retention-locked](../docs/01-architecture/11-operations/02-log-retention.md)
 and record trusted administrators. One homelab operator may hold all roles under A
 using separate credentials; this does not claim protection against that administrator.
-**Procedure:** [fault/restore drill](../docs/05-operations/logging-drill.md).
+**Procedure:** [fault/restore drill](../docs/05-operations/06-resilience/logging-drill.md).
 **Record:** the Tier 0 project's `docs/05-operations/logging-evidence.md`.
 
 - [ ] **LOG-1: Real source delivery.** Emit numbered records from Proxmox, supported network
@@ -137,7 +137,7 @@ envelope, accepted-event boundary, queue limits and any source-side gaps explici
 security behavior still need live qualification. Hardware custody, internal automated
 ACME and public edge HTTPS are separate selections, not hidden bootstrap requirements.
 **Procedures:** [software PKI](../docs/03-deployment/stage-3-trust/procedures/software-pki.md),
-[CA operations](../docs/05-operations/cryptography/certificate-authority.md).
+[CA operations](../docs/05-operations/03-cryptography/certificate-authority.md).
 **Coverage and variants:** [CA implementation checklist](ca-implementation.md).
 
 - [ ] **TRUST-1: Qualified runtime.** Deploy the pinned package/configuration/schema set on

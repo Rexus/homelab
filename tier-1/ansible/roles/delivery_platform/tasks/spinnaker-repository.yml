@@ -1,0 +1,24 @@
+---
+- name: Replace only the transient repository commissioning Job
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    name: spinnaker-repository-commission
+    state: absent
+    wait: true
+
+- name: Require successful repository commissioning or retained identity validation
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition: >-
+      {{ delivery_platform_spinnaker_documents | selectattr('kind', 'equalto', 'Job')
+         | selectattr('metadata.name', 'equalto', 'spinnaker-repository-commission') | first }}
+    wait: true
+    wait_timeout: 360
+    wait_condition: {type: Complete, status: 'True'}

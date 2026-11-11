@@ -1,0 +1,18 @@
+---
+# Separate Stage 5 client/RBAC workflow; no application releases or Vault tasks.
+sso_human_action: render
+sso_human_output: "{{ playbook_dir }}/../../../secrets/kubernetes-human-access"
+sso_human_keycloak_url: ""
+sso_human_realm: platform
+sso_human_keycloak_auth: {}
+sso_human_client_id: kubernetes-cli
+sso_human_group: oidc:platform-viewers
+sso_human_namespaces: []
+sso_human_api_server: ""
+sso_human_api_ca_pem: ""
+sso_human_oidc_ca_pem: ""
+sso_human_admin_kubeconfig: ""
+sso_human_admin_context: ""
+sso_human_kubectl: kubectl
+# Accepted int128/kubelogin executable on the human workstation, not Azure kubelogin.
+sso_human_kubelogin: ""

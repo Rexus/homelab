@@ -1,0 +1,21 @@
+---
+- name: Check native human-access controller dependencies
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: kubernetes-human-access
+    control_node_require_terraform: false
+
+- name: Prepare human CLI login and bounded namespace authorization
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  vars_files:
+    - ../../group_vars/kubernetes_human_access.yml
+  tasks:
+    - name: Run only the independent Stage 5 human-access workflow
+      ansible.builtin.include_role:
+        name: control_applications
+        tasks_from: sso-human
+        defaults_from: sso-human

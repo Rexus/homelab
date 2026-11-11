@@ -1,6 +1,6 @@
 # Stage 7: Delivery
 
-**Related:** [Architecture](../../01-architecture/20-delivery/README.md) · [Operations](../../05-operations/delivery/README.md)
+**Related:** [Architecture](../../01-architecture/10-delivery/README.md) · [Operations](../../05-operations/05-delivery.md)
 
 Establish Tier 1 application delivery. Tier 0 already uses Flux from
 [Stage 4](../stage-4-kubernetes/README.md); select **A: Argo CD** or **B: Spinnaker**
@@ -18,7 +18,7 @@ The temporary source must work before GitLab or the new registry exists.
 **Automation:** cluster lifecycle, native Argo CD/Spinnaker and Harbor installers are supplied.
 They have separate installation commands below; TLS/backup commissioning and live acceptance remain explicit.
 See [coverage](../../08-reference/implementation-support.md#stage-coverage) for live acceptance boundaries.
-**Design:** [controller patterns](../../01-architecture/20-delivery/02-controllers.md).
+**Design:** [controller patterns](../../01-architecture/10-delivery/02-controllers.md).
 
 ## Main path
 

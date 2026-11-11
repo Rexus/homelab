@@ -1,0 +1,11 @@
+---
+- name: Install separately approved public issuer certificates
+  hosts: issuing_ca
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Install public ceremony outputs without copying signing keys
+      ansible.builtin.include_role:
+        name: openxpki
+        tasks_from: certificates

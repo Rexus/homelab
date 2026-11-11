@@ -6,7 +6,7 @@
 **Return:** after isolation selection, return to Step 1 approval; provision through
 [Step 2b](../README.md#step-2b-kubernetes-labs). Optional dispatcher work is selected at Step 2c only
 after that operator deployment is accepted.
-**Design:** [workload isolation](../../../01-architecture/10-hosting/05-workload-isolation.md).
+**Design:** [workload isolation](../../../01-architecture/04-hosting/04-lab-environments.md).
 **Scope:** operator-first deployment and the future bounded request contract.
 No multi-cluster allocator, expiry controller or portal is installed by this path.
 

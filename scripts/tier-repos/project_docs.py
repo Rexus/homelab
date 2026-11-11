@@ -32,7 +32,7 @@ def workflow_guides(writer, repo, docs, prefix):
         "administration": (
             "Supported maintenance and recovery procedures for the deployed services.",
             [("Maintain services", "Record supported operations, scheduling and rollback", "05-operations/README.md"),
-             ("Recover and verify", "Record backup custodians and restore evidence", "05-operations/recovery.md")],
+             ("Recover and verify", "Record backup custodians and restore evidence", "05-operations/06-resilience/README.md")],
         ),
     }
     for area, (purpose, tasks) in workflows.items():
@@ -40,7 +40,7 @@ def workflow_guides(writer, repo, docs, prefix):
                          for task, procedure, reference in tasks)
         if repo == "tier-0" and area == "administration":
             rows += ("\n| Test security logging | [Project evidence record](logging-evidence.md) | "
-                     f"[Fault/restore drill]({docs}/05-operations/logging-drill.md) |")
+                     f"[Fault/restore drill]({docs}/05-operations/06-resilience/logging-drill.md) |")
         owned_template(writer, "project/workflow.md", f"docs/{area}/README.md",
                        title=title, area_title=area,
                        purpose=purpose, rows=rows)

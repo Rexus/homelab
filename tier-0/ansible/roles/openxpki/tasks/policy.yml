@@ -6,6 +6,7 @@
     - system/realms.yaml
     - "realm/{{ openxpki_realm }}/auth/handler.yaml"
     - "realm/{{ openxpki_realm }}/auth/stack.yaml"
+    - "realm/{{ openxpki_realm }}/crypto.yaml"
   register: openxpki_policy_files
   no_log: true
 
@@ -14,7 +15,19 @@
     openxpki_realms: "{{ openxpki_policy_files.results[0].content | b64decode | from_yaml }}"
     openxpki_auth_handlers: "{{ openxpki_policy_files.results[1].content | b64decode | from_yaml }}"
     openxpki_auth_stacks: "{{ openxpki_policy_files.results[2].content | b64decode | from_yaml }}"
+    openxpki_crypto: "{{ openxpki_policy_files.results[3].content | b64decode | from_yaml }}"
   no_log: true
+
+- name: Require completed hardware custody before activating a PKCS11 signer
+  ansible.builtin.assert:
+    that: hsm_provider_custody_ready | default(false) | bool
+    fail_msg: >-
+      Complete device commissioning, replace factory credentials and qualify original-key recovery
+      before setting hsm_provider_custody_ready in the protected issuer inputs. Installation can
+      remain inactive; ordinary issuer deployment must not bypass hardware custody acceptance.
+  when:
+    - openxpki_activate_runtime | bool
+    - openxpki_crypto.get('token', {}).get('ca-signer', {}).get('engine', '') | upper == 'PKCS11'
 
 - name: Require a single production realm and password-authenticated portal
   ansible.builtin.assert:

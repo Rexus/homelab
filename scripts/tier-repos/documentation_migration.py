@@ -11,6 +11,30 @@ from urllib.parse import quote
 MOVES = json.loads((Path(__file__).with_name("documentation-moves.json")).read_text(encoding="utf-8"))
 
 
+def referenced_manual_aliases(writer, prefix):
+    """Retain retired numbered paths only where project-authored records still use them."""
+    referenced = set()
+    manual = writer.root / "docs/auto-docs"
+    for name in ("architecture", "shared", "tier-0", "tier-1", "tier-2"):
+        repo = writer.root.parent / f"{prefix.lower()}-{name}"
+        if repo.is_symlink():
+            continue
+        documents = list(repo.glob("*.md"))
+        if not (repo / "docs").is_symlink():
+            documents.extend((repo / "docs").rglob("*.md"))
+        for document in documents:
+            if document.is_relative_to(repo / "docs/auto-docs") or document.is_symlink():
+                continue
+            content = document.read_text(encoding="utf-8")
+            for link in re.findall(r"\[[^\]]*\]\(([^)#]+)(?:#[^)]*)?\)", content):
+                if re.match(r"[a-z]+:", link):
+                    continue
+                target = (document.parent / link).resolve()
+                if target.is_relative_to(manual):
+                    referenced.add(target.relative_to(manual))
+    return referenced
+
+
 def section_anchors(content):
     """Collect explicit and GitHub-style heading anchors, excluding fenced examples."""
     content = re.sub(r"(?ms)^\s*(`{3,}|~{3,})[^\n]*\n.*?^\s*\1\s*$", "", content)

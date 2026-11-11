@@ -9,6 +9,7 @@
       - infrastructure_runner_token is match('^glrt-')
       - infrastructure_runner_ca_src | length > 0
       - infrastructure_runner_workspace is match('^/srv/[a-zA-Z0-9/_-]+$')
+      - infrastructure_runner_workspace | regex_replace('/+$', '') != '/srv'
     fail_msg: >-
       Direct CI delegates Tier 0 authority to the protected project and its GitLab/hosting administrators.
       Explicitly accept that trust and supply a pinned package, auth token and trusted CA.
@@ -38,6 +39,9 @@
   loop:
     - /var/lib/gitlab-runner/builds
     - /var/lib/gitlab-runner/cache
+
+- name: Install selected public deployment inputs without guest login
+  ansible.builtin.import_tasks: deployment-inputs.yml
 
 - name: Install GitLab server trust
   ansible.builtin.copy:

@@ -120,7 +120,7 @@ class DeploymentPaths(TierRepositoryTestCase):
                 self.assertIn(f"bash scripts/kubernetes-cluster.sh {action}", implementation)
             for expected in ("independent DNS/time", "private", "API endpoint outside this cluster",
                              "cluster-security-logging.yml", "security-logging.md", "etcd",
-                             "../stage-5-identity/README.md", "step-1b-manual-cluster.md"):
+                             "../stage-5-identity/README.md", "step-1b-existing-cluster.md"):
                 self.assertIn(expected, cluster)
             self.assertEqual(re.findall(r"(?m)^## Step (\d+):", identity), ["1", "2", "3"])
             self.assertIn("../stage-4-kubernetes/README.md", identity)

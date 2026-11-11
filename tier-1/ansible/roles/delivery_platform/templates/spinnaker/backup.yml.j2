@@ -1,3 +1,7 @@
+{% if delivery_platform_spinnaker_backup_backend == 'filesystem' %}
+{{ lookup('ansible.builtin.template', 'spinnaker/repository-job.yml.j2') }}
+---
+{% endif %}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata: {name: spinnaker-backup}

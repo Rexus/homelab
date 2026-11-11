@@ -1,4 +1,9 @@
 ---
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: issuing_ca
+
 # Runtime only; root ceremonies and issuer-token activation remain explicit.
 - name: Install the Tier 0 infrastructure certificate authority runtime
   hosts: issuing_ca

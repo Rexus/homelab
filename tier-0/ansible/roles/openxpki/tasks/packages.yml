@@ -3,6 +3,7 @@
   ansible.builtin.apt:
     name:
       - ca-certificates
+        - acl
       - python3-debian
       - python3-pymysql
       - python3-cryptography

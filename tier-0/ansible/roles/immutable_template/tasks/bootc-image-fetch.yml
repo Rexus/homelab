@@ -1,0 +1,164 @@
+---
+- name: Inspect controller custody before writing or fetching
+  delegate_to: localhost
+  become: false
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop:
+    - "{{ immutable_template_image_artifact_dir }}"
+    - "{{ immutable_template_image_artifact_dir }}/{{ inventory_hostname }}"
+    - "{{ immutable_template_image_controller_dir }}"
+    - "{{ immutable_template_image_controller_dir }}/request.json"
+    - "{{ immutable_template_image_controller_dir }}/disk.qcow2"
+    - "{{ immutable_template_image_controller_dir }}/publication.yml"
+  register: immutable_template_image_local_paths
+
+- name: Refuse symlinked controller destinations
+  ansible.builtin.assert:
+    that:
+      - not item.stat.exists or not item.stat.islnk
+    fail_msg: Controller artifacts must stay inside the configured real directory; symlinks are not adopted.
+  loop: "{{ immutable_template_image_local_paths.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Refuse unowned controller output or replacement of an existing disk
+  ansible.builtin.assert:
+    that:
+      - not immutable_template_image_local_paths.results[2].stat.exists or immutable_template_image_local_paths.results[3].stat.exists
+      - not local_disk.exists or local_disk.checksum == immutable_template_image_disk.stat.checksum
+    fail_msg: Controller revision output is unowned or differs from the verified disk; choose a new revision.
+  vars:
+    local_disk: "{{ immutable_template_image_local_paths.results[4].stat }}"
+
+- name: Read an existing controller ownership record
+  delegate_to: localhost
+  become: false
+  ansible.builtin.slurp:
+    src: "{{ immutable_template_image_controller_dir }}/request.json"
+  register: immutable_template_image_local_request
+  when: immutable_template_image_local_paths.results[3].stat.exists
+  no_log: true
+
+- name: Require the same build request in controller custody
+  ansible.builtin.assert:
+    that:
+      - immutable_template_image_local_request.content | b64decode | from_json == immutable_template_image_request
+    fail_msg: The controller revision belongs to different build inputs; select a new revision.
+  when: immutable_template_image_local_paths.results[3].stat.exists
+  no_log: true
+
+- name: Prepare private artifact directories on the controller
+  delegate_to: localhost
+  become: false
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0700"
+  loop:
+    - "{{ immutable_template_image_artifact_dir }}"
+    - "{{ immutable_template_image_artifact_dir }}/{{ inventory_hostname }}"
+    - "{{ immutable_template_image_controller_dir }}"
+
+- name: Record the controller output ownership contract
+  delegate_to: localhost
+  become: false
+  ansible.builtin.copy:
+    content: "{{ immutable_template_image_request | to_nice_json }}"
+    dest: "{{ immutable_template_image_controller_dir }}/request.json"
+    mode: "0600"
+    force: false
+  no_log: true
+
+- name: Restrict builder disk custody before granting temporary fetch access
+  ansible.builtin.file:
+    path: "{{ immutable_template_image_workdir }}/output/qcow2/disk.qcow2"
+    owner: root
+    group: root
+    mode: "0600"
+
+# fetch with become uses slurp; temporary ACLs avoid buffering a multi-GiB disk in RAM.
+- name: Fetch through the automation connection and always close its temporary access
+  vars:
+    artifact_directories:
+      - /var/lib/bootc-image-builder
+      - "{{ immutable_template_image_workdir }}"
+      - "{{ immutable_template_image_workdir }}/output"
+      - "{{ immutable_template_image_workdir }}/output/qcow2"
+  block:
+    - name: Allow traversal only through the artifact directories
+      ansible.posix.acl:
+        path: "{{ item }}"
+        entity: "{{ ansible_user }}"
+        etype: user
+        permissions: x
+        state: present
+        follow: false
+      loop: "{{ artifact_directories }}"
+      when: ansible_user != 'root'
+
+    - name: Allow the automation connection to read only the completed disk
+      ansible.posix.acl:
+        path: "{{ immutable_template_image_workdir }}/output/qcow2/disk.qcow2"
+        entity: "{{ ansible_user }}"
+        etype: user
+        permissions: r
+        state: present
+        follow: false
+      when: ansible_user != 'root'
+
+    - name: Fetch the disk without elevated slurp
+      become: false
+      ansible.builtin.fetch:
+        src: "{{ immutable_template_image_workdir }}/output/qcow2/disk.qcow2"
+        dest: "{{ immutable_template_image_controller_dir }}/disk.qcow2"
+        flat: true
+        validate_checksum: true
+  always:
+    - name: Remove temporary fetch access without deleting any artifact
+      ansible.posix.acl:
+        path: "{{ item }}"
+        entity: "{{ ansible_user }}"
+        etype: user
+        state: absent
+        follow: false
+      loop: "{{ artifact_directories + [immutable_template_image_workdir ~ '/output/qcow2/disk.qcow2'] }}"
+      when: ansible_user != 'root'
+
+- name: Keep the fetched disk private
+  delegate_to: localhost
+  become: false
+  ansible.builtin.file:
+    path: "{{ immutable_template_image_controller_dir }}/disk.qcow2"
+    mode: "0600"
+
+- name: Independently hash the controller artifact
+  delegate_to: localhost
+  become: false
+  ansible.builtin.stat:
+    path: "{{ immutable_template_image_controller_dir }}/disk.qcow2"
+    checksum_algorithm: sha256
+  register: immutable_template_image_fetched
+
+- name: Require identical SHA256 before preparing publication
+  ansible.builtin.assert:
+    that: immutable_template_image_fetched.stat.checksum == immutable_template_image_disk.stat.checksum
+    fail_msg: Controller and builder artifact hashes differ; publication is blocked.
+
+- name: Write the existing Terraform publisher's catalog fragment
+  delegate_to: localhost
+  become: false
+  ansible.builtin.template:
+    src: bootc-image-publication.yml.j2
+    dest: "{{ immutable_template_image_controller_dir }}/publication.yml"
+    mode: "0600"
+
+- name: Report the completed build and explicit publisher handoff
+  ansible.builtin.debug:
+    msg:
+      image_path: "{{ immutable_template_image_controller_dir }}/disk.qcow2"
+      sha256: "{{ immutable_template_image_fetched.stat.checksum }}"
+      catalog_fragment: "{{ immutable_template_image_controller_dir }}/publication.yml"
+      next: Merge this versioned entry into templates/proxmox.yml, then run the existing publisher plan/apply/verify.

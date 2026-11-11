@@ -1,0 +1,61 @@
+---
+- name: Check controller tooling for direct HSM issuer deployment
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: hsm
+    control_node_require_terraform: false
+
+- name: Require the hardware issuer selection before connecting to guests
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Require exactly one selected online issuer
+      ansible.builtin.assert:
+        that:
+          - groups.get('issuing_ca', []) | length == 1
+          - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
+
+- name: Wait for the managed issuer before provider setup
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: issuing_ca
+
+- name: Install hardware middleware on the existing issuer without generating a key
+  hosts: issuing_ca
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  pre_tasks:
+    - name: Require a single online issuer and preserve its existing key
+      ansible.builtin.assert:
+        that:
+          - groups.get('issuing_ca', []) | length == 1
+          - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
+          - not openxpki_create_issuer_key | default(false) | bool
+          - hsm_provider_user == 'openxpki'
+          - hsm_provider_group == 'openxpki'
+          - not openxpki_activate_runtime | default(false) | bool
+
+    - name: Inspect issuer service state before changing its middleware
+      ansible.builtin.service_facts:
+
+    - name: Require an installed inactive issuer before binding a hardware provider
+      ansible.builtin.assert:
+        that:
+          - "'openxpki-serverd.service' in ansible_facts.services"
+          - ansible_facts.services['openxpki-serverd.service'].state != 'running'
+        fail_msg: Install the inactive issuer runtime first; an active issuer needs a planned custody migration.
+
+    - name: Validate original mounted issuer storage before installing provider files
+      ansible.builtin.include_role:
+        name: openxpki
+        tasks_from: preflight
+        public: true
+  roles:
+    - hsm_provider
+  tasks:
+    - name: Bind the existing hardware issuer identity
+      ansible.builtin.include_role:
+        name: hsm_provider
+        tasks_from: issuer

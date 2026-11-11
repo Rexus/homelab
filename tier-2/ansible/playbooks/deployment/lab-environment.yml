@@ -1,9 +1,17 @@
 ---
+- name: Prepare selected deployment tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: lab-environment
+    control_node_require_terraform: false
+
 - name: Render or install one isolated application environment
   hosts: localhost
   connection: local
   gather_facts: false
   vars:
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
-  roles:
-    - lab_environment
+  tasks:
+    - name: Run the selected deployment after tooling preparation
+      ansible.builtin.include_role:
+        name: lab_environment

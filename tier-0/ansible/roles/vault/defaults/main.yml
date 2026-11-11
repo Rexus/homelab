@@ -1,7 +1,8 @@
 ---
+vault_product: vault
 vault_package_name: vault
 vault_package_state: present
-vault_service_name: vault
+vault_service_name: "{{ 'openbao' if vault_product == 'openbao' else 'vault' }}"
 vault_manage_rpm_repo: true
 vault_hashicorp_rpm_repo_url: https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
 vault_manage_service: true
@@ -17,10 +18,10 @@ vault_ui_enabled: true
 vault_disable_mlock: true
 vault_tls_min_version: tls12
 
-vault_config_dir: /etc/vault.d
-vault_data_dir: /opt/vault/data
-vault_tls_dir: /opt/vault/tls
-vault_log_dir: /var/log/vault
+vault_config_dir: "{{ '/etc/openbao.d' if vault_product == 'openbao' else '/etc/vault.d' }}"
+vault_data_dir: "{{ '/opt/openbao/data' if vault_product == 'openbao' else '/opt/vault/data' }}"
+vault_tls_dir: "{{ '/opt/openbao/tls' if vault_product == 'openbao' else '/opt/vault/tls' }}"
+vault_log_dir: "{{ '/var/log/openbao' if vault_product == 'openbao' else '/var/log/vault' }}"
 
 vault_tls_cert_src: null
 vault_tls_key_src: null
@@ -35,3 +36,47 @@ vault_systemd_limit_core: 0
 vault_raft_retry_join: []
 vault_seal_hcl: ""
 vault_extra_hcl: ""
+vault_seal_type: shamir
+vault_transit: {}
+vault_seal_environment: {}
+vault_provider_packages: []
+vault_provider_accepted: false
+vault_seal_migration_accepted: false
+
+# Accepted, extracted artifacts on the controller; hashes cover the executable bytes.
+openbao_version: "2.7.2"
+openbao_binary_src: ""
+openbao_binary_sha256: ""
+openbao_binary_dest: /usr/local/bin/bao
+openbao_service_user: openbao
+openbao_data_device: ""
+openbao_data_expected_uuid: ""
+openbao_pkcs11_enabled: false
+openbao_hsm_client_mode: remote
+openbao_plugin_version: "0.2.1"
+openbao_plugin_src: ""
+openbao_plugin_sha256: ""
+openbao_plugin_directory: /opt/openbao/plugins
+openbao_pkcs11_library: ""
+openbao_pkcs11_packages: []
+openbao_pkcs11_environment: {}
+
+# Post-ceremony controller API reconciliation, independent from host installation.
+openbao_signing_address: "{{ vault_api_addr }}"
+openbao_signing_ca_src: "{{ vault_tls_ca_src }}"
+openbao_signing_token: ""
+openbao_signing_learning_single: false
+openbao_signing_node_ids: []
+openbao_signing_domain: ""
+openbao_signing_hardware_profile: ""
+openbao_signing_provider_accepted: false
+openbao_signing_token_serial: ""
+openbao_signing_token_label: ""
+openbao_signing_pin: ""
+openbao_signing_rotate_pin: false
+openbao_signing_mount: hardware-signing
+openbao_signing_cert_mount: hardware-signing-cert
+openbao_signing_keys: []
+openbao_signing_clients: []
+openbao_signing_prepare_backup_cli: false
+openbao_controller_binary_dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/bin/bao"

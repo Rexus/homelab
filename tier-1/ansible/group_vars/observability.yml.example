@@ -10,3 +10,76 @@ platform_host_ips:
   search-1: 10.20.30.30
   search-2: 10.20.30.31
   search-3: 10.20.30.32
+
+# Role schema and optional settings: ansible/roles/observability_vm/defaults/main.yml
+# All DNS records must resolve from guests and match externally issued certificate SANs.
+observability_vm_endpoints:
+  otel-1: otel-1.services.example.org
+  otel-2: otel-2.services.example.org
+  metric-1: metric-1.services.example.org
+  metric-2: metric-2.services.example.org
+  search-1: search-1.services.example.org
+  search-2: search-2.services.example.org
+  search-3: search-3.services.example.org
+
+# Fill with approved mirrored repository@sha256:<64 hex> references, never latest.
+# Native contracts track the Kubernetes role: Collector contrib 0.163.2, Data Prepper 2.14.1,
+# VictoriaMetrics/vmauth 1.155.0, OpenSearch/Dashboards 3.9.0, Grafana 13.2.4.
+# Netdata uses the same v2.12.2 native configuration contract as the Kubernetes path.
+observability_vm_images:
+  collector: ""
+  prepper: ""
+  metrics: ""
+  query: ""
+  search: ""
+  dashboards: ""
+  grafana: ""
+  netdata: ""
+observability_vm_registry_auth_src: ""  # Optional controller-owned containers auth.json.
+# Keep secrets outside this Terraform-readable IP/configuration file; native Ansible Vault is supported.
+observability_vm_private_vars_file: "{{ playbook_dir }}/../../../secrets/observability-vm.yml"
+
+# Controller-local files, transferred by Ansible; no CA/private signing keys enter guests.
+observability_vm_ca_src: ""
+observability_vm_oidc_ca_src: ""
+observability_vm_metrics_client_ca_src: ""
+observability_vm_tls:
+  otel-1: {cert_src: "", key_src: ""}
+  otel-2: {cert_src: "", key_src: ""}
+  metric-1: {cert_src: "", key_src: ""}
+  metric-2: {cert_src: "", key_src: ""}
+  search-1: {cert_src: "", key_src: ""}
+  search-2: {cert_src: "", key_src: ""}
+  search-3: {cert_src: "", key_src: ""}
+observability_vm_search_admin_tls: {cert_src: "", key_src: ""}
+observability_vm_search_node_dns:
+  - CN=search-1.services.example.org
+  - CN=search-2.services.example.org
+  - CN=search-3.services.example.org
+observability_vm_search_admin_dns: [CN=search-bootstrap.services.example.org]
+# True only on the first NEW empty-cluster installation; set false and reapply after success.
+observability_vm_search_bootstrap: false
+
+# Required credentials/private-file schema: role defaults and the dedicated-VM guide.
+observability_vm_log_scopes:
+  - name: application-a
+    kind: application
+    port: 4400
+    client_ca_src: ""
+    reader_backend_roles: [application-a-readers]
+# Add kind: projection only after Stage 8 option 4b approval; its receiver accepts logs only.
+# Read promotion is explicit: a healthy second process does not prove an up-to-date copy.
+observability_vm_metrics_read_members: [metric-1]
+
+observability_vm_oidc_issuer: https://sso.identity.example.org/realms/platform
+observability_vm_grafana_url: https://otel-1.services.example.org:3000
+observability_vm_dashboards_url: https://otel-1.services.example.org:5601
+# Preserve per-host data UUID pins in private host_vars after accepting existing data.
+
+# Diagnostic access only: native Netdata IPv4 patterns, not CIDRs, DNS names or tenant routes.
+# Example of a selected administrator subnet: ['10.20.10.*']; supply your actual approved sources.
+observability_vm_netdata_admin_allow_from: []
+# Exactly one parent owns the all-host Prometheus bridge; the other parent is not scraped in parallel.
+observability_vm_netdata_scrape_parent: otel-1
+observability_vm_netdata_scrape_metrics: [netdata_system_cpu_percentage_average]
+# Put separate child_key and peer_key UUID values in the encrypted private input file; see role defaults.

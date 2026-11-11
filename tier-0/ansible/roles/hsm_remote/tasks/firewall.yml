@@ -1,0 +1,88 @@
+---
+- name: Prepare native policy bindings on a SELinux-enabled Debian host
+  ansible.builtin.package:
+    name: [policycoreutils-python-utils, python3-semanage, python3-selinux]
+    state: present
+  when: ansible_os_family == 'Debian' and ansible_selinux.status | default('disabled') == 'enabled'
+
+- name: Permit the dedicated native SSH port in an enabled SELinux policy
+  community.general.seport:
+    ports: ["{{ hsm_remote_port | string }}"]
+    proto: tcp
+    setype: ssh_port_t
+    state: present
+  when: ansible_selinux.status | default('disabled') == 'enabled'
+
+- name: Inspect the existing native guest firewall without changing service policy
+  ansible.builtin.service_facts:
+  when: hsm_remote_firewall != 'external'
+
+- name: Reconcile source-scoped firewalld access when active or explicitly selected
+  when: >-
+    hsm_remote_firewall == 'firewalld' or (hsm_remote_firewall == 'auto' and
+    ansible_facts.services.get('firewalld.service', {}).get('state', '') == 'running')
+  block:
+    - name: Install the native firewall and its module dependency
+      ansible.builtin.package:
+        name: [firewalld, python3-firewall]
+        state: present
+
+    - name: Enable firewalld only when explicitly selected
+      ansible.builtin.systemd_service:
+        name: firewalld
+        state: started
+        enabled: true
+      when: hsm_remote_firewall == 'firewalld'
+
+    - name: Inspect the previous owned source-rule record
+      ansible.builtin.stat:
+        path: "{{ hsm_remote_config_dir }}/firewall.json"
+      register: hsm_remote_firewall_record
+
+    - name: Read the previous owned source-rule record
+      ansible.builtin.slurp:
+        src: "{{ hsm_remote_config_dir }}/firewall.json"
+      register: hsm_remote_firewall_previous
+      when: hsm_remote_firewall_record.stat.exists
+
+    - name: Calculate the exact selected source rules
+      ansible.builtin.set_fact:
+        hsm_remote_firewall_rules: []
+        hsm_remote_firewall_old: >-
+          {{ (hsm_remote_firewall_previous.content | b64decode | from_json)
+             if hsm_remote_firewall_record.stat.exists else {'zone': hsm_remote_firewalld_zone, 'rules': []} }}
+
+    - name: Build each source-scoped native firewall rule
+      ansible.builtin.set_fact:
+        hsm_remote_firewall_rules: >-
+          {{ hsm_remote_firewall_rules + ['rule family="ipv4" source address="' ~ item
+             ~ '" port protocol="tcp" port="' ~ (hsm_remote_port | string) ~ '" accept'] }}
+      loop: "{{ hsm_remote_clients.values() | map(attribute='sources') | flatten | unique }}"
+
+    - name: Remove only obsolete rules previously recorded by this pool
+      ansible.posix.firewalld:
+        rich_rule: "{{ item }}"
+        zone: "{{ hsm_remote_firewall_old.zone | default(omit, true) }}"
+        permanent: true
+        immediate: true
+        state: disabled
+      loop: >-
+        {{ hsm_remote_firewall_old.rules if hsm_remote_firewall_old.zone != hsm_remote_firewalld_zone
+           else hsm_remote_firewall_old.rules | difference(hsm_remote_firewall_rules) }}
+
+    - name: Permit only declared client source networks on the selected service port
+      ansible.posix.firewalld:
+        rich_rule: "{{ item }}"
+        zone: "{{ hsm_remote_firewalld_zone | default(omit, true) }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: "{{ hsm_remote_firewall_rules }}"
+
+    - name: Retain this pool's owned rules for declarative revocation on rerun
+      ansible.builtin.copy:
+        content: "{{ {'zone': hsm_remote_firewalld_zone, 'rules': hsm_remote_firewall_rules} | to_nice_json }}\n"
+        dest: "{{ hsm_remote_config_dir }}/firewall.json"
+        owner: root
+        group: root
+        mode: "0600"

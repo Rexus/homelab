@@ -1,7 +1,32 @@
-external_url '{{ gitlab_external_url }}'
+external_url {{ gitlab_external_url | to_json | replace('#', '\\#') }}
 letsencrypt['enable'] = {{ gitlab_letsencrypt_enabled | bool | ternary('true', 'false') }}
 gitlab_rails['gitlab_shell_ssh_port'] = {{ gitlab_ssh_host_port }}
 nginx['redirect_http_to_https'] = {{ gitlab_redirect_http_to_https | bool | ternary('true', 'false') }}
+{% if gitlab_oidc_enabled | bool %}
+gitlab_rails['initial_default_settings'] = { 'signup_enabled' => false }
+gitlab_rails['omniauth_enabled'] = true
+gitlab_rails['omniauth_allow_single_sign_on'] = ['openid_connect']
+gitlab_rails['omniauth_block_auto_created_users'] = {{ gitlab_oidc_block_auto_created_users | bool | ternary('true', 'false') }}
+gitlab_rails['omniauth_auto_link_user'] = []
+gitlab_rails['omniauth_providers'] = [{
+  name: 'openid_connect',
+  label: {{ gitlab_oidc_label | to_json | replace('#', '\\#') }},
+  args: {
+    name: 'openid_connect', scope: ['openid', 'profile', 'email'], response_type: 'code',
+    issuer: {{ gitlab_oidc_issuer | to_json | replace('#', '\\#') }},
+    discovery: true, client_auth_method: 'query', uid_field: 'sub', pkce: true,
+    client_options: {
+      identifier: {{ gitlab_oidc_client_id | to_json | replace('#', '\\#') }},
+      secret: {{ gitlab_oidc_client_secret | to_json | replace('#', '\\#') }},
+      redirect_uri: {{ (gitlab_external_url ~ '/users/auth/openid_connect/callback') | to_json | replace('#', '\\#') }}
+    }
+  }
+}]
+{% endif %}
+{% if gitlab_backup_enabled | bool %}
+gitlab_rails['backup_path'] = '/var/opt/gitlab/backups'
+gitlab_rails['backup_keep_time'] = 0
+{% endif %}
 {% for config_line in gitlab_omnibus_extra_config %}
 {{ config_line }}
 {% endfor %}

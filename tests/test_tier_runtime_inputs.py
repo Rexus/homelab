@@ -18,7 +18,7 @@ class RuntimeInputs(TierRepositoryTestCase):
         for key, environment in (("dm", "FREEIPA_DM_PASSWORD"), ("admin", "FREEIPA_ADMIN_PASSWORD")):
             self.assertIn(f"lookup('ansible.builtin.env', '{environment}')",
                           variables[f"foundation_freeipa_{key}_password"])
-        guide = (UPSTREAM / "docs/05-operations/secret-handling/ansible-vault.md").read_text()
+        guide = (UPSTREAM / "docs/05-operations/03-cryptography/ansible-vault.md").read_text()
         self.assertIn("--ansible-only --ansible-vars secrets/ansible-bootstrap-vars.yml", guide)
         self.assertIn("Do not encrypt inventory", guide)
 

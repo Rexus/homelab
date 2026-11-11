@@ -9,7 +9,7 @@ Run repository scripts from this root; paths below are repository-relative.
 **Change:** Use the supplied VM-based secret-service deployment.
 **Return:** [Step 1](README.md#step-1-deploy-the-secret-service) for secret-service acceptance before the operational tools and access checks.
 
-**Design:** [secret-service responsibilities](../../01-architecture/16-cryptography/README.md).
+**Design:** [secret-service responsibilities](../../01-architecture/08-cryptography/README.md).
 
 ## Table of contents
 
@@ -19,6 +19,7 @@ Run repository scripts from this root; paths below are repository-relative.
 - [IaC used for this](#iac-used-for-this)
 - [Step 2: Deploy](#plan-and-deploy)
 - [Step 3: Initialize and unseal](#operator-bootstrap)
+- [Step 4: Configure audit and SSO](#step-4-configure-audit-and-sso)
 - [After deployment](#after-deployment)
 - [Later hardening](#later-hardening)
 - [Read more](#read-more)
@@ -225,7 +226,6 @@ Run from **`<prefix>-tier-0/`**.
 vault operator unseal
 vault operator unseal
 vault login
-vault audit enable file file_path=/var/log/vault/audit.log
 ```
 
 The login uses the protected initial root token at the prompt; do not put it in a
@@ -233,12 +233,45 @@ command argument. Configure and test normal scoped administrative access before
 revoking bootstrap authority. Forward audit records to protected logging before
 storing important secrets; the local audit file alone is not the retained evidence archive.
 
+## Step 4: Configure audit and SSO
+
+In **`<prefix>-tier-0/ansible/group_vars/vault.yml`**, edit `control_applications_oidc_issuer`,
+`control_applications_oidc_ca_pem`, `control_applications_oidc_client_secrets.vault`,
+`control_applications_vault_policies` and `control_applications_vault_oidc_roles`.
+Use the accepted Keycloak client with this VM's exact HTTPS callback, including its API port.
+To register it through IaC, also set `control_applications_register_clients: true`,
+`control_applications_hosts.keycloak`, `control_applications_keycloak_realm` and private
+`control_applications_keycloak_auth` credentials. Otherwise retain the existing client owner.
+
+From the **trusted bootstrap terminal**, supply the temporary bootstrap token without shell history:
+
+```bash
+read -r -s -p "Temporary Vault configuration token: " VAULT_TOKEN
+export VAULT_TOKEN
+```
+
+Run from **`<prefix>-tier-0/`**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/vault-configure.yml -e @ansible/group_vars/vault.yml
+```
+
+**Expected:** native Vault API reconciliation enables persistent file/stdout audit, configures the
+named bounded OIDC roles/policies and verifies actual Raft membership. No SSH session or Helm run is used.
+Remove the temporary environment value after the configuration pass:
+
+```bash
+unset VAULT_TOKEN
+```
+
 Before returning to the main stage, enroll `/var/log/vault/audit.log` as a dedicated security file stream
 through [Stage 2 forwarding](../stage-2-logging/procedures/sources.md). Test allowed and denied operations at intake,
 qualify [human SSO](../stage-5-identity/procedures/service-sso.md), and commission
-[scheduled independent snapshots](../../05-operations/backups/control-applications.md#configure-and-schedule).
-Complete an [isolated restore](../../05-operations/recovery/vault.md) before accepting recovery.
-The VM installer supplies none of those post-unseal integrations automatically.
+[scheduled independent snapshots](../../05-operations/06-resilience/backups/control-applications.md#configure-and-schedule).
+Complete an [isolated restore](../../05-operations/06-resilience/recovery/vault.md) before accepting recovery.
+These are controller-run integrations with independent recovery custody; initialization/unseal
+remain the explicit human ceremony. After recording those checks, repeat `vault-configure.yml` with
+`control_applications_vault_phase: accept` and the two matching acceptance fields set in private inputs.
 
 ## After deployment
 
@@ -259,18 +292,18 @@ identity and PKI layer exists.
 For later hardening, higher availability, and future HSM-related paths, continue
 with the security docs instead of extending this deployment guide:
 
-- [Vault HSM hardening options](../../01-architecture/16-cryptography/06-vault-seal.md)
-- [HSM getting started](../../01-architecture/16-cryptography/03-hsm-selection.md)
+- [Vault HSM hardening options](../../01-architecture/08-cryptography/06-vault-seal.md)
+- [HSM getting started](../../01-architecture/08-cryptography/03-hsm-selection.md)
 - [USB HSM active-active blueprint](../stage-3-trust/step-1b-usb-hsm.md)
 
 ## Read more
 
 - [Identity foundation path](../stage-5-identity/procedures/freeipa.md)
-- [Shared services model](../../01-architecture/04-service-boundaries.md)
-- [Windows and AD support](../../01-architecture/18-identity/01-windows-integration.md)
+- [Shared services model](../../01-architecture/02-organization/README.md)
+- [Windows and AD support](../../01-architecture/09-identity/01-windows-integration.md)
 - [Deployment readiness](../readiness.md)
-- [Secret strategy](../../05-operations/secret-handling/strategy.md)
-- [Ansible Vault bootstrap fallback](../../05-operations/secret-handling/ansible-vault.md)
+- [Secret strategy](../../05-operations/03-cryptography/secret-handling.md)
+- [Ansible Vault bootstrap fallback](../../05-operations/03-cryptography/ansible-vault.md)
 
 ## References
 

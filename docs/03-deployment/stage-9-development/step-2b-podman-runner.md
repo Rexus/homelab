@@ -15,7 +15,7 @@ Existing installations retain their network values until an explicit migration.
 **Return:** [Step 2](README.md#step-2-add-on-demand-build-execution) for bounded-job acceptance and
 the optional image-lifecycle choice, then Step 3 Vault authorization.
 
-**Design:** [build and execution boundaries](../../01-architecture/05-software-lifecycle.md).
+**Design:** [build and execution boundaries](../../01-architecture/10-delivery/README.md).
 
 ## Table of contents
 

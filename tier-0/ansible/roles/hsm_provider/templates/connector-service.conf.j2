@@ -1,0 +1,7 @@
+[Service]
+ExecStart=
+ExecStart={{ hsm_yubihsm_connector_binary }} --config /etc/hsm-provider/yubihsm-connector.yaml
+User=hsm-connector
+Group=hsm-connector
+NoNewPrivileges=true
+PrivateTmp=true

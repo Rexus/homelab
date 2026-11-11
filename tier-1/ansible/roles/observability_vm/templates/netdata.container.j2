@@ -1,0 +1,43 @@
+[Unit]
+Description=Tier 1 Netdata {{ 'parent' if inventory_hostname in observability_vm_gateway_hosts else 'child' }} / {{ inventory_hostname }}
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor={{ observability_vm_data_path }}
+
+[Container]
+Image={{ observability_vm_images.netdata }}
+ContainerName=obs-netdata
+Network=host
+PodmanArgs=--pid=host
+SecurityLabelDisable=true
+Pull=missing
+{% if observability_vm_registry_auth_src %}
+PodmanArgs=--authfile={{ observability_vm_config_path }}/registry-auth.json
+{% endif %}
+Environment=DO_NOT_TRACK=1
+HealthCmd=/usr/sbin/netdatacli ping
+HealthInterval=30s
+HealthRetries=3
+HealthStartPeriod=60s
+Volume={{ observability_vm_config_path }}/netdata:/etc/netdata:ro
+Volume={{ observability_vm_data_path }}/netdata/cache:/var/cache/netdata
+Volume={{ observability_vm_data_path }}/netdata/lib:/var/lib/netdata
+Volume=/proc:/host/proc:ro
+Volume=/sys:/host/sys:ro
+Volume=/:/host/root:ro,rslave
+Volume=/etc/os-release:/host/etc/os-release:ro
+# Native daemon starts as the image's root user, then drops to its netdata account.
+# No container-control socket, Tier 0 files, host devices or extra host capabilities.
+Entrypoint=/usr/sbin/netdata
+Exec=-D -u netdata -s /host -c /etc/netdata/netdata.conf
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=900
+TimeoutStopSec=120
+MemoryMax={{ (observability_vm_netdata_parent_limits if inventory_hostname in observability_vm_gateway_hosts else observability_vm_netdata_child_limits).memory }}
+CPUQuota={{ (observability_vm_netdata_parent_limits if inventory_hostname in observability_vm_gateway_hosts else observability_vm_netdata_child_limits).cpu }}
+
+[Install]
+WantedBy=multi-user.target

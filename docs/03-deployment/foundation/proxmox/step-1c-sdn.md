@@ -10,7 +10,7 @@ Consuming tiers own their guest-network inputs.
 after activation; finish storage/firewall checks before creating the first template.
 API authorization and local inputs follow at [Step 3f](../README.md#3f-connect-bootstrap-to-proxmox-host-management),
 before template IaC and Foundation completion.
-**Design:** [network placement](../../../01-architecture/11-networking/README.md).
+**Design:** [network placement](../../../01-architecture/05-networking/README.md).
 
 ## Contents
 

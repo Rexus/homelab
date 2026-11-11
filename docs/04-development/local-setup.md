@@ -157,7 +157,7 @@ in private project history, or in independent secret/state backups.
 - [Code layout](code-layout.md) and [repository workflow](repository-workflow.md)
 - [Generator/refresh contract](generated-repositories.md)
 - [Control-node tooling](../08-reference/control-node-tooling.md)
-- [Environment inputs](../08-reference/environment-variables.md) and [secret handling](../05-operations/secret-handling/strategy.md)
+- [Environment inputs](../08-reference/environment-variables.md) and [secret handling](../05-operations/03-cryptography/secret-handling.md)
 
 ## References
 

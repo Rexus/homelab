@@ -1,0 +1,178 @@
+---
+- name: Install the native build and artifact inspection tools
+  ansible.builtin.dnf:
+    name: [podman, qemu-img, acl]
+    state: present
+    update_cache: true
+
+- name: Prepare private registry trust and pull credentials
+  ansible.builtin.import_tasks: registry.yml
+
+- name: Prepare the native image-builder configuration
+  ansible.builtin.template:
+    src: bootc-image-config.json.j2
+    dest: "{{ immutable_template_image_workdir }}/config.json"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Build the disk only when no completed revision exists
+  when: not immutable_template_image_paths.results[6].stat.exists
+  block:
+    - name: Refuse to reuse partial build output
+      ansible.builtin.find:
+        paths: "{{ immutable_template_image_workdir }}/output"
+        hidden: true
+        file_type: any
+      register: immutable_template_image_partial
+
+    - name: Require an empty output directory for a new build
+      ansible.builtin.assert:
+        that: immutable_template_image_partial.matched == 0
+        fail_msg: Partial output is retained for inspection; choose a new revision rather than overwriting it.
+
+    - name: Inspect rootful Podman storage before exposing it to the builder
+      containers.podman.podman_system_info:
+      register: immutable_template_image_podman
+
+    - name: Require the supported local rootful container store
+      ansible.builtin.assert:
+        that:
+          - not immutable_template_image_podman.podman_system_info.host.security.rootless
+          - immutable_template_image_podman.podman_system_info.store.graphRoot == '/var/lib/containers/storage'
+        fail_msg: Use the dedicated builder's local rootful Podman store at /var/lib/containers/storage.
+
+    - name: Inspect the reserved build container name without changing any container
+      containers.podman.podman_container_info:
+        name: "homelab-bootc-{{ immutable_template_image_revision }}"
+      register: immutable_template_image_container
+
+    - name: Refuse an occupied build container name
+      ansible.builtin.assert:
+        that: immutable_template_image_container.containers | length == 0
+        fail_msg: An existing container owns this revision name; inspect it and choose a new revision without stopping it.
+
+    - name: Pull the approved OS and product containers by immutable digest
+      containers.podman.podman_image:
+        name: "{{ item }}"
+        state: present
+        pull: true
+        tls_verify: true
+        auth_file: "{{ immutable_template_registry_auth_dest if immutable_template_registry_auth_src | length > 0 else omit }}"
+      loop: "{{ [immutable_template_bootc_image, immutable_template_image_builder_image] }}"
+      no_log: true
+
+    - name: Inspect the pulled source OS image
+      containers.podman.podman_image_info:
+        name: "{{ immutable_template_bootc_image }}"
+      register: immutable_template_image_source
+
+    - name: Require a bootable container for the supported builder architecture
+      ansible.builtin.assert:
+        that:
+          - immutable_template_image_source.images | length == 1
+          - immutable_template_image_source.images[0].Architecture == 'amd64'
+          - immutable_template_image_source.images[0].Labels.get('containers.bootc', '') == '1'
+        fail_msg: The approved source must be an amd64 bootc OS image, including its kernel and bootloader.
+
+    - name: Create a separate qcow2 with the native bootc-image-builder product
+      containers.podman.podman_container:
+        name: "homelab-bootc-{{ immutable_template_image_revision }}"
+        image: "{{ immutable_template_image_builder_image }}"
+        state: started
+        pull: never
+        detach: false
+        rm: true
+        privileged: true
+        security_opt: [label=type:unconfined_t]
+        volume:
+          - /var/lib/containers/storage:/var/lib/containers/storage:rw
+          - "{{ immutable_template_image_workdir }}/config.json:/config.json:ro"
+          - "{{ immutable_template_image_workdir }}/output:/output:rw"
+        command:
+          - --type
+          - qcow2
+          - --rootfs
+          - "{{ immutable_template_image_rootfs }}"
+          - --config
+          - /config.json
+          - "{{ immutable_template_bootc_image }}"
+      no_log: true
+
+  rescue:
+    - name: Preserve native build failure details under private builder custody
+      ansible.builtin.copy:
+        content: "{{ ansible_failed_result | to_nice_json }}"
+        dest: "{{ immutable_template_image_workdir }}/build-error.json"
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Stop after preserving the native build failure
+      ansible.builtin.fail:
+        msg: >-
+          Bootc image build failed. Fetch {{ immutable_template_image_workdir }}/build-error.json
+          through Ansible for private diagnostics. Partial output is retained; choose a new revision after correction.
+
+- name: Inspect the produced disk format without booting or modifying it
+  ansible.builtin.command:
+    argv: [qemu-img, info, --output=json, "{{ immutable_template_image_workdir }}/output/qcow2/disk.qcow2"]
+  register: immutable_template_image_info
+  changed_when: false
+
+- name: Require a standalone qcow2 that fits the selected publication disk
+  ansible.builtin.assert:
+    that:
+      - disk.format == 'qcow2'
+      - disk.get('backing-filename', '') == ''
+      - disk.get('full-backing-filename', '') == ''
+      - disk.get('data-file', '') == ''
+      - disk.get('format-specific', {}).get('data', {}).get('data-file', '') == ''
+      - disk.get('virtual-size', 0) | int > 0
+      - disk['virtual-size'] | int <= immutable_template_image_publication.disk_size_gb | int * 1073741824
+    fail_msg: The disk must be a self-contained qcow2 and fit the publication disk_size_gb; never publish backing files.
+  vars:
+    disk: "{{ immutable_template_image_info.stdout | from_json }}"
+
+- name: Check qcow2 integrity without repair
+  ansible.builtin.command:
+    argv: [qemu-img, check, -q, "{{ immutable_template_image_workdir }}/output/qcow2/disk.qcow2"]
+  changed_when: false
+
+- name: Hash the completed artifact under builder custody
+  ansible.builtin.stat:
+    path: "{{ immutable_template_image_workdir }}/output/qcow2/disk.qcow2"
+    checksum_algorithm: sha256
+    follow: false
+  register: immutable_template_image_disk
+
+- name: Require a real nonempty disk image
+  ansible.builtin.assert:
+    that:
+      - immutable_template_image_disk.stat.isreg
+      - not immutable_template_image_disk.stat.islnk
+      - immutable_template_image_disk.stat.size | int > 0
+
+- name: Read the previously completed artifact record
+  ansible.builtin.slurp:
+    src: "{{ immutable_template_image_workdir }}/result.json"
+  register: immutable_template_image_previous_result
+  when: immutable_template_image_paths.results[6].stat.exists
+
+- name: Reject changed or corrupted completed artifacts
+  ansible.builtin.assert:
+    that:
+      - (immutable_template_image_previous_result.content | b64decode | from_json).sha256 == immutable_template_image_disk.stat.checksum
+    fail_msg: The completed artifact changed; retain it for investigation and select a new revision.
+  when: immutable_template_image_paths.results[6].stat.exists
+
+- name: Record the verified disk for idempotent fetch retries
+  ansible.builtin.copy:
+    content: "{{ {'sha256': immutable_template_image_disk.stat.checksum} | to_nice_json }}"
+    dest: "{{ immutable_template_image_workdir }}/result.json"
+    owner: root
+    group: root
+    mode: "0600"
+    force: false

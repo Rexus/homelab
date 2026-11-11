@@ -9,7 +9,7 @@ Enrollment and authentication policy use product procedures; no complete install
 **Change:** Add stronger operator authentication.
 **Return:** [Step 3](README.md#step-3-integrate-access-and-recovery) to continue with service access and recovery checks.
 
-**Design:** [identity and authentication](../../01-architecture/18-identity/README.md).
+**Design:** [identity and authentication](../../01-architecture/09-identity/README.md).
 
 ## Table of contents
 
@@ -163,9 +163,9 @@ passwords from becoming the normal delegated credential between systems.
 ## Read more
 
 - [Identity foundation path](../stage-5-identity/procedures/freeipa.md)
-- [Windows and AD support](../../01-architecture/18-identity/01-windows-integration.md)
-- [Shared services model](../../01-architecture/04-service-boundaries.md)
-- [Secret strategy](../../05-operations/secret-handling/strategy.md)
+- [Windows and AD support](../../01-architecture/09-identity/01-windows-integration.md)
+- [Shared services model](../../01-architecture/02-organization/README.md)
+- [Secret strategy](../../05-operations/03-cryptography/secret-handling.md)
 
 ## References
 

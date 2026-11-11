@@ -261,7 +261,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
 
     def test_hardening_is_selected_at_first_service_deployment_not_hidden_in_foundation(self):
         for deployment in self.deployment_roots():
-            security = deployment.parent / "05-operations/hosts/linux-security.md"
+            security = deployment.parent / "05-operations/01-hosting/linux-security.md"
             root = deployment / "stage-1-software-intake/README.md"
             content = root.read_text(encoding="utf-8")
             self.assertTrue(security.is_file())

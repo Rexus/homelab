@@ -11,7 +11,7 @@ after cluster/mobility preparation; finish storage and firewall checks before cr
 Complete guest HA enrollment and fault tests at [Step 4c](../README.md#4c-finish-selected-ha-and-balancing-options)
 after a disposable clone exists, before leaving Foundation.
 
-**Design:** [compute availability](../../../01-architecture/10-hosting/README.md).
+**Design:** [compute availability](../../../01-architecture/04-hosting/README.md).
 
 Optional foundation setup in Tier 0, **before templates and important guests**. A single
 host is valid for a pilot. A cluster adds shared administration; HA must be
@@ -164,7 +164,7 @@ Maintain that metadata once in the [shared consumer catalog](../../../08-referen
 **Scope:** this placement contract covers QEMU VMs, not the LXC module. The
 reviewed container provider reads a node-specific path; do not assume the same
 external-migration behavior for LXC. [6] Talos clones need their own resources,
-not the Linux cloud-init module; see [Talos bootstrap](../../stage-4-kubernetes/step-1b-manual-cluster.md).
+not the Linux cloud-init module; see [Talos bootstrap](../../stage-4-kubernetes/step-1b-existing-cluster.md).
 
 Complete the [API TLS gate](api-access.md#tls-gate) before live deployment;
 cluster membership does not establish trusted API certificates.
@@ -189,7 +189,7 @@ test alone is not proof of recovery after host death.
 
 Offline mock tests cover the Terraform contract, not real failover. Recheck with
 the provider version locked by each consuming root. Keep the
-[backup and restore procedure](../../../05-operations/backups/virtual-machines.md) independent of HA.
+[backup and restore procedure](../../../05-operations/06-resilience/backups/virtual-machines.md) independent of HA.
 
 Return to [Foundation Step 4](../README.md#step-4-publish-and-test-vm-templates) for
 template/clone acceptance, then continue through its Stage 1 handoff.

@@ -1,0 +1,21 @@
+---
+- name: Wait for the GitLab guest from the controller
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: development_platform
+
+- name: Run and inspect the commissioned native backup job
+  hosts: development_platform
+  become: true
+  tasks:
+    - name: Run a native backup through its bounded systemd service
+      ansible.builtin.systemd_service:
+        name: gitlab-vm-backup.service
+        state: started
+
+    - name: Read native backup service status
+      ansible.builtin.command:
+        argv: [systemctl, show, gitlab-vm-backup.service, --property=Result, --property=ExecMainStatus]
+      register: gitlab_backup_status
+      changed_when: false
+      failed_when: "'Result=success' not in gitlab_backup_status.stdout or 'ExecMainStatus=0' not in gitlab_backup_status.stdout"

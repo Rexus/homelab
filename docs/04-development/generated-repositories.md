@@ -125,7 +125,7 @@ a grant of infrastructure privileges to repository users. Commands are operator-
 or executed through the explicitly trusted Stage 9 infrastructure project. Its
 GitLab/control-plane administrators are then Tier 0 authorities, not ordinary tenants.
 Future bounded self-service accepts data-only workload requests, not arbitrary code; see
-[Infrastructure control](../01-architecture/10-hosting/03-provisioning.md).
+[Infrastructure control](../01-architecture/04-hosting/02-provisioning.md).
 
 The upstream source already has this split: `tier-0/`, `tier-1/`, `tier-2/`,
 and `shared/` map directly to their prefixed repository names. The generator
@@ -284,7 +284,7 @@ Do not replace the complete file or transfer existing resources/state implicitly
 Tier 0 also owns the template module, publication script, Packer definitions,
 `terraform/deployments/templates/`, `templates/proxmox.yml.example`, and the seed-only
 `ci/gitlab-templates.yml.example`. The
-[template publisher](../05-operations/virtual-machines/template-lifecycle.md) is a separate
+[template publisher](../05-operations/01-hosting/templates/template-lifecycle.md) is a separate
 Terraform-only workflow for unbooted AlmaLinux, Rocky Linux, Debian, and Talos images;
 it is not a Linux guest setup in `.deployment-setups`. Its catalog has no guest
 IPs or credentials. Template-builder VMs retain the normal inventory contract.
@@ -298,8 +298,8 @@ root keys and custody separately; being online does not make a system Tier 1.
 The generator preserves reference network values. Review bridge, subnet,
 gateway, template, and VMID values against the actual environment.
 
-Use the [network plan](../01-architecture/11-networking/README.md#example-network-plan) and
-[firewall policy](../01-architecture/11-networking/01-firewall-policy.md) to prepare those attachments.
+Use the [network plan](../01-architecture/05-networking/README.md#example-network-plan) and
+[firewall policy](../01-architecture/05-networking/01-firewall-policy.md) to prepare those attachments.
 Tier numbers do not determine zones or subnets. Matching logical network keys
 also do not imply a shared network; generation does not configure isolation.
 
@@ -316,7 +316,7 @@ policy. Offline custody must never become a connected backend.
 
 ## Run the generated automation
 
-First complete Tier 0's [foundation template publication](../05-operations/virtual-machines/template-lifecycle.md#local-workflow)
+First complete Tier 0's [foundation template publication](../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow)
 and verify the template IDs in the consuming tier's mappings. Hosted CI and the
 control cluster are not prerequisites for that local workflow.
 
@@ -490,6 +490,11 @@ generator are preserved when their origin cannot be verified by the manifest, ex
 Only `docs/auto-docs/` is automatically cleaned. Its expected paths come from the current manual,
 including assets, its license, and compatibility pages at the former unnumbered and numbered paths.
 These pages retain section anchors and link to current guides; former asset paths also remain available.
+The current `01-architecture/`, `03-deployment/` and `05-operations/` trees contain active guides.
+Retired numbered paths are kept only while project Markdown records link to them;
+legacy routes remain in the separate `architecture/`, `administration/` and
+`04-administration/`, `deployment/` and `02-deployment/` compatibility areas. Refresh preserves those project records and
+removes unused numbered aliases rather than recreating obsolete chapter folders.
 Older retired paths outside this compatibility set are removed. Existing edits to current
 auto-docs remain preserved and appear in yellow. Review older project README links against the
 reported replacement guides after removing retired paths. Refresh does not merge edits or commit changes.
@@ -586,7 +591,7 @@ and Git histories. The generator does not move or import those repositories.
 
 Older collections placed template builder setups in Tier 1. Refresh adds the
 new Tier 0 roots without moving live inputs/state or editing owned setup lists.
-Follow the [template ownership migration](../05-operations/virtual-machines/template-lifecycle.md#existing-collections)
+Follow the [template ownership migration](../05-operations/01-hosting/templates/template-lifecycle.md#existing-collections)
 before applying them. Old files are preserved for review, not silently retired.
 
 Generation never imports or moves local data. Private copies of the former
@@ -622,7 +627,7 @@ Before deploying after this update:
    competing old and new jobs active against the same infrastructure.
 
 If template-builder inputs and state still belong to Tier 1, also complete the
-separate [template ownership migration](../05-operations/virtual-machines/template-lifecycle.md#existing-collections).
+separate [template ownership migration](../05-operations/01-hosting/templates/template-lifecycle.md#existing-collections).
 
 Existing inventories and owned READMEs are never merged. For the new Talos root,
 follow [initialization](../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure) and add its groups

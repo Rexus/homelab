@@ -1,0 +1,25 @@
+---
+- name: Install the managed receiver firewall and its native Python dependency
+  ansible.builtin.dnf:
+    name: [firewalld, python3-firewall]
+    state: present
+    disable_gpg_check: false
+
+- name: Preserve the deployment SSH port before first firewall startup
+  ansible.posix.firewalld:
+    zone: "{{ syslog_ng_firewall_zone }}"
+    port: "{{ ansible_port | default(22) }}/tcp"
+    permanent: true
+    offline: true
+    immediate: false
+    state: enabled
+  when: ansible_facts.services.get('firewalld.service', {}).get('state') != 'running'
+
+- name: Enable the receiver's managed firewall
+  ansible.builtin.systemd_service:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: Refresh the prepared firewall service state
+  ansible.builtin.service_facts:

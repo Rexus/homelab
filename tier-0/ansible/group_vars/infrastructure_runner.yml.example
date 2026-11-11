@@ -10,4 +10,14 @@ infrastructure_runner_token: "{{ lookup('ansible.builtin.env', 'INFRASTRUCTURE_R
 infrastructure_runner_ca_src: ""
 infrastructure_runner_workspace: /srv/iac
 # Approved signed RPM repositories must provide these tools; pin site-qualified versions.
-infrastructure_runner_tool_packages: [git, bash, python3, ansible-core]
+infrastructure_runner_tool_packages: [git, bash, python3, ansible-core, rsync, terraform, vault]
+# Optional one-time deployment/infrastructure-handover.yml, run from the original bootstrap.
+# Set the absolute existing collection directory, after stopping all deployment writers/CI jobs.
+infrastructure_runner_handover_source: ""
+infrastructure_runner_handover_writers_stopped: false
+# Public controller-side deployment keys copied to /srv/iac/public-keys/.
+infrastructure_runner_public_key_files: []
+# Reviewed non-secret CI environment; copied to /srv/iac/ci.env. Provider secrets come from Vault.
+infrastructure_runner_environment_src: ""
+# Optional original controller known_hosts file; no SSH private keys are copied.
+infrastructure_runner_known_hosts_src: ""

@@ -173,10 +173,10 @@ Use `control_applications_vault_phase: accept` only after the following checks:
 
 Record the snapshot cadence, destination, encryption, retention and authorized
 custodians in project administration. Before acceptance, commission the separate
-[control recovery-copy recipe](../../../05-operations/backups/control-applications.md#configure-and-schedule)
+[control recovery-copy recipe](../../../05-operations/06-resilience/backups/control-applications.md#configure-and-schedule)
 on an independent `control_recovery` host. It supplies scheduled native snapshots and encrypted restic copies;
 the application installer itself does not install that timer. Qualify snapshot authentication and the
-first completed backup, then use the [isolated restore procedure](../../../05-operations/recovery/vault.md).
+first completed backup, then use the [isolated restore procedure](../../../05-operations/06-resilience/recovery/vault.md).
 Raft replication and audit PVCs are not backup copies.
 
 Set `control_applications_backup_restore_accepted: true` only after recording that

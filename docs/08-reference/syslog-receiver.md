@@ -4,7 +4,7 @@ Tier 0 owns `ansible/roles/syslog_ng/`, the `foundation_logging` inventory and
 receiver inputs. Shared supplies reusable baseline/data-volume/execution code,
 with no inventory or resource ownership. Deployment is in
 [Stage 2 receiver setup](../03-deployment/stage-2-logging/procedures/receiver.md); the
-[evidence design](../01-architecture/24-operations/01-security-logging.md) owns retention and trust boundaries.
+[evidence design](../01-architecture/11-operations/01-protected-logging.md) owns retention and trust boundaries.
 
 ## Contents
 
@@ -47,7 +47,7 @@ overrides stay in ignored Tier 0 group/host vars, never Shared.
 | `syslog_ng_tls_port`, `syslog_ng_udp_port` | 6514 / 514; UDP exists only with legacy sources |
 | `syslog_ng_tls_ca_src`, `syslog_ng_tls_cert_src`, `syslog_ng_tls_key_src` | Execution-host files from `SYSLOG_NG_TLS_CA_FILE`, `SYSLOG_NG_TLS_CERT_FILE`, `SYSLOG_NG_TLS_KEY_FILE` |
 | `syslog_ng_tls_crl_src` | Optional externally supplied signed CRL from `SYSLOG_NG_TLS_CRL_FILE`; required by the supplied independent-authority main path; native hashed CRL directory, receiver restart on change |
-| `syslog_ng_manage_firewall`, `syslog_ng_firewall_zone` | `true`, `public`; firewalld must already run; select the interface's actual zone |
+| `syslog_ng_manage_firewall`, `syslog_ng_firewall_zone` | `true`, `public`; IaC installs/enables firewalld and retains the deployment SSH port before first startup; select the interface's actual zone |
 | `syslog_ng_queue_bytes` | 268435456 per destination; budget for every active source/date writer and backlog, not total archive capacity |
 | `syslog_ng_max_message_bytes`, `syslog_ng_max_connections` | 65536 / 100; oversize behavior must be tested against the selected producer/framing |
 | `syslog_ng_read_group` | `security-log-readers`; membership is separately governed, never automatically granted |
@@ -109,7 +109,7 @@ client test alone does not cover that defect.
 
 Native process checks are not EL host deployment, SELinux enforcement, physical
 power-loss, bounded-full-disk, independent backup or WORM acceptance. Record those
-separately with the [operator drill](../05-operations/logging-drill.md).
+separately with the [operator drill](../05-operations/06-resilience/logging-drill.md).
 
 ## References
 

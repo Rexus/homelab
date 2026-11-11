@@ -1,9 +1,4 @@
 ---
-# Reconcile supported configuration only; not a generic upgrade or recovery procedure.
-# Inventory and vars remain tier-local. See docs/05-operations/ansible-recipes.md.
-- name: Reconcile hsm configuration
-  hosts: hsm_gateways:crypto_admin
-  become: true
-  serial: 1
-  roles:
-    - baseline
+# Reuse the complete provider workflow; never report a baseline-only HSM reconciliation.
+- name: Reconcile the selected HSM host provider without changing keys
+  ansible.builtin.import_playbook: ../deployment/hsm-gateways.yml

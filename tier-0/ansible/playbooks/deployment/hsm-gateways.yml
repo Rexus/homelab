@@ -1,8 +1,31 @@
 ---
-# Cryptography: Trust Step 1b, gateway host baseline only.
-# Recipe mapping: docs/05-operations/ansible-recipes.md
+- name: Require selected provider hosts before starting HSM deployment
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Refuse a baseline-only success without provider hosts
+      ansible.builtin.assert:
+        that: groups.get('hsm_gateways', []) | length > 0
+        fail_msg: Select HSM provider hosts; issuer-local and network clients use deployment/hsm-issuer.yml.
+
+- name: Wait for managed guest bootstrap before configuration
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: hsm_gateways:crypto_admin
+
+# Cryptography: Trust Step 1b; application endpoints are separately selected integrations.
+# Recipe mapping: docs/05-operations/01-hosting/ansible-recipes.md
 - name: Apply HSM host baseline
   hosts: hsm_gateways:crypto_admin
   become: true
   roles:
     - baseline
+
+- name: Install and inspect the explicitly selected HSM provider
+  hosts: hsm_gateways
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  roles:
+    - hsm_provider

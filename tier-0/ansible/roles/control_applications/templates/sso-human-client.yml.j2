@@ -1,0 +1,35 @@
+realm: {{ sso_human_realm | to_json }}
+client_id: {{ sso_human_client_id | to_json }}
+protocol: openid-connect
+enabled: true
+public_client: true
+standard_flow_enabled: true
+implicit_flow_enabled: false
+direct_access_grants_enabled: false
+service_accounts_enabled: false
+full_scope_allowed: false
+redirect_uris: [http://localhost:8000]
+web_origins: []
+default_client_scopes: [profile, email]
+optional_client_scopes: []
+attributes:
+  pkce.code.challenge.method: S256
+  id.token.signed.response.alg: RS256
+protocol_mappers:
+  - name: kubernetes-api-audience
+    protocol: openid-connect
+    protocolMapper: oidc-audience-mapper
+    config:
+      included.custom.audience: headlamp
+      id.token.claim: 'true'
+      access.token.claim: 'false'
+  - name: kubernetes-groups
+    protocol: openid-connect
+    protocolMapper: oidc-group-membership-mapper
+    config:
+      claim.name: groups
+      full.path: 'false'
+      id.token.claim: 'true'
+      access.token.claim: 'false'
+      userinfo.token.claim: 'false'
+state: present

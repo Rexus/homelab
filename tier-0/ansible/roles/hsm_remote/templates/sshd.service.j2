@@ -1,0 +1,14 @@
+[Unit]
+Description=Native PKCS11 SSH remoting for {{ hsm_remote_pool_id }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+RuntimeDirectory=hsm-remote-{{ hsm_remote_pool_id }}
+ExecStart={{ hsm_remote_sshd_binary }} -D -e -f {{ hsm_remote_config_dir }}/sshd_config
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

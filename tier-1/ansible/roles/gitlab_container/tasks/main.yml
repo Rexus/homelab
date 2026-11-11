@@ -16,24 +16,27 @@
       files from the shared PKI.
       Select an approved explicit GitLab CE version or immutable digest; latest is not accepted.
 
+- name: Validate managed integration inputs before changing the guest
+  ansible.builtin.import_tasks: preflight.yml
+
 - name: Install GitLab container host packages
   ansible.builtin.dnf:
     name: "{{ gitlab_packages }}"
     state: present
     update_cache: true
 
-- name: Ensure GitLab persistent directories exist
-  ansible.builtin.file:
-    path: "{{ gitlab_home }}/{{ item }}"
-    state: directory
+- name: Prepare guarded local persistent storage
+  ansible.builtin.import_tasks: storage.yml
+
+- name: Install public CA chains into the container's native trust directory
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ gitlab_home }}/config/trusted-certs/{{ item | basename }}"
     owner: root
     group: root
-    mode: "0755"
-  loop:
-    - config
-    - config/ssl
-    - logs
-    - data
+    mode: "0644"
+  loop: "{{ gitlab_trusted_ca_sources }}"
+  notify: Restart GitLab container
 
 - name: Install GitLab TLS certificate
   ansible.builtin.copy:
@@ -43,6 +46,7 @@
     group: root
     mode: "0644"
   when: gitlab_tls_cert_src | length > 0
+  notify: Restart GitLab container
 
 - name: Install GitLab TLS private key
   ansible.builtin.copy:
@@ -52,7 +56,9 @@
     group: root
     mode: "0600"
   no_log: true
+  diff: false
   when: gitlab_tls_key_src | length > 0
+  notify: Restart GitLab container
 
 - name: Render GitLab Omnibus configuration
   ansible.builtin.template:
@@ -62,6 +68,8 @@
     group: root
     mode: "0600"
   notify: Restart GitLab container
+  no_log: true
+  diff: false
 
 - name: Render GitLab container systemd unit
   ansible.builtin.template:
@@ -80,3 +88,36 @@
     enabled: true
     state: started
     daemon_reload: true
+
+- name: Apply GitLab configuration before readiness and backup commissioning
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for native GitLab readiness over verified HTTPS
+  ansible.builtin.uri:
+    url: "{{ gitlab_external_url }}/-/readiness"
+    status_code: 200
+    validate_certs: true
+    use_proxy: false
+  register: gitlab_readiness
+  until: gitlab_readiness.status | default(0) == 200
+  retries: "{{ gitlab_ready_retries }}"
+  delay: 10
+
+- name: Commission scheduled independent native backups
+  ansible.builtin.include_tasks: backup.yml
+  when: gitlab_backup_enabled | bool
+
+- name: Inspect the optional installed schedule when backups are deselected
+  ansible.builtin.stat:
+    path: /etc/systemd/system/gitlab-vm-backup.timer
+  register: gitlab_backup_timer_file
+  when: not gitlab_backup_enabled | bool
+
+- name: Disable a previously installed schedule when backups are deselected
+  ansible.builtin.systemd_service:
+    name: gitlab-vm-backup.timer
+    state: stopped
+    enabled: false
+  when:
+    - not gitlab_backup_enabled | bool
+    - gitlab_backup_timer_file.stat.exists

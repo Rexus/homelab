@@ -1,0 +1,25 @@
+---
+- name: Inspect the retained Vault configuration
+  ansible.builtin.stat:
+    path: "{{ vault_config_dir }}/vault.hcl"
+  register: vault_existing_config
+
+- name: Read only the existing configuration for seal comparison
+  ansible.builtin.slurp:
+    src: "{{ vault_config_dir }}/vault.hcl"
+  register: vault_previous_config
+  no_log: true
+  when: vault_existing_config.stat.exists
+
+- name: Refuse an implicit seal migration on an existing VM
+  ansible.builtin.assert:
+    that:
+      - old_seals == new_seals or vault_seal_migration_accepted | bool
+    fail_msg: Seal changes require a supported migration and retained backup; routine installation cannot migrate a seal.
+  vars:
+    old_config: "{{ vault_previous_config.content | b64decode }}"
+    new_config: "{{ lookup('ansible.builtin.template', 'vault.hcl.j2') }}"
+    old_seals: "{{ old_config | regex_findall('seal\\s+\"[^\"]+\"\\s*\\{[^}]*\\}') | map('regex_replace', '\\s+', '') | list }}"
+    new_seals: "{{ new_config | regex_findall('seal\\s+\"[^\"]+\"\\s*\\{[^}]*\\}') | map('regex_replace', '\\s+', '') | list }}"
+  no_log: true
+  when: vault_existing_config.stat.exists

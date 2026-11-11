@@ -1,0 +1,9 @@
+---
+- name: Check controller collections for native consumer configuration
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: software-consumer
+    control_node_require_terraform: false
+
+- name: Apply shared execution code with tier-owned inventory and inputs
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/software-consumer.yml

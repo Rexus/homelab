@@ -85,9 +85,9 @@ collection root. Hosted source control is optional for initial deployment;
 | State, plans and image artifacts | Protected operational storage/backups; not source commits |
 
 Keep structured non-secret inputs local/private and bootstrap credentials in
-protected injection or [Ansible-only encryption](../05-operations/secret-handling/ansible-vault.md).
+protected injection or [Ansible-only encryption](../05-operations/03-cryptography/ansible-vault.md).
 Use an accepted secret service for normal scoped delivery; retain independent
-bootstrap/recovery custody under the [secret strategy](../05-operations/secret-handling/strategy.md).
+bootstrap/recovery custody under the [secret strategy](../05-operations/03-cryptography/secret-handling.md).
 
 ## Step 3: Refresh from the kit without replacing project work
 

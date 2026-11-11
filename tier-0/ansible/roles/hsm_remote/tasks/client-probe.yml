@@ -1,0 +1,25 @@
+---
+# GnuTLS deduplicates provider metadata. Probe one endpoint per native configuration.
+- name: Create this endpoint's native readiness configuration directory
+  ansible.builtin.file:
+    path: "{{ hsm_remote_probe_config_dir }}/{{ item.key }}/pkcs11/modules"
+    state: directory
+    owner: root
+    group: "{{ hsm_remote_client_group }}"
+    mode: "0755"
+
+- name: Isolate native readiness discovery to this endpoint
+  ansible.builtin.template:
+    src: probe.conf.j2
+    dest: "{{ hsm_remote_probe_config_dir }}/{{ item.key }}/pkcs11/pkcs11.conf"
+    owner: root
+    group: "{{ hsm_remote_client_group }}"
+    mode: "0644"
+
+- name: Configure the native SSH module for this endpoint's readiness probe
+  ansible.builtin.template:
+    src: remote.module.j2
+    dest: "{{ hsm_remote_probe_config_dir }}/{{ item.key }}/pkcs11/modules/remote.module"
+    owner: root
+    group: "{{ hsm_remote_client_group }}"
+    mode: "0644"

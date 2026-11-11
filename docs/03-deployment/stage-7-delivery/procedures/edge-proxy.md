@@ -11,7 +11,7 @@ Run repository scripts from this root; paths below are repository-relative.
 **Prerequisites:** approved RedHat-family guest image, reserved VIPs and reviewed network/host rules.
 The `edge_load_balancer` role rejects other distro families.
 
-**Design:** [traffic boundaries](../../../01-architecture/05-software-lifecycle.md).
+**Design:** [traffic boundaries](../../../01-architecture/10-delivery/README.md).
 
 ## Main path
 
@@ -197,7 +197,7 @@ Application paths supply approved backend references to the Tier 2 edge owner.
 Only reviewed application listeners are published. Internal Kubernetes API,
 Tier 0 administration and foundational signing use independent protected paths.
 An optional consumer-facing cryptography API needs the separate
-[publication contract](../../../01-architecture/16-cryptography/04-usb-hsm.md#authority-and-transport);
+[publication contract](../../../01-architecture/08-cryptography/04-usb-hsm.md#authority-and-transport);
 it is never Tier 0's internal or recovery route.
 
 Keep this boundary:
@@ -211,4 +211,4 @@ Keep this boundary:
 ## Read more
 
 - [Shared services path](../../../08-reference/implementation-support.md)
-- [Network architecture](../../../01-architecture/11-networking/README.md)
+- [Network architecture](../../../01-architecture/05-networking/README.md)

@@ -17,17 +17,26 @@ ROLE = UPSTREAM / 'tier-0/ansible/roles/openxpki'
 
 class CertificateAuthorityRuntime(TierRepositoryTestCase):
     def test_resources_and_recipes_stay_in_tier_zero(self):
+        import hcl2
         self.generate()
         repo = self.root / 'verify-tier-0'
         for source in (UPSTREAM / 'tier-0', repo):
-            main = (source / 'terraform/deployments/foundation/main.tf').read_text()
-            self.assertIn('extra_disks              = each.value.extra_disks', main)
-            self.assertIn('source   = "../../modules/vm"', main)
+            main = hcl2.loads((source / 'terraform/deployments/foundation/main.tf').read_text(),
+                serialization_options=hcl2.SerializationOptions(strip_string_quotes=True, with_comments=False))
+            modules = {name: value for block in main['module'] for name, value in block.items()}
+            self.assertEqual(modules['vms']['extra_disks'], '${each.value.extra_disks}')
+            self.assertEqual(modules['vms']['source'], '../../modules/vm')
             groups = yaml.safe_load((source / 'ansible/inventory/hosts.yml.example').read_text())['all']['children']
             self.assertNotIn('root_ca', groups['foundation']['children'])
             deploy = yaml.safe_load((source / 'ansible/playbooks/deployment/openxpki.yml').read_text())
-            self.assertEqual(deploy[0]['hosts'], 'issuing_ca')
-            self.assertEqual(deploy[0]['roles'], ['baseline', 'openxpki'])
+            issuer_plays = [play for play in deploy if 'openxpki' in play.get('roles', [])]
+            self.assertEqual(len(issuer_plays), 1)
+            issuer = issuer_plays[0]
+            self.assertEqual(issuer['hosts'], 'issuing_ca')
+            self.assertEqual(issuer['roles'], ['baseline', 'openxpki'])
+            self.assertNotIn('root_ca', [play.get('hosts') for play in deploy])
+            self.assertIn("groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0",
+                          issuer['pre_tasks'][0]['ansible.builtin.assert']['that'])
             for taskfile in (source / 'ansible/roles/openxpki/tasks').glob('*.yml'):
                 self.assertNotIn('ansible.builtin.shell', taskfile.read_text())
             identity = yaml.safe_load((source / 'ansible/playbooks/deployment/identity-freeipa.yml').read_text())

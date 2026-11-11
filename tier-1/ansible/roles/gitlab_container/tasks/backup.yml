@@ -1,0 +1,98 @@
+---
+- name: Validate the selected schedule with systemd's native calendar parser
+  ansible.builtin.command:
+    argv: [systemd-analyze, calendar, "{{ gitlab_backup_calendar }}"]
+  changed_when: false
+
+- name: Install declared native export and encrypted transport tools
+  ansible.builtin.dnf:
+    name: [restic, openssh-clients, coreutils, util-linux, findutils]
+    state: present
+    disable_gpg_check: false
+
+- name: Check restic's distinct missing-repository exit status is supported
+  ansible.builtin.command:
+    argv: [restic, version]
+  register: gitlab_restic_version
+  changed_when: false
+
+- name: Require the qualified backup tool
+  ansible.builtin.assert:
+    that: gitlab_restic_version.stdout.split()[1] is version('0.17.0', '>=')
+    fail_msg: Make restic >= 0.17 available through the baseline's approved package repositories.
+
+- name: Prepare private backup client configuration
+  ansible.builtin.file:
+    path: /etc/gitlab-vm-backup
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install independent repository password
+  ansible.builtin.copy:
+    src: "{{ gitlab_backup_password_src }}"
+    dest: /etc/gitlab-vm-backup/password
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Install pinned SFTP client credentials
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/gitlab-vm-backup/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - {src: "{{ gitlab_backup_ssh_key_src }}", dest: key}
+    - {src: "{{ gitlab_backup_known_hosts_src }}", dest: known_hosts}
+  when: gitlab_backup_transport == 'sftp'
+  no_log: true
+  diff: false
+
+# Reuse the existing stateless NAS client contract, including fstab conflicts,
+# independent marker, root-squash identity and native mount/package management.
+- name: Mount and validate the commissioned NAS through the existing data role
+  ansible.builtin.include_role:
+    name: development_data
+    tasks_from: backup-mount
+  vars:
+    development_data_backup_filesystem: "{{ dict([(inventory_hostname, gitlab_backup_filesystem)]) }}"
+    development_data_backup_repository: "{{ dict([(inventory_hostname, gitlab_backup_repository)]) }}"
+  when: gitlab_backup_transport == 'filesystem'
+
+- name: Install native backup job and bounded systemd schedule
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+    validate: "{{ 'bash -n %s' if item.src.endswith('.sh.j2') else omit }}"
+  loop:
+    - {src: backup.sh.j2, dest: /etc/gitlab-vm-backup/backup.sh, mode: "0700"}
+    - {src: backup-filesystem.sh.j2, dest: /etc/gitlab-vm-backup/filesystem.sh, mode: "0700"}
+    - {src: backup.service.j2, dest: /etc/systemd/system/gitlab-vm-backup.service, mode: "0644"}
+    - {src: backup.timer.j2, dest: /etc/systemd/system/gitlab-vm-backup.timer, mode: "0644"}
+
+- name: Verify access and initialize only an explicitly accepted empty filesystem repository
+  ansible.builtin.command:
+    argv:
+      - timeout
+      - --signal=TERM
+      - --kill-after=60
+      - "{{ gitlab_backup_timeout_seconds | int }}"
+      - /etc/gitlab-vm-backup/backup.sh
+      - "{{ '--initialize' if gitlab_backup_initialize | bool else '--probe' }}"
+  register: gitlab_backup_probe
+  changed_when: "'Initialized encrypted repository' in gitlab_backup_probe.stdout"
+
+- name: Enable independent scheduled backups
+  ansible.builtin.systemd_service:
+    name: gitlab-vm-backup.timer
+    daemon_reload: true
+    enabled: true
+    state: started

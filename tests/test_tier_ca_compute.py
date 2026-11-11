@@ -15,8 +15,22 @@ class CertificateAuthorityCompute(TierRepositoryTestCase):
         self.parent.mkdir(parents=True)
         shutil.copyfile(UPSTREAM / 'tier-0/terraform/deployments/foundation/variables.tf',
                         self.parent / 'variables.tf')
+        inventory = self.parent / 'hosts.yml'
+        inventory.write_text('all:\n  children:\n    guests:\n      hosts:\n        old-guest: {}\n        ca-1: {}\n')
+        addresses = self.parent / 'all.yml'
+        addresses.write_text('platform_host_ips:\n  old-guest: dhcp\n  ca-1: dhcp\n')
         (self.parent / 'main.tf.json').write_text(json.dumps({
-            'output': {'guests': {'value': '${var.vm_instances}'}},
+            'module': {'environment': {
+                'source': str(UPSTREAM / 'tier-0/terraform/modules/environment_guests'),
+                'ansible_inventory_path': str(inventory),
+                'ansible_group_vars_paths': [str(addresses)],
+                'default_platform_node_name': 'pve01',
+                'default_vm_template_id': 9101,
+                'network_zones': {'application': {'bridge': 'vmbr0', 'cidr_ipv4': '192.0.2.0/24'}},
+                'vm_instances': '${var.vm_instances}',
+            }},
+            'output': {'inputs': {'value': '${var.vm_instances}'},
+                       'guests': {'value': '${module.environment.vm_instances}'}},
         }))
         self.terraform('init', '-backend=false', '-input=false')
         inputs = dict(proxmox_storage_classes={}, vm_instances={
@@ -27,6 +41,8 @@ class CertificateAuthorityCompute(TierRepositoryTestCase):
         })
         (self.parent / 'inputs.tfvars.json').write_text(json.dumps(inputs))
         self.terraform('apply', '-auto-approve', '-input=false', '-var-file=inputs.tfvars.json')
+        raw_inputs = json.loads(self.terraform('output', '-json', 'inputs').stdout)
+        self.assertIsNone(raw_inputs['old-guest']['extra_disks'])
         guests = json.loads(self.terraform('output', '-json', 'guests').stdout)
         self.assertEqual(guests['old-guest']['extra_disks'], [])
         self.assertEqual(guests['ca-1']['template_vm_id'], 9103)

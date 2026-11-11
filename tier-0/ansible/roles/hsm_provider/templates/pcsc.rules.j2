@@ -1,0 +1,14 @@
+// Only declared service identities and exact accepted readers receive headless access.
+polkit.addRule(function(action, subject) {
+    var users = {{ hsm_provider_pcsc_users | to_json }};
+    var readers = {{ hsm_provider_pcsc_readers | to_json }};
+    if (users.indexOf(subject.user) < 0) {
+        return;
+    }
+    if (action.id == "org.debian.pcsc-lite.access_pcsc") {
+        return polkit.Result.YES;
+    }
+    if (action.id == "org.debian.pcsc-lite.access_card") {
+        return readers.indexOf(action.lookup("reader")) >= 0 ? polkit.Result.YES : polkit.Result.NO;
+    }
+});

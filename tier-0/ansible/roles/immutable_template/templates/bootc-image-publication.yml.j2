@@ -1,0 +1,5 @@
+# Generated build entry; merge under templates in the existing owned catalog.
+{{ {'templates': {immutable_template_image_publication_key: immutable_template_image_publication | combine({
+    'image_path': immutable_template_image_controller_dir ~ '/disk.qcow2',
+    'sha256': immutable_template_image_fetched.stat.checksum
+  })}} | to_nice_yaml }}

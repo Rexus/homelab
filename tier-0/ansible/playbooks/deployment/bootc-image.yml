@@ -1,0 +1,6 @@
+---
+# Same inventory, readiness, baseline and tooling gates; no second builder/state owner.
+- name: Build an initial bootc disk on the selected dedicated builder
+  ansible.builtin.import_playbook: immutable-template.yml
+  vars:
+    immutable_template_mode: image

@@ -1,0 +1,168 @@
+---
+- name: Require this host's accepted physical provider and selected family
+  ansible.builtin.assert:
+    that:
+      - inventory_hostname in hsm_remote_backends
+      - hsm_provider in ['yubihsm2', 'yubihsm'] if hsm_remote_family == 'yubihsm2' else hsm_provider == 'picohsm'
+      - hsm_provider_driver == ('opensc' if hsm_remote_family == 'picohsm' else 'yubihsm')
+      - hsm_provider_expected_serial | string == hsm_remote_backends[inventory_hostname].serial | string
+      - hsm_provider_library is match('^/[a-zA-Z0-9_./+-]+$')
+    fail_msg: Use matching devices from one vendor family in this key domain; original-key transfer is external custody.
+
+- name: Create the dedicated native remoting group
+  ansible.builtin.group:
+    name: "{{ hsm_remote_account }}"
+    system: true
+
+- name: Create the dedicated forced-command identity with no usable password
+  ansible.builtin.user:
+    name: "{{ hsm_remote_account }}"
+    group: "{{ hsm_remote_account }}"
+    system: true
+    create_home: false
+    shell: /bin/sh
+    password: '*'
+
+- name: Create root-controlled remoting configuration
+  ansible.builtin.file:
+    path: "{{ hsm_remote_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ hsm_remote_account }}"
+    mode: "0750"
+
+- name: Grant only this remoting account access to the selected PicoHSM PCSC reader
+  ansible.builtin.include_role:
+    name: hsm_provider
+    tasks_from: pcsc
+  vars:
+    hsm_provider_pcsc_users: ["{{ hsm_remote_account }}"]
+    hsm_provider_pcsc_policy_id: "remote-{{ hsm_remote_pool_id }}"
+  when: hsm_remote_family == 'picohsm'
+
+- name: Configure the selected native guest transport policy
+  ansible.builtin.import_tasks: firewall.yml
+
+- name: Inspect existing SSH host keys without creating or replacing identity
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ hsm_remote_host_key_files }}"
+  register: hsm_remote_host_key_state
+
+- name: Require the original OS-provisioned SSH host identity
+  ansible.builtin.assert:
+    that: item.stat.isreg | default(false)
+    fail_msg: Recover or explicitly provision the accepted SSH host identity; this role never regenerates host keys.
+  loop: "{{ hsm_remote_host_key_state.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Read only the selected public SSH host keys
+  ansible.builtin.slurp:
+    src: "{{ item }}.pub"
+  loop: "{{ hsm_remote_host_key_files }}"
+  register: hsm_remote_host_public_keys
+
+- name: Require every served host key to match its independently supplied pin
+  ansible.builtin.assert:
+    that: >-
+      (item.content | b64decode).split()[0:2] | join(' ') in
+      hsm_remote_backends[inventory_hostname].host_public_keys | map('regex_search', '^[^ ]+ [^ ]+') | list
+    fail_msg: SSH host-key pin mismatch; review identity through the accepted controller path before updating inputs.
+  loop: "{{ hsm_remote_host_public_keys.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Authorize the complete source-restricted client key batch
+  ansible.posix.authorized_key:
+    user: "{{ hsm_remote_account }}"
+    path: "{{ hsm_remote_config_dir }}/authorized_keys"
+    key: "{{ lookup('ansible.builtin.template', 'authorized_keys.j2') }}"
+    manage_dir: false
+    exclusive: true
+    state: present
+  notify: Reload HSM remote SSH
+
+- name: Keep forced-command authorization writable only by root
+  ansible.builtin.file:
+    path: "{{ hsm_remote_config_dir }}/authorized_keys"
+    owner: root
+    group: root
+    mode: "0644"
+    setype: "{{ 'ssh_home_t' if ansible_selinux.status | default('disabled') == 'enabled' else omit }}"
+
+- name: Render the separate native YubiHSM connector selection
+  ansible.builtin.template:
+    src: yubihsm_pkcs11.conf.j2
+    dest: "{{ hsm_remote_config_dir }}/yubihsm_pkcs11.conf"
+    owner: root
+    group: "{{ hsm_remote_account }}"
+    mode: "0640"
+  when: hsm_provider_driver == 'yubihsm'
+
+- name: Require the original key before publishing or retaining remoting access
+  block:
+    - name: Verify the original key as the actual remoting identity
+      ansible.builtin.include_tasks: probe.yml
+      vars:
+        hsm_remote_backend:
+          key: "{{ inventory_hostname }}"
+          value: "{{ hsm_remote_backends[inventory_hostname] }}"
+        hsm_remote_probe_library: "{{ hsm_provider_library }}"
+        hsm_remote_probe_user: "{{ hsm_remote_account }}"
+        hsm_remote_probe_environment: >-
+          {{ hsm_remote_environment | combine(
+            {'YUBIHSM_PKCS11_CONF': hsm_remote_config_dir ~ '/yubihsm_pkcs11.conf'}
+            if hsm_provider_driver == 'yubihsm' else {}) }}
+  rescue:
+    - name: Inspect existing native listeners after a rejected key or credential
+      ansible.builtin.service_facts:
+
+    - name: Stop an existing listener whose original key could not be accepted
+      ansible.builtin.systemd_service:
+        name: "hsm-remote-{{ hsm_remote_pool_id }}.service"
+        state: stopped
+        enabled: false
+      when: "('hsm-remote-' ~ hsm_remote_pool_id ~ '.service') in ansible_facts.services"
+
+    - name: Refuse publication until original-key readiness succeeds
+      ansible.builtin.fail:
+        msg: Original-key readiness failed; this endpoint is not accepted. Recover its key/credential through custody.
+
+- name: Prepare Debian's native SSH privilege-separation directory
+  ansible.builtin.file:
+    path: /run/sshd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: ansible_os_family == 'Debian'
+
+- name: Install the isolated SSH listener after native validation
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: "{{ hsm_remote_config_dir }}/sshd_config"
+    owner: root
+    group: root
+    mode: "0600"
+    validate: "{{ hsm_remote_sshd_binary }} -t -f %s"
+  notify: Reload HSM remote SSH
+
+- name: Install the dedicated native SSH service
+  ansible.builtin.template:
+    src: sshd.service.j2
+    dest: "/etc/systemd/system/hsm-remote-{{ hsm_remote_pool_id }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart HSM remote SSH
+
+- name: Enable the validated remoting listener
+  ansible.builtin.systemd_service:
+    name: "hsm-remote-{{ hsm_remote_pool_id }}.service"
+    daemon_reload: true
+    enabled: true
+    state: started
+
+- name: Apply the selected native listener changes
+  ansible.builtin.meta: flush_handlers

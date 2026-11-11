@@ -151,7 +151,7 @@ class RefreshReviewTests(TierRepositoryTestCase):
         result = self.generate("--refresh")
         review = result.stdout.split("\nRefresh review\n")[1]
         self.assertIn(f"REMOVED {old}", review)
-        self.assertIn("current guide: docs/auto-docs/05-operations/backups/virtual-machines.md", review)
+        self.assertIn("current guide: docs/auto-docs/05-operations/06-resilience/backups/virtual-machines.md", review)
         self.assertFalse(old.exists())
         self.assertFalse(old.parent.exists())
         self.assertNotIn(str(license_path), review)

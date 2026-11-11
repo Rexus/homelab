@@ -21,5 +21,38 @@ cluster_platform_expected_nodes: >-
 cluster_platform_storage_provider: existing
 cluster_platform_storage_class: REPLACE_WITH_ACCEPTED_CSI_CLASS
 cluster_platform_existing_storage_accepted: false
+# ceph_rbd installs native block CSI against an existing Proxmox/Ceph pool.
+# Set provider to ceph_rbd, pin versions.storage and approve this repository.
+# Approve https://ceph.github.io/csi-charts; provider selects its official repository.
+# For nfs, remove the image overrides below and use the guide's NFS inputs.
+cluster_platform_repositories: {}
+cluster_platform_ceph_rbd_prerequisites_accepted: false
+cluster_platform_talos_ceph_rbd_ready: false
+cluster_platform_ceph_rbd_fsid: REPLACE_WITH_EXISTING_CEPH_FSID
+cluster_platform_ceph_rbd_monitors: [REPLACE_WITH_MONITOR_HOST_AND_PORT]
+cluster_platform_ceph_rbd_pool: REPLACE_WITH_EXISTING_RBD_POOL
+cluster_platform_ceph_rbd_user_id: REPLACE_WITH_SCOPED_USER_ID
+cluster_platform_ceph_rbd_secret: csi-rbd-secret
+cluster_platform_ceph_rbd_image_features: [layering]
+# Private Secret contract: ceph-csi-rbd/csi-rbd-secret: {userID, userKey}.
+# Keep manage_secrets false for an existing Secret owner; never put keys in chart values.
+cluster_platform_manage_secrets: false
+cluster_platform_ceph_rbd_images_approved: false
+cluster_platform_values:
+  storage:
+    nodeplugin:
+      plugin:
+        image: {repository: quay.io/cephcsi/cephcsi, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+      registrar:
+        image: {repository: registry.k8s.io/sig-storage/csi-node-driver-registrar, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+    provisioner:
+      provisioner:
+        image: {repository: registry.k8s.io/sig-storage/csi-provisioner, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+      attacher:
+        image: {repository: registry.k8s.io/sig-storage/csi-attacher, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+      resizer:
+        image: {repository: registry.k8s.io/sig-storage/csi-resizer, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
+      snapshotter:
+        image: {repository: registry.k8s.io/sig-storage/csi-snapshotter, tag: REPLACE_WITH_VERSION_AT_SHA256_DIGEST}
 cluster_platform_issuer_spec: {}
 cluster_platform_database_enabled: false

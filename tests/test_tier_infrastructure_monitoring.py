@@ -28,7 +28,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
                 self.assertIn(expected.lower(), guide.lower())
             for step in range(1, 4):
                 self.assertIn(f"## Step {step}:", guide)
-            design = (docs / "01-architecture/24-operations/03-telemetry.md").read_text()
+            design = (docs / "01-architecture/11-operations/03-observability.md").read_text()
             for expected in ("## Infrastructure coverage", "Netdata remains part of Observability",
                              "No Tier 1 access", "raw Tier 0 Netdata views or Functions",
                              "unknown, not evidence of health", "two diagnostic domains",

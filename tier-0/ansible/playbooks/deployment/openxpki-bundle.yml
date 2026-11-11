@@ -1,9 +1,19 @@
 ---
 # Controller-only production configuration; never contacts an issuer or root.
+- name: Prepare selected deployment tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: openxpki-bundle
+    control_node_require_terraform: false
+
 - name: Build the reviewed software-backed issuer configuration
   hosts: localhost
   connection: local
   become: false
   gather_facts: true
-  roles:
-    - openxpki_bundle
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  tasks:
+    - name: Run the selected deployment after tooling preparation
+      ansible.builtin.include_role:
+        name: openxpki_bundle

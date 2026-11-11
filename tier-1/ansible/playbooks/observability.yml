@@ -1,4 +1,4 @@
 ---
 # Compatibility entry point; compose the deployment recipe without duplicating tasks.
-- name: "Operations: telemetry host baseline only"
+- name: "Operations: dedicated observability services"
   ansible.builtin.import_playbook: deployment/telemetry-hosts.yml

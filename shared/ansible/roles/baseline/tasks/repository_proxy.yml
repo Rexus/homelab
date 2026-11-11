@@ -86,4 +86,6 @@
   loop: "{{ repository_proxy_dnf_sources }}"
   loop_control:
     loop_var: repository_proxy_dnf_source
-  when: repository_proxy_manage_dnf | bool
+  when:
+    - repository_proxy_manage_dnf | bool
+    - repository_proxy_configure_sources | default(true) | bool

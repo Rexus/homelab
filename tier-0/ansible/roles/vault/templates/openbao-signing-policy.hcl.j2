@@ -1,0 +1,17 @@
+{% for key in openbao_signing_keys if key.name in openbao_client['keys'] %}
+path {{ (openbao_signing_mount ~ '/sign/' ~ key.name ~ '/sha2-256') | to_json }} {
+  capabilities = ["update"]
+  required_parameters = ["input", "key_version", "prehashed"{% if key.algorithm == 'rsa-pss-sha256' %}, "signature_algorithm", "salt_length"{% else %}, "marshaling_algorithm"{% endif %}]
+  allowed_parameters = {
+    "input" = []
+    "key_version" = ["1"]
+    "prehashed" = [false]
+{% if key.algorithm == 'rsa-pss-sha256' %}
+    "signature_algorithm" = ["pss"]
+    "salt_length" = ["hash"]
+{% else %}
+    "marshaling_algorithm" = ["asn1"]
+{% endif %}
+  }
+}
+{% endfor %}

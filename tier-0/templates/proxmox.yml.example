@@ -5,7 +5,7 @@
 
 # Copy to templates/proxmox.yml using Tier 0's scripts/proxmox-templates.sh init command.
 # Compute foundation: publish templates locally before creating managed VMs or the control cluster.
-# Reference: docs/05-operations/virtual-machines/template-lifecycle.md
+# Reference: docs/05-operations/01-hosting/templates/template-lifecycle.md
 # VMID allocation: docs/02-conventions/vmid-convention.md (templates use 9xxx).
 # Set site-specific values. Keep only the images being managed by this state.
 # Each build overrides individual all fields; lists (including tags) are replaced, not merged.

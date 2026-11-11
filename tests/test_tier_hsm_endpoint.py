@@ -12,28 +12,33 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 class HSMEndpoint(TierRepositoryTestCase):
-    def test_design_separates_cohosted_failover_from_installer_coverage(self):
-        design = (UPSTREAM / "docs/01-architecture/16-cryptography/04-usb-hsm.md").read_text()
-        for phrase in ("not dedicated frontend VMs", "E1: Client failover", "E2: Private VIP",
-                       "E3: Private VIP and proxies", "Application state", "Sessions", "Readiness",
-                       "selectorless Service", "Tier 1 Kubernetes", "not prerequisites",
-                       "Vault's managed-key integration", "not inside the USB devices",
-                       "## Capacity and replica count", "not a fixed limit", "Frontend and network capacity"):
+    def test_design_separates_native_remoting_api_and_external_endpoint_scaffold(self):
+        design = (UPSTREAM / "docs/01-architecture/08-cryptography/04-usb-hsm.md").read_text()
+        for phrase in ("E1: Client failover", "E2: Private VIP", "E3: Private VIP and proxies",
+                       "p11-kit", "restricted SSH", "YubiHSM 2", "PicoHSM", "public-key fingerprints",
+                       "default Shamir", "does not make backups interchangeable", "No implicit product migration"):
             self.assertIn(phrase, design)
         deployment = (UPSTREAM / "docs/03-deployment/stage-3-trust/step-1b-usb-hsm.md").read_text()
-        for phrase in ("1. Prepare the service hosts", "2. Integrate the application and endpoint",
-                       "3. Verify the complete service", "USB device lost", "Tier 1 and Tier 2",
-                       "Independent restore", "hsm_proxy_ingress_enabled"):
-            self.assertIn(phrase, deployment)
+        self.assertIn("scripts/deploy.sh hsm", deployment)
+        self.assertIn("pkcs11-remoting.md", deployment)
+        remoting = yaml.safe_load((UPSTREAM / "tier-0/ansible/roles/hsm_remote/defaults/main.yml").read_text())
+        self.assertIs(remoting["hsm_remote_enabled"], False)
+        self.assertEqual(remoting["hsm_remote_backends"], {})
+        self.assertEqual(remoting["hsm_remote_expected_spki_sha256"], "")
+        listener = (UPSTREAM / "tier-0/ansible/roles/hsm_remote/templates/sshd_config.j2").read_text()
+        for boundary in ("ForceCommand", "DisableForwarding yes", "PasswordAuthentication no", "PermitTTY no"):
+            self.assertIn(boundary, listener)
         single = (UPSTREAM / "docs/03-deployment/stage-3-trust/step-1d-single-usb.md").read_text()
-        self.assertIn("step-1b-usb-hsm.md", single)
+        self.assertIn("hsm-issuer.yml", single)
+        self.assertIn("hsm-token.yml", single)
         self.assertIn("do not bring offline root custody online", single)
         vm_inputs = (UPSTREAM / "tier-0/terraform/deployments/hsm/terraform.tfvars.example").read_text()
         self.assertIn('proxmox_node_name = "pve01"', vm_inputs)
         self.assertIn('proxmox_node_name = "pve02"', vm_inputs)
         self.assertNotIn("shared edge load-balancer", vm_inputs)
         baseline = yaml.safe_load((UPSTREAM / "tier-0/ansible/playbooks/deployment/hsm-gateways.yml").read_text())
-        self.assertEqual(baseline[0]["roles"], ["baseline"])
+        self.assertTrue(any(play.get("roles") == ["baseline"] for play in baseline))
+        self.assertTrue(any(play.get("roles") == ["hsm_provider"] for play in baseline))
 
     @unittest.skipUnless(os.name != "nt" and shutil.which("ansible-playbook"),
                          "Requires Ansible on Linux/WSL")

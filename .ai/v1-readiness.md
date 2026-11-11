@@ -30,6 +30,9 @@ Confirmed selections for this work:
 - Keep protected originals in Tier 0; export only approved copies into Tier 1 search.
 - Keep direct infrastructure CI opt-in, with GitLab/control-hosting administrators trusted at Tier 0.
 - Use parallel agents for bounded implementation and independent native checks.
+- Qualify YubiHSM 2 and PicoHSM profiles for PKI first, retaining HashiCorp Vault/Shamir as
+  the initial secret-service path. Shared native PKCS#11 access and a separate open-source
+  signing API are selected extensions; physical key custody and live hardware proof remain gates.
 
 ## Implementation work
 
@@ -130,7 +133,7 @@ Proxmox 9 and documentation follow-up:
 
 ## Deferred scope
 
-Tenant self-service allocation/expiry/portal, hardware HSM variants, Windows patch management,
+Tenant self-service allocation/expiry/portal, Windows patch management,
 transparent/TLS-intercepting proxy modes and replicated zero-loss logging are not part of the
 selected installation. Do not describe them as shipped by checking the reference installation gates.
 A turnkey SSO application, VPN automation and a universal patch controller likewise remain integrations.

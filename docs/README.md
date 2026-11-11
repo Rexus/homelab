@@ -6,7 +6,7 @@ and local alternatives. Deployment builds that design in stages;
 development changes the implementation and operations maintains the system.
 The same capability names connect these views: for example, Software Intake is
 designed in architecture, built in Stage 1 and maintained in operations.
-Software Lifecycle is the wider domain that also includes builds and delivery.
+The Delivery chapter connects intake, source, builds and release delivery without duplicating their designs.
 
 | Intent | Start here | Contains |
 | --- | --- | --- |
@@ -47,12 +47,13 @@ and reference details at the point they are needed.
 
 For a design review, follow this reading order:
 
-1. Read the [platform overview](01-architecture/README.md) and its connected functions.
-2. Expand the [integrated reference](01-architecture/06-reference-platform.md) and
-   [runtime relationships](01-architecture/07-runtime-flows.md).
-3. Drill into the [capability views](01-architecture/README.md#capabilities),
-   supporting [foundation domains](01-architecture/README.md#foundational-capabilities) and
-   [compatible variants](01-architecture/08-variants.md).
+1. Read the [platform overview](01-architecture/README.md) to see the complete system.
+2. Read [responsibilities and service boundaries](01-architecture/02-organization/README.md)
+   before assigning administrative authority or choosing shared/isolated services.
+3. Open the [capability](01-architecture/README.md#capabilities) needed for the next design choice.
+   Its design explains communication, alternatives and failure/recovery consequences;
+   the [integrated reference](01-architecture/03-reference-platform.md) places the selected components.
+   Use [background and principles](01-architecture/01-background/README.md) when comparing platform models.
 4. Record selected design in the generated architecture repository's `docs/README.md`;
    complete `platform-standards.md` for local standards and use `deployments.md` for completion checks.
 5. Follow the [deployment stages](03-deployment/README.md), using verified

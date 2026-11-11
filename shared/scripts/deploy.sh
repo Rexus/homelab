@@ -522,13 +522,18 @@ check_required_files() {
 
 run_control_node_precheck() {
   local require_terraform=true
+  local vars_file
+  local precheck_args=(-i localhost,)
   if [[ "$ansible_only" == true ]]; then
     require_terraform=false
   fi
+  for vars_file in "${resolved_ansible_vars_paths[@]}"; do
+    precheck_args+=(-e "@$vars_file")
+  done
   echo "==> Running deployment control-node precheck"
   (
     cd "$ansible_dir"
-    ansible-playbook -i localhost, "$ansible_playbook_dir/control-node.yml" \
+    ansible-playbook "${precheck_args[@]}" "$ansible_playbook_dir/control-node.yml" \
       -e "control_node_setup=$setup_name" \
       -e "control_node_require_terraform=$require_terraform"
   )
@@ -709,7 +714,7 @@ if [[ "$ansible_only" == false ]]; then
       ''|0|f|F|false|False|FALSE) ;;
       *)
         echo "Refusing Proxmox TLS bypass: unset $tls_option and install approved API trust." >&2
-        echo "See docs/05-operations/hosts/proxmox-tls.md." >&2
+        echo "See docs/05-operations/01-hosting/proxmox-tls.md." >&2
         exit 1
         ;;
     esac

@@ -59,3 +59,15 @@
     backup: true
     mode: '0644'
   loop: [metalink, mirrorlist]
+
+- name: Bypass the transport proxy for an explicitly selected internal publication
+  community.general.ini_file:
+    path: "{{ repository_proxy_dnf_repo_dir }}/{{ repository_proxy_dnf_source.file }}"
+    section: "{{ repository_proxy_dnf_source.section }}"
+    option: proxy
+    value: _none_
+    no_extra_spaces: true
+    create: false
+    backup: true
+    mode: '0644'
+  when: repository_proxy_dnf_source.direct | default(false) | bool

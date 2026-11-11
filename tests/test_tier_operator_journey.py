@@ -54,12 +54,20 @@ class OperatorJourney(TierRepositoryTestCase):
                 provision = apply + " --terraform-only" if setup in ("foundation", "podman-runner") else apply
                 positions = [lines.index(command) for command in (init, provision)]
                 self.assertEqual(positions, sorted(positions), relative)
-                self.assertTrue(any(term in content.lower() for term in ("edit", "replace", "set ")), relative)
+                configuration = "\n".join(lines[positions[0] + 1:positions[1]]).lower()
+                self.assertRegex(configuration, r"\b(?:edit|replace|set|configure)\b", relative)
                 for block in re.findall(r"```bash\n(.*?)```", content, re.DOTALL):
                     self.assertFalse(apply + " --plan-only" in block and apply + "\n" in block, relative)
             vault = (docs / "03-deployment/stage-6-secrets/step-1b-vault-vm.md").read_text()
             self.assertLess(vault.index("export VAULT_ADDR VAULT_CACERT"), vault.index("vault status"))
-            self.assertLess(vault.index("vault login"), vault.index("vault audit enable"))
+            # Audit/SSO now uses controller API reconciliation after the human ceremony.
+            configure = (
+                "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml "
+                "ansible/playbooks/deployment/vault-configure.yml -e @ansible/group_vars/vault.yml"
+            )
+            self.assertLess(vault.index("vault login"), vault.index(configure))
+            self.assertLess(vault.index("export VAULT_TOKEN"), vault.index(configure))
+            self.assertLess(vault.index(configure), vault.index("unset VAULT_TOKEN"))
             identity = (docs / "03-deployment/stage-5-identity/procedures/freeipa.md").read_text()
             self.assertIn("same context/state used for the issuer", identity)
 
@@ -71,10 +79,10 @@ class OperatorJourney(TierRepositoryTestCase):
         for expected in ("P1: Logging integration", "P1: Recovery procedures", "P2: Household/team procedures",
                          "## Repeat cadence", "no live gateway"):
             self.assertIn(expected, checklist)
-        access = (UPSTREAM / "docs/05-operations/access-lifecycle.md").read_text()
+        access = (UPSTREAM / "docs/05-operations/04-identity.md").read_text()
         for anchor in ("household-devices", "team-roles", "join-and-leave"):
             self.assertIn(f'id="{anchor}"', access)
-        self.assertIn("../docs/05-operations/access-lifecycle.md", checklist)
+        self.assertIn("../docs/05-operations/04-identity.md", checklist)
         for repo in self.root.iterdir():
             self.assertFalse((repo / ".ai/operator-walkthrough.md").exists())
             self.assertIn(".venv/", (repo / ".gitignore").read_text())
@@ -112,7 +120,7 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("before provisioning", bootstrap)
             self.assertIn("first disposable clone in Step 4", bootstrap)
             self.assertIn("Back up and restore a disposable clone", publication)
-            backup = (docs / "05-operations/backups/virtual-machines.md").read_text()
+            backup = (docs / "05-operations/06-resilience/backups/virtual-machines.md").read_text()
             self.assertIn("An existing qualified target is valid", backup)
             criteria = backup.split('id="done-criteria"', 1)[1].split('id="read-more"', 1)[0]
             self.assertNotIn("PBS is reachable", criteria)
@@ -166,7 +174,7 @@ class OperatorJourney(TierRepositoryTestCase):
 
     def test_bootstrap_tls_and_pki_cutover_are_reachable_in_generated_guides(self):
         self.generate()
-        relative = "05-operations/hosts/proxmox-tls.md"
+        relative = "05-operations/01-hosting/proxmox-tls.md"
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             guide = (docs / relative).read_text()
             for heading in ("## Step 1: Trust the bootstrap CA", "## Step 2: Adopt the platform PKI",

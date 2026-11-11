@@ -1,10 +1,18 @@
 ---
 # Run from the Tier 0 root with explicit -e @ansible/group_vars/cluster_platform.yml.
+- name: Prepare selected deployment tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: cluster-platform
+    control_node_require_terraform: false
+
 - name: Establish the Tier 0 Kubernetes basic platform
   hosts: localhost
   connection: local
   gather_facts: false
   vars:
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
-  roles:
-    - cluster_platform
+  tasks:
+    - name: Run the selected deployment after tooling preparation
+      ansible.builtin.include_role:
+        name: cluster_platform

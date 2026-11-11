@@ -1,0 +1,76 @@
+---
+- name: Validate the explicit public client and namespace access contract
+  ansible.builtin.assert:
+    that:
+      - sso_human_action in ['render', 'apply']
+      - sso_human_keycloak_url is match('^https://[a-z0-9][a-z0-9.:-]*[a-z0-9]$')
+      - sso_human_realm is match('^[A-Za-z0-9_-]+$')
+      - sso_human_client_id is match('^[a-z0-9][a-z0-9_-]+$')
+      - sso_human_client_id not in ['headlamp', 'admin-cli', 'account', 'security-admin-console']
+      - sso_human_group is match('^oidc:[a-z0-9][a-z0-9_-]+$')
+      - sso_human_namespaces | length > 0
+      - sso_human_namespaces is not string
+      - sso_human_namespaces | unique | length == sso_human_namespaces | length
+      - sso_human_api_server is match('^https://[a-z0-9][a-z0-9.:-]*[a-z0-9]$')
+      - sso_human_output is match('^/')
+      - sso_human_kubelogin is match('^/')
+      - "'PRIVATE KEY' not in sso_human_api_ca_pem ~ sso_human_oidc_ca_pem"
+      - sso_human_action != 'apply' or sso_human_admin_kubeconfig | length > 0
+      - sso_human_action != 'apply' or sso_human_admin_context | length > 0
+    fail_msg: Select HTTPS endpoints, public trust, an accepted int128/kubelogin path and explicit existing namespaces.
+
+- name: Reject system namespaces and wildcard access
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - item | length <= 63
+      - item not in ['kube-system', 'kube-public', 'kube-node-lease', 'flux-system', 'cert-manager']
+  loop: "{{ sso_human_namespaces }}"
+
+- name: Validate public API and identity-provider trust without contacting either service
+  community.crypto.x509_certificate_info:
+    content: "{{ item }}"
+  loop: ["{{ sso_human_api_ca_pem }}", "{{ sso_human_oidc_ca_pem }}"]
+  register: sso_human_ca_checks
+
+- name: Require unexpired CA certificates
+  ansible.builtin.assert:
+    that:
+      - "'CA:TRUE' in item.basic_constraints"
+      - not item.expired
+  loop: "{{ sso_human_ca_checks.results }}"
+  loop_control: {label: "{{ item.subject.commonName | default('public CA') }}"}
+
+- name: Check the accepted native login executable without obtaining a token
+  ansible.builtin.command:
+    argv: ["{{ sso_human_kubelogin }}", get-token, --help]
+  register: sso_human_login_help
+  changed_when: false
+
+- name: Require the int128 PKCE and verified issuer-trust interface
+  ansible.builtin.assert:
+    that:
+      - "'--oidc-pkce-method' in sso_human_login_help.stdout"
+      - "'--certificate-authority-data' in sso_human_login_help.stdout"
+      - "'--oidc-issuer-url' in sso_human_login_help.stdout"
+    fail_msg: Supply an approved int128/kubelogin release; Azure kubelogin is a different product.
+
+- name: Protect the human configuration and its token-cache parent
+  ansible.builtin.file:
+    path: "{{ sso_human_output }}"
+    state: directory
+    mode: '0700'
+
+- name: Render the public client, namespace bindings and human-only kubeconfig
+  ansible.builtin.template:
+    src: "sso-human-{{ item.source }}.yml.j2"
+    dest: "{{ sso_human_output }}/{{ item.target }}.yml"
+    mode: '0600'
+  loop:
+    - {source: client, target: keycloak-client}
+    - {source: rbac, target: namespace-rbac}
+    - {source: kubeconfig, target: kubeconfig}
+
+- name: Apply only the selected public client and existing-namespace RoleBindings
+  ansible.builtin.include_tasks: sso-human-apply.yml
+  when: sso_human_action == 'apply'
