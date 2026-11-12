@@ -4,12 +4,92 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  vars_files:
+    - vars/template-collection-source.yml
   vars:
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    template_runtime_collection_source: >-
+      {{ control_node_collections_source | default(
+         lookup('ansible.builtin.env', 'CONTROL_NODE_COLLECTIONS_SOURCE') | default('git', true), true) }}
     template_runtime_collection: >-
       {{ (lookup('ansible.builtin.file', playbook_dir ~ '/../requirements.yml') | from_yaml).collections
          | selectattr('name', 'equalto', 'community.proxmox') | first }}
+    template_runtime_collection_git_effective_source: >-
+      {{ (control_node_collection_git_overrides | default({})).get(
+         'community.proxmox', template_runtime_collection_git_default) }}
+    template_runtime_collection_search_paths: >-
+      {{ ([playbook_dir ~ '/../../.venv/collections', playbook_dir ~ '/collections']
+          + lookup('ansible.builtin.config', 'COLLECTIONS_PATHS')) | unique | list }}
+    template_runtime_installed_version: >-
+      {%- set result = namespace(found=false, version='') -%}
+      {%- set inventory = template_runtime_collection_inventory.stdout | from_json -%}
+      {%- for preferred in template_runtime_collection_search_paths -%}
+      {%- set preferred_root = (preferred | regex_replace('/ansible_collections/?$', '')
+         ~ '/ansible_collections') | ansible.builtin.realpath -%}
+      {%- for path, collections in inventory.items() -%}
+      {%- if not result.found and path | ansible.builtin.realpath == preferred_root
+         and template_runtime_collection.name in collections -%}
+      {%- set result.version = collections[template_runtime_collection.name].version -%}
+      {%- set result.found = true -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {%- endfor -%}
+      {# Native listing sorts paths; only unranked Python paths remain after configured roots. #}
+      {%- for path, collections in inventory.items() -%}
+      {%- if not result.found and template_runtime_collection.name in collections -%}
+      {%- set result.version = collections[template_runtime_collection.name].version -%}
+      {%- set result.found = true -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ result.version }}
+    template_runtime_version_compatible: >-
+      {%- set result = namespace(accepted=template_runtime_installed_version is
+         match('^[0-9]+\\.[0-9]+\\.[0-9]+$')) -%}
+      {%- if result.accepted -%}
+      {%- for bound in template_runtime_collection.version.split(',') | map('trim') -%}
+      {%- set operator = bound | regex_search('^(>=|<=|==|!=|>|<|=)') | default('==', true) -%}
+      {%- set required = bound | regex_replace('^(>=|<=|==|!=|>|<|=)', '') -%}
+      {%- if template_runtime_installed_version is not
+         ansible.builtin.version(required, operator, version_type='semver') -%}
+      {%- set result.accepted = false -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {%- endif -%}
+      {{ result.accepted }}
   tasks:
+    - name: Validate template collection acquisition source before preparation
+      ansible.builtin.assert:
+        that: template_runtime_collection_source in ['git', 'galaxy']
+        fail_msg: Select git or galaxy with control_node_collections_source or CONTROL_NODE_COLLECTIONS_SOURCE.
+
+    - name: Require an immutable compatible Proxmox Git source
+      ansible.builtin.assert:
+        that:
+          - pin is mapping
+          - pin.repository is string
+          - pin.repository | ansible.builtin.urlsplit('scheme') in ['https', 'file']
+          - pin.repository | ansible.builtin.urlsplit('username') is none
+          - pin.repository | ansible.builtin.urlsplit('password') is none
+          - not pin.repository | ansible.builtin.urlsplit('query')
+          - not pin.repository | ansible.builtin.urlsplit('fragment')
+          - >-
+            (pin.repository | ansible.builtin.urlsplit('scheme') == 'https' and
+             pin.repository | ansible.builtin.urlsplit('hostname') | default('', true) | length > 0) or
+            pin.repository is match('^file:///')
+          - pin.revision is match('^[0-9a-f]{40}$')
+          - pin.version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+          - pin.version is ansible.builtin.version(required, operator, version_type='semver')
+        fail_msg: >-
+          The standalone Proxmox source needs a credential-free HTTPS or absolute local file repository,
+          full commit SHA and a release satisfying {{ template_runtime_collection.version }}.
+          Review vars/template-collection-source.yml or control_node_collection_git_overrides.
+      vars:
+        pin: "{{ template_runtime_collection_git_effective_source }}"
+        operator: "{{ item | regex_search('^(>=|<=|==|!=|>|<|=)') | default('==', true) }}"
+        required: "{{ item | regex_replace('^(>=|<=|==|!=|>|<|=)', '') }}"
+      loop: "{{ template_runtime_collection.version.split(',') | map('trim') | list }}"
+      when: template_runtime_collection_source == 'git'
+
     - name: Install declared Python module requirements in the isolated runtime
       ansible.builtin.pip:
         requirements: "{{ playbook_dir }}/../requirements.txt"
@@ -18,17 +98,82 @@
       environment:
         PIP_DISABLE_PIP_VERSION_CHECK: '1'
 
-    - name: Install the declared Proxmox collection using native Galaxy resolution
+    - name: Create the isolated collection directory without changing existing permissions
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../../.venv/collections"
+        state: directory
+
+    - name: Read installed collection versions without contacting a server
       ansible.builtin.command:
         argv:
           - "{{ ansible_playbook_python | dirname }}/ansible-galaxy"
           - collection
-          - install
-          - "{{ template_runtime_collection.name }}:{{ template_runtime_collection.version }}"
+          - list
+          - --format
+          - json
           - --collections-path
           - "{{ playbook_dir }}/../../.venv/collections"
+      register: template_runtime_collection_inventory
+      changed_when: false
+      check_mode: false
+
+    - name: Verify Git is available before acquiring the pinned collection
+      ansible.builtin.command:
+        argv: [git, --version]
+      changed_when: false
+      when:
+        - template_runtime_collection_source == 'git'
+        - not template_runtime_version_compatible | bool
+        - not ansible_check_mode
+
+    - name: Install the missing or incompatible Proxmox collection through the selected native source
+      ansible.builtin.command:
+        argv: >-
+          {{ [ansible_playbook_python | dirname ~ '/ansible-galaxy', 'collection', 'install', '--no-cache', '--force']
+             + (['--offline', 'git+' ~ pin.repository ~ ',' ~ pin.revision]
+                if template_runtime_collection_source == 'git'
+                else [template_runtime_collection.name ~ ':' ~ template_runtime_collection.version])
+             + ['--collections-path', playbook_dir ~ '/../../.venv/collections'] }}
+      vars:
+        pin: "{{ template_runtime_collection_git_effective_source }}"
       register: template_runtime_galaxy
       changed_when: "'was installed successfully' in template_runtime_galaxy.stdout"
+      when:
+        - not template_runtime_version_compatible | bool
+        - not ansible_check_mode
+
+    - name: Re-read effective collection versions after preparation
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python | dirname }}/ansible-galaxy"
+          - collection
+          - list
+          - --format
+          - json
+          - --collections-path
+          - "{{ playbook_dir }}/../../.venv/collections"
+      register: template_runtime_collection_inventory
+      changed_when: false
+      check_mode: false
+
+    - name: Verify the selected Git release after an actual installation
+      ansible.builtin.assert:
+        that: template_runtime_installed_version == template_runtime_collection_git_effective_source.version
+        fail_msg: >-
+          The selected commit installed community.proxmox {{ template_runtime_installed_version }},
+          but its source pin declares {{ template_runtime_collection_git_effective_source.version }}.
+          Correct the commit/release mapping before template operations.
+      when:
+        - template_runtime_collection_source == 'git'
+        - template_runtime_galaxy.changed | default(false) | bool
+
+    - name: Require a compatible effective Proxmox collection before template operations
+      ansible.builtin.assert:
+        that: template_runtime_version_compatible | bool
+        fail_msg: >-
+          community.proxmox resolves to {{ template_runtime_installed_version | default('missing', true) }},
+          but requires {{ template_runtime_collection.version }}. Correct incompatible shadowing copies
+          on ANSIBLE_COLLECTIONS_PATH; a second hidden installation is insufficient.
 
     - name: Gather OS facts only when the image utility is missing
       ansible.builtin.setup:

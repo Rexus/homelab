@@ -171,9 +171,13 @@ cache_validation_url: https://mirrors.fedoraproject.org/
 Include the actual bootstrap and Proxmox management CIDRs. Narrow `cache_squid_allowed_domains`
 to the selected repositories, required tools and redirect destinations; an empty list is rejected.
 Use exact source hostnames where possible; `.example.com` permits that whole domain and its subdomains.
-Select the bootstrap's collection source: public Galaxy needs its API and approved artifact destinations;
-prepared collection archives are an alternative. Regional download hosts are not fixed defaults;
-see [controller access and existing-cache recovery](../../08-reference/control-node-tooling.md#galaxy-through-a-policy-proxy).
+The bootstrap's default collection precheck uses approved pinned Git sources. Permit their Git hosts;
+explicit Galaxy acquisition instead needs its API and approved artifact destinations. Use prepared
+archives for disconnected execution; see [collection source choices](../../08-reference/control-node-tooling.md#collection-sources)
+and [existing-cache recovery](../../08-reference/control-node-tooling.md#recover-an-existing-cache-that-blocks-galaxy).
+Terraform's connected path also needs `registry.terraform.io` for the locked provider registries,
+plus the selected providers' package hosts. The example includes HashiCorp and GitHub source domains.
+Disconnected execution uses the [prepared provider mirror](../foundation/bootstrap/step-3e-bootstrap-offline.md#9-select-local-sources-and-verify).
 Keep `cache_validation_denied_url` outside the allowed sources; the default uses a reserved `.invalid` name.
 Keep `cache_validation_url` within that policy and `repository_proxy_enabled: false` for cache hosts,
 so their initial installation does not depend on their own unfinished VIP.

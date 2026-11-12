@@ -19,6 +19,26 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Collection-source automation, 2026-11-12
+
+Controller prechecks now default to native Git acquisition for missing or incompatible collections.
+All twelve declared sources have verified release identities and full upstream commit pins. Compatible
+installed copies remain in place; configured search precedence and final effective versions are checked.
+The native batch resolves dependencies without consulting Galaxy distribution servers. FreeIPA's
+upstream release builder is invoked automatically in temporary controller storage, cleaned after install.
+The standalone Tier 0 template runtime mirrors only the Proxmox pin and retains its Shared-independent
+bootstrap contract. Explicit Galaxy selection and acquisition-free dependency check mode remain available.
+
+Validation includes real local Git installs with a distribution server that receives no requests,
+dependency resolution, rerun preservation, incompatible-copy replacement and generated tier execution.
+Thirteen existing version/cache/compatibility tests passed. The pinned upstream FreeIPA builder passed
+41 native tasks, isolated installation, module discovery, repeat-build reuse and cleanup. Pin alignment,
+source/generated documentation and bootstrap checks passed separately. Standalone template preparation
+passed eight tests, with one wheelhouse-dependent repeat skipped. No running cache, proxy policy,
+remote infrastructure or production controller environment was changed by these repository checks.
+The complete parent FreeIPA flow also passed with only community.general pre-staged: install and
+temporary workspace cleanup succeeded, then rerun made zero changes with no Git, build or Galaxy requests.
+
 ### Final handover review, 2026-11-11
 
 Scope: the complete pending change set, all ten stage routes, generated repositories,

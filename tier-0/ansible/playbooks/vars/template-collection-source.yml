@@ -1,0 +1,7 @@
+---
+# Standalone Tier 0 bootstrap: intentionally mirrors only Shared's community.proxmox release pin.
+# Keep aligned with shared/ansible/playbooks/vars/collection-sources.yml; no Shared checkout is required.
+template_runtime_collection_git_default:
+  repository: https://github.com/ansible-collections/community.proxmox.git
+  revision: db51fb20d0188635f8a411e28acbdf87d08d0def
+  version: 2.1.0

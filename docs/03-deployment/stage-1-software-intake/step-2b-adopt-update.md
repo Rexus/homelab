@@ -69,8 +69,9 @@ Edit **`<prefix>-tier-2/ansible/group_vars/cache.yml`**. Compare with its refres
 | `cache_squid_refresh_patterns` | Adopt the current example's source-respecting rules; remove old expiry/privacy/reload overrides |
 | `cache_squid_extra_options` | Review retained custom directives for policy/cache changes |
 
-Select approved Galaxy API/artifact destinations or prepared archives for controller acquisition.
-If the old policy blocks the collection needed to update it, follow the
+Approve the default [pinned Git sources](../../08-reference/control-node-tooling.md#collection-sources),
+or the API/artifact route for explicit Galaxy acquisition; use prepared archives offline.
+If an older kit's policy blocks the collection needed to update it, follow the
 [one-time controller repair](../../08-reference/control-node-tooling.md#recover-an-existing-cache-that-blocks-galaxy),
 then continue here with cache reconciliation.
 

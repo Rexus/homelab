@@ -269,7 +269,7 @@ if missing:
     echo "Use ansible-core >=2.17 and community.proxmox >=2.1.0,<3.0.0 in the same accepted environment." >&2
     echo "Automatic setup uses the tier-local .venv runtime. With TEMPLATE_RUNTIME_MODE=check, provision compatible tools in the runner first." >&2
     echo "Runtime setup: docs/08-reference/control-node-tooling.md#automatic-template-runtime." >&2
-    echo "Run: ansible-galaxy collection install 'community.proxmox:>=2.1.0,<3.0.0' --force" >&2
+    echo "Run: TEMPLATE_RUNTIME_MODE=auto bash scripts/proxmox-templates.sh setup" >&2
     echo "Python dependencies: ansible/requirements.txt. Guide: docs/05-operations/01-hosting/templates/template-disk.md#prerequisites." >&2
     exit 1
   fi

@@ -3,6 +3,10 @@
 # This is the production/default settings file. It is used when you run without
 # --env, and it also owns shared derived values used by environment overlays.
 # Reference: docs/04-development/code-layout.md
+# Collection sources: docs/08-reference/control-node-tooling.md#collection-sources
+# Default: pinned Git; optional control_node_collections_source: galaxy.
+# Pins: Shared ansible/playbooks/vars/collection-sources.yml.
+# Private pins: control_node_collection_git_overrides (repository, revision, version).
 
 # SSH user created by cloud-init on the cloned guests.
 ansible_user: automation

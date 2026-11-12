@@ -1,0 +1,55 @@
+---
+# Source-aware references: docs/08-reference/control-node-tooling.md.
+# Selected release pins supply collection sources; this is not an installed inventory.
+# Revisions are upstream release commits, with annotated tags resolved to their commits.
+control_node_collection_git_defaults:
+  community.general:
+    repository: https://github.com/ansible-collections/community.general.git
+    revision: 7f63f47efc038694dc1580dce21d7edadf687b91
+    version: 10.7.6
+  community.crypto:
+    repository: https://github.com/ansible-collections/community.crypto.git
+    revision: 173ea95bcb245d68367c3c2aa26a941812ffebbb
+    version: 2.26.9
+  ansible.posix:
+    repository: https://github.com/ansible-collections/ansible.posix.git
+    revision: d9af430396cd12fce473d29182305b1617125da7
+    version: 2.2.0
+  ansible.utils:
+    repository: https://github.com/ansible-collections/ansible.utils.git
+    revision: eb547851578a57801dfd142984c63ab30ba5aea4
+    version: 6.0.0
+  kubernetes.core:
+    repository: https://github.com/ansible-collections/kubernetes.core.git
+    revision: e91b3171ea9bb55f2fc0c3fc7ab06fb571f05ddc
+    version: 6.6.0
+  community.hashi_vault:
+    repository: https://github.com/ansible-collections/community.hashi_vault.git
+    revision: 584c2d2567f262c8dbcd6676eb2df1e95f6a8e52
+    version: 6.2.0
+  amazon.aws:
+    repository: https://github.com/ansible-collections/amazon.aws.git
+    revision: baf8a5f28e6c0fe89583130c1a310ca7caec36df
+    version: 9.5.1
+  community.postgresql:
+    repository: https://github.com/ansible-collections/community.postgresql.git
+    revision: 015b88136d4ec5490ce91515b5def8b1f272afa3
+    version: 4.2.0
+  containers.podman:
+    repository: https://github.com/containers/ansible-podman-collections.git
+    revision: 237bc385b9065677825003e4f433beb69176533c
+    version: 1.18.0
+  ansible.mariadb:
+    repository: https://github.com/ansible-collections/ansible.mariadb.git
+    revision: 900768b006c53e96ff24a31008ff4ecf7ff2f2dc
+    version: 6.0.2
+  # FreeIPA requires its pinned utils/build-galaxy-release.sh before collection installation.
+  freeipa.ansible_freeipa:
+    repository: https://github.com/freeipa/ansible-freeipa.git
+    revision: d580431832031f061deeedea3a38ac542e3aeb21
+    version: 1.14.0
+    build: freeipa
+  community.proxmox:
+    repository: https://github.com/ansible-collections/community.proxmox.git
+    revision: db51fb20d0188635f8a411e28acbdf87d08d0def
+    version: 2.1.0

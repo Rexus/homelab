@@ -1,0 +1,142 @@
+---
+# The caller owns control_node_git_workspace and removes it after batch installation.
+# Upstream builder: https://github.com/freeipa/ansible-freeipa/blob/
+# d580431832031f061deeedea3a38ac542e3aeb21/utils/build-galaxy-release.sh
+- name: Prepare the FreeIPA collection with its pinned upstream release builder
+  become: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    control_node_freeipa_checkout: "{{ control_node_git_workspace.path }}/freeipa.ansible_freeipa"
+    control_node_freeipa_python_bin: "{{ control_node_git_workspace.path }}/freeipa-python/bin"
+    control_node_freeipa_manifest_dir: "{{ control_node_git_workspace.path }}/freeipa-manifest"
+    control_node_freeipa_artifact: >-
+      {{ control_node_freeipa_checkout }}/freeipa-ansible_freeipa-{{ control_node_git_pin.version }}.tar.gz
+  block:
+    - name: Require the FreeIPA source pin and parent-owned temporary workspace
+      ansible.builtin.assert:
+        that:
+          - control_node_git_pin.build | default('') == 'freeipa'
+          - control_node_git_pin.revision is match('^[0-9a-f]{40}$')
+          - control_node_git_pin.version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+          - control_node_git_workspace.path is match('^/.+')
+          - control_node_git_specs is sequence
+          - control_node_git_specs is not string
+        fail_msg: >-
+          Include this adapter with a validated FreeIPA source pin, a parent-created temporary
+          workspace and the initialized control_node_git_specs list. The parent must retain
+          that workspace through collection installation and remove it in its always block.
+
+    - name: Check native FreeIPA build tools before downloading source
+      ansible.builtin.command:
+        argv: ["{{ control_node_freeipa_tool }}", --version]
+      loop: [bash, basename, cp, find, git, ln, mkdir, rm, sed, tar, ansible-galaxy]
+      loop_control:
+        loop_var: control_node_freeipa_tool
+      register: control_node_freeipa_tool_checks
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Require approved native packages for the FreeIPA release builder
+      ansible.builtin.assert:
+        that: control_node_freeipa_tool_result.rc | default(1) == 0
+        quiet: true
+        fail_msg: >-
+          FreeIPA collection packaging cannot run {{ control_node_freeipa_tool_result.control_node_freeipa_tool }}.
+          Prepare bash, coreutils,
+          findutils, git, sed and tar through the approved OS repositories, and select the
+          accepted Ansible runtime before retrying. No standalone tools are downloaded.
+      loop: "{{ control_node_freeipa_tool_checks.results }}"
+      loop_control:
+        loop_var: control_node_freeipa_tool_result
+        label: "{{ control_node_freeipa_tool_result.control_node_freeipa_tool }}"
+
+    - name: Verify PyYAML in the interpreter used by the upstream Python helpers
+      ansible.builtin.command:
+        argv: ["{{ ansible_playbook_python }}", -c, 'import yaml']
+      register: control_node_freeipa_python_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Require the controller's prepared YAML library before checkout
+      ansible.builtin.assert:
+        that: control_node_freeipa_python_check.rc == 0
+        fail_msg: >-
+          {{ ansible_playbook_python }} needs PyYAML to run the upstream FreeIPA builder.
+          Prepare python3-pyyaml on RedHat or python3-yaml on Debian through approved
+          repositories, or prepare PyYAML in the selected isolated runtime.
+
+    - name: Check out the exact approved FreeIPA source commit
+      ansible.builtin.git:
+        repo: "{{ control_node_git_pin.repository }}"
+        version: "{{ control_node_git_pin.revision }}"
+        dest: "{{ control_node_freeipa_checkout }}"
+        recursive: false
+        force: false
+      register: control_node_freeipa_checkout_result
+
+    - name: Verify the checkout resolved to the approved commit
+      ansible.builtin.assert:
+        that: control_node_freeipa_checkout_result.after == control_node_git_pin.revision
+
+    - name: Prepare private build-helper and manifest directories
+      ansible.builtin.file:
+        path: "{{ control_node_freeipa_directory }}"
+        state: directory
+        mode: '0700'
+      loop:
+        - "{{ control_node_freeipa_python_bin }}"
+        - "{{ control_node_freeipa_manifest_dir }}"
+      loop_control:
+        loop_var: control_node_freeipa_directory
+
+    - name: Bind the builder's python command to the active controller interpreter
+      ansible.builtin.copy:
+        dest: "{{ control_node_freeipa_python_bin }}/python"
+        mode: '0700'
+        # A symlink to venv/bin/python would lose that interpreter's virtual environment.
+        content: |
+          #!/bin/sh
+          exec {{ ansible_playbook_python | quote }} "$@"
+
+    - name: Build the collection using upstream version and namespace transformations
+      ansible.builtin.command:
+        argv:
+          - bash
+          - utils/build-galaxy-release.sh
+          - -o
+          - "{{ control_node_git_pin.version }}"
+          - freeipa
+          - ansible_freeipa
+        chdir: "{{ control_node_freeipa_checkout }}"
+        creates: "{{ control_node_freeipa_artifact }}"
+      environment:
+        PATH: "{{ control_node_freeipa_python_bin }}:{{ lookup('ansible.builtin.env', 'PATH') }}"
+
+    - name: Extract only the built collection's native manifest for validation
+      ansible.builtin.unarchive:
+        src: "{{ control_node_freeipa_artifact }}"
+        dest: "{{ control_node_freeipa_manifest_dir }}"
+        remote_src: true
+        include: [MANIFEST.json]
+
+    - name: Read the built collection's native manifest
+      ansible.builtin.slurp:
+        src: "{{ control_node_freeipa_manifest_dir }}/MANIFEST.json"
+      register: control_node_freeipa_manifest
+
+    - name: Require the requested FreeIPA identity and version before batch installation
+      ansible.builtin.assert:
+        that:
+          - collection_info.namespace == 'freeipa'
+          - collection_info.name == 'ansible_freeipa'
+          - collection_info.version == control_node_git_pin.version
+        fail_msg: The upstream builder did not produce the requested FreeIPA collection release.
+      vars:
+        collection_info: >-
+          {{ (control_node_freeipa_manifest.content | b64decode | from_json).collection_info }}
+
+    - name: Add the prepared FreeIPA archive to the native batch install candidates
+      ansible.builtin.set_fact:
+        control_node_git_specs: "{{ control_node_git_specs + [control_node_freeipa_artifact] }}"

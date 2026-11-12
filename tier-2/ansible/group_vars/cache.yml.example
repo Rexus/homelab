@@ -105,6 +105,8 @@ cache_squid_allowed_domains:
   - .debian.org
   - .ceph.com
   - .hashicorp.com
+  # Provider discovery/version metadata; provider packages retain their upstream download hosts.
+  - registry.terraform.io
   - .github.com
   - .githubusercontent.com
   - galaxy.ansible.com

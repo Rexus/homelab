@@ -3,8 +3,13 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  vars_files:
+    - vars/collection-sources.yml
   vars:
     control_node_selected_setup: "{{ control_node_setup | default('site') }}"
+    control_node_collections_effective_source: >-
+      {{ control_node_collections_source | default(
+         lookup('ansible.builtin.env', 'CONTROL_NODE_COLLECTIONS_SOURCE') | default('git', true), true) }}
     # Disconnected/prebuilt controllers validate preinstalled collections without acquisition.
     control_node_collections_mode: >-
       {{ lookup('ansible.builtin.env', 'CONTROL_NODE_COLLECTIONS_MODE') | default('auto', true) }}
@@ -43,6 +48,11 @@
       ansible.builtin.assert:
         that: control_node_collections_mode in ['auto', 'check']
         fail_msg: CONTROL_NODE_COLLECTIONS_MODE must be auto or check.
+
+    - name: Validate collection acquisition source
+      ansible.builtin.assert:
+        that: control_node_collections_effective_source in ['git', 'galaxy']
+        fail_msg: Select git or galaxy with control_node_collections_source or CONTROL_NODE_COLLECTIONS_SOURCE.
 
     - name: Gather deployment control-node facts
       ansible.builtin.setup:
@@ -173,6 +183,7 @@
       failed_when: false
       when:
         - control_node_collections_mode == 'auto'
+        - control_node_collections_effective_source | default('galaxy') == 'galaxy'
         - not ansible_check_mode
         - (control_node_collection_packages | default([]) | length) > 0
 
@@ -200,14 +211,23 @@
     - name: Explain native collection version convergence
       ansible.builtin.debug:
         msg: >-
-          Check declared version ranges with Galaxy after the OS package attempt.
-          Galaxy inherits this process's proxy environment and bypasses its local API-response cache.
-          Acquisition needs approved Galaxy API and artifact destinations; see
-          docs/08-reference/control-node-tooling.md#galaxy-through-a-policy-proxy.
+          Check declared version ranges using {{ control_node_collections_effective_source }} acquisition.
+          Git installs missing/incompatible collections from pinned upstream commits;
+          Galaxy uses its declared ranges after the OS package attempt.
+          Both inherit this process's proxy environment. Source configuration is described in
+          docs/08-reference/control-node-tooling.md#collection-sources.
           Pre-stage every selected range before using CONTROL_NODE_COLLECTIONS_MODE=check.
           Incompatible shadowing copies must be corrected explicitly.
       when:
         - control_node_collections_mode == 'auto'
+        - control_node_required_collections | length > 0
+
+    - name: Install required collections from pinned upstream Git sources
+      ansible.builtin.include_tasks: tasks/control-node-git.yml
+      when:
+        - control_node_collections_mode == 'auto'
+        - control_node_collections_effective_source == 'git'
+        - not ansible_check_mode
         - control_node_required_collections | length > 0
 
     - name: Install missing or incompatible Ansible collections with native Galaxy ranges
@@ -221,6 +241,7 @@
       loop: "{{ control_node_required_collections }}"
       when:
         - control_node_collections_mode | default('auto') == 'auto'
+        - control_node_collections_effective_source | default('galaxy') == 'galaxy'
         - not ansible_check_mode
         - item.version is defined or item in control_node_still_missing_collections
       register: control_node_galaxy_install

@@ -9,9 +9,9 @@
     },
     {
       "name": "community.crypto",
-      "version": "2.26.0",
+      "version": "2.26.9",
       "requires_ansible": ">=2.9.10",
-      "source": "https://raw.githubusercontent.com/ansible-collections/community.crypto/2.26.0/meta/runtime.yml"
+      "source": "https://raw.githubusercontent.com/ansible-collections/community.crypto/2.26.9/meta/runtime.yml"
     },
     {
       "name": "ansible.posix",

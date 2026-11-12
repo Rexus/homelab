@@ -87,6 +87,38 @@ and the `cache_validation_failover_enabled` option; disabling it skips the takeo
 | Repeated HTTP misses | Check source cacheability, refresh policy and object limits; do not override source privacy or expiry. |
 | Package verification fails | Stop and investigate keys, metadata and source; do not disable verification or bypass the proxy. |
 
+### Terraform initialization reports registry access forbidden
+
+1. In **`<prefix>-tier-2/ansible/group_vars/cache.yml`**, add this entry to the existing
+   `cache_squid_allowed_domains` list, retaining the other approved sources:
+
+   ```yaml
+   - registry.terraform.io
+   ```
+
+2. Reconcile the cache policy from **`<prefix>-tier-2/`**. Maintenance runs Ansible only;
+   it needs no Terraform provider download:
+
+   ```bash
+   bash scripts/deploy.sh cache --recipe maintenance
+   ```
+
+3. On **`boot-1`**, verify registry discovery through the configured proxy:
+
+   ```bash
+   source /etc/profile.d/shell-proxy.sh
+   curl --fail --silent --show-error --connect-timeout 5 --max-time 20 \
+     https://registry.terraform.io/.well-known/terraform.json
+   ```
+
+   **Expected:** JSON containing `providers.v1`. Rerun the interrupted deployment command.
+   Preserve its lock file and selected provider versions. Provider download/checksum/signature hosts
+   must also be approved; inspect an actual denied destination if the next request fails.
+
+For disconnected operation, select the [prepared filesystem mirror](../../03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md#9-select-local-sources-and-verify).
+A plugin cache or version lock alone does not replace that mirror's local-only installation policy;
+see the [native Terraform configuration](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-installation).
+
 See [consumer failures and policy](../../08-reference/proxy-cache.md#consumer-verification-and-failure-behavior)
 and [APT diagnostics](apt-refresh.md). The cache has one active VIP owner, not active-active
 load balancing; peers have independent cache data.

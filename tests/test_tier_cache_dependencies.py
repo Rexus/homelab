@@ -4,6 +4,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import unittest
@@ -29,6 +30,19 @@ class CacheDependencies(TierRepositoryTestCase):
             self.assertIn("netaddr>=0.10.1", (owner / "ansible/requirements.txt").read_text())
             policy = yaml.safe_load((owner / "ansible/group_vars/cache.yml.example").read_text())
             self.assertIn("galaxy.ansible.com", policy["cache_squid_allowed_domains"], str(owner))
+
+    def test_cache_policy_covers_the_registries_selected_by_locked_providers(self):
+        registries = set()
+        for tier in range(3):
+            for lock in (UPSTREAM / f"tier-{tier}/terraform/deployments").glob("*/.terraform.lock.hcl"):
+                registries.update(address.split('/')[0] for address in
+                                  re.findall(r'provider "([^\"]+)"', lock.read_text()))
+        self.assertTrue(registries, 'Check actual locked providers, not a separate source inventory')
+        for owner in self.repositories():
+            policy = yaml.safe_load((owner / "ansible/group_vars/cache.yml.example").read_text())
+            for hostname in registries:
+                self.assertIn(hostname, policy["cache_squid_allowed_domains"],
+                              f"{owner}: locked provider registry {hostname} needs approved proxy access")
 
     @unittest.skipUnless(os.name != "nt" and shutil.which("ansible-playbook"),
                          "Requires Linux Ansible")
@@ -77,6 +91,7 @@ class CacheDependencies(TierRepositoryTestCase):
                     selected.append(deepcopy(tasks["Require preinstalled collections in check mode"]))
                 variables = dict(play["vars"], **settings,
                                  control_node_setup="cache", ansible_os_family="RedHat",
+                                 control_node_collections_source="galaxy",
                                  control_node_collections_mode=mode)
                 probe = fixture / "probe.yml"
                 probe.write_text(yaml.safe_dump([dict(hosts="localhost", connection="local",

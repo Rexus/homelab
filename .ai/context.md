@@ -150,6 +150,13 @@ This file keeps durable context for AI-assisted work across sessions.
   RPMs/wheels/collection archives and locked provider mirrors. CONTROL_NODE_COLLECTIONS_MODE=check
   verifies installed collection bounds without acquisition; TEMPLATE_RUNTIME_MODE=check uses
   accepted preinstalled tooling. Controller preparation is not all-stage disconnected readiness.
+- Controller collection acquisition defaults to approved Git sources pinned by full commit and
+  compatible release version in Shared's collection-sources.yml. Preserve compatible installed
+  versions and native search precedence; batch native installs without distribution-server fallback.
+  FreeIPA requires its pinned upstream release builder, automated in a private temporary workspace.
+  Standalone template preparation mirrors only the Proxmox pin and stays independent of Shared.
+  CONTROL_NODE_COLLECTIONS_SOURCE=galaxy retains explicit OS/Galaxy acquisition; dependency check
+  mode stays acquisition-free. Changing sources never repairs an unavailable proxy or changes its ACLs.
 - Administration groups host operations under hosts/, VM/templates under virtual-machines/,
   backups under backups/, and failure scenarios/product recovery under recovery/. Avoid the vague compute label.
 - hosts/management.md owns first-use Proxmox registration from bootstrap: initialize common files with

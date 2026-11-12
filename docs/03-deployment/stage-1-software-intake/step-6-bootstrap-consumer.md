@@ -182,8 +182,10 @@ sudo apt-get -o APT::Update::Error-Mode=any update
 ```
 
 Repeat the [explicit retrieval and policy checks](README.md#step-5-test-the-selected-intake-path) from the bootstrap network.
-Verify required pip, Galaxy, Terraform and artifact access with their commissioned configurations.
-For Galaxy, use the [API and artifact download check](../../08-reference/control-node-tooling.md#galaxy-through-a-policy-proxy);
+Verify required pip, Git, Terraform and artifact access with their commissioned configurations.
+Approve the [default pinned Git collection sources](../../08-reference/control-node-tooling.md#collection-sources).
+Only when selecting Galaxy, also run its
+[API and artifact download check](../../08-reference/control-node-tooling.md#galaxy-through-a-policy-proxy);
 the cache must allow both destinations even when a collection is already installed.
 A login-shell proxy alone does not configure every tool or CI service.
 HTTPS Git remotes normally use these proxy variables; SSH remotes need their own permitted SSH path. [4]

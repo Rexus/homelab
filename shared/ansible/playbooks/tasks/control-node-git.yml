@@ -1,0 +1,163 @@
+---
+- name: Prepare the configured collection destination for a fresh controller
+  ansible.builtin.file:
+    path: "{{ lookup('ansible.builtin.config', 'COLLECTIONS_PATHS') | first }}"
+    state: directory
+
+- name: Read locally installed collection metadata without contacting a server
+  ansible.builtin.command:
+    argv: [ansible-galaxy, collection, list, --format, json]
+  register: control_node_git_inventory
+  changed_when: false
+  check_mode: false
+
+- name: Reset the selected Git acquisition plan
+  ansible.builtin.set_fact:
+    control_node_git_versions: {}
+    control_node_git_pending: []
+    control_node_git_specs: []
+    control_node_git_workspace: {}
+    control_node_git_inventory_paths: "{{ control_node_git_inventory.stdout | from_json }}"
+    control_node_git_search_paths: >-
+      {{ ([playbook_dir ~ '/collections'] + lookup('ansible.builtin.config', 'COLLECTIONS_PATHS'))
+         | map('regex_replace', '/ansible_collections/?$', '') | map('regex_replace', '/+$', '')
+         | map('regex_replace', '$', '/ansible_collections') | unique | list }}
+    control_node_git_sources: >-
+      {{ control_node_collection_git_defaults | combine(control_node_collection_git_overrides | default({})) }}
+
+- name: Apply configured collection precedence before additional Python search paths
+  ansible.builtin.set_fact:
+    control_node_git_versions: "{{ control_node_git_inventory_paths[item] | combine(control_node_git_versions) }}"
+  loop: >-
+    {{ (control_node_git_search_paths | select('in', control_node_git_inventory_paths) | list)
+       + (control_node_git_inventory_paths.keys() | difference(control_node_git_search_paths) | list) }}
+  loop_control:
+    label: "{{ item }}"
+
+- name: Select only missing or incompatible required collections for Git acquisition
+  ansible.builtin.set_fact:
+    control_node_git_pending: "{{ control_node_git_pending + [item] }}"
+  loop: "{{ control_node_required_collections }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    installed_version: "{{ control_node_git_versions.get(item.name, {}).get('version', '') }}"
+    version_compatible: >-
+      {%- set result = namespace(accepted=installed_version is match('^[0-9]+\\.[0-9]+\\.[0-9]+$')) -%}
+      {%- if result.accepted -%}
+      {%- for bound in item.version | default('*') | split(',') | map('trim') -%}
+      {%- if bound != '*' -%}
+      {%- set operator = bound | regex_search('^(>=|<=|==|!=|>|<|=)') | default('==', true) -%}
+      {%- set required = bound | regex_replace('^(>=|<=|==|!=|>|<|=)', '') -%}
+      {%- if installed_version is not ansible.builtin.version(required, operator, version_type='semver') -%}
+      {%- set result.accepted = false -%}
+      {%- endif -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {%- endif -%}
+      {{ result.accepted }}
+  when: not version_compatible | bool
+
+- name: Require a complete immutable source pin before any Git download
+  ansible.builtin.assert:
+    that:
+      - item.name in control_node_git_sources
+      - pin is mapping
+      - pin.repository is string
+      - pin.repository | ansible.builtin.urlsplit('scheme') in ['https', 'file']
+      - pin.repository | ansible.builtin.urlsplit('username') is none
+      - pin.repository | ansible.builtin.urlsplit('password') is none
+      - not pin.repository | ansible.builtin.urlsplit('query')
+      - not pin.repository | ansible.builtin.urlsplit('fragment')
+      - >-
+        (pin.repository | ansible.builtin.urlsplit('scheme') == 'https' and
+         pin.repository | ansible.builtin.urlsplit('hostname') | default('', true) | length > 0) or
+        pin.repository is match('^file:///')
+      - pin.revision is match('^[0-9a-f]{40}$')
+      - pin.version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - pin_compatible | bool
+      - pin.build | default('') in ['', 'freeipa']
+      - pin.build | default('') != 'freeipa' or item.name == 'freeipa.ansible_freeipa'
+    fail_msg: >-
+      {{ item.name }} needs a credential-free HTTPS or absolute local file Git repository,
+      full commit SHA and compatible release version in the Shared collection source pins or
+      control_node_collection_git_overrides. No Galaxy fallback is performed.
+  vars:
+    pin: "{{ control_node_git_sources.get(item.name, {}) }}"
+    pin_compatible: >-
+      {%- set result = namespace(accepted=true) -%}
+      {%- for bound in item.version | default('*') | split(',') | map('trim') -%}
+      {%- if bound != '*' -%}
+      {%- set operator = bound | regex_search('^(>=|<=|==|!=|>|<|=)') | default('==', true) -%}
+      {%- set required = bound | regex_replace('^(>=|<=|==|!=|>|<|=)', '') -%}
+      {%- if pin.version is not ansible.builtin.version(required, operator, version_type='semver') -%}
+      {%- set result.accepted = false -%}
+      {%- endif -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ result.accepted }}
+  loop: "{{ control_node_git_pending }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Verify Git is available for the selected collection sources
+  ansible.builtin.command:
+    argv: [git, --version]
+  changed_when: false
+  when: control_node_git_pending | length > 0
+
+- name: Assemble one native Git install with all selected dependency candidates
+  ansible.builtin.set_fact:
+    control_node_git_specs: >-
+      {{ control_node_git_specs + ['git+' ~ control_node_git_sources[item.name].repository ~ ',' ~
+         control_node_git_sources[item.name].revision] }}
+  loop: "{{ control_node_git_pending }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: control_node_git_sources[item.name].build | default('') == ''
+
+- name: Install all selected sources and retain build files only until acquisition finishes
+  block:
+    - name: Allocate private temporary storage only for selected release builders
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: homelab-collections-
+      register: control_node_git_workspace
+      when: "'freeipa.ansible_freeipa' in (control_node_git_pending | map(attribute='name') | list)"
+
+    - name: Package FreeIPA through its pinned upstream release builder
+      ansible.builtin.include_tasks: control-node-freeipa-source.yml
+      vars:
+        control_node_git_pin: "{{ control_node_git_sources[item.name] }}"
+      loop: "{{ control_node_git_pending }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when: control_node_git_sources[item.name].build | default('') == 'freeipa'
+
+    - name: Install the pinned collections without consulting Galaxy distribution servers
+      ansible.builtin.command:
+        argv: "{{ ['ansible-galaxy', 'collection', 'install', '--no-cache', '--offline', '--force'] + control_node_git_specs }}"
+      register: control_node_git_install
+      changed_when: "'was installed successfully' in control_node_git_install.stdout"
+      when: control_node_git_specs | length > 0
+
+    - name: Require acquired Git collections to match their declared release identities
+      ansible.builtin.assert:
+        that:
+          - >-
+            lookup('community.general.collection_version', item.name, result_not_found='', result_no_version='')
+            == control_node_git_sources[item.name].version
+        fail_msg: >-
+          {{ item.name }} does not resolve to its pinned release after installation. Verify the source
+          identity and correct any earlier shadowing copy before retrying; no deployment can continue.
+      loop: "{{ control_node_git_pending }}"
+      loop_control:
+        label: "{{ item.name }}"
+  always:
+    - name: Remove only this run's temporary collection build workspace
+      ansible.builtin.file:
+        path: "{{ control_node_git_workspace.path }}"
+        state: absent
+      when:
+        - control_node_git_workspace.changed | default(false) | bool
+        - control_node_git_workspace.path | default('') is search('/homelab-collections-[^/]+$')

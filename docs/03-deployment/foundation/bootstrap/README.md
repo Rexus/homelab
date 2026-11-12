@@ -263,8 +263,8 @@ sudo dnf install -y ansible-core python3-netaddr
 On **Debian/Ubuntu**, use `sudo apt-get install -y ansible-core python3-netaddr` instead.
 
 With compatible collections, this is enough to run the cache recipe without the manual Python
-setup below. `deploy.sh` prepares the selected setup's collections. Confirm the installed core
-and collections support each other; select **4b** if Ansible reports that a collection does not
+setup below. `deploy.sh` automatically prepares missing collections from approved pinned Git sources.
+Confirm the installed core and collections support each other; select **4b** if a collection does not
 support its version, or a recipe needs additional Python clients. Continue at **Step 5**.
 Template commands prepare their own runtime automatically.
 
@@ -284,14 +284,11 @@ python3 -m pip install -r tier-0/ansible/requirements.txt -r tier-1/ansible/requ
   -r tier-2/ansible/requirements.txt -r scripts/tier-repos/requirements.txt
 ```
 
-Install the declared collections from the same kit root with that environment active:
-
-```bash
-ansible-galaxy collection install -r shared/ansible/requirements.yml
-ansible-galaxy collection install -r tier-0/ansible/requirements.yml
-ansible-galaxy collection install -r tier-1/ansible/requirements.yml
-ansible-galaxy collection install -r tier-2/ansible/requirements.yml
-```
+No separate collection-install commands are needed. Each deployment's precheck installs its missing
+or incompatible collections from approved pinned Git sources and retains compatible installed versions.
+Allow those sources through the bootstrap's proxy; see
+[collection source choices and pins](../../../08-reference/control-node-tooling.md#collection-sources)
+for an explicit Galaxy/private-mirror choice. For disconnected execution, use **2b** instead.
 
 For **4b**, keep this environment active for Linux `deploy.sh`; reactivate it in each new shell with
 `source "$HOME/.local/share/homelab/venv/bin/activate"`. Template commands select their own

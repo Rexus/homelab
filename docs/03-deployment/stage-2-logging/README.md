@@ -110,7 +110,27 @@ their original timestamps and source identity. Record any earlier unbuffered gap
    | `terraform/common.tfvars` | `network_zones.management` must match the intended private attachment, prefix and gateway, or applied SDN lookup |
    | `terraform/deployments/syslog/terraform.tfvars` | Keep `log-1`; set its unused `vm_id`, size, `storage_class`, `disk_size_gb` and `extra_disks` capacity; retain `scsi1` or match the data-device input |
    | `ansible/inventory/hosts.yml` | Include `log-1` under `foundation_logging`; retain existing groups/hosts |
-   | `ansible/group_vars/syslog.yml` | Set `platform_host_ips.log-1` and the attached data device/filesystem; the starter's stable `scsi1` path matches Terraform. Complete receiver trust in Step 2 |
+   | `ansible/group_vars/all.yml` | Guest login/domain and the accepted common package-proxy URL before storage preparation |
+   | `ansible/group_vars/syslog.yml` | Set `platform_host_ips.log-1`, the attached data device/filesystem and any approved distro-specific DNF/APT sources; the starter's stable `scsi1` path matches Terraform. Complete receiver trust in Step 2 |
+
+   The bootstrap's `bootstrap.yml` configures **boot-1 only**. For guests using the cache, set these
+   inputs in **Tier 0 `ansible/group_vars/all.yml`** before action 4:
+
+   ```yaml
+   repository_proxy_enabled: true
+   repository_proxy_url: "http://cache.{{ platform_domain }}:3128"
+   ```
+
+   Include the receiver's subnet in the cache's approved client CIDRs. On EL, mirror lists may select
+   unapproved hosts; retain publisher verification and select approved fixed sources through
+   `repository_proxy_dnf_sources`. For Rocky receivers, uncomment the fixed-source block in the
+   [syslog configuration example](../../../tier-0/ansible/group_vars/syslog.yml.example).
+   Put this receiver's source selections in **Tier 0 `ansible/group_vars/syslog.yml`**, rather than
+   `bootstrap.yml`; this avoids applying Rocky repository filenames to other tiers' or setups' distributions.
+   For other EL distributions, use their corresponding existing repositories and approved sources;
+   see [source-selection behavior](../stage-1-software-intake/step-6-bootstrap-consumer.md#2a-policy-proxy).
+   Existing accepted internal repositories remain valid. Baseline configures these inputs before
+   the storage recipe installs filesystem tools; no guest login is required.
 
 3. Provision the VM and attached disks. Review Terraform's displayed plan; enter `yes` only
    for the intended changes:

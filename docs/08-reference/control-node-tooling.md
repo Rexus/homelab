@@ -9,6 +9,7 @@ start with [local development setup](../04-development/local-setup.md).
 - [Purpose](#purpose)
 - [Platform prerequisites](#platform-prerequisites)
 - [Deployment machine](#deployment-machine)
+- [Collection sources](#collection-sources)
 - [Dependency inventory](#dependency-inventory)
 - [Automation VM example](#automation-vm-example)
 - [Ansible environment](#ansible-environment)
@@ -72,12 +73,11 @@ Each deployment run starts with a local Ansible precheck on that deployment
 machine. That precheck is setup-aware: it verifies the Ansible collections, controller Python
 clients and native CLI tools needed by the selected setup. Direct localhost deployment plays import
 the same tier-owned precheck before their roles run; Terraform is not required by those imports.
-Default `auto` mode tries missing collections from
-OS packages first, then uses Galaxy to converge declared version ranges; versioned
-requirements can still invoke Galaxy when installed. Set
-`CONTROL_NODE_COLLECTIONS_MODE=check` for a prepared disconnected controller:
-missing/incompatible effective collections fail without installing packages or
-contacting Galaxy for collection installation. This does not disable guest package tasks.
+Default `auto` mode installs missing/incompatible collections from approved, commit-pinned
+Git repositories. Compatible installed versions within the declared bounds are retained.
+Set `CONTROL_NODE_COLLECTIONS_MODE=check` for a prepared disconnected controller:
+missing/incompatible effective collections fail without dependency acquisition.
+This does not disable guest package tasks.
 For example, `foundation` includes directory and issuer requirements:
 `community.general`, `ansible.posix`, `freeipa.ansible_freeipa`, `community.crypto`
 and `ansible.mariadb`, while `cache` needs `community.general`,
@@ -93,6 +93,35 @@ incompatible, even if Galaxy lists it successfully. Prepare the ranges in the ow
 manifests; the effective first copy on Ansible's collection path must satisfy them.
 The Proxmox collection separately requires core 2.17 or newer; template commands
 prepare the accepted isolated runtime. [4][9]
+
+### Collection sources
+
+The Shared [source pins](../../shared/ansible/playbooks/vars/collection-sources.yml) map all declared
+collections to approved repositories, full commit SHAs and release versions. The
+[Git preparation tasks](../../shared/ansible/playbooks/tasks/control-node-git.yml) install the selected
+missing/incompatible collections together with native `ansible-galaxy collection install --offline`.
+When selected, FreeIPA is packaged automatically with its pinned upstream release builder before
+joining that batch; the other collections install directly from Git. No manual packaging is required.
+Here `--offline` suppresses Galaxy distribution-server requests; **remote Git still uses the network**
+through the process's configured proxy. Git must already be installed and its source allowed. [12][23]
+
+| Selection | Behavior |
+| --- | --- |
+| Default `control_node_collections_source: git` | Use pinned Git sources only when a required collection is missing or outside its bounds; no automatic Galaxy fallback |
+| `control_node_collections_source: galaxy` | Use the previous OS-package-first path, then converge declared Galaxy ranges; approve API and artifact destinations |
+| `CONTROL_NODE_COLLECTIONS_SOURCE=galaxy` | Select the same Galaxy path through the environment when no Ansible variable overrides it |
+| `CONTROL_NODE_COLLECTIONS_MODE=check` or Ansible `--check` | Validate prepared dependencies without acquisition, regardless of source selection |
+
+Set an optional source choice in the owning **tier's `ansible/group_vars/all.yml`**; the deployment
+wrapper passes it to the precheck. Direct Ansible runs must load the same inputs. To use an accepted
+private mirror, add `control_node_collection_git_overrides` there: a map keyed by `namespace.collection`,
+with `repository`, `revision` and `version` for each override. Use credential-free `https://…git`
+or an absolute `file:///…` Git repository, a full 40-character commit SHA and its exact compatible
+release version. Branches, embedded credentials and automatic source fallback are rejected.
+Keep private access credentials in the accepted Git credential mechanism, outside repository URLs.
+Git pins identify reviewed source; Galaxy artifact-signature verification does not apply to Git installs. [12]
+
+### Python and native tools
 
 | Selected collection | Controller libraries | Native OS packages (RedHat / Debian families) |
 | --- | --- | --- |
@@ -120,7 +149,7 @@ the existing venv. Dependency `check` mode instead reports the missing metadata 
 without acquisition. Ansible `--check` also validates prepared dependencies without installing them.
 For disconnected execution, install matching OS packages or prepared local wheels and collections
 first, then select dependency `check` mode. Acquisition inherits the process's existing proxy and
-pip source settings, including `PIP_NO_INDEX` and `PIP_FIND_LINKS`; these do not constrain Galaxy.
+pip source settings, including `PIP_NO_INDEX` and `PIP_FIND_LINKS`; these do not constrain Git or Galaxy.
 Missing network-filter dependencies fail at the preparation check rather than continuing into
 tasks whose installation results would be unavailable in Ansible check mode. [20]
 
@@ -183,7 +212,7 @@ define package/collection bounds.
 | Optional root-LVM expansion | EL10: pre-stage `lvm2`, `parted` and `xfsprogs`, included in the offline RPM list; the [existing-disk or new-PV guide](../03-deployment/foundation/bootstrap/step-3b-bootstrap-lvm.md) also lists Debian/Ubuntu package names |
 | Python execution runtime | Tier 0 [runtime requirements](../../tier-0/ansible/runtime-requirements.txt); accepted interpreter plus Ansible/PyYAML/HCL tooling |
 | Python module clients | Owning tier's requirements: [Tier 0](../../tier-0/ansible/requirements.txt), [Tier 1](../../tier-1/ansible/requirements.txt), [Tier 2](../../tier-2/ansible/requirements.txt); install in the accepted venv |
-| Ansible collections | [Shared](../../shared/ansible/requirements.yml) plus [Tier 0](../../tier-0/ansible/requirements.yml), [Tier 1](../../tier-1/ansible/requirements.yml), [Tier 2](../../tier-2/ansible/requirements.yml); include transitive archives |
+| Ansible collections | Bounds: [Shared](../../shared/ansible/requirements.yml), [Tier 0](../../tier-0/ansible/requirements.yml), [Tier 1](../../tier-1/ansible/requirements.yml), [Tier 2](../../tier-2/ansible/requirements.yml); automatic [Git source pins](../../shared/ansible/playbooks/vars/collection-sources.yml). Offline bundles include transitive archives |
 | Generator only | Upstream kit `scripts/tier-repos/requirements.txt`; [generation prerequisite contract](../04-development/generated-repositories.md#purpose-and-prerequisites) |
 | Terraform providers | Each selected tier-local `terraform/deployments/<setup>/.terraform.lock.hcl`; [mirror selected roots without upgrading](../03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md#1c-mirror-locked-providers-and-stage-guest-artifacts) |
 | Guest/service and Kubernetes software | Selected stage's roles, group vars, chart/product inputs and image sources; **outside** the controller dependency bundle, even when controller Python clients are included |
@@ -256,6 +285,12 @@ Python module requirements and the declared Proxmox collection. Disk maintenance
 also installs `qemu-img` when missing. Collection downloads stay under `.venv/collections/`.
 Later runs reuse compatible packages without forcing upgrades.
 
+The template runtime also defaults to pinned Git collection acquisition and honors
+`CONTROL_NODE_COLLECTIONS_SOURCE=galaxy` for explicit Galaxy acquisition. Its standalone
+[Proxmox pin](../../tier-0/ansible/playbooks/vars/template-collection-source.yml) lives in Tier 0's
+`ansible/playbooks/vars/template-collection-source.yml` so template bootstrap does not depend on
+Shared. See [collection source behavior](#collection-sources).
+
 | Setting or condition | Behavior |
 | --- | --- |
 | Default | Prepare and select the isolated runtime automatically; no `source` step |
@@ -263,7 +298,7 @@ Later runs reuse compatible packages without forcing upgrades.
 | Missing OS packages | Use root/sudo; prompt for sudo locally when needed, never prompt in CI |
 | `TEMPLATE_PYTHON=/path/to/python` | Select an already installed Python 3.12–3.14 explicitly |
 | `TEMPLATE_RUNTIME_MODE=check` | Use preinstalled tools and existing checks; perform no dependency installation |
-| Offline package sources | Install local wheels/collection tarballs first, then select `check`; `PIP_NO_INDEX`/`PIP_FIND_LINKS` alone do not prevent Galaxy access |
+| Offline package sources | Install local wheels/collection tarballs first, then select `check`; pip source restrictions alone do not prevent Git/Galaxy access |
 
 Pip packages stay inside the isolated runtime; system Ansible and the default Python
 selection are retained. New Python minor versions get separate runtime directories.
@@ -295,8 +330,10 @@ It is optional; normal Ansible-based template commands perform the same preparat
 
 ## Galaxy through a policy proxy
 
-Galaxy uses the deployment process's `http_proxy`, `https_proxy` and `no_proxy` environment.
-APT/DNF proxy settings alone do not configure it. The
+The default Git path avoids Galaxy API and artifact redirects; allow the selected Git repositories
+through the proxy. Git and explicit Galaxy acquisition use the deployment process's `http_proxy`,
+`https_proxy` and `no_proxy` environment. APT/DNF proxy settings alone do not configure these tools.
+The following applies when **Galaxy is explicitly selected**, or when preparing Galaxy archives. The
 [cache example](../../tier-2/ansible/group_vars/cache.yml.example) permits `galaxy.ansible.com` for metadata.
 Public artifact downloads can redirect to CDN/object-storage hosts outside `ansible.com`;
 those destinations can change and are not a stable global hostname contract.
@@ -305,9 +342,9 @@ from an accepted acquisition host/internal distribution through the
 [offline controller workflow](../03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md).
 Do not substitute an unrestricted cloud-provider wildcard for that source choice.
 
-The precheck uses native `ansible-galaxy --no-cache` to avoid reusing incomplete local API-response
-metadata. Installed collections and the Squid cache are preserved; compatible installed versions
-remain usable without downloading. This flag does not bypass the proxy or TLS verification. [10]
+The Galaxy path uses native `ansible-galaxy --no-cache` to avoid reusing incomplete local API-response
+metadata. This preserves installed collections and the Squid cache; it does not bypass the proxy or
+TLS verification. The default Git path retains compatible installed versions without downloading. [10]
 
 | Failure | Meaning / action |
 | --- | --- |
@@ -315,7 +352,33 @@ remain usable without downloading. This flag does not bypass the proxy or TLS ve
 | `Unexpected Exception ... 'results'` | A known Galaxy client failure can mask an earlier request error; retry with `--clear-response-cache` to expose the underlying failure [11] |
 | Connection timeout or TLS verification failure | Check the approved proxy route, DNS and CA trust before retrying |
 
+### Repair a blocked cryptographic collection download
+
+For **older kit versions** without automatic Git acquisition, retain this one-time repair.
+Current deployment prechecks perform the selected pinned Git installation automatically.
+
+If syslog preparation resolves `community.crypto` but its artifact download receives a proxy 403,
+install the same official release through the separately approved GitHub route. This is an explicit
+source choice, not an automatic proxy bypass or fallback. The 2.26.9 tag satisfies the declared
+`>=2.26.0,<3.0.0` range. [12][22]
+
+On **`boot-1`**, as the same deployment user and in the same Ansible runtime:
+
+```bash
+source /etc/profile.d/shell-proxy.sh
+ansible-galaxy collection install 'git+https://github.com/ansible-collections/community.crypto.git,2.26.9'
+```
+
+**Expected:** `community.crypto:2.26.9` installs successfully. Rerun the interrupted syslog command;
+the precheck accepts an effective compatible installed version without another artifact download.
+For disconnected or CI execution, prepare collection archives through the
+[offline controller workflow](../03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md).
+Normal public Galaxy acquisition still needs its actual approved artifact destinations.
+
 ### Recover an existing cache that blocks Galaxy
+
+This repair is for older kit versions or an explicitly selected Galaxy path. For the current
+default, allow the [pinned Git sources](#collection-sources) and rerun the original deployment.
 
 1. On **`boot-1`**, as the deployment user, load the proxy and install the official release tag
    through the existing approved GitHub path. This resolves the `ansible.utils` dependency needed
@@ -414,6 +477,7 @@ encrypted off-host recovery separately.
 Sources checked 2026-11-08.
 
 Controller Python module, pip, metadata and execution references [15]–[21] checked 2026-11-11.
+Git collection acquisition, offline behavior and release metadata [12][22][23] checked 2026-11-12.
 
 1. [HashiCorp Terraform installation](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli).
 2. [Ansible distribution packages and EPEL](https://docs.ansible.com/projects/ansible/latest/installation_guide/installation_distros.html).
@@ -437,3 +501,5 @@ Controller Python module, pip, metadata and execution references [15]–[21] che
 19. [Setuptools removal of pkg_resources](https://setuptools.pypa.io/en/latest/history.html#v82-0-0).
 20. [Ansible check-mode behavior and registered results](https://docs.ansible.com/projects/ansible-core/2.16/playbook_guide/playbooks_checkmode.html).
 21. [GitLab job artifacts and cross-job handoff](https://docs.gitlab.com/ci/jobs/job_artifacts/).
+22. [Official community.crypto 2.26.9 release metadata](https://github.com/ansible-collections/community.crypto/blob/2.26.9/galaxy.yml).
+23. [Ansible 2.16 collection installation: scope of --offline](https://docs.ansible.com/projects/ansible-core/2.16/cli/ansible-galaxy.html#collection-install).

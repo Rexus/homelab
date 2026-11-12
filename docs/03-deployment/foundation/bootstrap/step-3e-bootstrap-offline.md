@@ -107,6 +107,12 @@ Keep this acquisition venv outside the bundle; virtual environments are rebuilt
 on the target, not copied. Download binary wheels and all transitive collection
 dependencies from the repository manifests. [3][4]
 
+This bundle-preparation path explicitly uses Galaxy on the **connected acquisition host**;
+its approved API/artifact route must work there. Normal deployment defaults to
+[pinned Git sources](../../../08-reference/control-node-tooling.md#collection-sources).
+Those remote Git installs still require network access: prepare the archives here and use
+dependency `check` mode on the disconnected target.
+
 Run on **the connected matching acquisition host**.
 
 ```bash
@@ -398,8 +404,9 @@ Repeat the last precheck with the owning tier/setup before other Linux deploymen
 it verifies installed collection bounds, not API access or guest package sources.
 Source `offline.env` in each new deployment shell. These variables belong to the
 execution environment, not the scripts' allowlisted Proxmox `.env.local` file.
-Both `check` modes refuse dependency acquisition; template runtime `auto` may
-invoke Galaxy and must not be used for this disconnected path.
+Both `check` modes refuse dependency acquisition. `auto` may fetch remote Git sources, or Galaxy
+when explicitly selected, and must not be used for this disconnected path. `ansible-galaxy --offline`
+alone does not prevent remote Git access; the local-archive installation in Step 8 does not use Git.
 
 **Rejoin:** [Bootstrap Step 3](README.md#step-3-prepare-the-execution-accounts-ssh-key),
 then configure verified Proxmox CA/API access, local inputs and approved images.
@@ -415,7 +422,7 @@ in the Shared baseline. Keep the disconnected recovery bundle independently.
 | --- | --- |
 | DNF | Approved `baseurl`/repository definitions in `/etc/yum.repos.d/*.repo`, or `proxy=` in `/etc/dnf/dnf.conf`; retain GPG/TLS validation |
 | Pip | `index-url` in `$HOME/.config/pip/pip.conf` for a complete approved index; keep `PIP_NO_INDEX`/`PIP_FIND_LINKS` for local wheels until tested |
-| Galaxy | In the owning tier's selected `ansible/ansible.cfg`, configure an accepted `[galaxy] server_list` / `[galaxy_server.<name>]`; local downloaded requirements remain valid offline |
+| Ansible collections | Keep prepared local archives and dependency `check` mode for disconnected operation. For connected updates, approve the [default Git sources or explicitly selected Galaxy server](../../../08-reference/control-node-tooling.md#collection-sources); local downloaded requirements remain valid offline |
 | Terraform | Keep the filesystem mirror or select an approved `network_mirror` in the private `*.tfrc`; retain root lockfiles and omit `direct` for restricted execution |
 
 Test DNS, trust, permitted artifact retrieval and a selected setup precheck before
