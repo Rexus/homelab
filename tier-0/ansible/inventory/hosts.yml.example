@@ -24,6 +24,11 @@ all:
         log-1: {}
         # Required redundancy before accepting the HA security-logging contract.
         # log-2: {}
+    # Reuse receiver hosts and connection settings for their own OS forwarding.
+    # Enroll other approved Linux groups/hosts here; keep their existing definitions.
+    logging_producers:
+      children:
+        foundation_logging: null
     logging_recovery:
       hosts: {}
       # hosts:

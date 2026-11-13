@@ -1,9 +1,11 @@
 # Local inputs; reusable implementation: Shared ansible/roles/log_forwarder.
-# Add approved existing hosts to logging_producers in this tier's inventory.
-log_forwarder_target: ""  # independently resolvable collector IP or name
+# Defaults and optional settings: Shared ansible/roles/log_forwarder/defaults/main.yml.
+# logging_producers already includes foundation_logging; reuse other approved inventory groups/hosts.
+# Set the stable service DNS name once below. Override target with an IP only if DNS is unavailable.
+log_forwarder_target: "{{ log_forwarder_peer }}"
 log_forwarder_peer: ""  # exact receiver certificate DNS SAN
 # Set a distinct external dead-man URL per host; a shared URL can hide a failed producer.
-# Set streams per host using ansible/host_vars/<inventory-host>.yml, not one shared CN.
+# Add streams to ansible/inventory/host_vars/<inventory-host>.yml; preserve existing host settings.
 # log_forwarder_watchdog_url: <unique-host-external-dead-man-url>
 # log_forwarder_streams:
 #   - {name: log-1-os, kind: security, input: journal}

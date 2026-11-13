@@ -10,6 +10,10 @@ all:
         else (platform_host_ips | default({})).get(inventory_hostname, inventory_hostname)
       }}
   children:
+    # Select existing Linux groups with children:, or individual hosts with empty entries.
+    # Reuse their current address/login; enroll each producer before enabling forwarding.
+    logging_producers:
+      hosts: {}
     edge_load_balancers:
       hosts:
         lb-1: {}

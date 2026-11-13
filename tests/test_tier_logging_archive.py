@@ -174,6 +174,8 @@ class GeneratedLoggingPayload(TierRepositoryTestCase):
             self.assertNotIn('https://', content)
 
     def test_executable_mechanisms_follow_ownership_without_seeding_live_inputs(self):
+        import yaml
+
         self.generate()
         for name in ('logging_checkpoint.py', 'logging_io.py', 'logging_health.py'):
             self.assertEqual((ROLE / 'files' / name).read_bytes(),
@@ -182,6 +184,12 @@ class GeneratedLoggingPayload(TierRepositoryTestCase):
             root = self.root / f'verify-tier-{tier}'
             self.assertTrue((root / 'ansible/playbooks/deployment/logging-producers.yml').is_file())
             self.assertFalse((root / 'ansible/group_vars/logging_producers.yml').exists())
+            inventory = yaml.safe_load((root / 'ansible/inventory/hosts.yml.example').read_text())
+            groups = inventory['all']['children']
+            self.assertIn('logging_producers', groups)
+            if tier == 0:
+                self.assertIn('foundation_logging', groups['logging_producers']['children'])
+                self.assertNotIn('hosts', groups['logging_producers'])
             if tier:
                 self.assertFalse((root / 'ansible/roles/logging_authority').exists())
         self.assertTrue((self.root / 'verify-shared/ansible/roles/log_forwarder/tasks/main.yml').is_file())

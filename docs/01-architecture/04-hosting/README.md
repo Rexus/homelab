@@ -69,7 +69,8 @@ Rescheduling, host restart, service replication and application recovery are dis
 mechanisms. Each realization records which mechanisms it supplies and what they depend on.
 
 In the supplied realization, Proxmox creates the VM boundary and Kubernetes schedules
-services within selected node VMs. Start with the [runtime view](01-runtime.md), then
+services within selected node VMs. Start with the [runtime view](01-runtime.md) and
+[vertical/horizontal scaling and host capacity](01-runtime.md#scaling-and-host-capacity), then
 [infrastructure control](02-provisioning.md#bootstrap-execution) for who can change those
 resources. [Kubernetes](03-kubernetes.md) explains cluster boundaries; [lab isolation](04-lab-environments.md)
 explains when a project needs a separate cluster.

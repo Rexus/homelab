@@ -85,6 +85,7 @@ outside this connected hosting model.
 
 - [Completed hosting model](#completed-hosting-model)
 - [Runtime realizations](#runtime-realizations)
+- [Scaling and host capacity](#scaling-and-host-capacity)
 - [Storage interfaces](#storage-interfaces)
 - [Persistence and recovery](#persistence-and-recovery)
 - [Failure domains](#failure-domains)
@@ -109,6 +110,83 @@ The directory pair's dedicated-VM placement is part of the reference design.
 A runtime alternative for another service does not imply migration of that pair
 or of any existing service. Moving a service requires an explicit data and
 lifecycle design, even when its client interface remains unchanged.
+
+## Scaling and host capacity
+
+**Vertical scaling** gives an existing instance more CPU or RAM. **Horizontal scaling** adds instances
+or hosts. Choose the layer that is constrained: larger node VMs, more workers and more application
+replicas solve different capacity problems.
+
+### How VM sizes fill a host
+
+This illustrative allocation uses the repository's shared VM profiles. Each host has the **same
+16 GiB guest-memory budget**, after separately budgeting host OS, hypervisor and storage overhead.
+Read each row from allocated VMs on the left to unallocated capacity on the right.
+
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+block-beta
+  columns 8
+  HostA["Physical host A / guest-memory budget"]:8
+  L["large"]:4 RA["Unallocated reserve<br/>Recovery / growth"]:4
+  HostB["Physical host B / guest-memory budget"]:8
+  M1["medium"]:2 M2["medium"]:2 RB["Unallocated reserve<br/>Recovery / growth"]:4
+  HostC["Physical host C / guest-memory budget"]:8
+  M3["medium"]:2 S1["small"]:1 S2["small"]:1 RC["Unallocated reserve<br/>Recovery / growth"]:4
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class HostA,HostB,HostC boundary
+  class L,M1,M2,M3,S1,S2 services
+```
+
+*Figure: VM rectangle widths represent configured RAM: one large, two medium, or one medium plus
+two small VMs occupy the same memory. Each host retains half its guest budget. These are illustrative packing
+patterns in an example pool, not deployed inventory or measured utilization; the picture shows no
+network routes, application replication or automatic capacity reservation.*
+
+| VM profile in the figure | vCPUs | Configured RAM |
+| --- | --- | --- |
+| `small` | 2 | 2 GiB |
+| `medium` | 2 | 4 GiB |
+| `large` | 4 | 8 GiB |
+
+The [Shared size catalog](../../../shared/config/guest-sizes.json) owns the actual values, including
+`tiny`, `xl` and memory-heavy `-mem` variants. Size names describe allocations, not service importance.
+The selected service's minimums still apply; the cluster root rejects undersized node profiles.
+CPU demand, disk capacity/IOPS and network throughput need their own budgets; equal RAM does not mean
+equal processing capacity. The VM module uses fixed RAM with ballooning disabled.
+
+### What changes at each layer
+
+| Layer | Vertical: larger instance | Horizontal: more instances | Control in this project |
+| --- | --- | --- | --- |
+| VM or Kubernetes node VM | Change its `size`, or explicit `cores` / `memory` overrides | Add guest or worker definitions, matching inventory and address entries | Owning tier's Terraform inputs and original state |
+| Kubernetes application | Adjust the supported CPU/memory requests and limits | Change supported replica counts and qualify routing/data behavior | Selected service's Helm values or manifests |
+| Physical hosting | Expand an existing host's hardware | Commission additional eligible hosts and their network/storage access | Foundation host lifecycle; physical expansion is external work |
+
+The [VM module](../../../tier-0/terraform/modules/vm/main.tf) resolves profile values and per-field
+overrides. The [cluster root](../../../tier-0/terraform/deployments/kubernetes/main.tf) sizes its declared
+node map separately. Kubernetes then schedules application requests within node allocatable capacity;
+changing a VM size does not change pod requests or replica counts. [1]
+
+Scaling is an explicit reviewed IaC change here. Retain existing resource keys, identities and state;
+review restart/replacement requirements before resizing. Application replication must use its native
+data/quorum lifecycle. No cluster autoscaler is supplied. Proxmox HA/rebalancing relocates or restarts
+existing VMs; it adds neither instances nor physical capacity.
+
+### Keep room for failure as well as growth
+
+Budget against the selected failure scenario, such as **N+1**: required workloads must still fit after
+losing one host. In the picture, one host's RAM allocation fits into a survivor's reserve; actual
+recovery also needs eligible placement, CPU, reachable storage, networking and application recovery.
+Free RAM spread across several hosts cannot run a VM that fits on none of them. Growth consumes the
+same reserve, so recheck the failure budget before allocating it. Terraform does not enforce this
+physical-host capacity budget automatically.
+
+Use [platform inputs](../../08-reference/platform-inputs.md#find-supported-settings) to find sizing fields,
+[worker operations](../../05-operations/01-hosting/kubernetes-and-labs.md#add-capacity) to add cluster capacity,
+and the [HA guide](../../03-deployment/foundation/proxmox/step-1b-cluster-ha.md) to qualify surviving placement.
 
 ## Storage interfaces
 
@@ -165,3 +243,5 @@ copies and local administrative execution remain available.
 
 Storage-interface sources are maintained in [Data and storage](../06-data/README.md#references).
 The hosting figure is the repository's selected reference, not a cloud-provider deployment claim.
+
+1. [Kubernetes: resource requests, limits and scheduling](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).

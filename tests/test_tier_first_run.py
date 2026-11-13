@@ -86,13 +86,15 @@ class NativeFirstRun(unittest.TestCase):
         hosts = inventory / 'host_vars'
         for directory in (inventory, variables, hosts):
             directory.mkdir(parents=True)
-        (inventory / 'hosts.yml').write_text((UPSTREAM / 'tier-0/ansible/inventory/hosts.yml.example').read_text())
+        receiver_inventory = load('tier-0/ansible/inventory/hosts.yml.example')
+        receiver_inventory['all']['hosts'] = {'recovery': {}}
+        (inventory / 'hosts.yml').write_text(yaml.safe_dump(receiver_inventory))
         for name in ('all', 'syslog', 'foundation', 'logging_producers', 'logging_archive', 'logging_backup'):
             (variables / f'{name}.yml').write_text(
                 (UPSTREAM / f'tier-0/ansible/group_vars/{name}.yml.example').read_text())
-        (inventory / 'hosts.yml').write_text(yaml.safe_dump({'all': {'vars': {
-            'ansible_host': "{{ platform_host_ips[inventory_hostname] }}"}, 'hosts': {
-                'log-1': {}, 'ca-1': {}, 'recovery': {}}}}))
+        producer_values = yaml.safe_load((variables / 'logging_producers.yml').read_text())
+        producer_values['log_forwarder_peer'] = 'logs.accepted.example'
+        (variables / 'logging_producers.yml').write_text(yaml.safe_dump(producer_values))
         for name in ('log-1', 'ca-1', 'recovery'):
             (hosts / f'{name}.yml').write_text(yaml.safe_dump({
                 'ansible_user': name + '-operator', 'log_forwarder_streams': [{'name': name + '-os'}],
@@ -106,6 +108,9 @@ class NativeFirstRun(unittest.TestCase):
             'ansible.builtin.assert': {'that': [
                 "ansible_user == inventory_hostname ~ '-operator'", "platform_domain == 'corp.example.com'",
                 "ansible_host == expected_ips[inventory_hostname]",
+                "inventory_hostname != 'log-1' or (inventory_hostname in groups['foundation_logging'] "
+                "and inventory_hostname in groups['logging_producers'])",
+                "log_forwarder_peer is not defined or log_forwarder_target == 'logs.accepted.example'",
                 "log_forwarder_streams[0].name == inventory_hostname ~ '-os'"]}}]}]))
         # Keep the real documented arguments; replace only the infrastructure play with local assertions.
         cases = [(inputs + command, f'{host}\nansible/group_vars/{setup}.yml\n{self.root}/public\n',

@@ -28,9 +28,12 @@ certificate identity; its connection target may be a fixed IP. No later-tier dir
 
 ## 1. Prepare tier-owned streams
 
-1. Add existing hosts to `logging_producers` in this tier's ignored inventory, retaining
-   their existing host/IP definitions. Include the collector itself in Tier 0. Copy
-   the supplied input template:
+1. Select existing hosts in `logging_producers` in this tier's ignored inventory. Use
+   `children` to reuse an existing group, or `hosts` with empty `{}` entries to select
+   individual inventory names. The same hosts keep their existing address/login. [5]
+   Tier 0 already includes `foundation_logging` in the current template; older local
+   inventories can add the [group membership](../README.md#step-5-configure-the-first-producer).
+   Copy the supplied input template:
 
    Run from the producer owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
 
@@ -46,8 +49,11 @@ certificate identity; its connection target may be a fixed IP. No later-tier dir
    - `ansible/group_vars/logging_producers.yml`: Producer streams, receiver identity and host-local TLS/queue
      inputs.
 
-2. Set `log_forwarder_target` and exact `log_forwarder_peer` in the local file.
-   Set `log_forwarder_streams` per host in ignored `ansible/inventory/host_vars/<host>.yml`.
+2. Set the receiver's stable service DNS name in `log_forwarder_peer`. The template's
+   `log_forwarder_target` reuses it; override the target with an accepted IP if DNS is
+   unavailable. Keep the peer as the exact certificate DNS SAN.
+   Add `log_forwarder_streams` to each ignored `ansible/inventory/host_vars/<host>.yml`,
+   creating the file if missing. Preserve its existing UUID, address and SSH settings.
    Start with one uniquely named security journal stream per host, including Proxmox
    and the receiver. Set a distinct `log_forwarder_watchdog_url` per host to an
    independently observed dead-man endpoint, never one shared by multiple hosts.
@@ -56,26 +62,15 @@ certificate identity; its connection target may be a fixed IP. No later-tier dir
    Applications use separate `kind: application`, `input: files` identities and
    explicit paths, never a filtered shared security journal.
 
-   For the first receiver OS stream, edit these two Tier 0 files. Replace the
-   address, DNS identity and dead-man URL with the commissioned values:
-
-   **`ansible/group_vars/logging_producers.yml`**:
+   For example, the common endpoint in **`ansible/group_vars/logging_producers.yml`** is:
 
    ```yaml
-   log_forwarder_target: 10.10.10.30
+   log_forwarder_target: "{{ log_forwarder_peer }}"
    log_forwarder_peer: logs.internal.example.com
    ```
 
-   **`ansible/inventory/host_vars/log-1.yml`**:
-
-   ```yaml
-   log_forwarder_watchdog_url: https://REPLACE_WITH_UNIQUE_EXTERNAL_DEAD_MAN_ENDPOINT
-   log_forwarder_streams:
-     - {name: log-1-os, kind: security, input: journal}
-   ```
-
-   Reuse this shape per host with a distinct stream name and health endpoint.
-   The target can be an IP; `log_forwarder_peer` must match the receiver's DNS SAN.
+   Use the [first producer's host settings](../README.md#step-5-configure-the-first-producer)
+   as the shape for a distinct stream name and health endpoint per host. Do not copy its connection settings.
 3. Select one exact inventory host and its existing setup map, then prepare the
    ordered Ansible inputs. Run once per producer; the inventory stays shared with
    Terraform. The setup file is `syslog.yml` for the receiver, `foundation.yml` for
@@ -214,9 +209,10 @@ do not repeat first-time archive or backup initialization.
 
 ## References
 
-Sources checked 2026-10-19.
+Logging sources checked 2026-10-19; Ansible inventory checked 2026-11-13.
 
 1. [rsyslog queue durability controls](https://docs.rsyslog.com/doc/concepts/queues.html)
 2. [rsyslog full-queue timeout and discard behavior](https://docs.rsyslog.com/doc/rainerscript/queue_parameters.html#queue-timeoutenqueue)
 3. [rsyslog native TLS forwarding](https://docs.rsyslog.com/doc/configuration/modules/omfwd.html)
 4. [UniFi native system log export](https://help.ui.com/hc/en-us/articles/33349041044119-UniFi-System-Logs-SIEM-Integration)
+5. [Ansible inventory: parent/child groups and shared host identities](https://docs.ansible.com/projects/ansible/latest/inventory_guide/intro_inventory.html#grouping-groups-parent-child-group-relationships)

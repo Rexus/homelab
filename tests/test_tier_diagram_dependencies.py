@@ -1,5 +1,7 @@
 """Declared dependency placement and compact peers; rendering is checked separately."""
 
+import json
+import re
 import unittest
 
 from test_tier_diagrams import diagrams
@@ -10,6 +12,21 @@ DOCS = UPSTREAM / "docs"
 
 
 class DiagramDependencies(unittest.TestCase):
+    def test_host_capacity_blocks_track_the_shared_memory_profiles(self):
+        profiles = json.loads((UPSTREAM / "shared/config/guest-sizes.json").read_text())["vm"]
+        page = (DOCS / "01-architecture/04-hosting/01-runtime.md").read_text()
+        code = next(block for block in diagrams(DOCS / "01-architecture/04-hosting/01-runtime.md")
+                    if 'HostA["Physical host A' in block)
+        unit = profiles["small"]["memory"]
+        allocations = re.findall(r'\["(small|medium|large)"\]:(\d+)', code)
+        self.assertEqual({profile for profile, _ in allocations}, {"small", "medium", "large"})
+        for profile, span in allocations:
+            self.assertEqual(profiles[profile]["memory"], int(span) * unit, profile)
+        for profile in ("small", "medium", "large"):
+            cores, memory = re.search(rf"\| `{profile}` \| (\d+) \| (\d+) GiB \|", page).groups()
+            self.assertEqual(int(cores), profiles[profile]["cores"], profile)
+            self.assertEqual(int(memory) * 1024, profiles[profile]["memory"], profile)
+
     def test_authority_maps_place_foundational_peers_to_the_right(self):
         runtime = diagrams(DOCS / "01-architecture/04-hosting/01-runtime.md")[0]
         self.assertLess(runtime.index('Cluster["'), runtime.index('Dedicated["'))

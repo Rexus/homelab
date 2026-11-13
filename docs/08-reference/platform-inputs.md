@@ -67,6 +67,7 @@ Set these per guest in **the owning tier's `terraform/deployments/<setup>/terraf
 
 | Field | Behavior |
 | --- | --- |
+| `size`, `cores`, `memory` | Shared VM profile, with optional per-field CPU/RAM overrides; memory is MiB. See [scaling and host capacity](../01-architecture/04-hosting/01-runtime.md#scaling-and-host-capacity) |
 | `full_clone` | `true` by default; explicit linked clones require compatible accepted template/storage |
 | `firmware` | Optional explicit match to the source template: BIOS, machine, SCSI controller and EFI enrollment; omission retains existing behavior |
 | `initialization_datastore_id` | Optional Cloud-Init media datastore override; omission uses the selected storage-class mapping |

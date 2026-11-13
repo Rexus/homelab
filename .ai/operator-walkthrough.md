@@ -19,6 +19,37 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Logging producer inventory reuse, 2026-11-13
+
+All tier inventory templates now expose the producer selection group. Tier 0 includes
+the existing receiver group as a child, reusing host identities and connection settings.
+The initial route explains how to merge that membership into older local inventories;
+refresh continues to preserve those local files. Producer host inputs add stream/health
+settings without overwriting UUID guards or repeating address/login inputs.
+Forwarding examples reuse the service DNS name for the connection target and certificate
+peer, retaining an explicit fixed-IP target option before service DNS is available.
+
+Eight focused native first-run, generated-payload, deployment-route and source/generated
+link checks passed. The native Ansible 2.16.16 fixture executes the documented argument
+sequences against the actual receiver inventory and verifies group membership, retained
+connection settings and endpoint reuse. No live forwarding or deployment was performed.
+
+### Scaling architecture, 2026-11-13
+
+The hosting runtime owns vertical/horizontal scaling and physical-host capacity guidance.
+Its illustrative memory-packing view uses Shared's actual `small`, `medium` and `large`
+profiles; a correspondence check ties column spans and the adjacent CPU/RAM table to the
+catalog. Host memory reserve is illustrative, not automatically enforced or live inventory.
+VM/node definitions, application replicas, physical expansion and HA/rebalancing retain
+their distinct lifecycle and state owners. No autoscaler or runtime behavior was added.
+
+All 26 focused diagram, architecture-order and source/generated navigation checks passed.
+The two runtime figures rendered with Mermaid 11.17.2 on light/dark page backgrounds at
+1100px and 760px; the new capacity figure was visually inspected at both reading widths.
+Its shared grid keeps profile widths comparable across hosts. Editable Markdown remains
+authoritative; [diagram export instructions](../docs/04-development/diagrams.md#export-a-review-copy)
+describe reproduction. Local rendering does not establish hosted-renderer parity or live capacity acceptance.
+
 ### Commit preparation, 2026-11-13
 
 The final review keeps NetBox's immutable collection pin in Shared's existing source catalog and

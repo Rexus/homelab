@@ -224,26 +224,33 @@ cp -n ansible/group_vars/logging_authority.yml.example ansible/group_vars/loggin
 mkdir -p ansible/inventory/host_vars
 ```
 
-In **Tier 0 `ansible/inventory/hosts.yml`**, add `log-1` to `logging_producers` beneath the existing
-`all.children`; retain its `foundation_logging` membership and all other groups:
+In **Tier 0 `ansible/inventory/hosts.yml`**, `logging_producers` selects hosts that send logs.
+The current template includes the existing `foundation_logging` group, so `log-1` reuses its
+address and SSH settings. If your local inventory predates this entry, add the following beneath
+the existing `all.children`; merge with any existing `logging_producers` entry:
 
 ```yaml
-logging_producers:
-  hosts:
-    log-1: {}
+    logging_producers:
+      children:
+        foundation_logging: null
 ```
 
-Edit **Tier 0 `ansible/group_vars/logging_producers.yml`**. Use the receiver's real IP and a
-[stable service name](../../02-conventions/service-dns.md); the latter must match its certificate SAN.
-The fixed IP can provide routing before platform DNS exists.
+Edit **Tier 0 `ansible/group_vars/logging_producers.yml`**. Set the
+[stable service name](../../02-conventions/service-dns.md) once; it must resolve to the receiver
+and match its certificate SAN. The target reuses that name:
 
 ```yaml
-log_forwarder_target: 10.10.10.30
+log_forwarder_target: "{{ log_forwarder_peer }}"
 log_forwarder_peer: logs.internal.example.com
 ```
 
-Create **Tier 0 `ansible/inventory/host_vars/log-1.yml`**. Replace the watchdog URL with this host's unique
-accepted external dead-man endpoint; it must be reachable through the selected network policy.
+If service DNS is not available yet, override `log_forwarder_target` with the receiver's accepted IP;
+keep `log_forwarder_peer` as its certificate DNS name.
+
+In **Tier 0 `ansible/inventory/host_vars/log-1.yml`**, add the following logging settings;
+create the file if missing. Preserve any UUID guard or other existing settings. The stream name
+and unique accepted external dead-man endpoint are new producer inputs; do not repeat its IP or SSH login.
+The health endpoint must be reachable through the selected network policy.
 
 ```yaml
 log_forwarder_watchdog_url: https://REPLACE_WITH_UNIQUE_EXTERNAL_DEAD_MAN_ENDPOINT
@@ -517,18 +524,18 @@ bash scripts/deploy.sh syslog --ansible-only --playbook deployment/logging-verif
 
 ## Step 13: Connect the existing hosts and devices
 
-Add each current Proxmox/Linux host to **its owning tier's `logging_producers` inventory group**.
-Keep the existing administration address/login; a hypervisor is an existing host, not a new guest
-or a receiver. Give each host its own `ansible/inventory/host_vars/<host>.yml`, stream name and watchdog URL.
+Select each current Proxmox/Linux host in **its owning tier's `logging_producers` inventory group**.
+Reuse whole existing groups through `children` (such as `hypervisors` or Tier 2 `cache`), or list
+individual existing inventory names under `hosts` with `{}`. This adds membership, not another machine.
+Keep its existing setup map and administration address/login. Add only the stream name and watchdog URL
+to each host's existing `ansible/inventory/host_vars/<host>.yml`, creating the file if missing.
 Add real audit/application files only when present; application files need separate
 `kind: application` identities and explicit paths.
 
-For example, edit **Tier 0 `ansible/inventory/host_vars/pve01.yml`** with the existing
-host's approved address/login and its own health endpoint:
+For example, add logging settings to **Tier 0 `ansible/inventory/host_vars/pve01.yml`**.
+The host's address/login remain in their existing host-management inputs:
 
 ```yaml
-ansible_host: 10.10.10.11
-ansible_user: REPLACE_WITH_ACCEPTED_ADMIN_USER
 log_forwarder_watchdog_url: https://REPLACE_WITH_UNIQUE_EXTERNAL_DEAD_MAN_ENDPOINT
 log_forwarder_streams:
   - {name: pve01-os, kind: security, input: journal}

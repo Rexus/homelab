@@ -72,6 +72,9 @@ not a general build pod or a Tier 1 delivery controller.
 
 ## Scheduling and capacity
 
+The [scaling view](01-runtime.md#scaling-and-host-capacity) separates larger node VMs, additional workers,
+application replicas and physical-host headroom. Choose the layer before changing its inputs.
+
 | Cluster | Compact reference | Optional worker pools |
 | --- | --- | --- |
 | Tier 0 | Three schedulable control planes; no initial workers | Additional trusted control-service capacity |
